@@ -104,6 +104,13 @@ FEEDBACK_REPLY_SCHEMA_V6 = "carbon.private-exam.ladder-feedback-reply.v6"
 #: list and would refuse the whole reply, so every older reply (v1..v6) WITHHOLDS each document carrying one of those
 #: reasons (served as null, never a substitute reason). Advertised as ``exam_feedback_v7``.
 FEEDBACK_REPLY_SCHEMA_V7 = "carbon.private-exam.ladder-feedback-reply.v7"
+#: v8 (Lead 15 Nov: "for every settled task ... which phase/pass ... plus a public line on the grade worker") = v7 plus, for the
+#: caller's own submission, ``failure.pass`` (which pass of a counted grade a candidate wall stop ended: `FAILURE_PASSES`, else
+#: None) and ``grade_worker`` (the public facts of the machine that grades: CPU model, the registered CPU count and memory, GPU
+#: or not). Nothing measured. Opt-in (a kit in the field pins v4's closed ``failure`` keys); advertised as ``exam_feedback_v8``.
+FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
+#: A wall stop in any other pass (e.g. the speed sample) is still counted and reads ``pass: None``.
+FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 #: The reasons only a v7 reply carries.
 V7_ONLY_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
@@ -135,6 +142,19 @@ PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 
 
+def _cpu_model(path="/proc/cpuinfo"):
+    """This host's CPU model name as ``/proc/cpuinfo`` reports it (printable, at most 96 characters), or None."""
+    try:
+        with open(path, encoding="ascii", errors="replace") as info:
+            for line in info:
+                if line.startswith("model name"):
+                    name = line.split(":", 1)[1].strip()
+                    return name[:96] if name and name.isprintable() else None
+    except OSError:
+        return None
+    return None
+
+
 def feedback_reply(fields):
     """Which per-submission feedback reply a signed request's fields ask for: ``"v2"`` (``submission_id`` alone),
     ``"v3"`` or ``"v4"`` (``reply`` + ``submission_id``), or None for anything else (refused ``feedback_fields``).
@@ -149,6 +169,7 @@ def feedback_reply(fields):
         "v5",
         "v6",
         "v7",
+        "v8",
     ):
         return fields["reply"]
     return None
@@ -415,6 +436,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v8": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V8,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 "served_contracts": self.door.served_contracts(),
@@ -577,10 +605,11 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6", "v7"),
-                v5=reply in ("v5", "v6", "v7"),
-                v6=reply in ("v6", "v7"),
-                v7=reply == "v7",
+                v4=reply in ("v4", "v5", "v6", "v7", "v8"),
+                v5=reply in ("v5", "v6", "v7", "v8"),
+                v6=reply in ("v6", "v7", "v8"),
+                v7=reply in ("v7", "v8"),
+                v8=reply == "v8",
             )
         return _refused(400, "tool")
 
@@ -620,6 +649,7 @@ class DirectRecipeIntake(BatteryIntake):
         v5=False,
         v6=False,
         v7=False,
+        v8=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -663,6 +693,11 @@ class DirectRecipeIntake(BatteryIntake):
                 grade_state = (
                     None  # CANDIDATE_FAILED is v3's; a v2 reply keeps its closed set
                 )
+        if v8 and submission_id is not None and failure is not None:
+            # which pass a counted wall stop ended (the grade marker's closed name), else None
+            marker = self.grade_marker(submission_id) or {}
+            ended = marker.get("pass") if grade_state == "CANDIDATE_FAILED" else None
+            failure = {**failure, "pass": ended if ended in FAILURE_PASSES else None}
         snapshot = getattr(self.adapter.discovery, "evaluation_pack_snapshot", None)
         exam_key = getattr(snapshot, "manifest_digest", None)
         gate_failures = None
@@ -709,21 +744,25 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V7
-                            if v7
+                            FEEDBACK_REPLY_SCHEMA_V8
+                            if v8
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V6
-                                if v6
+                                FEEDBACK_REPLY_SCHEMA_V7
+                                if v7
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V5
-                                    if v5
+                                    FEEDBACK_REPLY_SCHEMA_V6
+                                    if v6
                                     else (
-                                        FEEDBACK_REPLY_SCHEMA_V4
-                                        if v4
+                                        FEEDBACK_REPLY_SCHEMA_V5
+                                        if v5
                                         else (
-                                            FEEDBACK_REPLY_SCHEMA_V3
-                                            if v3
-                                            else FEEDBACK_REPLY_SCHEMA_V2
+                                            FEEDBACK_REPLY_SCHEMA_V4
+                                            if v4
+                                            else (
+                                                FEEDBACK_REPLY_SCHEMA_V3
+                                                if v3
+                                                else FEEDBACK_REPLY_SCHEMA_V2
+                                            )
                                         )
                                     )
                                 )
@@ -735,6 +774,7 @@ class DirectRecipeIntake(BatteryIntake):
                             **({"failure": failure} if v4 else {}),
                             **({"held_position": held_position} if v5 else {}),
                             **({"gate_failures": gate_failures} if v6 else {}),
+                            **({"grade_worker": self.grade_worker()} if v8 else {}),
                         },
                     }
                 ),
@@ -821,6 +861,30 @@ class DirectRecipeIntake(BatteryIntake):
             submission_id=submission_id,
         )
         return ("GRADED" if held else "NOT_GRADED"), None
+
+    def grade_worker(self):
+        """The PUBLIC facts of the machine that grades (exam_feedback v8): ``cpu_model`` (this host's own /proc/cpuinfo model
+        name, or None), ``cpu_count`` and ``memory_bytes`` (the Challenge's registered resource policy, the limits every
+        graded run gets), and ``gpu`` (whether this receiver grades with a GPU lane). Nothing measured, nothing of a run.
+        """
+        policy = {}
+        try:
+            policy = self.adapter.discovery._material["construction_limits_document"][
+                "reconstruction_resource_policy"
+            ]
+        except (AttributeError, KeyError, TypeError):
+            policy = {}
+
+        def positive(name):
+            value = policy.get(name) if type(policy) is dict else None
+            return value if type(value) is int and value > 0 else None
+
+        return {
+            "cpu_model": _cpu_model(),
+            "cpu_count": positive("cpu_count_max"),
+            "memory_bytes": positive("memory_bytes_max"),
+            "gpu": getattr(self, "grading_gpu", False) is True,
+        }
 
     def failure_v4(self, child, observation, code=None):
         """The v4 ``failure``: exactly `FAILURE_KEYS`, each from a closed value set (anything else becomes None). The

@@ -539,6 +539,16 @@ FEEDBACK_V7_FACTS = {
     "fields": ["reply", "submission_id"],
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V7,
 }
+#: v8: v7 plus the failure's ``pass`` (which pass of a counted grade a wall stop ended) and ``grade_worker`` (the public facts of
+#: the grading machine) (`direct_intake` FEEDBACK_REPLY_SCHEMA_V8, Lead 15 Nov); asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
+FEEDBACK_V8_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V8,
+}
+FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
+GRADE_WORKER_KEYS = ("cpu_model", "cpu_count", "memory_bytes", "gpu")
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
 #: A bound on the held count a reply may name (a resource bound, not a policy value).
@@ -599,6 +609,43 @@ def _gate_failures_v6(failures):
     return failures is None or gate_failure_feedback.valid(failures)
 
 
+def _failure_v8(value):
+    """Whether a v8 reply's ``failure`` is None or v4's allow-listed shape plus ``pass`` (one of `FAILURE_PASSES` or None)."""
+    if value is None:
+        return True
+    if type(value) is not dict or set(value) != {*FAILURE_KEYS, "pass"}:
+        return False
+    if value["pass"] is not None and value["pass"] not in FAILURE_PASSES:
+        return False
+    return _failure_v4({k: value[k] for k in FAILURE_KEYS})
+
+
+def _grade_worker_v8(value):
+    """Whether a v8 reply's ``grade_worker`` is exactly its public shape: a printable CPU model of at most 96 characters or None,
+    positive integer CPU count and memory bytes or None, and a Boolean GPU flag."""
+
+    def positive(item):
+        return item is None or (
+            type(item) is int and not isinstance(item, bool) and item > 0
+        )
+
+    return (
+        type(value) is dict
+        and set(value) == set(GRADE_WORKER_KEYS)
+        and (
+            value["cpu_model"] is None
+            or (
+                type(value["cpu_model"]) is str
+                and 0 < len(value["cpu_model"]) <= 96
+                and value["cpu_model"].isprintable()
+            )
+        )
+        and positive(value["cpu_count"])
+        and positive(value["memory_bytes"])
+        and type(value["gpu"]) is bool
+    )
+
+
 def _held_position_v5(grade_state, held):
     """A v5 reply's ``held_position``: {place, of} with 1 <= place <= of exactly when the submission is held, else
     None. Anything else is refused, never trimmed."""
@@ -643,7 +690,10 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v7 = (
+    v8 = (
+        submission_id is not None and facts.get("exam_feedback_v8") == FEEDBACK_V8_FACTS
+    )
+    v7 = v8 or (
         submission_id is not None and facts.get("exam_feedback_v7") == FEEDBACK_V7_FACTS
     )
     v6 = v7 or (
@@ -676,7 +726,13 @@ def read_exam_feedback(
         fields=(
             {
                 "reply": (
-                    "v7" if v7 else "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3"
+                    "v8"
+                    if v8
+                    else (
+                        "v7"
+                        if v7
+                        else "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3"
+                    )
                 ),
                 "submission_id": submission_id,
             }
@@ -697,24 +753,28 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V7
-            if v7
+            FEEDBACK_REPLY_SCHEMA_V8
+            if v8
             else (
-                FEEDBACK_REPLY_SCHEMA_V6
-                if v6
+                FEEDBACK_REPLY_SCHEMA_V7
+                if v7
                 else (
-                    FEEDBACK_REPLY_SCHEMA_V5
-                    if v5
+                    FEEDBACK_REPLY_SCHEMA_V6
+                    if v6
                     else (
-                        FEEDBACK_REPLY_SCHEMA_V4
-                        if v4
+                        FEEDBACK_REPLY_SCHEMA_V5
+                        if v5
                         else (
-                            FEEDBACK_REPLY_SCHEMA_V3
-                            if v3
+                            FEEDBACK_REPLY_SCHEMA_V4
+                            if v4
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V2
-                                if v2
-                                else FEEDBACK_REPLY_SCHEMA
+                                FEEDBACK_REPLY_SCHEMA_V3
+                                if v3
+                                else (
+                                    FEEDBACK_REPLY_SCHEMA_V2
+                                    if v2
+                                    else FEEDBACK_REPLY_SCHEMA
+                                )
                             )
                         )
                     )
@@ -733,6 +793,7 @@ def read_exam_feedback(
             | ({"failure"} if v4 else set())
             | ({"held_position"} if v5 else set())
             | ({"gate_failures"} if v6 else set())
+            | ({"grade_worker"} if v8 else set())
         )
         or answer["submission"]["submission_id"] != submission_id
         or (
@@ -745,7 +806,13 @@ def read_exam_feedback(
             )
         )
         or (v4 and answer["submission"]["grade_state"] is None)
-        or (v4 and not _failure_v4(answer["submission"]["failure"]))
+        or (
+            v4
+            and not (_failure_v8 if v8 else _failure_v4)(
+                answer["submission"]["failure"]
+            )
+        )
+        or (v8 and not _grade_worker_v8(answer["submission"]["grade_worker"]))
         or (
             v5
             and not _held_position_v5(

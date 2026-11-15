@@ -99,7 +99,16 @@ class AutoGrader:
     def _marker(self, submission_id):
         return self.markers / (submission_id + ".json")
 
-    def _write(self, submission_id, state, *, code=None, entry_id=None, next_step=None):
+    def _write(
+        self,
+        submission_id,
+        state,
+        *,
+        code=None,
+        entry_id=None,
+        next_step=None,
+        pass_name=None,
+    ):
         body = {
             "schema": SCHEMA,
             "submission_id": submission_id,
@@ -108,6 +117,8 @@ class AutoGrader:
             "entry_id": entry_id,
             # a FAILED grade's next step (`auto_retry.NEXT_STEPS`, R39); absent on every other marker
             **({} if next_step is None else {"next_step": next_step}),
+            # which pass a CANDIDATE_FAILED wall stop ended (exam_feedback v8); absent on every other marker
+            **({} if pass_name is None else {"pass": pass_name}),
         }
         fd = os.open(
             self._marker(submission_id), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -403,7 +414,10 @@ class AutoGrader:
                     # The candidate's own graph at the graded-inference wall: its outcome, COUNTED, never given back
                     # as infrastructure (Validator 4 Nov 16:52: else a changed recipe probes the hidden inputs free).
                     self._write(
-                        submission_id, "CANDIDATE_FAILED", code=_WALL_LIMIT_REACHED
+                        submission_id,
+                        "CANDIDATE_FAILED",
+                        code=_WALL_LIMIT_REACHED,
+                        pass_name=getattr(failure, "carbon_pass", None),
                     )
                     return submission_id, "CANDIDATE_FAILED"
                 self._fail(
@@ -428,6 +442,7 @@ class AutoGrader:
                     "CANDIDATE_FAILED",
                     code=result.get("private_evaluation_reason"),
                     entry_id=entry if type(entry) is str else None,
+                    pass_name=result.get("private_evaluation_pass"),
                 )
                 return submission_id, "CANDIDATE_FAILED"
             # A grade that could not be computed keeps ITS reason in the marker (a typed code): an operator's
