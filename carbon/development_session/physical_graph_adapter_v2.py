@@ -637,6 +637,24 @@ class EnsembleGraphModel:
         )
 
 
+#: Graph route v2 versions whose BUILD runs the compiled forward (`carbon.level4.train.FORWARD_JIT`: the post-fit TRAIN
+#: predictions and the kit's local predictions; the training loop is already a jitted scan, and graded inference runs its
+#: own registered program). Kept here, Challenge-side: the shared `carbon.level4` modules carry no Challenge literal.
+#: Motor 1.8: owner, Sun 15 Nov 2026 via the Lead ("Just don't count it out due to a tiny difference"; item 7 y): on 5 of
+#: 5 public models the trained parameters and train_loss equalled eager and the compiled build repeated bit for bit in
+#: the same and a fresh process (tests/cpu/test_motor18_build_jit.py).
+JIT_BUILD_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
+
+
+def build_forward_mode(challenge_id: str, version: str) -> str:
+    """The forward a version's build prepares with: compiled for `JIT_BUILD_VERSIONS`, else the shared registry's."""
+    from carbon.level4.train import FORWARD_JIT, forward_mode
+
+    if (challenge_id, version) in JIT_BUILD_VERSIONS:
+        return FORWARD_JIT
+    return forward_mode(challenge_id, version)
+
+
 def build_validated_graph(
     recipe: ConstructionRecipe,
     raw_manifest: bytes,
@@ -652,7 +670,7 @@ def build_validated_graph(
     the staged bytes' digest against the host's control."""
     from carbon.level4 import intake, validate
     from carbon.level4.allowlist import Allowlist
-    from carbon.level4.train import forward_mode, prepare
+    from carbon.level4.train import prepare
 
     settings = training_settings(recipe)
     named = recipe.to_dict()["challenge"]
@@ -693,7 +711,7 @@ def build_validated_graph(
             allowed,
             verdict=verdict,
             loss_override=LOSS_OVERRIDE,
-            forward=forward_mode(named["id"], named["version"]),
+            forward=build_forward_mode(named["id"], named["version"]),
         ),
         allowed,
         settings,

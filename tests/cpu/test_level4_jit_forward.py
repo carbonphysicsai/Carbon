@@ -72,6 +72,9 @@ def _scan_submission(allowlist, n=4):
 
 
 def test_no_version_is_opted_in_until_the_validator_rules():
+    """The SHARED registry stays empty (no Challenge literal in carbon/level4); Motor 1.8's build opts in Challenge-side
+    (physical_graph_adapter_v2.JIT_BUILD_VERSIONS, tests/cpu/test_motor18_build_jit.py).
+    """
     assert train.JIT_FORWARD_VERSIONS == frozenset()
     for key in (
         ("f08-ribbed-bracket", "1.7"),
@@ -139,8 +142,8 @@ def test_adapter_v2_passes_the_registry_mode_for_the_recipes_version():
     source = (
         ROOT / "carbon/development_session/physical_graph_adapter_v2.py"
     ).read_text(encoding="utf-8")
-    assert 'forward=forward_mode(named["id"], named["version"])' in source
-    assert "from carbon.level4.train import forward_mode, prepare" in source
+    assert 'forward=build_forward_mode(named["id"], named["version"])' in source
+    assert "from carbon.level4.train import FORWARD_JIT, forward_mode" in source
 
 
 def test_train_imports_only_modules_every_graph_worker_stages():
