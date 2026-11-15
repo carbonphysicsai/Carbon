@@ -66,6 +66,17 @@ for (const board of Object.values(boardsV2)) {
   }
 }
 
+// Official-score crowns (owner 14 Nov; V2B 15 Nov): the king page keeps the single-grade id, so the projection passes no
+// to_beat_rule and the card states BOTH ends: the floored king total + margin, and the guaranteed bar (the live 116 case).
+{
+  const off = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  off.king.value = 0.66; off.launch.margin = 0.0129; off.launch.to_beat = 0.693; delete off.launch.to_beat_rule;
+  const text = D.textOf(D.boardPage(off, {now}));
+  assert.ok(text.includes("The exact bar is between " + D.total(0.66 + 0.0129) + " and " + D.toBeat(0.693) + "."), "official: range line");
+  assert.ok(text.includes("passing every gate and minimum, to take the crown"), "official: a grade above the bar takes the crown");
+  assert.ok(!text.includes("rebuild average") && !text.includes("crown check:"), "official: no rebuild-average words");
+}
+
 // No leader: the baseline reading, never "the leader's —".
 const bare = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
 bare.king = null; bare.launch.to_beat = 0.5; bare.launch.baseline_total = 0.4; bare.launch.margin = 0.01;
