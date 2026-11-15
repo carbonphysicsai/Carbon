@@ -107,11 +107,28 @@ def test_the_subset_repeat_reruns_the_original_chunks_bit_exact(
     # ONE fresh process, running the vmap-64 program (never single rows per case)
     assert len(seen) == 3
     assert "lane_forward = jax.jit(jax.vmap(" in seen[-1]["source"]
-    # (a local runner has no C-03 boundary or settled controls: the only test-set fields)
+    # (a local runner has no C-03 boundary, settled controls or full carrier worker result: the only test-set fields;
+    # the operation, files and their digests stay the run's own)
+    phase = once["repeat"]
+    worker_result = {
+        "operation": phase["worker_operation"],
+        "files": {
+            name: original["sha256"] for name, original in phase["originals"].items()
+        },
+        "schema": "carbon.autoresearch.worker-result.v1",
+        "provenance": "DIRECT_GRAPH_PUBLIC_INFERENCE",
+        "output_digest": "sha256:" + "8" * 64,
+        "scientific_qualification": False,
+        "official_eligible": False,
+    }
     run_evidence = {
         **once,
         "execution_boundary": "C03_DOCKER",
-        "repeat": {**once["repeat"], "controls_digest": "sha256:" + "6" * 64},
+        "repeat": {
+            **phase,
+            "controls_digest": "sha256:" + "6" * 64,
+            "accounting": {**phase["accounting"], "worker_result": worker_result},
+        },
     }
     raw = subset.side_file(
         challenge=MOTOR,
