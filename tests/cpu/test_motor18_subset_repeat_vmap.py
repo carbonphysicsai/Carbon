@@ -36,6 +36,20 @@ KEY = bytes(range(32))  # synthetic K_speed
 COHORTS = [POOL] * 40 + [GRID] * 30 + [POOL] * (ROWS - 70)
 
 
+@pytest.fixture(autouse=True)
+def _vmap64_machinery_opted_in(monkeypatch):
+    """Motor 1.8 is NOT a vmap-64 version since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026; it grades
+    with the per-case compiled program, tests/cpu/test_motor18_rollback_program.py). These tests exercise the dormant
+    vmap-64 machinery with Motor 1.8 opted back in."""
+    from carbon.development_session import direct_graph_construction_worker
+
+    monkeypatch.setattr(
+        direct_graph_construction_worker,
+        "VMAP64_INFERENCE_VERSIONS",
+        frozenset({("electric-motor-magnetics", "1.8")}),
+    )
+
+
 @pytest.fixture
 def strata(tmp_path, monkeypatch):
     """One synthetic keyed stratum (the pool cohort) with the owner's f and P: k = 66 of its 120 rows."""

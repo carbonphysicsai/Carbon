@@ -114,6 +114,21 @@ COHORT_STRATA = {
 
 
 @pytest.fixture(autouse=True)
+def _vmap64_machinery_opted_in(monkeypatch):
+    """Motor 1.8 is NOT a vmap-64 version since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026; it grades
+    with the per-case compiled program, tests/cpu/test_motor18_rollback_program.py). These tests exercise the dormant
+    vmap-64 machinery with Motor 1.8 opted back in; the rollback's per-case form is tested without it.
+    """
+    from carbon.development_session import direct_graph_construction_worker
+
+    monkeypatch.setattr(
+        direct_graph_construction_worker,
+        "VMAP64_INFERENCE_VERSIONS",
+        frozenset({("electric-motor-magnetics", "1.8")}),
+    )
+
+
+@pytest.fixture(autouse=True)
 def promise(tmp_path_factory, monkeypatch):
     """Every test reads the test promise and the synthetic cohort strata unless it registers its own."""
     path = _motor18_promise(tmp_path_factory.mktemp("promise"), PROMISE)
@@ -650,6 +665,15 @@ def test_a_version_that_is_not_vmap64_names_no_lane_count():
     assert subset.rerun_rows(MOTOR, "1.5", [4, 2], 10, None) == ([4, 2], [0, 1])
     with pytest.raises(subset.SubsetRepeatRefused):
         subset.rerun_rows(MOTOR, "1.5", [4, 2], 10, 8)
+
+
+def test_after_the_rollback_motor_18_reruns_the_drawn_rows_per_case(monkeypatch):
+    """The owner's 116 rollback (Sun 15 Nov 2026): Motor 1.8 is not vmap-64, so its subset repeat re-runs exactly the
+    drawn rows, per case, in the drawn order, and a lane count is refused."""
+    monkeypatch.undo()
+    assert subset.rerun_rows(MOTOR, "1.8", [4, 2], 10, None) == ([4, 2], [0, 1])
+    with pytest.raises(subset.SubsetRepeatRefused):
+        subset.rerun_rows(MOTOR, "1.8", [4, 2], 10, 8)
 
 
 def test_the_wall_retry_identity_is_accepted(small_promise):
