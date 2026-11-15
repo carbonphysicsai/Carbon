@@ -19,10 +19,8 @@
 (function (root) {
   const SVG_NS = "http://www.w3.org/2000/svg";
   const REPO = "https://github.com/carbonphysicsai/Carbon";
-  // Deploy-time display names, keyed by Challenge id (data/names.json); the fallback is the id in
-  // title case. A value is a plain label (at most 40 characters), or {name, status, door, about, order}: a
-  // status line and https door link for the card while it has no board, a one-line description, and its
-  // place on the home page (1 is first). Plain text only.
+  // Display names by Challenge id (data/names.json), else the id in title case: a label (<= 40 chars) or
+  // {name, status, door, about, order} (order 1 = first on the home page). Plain text only.
   let NAMES = {};
   let DETAILS = {};
   const NAME_OK = /^[A-Za-z0-9][A-Za-z0-9 ._&'+-]{0,39}$/;
@@ -153,9 +151,9 @@
     if (!isNum(v)) return "—";
     return v.toFixed(digits === undefined ? places([v]) : digits);
   }
-  // The score to beat is shown ROUNDED UP to 3 decimals, never below the real bar (the epsilon keeps 0.728 at 0.728).
+  // To beat: rounded UP to 3 places, never below the real bar.
   function toBeat(v) { return isNum(v) ? (Math.ceil(v * 1000 - 1e-9) / 1000).toFixed(3) : "—"; }
-  // A public total is TRUNCATED to 3 decimals (0.519901 reads 0.519); the tiny nudge keeps float noise from dropping a digit.
+  // A total: TRUNCATED to 3 places (0.519901 reads 0.519).
   const TOTAL_PLACES = 3;
   function total(v) {
     if (!isNum(v)) return "—";
@@ -232,7 +230,7 @@
     if (parts[0] === "mine") return {view: "mine"};
     if (parts[0] === "updates") return {view: "updates"};
     if (parts[0] === "showcase") return {view: "showcase", file: parts[1] || null};
-    return {view: "home"};
+    return parts[0] === "testnet" ? {view: "home", net: "testnet"} : {view: "home"};
   }
   function boardHref(slug) { return "#/b/" + encodeURIComponent(slug); }
   function minerHref(slug, hotkey) { return boardHref(slug) + "/m/" + encodeURIComponent(hotkey); }
@@ -258,8 +256,8 @@
   function stat(label, value, note, cls) {
     return h("div", {class: "stat " + (cls || "")}, h("dt", null, label), h("dd", null, value), note ? h("dd", {class: "note"}, note) : null);
   }
-  function crown() {
-    return h("svg", {viewBox: "0 0 24 16", class: "crown", "aria-hidden": "true", focusable: "false"},
+  function crown(label) {
+    return h("svg", {viewBox: "0 0 24 16", class: label ? "crown crown-in" : "crown", ...(label ? {role: "img", "aria-label": label} : {"aria-hidden": "true"}), focusable: "false"},
       h("path", {d: "M2 14h20L20 4l-5 5-3-7-3 7-5-5z"}));
   }
   function table(caption, head, rows, opts) {
@@ -406,14 +404,13 @@
       h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
   }
 
-  // The round period is a rule statement: shown only from a matching rules card
-  // (the Test Lead, 2026-10-12; the card is the single source of public rules).
+  // The round period is a rule statement: only from a matching rules card (Test Lead, 2026-10-12).
   function rotationText(board) {
     const r = board.rotation;
     return rulesOk(board) && r && isNum(r.blocks) ? "Rounds rotate every " + r.blocks.toLocaleString("en-US") + " blocks, about " + r.hours + " h" : null;
   }
 
-  // What is scored: each section's name, sense and unit, as the feed states them.
+  // What is scored: each section's name, sense and unit, from the feed.
   const SENSES = {lower_is_better: "lower is better", higher_is_better: "higher is better"};
   function scoredBlock(board) {
     const rows = (board.sections || []).map(s => h("li", {class: "scored-row"},
@@ -521,7 +518,7 @@
       moreLine(anyNull(t, TARGET_FIELDS)));
   }
 
-  // `estimate`: the time is the feed's block estimated at the nominal block time.
+  // `estimate`: the block's time at the nominal block time.
   function timingOf(part, ctx, estimate) {
     if (!part) return null;
     const at = utcSeconds(part.next_utc);
@@ -703,10 +700,8 @@
         rulesOk(board) ? stat("Rules card", shortDigest(board.rules.card_digest)) : null));
   }
 
-  // OWNER-DASHBOARD-01: a launch Challenge is graded on a sealed exam, so its board
-  // shows the validator's rounded totals and counts only. Nothing finer than the
-  // Ladder step, no case, target or pool; every number is the validator's.
-  // One page per Challenge: the leader first, then the ladder, then the showcase.
+  // OWNER-DASHBOARD-01: a sealed-exam board shows the validator's rounded totals and counts only,
+  // nothing finer than the Ladder step; leader, then ladder, then showcase.
   const LAUNCH_COUNTS = [["graded", "Graded"], ["scored", "Scored"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
   const GATE_WORDS = "A failed gate is named, never scored.";
   function launchHero(board) {
@@ -716,7 +711,7 @@
       h("h2", {id: "hero-title"}, "No hotkey has a graded result yet"),
       h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are rounded down to the Ladder step.",
         isNum(l.baseline_total) ? " Carbon's baseline to beat: " + total(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : "",
-        // The Validator's ruling: before the margin is registered, say so; never a placeholder number.
+        // Validator: an unregistered margin is said so, never a placeholder.
         isNum(l.margin) ? "" : " The margin a challenger must clear is not yet registered, so no crown is possible yet."),
       h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
   }
@@ -725,7 +720,7 @@
     const k = board.king;
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
     if (k && isNum(k.value) && !Array.isArray(l.crown_changes)) return null; // a v1 board states no such rule
-    // Validator 18:56: low = floored king total + margin, rounded DOWN; public values only.
+    // Validator 18:56: low = floored king total + margin, rounded DOWN.
     const a = l.to_beat_rule; // the averaged bar
     if (isNum(l.to_beat) && (a || k && isNum(k.value))) return {label: "Score to beat (guaranteed)", value: toBeat(l.to_beat),
       line: (a ? "This is the king's score plus the margin, rounded up. "
@@ -746,7 +741,7 @@
         h("span", {class: "key", title: c.hotkey}, shortKey(c.hotkey)),
         c.from_hotkey === c.hotkey ? " re-took the crown" : [" took the crown from ",
           typeof c.from_hotkey === "string" ? h("span", {class: "key", title: c.from_hotkey}, shortKey(c.from_hotkey)) : "Carbon's baseline"],
-        h("span", {class: "hint"}, " · epoch " + c.since_epoch + (isNum(c.total) ? " · total " + total(c.total) : "")))))
+        h("span", {class: "hint"}, " · submitted in epoch " + c.since_epoch + (isNum(c.total) ? " · total " + total(c.total) : "")))))
         : h("p", {class: "hint"}, "No crown has changed hands yet."));
   }
   function stabilityLine(board) {
@@ -789,7 +784,7 @@
     return h("dl", {class: "counts-strip", "aria-label": "Standing"},
       LAUNCH_COUNTS.map(([key, label]) => h("div", {class: "count-cell"}, h("dt", null, label), h("dd", null, String(l.counts[key])))));
   }
-  // A hotkey whose latest result failed a gate, with its gates; an earlier scored best keeps its rank.
+  // Latest result failed a gate (named); an earlier scored best keeps its rank.
   function gateFailures(board) {
     const names = board.launch.gate_names || {};
     const rows = Object.keys(names).sort().map(k => h("tr", null,
@@ -800,7 +795,7 @@
       h("p", {class: "hint"}, "These hotkeys' latest result failed a mandatory gate. A hotkey with an earlier scored result keeps its rank on that best result; the failed result is not scored."),
       table("Hotkeys that failed a gate", [["Hotkey"], ["Gates failed"]], rows));
   }
-  // The design showcase is offered only when the build carries one (index.showcase !== false).
+  // The showcase only when the build has one (index.showcase !== false).
   let SHOWCASE = true;
   function showcaseCard() {
     if (!SHOWCASE) return null;
@@ -852,7 +847,7 @@
   function lastCrown(board) {
     const list = board.launch && board.launch.crown_changes;
     const c = Array.isArray(list) ? list.find(x => isObject(x) && typeof x.hotkey === "string" && Number.isSafeInteger(x.since_epoch)) : null;
-    return c ? "Last crown: epoch " + c.since_epoch : null;
+    return c ? "King submitted in epoch " + c.since_epoch : null;
   }
   function examLine(board) {
     const l = board.launch;
@@ -946,7 +941,7 @@
     const d = DETAILS[id];
     return d && d.about ? h("p", {class: "about"}, d.about) : null;
   }
-  // The door's queue (queue.mjs): counts and the door's state, reported by the door (not signed).
+  // The door's queue (queue.mjs): counts and state, from the door (unsigned).
   function waitText(sec) {
     if (!isNum(sec)) return null;
     return sec < 90 ? Math.round(sec) + " s" : sec < 5400 ? Math.round(sec / 60) + " min" : (sec / 3600).toFixed(1) + " h";
@@ -962,7 +957,7 @@
     return h("p", {class: "hint queue-line"}, "Queue: " + queueParts(q).join(" · ") + " · door " + q.door_state
       + (wait ? " · typical wait " + wait : ""));
   }
-  // The door's per-submission rows (queue.mjs doorRows, queue v3): unsigned, in 5-minute steps.
+  // The door's rows (queue.mjs doorRows, v3): unsigned, 5-minute steps.
   const inQueueText = n => !isNum(n) ? "" : n < 300 ? "under 5 min" : n < 3600 ? Math.floor(n / 60) + " min" : Math.floor(n / 3600) + " h " + (Math.floor(n / 60) % 60) + " min";
   function rowsBlock(rp) {
     if (!isObject(rp) || rp.state !== "ACCEPTED" || !isObject(rp.rows)) return rp && rp.state === "UNAVAILABLE" ? h("p", {class: "hint"}, "The submission list is not available right now.") : null;
@@ -1003,7 +998,7 @@
       aboutLine(entry.challenge.id),
       h("div", {class: "chips"}, showClass ? chip(entry.device_class || "no device class", "chip-plain") : null, labelsOf(entry, board).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
       king ? h("div", {class: "board-card-king"},
-        h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey)),
+        h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey), crown("king")),
         isNum(king.value) ? h("span", {class: "board-card-value"}, total(king.value), h("small", null, " " + sectionLabel(board))) : null)
         : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release")
         : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
@@ -1035,7 +1030,7 @@
       moreLine(items.length < NETWORK_FIELDS.length));
   }
 
-  // A named Challenge with no board yet: said plainly, with no score, leader or date.
+  // A named Challenge with no board yet: no score, leader or date.
   function launchingCards(index) {
     const live = new Set(index.boards.filter(e => e.challenge).map(e => e.challenge.id));
     return Object.keys(NAMES).filter(id => !live.has(id)).map(id => ({id, node:
@@ -1048,16 +1043,17 @@
           h("a", {class: "btn", href: "#/mine"}, "How to mine"),
           h("a", {class: "btn", href: LINKS.guide, rel: "noopener noreferrer"}, "Mining guide")) : null)}));
   }
-  // One grid: names-file `order`, then name; a feed with no readable Challenge last.
+  // One grid: names `order`, then name; an unreadable feed last.
   function cardOrder(id) {
     const d = DETAILS[id];
     return d && d.order ? d.order : 100;
   }
-  function homeCards(index, boards, queues) {
+  const netOf = (e, b) => labelsOf(e, b).includes("MAINNET") ? "mainnet" : "testnet";
+  function homeCards(index, boards, queues, net) {
     const showClass = classChipShown(index.boards.map(b => b.device_class));
-    const items = index.boards.map(e => ({id: e.challenge ? e.challenge.id : null, device: e.device_class || "",
+    const items = index.boards.filter(e => !net || !e.slug || netOf(e, (boards || {})[e.slug]) === net).map(e => ({id: e.challenge ? e.challenge.id : null, device: e.device_class || "",
       node: homeCard(e, e.slug ? (boards || {})[e.slug] : null, showClass, e.slug ? (queues || {})[e.slug] : null)}));
-    items.push(...launchingCards(index).map(x => ({id: x.id, device: "", node: x.node})));
+    if (net !== "mainnet") items.push(...launchingCards(index).map(x => ({id: x.id, device: "", node: x.node})));
     const key = x => [x.id === null ? 1 : 0, x.id === null ? 0 : cardOrder(x.id), x.id === null ? "" : nameOf(x.id).toLowerCase(), x.device];
     items.sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1; return 0; });
     return items.map(x => x.node);
@@ -1072,8 +1068,12 @@
         h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), SHOWCASE ? h("a", {class: "btn", href: "#/showcase"}, "Design showcase") : null)),
       networkStrip(c.network),
       index.fixture ? h("p", {class: "notice"}, h("strong", null, "Fixture data. "), "These boards are synthetic, made to build and test the page. They are not results of any model or Challenge.") : null,
+      c.net ? h("div", {class: "actions", role: "group", "aria-label": "Network"}, ["Mainnet", "Testnet"].map(t => {
+        const on = c.net === t.toLowerCase();
+        return h("a", {class: on ? "btn btn-primary" : "btn", href: "#/" + t.toLowerCase(), "aria-current": on ? "page" : null}, t);
+      })) : null,
       index.boards.length || Object.keys(NAMES).length
-        ? h("div", {class: "board-grid"}, homeCards(index, boards, c.queues))
+        ? h("div", {class: "board-grid"}, homeCards(index, boards, c.queues, c.net))
         : h("p", {class: "empty"}, "Launching soon on Carbon's test network. No board is published yet; each Challenge appears here, with its leader and the score to beat, as soon as the validator publishes it."));
   }
 
@@ -1163,7 +1163,7 @@
     const id = board && board.feed && board.feed.key_id;
     if (id) { e.setAttribute("title", id); e.setAttribute("data-key-id", id); } else { e.removeAttribute("title"); e.removeAttribute("data-key-id"); }
   }
-  // The files the page on screen was drawn from, so a refresh can tell when one changed.
+  // The files the drawn page came from (refresh compares them).
   let used = new Set();
   let failed = false;
   async function getJson(path) {
@@ -1176,8 +1176,7 @@
     used.add(path);
     return value;
   }
-  // Once a minute while the tab is visible: redraw only when a feed changed (a new crown, a new
-  // grade), never while the viewer is typing in the finder; an error page retries itself.
+  // Each minute while visible: redraw only on a changed feed, never mid-typing; errors retry.
   async function refresh() {
     const field = document.activeElement;
     if (document.hidden || parseRoute(location.hash).view === "showcase" || app.getAttribute("aria-busy") === "true" || (field && field.tagName === "INPUT" && field.value)) return;
@@ -1265,7 +1264,7 @@
         setStamp(first ? footerStamp(first, now) : "No board published yet", first);
         // Fetched only when the index says a signed snapshot exists (S3).
         const network = index.network === true ? await optional("data/network.json") : null;
-        return show(homePage(index, boards, {now, network, queues}));
+        return show(homePage(index, boards, {now, network, queues, net: route.net || "mainnet"}));
       }
       const entry = index.boards.find(b => b.slug === route.slug);
       if (!entry) return show(h("p", {class: "notice"}, "No such board. ", h("a", {href: "#/"}, "All boards")));
