@@ -21,8 +21,34 @@ https://dashboard.carbonphysics.ai/"
   other repository page that carries this header.
 - `site-replacements.json` and `site-additions.json` pin the new digests.
 
-**Limits.** The homepage, Customers, Validators, Investors, About, Technical
-Papers and Workbench pages are served from the live baseline, not from
-repository sources, so their headers do not yet show Dashboard. This records a
-content instruction; it does not authorize deployment. Publication still needs
-the owner's approval of an exact bundle, as for OWNER-WEBSITE-START-MINING-01.
+**Owner, verbatim, later the same session:** "Yeah I want it on the nav bar of
+every page" and "They should be in Cloudflare?"
+
+**Live has diverged from the repository.** On 2026-11-15 every live HTML page
+differed from manifest v4 and from candidate 2026-10-02.1: live adds a
+Challenge Portfolio nav link, an EN / 中文 switch, `/portfolio/`, `/zh/` and
+`/zh/portfolio/`; `/start-mining/` returns 404 and the miner hero still reads
+"Start a development run". None of that live source is in any branch found. The
+repository's `site/` copies and release manifest therefore do not describe live,
+and building a bundle from them would revert those live changes.
+
+**What was produced instead.** The twelve live HTML pages (home, 404, About,
+Customers, Investors, Miners, Technical Papers, Challenge Portfolio,
+Validators, Workbench, `/zh/`, `/zh/portfolio/`) were fetched from
+carbonphysics.ai, the Cloudflare edge injections removed with
+`tools/fetch-live-baseline.mjs`'s `removeEdgeInjections`, and only these edits
+applied, checked by reversing them back to the stripped live bytes:
+
+- English pages: Dashboard after Explore Carbon (desktop) and after Validators
+  (mobile menu). Miners hero: "Start Mining Carbon" to
+  `https://dashboard.carbonphysics.ai/#/mine`, with the up-right arrow.
+- Chinese pages: 仪表盘 after 资料库 in the desktop and mobile navs.
+- `site.css`: live bytes unchanged plus one appended block, in the form of the
+  existing Challenge Portfolio block, so the six-link header stays on one line:
+  compact spacing up to 1400px, 14px type up to 1260px, tighter spacing up to
+  1160px, Menu sheet up to 1100px (was 1020px). Checked in Chromium every 2px
+  from 1090px to 1608px and every 10px from 800px; no item wraps.
+
+**Limits.** Not deployed: publication through Cloudflare is the owner's action.
+The upload set is twelve pages plus `site.css`; whether it can be uploaded on
+its own or must be merged into the full site depends on how live is deployed.
