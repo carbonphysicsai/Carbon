@@ -157,6 +157,9 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
         **query,
     }
     ledger, seen = FixtureLedger(tmp_path), []
+    run = _runner(
+        ledger, seen
+    )  # one runner: its operation folders are numbered per runner
     try:
         graded = bundle_construction_worker._infer_state(
             ledger,
@@ -164,7 +167,7 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
             inputs=bank,
             expected_output_shape=(len(bank), motor18["width"]),
             program=program,
-            runner=_runner(ledger, seen),
+            runner=run,
             **common,
         )
         timed = bundle_construction_worker._infer_state(
@@ -174,7 +177,7 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
             expected_output_shape=(single_call_timing.SAMPLE, motor18["width"]),
             single_call={"indices": indices, "warmup": motor18["inputs"][:1]},
             program=single_call_timing.program(program),
-            runner=_runner(ledger, seen),
+            runner=run,
             **common,
         )
     finally:
@@ -208,6 +211,9 @@ def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded
     rows = motor18["inputs"]
     keyed = [5, 0, 7, 2, 3]  # a subset, out of order, of a different size
     ledger, seen = FixtureLedger(tmp_path), []
+    run = _runner(
+        ledger, seen
+    )  # one runner: its operation folders are numbered per runner
 
     def pair(identity, inputs):
         evidence = paired_inference.infer_frozen_pair(
@@ -227,7 +233,7 @@ def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded
             seconds=motor18["policy"]["inference_wall_seconds_max"],
             total_seconds=motor18["policy"]["total_reconstruction_wall_seconds_max"],
             procedure="per_case",
-            runner=_runner(ledger, seen),
+            runner=run,
         ).evidence
         raw = evidence["primary"]["originals"]["predictions.json"]["raw_base64"]
         return np.asarray(json.loads(base64.b64decode(raw)))
