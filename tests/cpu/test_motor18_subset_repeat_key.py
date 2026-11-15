@@ -72,8 +72,11 @@ def test_q3_a_contender_finds_the_king_with_no_regrade(bound, tmp_path):
 
 
 def test_q3_a_every_other_case_keys_differently(bound, tmp_path, monkeypatch):
-    """(ii) fail closed: a wrong digest, another version, the reversed pair, a 2-hop chain and a malformed or missing
-    row each give a DIFFERENT key."""
+    """(ii) fail closed: a wrong digest, another version, the committed row read backwards (old evidence never maps, and
+    the pinned digest never maps a second time), a 2-hop chain and a malformed or missing row each give a DIFFERENT
+    key. (A registry whose ONE row itself names the old digest as the new producer is another registry, not this row
+    read backwards: the key maps by the record and the row only, so that row would map as written.)
+    """
     new = physical.producer_digest(_motor18())
     old2 = "sha256:" + "d" * 64
     king = _keys(_as(bound, "1.8", OLD_MOTOR18))
@@ -84,9 +87,8 @@ def test_q3_a_every_other_case_keys_differently(bound, tmp_path, monkeypatch):
     from carbon.challenge_validator import bank_promotion
 
     assert bank_promotion._key_producer(_as(bound, "1.8", OLD_MOTOR18)) == OLD_MOTOR18
-    reversed_row = {"pack_producer_digest": new, "producer_digest": OLD_MOTOR18}
+    assert bank_promotion._key_producer(_as(bound, "1.8", new)) == OLD_MOTOR18
     for rows in (
-        {f"{MOTOR} 1.8": reversed_row},
         # a 2-hop chain: a second row old2 -> old
         {
             f"{MOTOR} 1.8": {
