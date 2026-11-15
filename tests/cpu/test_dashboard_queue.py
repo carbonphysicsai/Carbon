@@ -439,10 +439,10 @@ def test_the_rows_reader_accepts_what_the_doors_writer_writes():
 # --- the page: the rows table under the counts -----------------------------------------------------------------------------
 
 
-def _page(panel, queries=()):
+def _page(panel, queries=(), **extra):
     done = subprocess.run(
         [NODE, str(HERE / "dashboard_queue_rows_check.cjs")],
-        input=json.dumps({"panel": panel, "queries": list(queries)}),
+        input=json.dumps({"panel": panel, "queries": list(queries), **extra}),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -554,6 +554,79 @@ def test_the_find_box_filters_the_queue_rows_by_a_full_or_short_hotkey_and_says_
         )
     )
     assert few["finders"] == [] and "not listed yet" not in few["text"]
+
+
+def test_the_rows_come_in_pages_of_50_and_a_find_searches_every_page():
+    """Lead 15 Nov (miner question, part 2): with every waiting submission listed (up to the door's 1000), the page shows
+    50 rows at a time with Previous / Next; the find box matches rows on every page, so a miner at row 120 finds theirs.
+    """
+    rows = [_row(i, "waiting to build") for i in range(1, 121)]
+    rows[119] = {**rows[119], "hotkey": "5Abc…WXYZ"}
+    panel = _panel(
+        {
+            "state": "ACCEPTED",
+            "code": None,
+            "rows": {
+                "rows": rows,
+                "more_rows": 0,
+                "rows_as_of": "2026-11-15T09:00:00Z",
+            },
+        }
+    )
+    got = _page(
+        panel,
+        shown=[
+            [0, 0, "5mmm…mmmm", ""],  # page 0 shows at first
+            [2, 0, "5abc…wxyz", ""],  # page 2 is hidden at first
+            [2, 2, "5abc…wxyz", ""],  # and shown after two "Next"
+            [2, 0, "5abc…wxyz", "5abc"],  # a find shows its match from any page
+            [0, 0, "5mmm…mmmm", "5abc"],  # and hides the rest of the current page
+            [
+                None,
+                0,
+                "5mmm…mmmm",
+                "",
+            ],  # a table without pages (the ladder) shows every row
+        ],
+        pagerTexts=[[0, 120, None], [2, 120, None], [1, 120, 3]],
+    )
+    assert (
+        got["page"] == 50 and len(got["rows"]) == 120
+    )  # every row is in the page; only the view is paged
+    assert got["hidden"] == [
+        i >= 50 for i in range(120)
+    ]  # the first page shows before any script runs
+    assert got["pagers"] == [
+        {
+            "id": "queue-rows-pager",
+            "text": "Previous Rows 1–50 of 120 Next",
+            "disabled": [True, False],
+        }
+    ]
+    assert got["shown"] == [True, False, True, True, False, True]
+    assert got["pagerTexts"] == [
+        "Rows 1–50 of 120",
+        "Rows 101–120 of 120",
+        "3 found of 120",
+    ]
+    assert "not listed yet" not in got["text"]
+    # 50 rows or fewer: no pager, nothing hidden
+    one = _page(
+        _panel(
+            {
+                "state": "ACCEPTED",
+                "code": None,
+                "rows": {
+                    "rows": rows[:50],
+                    "more_rows": 0,
+                    "rows_as_of": "2026-11-15T09:00:00Z",
+                },
+            }
+        )
+    )
+    assert (
+        one["pagers"] == [] and not any(one["hidden"])
+    )
 
 
 def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and_nothing_when_not_served():

@@ -602,6 +602,21 @@
   function finds(find, query) {
     return !query || find.includes(query) || (query.length > 12 && find === query.slice(0, 4) + "…" + query.slice(-4));
   }
+  // Queue rows show QUEUE_PAGE at a time; a find shows its matches from every page.
+  const QUEUE_PAGE = 50;
+  const rowShown = (page, at, find, query) => query ? finds(find, query) : page === null || page === at;
+  const pagerText = (at, total, found) => found !== null ? found + " found of " + total : "Rows " + (at * QUEUE_PAGE + 1) + "–" + Math.min(total, (at + 1) * QUEUE_PAGE) + " of " + total;
+  function showRows(table, query) {
+    const at = +table.getAttribute("data-at"), rows = table.querySelectorAll("tbody tr"), pager = document.getElementById(table.id + "-pager");
+    let found = 0;
+    table.setAttribute("data-query", query);
+    rows.forEach((row, i) => { if (!(row.hidden = !rowShown(pager ? Math.floor(i / QUEUE_PAGE) : null, at, row.getAttribute("data-find") || "", query))) found++; });
+    if (!pager) return;
+    const [back, label, next] = pager.children;
+    label.textContent = pagerText(at, rows.length, query ? found : null);
+    back.disabled = !!query || !at;
+    next.disabled = !!query || (at + 1) * QUEUE_PAGE >= rows.length;
+  }
   // One box filters every listed table (the ladder and the door's queue rows); its id is the first one's.
   function finder(targets) {
     const id = "find-" + targets.split(" ")[0];
@@ -985,11 +1000,15 @@
     if (!isObject(rp) || rp.state !== "ACCEPTED" || !isObject(rp.rows)) return rp && rp.state === "UNAVAILABLE" ? h("p", {class: "hint"}, "The submission list is not available right now.") : null;
     const r = rp.rows;
     if (!Array.isArray(r.rows) || !r.rows.length) return h("p", {class: "hint"}, "Nothing is waiting right now.");
+    const paged = r.rows.length > QUEUE_PAGE;
+    const step = (n, label) => h("button", {type: "button", class: "btn", "data-step": n, disabled: n < 0}, label);
     return [
       r.rows.length > 7 ? finder("queue-rows ladder") : null,
-      h("div", {class: "table-wrap"}, h("table", {class: "queue-table", id: "queue-rows"},
+      h("div", {class: "table-wrap"}, h("table", {class: "queue-table", id: "queue-rows", "data-at": paged ? "0" : null},
         h("thead", null, h("tr", null, ["#", "Hotkey", "State", "In queue"].map(t => h("th", {scope: "col"}, t)))),
-        h("tbody", null, ...r.rows.map(w => h("tr", {"data-find": String(w.hotkey || "").toLowerCase()}, h("td", null, String(w.position)), h("td", {class: "key"}, w.hotkey || "unknown"), h("td", null, w.state), h("td", null, inQueueText(w.in_queue_s))))))),
+        h("tbody", null, ...r.rows.map((w, i) => h("tr", {"data-find": String(w.hotkey || "").toLowerCase(), hidden: i >= QUEUE_PAGE},
+          h("td", null, String(w.position)), h("td", {class: "key"}, w.hotkey || "unknown"), h("td", null, w.state), h("td", null, inQueueText(w.in_queue_s))))))),
+      paged ? h("div", {class: "pager", id: "queue-rows-pager"}, step(-1, "Previous"), h("span", {class: "hint", "aria-live": "polite"}, pagerText(0, r.rows.length, null)), step(1, "Next")) : null,
       h("p", {class: "hint"}, (r.more_rows > 0 ? "and " + r.more_rows + " more, not listed yet: only the oldest " + r.rows.length + " waiting submissions are shown, so a later one cannot be found here. " : "") + "Oldest first; hotkeys shortened; times rounded down to 5 minutes. A crown check row means the grade beat the king's screening. No recipe, score or the exam is shown. From the door (unsigned), as of " + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + ".")];
   }
   function queueBlock(panel) {
@@ -1157,7 +1176,7 @@
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
     h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
-    queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, finds, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
+    queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, finds, rowShown, pagerText, QUEUE_PAGE, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 
@@ -1236,6 +1255,9 @@
     const button = event.target.closest && event.target.closest("[data-copy]");
     if (button) copy(button);
     if (event.target.closest && event.target.closest("[data-retry]")) { cache.clear(); render(); }
+    const step = event.target.closest && event.target.closest("[data-step]");
+    const table = step && document.getElementById("queue-rows");
+    if (table) { table.setAttribute("data-at", Math.max(0, +table.getAttribute("data-at") + +step.getAttribute("data-step"))); showRows(table, table.getAttribute("data-query") || ""); }
   });
   app.addEventListener("input", event => {
     const input = event.target;
@@ -1244,7 +1266,7 @@
     for (const id of input.getAttribute("data-filter").split(" ")) {
       const target = document.getElementById(id);
       if (!target) continue;
-      for (const row of target.querySelectorAll("tbody tr")) row.hidden = !finds(row.getAttribute("data-find") || "", query);
+      showRows(target, query);
     }
   });
 
