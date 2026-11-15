@@ -55,7 +55,11 @@ def _precision(dtype):
 
 @pytest.fixture(scope="module", params=sorted(FORMATS))
 def artifact(request):
-    kind, key = request.param, FORMATS[request.param]
+    return _artifact(request.param, FORMATS[request.param])
+
+
+def _artifact(kind, key):
+    """One real codec state of ``kind`` for the version ``key``, with synthetic parameters."""
     material = physical_material.bundle_material(*key)
     permitted = allowlist_module.Allowlist(material["allowlist_bytes"])
     with _precision(material["practice_inputs"].dtype):

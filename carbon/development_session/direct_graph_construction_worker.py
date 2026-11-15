@@ -489,6 +489,31 @@ def _v2_infer_program() -> str:
 PHYSICAL_V2_BUILD_PROGRAM = _v2_build_program()
 PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 
+#: Graph route v2 versions whose inference compiles each member's forward (`jax.jit`) instead of interpreting it op by
+#: op, as the SAME version (owner, Sun 15 Nov 2026 via the Lead: "nope I'm counting that as the same version. 15 decimal
+#: places is fine."). The per-case loop, padding, combination and decoder are unchanged, and every call of one
+#: operation (graded per case, the repeat pair, the menu row check, the speed warm-up and timed calls, the batched
+#: timing query) goes through the one compiled function, so the timed calls answer bit for bit as the graded run did
+#: (`single_call_timing.outputs_match_graded`) and a call uses the memory it does today. Every other version keeps
+#: `PHYSICAL_V2_INFER_PROGRAM` byte for byte. Only `carbon/development_session` changes: no exam key moves.
+JIT_INFERENCE_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
+_EAGER_MEMBER = "member_forward = rebuild(doc, allowed)\n"
+_COMPILED_MEMBER = (
+    "import jax\n"
+    "# Compiled once per input shape, then every call of this operation runs the same executable.\n"
+    "member_forward = jax.jit(rebuild(doc, allowed))\n"
+)
+
+
+def _v2_compiled_infer_program() -> str:
+    """`PHYSICAL_V2_INFER_PROGRAM` with its member forward compiled: one anchored change, nothing else."""
+    if PHYSICAL_V2_INFER_PROGRAM.count(_EAGER_MEMBER) != 1:
+        raise RuntimeError("graph route v2 inference program anchor moved")
+    return PHYSICAL_V2_INFER_PROGRAM.replace(_EAGER_MEMBER, _COMPILED_MEMBER)
+
+
+PHYSICAL_V2_COMPILED_INFER_PROGRAM = _v2_compiled_infer_program()
+
 
 def graph_adapter_ids() -> frozenset:
     """Every graph adapter the receiver can run: the synthetic one (1.3), the
@@ -501,11 +526,13 @@ def graph_adapter_ids() -> frozenset:
 def v2_infer_query(challenge_id: str, version: str) -> dict:
     """The `_infer_state` arguments of a graph route v2 version's
     source-free inference: the ensemble state, combined and decoded by its own
-    program (the receiver and regrade share it). The output dtype is the
-    interface's, which each caller passes."""
+    program (the receiver and regrade share it); a version in
+    `JIT_INFERENCE_VERSIONS` gets that program with its member forward
+    compiled. The output dtype is the interface's, which each caller passes."""
     from . import physical_graph_adapter_v2
 
     physical_graph_adapter_v2.spec_for(challenge_id, version)
+    compiled = (challenge_id, version) in JIT_INFERENCE_VERSIONS
     root = Path(__file__).resolve().parents[2]
     names = (
         "carbon.development_session.physical_graph_state",
@@ -513,7 +540,11 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
     )
     return {
         "input_name": "inputs/features",
-        "program": PHYSICAL_V2_INFER_PROGRAM,
+        "program": (
+            PHYSICAL_V2_COMPILED_INFER_PROGRAM
+            if compiled
+            else PHYSICAL_V2_INFER_PROGRAM
+        ),
         "staged_files": {
             name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
             for name in names
