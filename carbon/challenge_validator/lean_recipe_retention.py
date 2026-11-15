@@ -1176,6 +1176,12 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     from carbon.challenge_validator import crown_hold
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.development_session.data import write_once
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS as vmap64_versions,
+    )
+    from carbon.development_session.direct_graph_construction_worker import (
+        vmap64_rerun_rows,
+    )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
         infer_frozen_pair,
@@ -1228,8 +1234,16 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         if not same:
             raise RetentionUnavailable("menu_rowcheck_cache_not_this_epoch")
         return cached
-    subset = np.ascontiguousarray(inputs[positions])
-    subset_shape = (len(positions), *tuple(output_shape)[1:])
+    # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) answers each row in an isolated
+    # lane of a 64-lane chunk, bit for bit only beside the same companions and padding: its fresh instance re-runs the
+    # ORIGINAL chunks that hold the planned positions (`vmap64_rerun_rows`), so every row sits in its original chunk and
+    # lane, and the side file keeps the planned positions in the keyed order with their answers picked from that run.
+    # Every other version queries the keyed subset in the keyed order, as before.
+    queried, picked = positions, None
+    if (kit["id"], kit["version"]) in vmap64_versions:
+        queried, picked = vmap64_rerun_rows(positions, len(inputs))
+    subset = np.ascontiguousarray(inputs[queried])
+    subset_shape = (len(queried), *tuple(output_shape)[1:])
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
     provider = adapter._provider(owner)
     limits = material["construction_limits_document"]
@@ -1302,10 +1316,12 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         output_dtype(interface),
         procedure,
     )
-    width = len(flat) // len(positions)
-    if not width or width * len(positions) != len(flat):
+    width = len(flat) // len(queried)
+    if not width or width * len(queried) != len(flat):
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
-    rows = [flat[i * width : (i + 1) * width] for i in range(len(positions))]
+    rows = [flat[i * width : (i + 1) * width] for i in range(len(queried))]
+    if picked is not None:
+        rows = [rows[i] for i in picked]
     side = pool_menu.rowcheck_side_file(positions, rows)
     write_once(path, side)
     return side

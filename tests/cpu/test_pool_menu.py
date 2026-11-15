@@ -616,23 +616,39 @@ def test_on_a_menu_receiver_an_adapter_with_no_kit_is_carbons_gap(monkeypatch):
         lrr._menu_rowcheck_raw(adapter, "rtsk_x", {}, {}, {})
 
 
+@pytest.mark.parametrize("lanes", [False, True], ids=["per-case", "vmap64"])
 def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, lanes
 ):
+    """Off vmap-64 the fresh instance answers the keyed subset in the keyed order; Motor 1.8 under vmap-64 (its
+    registered state) re-runs the ORIGINAL 64-row chunks holding the planned positions, so each row sits in its
+    original lane, and the side file still keeps the planned positions in the keyed order.
+    """
     from types import SimpleNamespace
 
     import numpy as np
 
     from carbon.challenge_validator import crown_hold
     from carbon.challenge_validator import lean_recipe_retention as lrr
-    from carbon.development_session import paired_inference
+    from carbon.development_session import (
+        direct_graph_construction_worker,
+        paired_inference,
+    )
 
-    inputs = np.arange(40.0).reshape(20, 2)
+    assert ("electric-motor-magnetics", "1.8") in (
+        direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS
+    )
+    if not lanes:
+        monkeypatch.setattr(
+            direct_graph_construction_worker, "VMAP64_INFERENCE_VERSIONS", frozenset()
+        )
+    rows_total = 150 if lanes else 20  # three chunks under vmap-64, the last short
+    inputs = np.arange(rows_total * 2.0).reshape(rows_total, 2)
     rule = dataclasses.replace(_rule(), rowcheck=(0.0, 0.0, 5))
     monkeypatch.setattr(crown_hold, "menu_registered", lambda c, v: True)
     monkeypatch.setattr(crown_hold, "ACTIVE", True)
     monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)
-    monkeypatch.setattr(lrr, "_graded_query", lambda m, a: (inputs, (20, 1)))
+    monkeypatch.setattr(lrr, "_graded_query", lambda m, a: (inputs, (rows_total, 1)))
     monkeypatch.setattr(lrr, "_private_evaluation_directory", lambda r, s: tmp_path)
     monkeypatch.setattr(lrr, "_inference_image_of", lambda p, r: "image")
     seen = {}
@@ -707,7 +723,7 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
         raw2 = run()
         assert len(calls) == 2 and pool_menu.read_rowcheck_side_file(raw2)[
             "positions"
-        ] == pool_menu.rowcheck_plan(20, 5, key, epoch="fixture-epoch-2")
+        ] == pool_menu.rowcheck_plan(rows_total, 5, key, epoch="fixture-epoch-2")
         # a cached file that is not this epoch's plan is Carbon's fault, never re-used
         epoch2 = sorted(tmp_path.glob("menu-rowcheck-*.json"))
         assert len(epoch2) == 2
@@ -719,11 +735,21 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
         monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)
     finally:
         pool_menu.install_key(None)
-    plan = pool_menu.rowcheck_plan(20, 5, key, epoch=rule.epoch)
-    assert (
-        first["inputs"].tolist() == inputs[plan].tolist()
-    )  # the keyed subset, in the keyed order
-    assert first["expected_output_shape"] == (5, 1)
+    plan = pool_menu.rowcheck_plan(rows_total, 5, key, epoch=rule.epoch)
+    if lanes:
+        # the original chunks, whole, ascending: every planned row in its original lane
+        chunks = sorted({p // 64 for p in plan})
+        queried = [
+            r for c in chunks for r in range(c * 64, min(c * 64 + 64, rows_total))
+        ]
+        assert first["inputs"].tolist() == inputs[queried].tolist()
+        assert first["expected_output_shape"] == (len(queried), 1)
+        assert all(queried.index(p) % 64 == p % 64 for p in plan)
+    else:
+        assert (
+            first["inputs"].tolist() == inputs[plan].tolist()
+        )  # the keyed subset, in the keyed order
+        assert first["expected_output_shape"] == (5, 1)
     assert first["identity"].startswith("menu-rowcheck-")  # never the pair's identity
     read = pool_menu.read_rowcheck_side_file(raw)
     assert read["positions"] == plan
