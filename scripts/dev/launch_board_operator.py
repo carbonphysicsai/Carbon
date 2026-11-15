@@ -377,7 +377,8 @@ def official_score(item):
 def crowned_utc(config, item, king_document):
     """The v5 board's ``crowned_utc``: when the store's incumbent, who must BE the king the document names
     (`king_mismatch`), was DECIDED (the incumbent row's ``since``, written by the crown decision itself: never the
-    submission's arrival), as UTC to the second; None with no king or no recorded decision time."""
+    submission's arrival), as UTC to the second; None with no king or no recorded decision time.
+    """
     import datetime
 
     if king_document["king"] is None:

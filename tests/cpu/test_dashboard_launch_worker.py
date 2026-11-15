@@ -304,7 +304,14 @@ def _variants(signer, boards):
     )
 
     # v5 (Lead 15 Nov): v3 plus the king's crowned_utc and a ladder-row reason (a stop at the inference wall)
-    def v5(name, *, crowned="2026-11-15T03:48:35Z", reason="TIMED_OUT", signed_under=launch.DOMAIN_V5, mutate=None):
+    def v5(
+        name,
+        *,
+        crowned="2026-11-15T03:48:35Z",
+        reason="TIMED_OUT",
+        signed_under=launch.DOMAIN_V5,
+        mutate=None,
+    ):
         body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
         body["schema"] = launch.SCHEMA_V5
         body["king"]["to_beat_rule"] = launch.TO_BEAT_RULE
@@ -327,7 +334,10 @@ def _variants(signer, boards):
     v5("v5_no_reason", reason=None)
     v5("v5_no_crown_time", crowned=None)
     v5("v5_bad_reason", reason="FAILED_INFRA")
-    v5("v5_reason_on_scored", mutate=lambda b: b["ladder"][0].__setitem__("reason", "TIMED_OUT"))
+    v5(
+        "v5_reason_on_scored",
+        mutate=lambda b: b["ladder"][0].__setitem__("reason", "TIMED_OUT"),
+    )
     v5("v5_bad_crown_time", crowned="15 Nov")
     v5("v5_missing_reason_key", mutate=lambda b: b["ladder"][0].pop("reason"))
     v5("v5_signed_under_v3_domain", signed_under=launch.DOMAIN_V3)
@@ -372,7 +382,12 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
         "v4_missing_checks",
     ):
         assert codes[name] is not None, name
-    for name in ("v5_timed_out", "v5_stopped_early", "v5_no_reason", "v5_no_crown_time"):
+    for name in (
+        "v5_timed_out",
+        "v5_stopped_early",
+        "v5_no_reason",
+        "v5_no_crown_time",
+    ):
         assert codes[name] is None, name
     for name in (
         "v5_bad_reason",

@@ -369,8 +369,12 @@ def _check(document):
         ):
             raise LaunchRefused("ladder_invalid")
         seen.add(entry["hotkey"])
-        if v5 and entry["reason"] is not None and (
-            entry["status"] != "NOT_SCORED" or entry["reason"] not in PUBLIC_REASONS
+        if (
+            v5
+            and entry["reason"] is not None
+            and (
+                entry["status"] != "NOT_SCORED" or entry["reason"] not in PUBLIC_REASONS
+            )
         ):
             raise LaunchRefused("ladder_invalid")
         _unit(entry["total"], "ladder_invalid", nullable=True)

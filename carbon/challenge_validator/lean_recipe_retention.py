@@ -2928,8 +2928,9 @@ def _counted_bank_grade(
             pass
         settled = _settle_candidate_wall_hit(cap, reservation, bound)
         # The miner's graded outcome: NOT_SCORED / STOPPED_EARLY on the Ladder (and so the board), Lead 15 Nov.
+        recipe_digest = stopped.recipe_digest
         settled["ladder_feedback_state"] = _record_stop_ladder(
-            adapter, submission_id, EARLY_STOP_STATUS, lambda: stopped.recipe_digest
+            adapter, submission_id, EARLY_STOP_STATUS, lambda: recipe_digest
         )
         return settled
     except Exception:

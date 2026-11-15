@@ -805,8 +805,10 @@ def check(document, *, unsigned=False):
         ):
             raise BoardRefused("board_ladder")
         seen.add(row["hotkey"])
-        if v5 and row["reason"] is not None and (
-            row["status"] != "NOT_SCORED" or row["reason"] not in PUBLIC_REASONS
+        if (
+            v5
+            and row["reason"] is not None
+            and (row["status"] != "NOT_SCORED" or row["reason"] not in PUBLIC_REASONS)
         ):
             raise BoardRefused("board_ladder")
         if row["total"] is not None:

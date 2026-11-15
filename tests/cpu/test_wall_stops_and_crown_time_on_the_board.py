@@ -42,8 +42,8 @@ from test_launch_board_operator_v2 import (  # noqa: F401 - the fixtures and hel
 )
 
 from carbon.challenge_registry import published_exam
-from carbon.challenge_validator import lean_recipe_retention as lrr
 from carbon.challenge_validator import launch_board as lb
+from carbon.challenge_validator import lean_recipe_retention as lrr
 from carbon.challenge_validator.ladder_store import LadderStore
 from carbon.challenge_validator.ledger import AttemptLedger
 from carbon.registry.model import ChallengeKey
@@ -61,7 +61,11 @@ DIGEST = "sha256:" + "a" * 64
 )
 def test_a_wall_stop_is_not_scored_with_its_reason_and_the_best_stands(status, reason):
     best = gf.ladder_feedback(
-        {"status": "SCORED_DEVELOPMENT_CANDIDATE", "score": 0.61, "gates": {"g": "PASS"}},
+        {
+            "status": "SCORED_DEVELOPMENT_CANDIDATE",
+            "score": 0.61,
+            "gates": {"g": "PASS"},
+        },
         best=None,
         exam_version="exam-1",
         gate_registry={"g"},
@@ -178,7 +182,9 @@ def test_an_early_stop_has_no_recipe_until_it_is_raised():
 # --- the v5 board ---------------------------------------------------------------------------------------------
 
 
-def _ladder_with_a_stop(root, reason_status, other_status="SCORED_DEVELOPMENT_CANDIDATE"):
+def _ladder_with_a_stop(
+    root, reason_status, other_status="SCORED_DEVELOPMENT_CANDIDATE"
+):
     ladder = LadderStore(AttemptLedger(root / "attempts.sqlite3"))
     key = ChallengeKey(COOLING["id"], COOLING["version"])
     common = {
@@ -211,7 +217,9 @@ def test_the_v5_board_names_a_stopped_hotkeys_reason_and_the_crowns_decision_tim
     assert board["schema"] == lb.SCHEMA_V5
     assert lb.verify(board, board["validator"]["feed_key"]) == board
     rows = {r["hotkey"]: r for r in board["ladder"]}
-    assert rows[OTHER]["status"] == "NOT_SCORED" and rows[OTHER]["reason"] == "TIMED_OUT"
+    assert (
+        rows[OTHER]["status"] == "NOT_SCORED" and rows[OTHER]["reason"] == "TIMED_OUT"
+    )
     assert rows[KING]["reason"] is None
     assert board["counts"]["not_scored"] == 1
     # the crown time is the incumbent row's DECISION time, to the second
@@ -251,7 +259,9 @@ def test_v5_refuses_a_reason_on_a_scored_row_a_bad_reason_or_a_bad_crown_time(
     board = json.loads(_board_bytes(config, COOLING))
     assert lb.check(board) == board
     for change in (
-        lambda b: b["ladder"][0].__setitem__("reason", "TIMED_OUT"),  # the king's scored row
+        lambda b: b["ladder"][0].__setitem__(
+            "reason", "TIMED_OUT"
+        ),  # the king's scored row
         lambda b: next(r for r in b["ladder"] if r["hotkey"] == OTHER).__setitem__(
             "reason", "FAILED_INFRA"
         ),
