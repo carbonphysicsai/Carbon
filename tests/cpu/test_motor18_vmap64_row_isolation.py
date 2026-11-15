@@ -80,8 +80,10 @@ def test_every_bank_prediction_of_motor_1_8_is_an_isolated_lane():
     assert '"paired_repeat_procedure": "per_case"' in inspect.getsource(
         motor18_dual_pack._sl().definition
     )
+    # the row check: a vmap-64 version's is STRUCTURAL (no op; tests/cpu/test_motor18_structural_rowcheck.py), every
+    # other version's repeats the registered procedure
     rowcheck = inspect.getsource(lean_recipe_retention._menu_rowcheck_raw)
-    assert "procedure=procedure" in rowcheck and "vmap64_rerun_rows(" in rowcheck
+    assert "procedure=procedure" in rowcheck and "_structural_rowcheck(" in rowcheck
 
 
 def test_every_menu_prediction_is_a_lookup_of_the_graded_rows():

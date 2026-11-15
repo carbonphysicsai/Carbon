@@ -1570,10 +1570,6 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     from carbon.development_session.direct_graph_construction_worker import (
         VMAP64_INFERENCE_VERSIONS as vmap64_versions,
     )
-    from carbon.development_session.direct_graph_construction_worker import (
-        vmap64_rerun_rows,
-        vmap64_state_lanes,
-    )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
         infer_frozen_pair,
@@ -1644,21 +1640,9 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         if regrade is None
         else regrade.recipe
     )
-    # (A vmap-64 version never reaches here: its row check is structural, `_structural_rowcheck`, above. The lane
-    # re-run below is kept for a vmap-64 version only as dead code's safety: it would re-run the ORIGINAL chunks.)
-    queried, picked = positions, None
-    if (kit["id"], kit["version"]) in vmap64_versions:
-        try:
-            lanes = vmap64_state_lanes(
-                kit["id"],
-                kit["version"],
-                artifacts["state.npz"],
-                recipe,
-                material["allowlist_bytes"],
-            )
-        except (KeyError, TypeError, ValueError, RuntimeError) as exc:
-            raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
-        queried, picked = vmap64_rerun_rows(positions, len(inputs), lanes)
+    # (A vmap-64 version never reaches here: its row check is structural, `_structural_rowcheck`, above.) Every other
+    # version's fresh instance queries the keyed subset in the keyed order.
+    queried = positions
     subset = np.ascontiguousarray(inputs[queried])
     subset_shape = (len(queried), *tuple(output_shape)[1:])
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
@@ -1733,8 +1717,6 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     if not width or width * len(queried) != len(flat):
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
     rows = [flat[i * width : (i + 1) * width] for i in range(len(queried))]
-    if picked is not None:
-        rows = [rows[i] for i in picked]
     side = pool_menu.rowcheck_side_file(positions, rows)
     write_once(path, side)
     return side
