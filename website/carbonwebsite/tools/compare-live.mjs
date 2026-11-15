@@ -5,16 +5,20 @@
 // bot-challenge script, the Web Analytics beacon, the managed robots.txt
 // block) are removed before comparing. Exit 1 on any difference.
 //
-//   node website/carbonwebsite/tools/compare-live.mjs [--host carbonphysics.ai]
+//   node website/carbonwebsite/tools/compare-live.mjs [--host carbonphysics.ai] [--site <dir>]
 //   (in a proxied environment: NODE_USE_ENV_PROXY=1)
+//
+// --site compares live with another copy of the folder, for example the one
+// at an earlier commit; the deploy workflow uses it to refuse to overwrite a
+// live change made outside the repository.
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SITE = fileURLToPath(new URL("../site", import.meta.url));
-const hostArg = process.argv.indexOf("--host");
-const HOST = hostArg > 0 ? process.argv[hostArg + 1] : "carbonphysics.ai";
+const option = (name, fallback) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : fallback; };
+const SITE = option("--site", fileURLToPath(new URL("../site", import.meta.url)));
+const HOST = option("--host", "carbonphysics.ai");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 
 export const removeEdgeAdditions = (path, bytes) => {

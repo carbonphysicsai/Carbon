@@ -63,7 +63,19 @@ snapshot touching exactly the twelve pages and `site.css` above. The earlier
 edits to the outdated `website/ask-carbon/site/` copies were reverted; those
 records stay as October history.
 
-**Limits.** Not deployed: deploying is the owner's action. Cloudflare cannot
+**Owner, verbatim:** "Yes open the PR and set up the GitHub Action"
+
+**Deploy workflow.** `.github/workflows/website-deploy.yml` deploys
+`website/carbonwebsite/site` to `carbonwebsite` when a change to it reaches
+`main`, or when run by hand. It refuses to deploy if live differs from what
+`main` held before the change (a live edit made outside the repository) unless
+run by hand with `overwrite_live_changes`; it records the rollback version and
+confirms live matches afterwards. It runs in the `carbonwebsite-production`
+environment and needs the owner to add the `CLOUDFLARE_API_TOKEN` secret, which
+is the act that authorizes automatic production deploys; required reviewers on
+that environment are the owner's option.
+
+**Limits.** Not deployed from this session: no Cloudflare credential was used. Cloudflare cannot
 list the files a Worker serves, so a live file nothing links to would not be in
 the snapshot and a whole-site deploy would remove it; of the October manifest's
 100 files, 99 were found and the other already returned 404.

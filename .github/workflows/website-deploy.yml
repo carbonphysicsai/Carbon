@@ -1,0 +1,125 @@
+name: Website deploy
+
+# Deploys website/carbonwebsite/site to the `carbonwebsite` Cloudflare Worker,
+# which serves carbonphysics.ai, when a change to it reaches main. The deploy
+# replaces the whole site, so before deploying it checks that live is still
+# what main held before this change. If live was changed outside the
+# repository, it stops instead of overwriting that change: bring the change
+# into the folder, or run this workflow by hand with overwrite_live_changes.
+#
+# Needs the CLOUDFLARE_API_TOKEN secret (repository or `carbonwebsite-production`
+# environment secret), a token with Workers Scripts: Edit on the Carbon account.
+# Add required reviewers to that environment to approve each deploy by hand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/carbonwebsite/site/**"
+  workflow_dispatch:
+    inputs:
+      overwrite_live_changes:
+        description: "Deploy even if live has changes that are not in the repository (they will be lost)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-deploy
+  cancel-in-progress: false
+
+env:
+  SITE: website/carbonwebsite/site
+  CLOUDFLARE_ACCOUNT_ID: 7462053c6992b9c9fd889952a7ae0496
+  WRANGLER: wrangler@4.151.3
+
+jobs:
+  deploy:
+    name: Deploy carbonphysics.ai
+    if: github.repository == 'carbonphysicsai/Carbon'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: carbonwebsite-production
+      url: https://carbonphysics.ai
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.19.0"
+
+      - name: Check live matches main before this change
+        id: guard
+        env:
+          BEFORE: ${{ github.event.before }}
+          OVERWRITE: ${{ inputs.overwrite_live_changes }}
+        run: |
+          set -euo pipefail
+          compare() {  # compare live with the site folder at commit $1
+            local dir="$RUNNER_TEMP/at-$1"
+            rm -rf "$dir" && mkdir -p "$dir"
+            git archive "$1" "$SITE" | tar -x -C "$dir"
+            node website/carbonwebsite/tools/compare-live.mjs --site "$dir/$SITE"
+          }
+          # Live already serving this commit: nothing to deploy.
+          if compare HEAD; then
+            echo "Live already matches this commit; nothing to deploy." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # What live should be now: main before this push, or (run by hand)
+          # main before its latest site change, in case that deploy failed.
+          candidates=()
+          if [[ -n "${BEFORE:-}" && ! "$BEFORE" =~ ^0+$ ]] && git cat-file -e "$BEFORE:$SITE" 2>/dev/null; then
+            candidates+=("$BEFORE")
+          fi
+          last=$(git log -1 --format=%H HEAD -- "$SITE")
+          if git cat-file -e "$last^:$SITE" 2>/dev/null; then candidates+=("$(git rev-parse "$last^")"); fi
+          for c in "${candidates[@]}"; do
+            if compare "$c"; then
+              echo "Live matches $c, main before this change. Deploying $(git rev-parse --short HEAD)." | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "deploy=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          if [[ "${OVERWRITE:-false}" == "true" ]]; then
+            echo "Live has changes that are not in the repository; overwriting them as requested." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "deploy=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          {
+            echo "::error::Live carbonphysics.ai has changes that are not in the repository, so this deploy would erase them."
+            echo "Bring those changes into $SITE (the files listed above differ), merge, and this runs again."
+            echo "Or run this workflow by hand with overwrite_live_changes to discard them."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Deploy
+        if: steps.guard.outputs.deploy == 'true'
+        working-directory: ${{ runner.temp }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "::error::The CLOUDFLARE_API_TOKEN secret is not set. Add it (see website/carbonwebsite/README.md), then re-run this job."
+            exit 1
+          fi
+          echo "Rollback target (the version live before this deploy):"
+          npx --yes "$WRANGLER" deployments status --name carbonwebsite | tee "$RUNNER_TEMP/before.txt"
+          { echo '### Rollback target'; echo '```'; cat "$RUNNER_TEMP/before.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          npx --yes "$WRANGLER" deploy --name carbonwebsite --assets "$GITHUB_WORKSPACE/$SITE" --compatibility-date 2026-09-12
+
+      - name: Confirm live matches this commit
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if node website/carbonwebsite/tools/compare-live.mjs; then
+              echo "Live matches $(git rev-parse --short HEAD)." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::Live does not match this commit after deploying. Roll back with: npx $WRANGLER rollback <version id in the Deploy step> --name carbonwebsite" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1

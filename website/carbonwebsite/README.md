@@ -11,11 +11,41 @@ The Ask Carbon API is a separate Worker (`ask-carbon-public`, in
 ## Change a page
 
 Edit the files under `site/` and open a pull request. The diff is the change a
-visitor will see. Shared pieces (header, footer, menus) are copied into each
-page, so a header change touches every `index.html`, `404.html`, and the two
-`zh/` pages, which have their own Chinese header.
+visitor will see, and merging it publishes it. Shared pieces (header, footer,
+menus) are copied into each page, so a header change touches every
+`index.html`, `404.html`, and the two `zh/` pages, which have their own Chinese
+header.
 
 ## Deploy
+
+Merging a change to `site/` into `main` deploys it automatically
+(`.github/workflows/website-deploy.yml`). The workflow:
+
+1. checks that live is still what `main` held before this change. If someone
+   changed live outside the repository, it stops rather than erase that change,
+   and lists the files that differ;
+2. records the version live was on (the rollback target, in the run summary);
+3. deploys this folder, replacing the whole site;
+4. confirms live now matches the folder.
+
+You can also run it by hand from the Actions tab ("Website deploy"), for
+example to retry a failed deploy. Its `overwrite_live_changes` option deploys
+even when live has changes the repository lacks, which discards them.
+
+### One-time setup
+
+1. In Cloudflare, create an API token (My Profile → API Tokens → Create Token →
+   "Edit Cloudflare Workers" template), limited to the Carbon account.
+2. In GitHub, Settings → Environments → New environment, named
+   `carbonwebsite-production`. Add the token there as the secret
+   `CLOUDFLARE_API_TOKEN`.
+3. Optional: in the same environment, add yourself under "Required reviewers".
+   Each deploy then waits for your approval in the Actions tab.
+
+Until the secret exists, the deploy step fails with a message saying so;
+re-run it once the secret is added.
+
+### Deploy by hand
 
 Needs Node.js 18+ and `wrangler` logged in to the Carbon Cloudflare account.
 From the repository root, on the merged `main`:
@@ -23,7 +53,7 @@ From the repository root, on the merged `main`:
 1. Write down the current version, which is your rollback target:
 
    ```sh
-   npx wrangler deployments status --name carbonwebsite
+   npx wrangler@4.151.3 deployments status --name carbonwebsite
    ```
 
 2. Check what will change. Every file listed must be one your change meant to
@@ -37,7 +67,7 @@ From the repository root, on the merged `main`:
 3. Deploy. This replaces the whole site with `site/`:
 
    ```sh
-   npx wrangler deploy --name carbonwebsite --assets website/carbonwebsite/site --compatibility-date 2026-09-12
+   npx wrangler@4.151.3 deploy --name carbonwebsite --assets website/carbonwebsite/site --compatibility-date 2026-09-12
    ```
 
 4. Confirm live now matches the folder (prints `all identical`):
@@ -46,7 +76,7 @@ From the repository root, on the merged `main`:
    node website/carbonwebsite/tools/compare-live.mjs
    ```
 
-Rollback: `npx wrangler rollback <version id from step 1> --name carbonwebsite`.
+Rollback: `npx wrangler@4.151.3 rollback <version id> --name carbonwebsite`.
 
 ## Where `site/` came from
 
