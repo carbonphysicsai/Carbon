@@ -69,10 +69,12 @@ def _registry(tmp_path, versions):
 def official(tmp_path, monkeypatch):
     path = _registry(tmp_path, {f"{CHALLENGE} {VERSION}": {"margin": MARGIN}})
     monkeypatch.setattr(ca, "ACTIVE", object())  # the crown average as the door had it
+    monkeypatch.setattr(
+        crown_official, "ACTIVE", crown_official.ACTIVE
+    )  # restored after
     lines = []
     crown_official.install(CHALLENGE, VERSION, path=path, log=lines.append)
-    yield lines
-    crown_official.ACTIVE = None
+    return lines
 
 
 @pytest.fixture
@@ -190,6 +192,7 @@ def test_install_on_turns_the_crown_average_off_and_says_so(official):
 
 
 def test_install_off_leaves_the_crown_average_as_it_was(tmp_path, monkeypatch):
+    monkeypatch.setattr(crown_official, "ACTIVE", crown_official.ACTIVE)
     sentinel = object()
     monkeypatch.setattr(ca, "ACTIVE", sentinel)
     lines = []
@@ -264,7 +267,7 @@ def test_paused_contenders_are_decided_oldest_first_each_against_the_king_of_its
 
 
 def test_off_the_decision_is_exactly_as_before(tmp_path, monkeypatch):
-    crown_official.ACTIVE = None
+    monkeypatch.setattr(crown_official, "ACTIVE", None)
     assert crown_official.comparator(_comparator()) is None
     store = PoolStore(tmp_path / "pool.sqlite3", clock=lambda: T0)
     for model in ("k", "a"):
@@ -314,3 +317,106 @@ def test_the_decision_record_quotes_the_owner_and_carries_the_registrys_margin()
     assert record["values"] == {
         "margin": crown_official.registered(CHALLENGE, VERSION)["margin"]
     }
+
+
+# ----------------------------------------------------------------------------------------- the weights loop + the king page
+
+
+def test_an_official_crown_is_a_verified_crown_for_the_weights_loop(rig):
+    """TE-B must-fix 2: a same-miner crown's self-improvement reset needs the crown verified
+    (`winner_eligibility._averaged_crown`); an official crown files its verification record, so it is.
+    """
+    from carbon.rewards import winner_eligibility as we
+
+    store, _clock, _bodies, _paused, consider, _live, _reconsider, king = rig
+    outcome = consider("a")
+    assert outcome["outcome"] == bp.CHALLENGER and king() == "a"
+    # the caller files the decision row, as the receiver does after consider_private
+    store.record_crown_decision("a", KEY, outcome["outcome"], outcome["reason"])
+    assert we._averaged_crown(store, "a") is True
+    assert we._averaged_crown(store, "b") is False  # no crown, no verification
+    # the record is the rule and the two official totals, nothing else
+    with store.db() as db:
+        (raw,) = db.execute(
+            "SELECT body FROM operations WHERE kind='crown_average.v1'"
+        ).fetchone()
+    private = json.loads(raw)["private"]
+    assert private == {
+        "rule": crown_official.RECORD_RULE,
+        "margin": MARGIN,
+        "margin_digest": crown_official.ACTIVE["digest"],
+        "candidate_total": 0.75,
+        "incumbent_total": 0.70,
+    }
+
+
+def test_the_official_record_check_refuses_anything_else():
+    from carbon.rewards import winner_eligibility as we
+
+    good = {"rule": "official_score", "margin": MARGIN, "candidate_total": 0.75}
+    assert we._official_crown(good) is True
+    for bad in (
+        None,
+        {**good, "rule": "other"},
+        {**good, "margin": None},
+        {**good, "candidate_total": float("nan")},
+        {**good, "candidate_total": True},
+    ):
+        assert we._official_crown(bad) is False
+
+
+def test_the_king_page_shows_the_official_margin_and_a_bar_never_below_the_real_one(
+    official, monkeypatch
+):
+    """TE-B must-fix 1: under official crowns the page's margin is the rule's (never the rebuild noise) and its score to
+    beat is the king's OFFICIAL total + the margin, rounded UP; with no king, the baseline + the margin.
+    """
+    import types
+
+    from carbon.challenge_validator import direct_receiver, koth_public
+
+    challenge = types.SimpleNamespace(challenge_id=CHALLENGE, version=VERSION)
+    assert direct_receiver._page_noise(challenge)["value"] == MARGIN
+
+    class Store:
+        def __init__(self, king):
+            self.king = king
+
+        def incumbent(self):
+            return None if self.king is None else {"model_id": "k"}
+
+        def incumbent_standing(self, model):
+            return {"total": 0.55999}
+
+        def latest_baseline(self, challenge_id):
+            return 0.5
+
+    for king, base in (("k", 0.55999), (None, 0.5)):
+        monkeypatch.setattr(
+            direct_receiver, "_open_pool_store", lambda _p, k=king: Store(k)
+        )
+        assert direct_receiver._crown_bar("store", CHALLENGE) == {
+            "base": base,
+            "margin": MARGIN,
+        }
+    # TE-B's worst case: a king at 0.55999 must publish a score to beat at or above 0.55999 + 0.0129 = 0.57289
+    for king_total in (0.5, 0.55999, 0.6, 0.7129, 0.79):
+        shown = koth_public.to_beat_averaged(
+            {"base": king_total, "margin": MARGIN}, MARGIN
+        )
+        assert shown >= king_total + MARGIN - 1e-12, (king_total, shown)
+
+
+def test_off_the_king_page_is_as_before(monkeypatch):
+    import types
+
+    from carbon.challenge_validator import crown_average, direct_receiver, koth_registry
+
+    monkeypatch.setattr(crown_official, "ACTIVE", None)
+    monkeypatch.setattr(crown_average, "ACTIVE", None)
+    monkeypatch.setattr(
+        koth_registry, "rebuild_noise", lambda c, version=None: {"value": 0.0079}
+    )
+    challenge = types.SimpleNamespace(challenge_id=CHALLENGE, version=VERSION)
+    assert direct_receiver._page_noise(challenge) == {"value": 0.0079}
+    assert direct_receiver._crown_bar("store", CHALLENGE) is None

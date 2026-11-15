@@ -2799,7 +2799,7 @@ class PermitWatch:
 
 def _king_view(intake, pool_store):
     """The public king view (`koth_public`) over this receiver's pool store."""
-    from carbon.challenge_validator import exam_cap, koth_public, koth_registry
+    from carbon.challenge_validator import exam_cap, koth_public
 
     adapter = intake.adapter
     challenge = intake.challenge
@@ -2816,15 +2816,50 @@ def _king_view(intake, pool_store):
         open_store=lambda: _open_pool_store(pool_store),
         epoch_of=epoch_of,
         exam_version_label=label if type(label) is str and label else "exam",
-        rebuild_noise_of=lambda: koth_registry.rebuild_noise(
-            challenge.challenge_id, version=challenge.version
-        ),
+        rebuild_noise_of=lambda: _page_noise(challenge),
         # The comparator's baseline total, registered when the comparator was built for
         # the exam set (`BankPromotion.consider_private`): never the private score pack.
         baseline=lambda: _open_pool_store(pool_store).latest_baseline(
             challenge.challenge_id
         ),
         crown_bar_of=lambda challenge_id: _crown_bar(pool_store, challenge_id),
+    )
+
+
+def _page_noise(challenge):
+    """The margin the king page shows: the official-score rule's margin when it is on (`crown_official`: the decision's
+    margin), else the registered rebuild noise, as before."""
+    from carbon.challenge_validator import crown_official, koth_registry
+
+    if crown_official.ACTIVE is not None:
+        return {
+            "value": crown_official.ACTIVE["margin"],
+            "measurement_digest": crown_official.ACTIVE["digest"],
+        }
+    return koth_registry.rebuild_noise(
+        challenge.challenge_id, version=challenge.version
+    )
+
+
+def _official_bar(pool_store, challenge_id):
+    """The king page's bar under official-score crowns: ``{"base": the king's official total (no king: the baseline),
+    "margin": the rule's margin}``, so the published score to beat is never below the real bar; None without a store
+    or a base."""
+    from carbon.challenge_validator import crown_official
+
+    store = _open_pool_store(pool_store)
+    if store is None:
+        return None
+    incumbent = store.incumbent()
+    if incumbent is None:
+        base = store.latest_baseline(challenge_id)
+    else:
+        standing = store.incumbent_standing(incumbent["model_id"])
+        base = None if standing is None else standing["total"]
+    return (
+        None
+        if base is None
+        else {"base": base, "margin": crown_official.ACTIVE["margin"]}
     )
 
 
@@ -2836,8 +2871,11 @@ def _crown_bar(pool_store, challenge_id):
     margin_N is not registered at the configured N, the store is absent, or the king has no filed measurement
     (KING_UNMEASURED: crowns wait). Private: the page publishes only the rounded-up sum.
     """
-    from carbon.challenge_validator import crown_average
+    from carbon.challenge_validator import crown_average, crown_official
 
+    if crown_official.ACTIVE is not None:
+        # official-score crowns: the king's OFFICIAL total + the rule's margin (never the rebuild noise)
+        return _official_bar(pool_store, challenge_id)
     active = crown_average.ACTIVE
     if active is None:
         return None

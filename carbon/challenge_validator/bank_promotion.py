@@ -557,6 +557,25 @@ class BankPromotion:
             raise TypeError("a BankResult is required")
         raise StateError("evaluation_binding_unavailable")
 
+    def _record_official_crown(self, submission_id, evaluation_key, pair, official):
+        """File the official-score crown's private verification record (`crown_official.RECORD_RULE`): the margin it
+        used and the two official totals. An earlier record for the same decision stays as it is (never replaced).
+        """
+        from carbon.challenge_validator import crown_official
+
+        incumbent = pair["incumbent"]
+        private = {
+            "rule": crown_official.RECORD_RULE,
+            "margin": official["rebuild_noise"]["value"],
+            "margin_digest": official["rebuild_noise"]["measurement_digest"],
+            "candidate_total": _scored(pair["candidate"])[1],
+            "incumbent_total": None if incumbent is None else _scored(incumbent)[1],
+        }
+        try:
+            self.store.record_crown_average(submission_id, evaluation_key, private)
+        except StateError:
+            pass  # a record for this decision already exists: kept
+
     def _undecided_before(self, submission_id, evaluation_key):
         """The unresolved crown-pause records filed BEFORE this contender's own (all of them when it has none yet), oldest
         first: the earlier decisions this one must not be decided ahead of."""
@@ -698,6 +717,11 @@ class BankPromotion:
                 # OFFICIAL SCORE: the decision IS the official grades' comparison (oldest-first, after the pause, the hold
                 # and the queue checks above): applied now, with no repeat grade and no rebuild of either model.
                 if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
+                    # The crown's verification record (private), what a self-improvement reset trusts
+                    # (`winner_eligibility._averaged_crown`): the rule and the two official totals it compared.
+                    self._record_official_crown(
+                        submission_id, evaluation_key, pair, official
+                    )
                     self.store.set_incumbent(
                         submission_id, reason, expected=pair["expected_incumbent"]
                     )

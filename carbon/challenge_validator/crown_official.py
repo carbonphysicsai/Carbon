@@ -30,6 +30,9 @@ REGISTRY = (
     / "crown_official_score.json"
 )
 SCHEMA = "carbon.crown-official-score.v1"
+#: The ``rule`` of an official-score crown's private verification record (filed beside the decision, read by
+#: `winner_eligibility._averaged_crown` as the crown's verification in place of an N-rebuild average).
+RECORD_RULE = "official_score"
 
 
 class CrownOfficialInvalid(ValueError):
@@ -123,6 +126,7 @@ def comparator(registered_comparator):
 
 __all__ = [
     "ACTIVE",
+    "RECORD_RULE",
     "REGISTRY",
     "SCHEMA",
     "CrownOfficialInvalid",
