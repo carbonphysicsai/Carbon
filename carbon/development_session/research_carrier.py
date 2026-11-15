@@ -1660,6 +1660,12 @@ def _run_locked(
                 reject_existing_device_containers(
                     cli=cli, device_uuid=device.device_uuid
                 )
+            # Two grade lanes only (`grade_lanes.container_hold`; nothing outside a lane-bound round): this container
+            # holds the host timing gate for its whole life, released with the lease after it is removed, so a timing
+            # stage on the other lane never runs beside it.
+            from carbon.reconstruction import grade_lanes
+
+            lease.enter_context(grade_lanes.container_hold(identity=identity))
         with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
             _check_cancel(ledger, owner, identity)
         with _fixed_practice_stage(operation, provenance, "CREATE"):

@@ -36,6 +36,9 @@ from carbon.reconstruction.worker.model import (
 
 HOST_EXECUTION_RECORD = "host-execution.json"
 HOST_EXECUTION_SCHEMA = "carbon.accelerator-host-execution.v1"
+#: v2 adds ``lanes``: the disjoint core sets of the host's grade lanes (`carbon.reconstruction.grade_lanes`), one per
+#: lane, each the size of one worker. ``cpuset`` stays what every caller outside a lane-bound round uses.
+HOST_EXECUTION_SCHEMA_V2 = "carbon.accelerator-host-execution.v2"
 
 # A cpuset as the kernel and the container runtime spell it: comma-separated
 # single cores and inclusive ranges. Parsed rather than pattern-matched, because
@@ -85,10 +88,11 @@ class HostExecutionRecord:
     who has not thought about core placement should still be able to run.
     """
 
-    __slots__ = ("cpuset", "memory_bytes")
+    __slots__ = ("cpuset", "lanes", "memory_bytes")
 
-    def __init__(self, cpuset: str, memory_bytes: int) -> None:
+    def __init__(self, cpuset: str, memory_bytes: int, lanes: tuple = ()) -> None:
         parse_cpuset(cpuset)
+        lanes = _checked_lanes(lanes)
         if type(memory_bytes) is not int or isinstance(memory_bytes, bool):
             raise WorkerFailure(WorkerCode.INVALID)
         # The registered ceiling is a floor on what the implementation enforces,
@@ -98,6 +102,7 @@ class HostExecutionRecord:
             raise WorkerFailure(WorkerCode.POLICY)
         object.__setattr__(self, "cpuset", cpuset)
         object.__setattr__(self, "memory_bytes", memory_bytes)
+        object.__setattr__(self, "lanes", lanes)
 
     @classmethod
     def load(cls, root) -> HostExecutionRecord | None:
@@ -116,15 +121,42 @@ class HostExecutionRecord:
             # installed a record meant something by it, so a broken one fails
             # rather than silently becoming the default.
             raise WorkerFailure(WorkerCode.POLICY) from None
-        if type(document) is not dict or set(document) != {
-            "schema",
-            "cpuset",
-            "memory_bytes",
+        v1 = {"schema", "cpuset", "memory_bytes"}
+        if type(document) is not dict:
+            raise WorkerFailure(WorkerCode.POLICY)
+        if document.get("schema") == HOST_EXECUTION_SCHEMA and set(document) == v1:
+            return cls(document["cpuset"], document["memory_bytes"])
+        if document.get("schema") == HOST_EXECUTION_SCHEMA_V2 and set(document) == {
+            *v1,
+            "lanes",
         }:
+            if type(document["lanes"]) is not list:
+                raise WorkerFailure(WorkerCode.POLICY)
+            return cls(
+                document["cpuset"], document["memory_bytes"], tuple(document["lanes"])
+            )
+        raise WorkerFailure(WorkerCode.POLICY)
+
+
+def _checked_lanes(lanes: object) -> tuple[str, ...]:
+    """A record's lane core sets: none, or two or more, each a valid cpuset, all one size, pairwise disjoint. Anything
+    else is an operator's mistake worth failing on (POLICY), never trimmed into something that looks fine.
+    """
+    if type(lanes) is not tuple:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if not lanes:
+        return ()
+    if len(lanes) < 2:
+        raise WorkerFailure(WorkerCode.POLICY)
+    sets = [set(parse_cpuset(value)) for value in lanes]
+    if len({len(cores) for cores in sets}) != 1:
+        raise WorkerFailure(WorkerCode.POLICY)
+    seen: set[int] = set()
+    for cores in sets:
+        if cores & seen:
             raise WorkerFailure(WorkerCode.POLICY)
-        if document["schema"] != HOST_EXECUTION_SCHEMA:
-            raise WorkerFailure(WorkerCode.POLICY)
-        return cls(document["cpuset"], document["memory_bytes"])
+        seen |= cores
+    return lanes
 
 
 def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -> str:
@@ -136,7 +168,21 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
     A worker given more than today's CPUs (a next version's larger resources)
     needs exactly that many cores: the kernel check holds the quota to the
     cpuset's size, so a record naming another count refuses here, not at launch.
+
+    Inside a lane-bound grading round (`carbon.reconstruction.grade_lanes`, two-lane mode only) the round's lane wins:
+    exactly that lane's cores, which must be exactly ``count`` of this host's cores, or it refuses. It never falls back to
+    the record's or the derived cores, which may be the other lane's.
     """
+    from carbon.reconstruction import grade_lanes
+
+    lane = grade_lanes.current()
+    if lane is not None:
+        cores = parse_cpuset(lane.cpuset)
+        if len(cores) != count or (
+            type(logical_cpus) is int and max(cores) >= logical_cpus
+        ):
+            raise WorkerFailure(WorkerCode.POLICY)
+        return lane.cpuset
     if root is not None:
         record = HostExecutionRecord.load(root)
         if record is not None:

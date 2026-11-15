@@ -1176,7 +1176,12 @@ def serve_loopback(
     # Join already-authenticated bounded handlers before taking the final
     # cancellation snapshot. Otherwise a submit may queue after cancellation.
     httpd.daemon_threads = False
-    work = _WorkLock(grading_lock_dir, state_dir=state_dir, stop=stop)
+    work = _WorkLock(
+        grading_lock_dir,
+        state_dir=state_dir,
+        stop=stop,
+        lanes=_door_lanes(intake, grading_lock_dir),
+    )
     threads = [
         threading.Thread(
             target=refresher,
@@ -1299,6 +1304,19 @@ MAINNET_FIRST_NETWORK = "finney"
 MAINNET_FIRST_PATIENCE_S = 7200.0
 
 
+def _door_lanes(intake, grading_lock_dir):
+    """This door's grade lanes (`grade_lanes.door_lanes`): ``()`` = one lane, today's single host lock. Only a door
+    that holds the host lock at all can have lanes."""
+    if grading_lock_dir is None:
+        return ()
+    from carbon.reconstruction import grade_lanes
+
+    challenge = getattr(intake, "challenge", None)
+    return grade_lanes.door_lanes(
+        getattr(challenge, "challenge_id", None), getattr(challenge, "version", None)
+    )
+
+
 class WorkDeclined(Exception):
     """This round takes no work: ``stopping``, ``draining`` or ``idle`` (nothing to do). Never a failure."""
 
@@ -1335,6 +1353,11 @@ class _WorkLock:
     whole official rebuild and grade, so one grade runs per host at a time and the standing receipt worker starts no
     lane meanwhile. Released on every exit path.
 
+    TWO GRADE LANES (owner 15 Nov, `carbon.reconstruction.grade_lanes`): with ``lanes`` (the lane cpusets
+    `grade_lanes.door_lanes` allows this door; empty by default) a round holds ONE free lane, bound for the round so its
+    containers run on that lane's cores; lane 0 is the host lock above. Without them (one-lane mode) a round holds EVERY
+    lane, so it never runs next to anyone, as before. The waiting list below decides who may try either way, unchanged.
+
     A door never BLOCKS waiting for either lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A): it polls every
     `WORK_POLL_S` and gives up the round (`WorkDeclined`) as soon as the receiver is stopping or the operator set
     DRAINING (``<state>/draining``), so a stopped receiver never starts work after SIGTERM and a draining door holds
@@ -1355,8 +1378,13 @@ class _WorkLock:
         stop=None,
         poll_s=None,
         network=None,
+        lanes=(),
     ):
         self._lock = threading.Lock()
+        #: The lane cpusets of two-lane mode (empty: one lane), the lane the current round holds, and its lock files.
+        self._lanes = tuple(lanes)
+        self._lane = None
+        self._fds = []
         if network is None:
             from carbon.chain import models
 
@@ -1529,38 +1557,112 @@ class _WorkLock:
         """Take the host's official-grading lock without blocking; True when held. A door that has just released it
         while another door waits stands back for 2 polls first, so a busy door's back-to-back rounds never shut
         a polling door out (fairness without a queue: the waiter's next poll falls inside the gap).
-        """
-        import fcntl
 
+        One lane: the host lock AND every other lane lock, all or none (`_take`). Two lanes: the first free lane.
+        """
         from carbon.backbone_catalog.receipt_job import GRADING_LOCK
 
         if time.monotonic() < self._yield_until:
             return False
         if self._behind_an_earlier_waiter():
             return False
-        fd = os.open(Path(self._dir) / GRADING_LOCK, os.O_RDWR | os.O_CREAT, 0o600)
+        from carbon.reconstruction import grade_lanes
+
+        if not self._lanes:
+            # one lane: lane 0 (the host lock) and every other lane, all or none
+            for index in range(grade_lanes.MAX_LANES):
+                fd = self._take(
+                    GRADING_LOCK if index == 0 else grade_lanes.lane_lock_name(index)
+                )
+                if fd is None:
+                    self._release_fds()
+                    return False
+                self._fds.append(fd)
+            self._hold(None, grade_lanes.ONE_LANE_MODE)
+            return True
+        # two lanes: the first free lane, in index order
+        for index, cpuset in enumerate(self._lanes):
+            fd = self._take(grade_lanes.lane_lock_name(index))
+            if fd is None:
+                continue
+            self._fds.append(fd)
+            if index > 0 and not self._lane_zero_shares():
+                self._release_fds()
+                return False
+            self._hold(
+                grade_lanes.Lane(index, cpuset, str(self._dir)),
+                grade_lanes.TWO_LANE_MODE,
+            )
+            return True
+        return False
+
+    def _take(self, name):
+        """One lane lock, taken without blocking: its open descriptor, or None while another holds it."""
+        import fcntl
+
+        fd = os.open(Path(self._dir) / name, os.O_RDWR | os.O_CREAT, 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             os.close(fd)
-            return False
+            return None
         except BaseException:
             os.close(fd)
             raise
-        self._fd = fd
+        return fd
+
+    def _lane_zero_shares(self):
+        """Whether a round may run on a lane other than 0: lane 0 is free, or held by a door in two-lane mode. Never
+        beside a door that does not know about lanes (an older build holds lane 0 only, writes no holder record) or a
+        door in one-lane mode."""
+        from carbon.reconstruction import grade_lanes
+
+        if grade_lanes.held_in_two_lane_mode(self._dir, 0):
+            return True
+        probe = self._take(grade_lanes.lane_lock_name(0))
+        if probe is None:
+            return False
+        self._unlock(probe)
         return True
 
-    def _release_host(self):
+    def _hold(self, lane, mode):
+        """Record the lanes this round now holds (`grade_lanes.write_holder`); ``lane`` None = all of them."""
+        from carbon.reconstruction import grade_lanes
+
+        self._fd = self._fds[0]
+        self._lane = lane
+        for index in range(grade_lanes.MAX_LANES) if lane is None else (lane.index,):
+            grade_lanes.write_holder(self._dir, index, mode)
+
+    @staticmethod
+    def _unlock(fd):
         import fcntl
 
-        fd, self._fd = self._fd, None
-        if fd is not None:
-            try:
-                fcntl.flock(fd, fcntl.LOCK_UN)
-            finally:
-                os.close(fd)
-            if self._others_waiting():
-                self._yield_until = time.monotonic() + 2 * self._poll
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+    def _release_fds(self):
+        fds, self._fds = self._fds, []
+        for fd in reversed(fds):
+            self._unlock(fd)
+
+    def _release_host(self):
+        held = self._fd is not None
+        if held:
+            from carbon.reconstruction import grade_lanes
+
+            lane, self._lane = self._lane, None
+            # the holder records go BEFORE the locks: a reader never sees a free lock with a stale holder of ours
+            for index in (
+                range(grade_lanes.MAX_LANES) if lane is None else (lane.index,)
+            ):
+                grade_lanes.clear_holder(self._dir, index)
+        self._fd = None
+        self._release_fds()
+        if held and self._others_waiting():
+            self._yield_until = time.monotonic() + 2 * self._poll
 
     def taking(self, kind, *, has_work=None, since=None):
         """A context for one round of ``kind`` work (``advance`` or ``grade``). ``has_work`` (called under the
@@ -1588,6 +1690,8 @@ class _Taking:
         self.work, self.kind, self.has_work, self.since = work, kind, has_work, since
         #: The place this round queued by (None: none, or a frozen one that already had its turn).
         self.place = None
+        #: A two-lane round's lane binding (`grade_lanes.bind`), reset at exit.
+        self._lane_token = None
 
     def _place(self):
         """The round's place from ``since`` (a non-negative int of ns), or None: a failing or odd reader never
@@ -1603,12 +1707,15 @@ class _Taking:
         return place if type(place) is int and place >= 0 else None
 
     def _inflight(self):
+        lane = self.work._lane
         return {
             "schema": INFLIGHT_SCHEMA,
             "kind": self.kind,
             "pid": os.getpid(),
             "pid_start": _process_start(os.getpid()),
             "since_ns": time.time_ns(),
+            # two-lane mode only: the lane and its cores (a one-lane record is unchanged)
+            **({} if lane is None else {"lane": lane.index, "cpuset": lane.cpuset}),
         }
 
     def __enter__(self):
@@ -1672,6 +1779,11 @@ class _Taking:
             reason = work._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
+            if work._lane is not None:
+                # this round's containers run on its lane's cores (`host_execution.resolve_cpuset`)
+                from carbon.reconstruction import grade_lanes
+
+                self._lane_token = grade_lanes.bind(work._lane)
         except BaseException:
             try:
                 if waiting:
@@ -1690,6 +1802,11 @@ class _Taking:
         work = self.work
         if self.place is not None:
             work._served[self.kind] = self.place  # this round held the host with it
+        token, self._lane_token = self._lane_token, None
+        if token is not None:
+            from carbon.reconstruction import grade_lanes
+
+            grade_lanes.unbind(token)
         try:
             if work._state is not None:
                 (work._state / INFLIGHT_NAME).unlink(missing_ok=True)

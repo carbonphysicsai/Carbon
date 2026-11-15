@@ -23,11 +23,20 @@ class Yielded(Exception):
     """A rebuild was abandoned because official grading started."""
 
 
+#: The other grade lanes' locks beside it (`carbon.reconstruction.grade_lanes`, two-lane hosts only): a round on any
+#: lane is official grading.
+LANE_LOCKS = ("official-grading.lane-1.lock",)
+
+
 def grading_busy(state_dir) -> bool:
-    """Whether official grading holds its lock in ``state_dir`` (the worker only tests it, never holds it)."""
+    """Whether official grading holds its lock, or any grade lane's lock, in ``state_dir`` (the worker only tests them,
+    never holds them)."""
+    return any(_held(Path(state_dir) / name) for name in (GRADING_LOCK, *LANE_LOCKS))
+
+
+def _held(path) -> bool:
     import fcntl
 
-    path = Path(state_dir) / GRADING_LOCK
     try:
         fd = os.open(path, os.O_RDWR)
     except FileNotFoundError:
