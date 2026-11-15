@@ -65,7 +65,13 @@ def test_every_scorer_verdict_reads_as_graded_in_words(challenge, verdict):
         reason = None
     if document["status"] == "NOT_SCORED" and reason in projection.NOT_SCORED_WORDS:
         assert latest["reason"] == reason
-        assert latest["words"].startswith(("not admitted:", "not graded:"))
+        if reason in ("TIMED_OUT", "STOPPED_EARLY"):
+            # A counted stop uses the allowance, so it is neither "not admitted" nor
+            # "not graded" (Validator-2, 15 Nov): "not scored:", and it says so.
+            assert latest["words"].startswith("not scored:")
+            assert latest["words"].endswith("your allowance is used")
+        else:
+            assert latest["words"].startswith(("not admitted:", "not graded:"))
         assert latest["words"] == projection.NOT_SCORED_WORDS[reason].format(
             leg=document.get("leg")
         )
@@ -81,6 +87,43 @@ def test_every_scorer_verdict_reads_as_graded_in_words(challenge, verdict):
     if document["status"] == "NOT_SCORED":
         # A result that does not count reveals no total (Ladder v2/v3).
         assert "total" not in latest
+
+
+@pytest.mark.parametrize(
+    "status, reason",
+    [
+        (grade_feedback.WALL_STOP_STATUS, "TIMED_OUT"),
+        (grade_feedback.EARLY_STOP_STATUS, "STOPPED_EARLY"),
+    ],
+)
+def test_a_counted_stop_reads_not_scored_and_says_the_allowance_is_used(status, reason):
+    """Lead + Validator-2, 15 Nov (gate1460): a wall or early stop is graded and counted but has no score, so its words
+    are "not scored: ...; your allowance is used", never "not admitted" / "not graded" (both mean it did not count).
+    The early-stop code is not a scorer verdict, so it is held here as well as the wall stop.
+    """
+    document = grade_feedback.ladder_feedback(
+        {"status": status},
+        best=None,
+        exam_version="electric-motor-magnetics@exam-1",
+        gate_registry=GATES,
+        rebuild_noise=None,
+        recipe_digest=DIGEST,
+        epoch=3,
+    )
+    assert document["status"] == "NOT_SCORED" and document["reason"] == reason
+    latest = projection._grade({"latest": document, "best": None}, DIGEST, 3)["latest"]
+    assert latest["reason"] == reason
+    assert latest["words"] == projection.NOT_SCORED_WORDS[reason]
+    assert latest["words"].startswith("not scored:")
+    assert latest["words"].endswith("; your allowance is used")
+    assert "total" not in latest
+    # every other reason keeps its prefix; only the two stops say "not scored:"
+    assert {
+        r for r, w in projection.NOT_SCORED_WORDS.items() if w.startswith("not scored:")
+    } == {
+        "TIMED_OUT",
+        "STOPPED_EARLY",
+    }
 
 
 def test_gate_names_are_only_the_ladders_well_formed_names():

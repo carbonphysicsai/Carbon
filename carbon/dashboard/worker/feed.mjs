@@ -27,6 +27,10 @@ const LAUNCH_STABILITY = ["STABLE", "UNSTABLE"];
 // v4 adds the king's re-measure `measure` and `crown_checks` under its own domain (held equal to launch.py's v4).
 export const LAUNCH_SCHEMA_V4 = "carbon.validator.launch-board.v4";
 export const LAUNCH_DOMAIN_V4 = "carbon.validator.launch-board.v4\u0000";
+// v5 = v3 plus the king's `crowned_utc` and a ladder-row `reason` (held equal to launch.py's v5).
+export const LAUNCH_SCHEMA_V5 = "carbon.validator.launch-board.v5";
+export const LAUNCH_DOMAIN_V5 = "carbon.validator.launch-board.v5\u0000";
+const LAUNCH_PUBLIC_REASONS = ["TIMED_OUT", "STOPPED_EARLY"];
 const LAUNCH_MEASURE_STATES = ["MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED"];
 const LAUNCH_DECIDED = ["FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "INCUMBENT_DETHRONED"];
 const LAUNCH_CHECK_OUTCOMES = [...LAUNCH_DECIDED, "UNAVAILABLE", "FAILED_INFRA"];
@@ -664,8 +668,9 @@ function launchCrownChecks(checks) {
   }
 }
 function launchCheck(document) {
+  const v5 = get(document, "schema") === LAUNCH_SCHEMA_V5;
   const v4 = get(document, "schema") === LAUNCH_SCHEMA_V4;
-  const v3 = v4 || get(document, "schema") === LAUNCH_SCHEMA_V3;
+  const v3 = v5 || v4 || get(document, "schema") === LAUNCH_SCHEMA_V3;
   const v2 = v3 || get(document, "schema") === LAUNCH_SCHEMA_V2;
   if (!sameKeys(document, v4 ? [...LAUNCH_FIELDS, "crown_changes", "crown_checks"].sort() : v2 ? [...LAUNCH_FIELDS, "crown_changes"].sort() : LAUNCH_FIELDS)) throw new FeedRefused("board_fields");
   if (v2) launchCrownChanges(document.crown_changes);
@@ -685,13 +690,14 @@ function launchCheck(document) {
   const validator = get(document, "validator");
   if (!sameKeys(validator, ["feed_key"]) || typeof validator.feed_key !== "string" || !HEX_KEY.test(validator.feed_key)) throw new FeedRefused("validator_invalid");
   const king = get(document, "king");
-  if (!sameKeys(king, v4 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "measure"].sort() : v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
+  if (!sameKeys(king, v5 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "crowned_utc"].sort() : v4 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "measure"].sort() : v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
   if (v2 && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE_AVERAGED) throw new FeedRefused("king_invalid");
   if (v4) {
     launchMeasure(king.measure, king.king);
     const expected = king.king === null ? null : ({MEASURED: "STABLE", UNSTABLE: "UNSTABLE"})[king.measure.state] ?? null;
     if (king.stability !== expected) throw new FeedRefused("king_invalid");
   } else if (v3 && ((king.stability !== null && !LAUNCH_STABILITY.includes(king.stability)) || (king.stability === null) !== (king.king === null))) throw new FeedRefused("king_invalid");
+  if (v5 && king.crowned_utc !== null && (king.king === null || typeof king.crowned_utc !== "string" || !LAUNCH_UTC.test(king.crowned_utc))) throw new FeedRefused("king_invalid");
   const row = king.king;
   if (row !== null) {
     if (!sameKeys(row, LAUNCH_KING_ROW) || typeof row.hotkey !== "string" || !LAUNCH_SS58.test(row.hotkey)
@@ -705,10 +711,11 @@ function launchCheck(document) {
   const tally = {};
   for (const status of LAUNCH_STATUSES) tally[status] = 0;
   for (const entry of ladder) {
-    if (!sameKeys(entry, LAUNCH_LADDER_FIELDS) || !launchInt(entry.rank) || entry.rank.value < 1
+    if (!sameKeys(entry, v5 ? [...LAUNCH_LADDER_FIELDS, "reason"].sort() : LAUNCH_LADDER_FIELDS) || !launchInt(entry.rank) || entry.rank.value < 1
         || typeof entry.hotkey !== "string" || !LAUNCH_SS58.test(entry.hotkey) || seen.has(entry.hotkey)
         || typeof entry.status !== "string" || !LAUNCH_STATUSES.includes(entry.status)) throw new FeedRefused("ladder_invalid");
     seen.add(entry.hotkey);
+    if (v5 && entry.reason !== null && (entry.status !== "NOT_SCORED" || !LAUNCH_PUBLIC_REASONS.includes(entry.reason))) throw new FeedRefused("ladder_invalid");
     launchUnit(entry.total, "ladder_invalid", true);
     const gates = entry.gate_names;
     if (gates !== null && (entry.status !== "GATE_FAILED" || !Array.isArray(gates) || gates.length > LAUNCH_MAX_GATES
@@ -727,11 +734,12 @@ function launchCheck(document) {
 }
 async function projectLaunch(document, pinned) {
   if (pinned.fixture) throw new FeedRefused("fixture_launch_board");
+  const v5 = document.schema === LAUNCH_SCHEMA_V5;
   const v4 = document.schema === LAUNCH_SCHEMA_V4;
-  const v3 = v4 || document.schema === LAUNCH_SCHEMA_V3;
+  const v3 = v5 || v4 || document.schema === LAUNCH_SCHEMA_V3;
   const v2 = v3 || document.schema === LAUNCH_SCHEMA_V2;
-  const domain = v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
-  const signer = await verify(document, pinned, domain, v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
+  const domain = v5 ? LAUNCH_DOMAIN_V5 : v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
+  const signer = await verify(document, pinned, domain, v5 ? LAUNCH_SCHEMA_V5 : v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
   const counts = launchCheck(document);
   const ladder = document.ladder;
   const king = document.king;
@@ -793,6 +801,8 @@ async function projectLaunch(document, pinned) {
       king_measure: v4 && king.measure !== null ? {state: king.measure.state, kept: king.measure.kept.value, n: king.measure.n.value} : null,
       crown_checks: v4 ? document.crown_checks.map(c => ({hotkey: c.hotkey, state: c.state, outcome: c.outcome, note: c.note})) : null,
       to_beat_rule: v2 ? king.to_beat_rule : null,
+      crowned_utc: v5 ? king.crowned_utc : null,
+      reasons: v5 ? Object.fromEntries(ladder.filter(e => e.reason).map(e => [e.hotkey, e.reason])) : {},
       crown_changes: v2 ? document.crown_changes.map(c => ({
         hotkey: c.to_hotkey, from_hotkey: c.from_hotkey, since_epoch: c.since_epoch.value, total: c.total.value,
       })) : null,
@@ -806,7 +816,7 @@ async function projectLaunch(document, pinned) {
 }
 
 export async function project(document, pinned) {
-  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4].includes(get(document, "schema"))) return projectLaunch(document, pinned);
+  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4, LAUNCH_SCHEMA_V5].includes(get(document, "schema"))) return projectLaunch(document, pinned);
   const signer = await verify(document, pinned);
   if (own(document, "live")) throw new FeedRefused("live_not_authorized");
   const vals = values(get(document, "values"));
@@ -1329,6 +1339,8 @@ function launchV2(board) {
     ...(launch.king_measure === null || launch.king_measure === undefined ? {} : {king_measure: {...launch.king_measure}}),
     ...(!Array.isArray(launch.crown_checks) ? {} : {crown_checks: launch.crown_checks.map(c => ({...c}))}),
     ...(launch.to_beat_rule === LAUNCH_TO_BEAT_RULE_AVERAGED ? {to_beat_rule: launch.to_beat_rule} : {}),
+    ...(typeof launch.crowned_utc === "string" ? {crowned_utc: launch.crowned_utc} : {}),
+    ...(isDict(launch.reasons) && Object.keys(launch.reasons).length ? {reasons: {...launch.reasons}} : {}),
     ...(!Array.isArray(launch.crown_changes) ? {} : {crown_changes: launch.crown_changes.map(c => ({...c}))}),
   }};
 }

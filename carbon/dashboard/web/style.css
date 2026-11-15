@@ -65,6 +65,9 @@ main:focus{outline:none}
 .btn:hover{background:var(--muted)}
 .btn-primary{background:var(--fg);color:var(--bg)}
 .btn-primary:hover{background:var(--bg-deep);color:var(--on-fg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.pager{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.pager .hint{margin:0}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 .copy{font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;min-height:40px;min-width:48px;padding:0 10px;border:1px solid var(--input);background:var(--card);color:var(--fg);cursor:pointer}
 .copy:hover{border-color:var(--fg)}

@@ -18,8 +18,9 @@ WEB = ROOT / "carbon" / "dashboard" / "web"
 WORKER = ROOT / "carbon" / "dashboard" / "worker" / "index.mjs"
 #: ENGINEERING BUDGET (DASHBOARD-02 plan, S2): the app without its fonts. 128 KiB until 5 Nov, when the app sat ~100 bytes
 #: under it; raised to 136 KiB for the live crown-check state (Lead 21:52 overnight orders), still a small page; raised to
-#: 140 KiB on 15 Nov (Lead order) for the Mainnet | Testnet tabs and the king's crown icon, keeping the code comments.
-BUDGET_BYTES = 140 * 1024
+#: 140 KiB on 15 Nov (Lead order) for the Mainnet | Testnet tabs and the king's crown icon, keeping the code comments;
+#: raised to 144 KiB later on 15 Nov (Lead pick A) for the queue rows in pages of 50, keeping the miner-facing words.
+BUDGET_BYTES = 144 * 1024
 CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
     "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; "

@@ -45,8 +45,10 @@ SCHEMA_V3 = "carbon.queue.public.v3"
 V3_SUFFIX = "/v3"
 ROWS = "rows"
 ROWS_QUANTUM_S = 300
-MAX_ROWS = 100
-MAX_BYTES_V3 = 32768
+#: ALL rows (Lead 15 Nov: a miner must find their own submission; the page paginates): 1000 rows of ~85 bytes fit
+#: `MAX_BYTES_V3`. Held equal to the dashboard Worker's reader (`worker/queue.mjs`). Engineering values.
+MAX_ROWS = 1000
+MAX_BYTES_V3 = 131072
 WAITING_TO_BUILD = "waiting to build"
 BUILDING = "building"
 #: One state for a built submission that has no verdict yet: "waiting to grade" and "grading" are NOT told apart per row (V2C 14 Nov: a

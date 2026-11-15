@@ -198,3 +198,22 @@ assert.equal(D.toBeat(0.828), "0.828");
   const t9 = D.textOf(D.homePage({...idx, boards: [idx.boards[0]]}, {[main.slug]: crowned}, {now, net: "mainnet"}));
   assert.ok(t9.includes("King submitted in epoch 26400") && !t9.includes("Last crown"), "the epoch is labelled as the submission's");
 }
+
+// ---- 10. v5 (Lead 15 Nov): stopped hotkeys named with their outcome, the crown's decision time, counts are hotkeys ----
+{
+  const b5 = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  const other = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
+  b5.launch.reasons = {[other]: "TIMED_OUT", [b5.king.hotkey]: "STOPPED_EARLY", junk: "FAILED_INFRA"};
+  b5.launch.crowned_utc = "2026-11-15T03:48:35Z";
+  b5.launch.king_since_epoch = 26400;
+  const text = D.textOf(D.boardPage(b5, {now}));
+  assert.ok(text.includes("Stopped at the time limit"), "the stops block");
+  assert.ok(text.includes("stopped at the inference time limit"), "TIMED_OUT words");
+  assert.ok(text.includes("stopped early: it could not finish inside the time limit"), "STOPPED_EARLY words");
+  assert.ok(!text.includes("FAILED_INFRA") && !text.includes("junk"), "any other reason is never drawn");
+  assert.ok(text.includes("Crowned") && text.includes("2026-11-15"), "the crown's decision time");
+  assert.ok(text.includes("King submitted in") && text.includes("epoch 26400") && !text.includes("Leader since"), "the epoch is the submission's");
+  assert.ok(text.includes("Hotkeys") && !/\bGraded\b/.test(text.replace("graded", "")), "counts are hotkeys");
+  const none = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  assert.ok(!D.textOf(D.boardPage(none, {now})).includes("Stopped at the time limit"), "no stops: no block");
+}
