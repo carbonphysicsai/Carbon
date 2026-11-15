@@ -1441,13 +1441,29 @@ def _single_call_raw(
             else {}
         )
         derived = single_call_timing.program(graph_query.get("program", INFER_PROGRAM))
+        # A vmap-64 grade re-queued after `speed_outputs_disagree` (its ONE automatic retry, review of 15 Nov finding 2)
+        # times AGAIN, warm-up and calls, under its own identity: the same identity would hand back the earlier
+        # operation's answers. The graded bytes are reused. Every other version keeps its identity, as before.
+        attempt = (
+            None
+            if tolerance is None
+            else _requeue_attempt(
+                adapter.ledger,
+                (
+                    regrade.origin_task_id
+                    if regrade is not None and regrade.counted
+                    else submission_id
+                ),
+            )
+        )
         stage = _infer_state(
             provider.ledger,
             owner=owner,
             identity="single-call-"
             + hashlib.sha256(
                 (snapshot.manifest_digest + "|" + submission_id).encode()
-            ).hexdigest(),
+            ).hexdigest()
+            + ("" if attempt is None else f"-attempt{attempt}"),
             inference_image=_inference_image_of(provider, regrade),
             recipe=(
                 ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
@@ -1510,24 +1526,65 @@ def _single_call_raw(
     return raw
 
 
-#: The retained graded predictions were produced by a different inference program than the one a comparison against
-#: them would run now (review of 15 Nov, finding 1): Carbon's, never the candidate's (FAILED_INFRA, slot released).
+#: The retained graded predictions were produced by a different inference (program text, staged modules or worker
+#: image) than the one a comparison against them would run now (review of 15 Nov, findings 1 and 1b): Carbon's, never
+#: the candidate's (FAILED_INFRA, slot released). NOT retried automatically (`auto_retry`): the regrade's graded bytes
+#: are write-once, so a retry meets the same record; the drain at a switch prevents it, a resubmit is graded afresh.
 GRADED_PROGRAM_CHANGED = "graded_program_changed"
+#: A vmap-64 version graded without a regrade's record: the task's own inference on a NON-SEALED pack (regrade None).
+#: Motor 1.8 is only ever graded on its sealed pool pack (`_counted_bank_grade`), so this is never its path; typed,
+#: version-wide and not retried (`auto_retry`), never a comparison against unrecorded bytes.
+VMAP64_NEEDS_SEALED_PACK = "vmap64_grade_needs_sealed_pack"
 
 
-def _check_graded_program(material, artifacts, regrade):
-    """Refuse (`GRADED_PROGRAM_CHANGED`) a comparison against retained graded bytes made by another program.
+def _graded_inference_digest(adapter, material, recipe, image):
+    """ONE digest of everything that decides a graph's graded bytes besides its state and query: the inference
+    program text, every staged module the worker gets (names and bytes, sorted) and the worker image id. Recorded beside
+    a vmap-64 regrade's graded pass and recomputed, the same way, before any comparison against it.
+    """
+    from carbon.development_session.bundle_construction_worker import (
+        _checked_binding,
+        _stage_bundle_modules,
+    )
 
-    For a vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) the repeat pair, the menu row
-    check and the subset repeat must run the SAME program as the retained graded pass, or a bit-exact comparison would
-    charge the switch to the candidate (MODEL_ROW_DEPENDENT, a failed paired repeat). The graded program's digest is
-    recorded beside the counted / regrade inference (`regrade_retained_entry`, its operations file); a retained pass
-    with no record (made before the record existed, or a task's own practice inference) counts as different. Every
-    other version is unchecked, as before.
+    kit = material["construction_kit"]
+    binding = _checked_binding(
+        recipe,
+        {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        },
+    )
+    query = _graph_regrade_query(adapter.discovery, material, recipe=recipe)
+    files, _codec = _stage_bundle_modules(binding, training=False)
+    files.update(query.get("staged_files") or {})
+    return _sha(
+        _json(
+            {
+                "schema": "carbon.lean-recipe.graded-inference.v1",
+                "program_sha256": _sha(query["program"].encode()),
+                "staged_files": {name: _sha(files[name]) for name in sorted(files)},
+                "inference_image_id": image.image_id,
+            }
+        )
+    )
+
+
+def _check_graded_program(adapter, material, artifacts, regrade):
+    """Refuse a comparison against retained graded bytes made by another inference.
+
+    For a vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) the repeat pair, the single
+    calls, the menu row check and the subset repeat must run the SAME inference as the retained graded pass, or a
+    bit-exact comparison would charge a switch to the candidate (MODEL_ROW_DEPENDENT, a failed paired repeat). The
+    regrade records `_graded_inference_digest` beside its graded pass (its operations file); a different or missing
+    record is `GRADED_PROGRAM_CHANGED`, and a vmap-64 grade with no regrade at all is `VMAP64_NEEDS_SEALED_PACK`.
+    Every other version is unchecked, as before.
     """
     from carbon.development_session.direct_graph_construction_worker import (
         VMAP64_INFERENCE_VERSIONS,
-        graded_program_sha256,
     )
 
     if "worker-evidence.json" not in artifacts:
@@ -1539,11 +1596,28 @@ def _check_graded_program(material, artifacts, regrade):
         return
     if key not in VMAP64_INFERENCE_VERSIONS:
         return
-    recorded = (
-        None if regrade is None else getattr(regrade, "graded_program_sha256", None)
-    )
-    if recorded is None or recorded != graded_program_sha256(*key):
+    if regrade is None:
+        raise RetentionUnavailable(VMAP64_NEEDS_SEALED_PACK)
+    recorded = getattr(regrade, "graded_inference_sha256", None)
+    image = _inference_image_of(adapter._provider(regrade.owner), regrade)
+    if recorded is None or recorded != _graded_inference_digest(
+        adapter, material, regrade.recipe, image
+    ):
         raise RetentionUnavailable(GRADED_PROGRAM_CHANGED)
+
+
+def _requeue_attempt(ledger, submission_id):
+    """The attempt number of this task's re-queue (`ExamCap.mark_requeued`: 2 for its one automatic retry), or None
+    when it was never re-queued."""
+    try:
+        with ledger._db() as db:
+            row = db.execute(
+                "SELECT attempt FROM exam_requeues WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+    except Exception:  # noqa: BLE001 - no ledger or no requeue table: never re-queued
+        return None
+    return row[0] if row is not None and type(row[0]) is int else None
 
 
 def _propagated_carbon_failures():
@@ -1553,7 +1627,12 @@ def _propagated_carbon_failures():
     from carbon.challenge_validator import speed_match
 
     return frozenset(
-        {GRADED_PROGRAM_CHANGED, speed_match.DISAGREE, speed_match.UNREGISTERED}
+        {
+            GRADED_PROGRAM_CHANGED,
+            VMAP64_NEEDS_SEALED_PACK,
+            speed_match.DISAGREE,
+            speed_match.UNREGISTERED,
+        }
     )
 
 
@@ -1692,7 +1771,9 @@ def _retain_selected_pack_evaluation(
             }
         # Before any comparison against the retained graded bytes (the pair, the single calls, the menu row check):
         # they were made by the program those comparisons run.
-        _check_graded_program(getattr(discovery, "_material", None), artifacts, regrade)
+        _check_graded_program(
+            adapter, getattr(discovery, "_material", None), artifacts, regrade
+        )
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
         # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
@@ -3581,8 +3662,8 @@ class _Regrade:
     #: The pool submission id the regraded evidence is filed under, when it is not the origin task's own: a king's
     #: rebuild (route (b)) is filed under its DERIVED row (`king_rebuild_id`), never under the host task.
     file_as: object = None
-    #: The digest of the program that made the retained graded bytes (`_check_graded_program`); None when unrecorded.
-    graded_program_sha256: object = None
+    #: The digest of the inference that made the retained graded bytes (`_graded_inference_digest`); None unrecorded.
+    graded_inference_sha256: object = None
 
 
 def _vmap64_served(material):
@@ -4789,9 +4870,12 @@ def regrade_retained_entry(
             ),
         }
         if kind == "graph" and _vmap64_served(material):
-            # Which program made these graded bytes: every later comparison against them checks it
-            # (`_check_graded_program`). Only a vmap-64 version records it; every other file keeps its bytes.
-            operations["graded_program_sha256"] = _sha(graph_query["program"].encode())
+            # Which inference made these graded bytes (program, staged modules, image): every later comparison
+            # against them checks it (`_check_graded_program`). Only a vmap-64 version records it; every other
+            # version's operations file keeps its bytes.
+            operations["graded_inference_sha256"] = _graded_inference_digest(
+                adapter, material, recipe, inference_image
+            )
         worker_evidence = (
             _graph_regrade_worker_evidence(
                 files["worker-evidence.json"],
@@ -4810,7 +4894,7 @@ def regrade_retained_entry(
             else None
         )
     operation = operations["inference_operation"]
-    graded_program = operations.get("graded_program_sha256")
+    graded_inference = operations.get("graded_inference_sha256")
 
     artifacts = dict(files)
     if pool:
@@ -4938,7 +5022,7 @@ def regrade_retained_entry(
             ),
             inference_image,
             file_as,
-            graded_program if type(graded_program) is str else None,
+            graded_inference if type(graded_inference) is str else None,
         ),
         **({"pool_store": pool_store} if counted else {}),
     )
