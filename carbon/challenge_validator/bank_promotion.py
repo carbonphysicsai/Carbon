@@ -359,34 +359,14 @@ def carry_identity(evidence):
     return digest({"schema": "carbon.koth.carry-identity.v1", **identity})
 
 
-#: The running producer digest of each subset version, computed once per process (`_running_producer`).
-_RUNNING_PRODUCER = {}
-
-
-def _running_producer(challenge, version):
-    """`physical_dual_pack.producer_digest` of a subset version's producer module, recomputed at load; None for any
-    other version or when it cannot be computed."""
-    import importlib
-
-    from carbon.scoring import physical_dual_pack
-    from carbon.scoring.subset_repeat_evidence import PRODUCERS
-
-    key = (challenge, version)
-    if key not in _RUNNING_PRODUCER:
-        try:
-            module = importlib.import_module(PRODUCERS[key])
-            _RUNNING_PRODUCER[key] = physical_dual_pack.producer_digest(module)
-        except (KeyError, ImportError, OSError, AttributeError):
-            return None
-    return _RUNNING_PRODUCER[key]
-
-
 def _key_producer(evidence):
     """The producer digest an evaluation KEY uses (Validator-2B, Q3 (a)). A grade of a subset-repeat version (Motor 1.8)
-    carrying exactly its R-1 successor row's producer digest, which is the producer recomputed now, keys under the
-    digest its pack pins, so it meets a king graded before the switch. A-1: one hop through that row, forward only (the
-    pinned digest maps to nothing, a row is never read backwards, no chain); A-2: the key only, no record is rewritten;
-    A-3: every other key field, digest and version is exact."""
+    carrying exactly its R-1 successor row's producer digest keys under the digest its pack pins, so it meets a king
+    graded before the switch. A-1: one hop through that row, forward only (the pinned digest maps to nothing, a row is
+    never read backwards, no chain; rows exist only for subset versions); A-2: the key only, no record is rewritten;
+    A-3: every other key field, digest and version is exact. The map reads the record and the row only, never the
+    running producer, so a stored key re-verifies after any later code change (the producer itself is checked where a
+    grade is made: `producer_successor.binds`)."""
     from carbon.scoring import producer_successor
     from carbon.scoring.subset_repeat_evidence import is_subset_version
 
@@ -395,11 +375,7 @@ def _key_producer(evidence):
     if not is_subset_version(challenge, version):
         return digest
     found = producer_successor.row(challenge, version)
-    if (
-        found is not None
-        and digest == found["producer_digest"]
-        and digest == _running_producer(challenge, version)
-    ):
+    if found is not None and digest == found["producer_digest"]:
         return found["pack_producer_digest"]
     return digest
 

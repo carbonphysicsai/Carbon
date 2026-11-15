@@ -108,16 +108,25 @@ def test_q3_a_every_other_case_keys_differently(bound, tmp_path, monkeypatch):
     assert _keys(_as(bound, "1.8", new)) != king
 
 
-def test_q3_a_a_row_whose_digest_is_not_the_running_producer_does_not_map(
-    bound, monkeypatch
+@pytest.mark.parametrize("running", ["changed", "unavailable"])
+def test_q3_a_a_stored_key_re_verifies_whatever_the_running_producer_is(
+    bound, monkeypatch, running
 ):
+    """The key maps on the record and the row only: after a later producer edit, or with the producer unreadable, a
+    stored new-digest record still recomputes its stored key (never read as corrupt) and still meets the king.
+    """
     new = physical.producer_digest(_motor18())
-    from carbon.challenge_validator import bank_promotion
+    stored = _keys(_as(bound, "1.8", new))
 
-    monkeypatch.setattr(
-        bank_promotion, "_RUNNING_PRODUCER", {(MOTOR, "1.8"): "sha256:" + "c" * 64}
+    def producer(adapter):
+        if running == "unavailable":
+            raise OSError("producer files unreadable")
+        return "sha256:" + "c" * 64
+
+    monkeypatch.setattr(physical, "producer_digest", producer)
+    assert (
+        _keys(_as(bound, "1.8", new)) == stored == _keys(_as(bound, "1.8", OLD_MOTOR18))
     )
-    assert _keys(_as(bound, "1.8", new)) != _keys(_as(bound, "1.8", OLD_MOTOR18))
 
 
 def test_q3_a_every_other_adapters_key_is_unchanged(bound):
