@@ -391,3 +391,53 @@ def test_unregistered_procedure_refuses_before_dispatch(fixture_pair):
     with pytest.raises(RecipeRefused, match="inference_pair_procedure_unregistered"):
         pair.infer_frozen_pair(f.ledger, procedure="batched", **f.kwargs)
     assert f.calls == []
+
+
+def test_subset_repeat_runs_one_fresh_per_case_query(fixture_pair):
+    """`infer_frozen_once` (Motor 1.8's keyed subset repeat): ONE operation on exactly the given rows, per case."""
+    f = fixture_pair
+    evidence = pair.infer_frozen_once(
+        f.ledger, **{**f.kwargs, "identity": "fixture-subset"}
+    ).evidence
+    assert len(f.calls) == 1
+    call = f.calls[0]
+    assert call["identity"] == pair.repeat_identity("fixture-subset")
+    assert call["measure_query"] is False and call["per_case"] is True
+    assert not call["inputs"].flags.writeable
+    assert evidence["schema"] == pair.ONCE_SCHEMA
+    # exactly the run the scorer's subset reader requires
+    from carbon.scoring import subset_repeat_evidence
+
+    assert evidence["schema"] == subset_repeat_evidence.RUN_SCHEMA
+    assert set(evidence) == subset_repeat_evidence._RUN
+    assert evidence["execution_boundary"] == "TEST_ONLY_LOCAL_RUNNER"
+    assert evidence["logical_prediction_rows"] == 3
+    assert evidence["inputs_digest"] == pair._digest(
+        pair._tensors(inputs=f.kwargs["inputs"])
+    )
+    assert set(evidence["repeat"]) == {
+        "worker_operation",
+        "controls_digest",
+        "originals",
+        "accounting",
+    }
+    assert evidence["repeat"]["accounting"]["ledger_identity"] == call["identity"]
+    # an old identity is refused, never replayed
+    with pytest.raises(RecipeRefused, match="subset_repeat_identity_already_used"):
+        pair.infer_frozen_once(f.ledger, **{**f.kwargs, "identity": "fixture-subset"})
+    assert len(f.calls) == 1
+
+
+def test_subset_repeat_failure_keeps_the_carriers_cause(fixture_pair, monkeypatch):
+    f = fixture_pair
+    cause = RuntimeError("carrier stopped")
+
+    def fail(_ledger, **_call):
+        raise cause
+
+    monkeypatch.setattr(pair, "_infer_state", fail)
+    with pytest.raises(pair.InferencePairFailure) as caught:
+        pair.infer_frozen_once(f.ledger, **f.kwargs)
+    assert caught.value.cause is cause and caught.value.phase == "repeat"
+    with pytest.raises(RecipeRefused, match="subset_repeat_procedure_unregistered"):
+        pair.infer_frozen_once(f.ledger, **{**f.kwargs, "procedure": "batched"})
