@@ -108,13 +108,12 @@ def test_a_392_kb_forward_document_reaches_the_frozen_recipes_envelope(tmp_path)
     from pathlib import Path
 
     from carbon.development_session.construction_recipe import (
-        bind,
         graph_envelope_from_workspace,
     )
     from carbon.level4 import staging, submission
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from test_construction_recipe import graph_recipe
+    from test_construction_recipe import bind, graph_recipe
 
     ledger = _ledger(tmp_path)
     forward, body = _doc(392 * 1024)
