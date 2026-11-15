@@ -287,7 +287,7 @@ def test_the_rows_reader_accepts_exactly_the_closed_v3_document():
         ("as_of", _rows_doc(rows_as_of="soon"), "rows_time"),
         ("more", _rows_doc(more_rows=-1), "rows_count"),
         ("not_a_list", _rows_doc(rows="rows"), "rows_count"),
-        ("101_rows", _rows_doc([_row(i + 1) for i in range(101)]), "rows_count"),
+        ("1001_rows", _rows_doc([_row(i + 1) for i in range(1001)]), "rows_count"),
         ("extra_row_field", _rows_doc([{**_row(1), "score": 0.5}]), "rows_row"),
         (
             "missing_row_field",
@@ -316,12 +316,19 @@ def test_anything_outside_the_closed_rows_shape_refuses(name, doc, code):
 
 
 def test_a_large_or_non_json_rows_body_refuses():
+    # the door and the Worker hold the same caps (all rows, Lead 15 Nov)
+    queue_public = pytest.importorskip("carbon.challenge_validator.queue_public")
+    text = (
+        HERE.parents[1] / "carbon" / "dashboard" / "worker" / "queue.mjs"
+    ).read_text(encoding="utf-8")
+    assert f"MAX_ROWS = {queue_public.MAX_ROWS};" in text
+    assert f"MAX_ROWS_BYTES = {queue_public.MAX_BYTES_V3};" in text
     got = _run(
         {
             "cases": [],
             "fetches": [],
             "row_cases": [
-                {"name": "big", "text": " " * 40000, "challenge": MOTOR},
+                {"name": "big", "text": " " * 140000, "challenge": MOTOR},
                 {"name": "html", "text": "<html>", "challenge": MOTOR},
             ],
         }

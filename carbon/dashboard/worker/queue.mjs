@@ -73,8 +73,9 @@ export const ROWS_SCHEMA = "carbon.queue.public.v3";
 // "in grading" = built, no verdict yet (waiting to be graded or being graded: not told apart per row, V2C 14 Nov).
 export const ROW_STATES = ["waiting to build", "building", "in grading", "crown check"];
 export const ROWS_QUANTUM_S = 300;
-const MAX_ROWS = 100;
-const MAX_ROWS_BYTES = 32768;
+// held equal to the door's queue_public.MAX_ROWS / MAX_BYTES_V3 (all rows, Lead 15 Nov)
+export const MAX_ROWS = 1000;
+export const MAX_ROWS_BYTES = 131072;
 const FIELDS_V3 = [...FIELDS, "held_for_review", "more_rows", "rows", "rows_as_of"];
 const ROW_FIELDS = ["hotkey", "in_queue_s", "position", "state"];
 const SHORT_KEY = /^[1-9A-HJ-NP-Za-km-z]{4}\u2026[1-9A-HJ-NP-Za-km-z]{4}$/u;

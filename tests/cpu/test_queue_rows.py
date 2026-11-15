@@ -85,8 +85,8 @@ def test_v1_and_v2_are_byte_identical_to_before_and_carry_no_rows():
     assert "rows" not in v1 and "rows" not in v2
 
 
-def test_at_most_a_hundred_rows_and_the_rest_are_counted():
-    rows = [_row(i + 1) for i in range(130)]
+def test_at_most_max_rows_and_the_rest_are_counted():
+    rows = [_row(i + 1) for i in range(queue_public.MAX_ROWS + 30)]
     status, body = queue_public.serve_v3(_View(_rows_snapshot(rows)), CHALLENGE)
     assert status == 200 and len(body["rows"]) == queue_public.MAX_ROWS
     assert body["more_rows"] == 30
