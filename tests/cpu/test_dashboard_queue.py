@@ -624,9 +624,7 @@ def test_the_rows_come_in_pages_of_50_and_a_find_searches_every_page():
             }
         )
     )
-    assert (
-        one["pagers"] == [] and not any(one["hidden"])
-    )
+    assert one["pagers"] == [] and not any(one["hidden"])
 
 
 def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and_nothing_when_not_served():
