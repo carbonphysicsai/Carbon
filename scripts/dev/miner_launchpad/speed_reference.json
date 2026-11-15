@@ -1,0 +1,5 @@
+{
+  "schema": "carbon.kit.speed-reference.v1",
+  "note": "The grading worker's measured time per workload digest (speed_check.py). Empty until Carbon measures it on the grading worker; a row is added by a reviewed values commit with its evidence digest.",
+  "rows": {}
+}
