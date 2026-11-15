@@ -1109,14 +1109,54 @@ def test_old_pinned_evidence_still_binds_with_its_own_digest(case):
 # -- every other version -------------------------------------------------------------------------------------------------
 
 
-def test_every_other_producer_digest_is_unchanged():
-    import importlib
+def other_modules():
+    """The 15 other adapter modules, imported statically (no dynamic-import site)."""
+    from carbon.scoring import (
+        battery_dual_pack,
+        battery_sealed_dual_pack,
+        cooling18_dual_pack,
+        cooling_dual_pack,
+        cooling_encoded_dual_pack,
+        cooling_hotspot_dual_pack,
+        cooling_pool_baseline_dual_pack,
+        f02_dual_pack,
+        f02_sealed_dual_pack,
+        f08_dual_pack,
+        f08_sanity_dual_pack,
+        f08_sealed_dual_pack,
+        motor_dual_pack,
+        motor_pool_baseline_dual_pack,
+        motor_sealed_dual_pack,
+    )
 
-    moved = {
-        name: physical.producer_digest(
-            importlib.import_module("carbon.scoring." + name)
+    modules = {
+        module.__name__.rsplit(".", 1)[1]: module
+        for module in (
+            battery_dual_pack,
+            battery_sealed_dual_pack,
+            cooling18_dual_pack,
+            cooling_dual_pack,
+            cooling_encoded_dual_pack,
+            cooling_hotspot_dual_pack,
+            cooling_pool_baseline_dual_pack,
+            f02_dual_pack,
+            f02_sealed_dual_pack,
+            f08_dual_pack,
+            f08_sanity_dual_pack,
+            f08_sealed_dual_pack,
+            motor_dual_pack,
+            motor_pool_baseline_dual_pack,
+            motor_sealed_dual_pack,
         )
-        for name in OTHER_DIGESTS
+    }
+    assert set(modules) == set(OTHER_DIGESTS)
+    return modules
+
+
+def test_every_other_producer_digest_is_unchanged():
+    moved = {
+        name: physical.producer_digest(module)
+        for name, module in other_modules().items()
     }
     assert moved == OTHER_DIGESTS
     assert physical.producer_digest(_motor18()) != OLD_MOTOR18

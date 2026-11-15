@@ -133,12 +133,13 @@ def test_q3_a_a_stored_key_re_verifies_whatever_the_running_producer_is(
 
 def test_q3_a_every_other_adapters_key_is_unchanged(bound):
     """(iii) no other adapter's digest maps, and the fixture's own (Motor 1.5) key is the exact-digest key."""
-    import importlib
+    from test_motor18_subset_repeat import other_modules
 
     from carbon.challenge_validator import bank_promotion
 
+    modules = other_modules()
     for name, digest in OTHER_DIGESTS.items():
-        module = importlib.import_module("carbon.scoring." + name)
+        module = modules[name]
         challenge = getattr(module, "CHALLENGE", None)
         for version in {getattr(module, "VERSION", None), "1.8", "1.5"}:
             assert (

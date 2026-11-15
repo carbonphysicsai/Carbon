@@ -1145,8 +1145,6 @@ def subset_repeat_serve_check(
     exactly the version's strata, each row in exactly one (`subset_repeat_evidence.bank_strata`), and its pinned producer must bind the producer recomputed
     now, exactly or through the version's ONE successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
     binding), so the start-up log says which row the door grades under."""
-    import importlib
-
     from carbon.scoring import physical_dual_pack, producer_successor
     from carbon.scoring import subset_repeat_evidence as subset
 
@@ -1193,7 +1191,11 @@ def subset_repeat_serve_check(
         accuracy = pack_snapshot.read_json_role(
             public_root, "public", "accuracy_definition", max_bytes=1024 * 1024
         )
-        module = importlib.import_module(subset.PRODUCERS[(challenge_id, version)])
+        from carbon.scoring import motor18_dual_pack
+
+        # (static imports only: every subset version's producer module, by its registered name)
+        modules = {motor18_dual_pack.__name__: motor18_dual_pack}
+        module = modules[subset.PRODUCERS[(challenge_id, version)]]
         identity = physical_dual_pack.producer_digest(module)
     except (ImportError, KeyError, OSError, ValueError) as exc:
         raise RetentionUnavailable("producer_successor_mismatch") from exc
