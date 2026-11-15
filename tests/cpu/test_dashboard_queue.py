@@ -439,10 +439,10 @@ def test_the_rows_reader_accepts_what_the_doors_writer_writes():
 # --- the page: the rows table under the counts -----------------------------------------------------------------------------
 
 
-def _page(panel):
+def _page(panel, queries=()):
     done = subprocess.run(
         [NODE, str(HERE / "dashboard_queue_rows_check.cjs")],
-        input=json.dumps({"panel": panel}),
+        input=json.dumps({"panel": panel, "queries": list(queries)}),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -498,6 +498,62 @@ def test_the_page_shows_one_row_per_submission_and_says_what_it_does_not_show():
         "1 h 30 min",
         "",
     ]
+
+
+def test_the_find_box_filters_the_queue_rows_by_a_full_or_short_hotkey_and_says_what_is_not_listed():
+    """Lead 15 Nov (miner question): the "Find a hotkey or coldkey" box also filters the door's rows; a full hotkey finds
+    its row, which the door shows shortened; a submission beyond the listed rows cannot be found yet, and the page says so.
+    """
+    full = "5C4hRk8vzV2SMeTqF7aBq9yXcHgJuNw3LpDsEo6KtYiAZDGCJ"
+    rows = [_row(i, "waiting to build") for i in range(1, 8)]
+    rows.append({**_row(8, "waiting to build"), "hotkey": full[:4] + "…" + full[-4:]})
+    short = (full[:4] + "…" + full[-4:]).lower()
+    got = _page(
+        _panel(
+            {
+                "state": "ACCEPTED",
+                "code": None,
+                "rows": {
+                    "rows": rows,
+                    "more_rows": 117,
+                    "rows_as_of": "2026-11-15T07:40:00Z",
+                },
+            }
+        ),
+        queries=[
+            [short, full.lower()],  # the full hotkey finds its shortened row
+            [short, short],  # so does the short form as shown
+            [short, "5c4h"],  # and a prefix
+            ["5mmm…mmmm", full.lower()],  # another key's row is not matched
+            [short, ""],  # an empty box hides nothing
+        ],
+    )
+    assert got["finders"] == [
+        "queue-rows ladder"
+    ]  # this box filters the rows AND the ladder
+    assert got["finds"][-1] == short and len(got["finds"]) == 8
+    assert got["matched"] == [True, True, True, False, True]
+    text = got["text"]
+    assert "and 117 more, not listed yet" in text
+    assert (
+        "only the oldest 8 waiting submissions are shown, so a later one cannot be found here"
+        in text
+    )
+    # a short list needs no box
+    few = _page(
+        _panel(
+            {
+                "state": "ACCEPTED",
+                "code": None,
+                "rows": {
+                    "rows": rows[:3],
+                    "more_rows": 0,
+                    "rows_as_of": "2026-11-15T07:40:00Z",
+                },
+            }
+        )
+    )
+    assert few["finders"] == [] and "not listed yet" not in few["text"]
 
 
 def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and_nothing_when_not_served():

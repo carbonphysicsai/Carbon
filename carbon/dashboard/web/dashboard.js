@@ -578,7 +578,7 @@
           h("td", {class: "opt"}, h("details", {class: "hotkeys"}, h("summary", null, r.hotkeys.length + " hotkey" + (r.hotkeys.length === 1 ? "" : "s")),
             h("ul", null, r.hotkeys.map(k => h("li", null, h("a", {href: minerHref(board.slug, k), class: "key", title: k}, shortKey(k)), k === king ? h("span", {class: "crown-tag"}, "king") : null))))));
       });
-      parts.push(finder("ladder"), table(ELIGIBLE + ", per coldkey",
+      parts.push(finder("ladder queue-rows"), table(ELIGIBLE + ", per coldkey",
         [["Rank", "num"], ["Coldkey"], ["Displayed", "num"], ["Status"], ["Hotkeys", "opt"]], rows, {id: "ladder"}));
       parts.push(h("p", {class: "hint"}, "One pooled displayed score per coldkey; its hotkeys are listed for information."));
     } else if (!coldkeys && lb.entries.length) {
@@ -590,7 +590,7 @@
         h("td", {class: "num"}, isNum(r.screening_value) ? total(r.screening_value) : ""),
         board.launch ? h("td", {class: "bar-col opt"}, isNum(r.screening_value) ? miniBar(r.screening_value) : null) : h("td", {class: "num opt"}, isNum(r.best_at_block) ? block(r.best_at_block) : ""),
         h("td", {class: "opt"}, r.challenger_state ? chip(words(r.challenger_state), "chip-muted") : "")));
-      parts.push(finder("ladder"), table(board.launch ? lb.label : (lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? ["", "bar-col opt"] : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
+      parts.push(finder("ladder queue-rows"), table(board.launch ? lb.label : (lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? ["", "bar-col opt"] : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
     } else {
       parts.push(h("p", {class: "empty"}, "No eligible entries in this release yet."));
     }
@@ -598,10 +598,16 @@
       h("div", {class: "block-head"}, h("h2", {id: "lb-title"}, lb.label || ELIGIBLE)),
       parts);
   }
-  function finder(target) {
+  // A row's lowercased find text matches a query; a full hotkey also finds its queue row (first 4 + "…" + last 4).
+  function finds(find, query) {
+    return !query || find.includes(query) || (query.length > 12 && find === query.slice(0, 4) + "…" + query.slice(-4));
+  }
+  // One box filters every listed table (the ladder and the door's queue rows); its id is the first one's.
+  function finder(targets) {
+    const id = "find-" + targets.split(" ")[0];
     return h("div", {class: "finder"},
-      h("label", {for: "find-" + target, class: "sr-only"}, "Find a hotkey or coldkey"),
-      h("input", {id: "find-" + target, type: "search", placeholder: "Find a hotkey or coldkey", autocomplete: "off", spellcheck: "false", "data-filter": target}));
+      h("label", {for: id, class: "sr-only"}, "Find a hotkey or coldkey"),
+      h("input", {id, type: "search", placeholder: "Find a hotkey or coldkey", autocomplete: "off", spellcheck: "false", "data-filter": targets}));
   }
 
   function historyBlock(board) {
@@ -980,10 +986,11 @@
     const r = rp.rows;
     if (!Array.isArray(r.rows) || !r.rows.length) return h("p", {class: "hint"}, "Nothing is waiting right now.");
     return [
-      h("div", {class: "table-wrap"}, h("table", {class: "queue-table"},
+      r.rows.length > 7 ? finder("queue-rows ladder") : null,
+      h("div", {class: "table-wrap"}, h("table", {class: "queue-table", id: "queue-rows"},
         h("thead", null, h("tr", null, ["#", "Hotkey", "State", "In queue"].map(t => h("th", {scope: "col"}, t)))),
-        h("tbody", null, ...r.rows.map(w => h("tr", null, h("td", null, String(w.position)), h("td", {class: "key"}, w.hotkey || "unknown"), h("td", null, w.state), h("td", null, inQueueText(w.in_queue_s))))))),
-      h("p", {class: "hint"}, (r.more_rows > 0 ? "and " + r.more_rows + " more. " : "") + "Oldest first; hotkeys shortened; times rounded down to 5 minutes. A crown check row means the grade beat the king's screening. No recipe, score or the exam is shown. From the door (unsigned), as of " + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + ".")];
+        h("tbody", null, ...r.rows.map(w => h("tr", {"data-find": String(w.hotkey || "").toLowerCase()}, h("td", null, String(w.position)), h("td", {class: "key"}, w.hotkey || "unknown"), h("td", null, w.state), h("td", null, inQueueText(w.in_queue_s))))))),
+      h("p", {class: "hint"}, (r.more_rows > 0 ? "and " + r.more_rows + " more, not listed yet: only the oldest " + r.rows.length + " waiting submissions are shown, so a later one cannot be found here. " : "") + "Oldest first; hotkeys shortened; times rounded down to 5 minutes. A crown check row means the grade beat the king's screening. No recipe, score or the exam is shown. From the door (unsigned), as of " + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + ".")];
   }
   function queueBlock(panel) {
     if (!isObject(panel)) return null;
@@ -1150,7 +1157,7 @@
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
     h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
-    queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
+    queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, finds, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 
@@ -1234,9 +1241,11 @@
     const input = event.target;
     if (!input.hasAttribute || !input.hasAttribute("data-filter")) return;
     const query = input.value.trim().toLowerCase();
-    const target = document.getElementById(input.getAttribute("data-filter"));
-    if (!target) return;
-    for (const row of target.querySelectorAll("tbody tr")) row.hidden = !!query && !row.getAttribute("data-find").includes(query);
+    for (const id of input.getAttribute("data-filter").split(" ")) {
+      const target = document.getElementById(id);
+      if (!target) continue;
+      for (const row of target.querySelectorAll("tbody tr")) row.hidden = !finds(row.getAttribute("data-find") || "", query);
+    }
   });
 
   async function render() {

@@ -271,6 +271,21 @@ def _refusal_code(answer, fallback):
     return fallback
 
 
+#: What a result read of an already-recorded submission must still match (owner via the Lead, 15 Nov 2026: results must
+#: survive a door update). The door's CODE identity (implementation_digest, and identities_digest over the door's whole
+#: identity document) moves with every door update that touches its served source; the task id already binds the
+#: hotkey, contract, recipe and pack. So a status read requires the SAME contract and the SAME score rule as recorded,
+#: and accepts a changed code identity. A submission still requires the door's exact identities (no pinned record yet).
+_RESULT_READ_FIELDS = ("contract_digest", "rule_digest")
+
+
+def _same_task_rule(identities, pinned):
+    """Whether the door's ``identities`` answer for the task ``pinned`` was recorded for: same contract, same rule."""
+    return type(pinned) is dict and all(
+        identities.get(field) == pinned.get(field) for field in _RESULT_READ_FIELDS
+    )
+
+
 def _outcome(
     answer,
     *,
@@ -301,7 +316,7 @@ def _outcome(
         or set(identities) != PINNED_FIELDS
         or identities.get("contract_digest") != contract_digest
         or not all(is_digest(value) for value in identities.values())
-        or (pinned is not None and identities != pinned)
+        or (pinned is not None and not _same_task_rule(identities, pinned))
     ):
         raise DirectIntakeRefusal("construction_intake_identity_mismatch")
     result = answer.get("outcome")

@@ -285,7 +285,8 @@ def test_retried_submit_preserves_an_already_terminal_idempotent_task(
         ("wrong_outcome_schema", "construction_intake_answer_unrecognised"),
         ("wrong_challenge", "construction_intake_answer_unrecognised"),
         ("wrong_task_identity", "construction_intake_answer_unrecognised"),
-        ("wrong_pinned_identity", "construction_intake_identity_mismatch"),
+        ("wrong_pinned_rule", "construction_intake_identity_mismatch"),
+        ("wrong_pinned_contract", "construction_intake_identity_mismatch"),
         ("extra_private_field", "construction_intake_answer_unrecognised"),
     ],
 )
@@ -313,8 +314,11 @@ def test_incomplete_or_different_terminal_result_never_becomes_success(
             result["outcome"]["challenge"]["version"] = "1.2"
         elif changed == "wrong_task_identity":
             result["outcome"]["submission_id"] = "another-task"
-        elif changed == "wrong_pinned_identity":
-            result["pinned"]["implementation_digest"] = "sha256:" + "1" * 64
+        elif changed == "wrong_pinned_rule":
+            # another score rule than the one this submission was admitted under: never its result
+            result["pinned"]["rule_digest"] = "sha256:" + "1" * 64
+        elif changed == "wrong_pinned_contract":
+            result["pinned"]["contract_digest"] = "sha256:" + "2" * 64
         else:
             result["outcome"]["private_seed"] = "must-not-appear"
         return 200, result
@@ -926,6 +930,191 @@ def test_remote_observation_is_signed_status_only_and_keeps_original_pins(
             _URL, "external-signer", **{**args, "receiver": "another-receiver"}
         )
     assert len(calls) == 1
+
+
+def test_a_result_survives_a_door_update_that_moved_only_the_doors_code(
+    tmp_path, monkeypatch
+):
+    """Owner via the Lead, 15 Nov 2026: 'check result' of a task submitted BEFORE a door update reads its result. The
+    door's code identity (implementation_digest, identities_digest) moved; its contract and score rule did not. A changed
+    rule or contract is still refused (the parametrized test above); the local record is never rewritten.
+    """
+    record = client._record_path(tmp_path, 1)
+    record.write_text(
+        json.dumps(
+            {
+                **client._binding(_URL, _recipe(), _CONTRACT, _RECEIVER, _CONTEXT, 1),
+                "submission_id": "task-1",
+                "pinned": _PINNED,
+            }
+        )
+    )
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        assert json.loads(body)["tool"] == client.STATUS_TOOL
+        answer = _answer("RECONSTRUCTION_FAILED", failure={"code": "fixture_failure"})
+        answer["pinned"]["implementation_digest"] = "sha256:" + "3" * 64
+        answer["pinned"]["identities_digest"] = "sha256:" + "4" * 64
+        return 200, answer
+
+    original = record.read_bytes()
+    result = client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=lambda _url: _facts(),
+        send=send,
+        observe_only=True,
+        wait_s=10,
+    )
+    assert result["state"] == "RECONSTRUCTION_FAILED"
+    assert result["task_id"] == "task-1"
+    assert record.read_bytes() == original
+
+
+def test_check_result_still_refuses_a_door_that_now_grades_under_another_rule(
+    tmp_path, monkeypatch
+):
+    """The 'check result' path itself (observe_only, a recorded submission): a changed score rule is never read as this
+    task's result, whatever the code identity says."""
+    record = client._record_path(tmp_path, 1)
+    record.write_text(
+        json.dumps(
+            {
+                **client._binding(_URL, _recipe(), _CONTRACT, _RECEIVER, _CONTEXT, 1),
+                "submission_id": "task-1",
+                "pinned": _PINNED,
+            }
+        )
+    )
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        answer = _answer("RECONSTRUCTED")
+        answer["pinned"]["rule_digest"] = "sha256:" + "8" * 64
+        return 200, answer
+
+    with pytest.raises(
+        client.DirectIntakeRefusal, match="construction_intake_identity_mismatch"
+    ):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda _url: _facts(),
+            send=send,
+            observe_only=True,
+            wait_s=10,
+        )
+
+
+def test_a_door_update_between_admission_and_the_status_read_still_reads_the_result(
+    tmp_path, monkeypatch
+):
+    """The same, inside one submit-and-wait: the door is updated after it admitted the task and before the result."""
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        if json.loads(body)["tool"] == client.SUBMIT_TOOL:
+            return 202, _answer("ADMITTED")
+        answer = _answer("RECONSTRUCTED")
+        answer["pinned"]["implementation_digest"] = "sha256:" + "5" * 64
+        answer["pinned"]["identities_digest"] = "sha256:" + "6" * 64
+        return 200, answer
+
+    result = client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=lambda _url: _facts(),
+        send=send,
+        wait_s=10,
+    )
+    assert result["state"] == "RECONSTRUCTED"
+    recorded = json.loads(client._record_path(tmp_path, 1).read_bytes())
+    assert recorded["pinned"] == _PINNED  # the admission's identities stay the record
+
+
+def test_a_submission_still_requires_well_formed_identities_and_its_contract(
+    tmp_path, monkeypatch
+):
+    """Submitting is unchanged: the admission answer must carry this contract and well-formed digests."""
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    for index, change in enumerate(
+        ({"contract_digest": "sha256:" + "7" * 64}, {"rule_digest": "x"})
+    ):
+
+        def send(url, body, headers, change=change):
+            answer = _answer("ADMITTED")
+            answer["pinned"].update(change)
+            return 202, answer
+
+        root = tmp_path / str(index)
+        root.mkdir()
+        with pytest.raises(
+            client.DirectIntakeRefusal, match="construction_intake_identity_mismatch"
+        ):
+            client.submit_and_wait(
+                _URL,
+                "external-signer",
+                root=root,
+                epoch=1,
+                recipe=_recipe(),
+                contract_digest=_CONTRACT,
+                receiver=_RECEIVER,
+                context=_CONTEXT,
+                read=lambda _url: _facts(),
+                send=send,
+                wait_s=0,
+            )
 
 
 @pytest.mark.parametrize("wait_s", [0, -1, 31, float("inf"), float("nan"), True])
