@@ -334,7 +334,7 @@ def test_v6_never_answers_for_another_hotkeys_submission(ledger):
 
 def test_v6_is_a_recognised_reply_and_advertised():
     assert direct_intake.feedback_reply({"reply": "v6", "submission_id": SID}) == "v6"
-    assert direct_intake.feedback_reply({"reply": "v7", "submission_id": SID}) is None
+    assert direct_intake.feedback_reply({"reply": "v8", "submission_id": SID}) is None
     from pathlib import Path
 
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")

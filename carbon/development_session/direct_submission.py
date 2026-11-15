@@ -516,6 +516,14 @@ FEEDBACK_V6_FACTS = {
     "fields": ["reply", "submission_id"],
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V6,
 }
+#: v7: v6 whose Ladder documents may carry the NOT_SCORED reasons TIMED_OUT / STOPPED_EARLY (`direct_intake`
+#: FEEDBACK_REPLY_SCHEMA_V7, Validator-2 15 Nov); asked for only where advertised. An older reply withholds those documents.
+FEEDBACK_REPLY_SCHEMA_V7 = "carbon.private-exam.ladder-feedback-reply.v7"
+FEEDBACK_V7_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V7,
+}
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
 #: A bound on the held count a reply may name (a resource bound, not a policy value).
@@ -620,7 +628,10 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v6 = (
+    v7 = (
+        submission_id is not None and facts.get("exam_feedback_v7") == FEEDBACK_V7_FACTS
+    )
+    v6 = v7 or (
         submission_id is not None and facts.get("exam_feedback_v6") == FEEDBACK_V6_FACTS
     )
     v5 = v6 or (
@@ -649,7 +660,9 @@ def read_exam_feedback(
         tool=FEEDBACK_TOOL,
         fields=(
             {
-                "reply": "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3",
+                "reply": (
+                    "v7" if v7 else "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3"
+                ),
                 "submission_id": submission_id,
             }
             if v4 or v3
@@ -669,18 +682,26 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V6
-            if v6
+            FEEDBACK_REPLY_SCHEMA_V7
+            if v7
             else (
-                FEEDBACK_REPLY_SCHEMA_V5
-                if v5
+                FEEDBACK_REPLY_SCHEMA_V6
+                if v6
                 else (
-                    FEEDBACK_REPLY_SCHEMA_V4
-                    if v4
+                    FEEDBACK_REPLY_SCHEMA_V5
+                    if v5
                     else (
-                        FEEDBACK_REPLY_SCHEMA_V3
-                        if v3
-                        else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+                        FEEDBACK_REPLY_SCHEMA_V4
+                        if v4
+                        else (
+                            FEEDBACK_REPLY_SCHEMA_V3
+                            if v3
+                            else (
+                                FEEDBACK_REPLY_SCHEMA_V2
+                                if v2
+                                else FEEDBACK_REPLY_SCHEMA
+                            )
+                        )
                     )
                 )
             )

@@ -99,6 +99,13 @@ FEEDBACK_REPLY_SCHEMA_V5 = "carbon.private-exam.ladder-feedback-reply.v5"
 #: with one closed reason (``over_limit`` | ``invalid_answer``), else None (`gate_failure_feedback`). Never a p90, ratio, class, count or case.
 #: Advertised as ``exam_feedback_v6``; a v2..v5 reply is unchanged.
 FEEDBACK_REPLY_SCHEMA_V6 = "carbon.private-exam.ladder-feedback-reply.v6"
+#: v7 (Validator-2 15 Nov, P-1..P-4) = v6 whose Ladder documents may carry the NOT_SCORED reasons TIMED_OUT / STOPPED_EARLY
+#: (`grade_feedback`). Opt-in by the kit's request: a kit already in the field validates documents against ITS OWN reason
+#: list and would refuse the whole reply, so every older reply (v1..v6) WITHHOLDS each document carrying one of those
+#: reasons (served as null, never a substitute reason). Advertised as ``exam_feedback_v7``.
+FEEDBACK_REPLY_SCHEMA_V7 = "carbon.private-exam.ladder-feedback-reply.v7"
+#: The reasons only a v7 reply carries.
+V7_ONLY_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V4 = (
     *GRADE_STATES_V3,
@@ -141,6 +148,7 @@ def feedback_reply(fields):
         "v4",
         "v5",
         "v6",
+        "v7",
     ):
         return fields["reply"]
     return None
@@ -400,6 +408,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v7": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V7,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 "served_contracts": self.door.served_contracts(),
@@ -562,9 +577,10 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6"),
-                v5=reply in ("v5", "v6"),
-                v6=reply == "v6",
+                v4=reply in ("v4", "v5", "v6", "v7"),
+                v5=reply in ("v5", "v6", "v7"),
+                v6=reply in ("v6", "v7"),
+                v7=reply == "v7",
             )
         return _refused(400, "tool")
 
@@ -595,7 +611,15 @@ class DirectRecipeIntake(BatteryIntake):
             return
 
     def _feedback(
-        self, hotkey, *, submission_id=None, v3=False, v4=False, v5=False, v6=False
+        self,
+        hotkey,
+        *,
+        submission_id=None,
+        v3=False,
+        v4=False,
+        v5=False,
+        v6=False,
+        v7=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -659,6 +683,17 @@ class DirectRecipeIntake(BatteryIntake):
                 )
             except LadderStoreRefused:
                 return _refused(503, "feedback_unavailable")
+        if not v7:
+            # P-2: an older reply withholds every document a kit in the field cannot read (never a substitute reason)
+            documents = {
+                name: (
+                    None
+                    if type(document) is dict
+                    and document.get("reason") in V7_ONLY_REASONS
+                    else document
+                )
+                for name, document in documents.items()
+            }
         return Answer(
             200,
             {
@@ -674,18 +709,22 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V6
-                            if v6
+                            FEEDBACK_REPLY_SCHEMA_V7
+                            if v7
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V5
-                                if v5
+                                FEEDBACK_REPLY_SCHEMA_V6
+                                if v6
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V4
-                                    if v4
+                                    FEEDBACK_REPLY_SCHEMA_V5
+                                    if v5
                                     else (
-                                        FEEDBACK_REPLY_SCHEMA_V3
-                                        if v3
-                                        else FEEDBACK_REPLY_SCHEMA_V2
+                                        FEEDBACK_REPLY_SCHEMA_V4
+                                        if v4
+                                        else (
+                                            FEEDBACK_REPLY_SCHEMA_V3
+                                            if v3
+                                            else FEEDBACK_REPLY_SCHEMA_V2
+                                        )
                                     )
                                 )
                             )
