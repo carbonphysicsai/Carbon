@@ -218,7 +218,7 @@ The exam is not a surprise: you can read what it measures and what passes. What 
 - **Gates come before the score.** A failed gate is never made up for by a good score. Physics laws marked *gated* below fail a model; laws marked *measured* count in *A_law* but are **not yet registered as gate margins**. A gate that fails is named; which design failed is not. A failed in-range accuracy gate also names each failing output and why (over the limit, or an invalid answer): the gate is checked per hidden in-range class and per output, and one invalid answer fails that class.
 - **Two gates on every launch version.** The Challenge's physics gates must hold on every design your model answers in the exam, inside and outside the training range. And your model must answer each design in at most 1/500 of the time the reference solver needs for one design, measured on the validator's machine as the median time of single-design calls, each a separate call with the model's loading included; a slower model fails the gate and gets no score. Ceilings per design: Burst Thermal 0.38 s, Ribbed Bracket 2.08 s, Cooling 2.84 s, Motor 3.3 s.
 - **Practice and exam.** Practice uses the public bank; its totals are not exam totals.
-- **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused. How a king is paid: see *How rewards work*.
+- **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. Each version registers its own margin; a version whose margin is not registered yet pauses takeovers until it is. On Motor 1.8 the margin is 0.0129 and takeovers are live. How a king is paid: see *How rewards work*.
 
 ### Ribbed Bracket 1.7
 
@@ -268,7 +268,7 @@ Motor 1.5 is no longer graded: Motor is version 1.8 (its rules: `kits/motor/HOW_
 
 This version drops the temperature-rise sign check against hotspot ratio and that sensitivity's fitted exponent; the other checks apply.
 
-Official submissions for this version go to https://cooling-door.carbonphysics.ai. The installer update puts that address in your profile; you type nothing. Crowns are not open yet for this version: submissions are graded and recorded, but no crown changes hands until they open.
+Crowns are not open for this version: no crown rule is registered for it, so no crown changes hands.
 
 - **Hard gates:** `native_cold_plate`, `complete_grid_common_mask`, `selected_design_verified_feasible` (the pick is feasible by the references at every condition: die peak c max 100.0, hydraulic power w max 0.25), `physics_laws`, `schema_finite` (peak, the 30-value profile and the pressure drop are finite), `face_above_inlet`, `peak_bounds_profile` (within 32 float32 ulp), `pressure_drop_positive`, `paired_repeat` (within 32 float32 ulp), and the two gates above
 - **Physics laws (gated):** `peak_above_profile`, `profile_above_inlet`, `pressure_positive`
@@ -319,8 +319,8 @@ A graph recipe is a JAX program. Carbon lowers it on your machine, checks every 
 - **Still refused**, with the operation named in the refusal: host callbacks (`pure_callback`, `io_callback`), `custom_call` and foreign-function calls, infeed and outfeed, collectives and device placement, hardware or unkeyed random numbers, and uninitialised memory. `while` loops are not served yet; use `scan` with a fixed length.
 - **What Carbon does to your data.** It standardises each target column to zero mean and unit deviation from the selected TRAIN rows, trains in those units and decodes the outputs back. It does not standardise the inputs: normalise them inside your graph (the TRAIN box is in `describe`). Training runs in the interface's dtype (float32 on Ribbed Bracket and Burst Thermal, float64 on Motor and Cooling); your graph may compute in float64 inside, and Carbon turns 64-bit mode on when it holds a 64-bit value, with the outputs staying in the interface's dtype.
 - **Your own loss.** A spec may define `loss(params, pred, target, *inputs)` returning one scalar over the whole training batch; Carbon trains with it in place of the menu loss (`mse`, `mae`, `huber` and the per-output weights are then unused). `pred` and `target` are in the units Carbon trains in (standardised), `inputs` are the batch's inputs, `params` are the model's parameters, so a loss can weigh cases against each other or regularise. It is a graph like the rest: every operation in it is checked, and the exam never uses it (the exam grades with the Challenge's own metric).
-- **Constants and static values.** Everything written into the graph that can carry a fitted number counts against one 32 KiB budget for the whole submission, by what it holds: a float by its real size (half precision two bytes, float32 four, float64 eight, complex64 eight, complex128 sixteen), an integer by the bits its range needs (a lone scalar by the bits of its value), a boolean one bit, identical copies once. The static values of your nodes count too: every integer, boolean or float in an op's parameters (slice and gather indices, padding, strides, shapes, permutations, a scan's length), each by its own bits. A normal graph of a dozen conv or attention blocks costs a few hundred bytes of this, so the budget only bites when numbers are being carried. Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting tables; a table of small integers is cheap, a table of fitted floats is not.
-- **The seed.** Your official grade builds your graph at seed 0. Crown decisions will average over several seeds once crown averaging is switched on, so make your graph robust to the seed.
+- **Constants and static values.** Your whole graph, counted together, must fit one 32 KiB budget, measured as its compressed (zlib level 9) size: the operations, their wiring, shapes, constants and every static value in your ops' parameters (slice and gather indices, padding, strides, shapes, permutations, a scan's length) all count. A regular architecture with repeated layers compresses far below its raw size; numbers carried in the graph, such as pasted tables or fitted constants, do not compress away. Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting tables.
+- **The seed.** Your official grade builds your graph at seed 0. On Motor 1.8 the crown is decided on that official grade, with no averaging over seeds or rebuilds.
 
 ## Build a neural operator
 
@@ -357,7 +357,7 @@ Training steps and learning rate are recipe settings; leave them at the tested d
 
 - **Time.** Practice runs on your own compute and has a time budget; a graph too slow to finish in it can never be frozen. The exam rebuild has its own limits (see *Practise, freeze, submit*: build time and inference time each up to 648 seconds on the newer versions, 947 seconds in total), and the speed gate bounds the answer time per design. A large spectral block with many channels costs time in all three.
 - **Loops.** Use `scan` with a fixed length for anything iterative. `while` loops are not served yet.
-- **Seed.** Your grade builds your graph at seed 0, and crown decisions will average over several seeds once crown averaging is switched on (it is off now), so check that a second seed trains too.
+- **Seed.** Your grade builds your graph at seed 0. On Motor 1.8 the crown is decided on that official grade, with no averaging over seeds or rebuilds.
 
 ### 5. Freeze and submit
 
@@ -448,7 +448,7 @@ crown (see *King of the hill* above).
   clears that bar.
 - **Taking the crown** needs a model that beats the king by the registered
   margin. A tie keeps the king.
-- **The margin is not yet registered**, so no crown changes hands until it is.
+- **The margin is registered per version:** on Motor 1.8 it is 0.0129; a version without a registered margin changes no crown until it has one.
 
 **What a king is paid.** For the first 24 hours after winning, the king gets
 the Challenge's whole share. Then the rate halves every 24 hours: one half on
@@ -596,5 +596,5 @@ Before you write, check [Known issues](KNOWN_ISSUES.md): your problem may alread
 Yes to design choices, and yes to a small amount of fitted numbers; no to a trained starting point.
 
 - **Design choices: yes.** What you learn from your own data can shape the recipe: the structure of the model, your own loss, the hyperparameters, the priors you build in. The validator rebuilds your recipe and trains it from scratch with Carbon's trainer, so whatever you carry in has to be in the recipe.
-- **Fitted constants and small tables inside the graph: yes, inside the 32 KiB constants budget.** Numbers written into the graph, and the static integers in its op parameters, count by their real size (see **Constants and static values** under *Writing a graph*): a float by its size (float64 eight bytes), an integer by the bits its range needs, a boolean one bit, identical copies once, all against one 32 KiB budget for the submission. Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting float tables; a table of small integers is cheap, a table of fitted floats is not.
+- **Fitted constants and small tables inside the graph: yes, inside the 32 KiB budget.** Numbers written into the graph, and the static values in its op parameters, count toward one 32 KiB budget for the whole submission, measured as its compressed (zlib level 9) size (see **Constants and static values** under *Writing a graph*). Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting float tables; numbers carried in the graph do not compress away.
 - **A pretrained starting state: no.** A recipe cannot carry trained weights or an `initial_state`; the validator starts from scratch every time.

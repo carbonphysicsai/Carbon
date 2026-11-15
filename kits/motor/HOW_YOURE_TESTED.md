@@ -186,11 +186,12 @@ are not shown, and the hidden sample rotates.
 - **Minimums:** each score part has a minimum set from Carbon's own
   baseline; below it the result is not eligible and the part is named. The
   values are not published.
-- **Information budget:** everything in your graph that can carry a fitted
-  number counts against one 32 KiB budget for the whole submission, by what
-  it holds (a float by its real size, an integer by the bits its range
-  needs, a boolean one bit, identical copies once), including the static
-  values in your ops' parameters.
+- **Information budget:** your whole graph, counted together, must fit one
+  32 KiB budget, measured as its compressed (zlib level 9) size: the
+  operations, their wiring, shapes, constants and every static value in your
+  ops' parameters all count. A regular architecture with repeated layers
+  compresses far below its raw size; numbers carried in the graph, such as
+  pasted tables or fitted constants, do not.
 - **Submission rules:** any finite learning rate; fitted constants (from any
   source, including the public TRAIN set) only inside the budget; no trained
   or starting weights (no `initial_state`); everything trainable trains from
