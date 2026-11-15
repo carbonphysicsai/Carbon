@@ -1,0 +1,22 @@
+{
+  "label": "One waiting submission per HOTKEY at submit (replaces per coldkey), Motor 1.8 on 116 (owner, 15 Nov 06:52 CST)",
+  "owner_words": [
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sun 15 Nov 06:52 CST entry",
+      "typed_at": "Sun 15 Nov 2026 06:52 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "those 3 are fine."
+    }
+  ],
+  "proposal_answered": "The Lead's owner picks of Sun 15 Nov 06:52 CST, pick (1): the waiting limit moves from one per coldkey to one per hotkey; the same coldkey_waiting machinery keyed by hotkey; limit 1 as a values setting; the refusal text updated.",
+  "registry": "scripts/validator_host_classes/coldkey_waiting_limit.json",
+  "rule": "carbon/challenge_validator/coldkey_waiting.py: a row with \"per\": \"hotkey\" counts only the submitting hotkey's own waiting submissions (queued, building, or built and not yet graded) on this door, refused with code hotkey_submission_waiting; no chain snapshot is read, so a hotkey is never refused for an unresolved coldkey; a resend of the same submission is never refused; submissions already waiting are kept; per-round grading (exam_cap) is unchanged.",
+  "schema": "carbon.exam.coldkey-waiting-limit-record.v1",
+  "supersedes": "docs/records/2026-11-14-coldkey-waiting-limit.json (per coldkey)",
+  "values": {
+    "electric-motor-magnetics 1.8": {
+      "limit": 1,
+      "per": "hotkey"
+    }
+  }
+}

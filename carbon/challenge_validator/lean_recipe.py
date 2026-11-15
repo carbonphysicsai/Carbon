@@ -412,24 +412,28 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     @contextlib.contextmanager
     def _coldkey_place(self, hotkey, task_id):
-        """One waiting submission per coldkey (`coldkey_waiting`), when the receiver installed the guard and the version
-        registers a limit: refuse now, before any intent or build, if this hotkey's coldkey already has that many
-        submissions waiting; otherwise hold the guard's lock until the body (the task's start) is done, so two hotkeys of
-        one coldkey can never both pass. Off (no guard, no limit): nothing is checked or held.
+        """One waiting submission per coldkey (`coldkey_waiting`), or per hotkey when the row says ``"per": "hotkey"``,
+        when the receiver installed the guard and the version registers a limit: refuse now, before any intent or build,
+        if this hotkey's coldkey (or the hotkey itself) already has that many submissions waiting; otherwise hold the
+        guard's lock until the body (the task's start) is done, so two submissions can never both pass. Off (no guard,
+        no limit): nothing is checked or held.
         """
         from carbon.challenge_validator import coldkey_waiting
 
         guard = getattr(self, "coldkey_waiting", None)
-        limit = (
+        rule = (
             None
             if guard is None
-            else coldkey_waiting.limit_for(self.challenge_id, self.challenge_version)
+            else coldkey_waiting.rule_for(self.challenge_id, self.challenge_version)
         )
-        if limit is None:
+        if rule is None:
             yield
             return
+        limit, per = rule
         with guard.lock:
-            refused = guard.refusal(hotkey=hotkey, task_id=task_id, limit=limit)
+            refused = guard.refusal(
+                hotkey=hotkey, task_id=task_id, limit=limit, per=per
+            )
             if refused is not None:
                 code, message = refused
                 raise Unavailable(code, retry={"message": message})

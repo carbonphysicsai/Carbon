@@ -7,6 +7,11 @@ refusal at grading time would still have spent a whole build.
 
 - The LIMIT is a value, per ``"<challenge> <version>"``, in `REGISTRY` (outside ``carbon/``, a values-only path):
   ``{"limit": <int >= 1>}``. No registry, no row or a malformed row = OFF (the door takes submissions as before).
+- PER HOTKEY (owner GO 15 Nov 2026 via the Lead: "those 3 are fine."): a row ``{"limit": <int >= 1>, "per": "hotkey"}``
+  counts only the SUBMITTING HOTKEY's own waiting submissions (its own provider's task views) instead of its coldkey's,
+  with the same waiting definition, lock, own-task rule and fail-open reads; no chain snapshot is needed, so a hotkey
+  is never refused for an unresolved coldkey. ``"per": "coldkey"`` or no ``per`` is the coldkey rule below. Any other
+  ``per`` = OFF.
 - The COLDKEY of a hotkey is the door's OWN latest chain snapshot's (``snapshot.resolve(hotkey).coldkey``), never anything
   a miner sends. A SUBMITTER whose coldkey the snapshot cannot give is refused with the existing retry code
   ``allowance_group_unresolved`` (never counted as a new coldkey); a waiting task whose owner cannot be resolved counts
@@ -39,6 +44,9 @@ REGISTRY = (
 )
 SCHEMA = "carbon.exam.coldkey-waiting-limit.v1"
 CODE = "coldkey_submission_waiting"
+HOTKEY_CODE = "hotkey_submission_waiting"
+#: What a row may count by: its ``per`` (absent = coldkey, the first rule).
+PER = ("coldkey", "hotkey")
 UNRESOLVED = "allowance_group_unresolved"
 #: Waiting states of a task view: queued or building.
 _BUILDING = frozenset({"QUEUED", "RUNNING", "CANCEL_REQUESTED"})
@@ -50,6 +58,11 @@ MESSAGE = (
     "queued, building or waiting for its grade on this validator. Nothing was built or graded for this submission and "
     "it used none of your allowance. Submit again once that submission has its result."
 )
+HOTKEY_MESSAGE = (
+    "One waiting submission per hotkey on this Challenge: this hotkey already has a submission queued, building or "
+    "waiting for its grade on this validator. Nothing was built or graded for this submission and it used none of "
+    "your allowance. Submit again once that submission has its result."
+)
 UNRESOLVED_MESSAGE = (
     "The validator cannot yet match this hotkey to its coldkey in its latest chain snapshot, so it cannot take this "
     "submission yet. Nothing was built or graded for this submission and it used none of your allowance. Try again "
@@ -57,21 +70,28 @@ UNRESOLVED_MESSAGE = (
 )
 
 
-def limit_for(challenge_id, version, *, path=None):
-    """The registered limit of ``"<challenge_id> <version>"`` (an int >= 1), or None = OFF. Never raises."""
+def rule_for(challenge_id, version, *, path=None):
+    """The registered rule of ``"<challenge_id> <version>"``: ``(limit, per)`` with an int limit >= 1 and ``per`` one of
+    `PER`, or None = OFF. Never raises."""
     try:
         document = json.loads(Path(REGISTRY if path is None else path).read_bytes())
         if type(document) is not dict or document.get("schema") != SCHEMA:
             return None
         row = (document.get("rows") or {}).get(f"{challenge_id} {version}")
-        if type(row) is not dict or set(row) != {"limit"}:
+        if type(row) is not dict or set(row) not in ({"limit"}, {"limit", "per"}):
             return None
-        limit = row["limit"]
-        if type(limit) is not int or limit < 1:
+        limit, per = row["limit"], row.get("per", "coldkey")
+        if type(limit) is not int or limit < 1 or per not in PER:
             return None
-        return limit
+        return limit, per
     except Exception:  # noqa: BLE001 - OFF, never a failure of a submission
         return None
+
+
+def limit_for(challenge_id, version, *, path=None):
+    """The registered limit of ``"<challenge_id> <version>"`` (an int >= 1), or None = OFF. Never raises."""
+    rule = rule_for(challenge_id, version, path=path)
+    return None if rule is None else rule[0]
 
 
 class Guard:
@@ -97,14 +117,19 @@ class Guard:
             except Exception:  # noqa: BLE001, S110 - the log is best effort
                 pass
 
-    def refusal(self, *, hotkey, task_id, limit):
-        """``(code, message)`` when ``hotkey``'s NEW submission ``task_id`` must be refused now, else None."""
-        snapshot = self._snapshot()
-        if snapshot is None:
-            return None  # no snapshot at all: the door's own signed-request checks decide, as before
-        member = snapshot.resolve(hotkey)
-        if member is None:
-            return UNRESOLVED, UNRESOLVED_MESSAGE
+    def refusal(self, *, hotkey, task_id, limit, per="coldkey"):
+        """``(code, message)`` when ``hotkey``'s NEW submission ``task_id`` must be refused now, else None. ``per`` is
+        the row's: ``"coldkey"`` counts every hotkey of its coldkey, ``"hotkey"`` only its own.
+        """
+        if per == "hotkey":
+            snapshot, member = None, None
+        else:
+            snapshot = self._snapshot()
+            if snapshot is None:
+                return None  # no snapshot at all: the door's own signed-request checks decide, as before
+            member = snapshot.resolve(hotkey)
+            if member is None:
+                return UNRESOLVED, UNRESOLVED_MESSAGE
         opened = self._opened()
         if not isinstance(opened, dict):
             self._unreadable()
@@ -119,9 +144,13 @@ class Guard:
             return None
         held, built = 0, []
         for owner, provider in providers:
-            found = snapshot.resolve(owner)
-            if found is None or found.coldkey != member.coldkey:
-                continue  # another coldkey, or an owner that cannot be resolved (counts for no coldkey)
+            if per == "hotkey":
+                if owner != hotkey:
+                    continue  # another hotkey (of any coldkey): never counted
+            else:
+                found = snapshot.resolve(owner)
+                if found is None or found.coldkey != member.coldkey:
+                    continue  # another coldkey, or an owner that cannot be resolved (counts for no coldkey)
             try:
                 views = tuple(getattr(provider, "_views", {}).items())
             except RuntimeError:
@@ -141,7 +170,20 @@ class Guard:
             except Exception:  # noqa: BLE001 - fail open
                 return None
             held += sum(1 for task in built if task in pending and task not in stalled)
-        return (CODE, MESSAGE) if held >= limit else None
+        if held < limit:
+            return None
+        return (HOTKEY_CODE, HOTKEY_MESSAGE) if per == "hotkey" else (CODE, MESSAGE)
 
 
-__all__ = ["CODE", "MESSAGE", "REGISTRY", "SCHEMA", "Guard", "limit_for"]
+__all__ = [
+    "CODE",
+    "HOTKEY_CODE",
+    "HOTKEY_MESSAGE",
+    "MESSAGE",
+    "PER",
+    "REGISTRY",
+    "SCHEMA",
+    "Guard",
+    "limit_for",
+    "rule_for",
+]
