@@ -205,12 +205,19 @@ def test_a_disagreement_is_given_back_as_failed_infra_and_retried_once(tmp_path)
 def test_the_receiver_refuses_to_serve_a_vmap64_version_without_its_tolerance(
     monkeypatch, tmp_path
 ):
+    unset = tmp_path / "unset"
+    unset.mkdir()
+    monkeypatch.setattr(
+        speed_match, "REGISTRY", _registry(unset, {"rtol": None, "atol": None})
+    )
     with pytest.raises(direct_receiver.ReceiverUnavailable) as refused:
         direct_receiver._require_speed_match(*MOTOR_18)
     assert refused.value.code == speed_match.UNREGISTERED
     direct_receiver._require_speed_match("electric-motor-magnetics", "1.6")
     monkeypatch.setattr(speed_match, "REGISTRY", _registry(tmp_path))
     direct_receiver._require_speed_match(*MOTOR_18)
+    monkeypatch.undo()
+    direct_receiver._require_speed_match(*MOTOR_18)  # the committed row serves
     source = inspect.getsource(direct_receiver.serve)
     assert source.index(
         "_require_speed_match(challenge.challenge_id, challenge.version)"
