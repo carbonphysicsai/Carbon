@@ -41,6 +41,11 @@ _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
 #: this is a chain read that failed: the task waits and is graded once the chain answers, never FAILED and never a
 #: slot given back (H8; R38, 5 Nov). With a fresh snapshot it means what it always meant (handled as before).
 _CHAIN_CODES = frozenset({"direct_provider_registration_unavailable"})
+#: The terminal marker of a submission its owner withdrew while it was still queued (`LeanRecipeAdapter.withdraw`, owner GO
+#: 15 Nov 2026): never graded, no try and no allowance used. Not FAILED (the infrastructure requeue, `failures` and
+#: `failure_summary` read FAILED) and not VERSION_CLOSED; every marker reader treats any state it does not name as settled.
+WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
+WITHDRAWN_CODE = "withdrawn_by_miner"
 
 
 #: Slow-tail F2: the longest the king's upkeep step is deferred in a row while other doors wait (engineering pacing,
@@ -140,6 +145,47 @@ class AutoGrader:
         except (OSError, ValueError):
             return None
         return body if type(body) is dict and body.get("schema") == SCHEMA else None
+
+    def withdrawn(self, submission_id):
+        """Write ``submission_id``'s terminal WITHDRAWN_BY_MINER marker (create-only, like every marker). Idempotent: an
+        existing WITHDRAWN_BY_MINER marker is kept; a marker of any other state is never replaced (raises).
+        """
+        if type(submission_id) is not str or not _TASK.fullmatch(submission_id):
+            raise ValueError("not a task id")
+        try:
+            self._write(submission_id, WITHDRAWN_STATE, code=WITHDRAWN_CODE)
+        except FileExistsError:
+            found = self.marker(submission_id)
+            if found is None or found.get("state") != WITHDRAWN_STATE:
+                raise
+
+    def _settle_withdrawn(self, submission_id):
+        """The repair of a withdrawal whose door call stopped after the provider cancel (`DirectRecipeIntake._withdraw`): a
+        pending task its owner withdrew (`LeanRecipeAdapter.withdrawn_by_miner`, the provider's durable cancellation id) gets
+        its withdrawal row and WITHDRAWN_BY_MINER marker now, so it never stays pending (or holds a later copy WAITING) for
+        good, and is never graded. True when it was settled so; any doubt is False (the round goes on as before and asks
+        again next round)."""
+        adapter = getattr(self.intake, "adapter", None)
+        find = getattr(adapter, "withdrawn_by_miner", None)
+        if find is None:
+            return False
+        try:
+            hotkey = find(submission_id)
+            if hotkey is None:
+                return False
+            record = getattr(adapter.ledger, "record_miner_withdrawal", None)
+            if record is not None:
+                record(adapter.contract_digest, submission_id, hotkey)
+            self.withdrawn(submission_id)
+        except Exception as failure:  # noqa: BLE001 - asked again next round
+            from carbon.battery.intake import log
+
+            log("withdraw_repair_failed", type=type(failure).__name__)
+            return False
+        from carbon.battery.intake import log
+
+        log("withdraw_marker_repaired")
+        return True
 
     def pending(self):
         """Task ids with no marker yet, in the ledger's order: oldest submission first (`AttemptLedger.submitted_outcomes`)."""
@@ -353,6 +399,8 @@ class AutoGrader:
                     self._log_copy_waits()
                     continue
                 if decision == "copy":
+                    if self._settle_withdrawn(submission_id):
+                        continue  # withdrawn by its owner: never graded as a copy (nothing charged)
                     return self._grade_copy(submission_id, first)
             sampler = _Sampler(
                 self.containers, self.sample_seconds, getattr(self, "gpu", None)
@@ -381,7 +429,11 @@ class AutoGrader:
                     self.stalled = getattr(self, "stalled", frozenset()) | {
                         submission_id
                     }
-                if code in _PENDING or code in _NOT_YET:
+                if code in _PENDING:
+                    # not built: a task its owner withdrew whose marker is missing is settled here (`_settle_withdrawn`)
+                    self._settle_withdrawn(submission_id)
+                    continue
+                if code in _NOT_YET:
                     continue
                 if (
                     isinstance(code, str)

@@ -20,7 +20,8 @@ refusal at grading time would still have spent a whole build.
   taken): a task QUEUED, RUNNING or CANCEL_REQUESTED, or SUCCEEDED and still in the grader's pending list (built, no
   grade marker yet), unless the grade round found it NOT gradable now (`AutoGrader.stalled`: an owned task or verified
   attempt it cannot read), which would otherwise hold the coldkey for good. ANY terminal state frees the place: the round
-  writes a marker for every grade it settles (graded, refused, wall or early stop, failed incl. an infra give-back).
+  writes a marker for every grade it settles (graded, refused, wall or early stop, failed incl. an infra give-back), and a
+  submission its owner WITHDREW while queued (`LeanRecipeAdapter.withdraw`) is CANCELLED, never a waiting state.
 - ATOMIC: on the live door every submit is already decided under the intake's one writer lock
   (`DirectRecipeIntake._write`); the guard's own lock, held from this check to the task's start (a just-started task is
   QUEUED in its view at once), keeps that true for any other caller.
@@ -61,7 +62,8 @@ MESSAGE = (
 HOTKEY_MESSAGE = (
     "One waiting submission per hotkey on this Challenge: this hotkey already has a submission queued, building or "
     "waiting for its grade on this validator. Nothing was built or graded for this submission and it used none of "
-    "your allowance. Submit again once that submission has its result."
+    "your allowance. Submit again once that submission has its result, or withdraw it while it is still queued "
+    "(withdraw command)."
 )
 UNRESOLVED_MESSAGE = (
     "The validator cannot yet match this hotkey to its coldkey in its latest chain snapshot, so it cannot take this "

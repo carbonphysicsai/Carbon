@@ -72,6 +72,12 @@ CREATE TABLE IF NOT EXISTS queue_place_grants(
     PRIMARY KEY(contract_digest, new_task),
     UNIQUE(contract_digest, from_task)
 );
+CREATE TABLE IF NOT EXISTS miner_withdrawals(
+    contract_digest TEXT NOT NULL,
+    submission_id TEXT PRIMARY KEY,
+    hotkey TEXT NOT NULL,
+    at_ns INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS catalog_submissions(
     contract_digest TEXT NOT NULL,
     submission_id TEXT NOT NULL,
@@ -466,6 +472,37 @@ class AttemptLedger:
                 ),
             )
         return "granted"
+
+    def record_miner_withdrawal(self, contract_digest, submission_id, hotkey):
+        """Record that ``hotkey`` withdrew its own queued submission ``submission_id`` (`LeanRecipeAdapter.withdraw`), ONCE:
+        the first row stands (its time is the first record's) and the same withdrawal again changes nothing. The task's
+        intent and OUTCOME rows are kept, so its owner still resolves. A pure record: no attempt row, no slot, no score.
+        Returns the stored ``(hotkey, at_ns)``; a row of another hotkey or contract for the same id refuses (ValueError).
+        """
+        values = (contract_digest, submission_id, hotkey)
+        if not all(type(value) is str and value for value in values):
+            raise ValueError("miner withdrawal incomplete")
+        with self._db() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO miner_withdrawals VALUES(?,?,?,?)",
+                (contract_digest, submission_id, _kept(hotkey), int(self.clock())),
+            )
+            row = db.execute(
+                "SELECT contract_digest, hotkey, at_ns FROM miner_withdrawals WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+        if row is None or row[0] != contract_digest or row[1] != _kept(hotkey):
+            raise ValueError("miner withdrawal conflict")
+        return row[1], int(row[2])
+
+    def miner_withdrawal(self, contract_digest, submission_id):
+        """``(hotkey, at_ns)`` of ``submission_id``'s withdrawal by its owner under ``contract_digest``, or None."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT hotkey, at_ns FROM miner_withdrawals WHERE contract_digest=? AND submission_id=?",
+                (contract_digest, submission_id),
+            ).fetchone()
+        return None if row is None else (row[0], int(row[1]))
 
     def queue_place_origins(self, contract_digest):
         """``{new task id: the ORIGINAL task's accepted time (ns)}`` for every task that holds a queue place (`grant_queue_place`): the time of
