@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Count a subset-repeat version's strata on its sealed bank (read-only; run where the sealed bank is in custody).
 
     python scripts/dev/sealed_exam/subset_repeat_counts.py --pack-root <sealed pack dir> \
