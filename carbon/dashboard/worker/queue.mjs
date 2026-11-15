@@ -64,6 +64,61 @@ export function queueUrl(feedUrl) {
   return {url: `${url.origin}/carbon/v1/queue/${m[1]}`, challengeId: decodeURIComponent(m[1])};
 }
 
+// ---- the per-submission rows (owner 14 Nov: "show the actual queue"): GET /carbon/v1/queue/<id>/v3 =
+// carbon.queue.public.v3 (queue_public.py document_v3): v2's closed fields plus `rows` (at most 100: position, short hotkey, state,
+// time in queue), `more_rows` and `rows_as_of`. A row says WHERE a submission waits, never WHAT it is. The rows are rebuilt by the
+// door only on a 300 s wall-clock boundary and every time is floored to it (the timing mitigation lives at the door). Checked
+// exactly here too; anything else -> {state: "UNAVAILABLE", code}, a door with no v3 yet -> {state: "NOT_SERVED"}.
+export const ROWS_SCHEMA = "carbon.queue.public.v3";
+// "in grading" = built, no verdict yet (waiting to be graded or being graded: not told apart per row, V2C 14 Nov).
+export const ROW_STATES = ["waiting to build", "building", "in grading", "crown check"];
+export const ROWS_QUANTUM_S = 300;
+const MAX_ROWS = 100;
+const MAX_ROWS_BYTES = 32768;
+const FIELDS_V3 = [...FIELDS, "held_for_review", "more_rows", "rows", "rows_as_of"];
+const ROW_FIELDS = ["hotkey", "in_queue_s", "position", "state"];
+const SHORT_KEY = /^[1-9A-HJ-NP-Za-km-z]{4}\u2026[1-9A-HJ-NP-Za-km-z]{4}$/u;
+
+// {rows: [...], more_rows, rows_as_of} from the closed v3 document for THIS Challenge, or QueueRefused.
+export function checkRows(text, challengeId) {
+  if (typeof text !== "string" || text.length > MAX_ROWS_BYTES) throw new QueueRefused("rows_too_large");
+  let doc;
+  try { doc = JSON.parse(text); } catch { throw new QueueRefused("rows_not_json"); }
+  if (!sameKeys(doc, FIELDS_V3) || doc.schema !== ROWS_SCHEMA) throw new QueueRefused("rows_fields");
+  if (doc.challenge_id !== challengeId) throw new QueueRefused("rows_challenge");
+  if (typeof doc.rows_as_of !== "string" || !UTC.test(doc.rows_as_of)) throw new QueueRefused("rows_time");
+  if (!count(doc.more_rows) || !Array.isArray(doc.rows) || doc.rows.length > MAX_ROWS) throw new QueueRefused("rows_count");
+  const rows = doc.rows.map((row, i) => {
+    if (!sameKeys(row, ROW_FIELDS) || row.position !== i + 1 || !ROW_STATES.includes(row.state)
+        || !(row.hotkey === null || (typeof row.hotkey === "string" && SHORT_KEY.test(row.hotkey)))
+        || !Number.isSafeInteger(row.in_queue_s) || row.in_queue_s < 0 || row.in_queue_s % ROWS_QUANTUM_S !== 0) {
+      throw new QueueRefused("rows_row");
+    }
+    return {position: row.position, hotkey: row.hotkey, state: row.state, in_queue_s: row.in_queue_s};
+  });
+  return {rows, more_rows: doc.more_rows, rows_as_of: doc.rows_as_of};
+}
+
+// The rows URL of a feed URL: same door, /carbon/v1/feed/<id> -> /carbon/v1/queue/<id>/v3; null for any other shape.
+export function rowsUrl(feedUrl) {
+  const base = queueUrl(feedUrl);
+  return base === null ? null : {url: base.url + "/v3", challengeId: base.challengeId};
+}
+
+// {state, code, rows} for one feed URL's door; never throws. 404 = the door has no v3 yet (counts still come from doorQueue).
+export async function doorRows(feedUrl, fetcher, headers, ttl) {
+  const target = rowsUrl(feedUrl);
+  if (!target) return {state: "UNAVAILABLE", code: "rows_url", rows: null};
+  try {
+    const response = await fetcher(target.url, {headers, cf: {cacheTtl: ttl, cacheEverything: true}, signal: AbortSignal.timeout(8000)});
+    if (response.status === 404) return {state: "NOT_SERVED", code: null, rows: null};
+    if (!response.ok) return {state: "UNAVAILABLE", code: "rows_http_" + response.status, rows: null};
+    return {state: "ACCEPTED", code: null, rows: checkRows(await response.text(), target.challengeId)};
+  } catch (error) {
+    return {state: "UNAVAILABLE", code: error instanceof QueueRefused ? error.code : "rows_unreachable", rows: null};
+  }
+}
+
 // {state, code, queue} for one feed URL's door; never throws.
 export async function doorQueue(feedUrl, fetcher, headers, ttl) {
   const target = queueUrl(feedUrl);

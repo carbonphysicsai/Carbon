@@ -467,6 +467,20 @@ class AttemptLedger:
             )
         return "granted"
 
+    def queue_place_origins(self, contract_digest):
+        """``{new task id: the ORIGINAL task's accepted time (ns)}`` for every task that holds a queue place (`grant_queue_place`): the time of
+        the granted-from task's first OUTCOME row, the arrival whose place the new task took. A read only: the public queue rows count a
+        granted task's wait from it, so the clock agrees with the rank. A grant whose original has no OUTCOME row is not listed.
+        """
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT g.new_task, MIN(a.at_ns) FROM queue_place_grants AS g "
+                "JOIN attempts AS a ON a.contract_digest=g.contract_digest AND a.submission_id=g.from_task "
+                "AND a.kind='OUTCOME' WHERE g.contract_digest=? GROUP BY g.new_task",
+                (contract_digest,),
+            ).fetchall()
+        return {task: int(ns) for task, ns in rows if ns is not None}
+
     def first_outcome_ns(self, contract_digest, submission_id):
         """When the task's submission was accepted (its first OUTCOME row's ``at_ns``), or None."""
         with self._db() as db:

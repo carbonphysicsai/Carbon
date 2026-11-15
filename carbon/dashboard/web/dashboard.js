@@ -960,6 +960,18 @@
     return h("p", {class: "hint queue-line"}, "Queue: " + queueParts(q).join(" · ") + " · door " + q.door_state
       + (wait ? " · typical wait " + wait : ""));
   }
+  // The door's per-submission rows (queue.mjs doorRows, queue v3): unsigned, in 5-minute steps.
+  const inQueueText = n => !isNum(n) ? "" : n < 300 ? "under 5 min" : n < 3600 ? Math.floor(n / 60) + " min" : Math.floor(n / 3600) + " h " + (Math.floor(n / 60) % 60) + " min";
+  function rowsBlock(rp) {
+    if (!isObject(rp) || rp.state !== "ACCEPTED" || !isObject(rp.rows)) return rp && rp.state === "UNAVAILABLE" ? h("p", {class: "hint"}, "The submission list is not available right now.") : null;
+    const r = rp.rows;
+    if (!Array.isArray(r.rows) || !r.rows.length) return h("p", {class: "hint"}, "Nothing is waiting right now.");
+    return [
+      h("div", {class: "table-wrap"}, h("table", {class: "queue-table"},
+        h("thead", null, h("tr", null, ["#", "Hotkey", "State", "In queue"].map(t => h("th", {scope: "col"}, t)))),
+        h("tbody", null, ...r.rows.map(w => h("tr", null, h("td", null, String(w.position)), h("td", {class: "key"}, w.hotkey || "unknown"), h("td", null, w.state), h("td", null, inQueueText(w.in_queue_s))))))),
+      h("p", {class: "hint"}, (r.more_rows > 0 ? "and " + r.more_rows + " more. " : "") + "Oldest first; hotkeys shortened; times rounded down to 5 minutes. A crown check row means the grade beat the king's screening. No recipe, score or the exam is shown. From the door (unsigned), as of " + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + ".")];
+  }
   function queueBlock(panel) {
     if (!isObject(panel)) return null;
     const head = h("div", {class: "block-head"}, h("h2", {id: "q-title"}, "Queue at the door"));
@@ -977,7 +989,8 @@
         stat("Waiting to grade", String(q.waiting_to_grade)),
         stat("Grading now", q.grading_now ? "1" : "0"),
         stat("Typical wait, last 24 h", waitText(w.median_s) || "not enough verdicts yet", w.median_s === null ? null : "slowest 10 %: " + waitText(w.p90_s) + " · " + w.verdicts + " verdicts")),
-      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + ". Submit to verdict, all submissions on this door."));
+      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + ". Submit to verdict, all submissions on this door."),
+      rowsBlock(panel.rows_panel));
   }
   function homeCard(entry, board, showClass, panel) {
     if (!entry.slug) return h("div", {class: "card board-card"}, eyebrow("Feed refused"), h("p", {class: "fail"}, words(entry.code)));
@@ -1119,7 +1132,7 @@
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
     h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
-    rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
+    queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 

@@ -32,6 +32,7 @@ reach payment.
 from __future__ import annotations
 
 import json
+import math
 import os
 import stat
 from pathlib import Path
@@ -291,9 +292,25 @@ def _averaged_crown(store, model_id):
             # a paused contender decided by the sweep files its outcome here, never as a crown_decision row
             # (crown_pause_sweep: f"{outcome}:{reason}"; the doors' d3e6bab9 writes no crown_decision.v1 at all)
             decided.add(key)
-        elif kind == "crown_average.v1" and _all_admissible(body.get("private")):
+        elif kind == "crown_average.v1" and (
+            _all_admissible(body.get("private")) or _official_crown(body.get("private"))
+        ):
             averaged.add(key)
     return bool(decided & averaged)
+
+
+def _official_crown(private):
+    """An official-score crown's verification record (owner 14 Nov: crowns on the OFFICIAL grades, no rebuild;
+    `bank_promotion._record_official_crown`): its rule, a finite margin and the contender's finite official total. With
+    the CHALLENGER decision on the same key it is the crown's verification, as an N-of-N average is.
+    """
+    if type(private) is not dict or private.get("rule") != "official_score":
+        return False
+    margin, total = private.get("margin"), private.get("candidate_total")
+    return all(
+        type(v) in (int, float) and not isinstance(v, bool) and math.isfinite(v)
+        for v in (margin, total)
+    )
 
 
 def _all_admissible(private):
