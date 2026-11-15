@@ -23,14 +23,15 @@ CONFIGURATION = {"training": {"steps": 64, "batch_size": 16}}
 
 
 def _fitted(monkeypatch, *, compiled):
-    from test_graph_route_v2 import _fit
+    from test_graph_route_v2 import _fit, _x64
 
     monkeypatch.setattr(
         train,
         "JIT_FORWARD_VERSIONS",
         frozenset({MOTOR_18}) if compiled else frozenset(),
     )
-    model, fitted, inputs = _fit(MOTOR_18, CONFIGURATION)
+    with _x64(MOTOR_18):  # Motor 1.8's interface is float64
+        model, fitted, inputs = _fit(MOTOR_18, CONFIGURATION)
     return model, fitted, inputs
 
 
@@ -45,18 +46,21 @@ def test_motor_1_8_builds_compiled_and_matches_the_eager_build(monkeypatch):
 
 
 def test_the_compiled_build_repeats_bit_for_bit_in_the_same_process(monkeypatch):
-    from test_graph_route_v2 import _train
+    from test_graph_route_v2 import _train, _x64
 
     model, first, _ = _fitted(monkeypatch, compiled=True)
     _raw, inputs, targets = _train(MOTOR_18)
-    assert model.fit(inputs, targets, seed=0)["params_sha256"] == first["params_sha256"]
+    with _x64(MOTOR_18):
+        again = model.fit(inputs, targets, seed=0)["params_sha256"]
+    assert again == first["params_sha256"]
 
 
 _CHILD = """
 import json, sys
 sys.path[:0] = [{here!r}]
-from test_graph_route_v2 import _fit
-print(json.dumps(_fit({key!r}, {configuration!r})[1]["params_sha256"]))
+from test_graph_route_v2 import _fit, _x64
+with _x64({key!r}):
+    print(json.dumps(_fit({key!r}, {configuration!r})[1]["params_sha256"]))
 """
 
 
