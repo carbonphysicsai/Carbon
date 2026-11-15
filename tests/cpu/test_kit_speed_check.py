@@ -106,11 +106,10 @@ def test_the_workload_times_the_doors_own_program_for_the_version(monkeypatch):
     original = worker.v2_infer_query
 
     def switched(challenge_id, version):
+        # Any change of the door's program for the version (eager -> compiled, or a later one): independent of which
+        # program the door serves today.
         query = dict(original(challenge_id, version))
-        query["program"] = query["program"].replace(
-            "member_forward = rebuild(doc, allowed)",
-            "member_forward = jax.jit(rebuild(doc, allowed))",
-        )
+        query["program"] = query["program"] + "\n# the door's program changed\n"
         return query
 
     monkeypatch.setattr(worker, "v2_infer_query", switched)
