@@ -393,7 +393,11 @@ def test_commitment_required_admission_never_executes_an_unbound_submission(
 def test_effective_cached_private_target_cannot_be_exposed(deployed, monkeypatch):
     from types import SimpleNamespace
 
-    from carbon.battery import deployment
+    # `carbon.battery.operate` binds `load_config` BY NAME from `deployment` when it is first imported, and `ib.serve` below is
+    # what first imports it. Imported here, BEFORE `deployment.load_config` is patched, it binds the real one; first imported
+    # inside the patched window it would keep this test's stand-in (no `private_root`) for the rest of the session and fail
+    # every later test that reads it (test_cli_main_delegation, test_battery_carry_over: 14 Nov, Runner-C).
+    from carbon.battery import deployment, operate  # noqa: F401
     from carbon.battery.worker import CarrierBackend
 
     intake, target = deployed

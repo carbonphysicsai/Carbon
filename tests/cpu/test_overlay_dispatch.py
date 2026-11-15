@@ -29,8 +29,21 @@ def dispatch(config):
 """
 
 
+def _real_overlay_applied_first():
+    """The real Motor 1.8 overlay dispatch is applied the FIRST time `motor_sealed_dual_pack` is imported (it arms the sized
+    produce, `pair_read_bound.size_produce`, once per process). Import the real modules BEFORE this scene empties the overlay's
+    tables: first imported inside the patched window the dispatch would find nothing to apply, never run, and leave the process
+    with an unsized produce for every later test (test_pair_read_bound, 14 Nov, Runner-C).
+    """
+    import importlib
+
+    importlib.import_module("carbon.challenge_kit.version_registry")
+    importlib.import_module("carbon.scoring.motor_sealed_dual_pack")
+
+
 @pytest.fixture
 def scene(tmp_path, monkeypatch):
+    _real_overlay_applied_first()
     root = tmp_path / "repo"
     (root / "carbon").mkdir(parents=True)
     (root / "carbon" / "__init__.py").write_text("")
