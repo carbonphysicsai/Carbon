@@ -1142,7 +1142,7 @@ def subset_repeat_serve_check(
     version the owner's promise must be registered, its strata named (else `subset_repeat_promise_unregistered` /
     `subset_repeat_strata_unregistered`: the door does not serve), the grading host's K_speed (``speed_key``) must be
     present (else `subset_repeat_key_unavailable`), and, with the served sealed pack, its carried bank must split into
-    exactly the version's strata, each row in exactly one (`subset_repeat_evidence.bank_strata`), and its pinned producer must bind the producer recomputed
+    exactly the version's strata, each row in at least one (`subset_repeat_evidence.bank_strata`), and its pinned producer must bind the producer recomputed
     now, exactly or through the version's ONE successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
     binding), so the start-up log says which row the door grades under."""
     from carbon.scoring import physical_dual_pack, producer_successor

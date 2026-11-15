@@ -9,6 +9,7 @@ banks and their pool sources are synthetic (no sealed custody material is in the
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -238,6 +239,34 @@ def test_a_row_in_two_strata_is_drawn_by_both_rerun_once_and_fails_both_when_it_
 
     assert not stratum_passes("H-3b") and not stratum_passes("menu_D5")  # fails BOTH
     assert all(stratum_passes(name) for name in keyed if name not in drew)
+
+
+def test_the_reader_accepts_the_strata_of_a_bank_with_a_shared_row(synthetic):
+    """The reader's bank check is coverage, not a sum of stratum sizes: an overlapping bank's strata pass it, and the
+    read goes on to the side file itself (here junk, refused at its parse, not at the bank shape).
+    """
+    bank = _bank(_spec(extra=[(POOL, ("H-3b", "menu_D5"))]))
+    strata = subset.bank_strata(MOTOR, "1.8", bank)
+    raw = b"{}"
+    arguments = {
+        "registered_sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+        "challenge": MOTOR,
+        "version": "1.8",
+        "evaluation_pack_digest": "sha256:" + "0" * 64,
+        "strata": strata,
+        "graded_inputs": bank["inputs"],
+        "recipe_digest": "sha256:" + "1" * 64,
+        "state_digest": "sha256:" + "2" * 64,
+        "inference_image_id": "sha256:" + "3" * 64,
+        "graded_operation": "op-graded",
+    }
+    n = len(bank["cohorts"])
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.read(raw, output_shape=(n, 2), **arguments)
+    assert caught.value.code != "subset_repeat_expected_shape"
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.read(raw, output_shape=(n + 1, 2), **arguments)  # a row in no stratum
+    assert caught.value.code == "subset_repeat_expected_shape"
 
 
 def test_a_gate_row_shared_with_another_stratum_counts_against_the_registered_gate_size(

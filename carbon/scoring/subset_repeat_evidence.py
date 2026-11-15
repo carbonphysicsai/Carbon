@@ -722,9 +722,13 @@ def read(
         type(raw) is bytes and 0 < len(raw) <= limit, "subset_repeat_evidence_bytes"
     )
     _require(_sha(raw) == registered_sha256, "subset_repeat_registered_digest")
+    _require(type(strata) is BankStrata, "subset_repeat_expected_shape")
+    # coverage, not a sum: a row in two strata is a member of each (CV-Motor-B 17:43 CST), never a sealed cell
+    members = {i for rows in strata.members.values() for i in rows}
     _require(
-        type(strata) is BankStrata
-        and len(strata.sealed) + sum(len(r) for r in strata.members.values()) == n_rows,
+        len(set(strata.sealed)) == len(strata.sealed)
+        and members.isdisjoint(strata.sealed)
+        and members | set(strata.sealed) == set(range(n_rows)),
         "subset_repeat_expected_shape",
     )
     try:
