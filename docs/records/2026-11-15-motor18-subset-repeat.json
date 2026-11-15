@@ -5,9 +5,11 @@
     "Rows that are not repeated are not repeat-checked.",
     "The shared sealed measure takes two full twin rows, so a row that is not repeated (or whose fresh answer is not one finite row of the graded width) is given its own graded answer as its twin. Its internal paired_repeat then reads PASS; that verdict is never exported (the aggregate counts only FAIL) and has no score effect (score_case reads the twin only inside its gates; the pool rows' twins are never read).",
     "The bit-exact whole-row check (subset_repeat_evidence.rows_agree) is the decisive gate over every repeated row; a failure sets native_motor_valid and complete_fixed_coverage FAIL, A None, D 0.",
-    "The side file binds the served version, the evaluation pack digest and the submission id; the scorer requires exactly the bank's sealed cells, exactly k keyed rows outside them (k from the promise), and the ledger identity the door gives this submission's repeat or its one wall retry."
+    "Strata are graded-bank cohort labels listed in the promise's strata (null until CV-Motor names them: the door does not serve and a grade is typed unavailable); a stratum the bank has no row of fails closed. Each stratum is drawn under its own key HMAC(K_speed, 'carbon.subset-repeat/1' || 0x00 || submission id || 0x00 || stratum).",
+    "The side file binds the served version, the evaluation pack digest and the submission id; the scorer requires exactly the bank's sealed cells, for each registered stratum exactly min(k, its rows) distinct keyed rows of that stratum with their count, and the ledger identity the door gives this submission's repeat or its one wall retry.",
+    "Gate sets (rows re-run in full besides the sealed cells) are not implemented: none is named yet."
   ],
-  "label": "Motor 1.8: the two full-bank inference-pair passes become ONE fresh repeat of all 30 sealed cells plus 66 keyed rows (bit-exact whole rows), as the SAME version (pack and exam key unchanged); k from the owner's promise (f 0.10, P 0.999)",
+  "label": "Motor 1.8: the two full-bank inference-pair passes become ONE fresh repeat of all 30 sealed cells plus 66 keyed rows inside EACH registered stratum (bit-exact whole rows), as the SAME version (pack and exam key unchanged); k from the owner's promise (f 0.10, P 0.999); the strata are HUMAN_INPUT (null) until CV-Motor names them",
   "owner_words": [
     {
       "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, the Sun 15 Nov 08:19 CST Lead line",
@@ -20,16 +22,22 @@
       "typed_at": "Sun 15 Nov 2026 08:38 CST",
       "typed_in": "the Lead session",
       "verbatim": "66 rows. But we need a % that generalizes for challenges"
+    },
+    {
+      "source": "codex-queue/handoff-20261021/TEAM_BOARD.md and the decision ledger, the Sun 15 Nov ~09:5x CST Lead line",
+      "typed_at": "Sun 15 Nov 2026 ~09:5x CST",
+      "typed_in": "the Lead session",
+      "verbatim": "Yes for 66 per stratum"
     }
   ],
-  "rule": "k = min(ceil(ln(1 - P) / ln(1 - f)), graded bank rows outside the sealed cells), from scripts/validator_host_classes/subset_repeat.json (f = repeat_fail_fraction, P = repeat_detect_prob, each strictly between 0 and 1). A missing, null or malformed promise, or no grading-host K_speed: the receiver does not serve and a grade is Carbon's typed unavailable. Code: carbon/scoring/subset_repeat_evidence.py, subset_repeat_produce.py, producer_successor.py (Motor 1.8 producer files only); door: lean_recipe_retention._subset_repeat_raw and subset_repeat_serve_check; key: bank_promotion._key_producer.",
+  "rule": "k = min(ceil(ln(1 - P) / ln(1 - f)), the stratum's rows) per registered stratum, from scripts/validator_host_classes/subset_repeat.json (f = repeat_fail_fraction, P = repeat_detect_prob, each strictly between 0 and 1; strata = the cohort labels). A missing, null or malformed promise or strata, an unknown stratum, or no grading-host K_speed: the receiver does not serve and a grade is Carbon's typed unavailable. Code: carbon/scoring/subset_repeat_evidence.py, subset_repeat_produce.py, producer_successor.py (Motor 1.8 producer files only); door: lean_recipe_retention._subset_repeat_raw and subset_repeat_serve_check; key: bank_promotion._key_producer.",
   "schema": "carbon.exam.subset-repeat-record.v1",
   "science_ruling": {
     "by": "CV-Motor-B",
     "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, board Sun 15 Nov (the ~08:2x ruling and the later Q1/Q2 ruling)",
     "summary": [
       "(1) The subset repeat is its own mandatory gate: a per-grade secret key, never disclosed, draws rows of the graded bank after the graded predictions are committed; they are re-predicted in ONE fresh process (same image, state and inputs). A repeat failure leaves the grade unscored, the candidate's failure, exactly as a pair mismatch today (native_motor_valid and complete_fixed_coverage FAIL, A None, D 0).",
-      "(Q1 = B, STRATIFIED) The repeat re-runs ALL the sealed cells (30) PLUS k keyed rows drawn over the REST of the graded bank, excluding the sealed cells, in one op; the promise's k applies to the keyed part.",
+      "(Q1 = B, STRATIFIED) The repeat re-runs ALL the sealed cells (30) PLUS keyed rows in one op; the promise's k applies to the keyed part. Superseded in its keyed part by the owner's ~09:5x line: k keyed rows INDEPENDENTLY inside EACH scored stratum (capped at the stratum's size), plus any gate sets CV-Motor names.",
       "(Q2) The decisive rule: each repeated row must equal the graded row BIT-EXACT over the WHOLE 240-wide row. Any differing value, or a malformed or non-finite fresh answer, is a repeat FAIL. Motor's existing torque-slice paired_repeat gate stays as it is.",
       "(2) The repeat feeds pass/fail only and never changes a score value.",
       "(3) 'Three runs agree' (graded vs repeat 1 vs repeat 2) becomes graded vs the fresh repeat on the repeated rows, for Motor 1.8 only."
@@ -47,14 +55,15 @@
     "rejected": "Patching the reader at runtime from a non-producer module."
   },
   "values": {
-    "derived_k_at_the_live_bank": 66,
+    "derived_k_per_stratum": 66,
     "producer_successor": {
       "pack_producer_digest": "sha256:9c5ac4dbee486fbf9b986b22f5b1b2f2b1a4b415512a950379761159967e32cc",
-      "producer_digest": "sha256:5e784fb83a83387ec436793431c1d8e2c7a9ed263d20c6f2de9e976b946fdeab"
+      "producer_digest": "sha256:a27ba8ea8f3b32556569d1fdc2a29b48ababb1b760e1aec50381157308d9d1fc"
     },
     "promise": {
       "repeat_detect_prob": 0.999,
-      "repeat_fail_fraction": 0.10
+      "repeat_fail_fraction": 0.10,
+      "strata": null
     },
     "sealed_cells_repeated": 30
   },

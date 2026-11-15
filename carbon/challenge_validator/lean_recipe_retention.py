@@ -1129,13 +1129,21 @@ def _subset_repeat_version(adapter) -> bool:
 
 
 def subset_repeat_serve_check(
-    challenge_id, version, *, pack_snapshot=None, public_root=None, speed_key=None
+    challenge_id,
+    version,
+    *,
+    pack_snapshot=None,
+    public_root=None,
+    private_root=None,
+    copy_hotkey=None,
+    speed_key=None,
 ):
     """The receiver's start-up check of a subset version (Validator-2B R-5): None for every other version. For a subset
-    version the owner's promise must be registered (else `subset_repeat_promise_unregistered`: the door does not serve),
-    the grading host's K_speed (``speed_key``) must be present (else `subset_repeat_key_unavailable`), and, with the
-    served sealed pack, its pinned producer must bind the producer recomputed now, exactly or through the version's ONE
-    successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
+    version the owner's promise must be registered, its strata named (else `subset_repeat_promise_unregistered` /
+    `subset_repeat_strata_unregistered`: the door does not serve), the grading host's K_speed (``speed_key``) must be
+    present (else `subset_repeat_key_unavailable`), and, with the served sealed pack, every stratum must be a label of
+    its carried bank (else `subset_repeat_stratum_unknown`) and its pinned producer must bind the producer recomputed
+    now, exactly or through the version's ONE successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
     binding), so the start-up log says which row the door grades under."""
     import importlib
 
@@ -1147,7 +1155,7 @@ def subset_repeat_serve_check(
     try:
         promise = subset.registered_promise(challenge_id, version)
         # the grading host's K_speed draws every grade's keyed rows: a subset door without it never serves (M4)
-        subset.grade_key(speed_key, "serve-check")
+        subset.grade_key(speed_key, "serve-check", "serve-check")
     except subset.SubsetRepeatRefused as refused:
         raise RetentionUnavailable(refused.code) from refused
     named = {
@@ -1155,10 +1163,34 @@ def subset_repeat_serve_check(
         "version": version,
         "repeat_fail_fraction": promise[0],
         "repeat_detect_prob": promise[1],
+        "strata": promise[2],
         "successor_row": producer_successor.row(challenge_id, version),
     }
     if pack_snapshot is None:
         return named
+    from carbon.scoring import sealed_batch_source
+
+    try:
+        sealed = sealed_batch_source.resolve(
+            challenge=challenge_id,
+            version=version,
+            selected_pack=pack_snapshot,
+            private_root=private_root,
+            development_adapter=None,
+            copy_hotkey=copy_hotkey,
+        )
+        if sealed is None:
+            raise RetentionUnavailable("subset_repeat_bank_unavailable")
+        cohorts = list(sealed[0]["cohorts"])
+        named["counts"] = subset.registered_counts(challenge_id, version, cohorts)
+        if not subset.sealed_positions(cohorts):
+            raise RetentionUnavailable("subset_repeat_bank_strata")
+    except subset.SubsetRepeatRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    except (sealed_batch_source.SealedBankRefused, ValueError, KeyError) as exc:
+        if isinstance(exc, RetentionUnavailable):
+            raise
+        raise RetentionUnavailable("subset_repeat_bank_unavailable") from exc
     try:
         accuracy = pack_snapshot.read_json_role(
             public_root, "public", "accuracy_definition", max_bytes=1024 * 1024
@@ -1205,11 +1237,12 @@ def _subset_bank_cohorts(adapter, inputs):
 def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """A subset version's repeat (owner, Sun 15 Nov 2026 08:19 + 08:38 CST; CV-Motor-B's rulings; Validator-2B R-1..R-5),
     in place of the two full-bank pair passes: after the graded predictions are retained, ONE fresh worker process
-    re-predicts ALL the bank's sealed cells plus ``k`` rows of the rest of the delivered graded query, drawn by a
-    per-grade key (HMAC of the grading host's K_speed under the subset repeat's own domain tag and the submission id)
-    (same image, state and inputs; the pack's per-case procedure). ``k`` comes from the version's registered promise
+    re-predicts ALL the bank's sealed cells plus, inside each registered stratum (owner ~09:5x: "Yes for 66 per
+    stratum"), ``k`` rows drawn by a per-grade, per-stratum key (HMAC of the grading host's K_speed under the subset
+    repeat's own domain tag, the submission id and the stratum) (same image, state and inputs; the pack's per-case
+    procedure). ``k`` comes from the version's registered promise
     (`subset_repeat_evidence.plan`): none registered is Carbon's typed gap, never "no repeat". Kept write-once beside the
-    dual measurement as a host-private side file naming the evaluation pack and the submission (one file per ``k``; a
+    dual measurement as a host-private side file naming the evaluation pack and the submission (one file per promise; a
     retry or regrade reads it back after checking it is this grade's plan), never a public byte.
 
     A candidate wall hit is retried once under a fresh identity; a second is the candidate's typed failure, counted as
@@ -1231,19 +1264,24 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
     inputs, output_shape = _graded_query(material, artifacts)
     try:
         # (the promise and the key first: neither missing ever reaches the pack)
-        subset.registered_promise(kit["id"], kit["version"])
-        key = subset.grade_key(
-            getattr(adapter, "speed_sample_key", None), submission_id
-        )
+        promise = subset.registered_promise(kit["id"], kit["version"])
+        speed_key = getattr(adapter, "speed_sample_key", None)
+        subset.grade_key(speed_key, submission_id, "key-check")
         cohorts = _subset_bank_cohorts(adapter, inputs)
         sealed, keyed = subset.plan(
-            key, challenge=kit["id"], version=kit["version"], cohorts=cohorts
+            speed_key,
+            submission_id,
+            challenge=kit["id"],
+            version=kit["version"],
+            cohorts=cohorts,
         )
     except subset.SubsetRepeatRefused as refused:
         raise RetentionUnavailable(refused.code) from refused
-    positions = sorted([*sealed, *keyed])
+    positions = subset.positions_of(sealed, keyed)
+    # one write-once file per registered promise (a changed promise re-plans; the old file stays as history)
+    tag = hashlib.sha256(_json(list(promise))).hexdigest()[:16]
     path = _private_evaluation_directory(result, submission_id) / (
-        f"subset-repeat-{len(keyed)}.json"
+        f"subset-repeat-{tag}.json"
     )
     if path.exists() or path.is_symlink():
         cached = _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))

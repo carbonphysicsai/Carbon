@@ -6,14 +6,16 @@ generalizes for challenges". CV-Motor-B's rulings (board, Sun 15 Nov) and Valida
 (docs/records/2026-11-15-motor18-subset-repeat.json):
 
 - After the graded predictions are committed, the host re-runs, in ONE fresh worker process (same image, state and
-  inputs), ALL the graded bank's sealed cells plus ``k`` rows drawn uniformly over the REST of the bank (Q1 = B,
-  STRATIFIED), by a per-GRADE secret key (HMAC of the grading host's K_speed under this module's own domain tag and the
-  submission id, so independent of the speed sample). It is kept write-once beside the dual measurement as a
+  inputs), ALL the graded bank's sealed cells (Q1 = B) plus, INDEPENDENTLY inside EACH registered stratum, ``k`` rows
+  drawn uniformly over that stratum (owner, Sun 15 Nov ~09:5x CST: "Yes for 66 per stratum"), each by a per-GRADE,
+  per-stratum secret key (HMAC of the grading host's K_speed under this module's own domain tag, the submission id and
+  the stratum, so independent of the speed sample and of each other). It is kept write-once beside the dual measurement as a
   host-private side file. The rows and the key never reach any public or miner surface.
 - ``k`` is derived from the version's registered PROMISE (`registered_promise`): with ``f`` the fraction of rows a model
   may answer differently on a repeat and ``P`` the probability the repeat must catch it, ``k = min(ceil(ln(1 - P) /
-  ln(1 - f)), rows outside the sealed cells)``. An absent, null or malformed promise fails closed (the receiver will not
-  serve; a grade is Carbon's typed unavailable), never "no repeat".
+  ln(1 - f)), the stratum's rows)``. The strata are the promise's ``strata`` (graded-bank cohort labels named by
+  CV-Motor). An absent, null or malformed promise, or a null, malformed or unknown stratum, fails closed (the receiver
+  will not serve; a grade is Carbon's typed unavailable), never "no repeat".
 - The scorer reads the side file (`read`) into one value per graded bank row: the fresh answer on a repeated row, None
   on every row that is not repeat-checked. Each fresh answer must equal the graded answer BIT FOR BIT over the whole row
   (`rows_agree`, Q2). Missing or inconsistent evidence is typed unavailable (`SubsetRepeatRefused`), never a candidate
@@ -50,7 +52,10 @@ VALUES_PATH = (
     / "validator_host_classes"
     / "subset_repeat.json"
 )
-_PROMISE_KEYS = {"repeat_fail_fraction", "repeat_detect_prob"}
+_PROMISE_KEYS = {"repeat_fail_fraction", "repeat_detect_prob", "strata"}
+#: The sealed grid's cohort label (`sealed_grid_common.GRID_COHORT`; a test holds them equal): its rows are all
+#: re-run every grade, so it is never a keyed stratum.
+SEALED_COHORT = "decision_sealed_grid"
 #: The per-grade key's domain tag (the speed sample's is ``carbon.speed-sample/1``: the two draws are independent).
 DOMAIN = b"carbon.subset-repeat/1"
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
@@ -117,9 +122,13 @@ def _probability(value):
 
 
 def registered_promise(challenge, version, *, path=None):
-    """``(repeat_fail_fraction, repeat_detect_prob)`` registered for ``"<challenge> <version>"``. Each must be a JSON
-    number strictly between 0 and 1 (finite, never a bool); an absent file, row or value, a null, or any other key
-    refuses ``subset_repeat_promise_unregistered`` (fail closed)."""
+    """``(repeat_fail_fraction, repeat_detect_prob, strata)`` registered for ``"<challenge> <version>"``.
+
+    ``f`` and ``P`` must each be a JSON number strictly between 0 and 1 (finite, never a bool); ``strata`` (owner, Sun 15
+    Nov ~09:5x CST: "Yes for 66 per stratum"; the names are CV-Motor's) is a non-empty list of distinct graded-bank
+    cohort labels, never the sealed grid's (its rows are all re-run). An absent file or row, a null or malformed value,
+    or any other key refuses (fail closed): ``subset_repeat_promise_unregistered``, or
+    ``subset_repeat_strata_unregistered`` for the strata alone."""
     try:
         document = json.loads(Path(VALUES_PATH if path is None else path).read_bytes())
     except (OSError, ValueError) as exc:
@@ -132,16 +141,26 @@ def registered_promise(challenge, version, *, path=None):
         and set(document) == {"schema", "rows"}
         and type(row) is dict
         and set(row) == _PROMISE_KEYS
-        and all(_probability(row[key]) for key in _PROMISE_KEYS),
+        and _probability(row["repeat_fail_fraction"])
+        and _probability(row["repeat_detect_prob"]),
         "subset_repeat_promise_unregistered",
     )
-    return row["repeat_fail_fraction"], row["repeat_detect_prob"]
+    strata = row["strata"]
+    _require(
+        type(strata) is list
+        and bool(strata)
+        and all(type(name) is str and bool(name) for name in strata)
+        and len(set(strata)) == len(strata)
+        and SEALED_COHORT not in strata,
+        "subset_repeat_strata_unregistered",
+    )
+    return row["repeat_fail_fraction"], row["repeat_detect_prob"], list(strata)
 
 
 def derived_k(fail_fraction, detect_prob, n_rows):
     """The fewest uniformly drawn rows that catch, with probability at least ``detect_prob``, a model that answers a
     ``fail_fraction`` of the rows differently on a repeat (sampling with replacement bounds it from above), capped at
-    the graded bank's rows: ``min(ceil(ln(1 - P) / ln(1 - f)), n_rows)``."""
+    the stratum's rows: ``min(ceil(ln(1 - P) / ln(1 - f)), n_rows)``."""
     _require(
         _probability(fail_fraction)
         and _probability(detect_prob)
@@ -154,10 +173,24 @@ def derived_k(fail_fraction, detect_prob, n_rows):
     return max(1, min(need, n_rows))
 
 
-def registered_k(challenge, version, n_rows, *, path=None):
-    """``k`` for one grade of ``n_rows`` graded rows, from the registered promise (fail closed)."""
-    fail_fraction, detect_prob = registered_promise(challenge, version, path=path)
-    return derived_k(fail_fraction, detect_prob, n_rows)
+def stratum_rows(cohorts, name):
+    """The graded bank's rows labelled ``name``."""
+    return [i for i, cohort in enumerate(cohorts) if cohort == name]
+
+
+def registered_counts(challenge, version, cohorts, *, path=None):
+    """``{stratum: k}`` for one graded bank (``cohorts``, one label per row): ``k = min(66-style k, the stratum's
+    rows)`` per registered stratum. A stratum the bank has no row of refuses ``subset_repeat_stratum_unknown``.
+    """
+    fail_fraction, detect_prob, strata = registered_promise(
+        challenge, version, path=path
+    )
+    counts = {}
+    for name in strata:
+        size = len(stratum_rows(cohorts, name))
+        _require(size > 0, "subset_repeat_stratum_unknown")
+        counts[name] = derived_k(fail_fraction, detect_prob, size)
+    return counts
 
 
 # -- the identities -----------------------------------------------------------------------------------------------------
@@ -183,16 +216,22 @@ def ledger_identity(identity):
 # -- the draw -----------------------------------------------------------------------------------------------------------
 
 
-def grade_key(k_speed, submission_id):
-    """The per-grade draw key: HMAC-SHA256(K_speed, DOMAIN || 0x00 || submission id). Custody's, never the miner's."""
+def grade_key(k_speed, submission_id, stratum):
+    """The per-grade, per-stratum draw key: HMAC-SHA256(K_speed, DOMAIN || 0x00 || submission id || 0x00 || stratum),
+    so every stratum's draw is independent of every other's. Custody's, never the miner's.
+    """
     _require(
         type(k_speed) is bytes
         and len(k_speed) >= 32
         and type(submission_id) is str
-        and bool(submission_id),
+        and bool(submission_id)
+        and type(stratum) is str
+        and bool(stratum),
         "subset_repeat_key_unavailable",
     )
-    message = b"\x00".join([DOMAIN, submission_id.encode("utf-8")])
+    message = b"\x00".join(
+        [DOMAIN, submission_id.encode("utf-8"), stratum.encode("utf-8")]
+    )
     return hmac.new(k_speed, message, hashlib.sha256).digest()
 
 
@@ -235,20 +274,30 @@ def keyed_sample(key, candidates, k):
 
 def sealed_positions(cohorts):
     """The graded bank's sealed cells (its rows of the sealed grid cohort), every one re-run on every grade."""
-    from carbon.scoring.sealed_grid_common import GRID_COHORT
-
-    return [i for i, cohort in enumerate(cohorts) if cohort == GRID_COHORT]
+    return stratum_rows(cohorts, SEALED_COHORT)
 
 
-def plan(key, *, challenge, version, cohorts):
-    """``(sealed, keyed)`` positions of one grade's repeat (CV-Motor-B, Q1 = B, STRATIFIED): ALL the sealed cells, plus
-    ``k`` keyed rows drawn uniformly over the REST of the graded bank, ``k`` from the registered promise over that rest.
-    """
+def plan(k_speed, submission_id, *, challenge, version, cohorts):
+    """``(sealed, {stratum: keyed})`` positions of one grade's repeat: ALL the sealed cells (CV-Motor-B, Q1 = B), plus,
+    INDEPENDENTLY inside EACH registered stratum, ``min(k, the stratum's rows)`` keyed rows (owner, "Yes for 66 per
+    stratum"), each drawn under its own per-stratum key."""
     sealed = sealed_positions(cohorts)
-    rest = [i for i in range(len(cohorts)) if i not in set(sealed)]
-    _require(bool(sealed) and bool(rest), "subset_repeat_bank_strata")
-    k = registered_k(challenge, version, len(rest))
-    return sealed, keyed_sample(key, rest, k)
+    _require(bool(sealed), "subset_repeat_bank_strata")
+    counts = registered_counts(challenge, version, cohorts)
+    keyed = {
+        name: keyed_sample(
+            grade_key(k_speed, submission_id, name),
+            stratum_rows(cohorts, name),
+            k,
+        )
+        for name, k in counts.items()
+    }
+    return sealed, keyed
+
+
+def positions_of(sealed, keyed):
+    """Every repeated row, ascending: the order the fresh run answered them in."""
+    return sorted({*sealed, *(p for rows in keyed.values() for p in rows)})
 
 
 # -- the side file ------------------------------------------------------------------------------------------------------
@@ -271,8 +320,9 @@ def side_file(
     keyed,
     run,
 ):
-    """The host-private side file of one subset repeat (canonical JSON bytes). The run answered the graded rows at
-    ``sorted(sealed + keyed)``, in that order."""
+    """The host-private side file of one subset repeat (canonical JSON bytes). ``keyed`` is ``{stratum: positions}``;
+    the run answered the graded rows at `positions_of` (sealed, keyed), in that order.
+    """
     return canonical(
         {
             "schema": SCHEMA,
@@ -282,8 +332,8 @@ def side_file(
             "submission_id": submission_id,
             "n_rows": n_rows,
             "sealed_positions": list(sealed),
-            "keyed_positions": list(keyed),
-            "k": len(keyed),
+            "keyed_positions": {name: list(rows) for name, rows in keyed.items()},
+            "k": {name: len(rows) for name, rows in keyed.items()},
             "run": run,
             "scientific_qualification": False,
             "official_eligible": False,
@@ -375,8 +425,8 @@ def read(
     shape; non-finite values kept), None on every row that is not repeat-checked.
 
     The side file must be exactly the registered bytes and bind this grade: the served version and evaluation pack;
-    ALL the bank's sealed cells (``cohorts``) plus exactly ``k`` keyed rows outside them, ``k`` from the registered
-    promise; the graded run's recipe, state and image; inputs that are exactly the graded query's rows at those
+    ALL the bank's sealed cells (``cohorts``) plus, in each registered stratum, exactly ``min(k, its rows)`` distinct
+    keyed rows of that stratum, ``k`` from the registered promise; the graded run's recipe, state and image; inputs that are exactly the graded query's rows at those
     positions; and ONE settled operation that is not the graded one, under the ledger identity the door gives this
     submission's repeat (or its wall retry). ``output_shape`` is the graded query's full output shape. Anything else
     refuses, typed (Carbon's gap, never a verdict)."""
@@ -431,18 +481,22 @@ def read(
             document["keyed_positions"],
             document["k"],
         )
-        expected_sealed = sealed_positions(cohorts)
+        counts = registered_counts(challenge, version, cohorts)
         _require(
             document["n_rows"] == n_rows
-            and sealed == expected_sealed
-            and _ascending(keyed, n_rows)
-            and not set(keyed) & set(sealed)
-            and type(k) is int
-            and len(keyed) == k
-            and k == registered_k(challenge, version, n_rows - len(sealed)),
+            and sealed == sealed_positions(cohorts)
+            and type(keyed) is dict
+            and set(keyed) == set(counts)
+            and k == counts
+            and all(
+                _ascending(keyed[name], n_rows)
+                and len(keyed[name]) == counts[name]
+                and all(cohorts[p] == name for p in keyed[name])
+                for name in counts
+            ),
             "subset_repeat_positions",
         )
-        positions = sorted([*sealed, *keyed])
+        positions = positions_of(sealed, keyed)
         run = document["run"]
         _require(type(run) is dict and set(run) == _RUN, "subset_repeat_run_shape")
         subset = np.ascontiguousarray(np.asarray(graded_inputs)[positions])
@@ -534,6 +588,7 @@ __all__ = [
     "PRODUCERS",
     "RUN_SCHEMA",
     "SCHEMA",
+    "SEALED_COHORT",
     "SUBSET_REPEAT_VERSIONS",
     "VALUES_PATH",
     "VALUES_SCHEMA",
@@ -544,8 +599,9 @@ __all__ = [
     "keyed_sample",
     "ledger_identity",
     "plan",
+    "positions_of",
     "read",
-    "registered_k",
+    "registered_counts",
     "registered_promise",
     "rows_agree",
     "run_identity",

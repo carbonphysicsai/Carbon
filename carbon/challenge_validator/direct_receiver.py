@@ -2265,6 +2265,12 @@ def serve(
                     if pack_snapshot is not None
                     else None
                 ),
+                private_root=(
+                    Path(cfg["evaluation_pack"]["private_root"])
+                    if pack_snapshot is not None
+                    else None
+                ),
+                copy_hotkey=cfg["receiver_hotkey"],
                 # (read only for a subset version: every other door's start-up is unchanged)
                 speed_key=(
                     _speed_key(cfg)

@@ -13,9 +13,9 @@ What differs, exactly (CV-Motor-B's rulings; Validator-2B R-1..R-3):
   successor row must map exactly that pinned digest to exactly this producer (`producer_successor.binds`). The shared
   receipt builder checks the pack under the pinned digest it was sealed with; the receipt then records the ACTUAL
   producer digest in its evidence and measurement basis (R-3). Nothing older is rescored.
-- **The repeat** (Q1 = B): the repeat-evidence slot of the graded originals (``inference_pair_raw`` /
+- **The repeat** (Q1 = B; owner "66 per stratum"): the repeat-evidence slot of the graded originals (``inference_pair_raw`` /
   ``inference_pair_sha256``, the slot the full pair rides in for every other version) carries the subset repeat's side
-  file: ALL the sealed cells plus ``k`` keyed rows of the rest of the bank, re-run in one fresh process, read by
+  file: ALL the sealed cells plus ``k`` keyed rows inside each registered stratum, re-run in one fresh process, read by
   `subset_repeat_evidence.read` into one fresh answer per repeated row and None on every row that is not
   repeat-checked. Its own schema tells it from a pair: neither reader accepts the other's document. Missing or broken
   evidence is typed unavailable (``dual_repeat_evidence_unavailable``), never a candidate verdict.

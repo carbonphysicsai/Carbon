@@ -3,8 +3,9 @@ and Q2; Validator-2B R-1..R-5 and Q3 (a); docs/records/2026-11-15-motor18-subset
 
 - k is derived from the owner's registered promise (f, P): 66 for f = 0.10, P = 0.999, capped at the rows outside the
   sealed cells; a missing, null or malformed promise fails closed at serve time and at grade time.
-- The repeat re-runs ALL the sealed cells plus k keyed rows of the rest (stratified), drawn deterministically per (key,
-  submission), independent of the speed sample, never public.
+- The repeat re-runs ALL the sealed cells plus min(k, size) keyed rows inside EACH registered stratum (owner: "66 per
+  stratum"; the strata are CV-Motor's, null = fail closed), drawn per (key, submission, stratum), independent of the
+  speed sample and of each other, never public.
 - The scorer: each repeated row must equal the graded row bit for bit over the whole row (a 1-ulp change in a non-torque
   column, NaN or a malformed row fails the grade); an agreeing repeat scores exactly as the full pair of equal repeats on
   the REAL pool-graded fixture; repeat values reach gates only; broken evidence is typed unavailable.
@@ -92,21 +93,52 @@ def _motor18_promise(tmp_path, row):
     return _promise_file(tmp_path, {f"{MOTOR} 1.8": row})
 
 
-def _cohorts(n, sealed=30):
-    return [GRID] * sealed + ["pool_design"] * (n - sealed)
+#: The committed values file: the owner's f and P, the strata HUMAN_INPUT (null) until CV-Motor names them.
+COMMITTED = ROOT / "scripts" / "validator_host_classes" / "subset_repeat.json"
+POOL, PROBE = "pool_design", "probe_response"
+#: A test promise: the owner's f and P with two synthetic strata named in the test (CV-Motor's list is pending).
+PROMISE = {
+    "repeat_fail_fraction": 0.10,
+    "repeat_detect_prob": 0.999,
+    "strata": [POOL, PROBE],
+}
+
+
+@pytest.fixture(autouse=True)
+def promise(tmp_path_factory, monkeypatch):
+    """Every test reads the test promise unless it registers its own (the committed strata are null: fail closed)."""
+    path = _motor18_promise(tmp_path_factory.mktemp("promise"), PROMISE)
+    monkeypatch.setattr(subset, "VALUES_PATH", path)
+    return path
+
+
+def _cohorts(n, sealed=30, probes=20):
+    return [GRID] * sealed + [PROBE] * probes + [POOL] * (n - sealed - probes)
 
 
 # -- the promise and k ---------------------------------------------------------------------------------------------------
 
 
-def test_the_registered_promise_derives_k_66_and_caps_at_the_rest_of_the_bank():
-    assert subset.registered_promise(MOTOR, "1.8") == (0.10, 0.999)
+def test_the_committed_promise_is_the_owners_f_and_p_with_the_strata_pending():
+    row = json.loads(COMMITTED.read_text(encoding="utf-8"))["rows"][f"{MOTOR} 1.8"]
+    assert row == {
+        "repeat_fail_fraction": 0.10,
+        "repeat_detect_prob": 0.999,
+        "strata": None,
+    }
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.registered_promise(MOTOR, "1.8", path=COMMITTED)
+    assert caught.value.code == "subset_repeat_strata_unregistered"
+
+
+def test_k_is_66_inside_each_stratum_capped_at_its_size():
+    assert subset.registered_promise(MOTOR, "1.8") == (0.10, 0.999, [POOL, PROBE])
     assert subset.derived_k(0.10, 0.999, 2534) == 66
     assert math.ceil(math.log(1 - 0.999) / math.log(1 - 0.10)) == 66
-    assert subset.registered_k(MOTOR, "1.8", 2534) == 66
-    # the bank-rows cap
-    assert subset.registered_k(MOTOR, "1.8", 40) == 40
+    assert subset.derived_k(0.10, 0.999, 40) == 40
     assert subset.derived_k(0.10, 0.999, 1) == 1
+    cohorts = [GRID] * 30 + [PROBE] * 40 + [POOL] * 2494
+    assert subset.registered_counts(MOTOR, "1.8", cohorts) == {POOL: 66, PROBE: 40}
 
 
 @pytest.mark.parametrize(
@@ -114,24 +146,46 @@ def test_the_registered_promise_derives_k_66_and_caps_at_the_rest_of_the_bank():
     [
         None,
         {},
-        {"repeat_fail_fraction": None, "repeat_detect_prob": 0.999},
-        {"repeat_fail_fraction": 0.10, "repeat_detect_prob": None},
-        {"repeat_fail_fraction": 0.10},
-        {"repeat_fail_fraction": 0.10, "repeat_detect_prob": 0.999, "k": 66},
-        {"repeat_fail_fraction": True, "repeat_detect_prob": 0.999},
-        {"repeat_fail_fraction": 0, "repeat_detect_prob": 0.999},
-        {"repeat_fail_fraction": 1, "repeat_detect_prob": 0.999},
-        {"repeat_fail_fraction": 0.0, "repeat_detect_prob": 0.999},
-        {"repeat_fail_fraction": 1.0, "repeat_detect_prob": 0.999},
-        {"repeat_fail_fraction": 0.10, "repeat_detect_prob": 1.5},
-        {"repeat_fail_fraction": "0.10", "repeat_detect_prob": 0.999},
+        {**PROMISE, "repeat_fail_fraction": None},
+        {**PROMISE, "repeat_detect_prob": None},
+        {"repeat_fail_fraction": 0.10, "strata": [POOL]},
+        {**PROMISE, "k": 66},
+        {**PROMISE, "repeat_fail_fraction": True},
+        {**PROMISE, "repeat_fail_fraction": 0},
+        {**PROMISE, "repeat_fail_fraction": 1},
+        {**PROMISE, "repeat_fail_fraction": 0.0},
+        {**PROMISE, "repeat_fail_fraction": 1.0},
+        {**PROMISE, "repeat_detect_prob": 1.5},
+        {**PROMISE, "repeat_fail_fraction": "0.10"},
+        {"repeat_fail_fraction": 0.10, "repeat_detect_prob": 0.999},
     ],
 )
 def test_a_null_or_malformed_promise_fails_closed(tmp_path, row):
     path = _motor18_promise(tmp_path, row)
     with pytest.raises(subset.SubsetRepeatRefused) as caught:
-        subset.registered_k(MOTOR, "1.8", 2534, path=path)
+        subset.registered_promise(MOTOR, "1.8", path=path)
     assert caught.value.code == "subset_repeat_promise_unregistered"
+
+
+@pytest.mark.parametrize(
+    "strata", [None, [], [POOL, POOL], [GRID], [POOL, ""], [1], POOL, {POOL: 1}]
+)
+def test_null_or_malformed_strata_fail_closed(tmp_path, strata):
+    path = _motor18_promise(tmp_path, {**PROMISE, "strata": strata})
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.registered_promise(MOTOR, "1.8", path=path)
+    assert caught.value.code == "subset_repeat_strata_unregistered"
+
+
+def test_an_unknown_stratum_fails_closed(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        subset,
+        "VALUES_PATH",
+        _motor18_promise(tmp_path, {**PROMISE, "strata": [POOL, "practice"]}),
+    )
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.registered_counts(MOTOR, "1.8", _cohorts(200))
+    assert caught.value.code == "subset_repeat_stratum_unknown"
 
 
 def test_an_absent_file_or_row_fails_closed(tmp_path):
@@ -144,57 +198,64 @@ def test_an_absent_file_or_row_fails_closed(tmp_path):
             subset.derived_k(bad, 0.999, 10)
 
 
+def test_the_sealed_cohort_is_the_sealed_grids():
+    from carbon.scoring.sealed_grid_common import GRID_COHORT
+
+    assert subset.SEALED_COHORT == GRID_COHORT == GRID
+
+
 # -- the stratified draw ---------------------------------------------------------------------------------------------------
 
 
 KEY = bytes(range(32))  # synthetic K_speed
 
 
-def test_the_plan_repeats_every_sealed_cell_plus_66_keyed_rows_outside_them():
-    cohorts = ["pool_design"] * 40 + [GRID] * 30 + ["probe_response"] * 6
-    cohorts += ["pool_design"] * 500
+def _plan(sid, cohorts):
+    return subset.plan(KEY, sid, challenge=MOTOR, version="1.8", cohorts=cohorts)
+
+
+def test_every_grade_repeats_all_sealed_cells_plus_min_k_size_rows_in_each_stratum():
+    cohorts = [POOL] * 40 + [GRID] * 30 + [PROBE] * 25 + [POOL] * 500
     for sid in ("rtsk_a", "rtsk_b", "rtsk_c"):
-        sealed, keyed = subset.plan(
-            subset.grade_key(KEY, sid), challenge=MOTOR, version="1.8", cohorts=cohorts
-        )
+        sealed, keyed = _plan(sid, cohorts)
         assert sealed == list(range(40, 70))  # ALL 30 sealed cells, every grade
-        assert len(keyed) == len(set(keyed)) == 66 and keyed == sorted(keyed)
-        assert not set(keyed) & set(sealed)
-        assert all(0 <= p < len(cohorts) for p in keyed)
-    first = subset.plan(
-        subset.grade_key(KEY, "rtsk_a"), challenge=MOTOR, version="1.8", cohorts=cohorts
+        assert set(keyed) == {POOL, PROBE}
+        assert len(keyed[POOL]) == len(set(keyed[POOL])) == 66
+        assert keyed[PROBE] == list(
+            range(70, 95)
+        )  # a stratum smaller than k is re-run whole
+        for name, rows in keyed.items():
+            assert rows == sorted(rows) and all(cohorts[p] == name for p in rows)
+    assert _plan("rtsk_a", cohorts) == _plan("rtsk_a", cohorts)
+    assert _plan("rtsk_a", cohorts)[1][POOL] != _plan("rtsk_b", cohorts)[1][POOL]
+
+
+def test_each_stratums_draw_is_independent_of_the_others(tmp_path, monkeypatch):
+    cohorts = [GRID] * 30 + [PROBE] * 300 + [POOL] * 500
+    both = _plan("rtsk_a", cohorts)[1]
+    monkeypatch.setattr(
+        subset,
+        "VALUES_PATH",
+        _motor18_promise(tmp_path, {**PROMISE, "strata": [POOL]}),
     )
-    assert first == subset.plan(
-        subset.grade_key(KEY, "rtsk_a"), challenge=MOTOR, version="1.8", cohorts=cohorts
-    )
-    assert (
-        first[1]
-        != subset.plan(
-            subset.grade_key(KEY, "rtsk_b"),
-            challenge=MOTOR,
-            version="1.8",
-            cohorts=cohorts,
-        )[1]
+    alone = _plan("rtsk_a", cohorts)[1]
+    assert alone == {POOL: both[POOL]}
+    assert subset.grade_key(KEY, "rtsk_a", POOL) != subset.grade_key(
+        KEY, "rtsk_a", PROBE
     )
 
 
-def test_a_bank_without_both_strata_is_carbons_gap():
-    for cohorts in ([GRID] * 10, ["pool_design"] * 10):
-        with pytest.raises(subset.SubsetRepeatRefused) as caught:
-            subset.plan(
-                subset.grade_key(KEY, "rtsk_a"),
-                challenge=MOTOR,
-                version="1.8",
-                cohorts=cohorts,
-            )
-        assert caught.value.code == "subset_repeat_bank_strata"
+def test_a_bank_without_sealed_cells_is_carbons_gap():
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        _plan("rtsk_a", [POOL] * 100 + [PROBE] * 10)
+    assert caught.value.code == "subset_repeat_bank_strata"
 
 
 def test_the_draw_key_is_independent_of_the_speed_sample():
     from carbon.development_session import single_call_timing
 
     assert subset.DOMAIN != single_call_timing.SEED_DOMAIN
-    assert subset.grade_key(KEY, "rtsk_a") != single_call_timing.sample_seed(
+    assert subset.grade_key(KEY, "rtsk_a", POOL) != single_call_timing.sample_seed(
         KEY, "rtsk_a"
     )
 
@@ -202,22 +263,26 @@ def test_the_draw_key_is_independent_of_the_speed_sample():
 def test_the_keyed_sample_covers_rows_roughly_uniformly():
     counts = [0] * 20
     for i in range(400):
-        for p in subset.keyed_sample(subset.grade_key(KEY, f"rtsk_{i}"), range(20), 5):
+        for p in subset.keyed_sample(
+            subset.grade_key(KEY, f"rtsk_{i}", POOL), range(20), 5
+        ):
             counts[p] += 1
     # 400 draws of 5 of 20: 100 per row expected; a broken draw piles onto a few rows
     assert min(counts) > 60 and max(counts) < 140
 
 
 def test_the_draw_refuses_a_bad_key_or_k():
-    with pytest.raises(subset.SubsetRepeatRefused):
-        subset.grade_key(b"short", "rtsk_a")
-    with pytest.raises(subset.SubsetRepeatRefused):
-        subset.grade_key(KEY, "")
-    with pytest.raises(subset.SubsetRepeatRefused):
-        subset.grade_key(None, "rtsk_a")
+    for bad in (
+        (b"short", "rtsk_a", POOL),
+        (KEY, "", POOL),
+        (None, "rtsk_a", POOL),
+        (KEY, "rtsk_a", ""),
+    ):
+        with pytest.raises(subset.SubsetRepeatRefused):
+            subset.grade_key(*bad)
     for k in (0, 11):
         with pytest.raises(subset.SubsetRepeatRefused):
-            subset.keyed_sample(subset.grade_key(KEY, "rtsk_a"), range(10), k)
+            subset.keyed_sample(subset.grade_key(KEY, "rtsk_a", POOL), range(10), k)
 
 
 def test_nothing_about_the_draw_reaches_a_public_or_miner_surface():
@@ -440,29 +505,30 @@ def _run(
     return run
 
 
-#: A small synthetic bank: 4 sealed cells, then 6 other rows (k from a promise registered in the test).
+#: A small synthetic bank: 4 sealed cells, 4 pool rows, 2 probe rows (k = 2 per stratum from the test's promise).
 N = 10
-COHORTS = [GRID] * 4 + ["pool_design"] * 6
+COHORTS = [GRID] * 4 + [POOL] * 4 + [PROBE] * 2
 SEALED = [0, 1, 2, 3]
-KEYED = [5, 8]
+KEYED = {POOL: [5, 7], PROBE: [8, 9]}
 
 
 @pytest.fixture
 def small_promise(tmp_path, monkeypatch):
-    """A promise giving k = 2 over the 6 rows outside the sealed cells (f = 0.9, P = 0.99)."""
+    """A promise giving k = 2 in each stratum (f = 0.9, P = 0.99)."""
     monkeypatch.setattr(
         subset,
         "VALUES_PATH",
         _motor18_promise(
-            tmp_path, {"repeat_fail_fraction": 0.9, "repeat_detect_prob": 0.99}
+            tmp_path,
+            {**PROMISE, "repeat_fail_fraction": 0.9, "repeat_detect_prob": 0.99},
         ),
     )
-    assert subset.registered_k(MOTOR, "1.8", 6) == 2
+    assert subset.registered_counts(MOTOR, "1.8", COHORTS) == {POOL: 2, PROBE: 2}
 
 
 def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, **overrides):
     graded_inputs = np.arange(N * 3, dtype=np.float64).reshape(N, 3)
-    positions = sorted([*sealed, *keyed])
+    positions = subset.positions_of(sealed, keyed)
     answers = [_row(p) for p in positions] if answers is None else answers
     raw = subset.side_file(
         challenge=MOTOR,
@@ -471,7 +537,7 @@ def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, **overrides):
         submission_id=sid,
         n_rows=N,
         sealed=list(sealed),
-        keyed=list(keyed),
+        keyed=keyed,
         run=_run(graded_inputs, positions, answers, **overrides),
     )
     return raw, graded_inputs
@@ -501,7 +567,7 @@ def test_the_reader_returns_one_twin_per_repeated_row_and_none_elsewhere(
     raw, graded_inputs = _side()
     twins = _read(raw, graded_inputs)
     assert len(twins) == N
-    assert [i for i, t in enumerate(twins) if t is not None] == [0, 1, 2, 3, 5, 8]
+    assert [i for i, t in enumerate(twins) if t is not None] == [0, 1, 2, 3, 5, 7, 8, 9]
     assert list(twins[5]) == _row(5)
 
 
@@ -522,7 +588,8 @@ def test_the_wall_retry_identity_is_accepted(small_promise):
         {"version": "1.5"},
         {"evaluation_pack_digest": "sha256:" + "9" * 64},
         {"output_shape": [N + 1, WIDTH]},
-        {"cohorts": [GRID] * 3 + ["pool_design"] * 7},
+        {"cohorts": [GRID] * 3 + [POOL] * 5 + [PROBE] * 2},
+        {"cohorts": [GRID] * 4 + [POOL] * 6},
         {"registered_sha256": "sha256:" + "0" * 64},
     ],
 )
@@ -539,32 +606,28 @@ def test_evidence_that_does_not_bind_this_grade_is_typed_unavailable(
     "plan",
     [
         {"sealed": [0, 1, 2]},  # a sealed cell missing
-        {"keyed": [5]},  # fewer keyed rows than the registered k
-        {"keyed": [5, 7, 8]},  # more
-        {"keyed": [3, 8]},  # a keyed row inside the sealed cells
-        {"keyed": [8, 5]},  # unsorted
-        {"keyed": [5, 10]},  # outside the bank
+        {"keyed": {POOL: [5, 7]}},  # a registered stratum missing
+        {"keyed": {**KEYED, "practice": [6]}},  # an unregistered stratum
+        {"keyed": {POOL: [5], PROBE: [8, 9]}},  # fewer keyed rows than the registered k
+        {"keyed": {POOL: [4, 5, 7], PROBE: [8, 9]}},  # more
+        {"keyed": {POOL: [3, 7], PROBE: [8, 9]}},  # a keyed row inside the sealed cells
+        {"keyed": {POOL: [5, 8], PROBE: [8, 9]}},  # a row of another stratum
+        {"keyed": {POOL: [7, 5], PROBE: [8, 9]}},  # unsorted
     ],
 )
 def test_a_plan_that_is_not_the_registered_one_is_refused(small_promise, plan):
-    try:
-        raw, graded_inputs = _side(**plan)
-    except IndexError:
-        graded_inputs = np.arange(N * 3, dtype=np.float64).reshape(N, 3)
-        run = _run(graded_inputs, [0, 1, 2, 3, 5], [_row(0)] * 5)
-        raw = subset.side_file(
-            challenge=MOTOR,
-            version="1.8",
-            evaluation_pack_digest=PACK,
-            submission_id=SID,
-            n_rows=N,
-            sealed=SEALED,
-            keyed=plan["keyed"],
-            run=run,
-        )
+    raw, graded_inputs = _side(**plan)
     with pytest.raises(subset.SubsetRepeatRefused) as caught:
         _read(raw, graded_inputs)
     assert caught.value.code == "subset_repeat_positions"
+
+
+def test_a_side_file_naming_another_count_is_refused(small_promise):
+    raw, graded_inputs = _side()
+    bad = raw.replace(b'"k":{"pool_design":2', b'"k":{"pool_design":3')
+    assert bad != raw
+    with pytest.raises(subset.SubsetRepeatRefused):
+        _read(bad, graded_inputs, registered_sha256=_sha(bad))
 
 
 def test_another_submission_or_ledger_identity_is_refused(small_promise):
@@ -603,7 +666,7 @@ def test_a_broken_run_is_typed_unavailable(small_promise, overrides):
 
 def test_corrupt_or_foreign_bytes_are_typed_unavailable_never_a_verdict(small_promise):
     raw, graded_inputs = _side()
-    for bad in (raw[:-5], raw.replace(b'"k":2', b'"k":1'), b"{}\n"):
+    for bad in (raw[:-5], b"{}\n"):
         with pytest.raises(subset.SubsetRepeatRefused):
             _read(bad, graded_inputs, registered_sha256=_sha(bad))
     with pytest.raises(subset.SubsetRepeatRefused):
@@ -618,7 +681,7 @@ def test_non_finite_or_malformed_fresh_answers_are_read_as_the_candidates(
     small_promise,
 ):
     """NaN and a short row are the candidate's answers: read, then failed by the exact rule, never Carbon's gap."""
-    answers = [_row(p) for p in (0, 1, 2, 3, 5, 8)]
+    answers = [_row(p) for p in (0, 1, 2, 3, 5, 7, 8, 9)]
     answers[1][7] = float("nan")
     answers[4] = answers[4][:-1]
     raw, graded_inputs = _side(answers=answers)
@@ -643,7 +706,7 @@ def as_subset(tmp_path, monkeypatch):
         "SUBSET_REPEAT_VERSIONS",
         frozenset({(MOTOR, "1.8"), (MOTOR, "1.5")}),
     )
-    promise = {"repeat_fail_fraction": 0.10, "repeat_detect_prob": 0.999}
+    promise = PROMISE
     monkeypatch.setattr(
         subset,
         "VALUES_PATH",
@@ -657,12 +720,9 @@ def _fixture_side(case, *, change=None):
     pack = case["snapshot"].manifest_digest
     cohorts = list(case["bank"]["cohorts"])
     sealed, keyed = subset.plan(
-        subset.grade_key(POOL_KEY, FIX_SID),
-        challenge=MOTOR,
-        version="1.5",
-        cohorts=cohorts,
+        POOL_KEY, FIX_SID, challenge=MOTOR, version="1.5", cohorts=cohorts
     )
-    positions = sorted([*sealed, *keyed])
+    positions = subset.positions_of(sealed, keyed)
     answers = [list(case["outputs"][p]) for p in positions]
     if change is not None:
         change(answers, positions)
@@ -735,7 +795,8 @@ def test_real_adapter_an_exact_repeat_scores_exactly_as_the_equal_full_pair(
     equal repeats."""
     _src, shared = _produce(case)
     originals, sealed, keyed = _fixture_side(case)
-    assert len(sealed) == 30 and len(keyed) == 66
+    assert len(sealed) == 30
+    assert {name: len(rows) for name, rows in keyed.items()} == {POOL: 66, PROBE: 66}
     _src2, mine = _subset_produce(case, originals)
     assert json.loads(mine.raw)["benchmark"] == json.loads(shared.raw)["benchmark"]
     assert mine.measured_model == shared.measured_model
@@ -745,17 +806,13 @@ def test_real_adapter_an_exact_repeat_scores_exactly_as_the_equal_full_pair(
     assert type(scored["models"][0]["score"]) is float
 
 
-@pytest.mark.parametrize("stratum", ["sealed", "keyed"])
+@pytest.mark.parametrize("stratum", [GRID, POOL, PROBE])
 def test_real_adapter_one_ulp_off_in_one_repeated_row_leaves_the_grade_unscored(
     case, as_subset, stratum
 ):
     def change(answers, positions):
         cohorts = list(case["bank"]["cohorts"])
-        i = next(
-            n
-            for n, p in enumerate(positions)
-            if (cohorts[p] == GRID) == (stratum == "sealed")
-        )
+        i = next(n for n, p in enumerate(positions) if cohorts[p] == stratum)
         answers[i][-1] = math.nextafter(answers[i][-1], math.inf)
 
     originals, _sealed, _keyed = _fixture_side(case, change=change)
@@ -984,9 +1041,9 @@ def test_the_operator_tool_routes_a_subset_version_to_its_own_producer():
 # -- the door ------------------------------------------------------------------------------------------------------------
 
 
-def _door(tmp_path, monkeypatch, plays, *, n=100, promise=None, key=KEY):
+def _door(tmp_path, monkeypatch, plays, *, n=200, promise=None, key=KEY):
     """The REAL `_subset_repeat_raw` over a fake `infer_frozen_once` that plays ``plays`` in order; the bank has 30
-    sealed cells then ``n - 30`` other rows."""
+    sealed cells, 20 probe rows and ``n - 50`` pool rows."""
     from carbon.challenge_validator import lean_recipe_retention as retention
     from carbon.development_session import construction_recipe, paired_inference
 
@@ -1076,7 +1133,16 @@ def _door(tmp_path, monkeypatch, plays, *, n=100, promise=None, key=KEY):
     return run, calls, practice
 
 
-def test_the_door_runs_one_fresh_op_on_the_sealed_cells_and_the_keyed_rows(
+def _cache(tmp_path):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    tag = hashlib.sha256(
+        retention._json(list(subset.registered_promise(MOTOR, "1.8")))
+    ).hexdigest()[:16]
+    return tmp_path / f"subset-repeat-{tag}.json"
+
+
+def test_the_door_runs_one_fresh_op_on_the_sealed_cells_and_each_stratums_keyed_rows(
     tmp_path, monkeypatch
 ):
     run, calls, practice = _door(tmp_path, monkeypatch, [{"fixture": True}])
@@ -1084,22 +1150,21 @@ def test_the_door_runs_one_fresh_op_on_the_sealed_cells_and_the_keyed_rows(
     assert len(calls) == 1  # ONE op, no pair
     document = json.loads(raw)
     sealed, keyed = subset.plan(
-        subset.grade_key(KEY, "rtsk_x"),
-        challenge=MOTOR,
-        version="1.8",
-        cohorts=_cohorts(100),
+        KEY, "rtsk_x", challenge=MOTOR, version="1.8", cohorts=_cohorts(200)
     )
     assert document["sealed_positions"] == sealed == list(range(30))
-    assert document["keyed_positions"] == keyed and document["k"] == 66
+    assert document["keyed_positions"] == keyed
+    assert document["k"] == {POOL: 66, PROBE: 20}
+    assert keyed[PROBE] == list(range(30, 50))
     assert document["submission_id"] == "rtsk_x"
     assert document["evaluation_pack_digest"] == PACK
-    positions = sorted([*sealed, *keyed])
+    positions = subset.positions_of(sealed, keyed)
     assert np.array_equal(calls[0]["inputs"], practice[positions])
-    assert calls[0]["expected_output_shape"] == (96, WIDTH)
+    assert calls[0]["expected_output_shape"] == (116, WIDTH)
     assert calls[0]["procedure"] == "per_case"
     assert calls[0]["identity"] == subset.run_identity(PACK, "rtsk_x")
     assert document["run"] == {"fixture": True}
-    assert (tmp_path / "subset-repeat-66.json").read_bytes() == raw
+    assert _cache(tmp_path).read_bytes() == raw
     # a retry reads the retained bytes back and runs nothing
     assert run() == raw and len(calls) == 1
 
@@ -1108,7 +1173,7 @@ def test_a_cached_file_of_another_draw_is_refused(tmp_path, monkeypatch):
     from carbon.challenge_validator import lean_recipe_retention as retention
 
     run, calls, _practice = _door(tmp_path, monkeypatch, [])
-    (tmp_path / "subset-repeat-66.json").write_bytes(b'{"keyed_positions":[0,1]}')
+    _cache(tmp_path).write_bytes(b'{"keyed_positions":{"pool_design":[0,1]}}')
     with pytest.raises(retention.RetentionUnavailable) as caught:
         run()
     assert str(caught.value) == "subset_repeat_cache_not_this_draw" and not calls
@@ -1158,16 +1223,26 @@ def test_a_host_fault_stays_carbons(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "promise",
-    [{"repeat_fail_fraction": None, "repeat_detect_prob": None}, {"k": 66}],
+    "row, code",
+    [
+        (
+            {**PROMISE, "repeat_fail_fraction": None},
+            "subset_repeat_promise_unregistered",
+        ),
+        ({"k": 66}, "subset_repeat_promise_unregistered"),
+        ({**PROMISE, "strata": None}, "subset_repeat_strata_unregistered"),
+        ({**PROMISE, "strata": [POOL, "practice"]}, "subset_repeat_stratum_unknown"),
+    ],
 )
-def test_no_promise_refuses_at_grade_time_before_any_op(tmp_path, monkeypatch, promise):
+def test_no_promise_or_strata_refuses_at_grade_time_before_any_op(
+    tmp_path, monkeypatch, row, code
+):
     from carbon.challenge_validator import lean_recipe_retention as retention
 
-    run, calls, _practice = _door(tmp_path, monkeypatch, [], promise=promise)
+    run, calls, _practice = _door(tmp_path, monkeypatch, [], promise=row)
     with pytest.raises(retention.RetentionUnavailable) as caught:
         run()
-    assert str(caught.value) == "subset_repeat_promise_unregistered" and not calls
+    assert str(caught.value) == code and not calls
 
 
 def test_no_key_refuses_at_grade_time(tmp_path, monkeypatch):
@@ -1302,19 +1377,30 @@ def _pack(pinned):
     )
 
 
-def test_the_serve_check_names_the_successor_row_and_refuses_a_mismatch(
-    tmp_path, monkeypatch
-):
+def _serve(retention, monkeypatch, *, pinned=OLD_MOTOR18, cohorts=None, key=KEY):
+    from carbon.scoring import sealed_batch_source
+
+    monkeypatch.setattr(
+        sealed_batch_source,
+        "resolve",
+        lambda **kw: ({"cohorts": cohorts or _cohorts(200)}, None),
+    )
+    return retention.subset_repeat_serve_check(
+        MOTOR,
+        "1.8",
+        pack_snapshot=_pack(pinned),
+        public_root=Path("."),
+        private_root=Path("."),
+        copy_hotkey="5Hotkey",
+        speed_key=key,
+    )
+
+
+def test_the_serve_check_names_the_successor_row_and_the_strata(monkeypatch):
     from carbon.challenge_validator import lean_recipe_retention as retention
 
     assert retention.subset_repeat_serve_check(MOTOR, "1.5") is None
-    named = retention.subset_repeat_serve_check(
-        MOTOR,
-        "1.8",
-        pack_snapshot=_pack(OLD_MOTOR18),
-        public_root=tmp_path,
-        speed_key=KEY,
-    )
+    named = _serve(retention, monkeypatch)
     new = physical.producer_digest(_motor18())
     assert named["successor_row"] == {
         "pack_producer_digest": OLD_MOTOR18,
@@ -1322,29 +1408,59 @@ def test_the_serve_check_names_the_successor_row_and_refuses_a_mismatch(
     }
     assert named["producer_digest"] == new
     assert (named["repeat_fail_fraction"], named["repeat_detect_prob"]) == (0.10, 0.999)
+    assert named["strata"] == [POOL, PROBE]
+    assert named["counts"] == {POOL: 66, PROBE: 20}
+
+
+@pytest.mark.parametrize(
+    "change, code",
+    [
+        ({"pinned": "sha256:" + "e" * 64}, "producer_successor_mismatch"),
+        ({"key": None}, "subset_repeat_key_unavailable"),
+        ({"key": b"short"}, "subset_repeat_key_unavailable"),
+        ({"cohorts": [GRID] * 30 + [POOL] * 100}, "subset_repeat_stratum_unknown"),
+        ({"cohorts": [PROBE] * 30 + [POOL] * 100}, "subset_repeat_bank_strata"),
+    ],
+)
+def test_the_serve_check_refuses(monkeypatch, change, code):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
     with pytest.raises(retention.RetentionUnavailable) as caught:
-        retention.subset_repeat_serve_check(
-            MOTOR,
-            "1.8",
-            pack_snapshot=_pack("sha256:" + "e" * 64),
-            public_root=tmp_path,
-            speed_key=KEY,
-        )
-    assert str(caught.value) == "producer_successor_mismatch"
-    for missing in (None, b"short"):
-        with pytest.raises(retention.RetentionUnavailable) as caught:
-            retention.subset_repeat_serve_check(MOTOR, "1.8", speed_key=missing)
-        assert str(caught.value) == "subset_repeat_key_unavailable"
-    monkeypatch.setattr(
-        subset,
-        "VALUES_PATH",
-        _motor18_promise(
-            tmp_path, {"repeat_fail_fraction": None, "repeat_detect_prob": 0.999}
+        _serve(retention, monkeypatch, **change)
+    assert str(caught.value) == code
+
+
+@pytest.mark.parametrize(
+    "row, code",
+    [
+        (
+            {**PROMISE, "repeat_fail_fraction": None},
+            "subset_repeat_promise_unregistered",
         ),
-    )
+        ({**PROMISE, "strata": None}, "subset_repeat_strata_unregistered"),
+        ({**PROMISE, "strata": [GRID]}, "subset_repeat_strata_unregistered"),
+    ],
+)
+def test_the_serve_check_refuses_an_unregistered_promise_or_strata(
+    tmp_path, monkeypatch, row, code
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    monkeypatch.setattr(subset, "VALUES_PATH", _motor18_promise(tmp_path, row))
     with pytest.raises(retention.RetentionUnavailable) as caught:
         retention.subset_repeat_serve_check(MOTOR, "1.8", speed_key=KEY)
-    assert str(caught.value) == "subset_repeat_promise_unregistered"
+    assert str(caught.value) == code
+
+
+def test_the_committed_values_keep_the_door_closed_until_cv_names_the_strata(
+    monkeypatch,
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    monkeypatch.setattr(subset, "VALUES_PATH", COMMITTED)
+    with pytest.raises(retention.RetentionUnavailable) as caught:
+        retention.subset_repeat_serve_check(MOTOR, "1.8", speed_key=KEY)
+    assert str(caught.value) == "subset_repeat_strata_unregistered"
 
 
 def test_the_receiver_runs_the_serve_check_at_start_with_the_hosts_key():
@@ -1355,7 +1471,7 @@ def test_the_receiver_runs_the_serve_check_at_start_with_the_hosts_key():
     check = serve.index("lean_recipe_retention.subset_repeat_serve_check(")
     assert serve.index("crown_hold.bind_pack(pack_digest)") < check
     assert check < serve.index("discovery = DirectFixtureDiscovery(")
-    assert "_speed_key(cfg)" in serve[check : check + 1200]
+    assert "_speed_key(cfg)" in serve[check : check + 1600]
 
 
 # -- the public words (R-4) and the record -------------------------------------------------------------------------------
@@ -1386,13 +1502,19 @@ def test_the_record_carries_both_owner_lines_and_the_values():
         )
     )
     words = {w["typed_at"]: w for w in record["owner_words"]}
-    assert set(words) == {"Sun 15 Nov 2026 08:19 CST", "Sun 15 Nov 2026 08:38 CST"}
+    assert set(words) == {
+        "Sun 15 Nov 2026 08:19 CST",
+        "Sun 15 Nov 2026 08:38 CST",
+        "Sun 15 Nov 2026 ~09:5x CST",
+    }
+    assert words["Sun 15 Nov 2026 ~09:5x CST"]["verbatim"] == "Yes for 66 per stratum"
     assert words["Sun 15 Nov 2026 08:38 CST"]["verbatim"] == (
         "66 rows. But we need a % that generalizes for challenges"
     )
     assert record["values"]["promise"] == {
         "repeat_fail_fraction": 0.10,
         "repeat_detect_prob": 0.999,
+        "strata": None,
     }
     assert record["values"]["producer_successor"] == producer_successor.row(
         MOTOR, "1.8"
