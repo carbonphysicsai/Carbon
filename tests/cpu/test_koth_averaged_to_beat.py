@@ -364,7 +364,9 @@ def test_the_worker_and_the_page_name_the_averaged_rule():
         "const a = l.to_beat_rule;" in page
         and "This is the king's score plus the margin, rounded up." in page
     )
-    assert "Crowns compare rebuild averages" not in page and "rebuild-average" not in page
+    assert (
+        "Crowns compare rebuild averages" not in page and "rebuild-average" not in page
+    )
 
 
 # ---------------------------------------------------------------- a king rebuilt through a krb_ link (Lead 5 Nov 19:3x)

@@ -333,11 +333,28 @@ def king_stability(config, item, king_document):
         != king_document["king"]["hotkey"]
     ):
         raise OperatorRefused("king_mismatch")
+    if official_score(item):
+        # Official-score crowns (owner 14 Nov; `crown_official`): the king's score IS his official grade, compared with
+        # no rebuild, so there is no rebuild mean to file and no rebuild spread to flag. His registered score stands as
+        # shown: STABLE (the page's UNSTABLE line, "moved between rebuilds", does not apply to this rule).
+        return "STABLE"
     if store.crown_average_unstable(incumbent["model_id"]):
         return "UNSTABLE"
     if store.crown_mean(incumbent["model_id"]) is None:
         raise OperatorRefused("king_unmeasured")
     return "STABLE"
+
+
+def official_score(item):
+    """True when ``item``'s Challenge version registers official-score crowns (`crown_official.registered`, the same
+    registry file the receiver reads at start); a malformed registry refuses (``crown_official_invalid``).
+    """
+    from carbon.challenge_validator import crown_official
+
+    try:
+        return crown_official.registered(item["id"], item["version"]) is not None
+    except crown_official.CrownOfficialInvalid:
+        raise OperatorRefused("crown_official_invalid") from None
 
 
 #: The internal UNAVAILABLE reasons with their own public phrase (crown_average.KING_UNMEASURED; bank_promotion.CROWNS_PAUSED
