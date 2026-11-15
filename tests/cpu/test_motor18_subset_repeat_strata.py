@@ -429,3 +429,37 @@ def test_the_counts_tool_prints_counts_only(synthetic):
         _bank(_spec(extra=[(POOL, ("H-1", "menu_D3"))])), MOTOR, "1.8"
     )
     assert overlapping["overlaps"] == {"H-1+menu_D3": 1}
+
+
+def test_only_door_and_grade_modules_import_the_subset_repeat_evidence():
+    """V2B: the strata (and the in-range case set they read) live inside the grade; nothing that builds TRAIN, a kit, a
+    view, the board or a miner report imports them."""
+    import ast
+
+    importers = set()
+    for root in ("carbon", "scripts"):
+        for path in (ROOT / root).rglob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+            for node in ast.walk(tree):
+                names = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    names = [node.module] + [
+                        f"{node.module}.{alias.name}" for alias in node.names
+                    ]
+                elif isinstance(node, ast.Import):
+                    names = [alias.name for alias in node.names]
+                if "carbon.scoring.subset_repeat_evidence" in names:
+                    importers.add(path.relative_to(ROOT).as_posix())
+    assert importers == {
+        # the door: the draw, the side file, the serve check; and the receiver's start-up check
+        "carbon/challenge_validator/lean_recipe_retention.py",
+        "carbon/challenge_validator/direct_receiver.py",
+        # the grade: the evaluation key, the calibration tool's exact rule, the producer and its successor row
+        "carbon/challenge_validator/bank_promotion.py",
+        "carbon/challenge_validator/calibration_grade.py",
+        "carbon/scoring/producer_successor.py",
+        "carbon/scoring/subset_repeat_produce.py",
+        # operator tools run in custody (counts only; the grader's own re-measure)
+        "scripts/dev/design_value_parts.py",
+        "scripts/dev/sealed_exam/subset_repeat_counts.py",
+    }
