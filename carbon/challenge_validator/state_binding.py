@@ -48,7 +48,12 @@ GPU builds; Lead: one migration for the GPU build lane and the remote grade lane
   folded through every link, each link re-checked (its ``from`` is the previous door's digest, its door is that door
   changed only in `MIGRATABLE_KEYS`, its ``to`` is its door's digest);
 - M4 rollback: an older release reads only ``door-binding.json`` (the ORIGINAL door), so it starts on the migrated
-  state only with the original images (the pre-migration release itself);
+  state only with the original images (the pre-migration release itself), and only for owners whose manifests were
+  not yet re-frozen to new images (an owner re-frozen forward refuses an older revision, as any owner manifest
+  migration does). A migration is COMMITTED when ``bind`` writes its link, before the rest of the start: rehearse it
+  on a copy of the state first;
+- the request names the link it makes (``index``), is used once (a link records its digest; the same request never
+  applies twice), and rides a code revision this state never ran;
 - the legacy ``receiver-binding.json`` and the pack digest never move.
 
 Nothing here scores, grades or decides; it only refuses a state that belongs to another door.
@@ -89,6 +94,8 @@ MIGRATIONS_DIR = "door-migrations"
 LINK_SCHEMA = "carbon.challenge-validator.door-migration.v1"
 _LINK_NAME = re.compile(r"[0-9]{4}\.json")
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+#: `private_records.private_json`'s bound: a link larger than this could never be read back.
+_LINK_MAX_BYTES = 65536
 
 
 class StateBindingRefused(ValueError):
@@ -131,7 +138,7 @@ def migration_keys(old: dict, new: dict):
     changed = sorted(
         key
         for key in set(old) | set(new)
-        if old.get(key, None) != new.get(key, None) or (key in old) != (key in new)
+        if (key in old) != (key in new) or canonical(old[key]) != canonical(new[key])
     )
     if any(key not in MIGRATABLE_KEYS or key not in new for key in changed):
         return None
@@ -146,7 +153,12 @@ def _links(root: Path):
         raise StateBindingRefused("door migrations link refused")
     if not folder.exists():
         return []
-    names = sorted(path.name for path in folder.iterdir())
+    if not folder.is_dir():
+        raise StateBindingRefused("door migrations unreadable")
+    # `data.write_once` stages ``.<name>.<random>`` beside its target; one left by a crash is not a link
+    names = sorted(
+        path.name for path in folder.iterdir() if not path.name.startswith(".")
+    )
     if any(_LINK_NAME.fullmatch(name) is None for name in names) or names != [
         f"{index:04d}.json" for index in range(1, len(names) + 1)
     ]:
@@ -192,7 +204,7 @@ def differs_event(current: dict, door: dict) -> dict:
     }
 
 
-def _migration_link(root: Path, current: dict, door: dict) -> dict:
+def _migration_link(root: Path, current: dict, door: dict, binding: dict) -> dict:
     """The link the operator's declared migration from ``current`` to ``door`` adds (M2), checked and NOT written yet;
     refuses (`StateBindingRefused`) otherwise."""
     print(
@@ -205,23 +217,53 @@ def _migration_link(root: Path, current: dict, door: dict) -> dict:
     if request is None:
         raise StateBindingRefused("retained door binding differs")
     keys = migration_keys(current, door)
+    links = _links(root)
+    index = len(links) + 1
+    # the digest of the bytes `_read` validated (`private_json` accepts only canonical bytes)
+    used = "sha256:" + hashlib.sha256(canonical(request)).hexdigest()
     if (
-        set(request) != {"schema", "from", "to"}
+        set(request) != {"schema", "index", "from", "to"}
         or request["schema"] != MIGRATION_SCHEMA
+        or request["index"] != index
         or request["from"] != door_digest(current)
         or request["to"] != door_digest(door)
         or not keys
+        or any(link["request"] == used for link in links)
     ):
         raise StateBindingRefused("retained door binding differs")
-    index = len(_links(root)) + 1
-    return {
+    if _revision_served(root, binding.get("implementation")):
+        # a migration rides a NEW code revision: the owners' manifests re-freeze only on a revision change
+        # (`direct_receiver._revision_only_change`), so a same-revision migration would refuse after its link is written
+        raise StateBindingRefused("door migration needs a new code revision")
+    link = {
         "schema": LINK_SCHEMA,
         "index": index,
         "from": request["from"],
         "to": request["to"],
-        "request": "sha256:" + hashlib.sha256(request_path.read_bytes()).hexdigest(),
+        "request": used,
         "door": door,
     }
+    if len(canonical(link)) > _LINK_MAX_BYTES:
+        raise StateBindingRefused("door migration link too large")
+    return link
+
+
+def _revision_served(root: Path, implementation) -> bool:
+    """Whether a release binding of this state (``bindings/``, or the legacy file) already ran ``implementation``."""
+    releases = root / RELEASES_DIR
+    records = [_read(root / LEGACY_NAME)]
+    if releases.is_dir() and not releases.is_symlink():
+        records += [
+            _read(path)
+            for path in sorted(releases.iterdir())
+            if not path.name.startswith(".")
+        ]
+    return any(
+        type(record) is dict
+        and canonical(record.get("implementation")) == canonical(implementation)
+        for record in records
+        if record is not None
+    )
 
 
 def _write_link(root: Path, link: dict, current: dict):
@@ -254,16 +296,15 @@ def migrated_images(root: Path) -> bool:
     manifests may then adopt the images of the CURRENT door (`direct_receiver._revision_only_change`).
     """
     root = Path(root).absolute()
-    door = _read(root / DOOR_NAME)
-    if door is None:
+    original = _read(root / DOOR_NAME)
+    if original is None:
         return False
-    moved = False
-    for link in _links(root):
-        moved = moved or bool(
-            IMAGE_KEYS & set(migration_keys(door, link["door"]) or ())
-        )
-        door = link["door"]
-    return moved
+    current = _folded(root, original)
+    return any(
+        (key in original) != (key in current)
+        or (key in original and canonical(original[key]) != canonical(current[key]))
+        for key in IMAGE_KEYS
+    )
 
 
 def release_name(binding: dict) -> str:
@@ -334,8 +375,8 @@ def bind(root: Path, binding: dict) -> dict:
     )
     current = _folded(root, original)
     migrated = None
-    if current != door:
-        migrated = _migration_link(root, current, door)
+    if door_digest(current) != door_digest(door):
+        migrated = _migration_link(root, current, door, binding)
     releases = root / RELEASES_DIR
     if releases.is_symlink():
         raise StateBindingRefused("receiver bindings link refused")

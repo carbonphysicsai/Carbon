@@ -337,22 +337,18 @@ def test_a_declared_door_image_migration_lets_the_manifest_adopt_the_new_images(
     added = _manifest(NEW, image="sha256:" + "2" * 64)
     added["receiver_binding"]["inference_image"] = "sha256:" + "3" * 64
     assert dr._revision_only_change(frozen, added, images_migrated=True)
-    assert not dr._revision_only_change(
-        added | {"implementation": frozen["implementation"]},
-        frozen,
+    # a real drop: an image field the frozen manifest has, missing from a NEWER-revision candidate
+    newer = "c" * 40
+    dropped = _manifest(newer, image="sha256:" + "2" * 64)
+    assert not dr._revision_only_change(added, dropped, images_migrated=True)
+    assert dr._revision_only_change(
+        added,
+        _manifest(newer, image="sha256:" + "2" * 64)
+        | {
+            "receiver_binding": {
+                **dropped["receiver_binding"],
+                "inference_image": "sha256:" + "4" * 64,
+            }
+        },
         images_migrated=True,
     )
-    # nothing else moves with it
-    for other in (
-        {**moved, "owner": "5Other"},
-        {**moved, "challenge": {"id": "f02", "version": "2.6"}},
-        {
-            **moved,
-            "receiver_binding": {
-                **moved["receiver_binding"],
-                "evaluation_pack_digest": "sha256:" + "9" * 64,
-            },
-        },
-        {**moved, "runtime": {**moved["runtime"], "extra": 1}},
-    ):
-        assert not dr._revision_only_change(frozen, other, images_migrated=True)

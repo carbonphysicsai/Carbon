@@ -65,9 +65,10 @@ def root(tmp_path):
     return path
 
 
-def _request(root, old, new, **override):
+def _request(root, old, new, index=1, **override):
     document = {
         "schema": MIGRATION_SCHEMA,
+        "index": index,
         "from": door_digest(door_of(old)),
         "to": door_digest(door_of(new)),
         **override,
@@ -86,10 +87,10 @@ def _files(root):
     }
 
 
-def _new(**changes):
+def _new(revision="2" * 40, **changes):
     """The migrated release: new worker images and the graph GPU lane added (``changes`` override)."""
     return _binding(
-        revision="2" * 40,
+        revision=revision,
         **{
             "parent": NEW_IMAGE,
             "construction_parents": [NEW_IMAGE],
@@ -190,6 +191,7 @@ def test_a_migratable_key_may_not_be_dropped(root):
         {"to": "sha256:" + "0" * 64},
         {"schema": "carbon.other"},
         {"extra": 1},
+        {"index": 2},
     ],
 )
 def test_a_request_for_another_change_refuses(root, override):
@@ -208,7 +210,7 @@ def test_a_replayed_request_cannot_move_the_door_again(root):
     _request(root, old, new)
     bind(root, new)
     # a third door, with the old request still installed: its `from` is no longer the current door
-    third = _new(parent={"image_id": "sha256:" + "7" * 64})
+    third = _new(revision="3" * 40, parent={"image_id": "sha256:" + "7" * 64})
     with pytest.raises(StateBindingRefused):
         bind(root, third)
     assert read_door(root) == door_of(new)
@@ -219,8 +221,8 @@ def test_two_declared_migrations_chain(root):
     bind(root, old)
     _request(root, old, new)
     bind(root, new)
-    third = _new(parent={"image_id": "sha256:" + "7" * 64})
-    _request(root, new, third)
+    third = _new(revision="3" * 40, parent={"image_id": "sha256:" + "7" * 64})
+    _request(root, new, third, index=2)
     assert bind(root, third)["migrated"] == 2
     assert read_door(root) == door_of(third)
     assert sorted(os.listdir(root / MIGRATIONS_DIR)) == ["0001.json", "0002.json"]
@@ -303,6 +305,86 @@ def test_migrated_images_says_whether_a_link_moved_a_worker_image(root):
     moved = _binding(
         revision="3" * 40, parent=NEW_IMAGE, construction_parents=[NEW_IMAGE], **GPU
     )
-    _request(root, gpu_only, moved)
+    _request(root, gpu_only, moved, index=2)
     bind(root, moved)
     assert state_binding.migrated_images(root) is True
+
+
+def test_a_type_change_of_another_key_is_not_hidden_by_an_image_move(root):
+    """Keys compare by their canonical bytes: ``true`` and ``1`` differ."""
+    old = _binding()
+    new = _new(measure_query=1)
+    bind(root, old)
+    _request(root, old, new)
+    with pytest.raises(StateBindingRefused):
+        bind(root, new)
+
+
+def test_a_migration_on_a_revision_this_state_already_ran_refuses(root):
+    old = _binding()
+    same_revision = _new(revision="1" * 40)
+    bind(root, old)
+    _request(root, old, same_revision)
+    before = _files(root)
+    with pytest.raises(StateBindingRefused, match="needs a new code revision"):
+        bind(root, same_revision)
+    assert _files(root) == before
+
+
+def test_a_used_request_never_applies_twice(root):
+    """A -> B, B -> A, then the A -> B request's bytes again (index 3): refused, its digest is in link 1."""
+    a, b = _binding(), _new()
+    bind(root, a)
+    first = _request(root, a, b).read_bytes()
+    bind(root, b)
+    back = _binding(
+        revision="3" * 40, **GPU
+    )  # the original images back, the GPU lane kept
+    _request(root, b, back, index=2)
+    bind(root, back)
+    again = _new(revision="4" * 40)
+    # the same request bytes as link 1 (its from/to name the doors, not the revision) re-installed
+    path = root / MIGRATION_REQUEST
+    path.write_bytes(first)
+    os.chmod(path, 0o600)
+    with pytest.raises(StateBindingRefused):
+        bind(root, again)
+
+
+def test_a_write_temp_left_by_a_crash_is_not_a_link(root):
+    old, new = _binding(), _new()
+    bind(root, old)
+    _request(root, old, new)
+    bind(root, new)
+    (root / MIGRATIONS_DIR / ".0002.json.abcd").write_bytes(b"partial")
+    assert read_door(root) == door_of(new)
+
+
+def test_a_door_migrations_file_refuses_typed(root):
+    bind(root, _binding())
+    (root / MIGRATIONS_DIR).write_bytes(b"x")
+    with pytest.raises(StateBindingRefused, match="door migrations unreadable"):
+        read_door(root)
+
+
+def test_a_link_too_large_to_read_back_is_refused_before_it_is_written(root):
+    old = _binding()
+    new = _new(construction_parents=[{"image_id": "sha256:" + "c" * 64}] * 2000)
+    bind(root, old)
+    _request(root, old, new)
+    before = _files(root)
+    with pytest.raises(StateBindingRefused, match="too large"):
+        bind(root, new)
+    assert _files(root) == before
+
+
+def test_migrated_images_is_false_again_after_a_reverse_migration(root):
+    a, b = _binding(), _new()
+    bind(root, a)
+    _request(root, a, b)
+    bind(root, b)
+    assert state_binding.migrated_images(root) is True
+    back = _binding(revision="3" * 40, **GPU)  # the original images, the GPU lane kept
+    _request(root, b, back, index=2)
+    bind(root, back)
+    assert state_binding.migrated_images(root) is False
