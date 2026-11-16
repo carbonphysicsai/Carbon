@@ -2130,8 +2130,9 @@ class DirectDevelopmentTasksV3:
 
             with (
                 remote_gpu_build.offered_for(
-                    kit["id"],
-                    kit["version"],
+                    # the door's Challenge key, as the receiver pinned its lane (`remote_gpu_build.pin`)
+                    request.challenge_key.challenge_id,
+                    request.challenge_key.version,
                     # a HOST-PRIVATE seed (the crown's averaging rebuilds) or a derived rebind never leaves the door
                     # until the owner rules it may (`offered_for` ``withhold``)
                     withhold=(

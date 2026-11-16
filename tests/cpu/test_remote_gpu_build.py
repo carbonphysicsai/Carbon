@@ -97,6 +97,10 @@ def host(tmp_path, monkeypatch):
     root = tmp_path / "accelerators"
     monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", root)
     monkeypatch.setattr(remote_gpu_build, "_docker_binary", lambda: "/usr/bin/docker")
+    # the slot machinery under test; the shipped value (False) refuses N > 1: test_n_slots_wait_for_a_jax_memory_cap
+    monkeypatch.setattr(remote_gpu_build, "JAX_SLOT_MEMORY_CAP", True)
+    monkeypatch.setattr(remote_gpu_build, "_ENVIRONMENT_BINDING", [])
+    monkeypatch.setattr(remote_gpu_build, "_PINNED", {})
     return root
 
 
@@ -791,7 +795,7 @@ def test_a_local_gpu_fault_after_a_failed_build_is_carbons_without_ssh(
 def test_a_local_slot_lanes_wall_stop_is_read_as_before(host):
     from carbon.development_session import research_carrier
 
-    lane = _lane(host, local=True)
+    lane = _lane(host, local=True, slots=1, cpusets=("0-3",))
     error = WorkerFailure(
         WorkerCode.DEADLINE, private_diagnostic=b"stream command timed out"
     )
@@ -862,7 +866,7 @@ def test_a_replay_of_a_settled_op_takes_no_slot(host, monkeypatch):
 
     class Ledger:
         def operation_state(self, identity, *, owner):
-            return "COMPLETED"
+            return "SUCCEEDED"
 
     def replay(ledger, **kwargs):
         seen.append(remote_gpu_build.current_op())
@@ -880,7 +884,9 @@ def test_a_replay_of_a_settled_op_takes_no_slot(host, monkeypatch):
             )
             == "recorded"
         )
-    assert seen == [None]
+    # bound to the lane (its request, device and program are the lane's, so the replay matches what was reserved)...
+    assert len(seen) == 1 and seen[0].lane.device.digest == lane.device.digest
+    assert seen[0].lane.slots == 2
 
 
 def test_a_waiting_build_sees_its_cancellation(host):
@@ -981,8 +987,8 @@ def test_the_watchdog_is_handed_the_slot_and_finishes_its_record(host, monkeypat
     assert accelerator_runtime.host_device().digest == lane.device.digest
     monkeypatch.setattr(remote_gpu_build, "_ENVIRONMENT_BINDING", [])
     monkeypatch.setenv(remote_gpu_build.ENVIRONMENT, "{not json")
-    with pytest.raises(RemoteLaneDown):
-        remote_gpu_build.current_op()
+    # unreadable: binds nothing, so the watchdog still removes the container (the record is left to recovery)
+    assert remote_gpu_build.current_op() is None
 
 
 def test_a_probe_that_loses_the_lane_is_carbons_not_a_cpu_rebuild(monkeypatch):
@@ -1032,3 +1038,66 @@ def test_a_probe_that_loses_the_lane_is_carbons_not_a_cpu_rebuild(monkeypatch):
     assert research_tasks.DirectDevelopmentTasksV3._graph_gpu_repeats(
         provider, task, request, None, None, b"", "VALIDATOR_OWN_GPU"
     ) == (False, "graph_gpu_attempt_failed")
+
+
+def test_a_settled_replay_takes_no_slot_even_when_every_slot_is_held(host):
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    with (
+        remote_gpu_build.offered(lane),
+        _op(),
+        _op(
+            settled=True, poll_s=0, sleep=lambda _: pytest.fail("a replay never waits")
+        ) as replay,
+    ):
+        assert replay.lane is lane
+
+
+def test_n_slots_wait_for_a_jax_memory_cap(host, monkeypatch):
+    monkeypatch.setattr(remote_gpu_build, "JAX_SLOT_MEMORY_CAP", False)
+    with pytest.raises(ValueError, match="jax_memory_cap"):
+        _lane(host, slots=2)
+    assert _lane(host, slots=1).slots == 1
+
+
+def test_the_shipped_lane_refuses_more_than_one_slot():
+    assert remote_gpu_build.JAX_SLOT_MEMORY_CAP is False
+
+
+@pytest.mark.parametrize(
+    ("local", "slots", "counts"),
+    [(True, 1, True), (True, 2, False), (False, 1, False), (False, 2, False)],
+)
+def test_a_wall_counts_only_on_a_one_slot_local_lane(host, local, slots, counts):
+    lane = _lane(host, local=local, slots=slots, cpusets=("0-3", "4-7")[:slots])
+    assert remote_gpu_build.wall_counts(remote_gpu_build.OpBinding(lane, 0)) is counts
+    assert remote_gpu_build.wall_counts(None) is True
+
+
+def test_the_watchdog_handoff_needs_no_operator_record(host):
+    lane = _lane(host)
+    binding = remote_gpu_build.OpBinding(lane, 1)
+    raw = remote_gpu_build._handoff(binding)
+    (
+        host / remote_gpu_build.RECORD
+    ).unlink()  # the operator's record changed after the op began
+    back = remote_gpu_build._from_handoff(raw)
+    assert back.slot == 1 and back.slot_dir == binding.slot_dir
+    assert back.lane.device.digest == lane.device.digest and back.docker_host == HOST
+    tampered = json.loads(raw)
+    tampered["device"]["device_uuid"] = "GPU-other-0000"
+    assert remote_gpu_build._from_handoff(json.dumps(tampered)) is None
+    assert (
+        remote_gpu_build._from_handoff(json.dumps({**json.loads(raw), "slot": 7}))
+        is None
+    )
+
+
+def test_a_lane_edited_after_start_with_the_same_device_refuses(host):
+    values = _install(host)
+    lane = remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
+    remote_gpu_build.pin("electric-motor-magnetics", "1.8", lane)
+    _install(host, cpusets=("0-3", "8-11"))  # same device record, other cores
+    with pytest.raises(RemoteLaneDown), remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values
+    ):
+        pass

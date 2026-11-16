@@ -93,6 +93,12 @@ SLOT_WAIT_SECONDS = 3600
 POLL_S = 0.5
 #: How long the GPU probe may take.
 PROBE_SECONDS = 20
+#: Whether a JAX build may share the device with other slots: False until the pinned GPU environment (an image input,
+#: `accelerators.pinned_environment`) gives JAX a hard per-process cap (the BFC allocator with
+#: ``XLA_PYTHON_CLIENT_MEM_FRACTION``) through its own image and door migration. Until then a values row asking for more
+#: than one slot refuses at the door's start (`door_lane`); the slot machinery itself is built and tested, and
+#: scripts/dev/gpu_slot_bench.py measures N slots to inform that decision.
+JAX_SLOT_MEMORY_CAP = False
 #: The environment variable the build program's torch prelude reads.
 TORCH_FRACTION_ENV = "CARBON_TORCH_MEMORY_FRACTION"
 #: The ops a lane may run: a direct task's build child, or a graph GPU repeat probe.
@@ -174,13 +180,57 @@ def _current():
     if binding is not None or ENVIRONMENT not in os.environ:
         return binding
     if not _ENVIRONMENT_BINDING:
-        try:
-            entry = json.loads(os.environ[ENVIRONMENT])
-            _ENVIRONMENT_BINDING.append(recorded({"remote_gpu_build": entry}))
-        except (ValueError, OSError, WorkerFailure):
-            # a binding that cannot be read back is not this host's either: nothing here may guess it
-            raise RemoteLaneDown(b"remote_gpu_build_environment_binding") from None
+        # Self-contained (`_handoff`): never re-read from the operator's records, which may have changed since the op
+        # began. One that cannot be read back binds nothing: the watchdog still removes the container on the daemon
+        # its DOCKER_HOST names, and the slot's record is left to recovery (`reconcile_worker`).
+        _ENVIRONMENT_BINDING.append(_from_handoff(os.environ[ENVIRONMENT]))
     return _ENVIRONMENT_BINDING[0]
+
+
+def _handoff(binding):
+    """The running op's binding as the JSON a spawned process is handed: everything it needs, with the device record."""
+    spec = binding.lane.spec
+    return json.dumps(
+        {
+            "index": spec.index,
+            "docker_host": spec.docker_host,
+            "stage_root": spec.stage_root,
+            "slot_cpusets": list(spec.slot_cpusets),
+            "slots": binding.lane.slots,
+            "lane_dir": binding.lane.lane_dir,
+            "slot": binding.slot,
+            "device": binding.lane.device.document,
+            "device_digest": binding.lane.device.digest,
+        },
+        sort_keys=True,
+    )
+
+
+def _from_handoff(raw):
+    """The `OpBinding` a `_handoff` describes, or None when it cannot be read back exactly."""
+    from carbon.development_session.profile import canonical
+    from carbon.reconstruction.host_inventory import HostDeviceRecord, tagged_sha256
+
+    try:
+        entry = json.loads(raw)
+        device = HostDeviceRecord(entry["device"], entry["device_digest"])
+        if tagged_sha256(canonical(entry["device"])) != entry["device_digest"]:
+            return None
+        device.validate()
+        spec = GpuBuildSpec(
+            entry["index"],
+            entry["docker_host"],
+            entry["stage_root"],
+            tuple(entry["slot_cpusets"]),
+        )
+        slot = entry["slot"]
+        if type(slot) is not int or not 0 <= slot < len(spec.slot_cpusets):
+            return None
+        return OpBinding(
+            DoorLane(spec, entry["slots"], device, entry["lane_dir"]), slot
+        )
+    except (ValueError, TypeError, KeyError, WorkerFailure):
+        return None
 
 
 # -- configuration ---------------------------------------------------------------------------------------------------------
@@ -294,6 +344,10 @@ def door_lane(challenge_id, version, *, root=None, values=None):
     spec = specs[0]
     if row["slots"] > len(spec.slot_cpusets):
         raise ValueError("remote_gpu_build_slots_exceed_cpusets")
+    if row["slots"] > 1 and not JAX_SLOT_MEMORY_CAP:
+        # every build offered a lane is a graph build on the JAX worker: N > 1 would share the device with no
+        # per-process cap, so one build's memory or load could become another miner's failure
+        raise ValueError("remote_gpu_build_slots_need_jax_memory_cap")
     lane_dir = _host_root(root) / LANE_DIR.format(index=spec.index)
     device = _lane_device(_host_root(root) if spec.local else lane_dir)
     if device.device_kind != row["device_kind"]:
@@ -335,7 +389,21 @@ def offered(lane):
 def pin(challenge_id, version, lane):
     """Record the lane device a door bound at start (``lane`` a `DoorLane`, or None: no lane), so a build never runs on
     a lane other than the one the door's binding names (`offered_for`)."""
-    _PINNED[(challenge_id, version)] = None if lane is None else lane.device.digest
+    _PINNED[(challenge_id, version)] = fingerprint(lane)
+
+
+def fingerprint(lane):
+    """What a door binds about its lane: the device record, the daemon, the mirror root, the slots and their cores."""
+    if lane is None:
+        return None
+    spec = lane.spec
+    return (
+        lane.device.digest,
+        spec.docker_host,
+        spec.stage_root,
+        spec.slot_cpusets,
+        lane.slots,
+    )
 
 
 @contextmanager
@@ -353,9 +421,7 @@ def offered_for(challenge_id, version, *, root=None, values=None, withhold=False
     except (ValueError, OSError) as error:
         raise RemoteLaneDown(str(error).encode()[:512]) from None
     key = (challenge_id, version)
-    if key in _PINNED and _PINNED[key] != (
-        None if lane is None else lane.device.digest
-    ):
+    if key in _PINNED and _PINNED[key] != fingerprint(lane):
         raise RemoteLaneDown(b"remote_gpu_build_lane_changed_since_start")
     token = _OFFERED.set(_WITHHELD if withhold and lane is not None else lane)
     try:
@@ -396,6 +462,7 @@ def op(
     poll_s=None,
     sleep=None,
     check=None,
+    settled=False,
 ):
     """Bind an eligible op (`eligible`) of a build that was offered a lane to one free slot for its whole life; anything
     else: unchanged (yields None). No free slot within `SLOT_WAIT_SECONDS` is Carbon's (`RemoteLaneDown`). ``check``
@@ -409,6 +476,15 @@ def op(
         return
     if lane is _WITHHELD:
         raise RemoteLaneDown(b"remote_gpu_build_withheld_host_private_build")
+    if settled:
+        # an op the ledger has settled replays its recorded result: bound to the lane (its request, its device, its
+        # program are the lane's, so the replay matches what was reserved), but it runs nothing and takes no slot
+        token = _OP.set(OpBinding(lane, 0))
+        try:
+            yield _OP.get()
+        finally:
+            _OP.reset(token)
+        return
     pause = time.sleep if sleep is None else sleep
     poll = POLL_S if poll_s is None else poll_s
     if not lane.spec.local:
@@ -862,9 +938,7 @@ def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=
         raise RemoteLaneDown(b"remote_gpu_build_unbound")
     environment = remote_lane.docker_environment(binding.docker_host)
     # the watchdog finishes the slot's own allocation record against the lane's device record (`_current`)
-    environment[ENVIRONMENT] = json.dumps(
-        intent_fields()["remote_gpu_build"], sort_keys=True
-    )
+    environment[ENVIRONMENT] = _handoff(binding)
     exact_token(container_name)
     exact_digest(launch_digest)
     if type(deadline_unix) is not float or deadline_unix <= time.time():
@@ -890,6 +964,14 @@ def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=
         )
     except OSError:
         raise RemoteLaneDown(b"remote_gpu_build_watchdog") from None
+
+
+def wall_counts(binding=None):
+    """Whether a wall stop of the running op may be read as the candidate's: outside a slot, or on a one-slot local
+    lane (as a local GPU build's always was). Never on a remote lane, nor on a lane shared by more than one slot.
+    """
+    binding = _current() if binding is None else binding
+    return binding is None or (binding.lane.spec.local and binding.lane.slots == 1)
 
 
 def retyped(error, binding=None):
@@ -928,6 +1010,7 @@ __all__ = [
     "docker_host",
     "door_lane",
     "eligible",
+    "fingerprint",
     "gpu_present",
     "healthy",
     "intent_fields",
@@ -946,6 +1029,7 @@ __all__ = [
     "slot_fraction",
     "spawn_watchdog",
     "values_row",
+    "wall_counts",
     "with_slot_environment",
     "with_torch_prelude",
     "wrapper",

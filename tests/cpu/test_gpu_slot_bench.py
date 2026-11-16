@@ -110,7 +110,8 @@ def test_identical_states_at_every_n_is_the_identical_verdict(record):
     assert [group["slots"] for group in report["groups"]] == [1, 2, 4]
     assert [len(group["runs"]) for group in report["groups"]] == [1, 2, 4]
     assert report["groups"][2]["seconds_max"] == 4.0
-    assert report["groups"][1]["memory_fraction"] == 0.45
+    assert report["groups"][1]["torch_memory_fraction"] == 0.45
+    assert report["groups"][0]["baseline_device_memory_mib"] == 3000
     assert report["groups"][0]["peak_device_memory_mib"] == 3000
     assert report["groups"][0]["peak_process_memory_mib"] == 2000
     # the torch prelude rides only the N > 1 programs, as a slot lane runs them
@@ -141,7 +142,7 @@ def test_one_build_runs_docker_with_the_program_on_stdin(record):
     class Process:
         returncode = 0
 
-        def communicate(self, data):
+        def communicate(self, data, timeout=None):
             calls.append(data)
             return b"\x00\x01", b""
 
@@ -168,7 +169,7 @@ def test_a_failed_build_keeps_its_error(record):
     class Process:
         returncode = 1
 
-        def communicate(self, data):
+        def communicate(self, data, timeout=None):
             return b"", b"CUDA error: out of memory"
 
     run = bench.run_one(
@@ -191,3 +192,43 @@ def test_the_memory_probe_reads_only_the_bench_device(record, monkeypatch):
 
     monkeypatch.setattr(bench.subprocess, "run", run)
     assert bench._gpu_query(record, None)() == [1200, 800]
+
+
+def test_a_slot_runs_as_the_worker_user_on_its_cores_and_refuses_an_option_like_image(
+    record,
+):
+    lane = bench.lane_for(record, 2, ["0-3", "4-7"], None)
+    binding = remote_gpu_build.OpBinding(lane, 0)
+    argv = bench.run_argv("sha256:" + "c" * 64, record, binding, "n")
+    assert argv[argv.index("--user") + 1] == "65532:65532"
+    assert argv[argv.index("--cpus") + 1] == "4"
+    assert "NVIDIA_DRIVER_CAPABILITIES=compute,utility" in argv
+    for bad in ("--privileged", "-v/:/host", "sha256:xyz"):
+        with pytest.raises(ValueError):
+            bench.run_argv(bad, record, binding, "n")
+
+
+def test_a_stuck_build_is_killed_and_recorded(record):
+    killed = []
+
+    class Process:
+        returncode = -9
+
+        def communicate(self, data=None, timeout=None):
+            if data is not None:
+                raise bench.subprocess.TimeoutExpired("docker", timeout)
+            return b"", b""
+
+        def kill(self):
+            killed.append(True)
+
+    run = bench.run_one(
+        bench.Run(1, 0),
+        argv=["run"],
+        program="",
+        docker_host=None,
+        popen=lambda *a, **k: Process(),
+        clock=iter([0.0, 1.0]).__next__,
+        timeout=5,
+    )
+    assert killed and run.state_sha256 is None and "timed out" in run.error

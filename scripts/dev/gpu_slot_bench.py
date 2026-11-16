@@ -3,13 +3,17 @@
 bit-identical (Lead, Mon 16 Nov 2026: the slots=N bench for the remote A100 lane and the local 4090 lane).
 
 For each N in ``--slots`` (default 1,2,4) it starts N builds AT ONCE on the one GPU, each in its own container of the
-pinned GPU worker image, exactly as a slot of `carbon.reconstruction.remote_gpu_build` runs them: the pinned
+pinned GPU worker image, with what a slot of `carbon.reconstruction.remote_gpu_build` gives a build: the pinned
 determinism environment (`accelerators.worker_environment`: XLA deterministic ops, autotune off,
-``CUBLAS_WORKSPACE_CONFIG``, TF32 off), the device bound by its uuid, each slot on its own cores (``--cpusets``), and
-for N > 1 each process's memory share (`remote_gpu_build.slot_environment`, and the torch prelude
-`remote_gpu_build.with_torch_prelude`). While they run it samples ``nvidia-smi`` for device memory. Each build writes its
-state bytes to stdout; the bench hashes them. It reports, per N: each build's seconds, the peak device memory in use
-(total, and the largest single process), and whether all N states are identical and identical to the N = 1 state.
+``CUBLAS_WORKSPACE_CONFIG``, TF32 off), the device bound by its uuid, each slot on its own cores (``--cpusets``), the
+worker user, and for N > 1 the torch prelude's memory share (`remote_gpu_build.slot_environment`,
+`remote_gpu_build.with_torch_prelude`; JAX has no per-process cap under the pinned environment, which is what
+`remote_gpu_build.JAX_SLOT_MEMORY_CAP` waits on). It is not the carrier: no worker protocol, staging, exporter or the
+worker profile's memory and pids limits. While builds run it samples ``nvidia-smi`` for device memory (every compute
+process on the device, so run it on an otherwise idle GPU; the baseline before each N is reported; short peaks between
+samples are missed). Each build writes its state bytes to stdout; the bench hashes them. It reports, per N: each build's
+seconds, the peak device memory in use (total, and the largest single process), and whether all N states are identical
+and identical to the N = 1 state.
 
 The build program is ``--program`` (any build program that writes its state bytes to stdout), or the built-in one: a
 small JAX MLP trained on a fixed synthetic dataset it generates itself (public by construction; no Challenge data, no
@@ -31,6 +35,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -172,6 +177,8 @@ def environment(record, binding):
 
 def run_argv(image_id, record, binding, name):
     """``docker run`` for one slot's build: the program arrives on stdin, the state leaves on stdout."""
+    from carbon.reconstruction.host_execution import parse_cpuset
+
     argv = [
         "run",
         "--rm",
@@ -194,11 +201,17 @@ def run_argv(image_id, record, binding, name):
         binding.cpuset,
         "--label",
         "carbon.gpu-slot-bench=1",
+        # the worker's own user, and no more CPUs than the slot's cores
+        "--user",
+        "65532:65532",
+        "--cpus",
+        str(len(parse_cpuset(binding.cpuset))),
     ]
     for key, value in sorted(environment(record, binding).items()):
         argv.extend(["--env", f"{key}={value}"])
     argv.extend(["--env", f"NVIDIA_VISIBLE_DEVICES={record.device_uuid}"])
-    argv.extend([image_id, "-I", "-"])
+    argv.extend(["--env", "NVIDIA_DRIVER_CAPABILITIES=compute,utility"])
+    argv.extend([checked_image(image_id), "-I", "-"])
     return argv
 
 
@@ -237,10 +250,35 @@ def _gpu_query(record, docker_host):
     return query
 
 
+#: How long one build may take before the bench stops it (an operational bound).
+BUILD_TIMEOUT_SECONDS = 3600
+_IMAGE = re.compile(
+    r"sha256:[0-9a-f]{64}|[a-z0-9][a-z0-9._/-]{0,200}(?::[A-Za-z0-9._-]{1,128})?"
+)
+
+
+def checked_image(value):
+    """An image id or plain reference; anything that could read as a docker option refuses."""
+    if (
+        type(value) is not str
+        or not _IMAGE.fullmatch(value)
+        or (value.startswith("sha256:") and len(value) != 71)
+    ):
+        raise ValueError("image: sha256:<64 hex> or a plain image reference")
+    return value
+
+
 def run_one(
-    run, *, argv, program, docker_host, popen=subprocess.Popen, clock=time.monotonic
+    run,
+    *,
+    argv,
+    program,
+    docker_host,
+    popen=subprocess.Popen,
+    clock=time.monotonic,
+    timeout=BUILD_TIMEOUT_SECONDS,
 ):
-    """Run one build; fills ``run`` in place."""
+    """Run one build; fills ``run`` in place. A build that outlives ``timeout`` is killed and recorded as an error."""
     started = clock()
     try:
         process = popen(
@@ -250,7 +288,13 @@ def run_one(
             stderr=subprocess.PIPE,
             env=_docker_environment(docker_host),
         )
-        out, err = process.communicate(program.encode())
+        try:
+            out, err = process.communicate(program.encode(), timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate()
+            run.error = f"timed out after {timeout} s"
+            return run
     except Exception as error:  # noqa: BLE001 - recorded, never raised
         run.error = repr(error)[:512]
         return run
@@ -287,6 +331,10 @@ def bench(
         lane = lane_for(record, slots, cpusets, docker_host)
         runs = [Run(slots, slot) for slot in range(slots)]
         sampler = Sampler(query)
+        try:
+            baseline = sum(query())
+        except Exception:  # noqa: BLE001 - a missed sample is only a missed sample
+            baseline = None
         watcher = threading.Thread(target=sampler.run, args=(interval,), daemon=True)
         watcher.start()
         workers = []
@@ -320,9 +368,11 @@ def bench(
         groups.append(
             {
                 "slots": slots,
-                "memory_fraction": (
+                # a torch build's hard share; a JAX build has none (`remote_gpu_build.slot_environment`)
+                "torch_memory_fraction": (
                     None if slots == 1 else remote_gpu_build.slot_fraction(slots)
                 ),
+                "baseline_device_memory_mib": baseline,
                 "runs": [run.__dict__ for run in runs],
                 "seconds_max": max((run.seconds or 0) for run in runs),
                 "peak_device_memory_mib": sampler.peak_total,

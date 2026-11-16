@@ -362,7 +362,8 @@ def _run(ledger, **kwargs):
         remote_lane.local_for(identity, timed=timed),
         remote_gpu_build.op(
             identity,
-            accelerator=None if settled else kwargs.get("accelerator"),
+            accelerator=kwargs.get("accelerator"),
+            settled=settled,
             provenance=kwargs.get("provenance"),
             timed=timed,
             check=(
@@ -1242,9 +1243,10 @@ def _candidate_resource_stop(
         # a REMOTE grade lane: a stalled link looks exactly like a stalled program, so the stop is the candidate's
         # only with the container observed at the stop and the link up now (else Carbon's)
         and remote_lane.wall_stop_observable(observation)
-        # a REMOTE GPU build slot: never the candidate's either (the remote class's walls wait on Validator-Motor); a
-        # local slot lane's wall is read as a local GPU build's always was
-        and remote_gpu_build.docker_host() is None
+        # a GPU build slot: never the candidate's on a remote lane (the remote class's walls wait on Validator-Motor),
+        # nor on a lane shared by more than one slot (a neighbour's load is not the candidate's); a one-slot local lane's
+        # wall is read as a local GPU build's always was
+        and remote_gpu_build.wall_counts()
     ):
         return (
             WorkerCode.DEADLINE,
@@ -2269,7 +2271,13 @@ def _run_locked(
                 if device is not None and remote_gpu_build.current_op() is not None:
                     from carbon.reconstruction.worker.accelerator_runtime import (
                         reject_existing_device_containers,
+                        shared_host_lease,
                     )
+
+                    if remote_gpu_build.docker_host() is None:
+                        # a LOCAL slot lane shares this host's GPU with its other Carbon work: check and create under
+                        # the host's one Carbon device lock, as every other launch on this device does
+                        slot.enter_context(shared_host_lease())
 
                     # A remote GPU build slot: the slot lock (`remote_gpu_build.op`) is this launch's share of the
                     # lane's device, held since the op began; at most the lane's slot count of Carbon containers
