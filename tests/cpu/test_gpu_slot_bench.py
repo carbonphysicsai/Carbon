@@ -379,3 +379,14 @@ def test_a_programs_json_report_is_kept():
     }
     assert bench._last_json(b"Traceback\nValueError\n") is None
     assert bench._last_json(b"") is None
+
+
+def test_the_bench_gives_the_program_a_writable_temporary_directory(record):
+    """ptxas writes under TMPDIR: the image's /scratch/tmp exists only under the worker's own entrypoint."""
+    lane = bench.lane_for(record, 1, ["0-3"], None)
+    argv = bench.run_argv(
+        "sha256:" + "c" * 64, record, remote_gpu_build.OpBinding(lane, 0), "n"
+    )
+    environment = _env(argv)
+    assert environment["TMPDIR"] == "/tmp" and environment["HOME"] == "/tmp"
+    assert argv[argv.index("--tmpfs") + 1] == "/tmp"

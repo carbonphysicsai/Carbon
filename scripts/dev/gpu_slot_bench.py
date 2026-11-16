@@ -413,6 +413,10 @@ def run_argv(image_id, record, binding, name, *, carbon_tree=None, cpu=False):
         str(len(parse_cpuset(binding.cpuset))),
     ]
     environment_ = environment(record, binding)
+    # The image's ENV points HOME/TMPDIR/XDG_CACHE_HOME at /scratch/..., which the worker's own entrypoint creates on
+    # its /scratch tmpfs; the bench runs the interpreter directly (no entrypoint, no /scratch), so they point at its
+    # /tmp tmpfs instead (ptxas writes its temporaries under TMPDIR).
+    environment_.update(HOME="/tmp", TMPDIR="/tmp", XDG_CACHE_HOME="/tmp")
     if cpu:
         environment_.update(JAX_PLATFORMS="cpu", CARBON_BENCH_PLATFORM="cpu")
         environment_.pop("CUDA_VISIBLE_DEVICES", None)
