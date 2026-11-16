@@ -115,7 +115,8 @@ def test_the_shipped_values_file_enables_two_lanes_for_motor_18_only():
 
 
 def test_every_lane_lock_is_one_the_receipt_worker_tests():
-    names = {grade_lanes.lane_lock_name(i) for i in range(grade_lanes.MAX_LANES)}
+    # every lane, a remote one's too (`grade_lanes.ALL_LANES`)
+    names = {grade_lanes.lane_lock_name(i) for i in range(grade_lanes.ALL_LANES)}
     assert names == {receipt_job.GRADING_LOCK, *receipt_job.LANE_LOCKS}
     assert grade_lanes.lane_lock_name(0) == receipt_job.GRADING_LOCK
 

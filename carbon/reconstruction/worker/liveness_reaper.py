@@ -190,15 +190,10 @@ def spawn_liveness_reaper(
     ):
         raise WorkerFailure(WorkerCode.INVALID)
     pid, identity = guard["pid"], guard["identity"]
-    environment = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
-    for name in (
-        "DOCKER_HOST",
-        "DOCKER_CONTEXT",
-        "DOCKER_TLS_VERIFY",
-        "DOCKER_CERT_PATH",
-    ):
-        if name in os.environ:
-            environment[name] = os.environ[name]
+    # the running round's daemon: a remote lane's (ssh), or the local one
+    from carbon.reconstruction import remote_lane
+
+    environment = remote_lane.current_environment()
     try:
         subprocess.Popen(
             [

@@ -9,6 +9,7 @@ import sys
 import time
 from pathlib import Path
 
+from carbon.reconstruction import remote_lane
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
     _canonical,
@@ -75,6 +76,12 @@ def _retain_deadline_request(intent_path, container_name, launch_digest, deadlin
         pass
 
 
+def _says_absent(stderr) -> bool:
+    """Whether a failed ``docker inspect`` says the container does not exist (not a transport fault)."""
+    text = stderr if type(stderr) is bytes else b""
+    return b"No such object" in text or b"No such container" in text
+
+
 def main(arguments: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if arguments is None else arguments)
     if len(arguments) not in (3, 4):
@@ -86,9 +93,21 @@ def main(arguments: list[str] | None = None) -> int:
     except ValueError:
         return 2
     cli = DockerCLI()
+    # A remote lane's daemon (`carbon.reconstruction.remote_lane`) is reached over ssh: a failed inspect there is only
+    # "gone" when the daemon says so; a link fault keeps the guard alive until the deadline.
+    remote = remote_lane.is_remote_environment()
     while time.time() < deadline:
-        probe = cli.run(["inspect", container_name], timeout=5, accepted=(0, 1))
-        if probe.returncode != 0:
+        try:
+            probe = cli.run(["inspect", container_name], timeout=5, accepted=(0, 1))
+        except WorkerFailure:
+            if not remote:
+                raise
+            probe = None
+        if (
+            probe is not None
+            and probe.returncode != 0
+            and (not remote or _says_absent(probe.stderr))
+        ):
             return 0
         time.sleep(min(1.0, max(0.05, deadline - time.time())))
     if intent_path is not None:
