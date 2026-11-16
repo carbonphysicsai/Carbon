@@ -25,7 +25,9 @@ class Yielded(Exception):
 
 #: The other grade lanes' locks beside it (`carbon.reconstruction.grade_lanes`, two-lane hosts only): a round on any
 #: lane is official grading, a REMOTE lane's too (`carbon.reconstruction.remote_lane`: its speed stage runs here).
-LANE_LOCKS = ("official-grading.lane-1.lock", "official-grading.lane-2.lock")
+#: Every lane after lane 0 up to `grade_lanes.ALL_LANES` (2 local + 8 remote = 10; literal here: importing grade_lanes
+#: would be circular). A test holds the two equal.
+LANE_LOCKS = tuple(f"official-grading.lane-{index}.lock" for index in range(1, 10))
 
 
 def grading_busy(state_dir) -> bool:

@@ -685,3 +685,70 @@ def test_a_slot_from_an_earlier_attempt_is_never_counted(tmp_path):
     grader, _cap, _ident, ledger = _wall_setup(tmp_path, wall, reserved_ns=1)
     assert grader.run_once() == (A, "FAILED")
     assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+
+
+# -- a REMOTE grade's wall stop (CV-Motor L12624 (b) + (c)) ----------------------------------------------------------------
+
+
+def _remote_boxes(monkeypatch, containers, gpu):
+    """REMOTE grade lanes (CV-Motor L12624): the box's own samples, read on the box (`host_quiet.box_counters`)."""
+    from carbon.challenge_validator import host_quiet
+
+    monkeypatch.setattr(
+        host_quiet, "box_counters", lambda lane: (lambda: containers, lambda: gpu)
+    )
+
+
+def _remote_lane():
+    from carbon.reconstruction import grade_lanes
+
+    return grade_lanes.Lane(
+        2, "0-3", "/locks", "ssh://carbon-grade@grader-2.example:2222", "/srv/gb"
+    )
+
+
+def _remote_wall_setup(tmp_path):
+    """A bank wall stop on a reserved slot (`_wall_setup`), its LOCAL host busy (7 containers, 7 foreign GPU)."""
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, ledger = _wall_setup(tmp_path, wall, containers=lambda: 7)
+    grader.gpu = lambda: 7
+    return grader, ledger
+
+
+@pytest.mark.parametrize(
+    "containers, gpu, state",
+    [
+        (
+            0,
+            0,
+            "CANDIDATE_FAILED",
+        ),  # a quiet box: counted (the busy LOCAL host is not this round's)
+        (1, 0, "FAILED"),  # another Carbon container on the box (any of its lanes)
+        (0, 1, "FAILED"),  # foreign GPU compute on the box
+        (None, 0, "FAILED"),  # a sample the link could not deliver: no heartbeat
+    ],
+)
+def test_a_remote_grades_wall_is_counted_only_on_a_quiet_box(
+    tmp_path, monkeypatch, containers, gpu, state
+):
+    _remote_boxes(monkeypatch, containers, gpu)
+    grader, ledger = _remote_wall_setup(tmp_path)
+    from carbon.reconstruction import grade_lanes
+
+    with grade_lanes.bound(_remote_lane()):
+        assert grader.run_once() == (A, state)
+    logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
+    assert logged["counted"] is (state == "CANDIDATE_FAILED")
+    if state == "FAILED":
+        assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+
+
+def test_a_local_grade_still_samples_this_host(tmp_path, monkeypatch):
+    _remote_boxes(monkeypatch, 0, 0)
+    grader, _ledger = _remote_wall_setup(tmp_path)
+    assert grader.run_once() == (
+        A,
+        "FAILED",
+    )  # this host's 7 containers: not quiet, as before

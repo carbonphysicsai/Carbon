@@ -124,6 +124,100 @@ def foreign_gpu_compute():
     return len(gpu - own)
 
 
+#: The box's GPU compute listing: ``nvidia-smi`` when the box has one, else a marker (no driver: no GPU to contend).
+_BOX_GPU_QUERY = (
+    "if command -v nvidia-smi >/dev/null 2>&1; then "
+    "nvidia-smi --query-compute-apps=pid --format=csv,noheader,nounits; "
+    "else echo carbon-no-nvidia-smi; fi"
+)
+
+
+def _box_docker(lane, argv):
+    from carbon.reconstruction import remote_lane
+
+    return subprocess.run(
+        ["docker", *argv],
+        capture_output=True,
+        timeout=10,
+        check=False,
+        env=remote_lane.docker_environment(lane.docker_host),
+        cwd=os.sep,
+    )
+
+
+def box_worker_containers(lane):
+    """The ids of the Carbon worker containers running on REMOTE ``lane``'s box now (every lane of that box shares its
+    daemon), or None when the daemon cannot say (a link fault counts as unknown, so not quiet).
+    """
+    try:
+        done = _box_docker(
+            lane,
+            [
+                "ps",
+                "--filter",
+                "name=" + WORKER_PREFIX,
+                "--format",
+                "{{.ID}} {{.Names}}",
+            ],
+        )
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    ids = []
+    for line in done.stdout.decode("utf-8", "replace").splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1].startswith(WORKER_PREFIX):
+            ids.append(parts[0])
+    return ids
+
+
+def box_foreign_gpu(lane):
+    """`foreign_gpu_compute` on REMOTE ``lane``'s box (read there over ssh), or None when it cannot be read."""
+    from carbon.reconstruction import remote_lane
+
+    raw = remote_lane.box_output(lane, _BOX_GPU_QUERY)
+    if raw is None:
+        return None
+    text = raw.decode("utf-8", "replace")
+    if text.strip() == "carbon-no-nvidia-smi" or "No devices were found" in text:
+        return 0
+    gpu = set()
+    for token in text.split():
+        if not (token.isascii() and token.isdigit()):
+            return None
+        gpu.add(int(token))
+    if not gpu:
+        return 0
+    ids = box_worker_containers(lane)
+    if ids is None:
+        return None
+    own = set()
+    for cid in ids:
+        try:
+            done = _box_docker(lane, ["top", cid, "-eo", "pid"])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return None
+        if done.returncode != 0:
+            return None
+        for token in done.stdout.decode("utf-8", "replace").split()[1:]:
+            if token.isascii() and token.isdigit():
+                own.add(int(token))
+    return len(gpu - own)
+
+
+def box_counters(lane):
+    """``(containers, gpu)`` sampling callables for REMOTE ``lane``'s box (a `Probe`'s or a grade sampler's), read on the
+    box itself through its daemon and ssh. Every answered sample is also a heartbeat of the link (CV-Motor L12624 (c)):
+    a sample the link could not deliver is None, which is never quiet."""
+
+    def containers():
+        ids = box_worker_containers(lane)
+        return None if ids is None else len(ids)
+
+    return containers, (lambda: box_foreign_gpu(lane))
+
+
 def uncontended(
     *, lock_held, samples, stop, gpu_samples, gpu_stop, require_samples=False
 ):
@@ -170,9 +264,11 @@ class Probe:
     `verdict`, which takes the stop sample. A build that ends within the first interval has only its stop sample.
     """
 
-    def __init__(self, *, lock_held, containers, gpu, seconds):
+    def __init__(self, *, lock_held, containers, gpu, seconds, require_samples=False):
         self.lock_held = lock_held is True
         self.containers, self.gpu, self.seconds = containers, gpu, seconds
+        #: a remote box's probe needs in-run samples (its heartbeats, `box_counters`), as a wall-stop count does
+        self.require_samples = require_samples is True
         self.samples, self.gpu_samples = [], []
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True)
@@ -209,6 +305,7 @@ class Probe:
                     stop=stop,
                     gpu_samples=self.gpu_samples,
                     gpu_stop=gpu_stop,
+                    require_samples=self.require_samples,
                 ),
             )
         return self._done
@@ -236,7 +333,38 @@ def start():
     params = _ACTIVE.get()
     if params is None:
         return None
+    from carbon.reconstruction import remote_lane
+
+    lane = remote_lane.current()
+    if lane is not None:
+        # a REMOTE lane's containers run on another machine: its quiet is sampled ON that box, through its daemon and
+        # ssh, every sample a heartbeat of the link (CV-Motor L12624 (b) + (c)); in-run samples are required
+        containers, gpu = box_counters(lane)
+        return Probe(
+            lock_held=params["lock_held"],
+            containers=containers,
+            gpu=gpu,
+            seconds=params["seconds"],
+            require_samples=True,
+        ).start()
     return Probe(**params).start()
+
+
+class _NotQuiet:
+    """A probe whose verdict is never quiet (kept for callers that know a host cannot be observed)."""
+
+    def verdict(self):
+        return QuietVerdict(
+            lock_held=False,
+            samples=0,
+            unknown_samples=0,
+            max_worker_containers=None,
+            stop_worker_containers=None,
+            gpu_unknown_samples=0,
+            max_foreign_gpu=None,
+            stop_foreign_gpu=None,
+            quiet=False,
+        )
 
 
 def finish(probe):

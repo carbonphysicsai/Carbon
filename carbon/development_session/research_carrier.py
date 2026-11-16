@@ -1175,6 +1175,7 @@ def _candidate_resource_stop(
     launch_digest,
     image_id,
     program_started,
+    box_deadline=None,
     program_timeout,
     setup_seconds,
     memory_limit_bytes,
@@ -1241,8 +1242,23 @@ def _candidate_resource_stop(
         and setup_seconds <= _PROGRAM_SETUP_BUDGET_SECONDS
         and time.monotonic() >= program_started + program_timeout - 1
         # a REMOTE grade lane: a stalled link looks exactly like a stalled program, so the stop is the candidate's
-        # only with the container observed at the stop and the link up now (else Carbon's)
-        and remote_lane.wall_stop_observable(observation)
+        # only by the box's own clock (the program still running there, its whole wall run at its stop), the
+        # container observed at the stop and the link up now (CV-Motor L12624; else Carbon's)
+        and remote_lane.wall_stop_observable(
+            observation,
+            box_seconds=(
+                None
+                if box_deadline is None
+                else lambda: _box_program_seconds(
+                    cli,
+                    container_name,
+                    deadline=box_deadline,
+                    program_started=program_started,
+                    program_deadline=program_started + program_timeout,
+                )
+            ),
+            needed=program_timeout - 1,
+        )
         # a build beside other rounds: its wall is the candidate's only on a quiet host (A19, V2 F-A19)
         and _build_wall_quiet()
         # a GPU build slot: never the candidate's on a remote lane (the remote class's walls wait on Validator-Motor),
@@ -1256,6 +1272,70 @@ def _candidate_resource_stop(
             {"kind": "wall", "seconds": int(program_timeout)},
         )
     return None
+
+
+#: Read inside a REMOTE lane's container (its python, ``-I``): the age, on the box's own kernel clock, of the ONE live
+#: ``docker exec`` root there other than this read (a process whose parent is outside the container's pid namespace,
+#: ppid 0, not pid 1): the program's exec (its bootstrap ``execv``s into the program, keeping its pid and start time).
+#: ``none`` when there is no such process or more than one (ambiguous: Carbon's). Read-only. (Its optional arguments, a
+#: proc root, own pid and clock ticks, exist for tests; the carrier passes none.)
+_BOX_PROGRAM_AGE = (
+    "import os,sys\n"
+    "proc=sys.argv[1] if len(sys.argv)>1 else '/proc'\n"
+    "me=int(sys.argv[2]) if len(sys.argv)>2 else os.getpid()\n"
+    "tck=int(sys.argv[3]) if len(sys.argv)>3 else os.sysconf('SC_CLK_TCK')\n"
+    "up=float(open(proc+'/uptime').read().split()[0]);ages=[]\n"
+    "for p in os.listdir(proc):\n"
+    " if not p.isdigit() or int(p) in (1,me):continue\n"
+    " try:\n"
+    "  s=open(proc+'/'+p+'/stat').read();f=s[s.rindex(')')+2:].split()\n"
+    "  if f[0] in 'ZXx' or f[1]!='0':continue\n"
+    "  ages.append(up-int(f[19])/tck)\n"
+    " except (OSError,ValueError,IndexError):pass\n"
+    "print('%.3f'%ages[0] if len(ages)==1 else 'none')\n"
+)
+
+
+def _box_program_seconds(
+    cli, container_name, *, deadline, program_started, program_deadline
+):
+    """How long the program had run AT ITS STOP, on the REMOTE box's own clock, read inside its container (the age of
+    its exec, `_BOX_PROGRAM_AGE`); None when it no longer runs there, is ambiguous, or anything cannot be read
+    (Carbon's, never the candidate's). One bounded read, no inference.
+
+    The read comes after the stop: the time from the controller's deadline to the read's ANSWER is taken off (the
+    stop was at or after the deadline, the age was read before the answer), so a slow link only ever shortens the
+    age. An age longer than the controller saw since it
+    issued the exec (+1 s) is not this program's clock (e.g. a namespaced uptime): None.
+    """
+    if type(deadline) not in (int, float) or not math.isfinite(deadline):
+        return None
+    asked = time.monotonic()
+    remaining = deadline - asked
+    if remaining <= 0:
+        return None
+    try:
+        raw = cli.run(
+            [
+                "exec",
+                container_name,
+                "/opt/carbon-worker/bin/python",
+                "-I",
+                "-c",
+                _BOX_PROGRAM_AGE,
+            ],
+            timeout=min(10.0, remaining),
+        ).stdout
+        text = raw.decode("ascii", "strict").strip()
+        if text == "none":
+            return None
+        age = float(text)
+    except Exception:  # noqa: BLE001 - unreadable: None
+        return None
+    answered = time.monotonic()
+    if not math.isfinite(age) or age < 0 or age > answered - program_started + 1:
+        return None
+    return age - max(0.0, answered - program_deadline)
 
 
 @contextmanager
@@ -2537,6 +2617,7 @@ def _run_locked(
                         image_id=image.image_id,
                         program_started=program_started,
                         program_timeout=program_timeout,
+                        box_deadline=started + seconds - 30,
                         setup_seconds=program_started - started,
                         observation=failure_observation,
                         deadline=min(time.monotonic() + 1, started + seconds - 30),

@@ -54,7 +54,8 @@ SCHEMA = "carbon.exam.grade-lanes.v1"
 MAX_LANES = 2
 #: The most REMOTE lanes (`carbon.reconstruction.remote_lane`) a values row may ask for, beside the local ones: lane
 #: indices ``MAX_LANES`` onwards. A one-lane round holds them too (`ALL_LANES`), so it never runs beside a remote round.
-MAX_REMOTE_LANES = 1
+#: Two remote boxes x 4 lanes (owner's FSN1 + HEL1 acceptance, 16 Nov 2026; CV-Motor L12464): operational, not science.
+MAX_REMOTE_LANES = 8
 ALL_LANES = MAX_LANES + MAX_REMOTE_LANES
 #: Lane 0's lock is the host's existing official-grading lock (`receipt_job.GRADING_LOCK`), so every reader of "is the
 #: host grading" keeps working; lane k >= 1 has its own file beside it.
@@ -198,29 +199,36 @@ def door_lanes(challenge_id, version, *, registry=None, host_root=None, sys_cpu=
     return lanes
 
 
-#: PARKED (Lead's pick for A17, Mon 16 Nov 2026): no door grades on a remote lane. The worker image's own inputs
-#: (`docker_runtime.py`, the image listings) are back to A16's bytes so the current images verify and the door binding
-#: holds; that `DockerCLI` always talks to the LOCAL daemon (the operator's DOCKER_*), so a remote lane cannot run on
-#: it. The remote lane comes back with its own image and door-binding migration.
-REMOTE_LANES_PARKED = True
-
-
 def door_remote_lanes(
-    challenge_id, version, *, registry=None, host_root=None, sys_cpu=None
+    challenge_id,
+    version,
+    *,
+    registry=None,
+    host_root=None,
+    sys_cpu=None,
+    state_root=None,
 ):
-    """The REMOTE lanes (`remote_lane.RemoteSpec`) a door of ``"<challenge_id> <version>"`` may also grade on: only in
-    two-lane mode (`door_lanes`), with ``"remote_lanes"`` in its values row and the operator's remote record installed
-    (`remote_lane.load`), and never while `REMOTE_LANES_PARKED`. Else ``()``. Says which, and why, once. Never
-    raises."""
+    """The REMOTE lanes (`remote_lane.RemoteSpec`) a door of ``"<challenge_id> <version>"`` may also grade on, only in
+    two-lane mode (`door_lanes`): the door's OWN record (``remote-grade-lanes.json`` in its state root ``state_root``:
+    that door alone, e.g. a scratch door, every lane it lists), else the host's record with ``"remote_lanes"`` in the
+    version's values row (the first that many). Else ``()``. Says which, and why, once. Never raises.
+    """
     reason = None
     remote = ()
     try:
+        from carbon.reconstruction import remote_lane
+        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+
+        own = (
+            remote_lane.load(state_root)
+            if state_root is not None
+            # a door whose state root IS the host root has no record of its own: the host's needs the values row
+            and Path(state_root).resolve()
+            != Path(HOST_ROOT if host_root is None else host_root).resolve()
+            else ()
+        )
         wanted = registered_remote_lanes(challenge_id, version, path=registry)
-        if REMOTE_LANES_PARKED:
-            reason = "parked"
-        elif wanted < 1:
-            reason = "no_values_row"
-        elif not door_lanes(
+        if not door_lanes(
             challenge_id,
             version,
             registry=registry,
@@ -228,9 +236,12 @@ def door_remote_lanes(
             sys_cpu=sys_cpu,
         ):
             reason = "not_two_lane_mode"
+        elif own:
+            remote = own
+            reason = "door_record"
+        elif wanted < 1:
+            reason = "no_values_row"
         else:
-            from carbon.reconstruction import remote_lane
-
             listed = remote_lane.load(host_root)
             if not listed:
                 reason = "no_remote_record"
@@ -246,6 +257,19 @@ def door_remote_lanes(
         reason=reason,
     )
     return remote
+
+
+def door_remote_only(state_root):
+    """Whether the door's OWN remote record (in ``state_root``) asks for its remote lanes alone (``"only": true``)."""
+    if state_root is None:
+        return False
+    try:
+        from carbon.reconstruction import remote_lane
+
+        specs, only = remote_lane.load_record(state_root)
+        return bool(specs) and only
+    except Exception:  # noqa: BLE001 - unreadable: not remote-only
+        return False
 
 
 @dataclass(frozen=True)

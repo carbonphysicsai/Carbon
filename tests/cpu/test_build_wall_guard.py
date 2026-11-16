@@ -1,6 +1,6 @@
 """A build beside other rounds (A19 parallel build rounds; Validator-2's F-A19): its wall stop is the candidate's only
 when its host was QUIET for it (no other Carbon worker container, no foreign GPU compute), as for grades; a build on a
-remote lane is never quiet; a door with one build loop is unchanged. Fakes only: no container runs here.
+remote lane is judged on its box (`test_remote_wall_stop`); a door with one build loop is unchanged. Fakes only: no container runs here.
 """
 
 from __future__ import annotations
@@ -47,8 +47,12 @@ def test_a_build_with_no_sample_yet_is_not_quiet(monkeypatch):
         assert research_carrier._build_wall_quiet() is False
 
 
-def test_a_build_on_a_remote_lane_is_never_quiet(monkeypatch):
+def test_a_build_on_a_remote_lane_is_judged_on_its_box_never_this_host(monkeypatch):
+    # this host is quiet, but a remote build's box is sampled on the box (CV-Motor L12624): one it cannot read is not
     _hosts(monkeypatch, 1)
+    monkeypatch.setattr(
+        host_quiet, "box_counters", lambda lane: (lambda: None, lambda: 0)
+    )
     lane = grade_lanes.Lane(2, "0-3", "/locks", "ssh://u@box.example", "/srv/gb")
     with (
         grade_lanes.bound(lane),
