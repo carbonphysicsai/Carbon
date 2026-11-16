@@ -507,10 +507,21 @@ class ExamCap:
             return self._allowance(db, group, epoch_of(block), cadence)
 
     def _limit_refusal(
-        self, db, hotkey, challenge_id, submission_id, epoch, cadence, group=None
+        self,
+        db,
+        hotkey,
+        challenge_id,
+        submission_id,
+        epoch,
+        cadence,
+        group=None,
+        pending=(),
     ):
         """The daily-allowance or epoch refusal code for a graded submission, or None (read-only). The rows counted
-        are its allowance group's, plus its own hotkey's rows filed before any grouping (not retroactive).
+        are its allowance group's, plus its own hotkey's rows filed before any grouping (not retroactive). At
+        admission (A19, Lead 16 Nov 2026), ``pending`` adds the group's ACCEPTED submissions that hold no slot yet
+        (queued or building, not ended), as their epochs: each will take a slot of this window when it is graded, so a
+        submission that could only be refused at its turn is told at once instead of waiting a day.
         """
         group = "h:" + hotkey if group is None else group
         low, high = self._window(epoch)
@@ -533,6 +544,8 @@ class ExamCap:
             f"challenge_id=? AND epoch=? AND {held}",
             (group, hotkey, challenge_id, epoch, submission_id),
         ).fetchone()[0]
+        used += sum(1 for other in pending if low < other <= high)
+        in_epoch += sum(1 for other in pending if other == epoch)
         return (
             "exam_daily_allowance_reached"
             if used >= allowed
@@ -540,7 +553,15 @@ class ExamCap:
         )
 
     def admission_refusal(
-        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id, block
+        self,
+        *,
+        hotkey,
+        challenge_id,
+        challenge_version,
+        exam_key,
+        submission_id,
+        block,
+        pending_blocks=(),
     ):
         """At admission, before anything is built: the limit refusal `reserve` would give this graded
         submission now, as ``{"code", "message"}`` plus ``next_block``/``next_utc`` for the epoch limit, or None.
@@ -566,6 +587,15 @@ class ExamCap:
             # the grouping's own refusal (an owner-chosen ``refuse`` policy): told at once, like a limit
             return {"code": refused.code, "message": plain_text(refused.code)}
         epoch = epoch_of(block)
+        # the group's earlier queued submissions (A20): read only once the cap applies to this Challenge, and before
+        # this check's own ledger transaction (the reader opens its own)
+        pending = tuple(
+            epoch_of(other)
+            for other in (
+                pending_blocks() if callable(pending_blocks) else pending_blocks
+            )
+            if type(other) is int and other >= 0
+        )
         with self.ledger._db() as db:
             row = db.execute(
                 "SELECT state FROM exam_graded WHERE challenge_id=? AND "
@@ -588,7 +618,14 @@ class ExamCap:
             if first is not None and block - first[0] >= MAX_EXAM_AGE_BLOCKS:
                 return None
             code = self._limit_refusal(
-                db, hotkey, challenge_id, submission_id, epoch, cadence, group
+                db,
+                hotkey,
+                challenge_id,
+                submission_id,
+                epoch,
+                cadence,
+                group,
+                pending=pending,
             )
         if code is None:
             return None

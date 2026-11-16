@@ -1723,3 +1723,48 @@ def test_a_built_task_refused_at_grading_gets_the_same_plain_words(cap):
         in result["private_evaluation_message"]
     )
     assert "block 2880" in result["private_evaluation_message"]
+
+
+def test_queued_submissions_of_the_group_count_at_admission(tight):
+    """A19 (Lead, 16 Nov 2026; rtsk_82c11416 waited ~32 h to be refused): the group's accepted submissions that hold no
+    slot yet (queued or building) count against its window at admission, so the refusal comes at once.
+    """
+    block = 360 * 3 + 7
+    _grade(tight, 1, block=block)
+    assert (
+        _admission(tight, 3, block=block + 360) is None
+    )  # one slot used of two: admitted
+    refusal = tight.admission_refusal(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=EXAM,
+        submission_id="rtsk_3",
+        block=block + 360,
+        pending_blocks=(block + 300,),  # rtsk_2 queued, filed in this window
+    )
+    assert refusal["code"] == "exam_daily_allowance_reached"
+    # a queued submission of its own epoch also holds the round (another hotkey, a window with one active miner)
+    one = tight.admission_refusal(
+        hotkey=OTHER,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=EXAM,
+        submission_id="rtsk_4",
+        block=360 * 40 + 5,
+        pending_blocks=(360 * 40 + 1,),
+    )
+    assert one["code"] == "epoch_limit_reached"
+    # queued ones outside the window (epoch 3 vs the window (10, 30]), or with no usable block, never count
+    assert (
+        tight.admission_refusal(
+            hotkey=OTHER,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=EXAM,
+            submission_id="rtsk_5",
+            block=360 * 30,
+            pending_blocks=(block, -1, "x"),
+        )
+        is None
+    )

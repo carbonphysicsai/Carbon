@@ -269,6 +269,37 @@ def _refused(status, code):
     return Answer(status, {"refused": code})
 
 
+#: The words a miner sees while a door is drained for an update (owner, 16 Nov 2026 via the Lead: a miner-facing word
+#: other than "draining"; internal names stay).
+UPDATING_MESSAGE = "Carbon is upgrading the validator; please retry shortly"
+#: OPERATIONAL, not science: the retry hint when the operator's drain flag names none (its text, whole seconds).
+UPDATING_RETRY_DEFAULT_S = 60
+UPDATING_RETRY_MAX_S = 86400
+
+
+def updating_answer(flag):
+    """The 503 a drained door answers AT ONCE (A19, miner feedback 16 Nov 2026: requests hung until the miner timed out
+    during drains): ``{"status": "updating", "message", "retry_after_s"}``, or None when ``flag`` (the door's
+    DRAINING file, `direct_intake.DRAIN_NAME`) is absent. ``retry_after_s`` is the whole seconds the operator wrote in
+    the flag, else `UPDATING_RETRY_DEFAULT_S`."""
+    if flag is None:
+        return None
+    try:
+        if not flag.exists():
+            return None
+        text = flag.read_text(encoding="ascii").strip()
+    except (OSError, UnicodeDecodeError):
+        text = ""
+    retry = (
+        int(text)
+        if text.isdigit() and 1 <= int(text) <= UPDATING_RETRY_MAX_S
+        else UPDATING_RETRY_DEFAULT_S
+    )
+    return Answer(
+        503, {"status": "updating", "message": UPDATING_MESSAGE, "retry_after_s": retry}
+    )
+
+
 # --- configuration --------------------------------------------------------------
 
 
@@ -1382,7 +1413,10 @@ def _handler(intake):
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
             if answer.status in (429, 503):
-                self.send_header("Retry-After", "1")
+                retry = answer.body.get("retry_after_s")
+                self.send_header(
+                    "Retry-After", str(retry) if type(retry) is int else "1"
+                )
             self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(payload)
@@ -1422,6 +1456,11 @@ def _handler(intake):
                 ):
                     return self._answer(_refused(413, "body"))
                 length = int(declared)
+            updating = updating_answer(getattr(intake, "updating_flag", None))
+            if updating is not None:
+                # a drained door says so at once, before any body, slot or bucket (A19)
+                self._drain(length)
+                return self._answer(updating)
             if intake.proxy_header is not None:
                 if not intake.client_connections.acquire(peer):
                     self._drain(length)

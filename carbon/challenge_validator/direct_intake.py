@@ -1167,6 +1167,9 @@ def serve_loopback(
         raise IntakeUnavailable("direct_intake_loopback_required")
     if config.get("exposure") is not None:
         raise IntakeUnavailable("direct_intake_exposure_unserved")
+    if state_dir is not None:
+        # A20: while the operator's DRAINING flag is set, every request is answered 503 "updating" at once
+        intake.updating_flag = Path(state_dir) / DRAIN_NAME
     httpd = hardened_listener(
         config,
         _header_bounded_handler(intake),

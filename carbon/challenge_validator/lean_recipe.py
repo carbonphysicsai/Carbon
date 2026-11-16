@@ -525,12 +525,78 @@ class LeanRecipeAdapter(ChallengeAdapter):
             exam_key=provider.evaluation_pack_digest,
             submission_id=task_id,
             block=receipt.get("block"),
+            pending_blocks=lambda: self._pending_group_blocks(
+                submission.hotkey, task_id, receipt.get("block")
+            ),
         )
         if refusal is not None:
             raise Unavailable(
                 refusal["code"],
                 retry={k: v for k, v in refusal.items() if k != "code"},
             )
+
+    def _pending_group_blocks(self, hotkey, task_id, block):
+        """The receipt blocks of the ``hotkey``'s allowance group's EARLIER accepted submissions to this door (a receipt
+        block before ``block``) that hold no exam slot yet and are QUEUED or RUNNING (A20, Lead 16 Nov 2026), for the
+        admission check (`ExamCap.admission_refusal`): each will take a slot of its window when graded. Read-only and
+        best effort: one query for the door's owners; provider reads only for the group's own unslotted ones; anything
+        unreadable is left out (never a refusal from a guess). A built task waiting for its grade (SUCCEEDED) is not
+        counted (its state cannot tell a later refusal apart): the check errs toward admitting.
+        """
+        from carbon.challenge_validator import exam_cap
+        from carbon.research import (
+            DirectGetTaskRequestV3,
+            DirectTaskStateV3,
+            ResearchTaskId,
+        )
+
+        if type(block) is not int:
+            return ()
+        try:
+            group = exam_cap.group_of(hotkey)
+        except exam_cap.ExamCapRefused:
+            return ()
+        with self.ledger._db() as db:
+            slotted = {
+                row[0]
+                for row in db.execute(
+                    "SELECT submission_id FROM exam_graded WHERE kind='GRADED'"
+                ).fetchall()
+            }
+            owners = db.execute(
+                "SELECT submission_id, hotkey, receipt FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id IS NOT NULL AND hotkey IS NOT NULL "
+                "ORDER BY seq",
+                (self.contract_digest,),
+            ).fetchall()
+        first = {}
+        for other, owner, raw in owners:
+            if other not in first:
+                first[other] = (owner, raw)
+        blocks = []
+        for other, (owner, raw) in first.items():
+            if other == task_id or other in slotted:
+                continue
+            try:
+                if owner != hotkey and exam_cap.group_of(owner) != group:
+                    continue
+                other_block = json.loads(raw).get("block") if raw else None
+                if type(other_block) is not int or other_block >= block:
+                    continue
+                task = (
+                    self._provider(owner)
+                    .get_research_result(
+                        DirectGetTaskRequestV3(
+                            self.discovery.info.challenge_key, ResearchTaskId(other)
+                        )
+                    )
+                    .task
+                )
+            except Exception:  # noqa: BLE001, S112 - unreadable: left out
+                continue
+            if task.state in (DirectTaskStateV3.QUEUED, DirectTaskStateV3.RUNNING):
+                blocks.append(other_block)
+        return tuple(blocks)
 
     def _ended_on_infra(self, hotkey, task_id, provider):
         """Whether this task exists and ended on Carbon's infrastructure: its
