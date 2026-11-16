@@ -709,7 +709,7 @@ _WALL = {
 }
 
 
-def test_a_wall_stop_on_the_lane_is_never_the_candidates(host):
+def test_an_unobserved_wall_stop_on_the_lane_is_never_the_candidates(host):
     from carbon.development_session import research_carrier
 
     lane = _lane(host)
@@ -1137,7 +1137,8 @@ def test_the_shipped_lane_refuses_more_than_one_slot():
 
 @pytest.mark.parametrize(
     ("local", "slots", "counts"),
-    [(True, 1, True), (True, 2, False), (False, 1, False), (False, 2, False)],
+    # a remote lane defers to the box's own records (CV-Motor L12624: `remote_lane.wall_stop_observable` + the box guard)
+    [(True, 1, True), (True, 2, False), (False, 1, True), (False, 2, True)],
 )
 def test_a_wall_counts_only_on_a_one_slot_local_lane(host, local, slots, counts):
     lane = _lane(host, local=local, slots=slots, cpusets=("0-3", "4-7")[:slots])
@@ -1174,3 +1175,192 @@ def test_a_lane_edited_after_start_with_the_same_device_refuses(host):
         remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
     ):
         pass
+
+
+# -- CV-Motor L12624 on a remote GPU build slot (TE-B 8b20c190's rule, read on the GPU box) ------------------------------
+
+
+class _AgeCLI:
+    """The op's CLI as the box-clock read sees it: ``docker exec`` prints the program's age on the box."""
+
+    def __init__(self, age):
+        self.age, self.calls = age, []
+
+    def run(self, arguments, timeout=30, accepted=(0,)):
+        from types import SimpleNamespace
+
+        self.calls.append(arguments)
+        return SimpleNamespace(stdout=self.age.encode(), returncode=0, stderr=b"")
+
+
+def _remote_wall(age, *, quiet, link=True, monkeypatch, host, binding_seen=None):
+    """A remote GPU op's wall stop read through `_candidate_resource_stop`: the program ran 100 s of a 50 s wall."""
+    import time
+
+    from carbon.development_session import research_carrier
+
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    links = []
+    monkeypatch.setattr(
+        remote_lane, "link_up", lambda lane=None, **k: links.append(lane) or link
+    )
+    started = time.monotonic() - 100
+    error = WorkerFailure(
+        WorkerCode.DEADLINE, private_diagnostic=b"stream command timed out"
+    )
+    cli = _AgeCLI(age)
+    factory = lambda binding: (lambda: quiet, lambda: None)
+    token = research_carrier.REMOTE_BUILD_GUARD.set(factory)
+    try:
+        with (
+            remote_gpu_build.offered(lane),
+            _op() as binding,
+            research_carrier._remote_build_guarded(binding),
+        ):
+            stop = research_carrier._candidate_resource_stop(
+                cli,
+                error,
+                container_name="carbon-d4-" + "a" * 24,
+                launch_digest="sha256:" + "d" * 64,
+                image_id="sha256:" + "e" * 64,
+                program_started=started,
+                box_deadline=time.monotonic() + 30,
+                program_timeout=50,
+                setup_seconds=0,
+                memory_limit_bytes=None,
+                deadline=time.monotonic() + 1,
+                observation={
+                    "status": "OBSERVED",
+                    "state": {"oom_killed": False},
+                    "memory": None,
+                },
+                accelerated=True,
+            )
+    finally:
+        research_carrier.REMOTE_BUILD_GUARD.reset(token)
+    if binding_seen is not None:
+        binding_seen.extend(links)
+    return stop, binding, cli
+
+
+def test_a_remote_wall_stop_counts_on_its_box_clock_quiet_box_and_live_link(
+    host, monkeypatch
+):
+    seen = []
+    stop, binding, cli = _remote_wall(
+        "100.000", quiet=True, monkeypatch=monkeypatch, host=host, binding_seen=seen
+    )
+    assert stop is not None and stop[0] is WorkerCode.DEADLINE
+    assert seen == [binding]  # the link checked is the GPU box's
+    assert (
+        cli.calls and cli.calls[0][0] == "exec"
+    )  # the age read inside the container, on the box
+
+
+@pytest.mark.parametrize(
+    ("age", "quiet", "link"),
+    [
+        ("100.000", False, True),  # (b) a neighbour or foreign GPU compute on the box
+        ("100.000", True, False),  # (c) the link is down at the stop
+        (
+            "10.000",
+            True,
+            True,
+        ),  # (a) the box's clock says the program had not run its wall
+        ("none", True, True),  # (a) no program running there (or ambiguous)
+        (
+            "999.000",
+            True,
+            True,
+        ),  # (a) an age the controller could not have seen: not this program's clock
+    ],
+)
+def test_anything_else_on_a_remote_box_is_carbons(host, monkeypatch, age, quiet, link):
+    stop, _, _ = _remote_wall(
+        age, quiet=quiet, link=link, monkeypatch=monkeypatch, host=host
+    )
+    assert stop is None
+
+
+def test_a_remote_gpu_op_is_guarded_by_its_box_and_never_quiet_without_a_guard(
+    host, monkeypatch
+):
+    from carbon.development_session import research_carrier
+
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    stopped, seen = [], []
+
+    def run(ledger, **kwargs):
+        seen.append(research_carrier._build_wall_quiet())
+        return "done"
+
+    monkeypatch.setattr(research_carrier, "_run_supervised", run)
+    door_guard = research_carrier.BUILD_WALL_GUARD.set(
+        lambda: True
+    )  # this host is quiet...
+    try:
+        with remote_gpu_build.offered(lane):
+            research_carrier._run(
+                None, identity=BUILD, accelerator="VALIDATOR_OWN_GPU", provenance="X"
+            )  # ...but no box guard installed: never quiet
+            token = research_carrier.REMOTE_BUILD_GUARD.set(
+                lambda binding: (
+                    lambda: binding.lane is lane,
+                    lambda: stopped.append(1),
+                )
+            )
+            try:
+                research_carrier._run(
+                    None,
+                    identity=BUILD,
+                    accelerator="VALIDATOR_OWN_GPU",
+                    provenance="X",
+                )
+            finally:
+                research_carrier.REMOTE_BUILD_GUARD.reset(token)
+            research_carrier._run(  # an op that stays here keeps this host's guard
+                None, identity="direct-" + "a" * 64 + "-inference", provenance="X"
+            )
+    finally:
+        research_carrier.BUILD_WALL_GUARD.reset(door_guard)
+    assert seen == [False, True, True] and stopped == [1]
+
+
+def test_the_build_round_samples_a_remote_gpu_ops_own_box(host, monkeypatch):
+    import time
+
+    from carbon.challenge_validator import host_quiet, lean_recipe
+    from carbon.development_session import research_carrier
+
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    binding = remote_gpu_build.OpBinding(lane, 0)
+    counts = {"containers": 1, "gpu": 0}
+    watched = []
+
+    def counters(box):
+        watched.append(box)
+        return (lambda: counts["containers"]), (lambda: counts["gpu"])
+
+    monkeypatch.setattr(host_quiet, "box_counters", counters)
+    monkeypatch.setattr(lean_recipe, "BUILD_PROBE_SECONDS", 0.01)
+    with lean_recipe._build_wall_guard(
+        None
+    ):  # one build round, no claims: still installed
+        factory = research_carrier.REMOTE_BUILD_GUARD.get()
+        assert factory is not None
+        quiet, stop = factory(binding)
+        time.sleep(0.05)
+        assert quiet() is True
+        counts["containers"] = 2  # a neighbour slot's container on the box
+        time.sleep(0.05)
+        assert quiet() is False
+        stop()
+    assert watched == [binding]
+    assert research_carrier.REMOTE_BUILD_GUARD.get() is None
+    quiet, stop = None, None
+    with lean_recipe._build_wall_guard(None):
+        counts.update(containers=None, gpu=0)  # a sample the link could not deliver
+        quiet, stop = research_carrier.REMOTE_BUILD_GUARD.get()(binding)
+        time.sleep(0.05)
+        assert quiet() is False
+        stop()

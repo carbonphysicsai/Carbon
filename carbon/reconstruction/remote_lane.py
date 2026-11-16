@@ -413,16 +413,21 @@ def wall_stop_observable(observation, *, box_seconds=None, needed=None):
     own kernel clock, read in its container; None when the program is gone or unreadable) is at least ``needed`` seconds.
     A stalled link looks exactly like a stalled program, so a program that already ended there, or any read that fails,
     is Carbon's. Whether the box was quiet for the run is the caller's guard (`host_quiet`'s box probes).
+
+    The same rule reads a REMOTE GPU build slot's box (`carbon.reconstruction.remote_gpu_build`): its link, its clock.
     """
     import math
 
-    if current() is None:
+    from carbon.reconstruction import remote_gpu_build
+
+    lane = current() or remote_gpu_build.remote_box()
+    if lane is None:
         return True
     if type(observation) is not dict or observation.get("status") != "OBSERVED":
         return False
     if box_seconds is None or type(needed) not in (int, float):
         return False
-    if not link_up():
+    if not link_up(lane):
         return False
     try:
         age = box_seconds()

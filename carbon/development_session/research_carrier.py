@@ -374,7 +374,11 @@ def _run(ledger, **kwargs):
         ) as remote_build,
     ):
         try:
-            return _run_supervised(ledger, **kwargs)
+            if remote_build is None or settled:
+                return _run_supervised(ledger, **kwargs)
+            # a REMOTE GPU build's wall is read against its own box (CV-Motor L12624 (b) + (c))
+            with _remote_build_guarded(remote_build):
+                return _run_supervised(ledger, **kwargs)
         except MinerProgramFailure:
             # settled in the ledger as the candidate's (a resource stop is retyped BEFORE it is settled): never retyped
             raise
@@ -1481,6 +1485,32 @@ BUILD_WALL_GUARD: ContextVar = ContextVar("carbon_build_wall_guard", default=Non
 def _build_wall_quiet():
     guard = BUILD_WALL_GUARD.get()
     return True if guard is None else bool(guard())
+
+
+#: CV-Motor L12624 (b) + (c) for a REMOTE GPU build slot (`remote_gpu_build`): installed by the build round
+#: (`lean_recipe`), called with the op's slot binding when a remote GPU op starts. It returns ``(quiet, stop)``: ``quiet()``
+#: whether the op's BOX was quiet for its run (no other Carbon worker container, no foreign GPU compute), sampled ON the
+#: box with every in-run sample answered (`host_quiet.box_counters`); ``stop()`` ends the sampling. The op's
+#: `BUILD_WALL_GUARD` is that box's, not this host's. None installed: a remote GPU build's wall is never the candidate's.
+REMOTE_BUILD_GUARD: ContextVar = ContextVar("carbon_remote_build_guard", default=None)
+
+
+@contextmanager
+def _remote_build_guarded(binding):
+    """For a REMOTE GPU build op: its wall guard is its box's (`REMOTE_BUILD_GUARD`), never this host's; nothing
+    installed is never quiet. Anything else: unchanged."""
+    if remote_gpu_build.remote_box(binding) is None:
+        yield
+        return
+    factory = REMOTE_BUILD_GUARD.get()
+    quiet, stop = (lambda: False, lambda: None) if factory is None else factory(binding)
+    token = BUILD_WALL_GUARD.set(quiet)
+    try:
+        yield
+    finally:
+        BUILD_WALL_GUARD.reset(token)
+        with suppress(Exception):
+            stop()
 
 
 def _container_names(launch_digest):

@@ -986,12 +986,24 @@ def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=
         raise RemoteLaneDown(b"remote_gpu_build_watchdog") from None
 
 
-def wall_counts(binding=None):
-    """Whether a wall stop of the running op may be read as the candidate's: outside a slot, or on a one-slot local
-    lane (as a local GPU build's always was). Never on a remote lane, nor on a lane shared by more than one slot.
-    """
+def remote_box(binding=None):
+    """The running op's slot binding when its lane is REMOTE (it has the ``docker_host`` a box probe and a link check
+    need), else None."""
     binding = _current() if binding is None else binding
-    return binding is None or (binding.lane.spec.local and binding.lane.slots == 1)
+    return None if binding is None or binding.lane.spec.local else binding
+
+
+def wall_counts(binding=None):
+    """Whether this lane lets a wall stop of the running op be read as the candidate's at all. Outside a slot, and on a
+    one-slot local lane (as a local GPU build's always was): yes. On a REMOTE lane: yes, but only as CV-Motor ruled
+    (L12624, 16 Nov), each part read from records by its own check: (a) the box's own clock and (c) the link
+    (`remote_lane.wall_stop_observable`, which reads this slot's box), (b) the box quiet for the op and (c) every in-run
+    sample answered (the op's box guard, `research_carrier.REMOTE_BUILD_GUARD`). On a local lane shared by more than
+    one slot: never (its neighbours are this host's, not sampled per slot)."""
+    binding = _current() if binding is None else binding
+    if binding is None or not binding.lane.spec.local:
+        return True
+    return binding.lane.slots == 1
 
 
 def retyped(error, binding=None):
@@ -1043,6 +1055,7 @@ __all__ = [
     "pin",
     "recorded",
     "reject_crowded",
+    "remote_box",
     "request_fields",
     "retyped",
     "slot_environment",

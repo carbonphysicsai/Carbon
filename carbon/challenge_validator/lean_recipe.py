@@ -136,13 +136,53 @@ def _build_wall_guard(claims):
     lane is not the one its probe watched is never quiet. A build on a remote lane is guarded so even without claims
     (one build round). Without claims on this host: nothing, as before.
     """
-    from carbon.reconstruction import remote_lane
-
-    if claims is None and remote_lane.current() is None:
-        yield
-        return
     from carbon.challenge_validator import host_quiet
     from carbon.development_session import research_carrier
+    from carbon.reconstruction import remote_lane
+
+    # a REMOTE GPU build slot's op (`remote_gpu_build`) samples ITS box for its own life, whatever the claims
+    remote_token = research_carrier.REMOTE_BUILD_GUARD.set(_remote_gpu_build_guard)
+    try:
+        if claims is None and remote_lane.current() is None:
+            yield
+            return
+        with _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
+            yield
+    finally:
+        research_carrier.REMOTE_BUILD_GUARD.reset(remote_token)
+
+
+def _quiet_samples(probe):
+    """Every in-run sample answered and saw at most the build's own container and no foreign GPU compute."""
+    samples, gpu = list(probe.samples), list(probe.gpu_samples)
+    return bool(
+        samples
+        and gpu
+        and all(sample is not None and sample <= 1 for sample in samples)
+        and all(value == 0 for value in gpu)
+    )
+
+
+def _remote_gpu_build_guard(binding):
+    """`research_carrier.REMOTE_BUILD_GUARD` for one REMOTE GPU build op: a box probe on its slot's box (CV-Motor L12624
+    (b) + (c): sampled there, in-run samples required). Returns ``(quiet, stop)``."""
+    from carbon.challenge_validator import host_quiet
+
+    count, gpu = host_quiet.box_counters(binding)
+    probe = host_quiet.Probe(
+        lock_held=True,
+        containers=count,
+        gpu=gpu,
+        seconds=BUILD_PROBE_SECONDS,
+        require_samples=True,
+    ).start()
+    return (lambda: _quiet_samples(probe)), probe.verdict
+
+
+@contextlib.contextmanager
+def _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
+    """The A19 guard over this host (or a remote GRADE lane's box) for a build round with claims; see
+    `_build_wall_guard`."""
 
     def count():
         ids = host_quiet.worker_containers()
