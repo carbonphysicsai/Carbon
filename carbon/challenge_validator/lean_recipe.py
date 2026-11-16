@@ -817,6 +817,35 @@ class LeanRecipeAdapter(ChallengeAdapter):
             return None
 
     def advance(self):
+        moved = 0
+        # A19 (Lead, 16 Nov 2026): a door with N lanes runs N advance rounds at once; each takes the first queued task
+        # whose owner no other round holds (`grade_sequencer.OwnerClaims`: one owner's ledger lease is non-blocking).
+        claims = getattr(self, "owner_claims", None)
+        for submission_id in self.ledger.submitted_outcomes(self.contract_digest):
+            owner = self._active_owner(submission_id)
+            if owner is None:
+                continue
+            if claims is not None and not claims.try_claim(owner):
+                continue
+            try:
+                outcome = self._advance_one(owner, submission_id)
+            finally:
+                if claims is not None:
+                    claims.release(owner)
+            if outcome is None:
+                continue
+            moved += outcome
+            # One operator pass dispatches at most one construction. The
+            # existing carrier enforces its per-child resource limits;
+            # this adapter never fans out a backlog on one call.
+            break
+        return moved
+
+    #: A19: this adapter's advance takes owners through `owner_claims`, so a door may run one advance round per lane.
+    PARALLEL_ADVANCE = True
+
+    def _advance_one(self, owner, submission_id):
+        """Start ``submission_id`` if it is QUEUED: 1 (started and run), or None (nothing to do for it now)."""
         from carbon.research import (
             DirectGetTaskRequestV3,
             DirectTaskStateV3,
@@ -825,40 +854,31 @@ class LeanRecipeAdapter(ChallengeAdapter):
         from carbon.research.errors import ResearchServiceErrorCode
         from carbon.research.lifecycle import ResearchTaskProviderError
 
-        moved = 0
-        for submission_id in self.ledger.submitted_outcomes(self.contract_digest):
-            owner = self._active_owner(submission_id)
-            if owner is None:
-                continue
-            provider = self._provider(owner)
-            task_id = ResearchTaskId(submission_id)
+        provider = self._provider(owner)
+        task_id = ResearchTaskId(submission_id)
+        try:
+            task = provider.get_research_result(
+                DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
+            ).task
+        except ResearchTaskProviderError as missing:
+            if missing.code is ResearchServiceErrorCode.TASK_NOT_FOUND:
+                # An intent can precede a refused or interrupted start.
+                # The owner may retry the same signed recipe idempotently.
+                return None
+            raise
+        if task.state is DirectTaskStateV3.QUEUED:
             try:
-                task = provider.get_research_result(
-                    DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
-                ).task
-            except ResearchTaskProviderError as missing:
-                if missing.code is ResearchServiceErrorCode.TASK_NOT_FOUND:
-                    # An intent can precede a refused or interrupted start.
-                    # The owner may retry the same signed recipe idempotently.
-                    continue
+                provider.run_queued_task(task_id)
+            except ResearchTaskProviderError as refused:
+                if (
+                    refused.code is ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                    and self._withdrawn_now(provider, submission_id)
+                ):
+                    # its owner withdrew it between this read and the start (`withdraw`): never a worker failure
+                    return None
                 raise
-            if task.state is DirectTaskStateV3.QUEUED:
-                try:
-                    provider.run_queued_task(task_id)
-                except ResearchTaskProviderError as refused:
-                    if (
-                        refused.code is ResearchServiceErrorCode.INVALID_TASK_TRANSITION
-                        and self._withdrawn_now(provider, submission_id)
-                    ):
-                        # its owner withdrew it between this read and the start (`withdraw`): never a worker failure
-                        continue
-                    raise
-                moved += 1
-                # One operator pass dispatches at most one construction. The
-                # existing carrier enforces its per-child resource limits;
-                # this adapter never fans out a backlog on one call.
-                break
-        return moved
+            return 1
+        return None
 
     @staticmethod
     def _withdrawn_now(provider, submission_id):

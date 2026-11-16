@@ -1189,19 +1189,36 @@ def serve_loopback(
             kwargs={"stop": stop, "reader": reader},
             daemon=True,
         ),
-        threading.Thread(
-            target=_advance_loop,
-            args=(intake, stop, work, getattr(grader, "oldest_pending_ns", None)),
-            daemon=True,
-        ),
     ]
+    lanes_rounds = len(work._lanes) if work._parallel else 1
+    adapter = getattr(intake, "adapter", None)
+    # A19 (Lead, 16 Nov 2026): one ADVANCE round per lane too (a build holds a lane like a grade), when the adapter
+    # takes owners through the door's `OwnerClaims` (one owner's ledger lease is non-blocking); grades share them.
+    advance_rounds = (
+        lanes_rounds if getattr(adapter, "PARALLEL_ADVANCE", False) is True else 1
+    )
+    if advance_rounds > 1:
+        from .grade_sequencer import OwnerClaims
+
+        claims = OwnerClaims()
+        adapter.owner_claims = claims
+        if grader is not None:
+            grader.owner_claims = claims
+    for _ in range(advance_rounds):
+        threads.append(
+            threading.Thread(
+                target=_advance_loop,
+                args=(intake, stop, work, getattr(grader, "oldest_pending_ns", None)),
+                daemon=True,
+            )
+        )
     if grader is not None:
         # A receiver that grades its own submissions (auto_grade): one grade at a
         # time, never while a reconstruction runs.
         if getattr(grader, "others_waiting", None) is None:
             # slow-tail F2: the king's upkeep waits while another door waits for the host lock
             grader.others_waiting = getattr(work, "_others_waiting", None)
-        rounds = len(work._lanes) if work._parallel else 1
+        rounds = lanes_rounds
         if rounds > 1:
             # PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): one grade thread per lane, committing in claim order
             from .grade_sequencer import Sequencer
@@ -1403,8 +1420,9 @@ class _WorkLock:
         self._fds = []
         #: PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): in lane mode with two or more lanes, this door runs up to
         #: one round PER LANE at once (`_slots`); ``_lock`` is then held only while a round acquires its lane, and each
-        #: round keeps its own lane and lock files (`_Taking`). Rounds of DIFFERENT kinds (``advance`` / ``grade``) still
-        #: never overlap (`_kinds`), as before. One lane: one slot, ``_lock`` held for the whole round, exactly today.
+        #: round keeps its own lane and lock files (`_Taking`). Rounds of DIFFERENT kinds (``advance`` / ``grade``) run
+        #: at once too (A19), never two of one owner (`grade_sequencer.OwnerClaims`). One lane: one slot, ``_lock`` held for
+        #: the whole round, exactly today.
         self._parallel = len(self._lanes) > 1
         self._slots = threading.BoundedSemaphore(max(1, len(self._lanes)))
         self._kinds = threading.Condition()
@@ -1711,39 +1729,39 @@ class _WorkLock:
     # -- parallel rounds (lane mode, two or more lanes) ------------------------------------------------------------------
 
     def _enter_parallel(self, kind):
-        """Take one of this door's round slots, then wait until no live round of another kind runs. Polls, and gives up
-        the round (`WorkDeclined`) as soon as the door stops or drains."""
-        while not self._slots.acquire(timeout=self._poll):
-            reason = self._declined()
-            if reason is not None:
-                raise WorkDeclined(reason)
+        """Take one of this door's round slots (A19, Lead 16 Nov 2026: rounds of BOTH kinds run at once, each on its own
+        lane; owners never overlap, `grade_sequencer.OwnerClaims`). Fairness: while another kind waits for a slot and
+        has no live round, a kind that already has one live round starts no NEW one, so neither builds nor grades are
+        starved. Polls, and gives up the round (`WorkDeclined`) as soon as the door stops or drains.
+        """
+        with self._kinds:
+            self._kind_waiters[kind] = self._kind_waiters.get(kind, 0) + 1
         try:
-            with self._kinds:
-                waiting = False
-                try:
-                    while any(other != kind for other, _ in self._live.values()) or any(
-                        count and other != kind
+            while True:
+                with self._kinds:
+                    live = [other for other, _ in self._live.values()]
+                    yield_to_other = live.count(kind) >= 1 and any(
+                        count and other != kind and other not in live
                         for other, count in self._kind_waiters.items()
-                    ):
-                        if not waiting and any(
-                            other != kind for other, _ in self._live.values()
-                        ):
-                            waiting = True
-                            self._kind_waiters[kind] = (
-                                self._kind_waiters.get(kind, 0) + 1
-                            )
+                    )
+                if not yield_to_other and self._slots.acquire(timeout=self._poll):
+                    break
+                if yield_to_other:
+                    with self._kinds:
                         self._kinds.wait(self._poll)
-                        reason = self._declined()
-                        if reason is not None:
-                            raise WorkDeclined(reason)
-                finally:
-                    if waiting:
-                        self._kind_waiters[kind] -= 1
-                        self._kinds.notify_all()
-                self._live[threading.get_ident()] = (kind, None)
-        except BaseException:
-            self._slots.release()
-            raise
+                reason = self._declined()
+                if reason is not None:
+                    raise WorkDeclined(reason)
+            try:
+                with self._kinds:
+                    self._live[threading.get_ident()] = (kind, None)
+            except BaseException:
+                self._slots.release()
+                raise
+        finally:
+            with self._kinds:
+                self._kind_waiters[kind] -= 1
+                self._kinds.notify_all()
 
     def _record_live(self, record):
         """This round's in-flight record; the door's file names the OLDEST live round (a drain sees busy until all end)."""

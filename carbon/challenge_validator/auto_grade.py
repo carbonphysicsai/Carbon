@@ -54,6 +54,10 @@ WITHDRAWN_CODE = "withdrawn_by_miner"
 UPKEEP_DEFER_MAX_SECONDS = 30 * 60
 
 
+class _NextTask(Exception):
+    """A parallel claim's task was not gradable now: the round claims again with a fresh ticket."""
+
+
 #: `AutoGrader._grade_one`: not gradable now, try the next pending task.
 _NEXT = object()
 #: The set of stalled tasks is replaced whole by a door's grade threads; one at a time.
@@ -458,8 +462,12 @@ class AutoGrader:
         Same steps as `_run_once`, in the same order for each task."""
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
+        from .grade_sequencer import owner_exclusive
+
+        claims = getattr(self, "owner_claims", None)
         if self._prelude_due(self.pending()):
-            with sequencer.exclusive():
+            # the incumbent's steps run in the king's owner's ledger: no owner is in any round meanwhile (A19)
+            with sequencer.exclusive(), owner_exclusive(claims):
                 self._settle_queue_places()
                 self.activity = "king"
                 try:
@@ -474,62 +482,86 @@ class AutoGrader:
         skipped = set()
         while True:
             with sequencer.task() as task:
-                busy = sequencer.in_flight()
-                # exam-cap allowance: a later task of a group with a grade in flight (or one held back below) waits, so
-                # each group's allowance is read in that group's submission order after its earlier settles, as one at
-                # a time does (None = a group not known: every later task waits behind it)
-                held = sequencer.groups_in_flight()
-                candidates = [
-                    sid
-                    for sid in self.pending()
-                    if sid not in busy and sid not in skipped
-                ]
-                for submission_id in candidates:
-                    group = self._allowance_group(submission_id)
-                    if group is None:
-                        if busy or held:
-                            # an unknown group waits until it is the only grade in flight
-                            held.add(None)
-                            continue
-                    elif None in held or group in held:
-                        held.add(group)
-                        continue
-                    if self._withdrawn_pending(submission_id):
-                        # a withdrawal's row and marker are written in this task's commit turn
-                        task.bind(submission_id, group)
-                        task.turn()
-                        if self._settle_withdrawn(submission_id):
-                            return submission_id, "WITHDRAWN_BY_MINER"
-                        # the repair failed (asked again next round): the task goes on as the serial round does; its
-                        # claim is spent, so this round grades it or ends (it never scans further without the claim)
-                        spent = True
-                    else:
-                        spent = False
-                    copy = self._copy_decision(submission_id)
-                    if copy is not None:
-                        decision, first = copy
-                        if decision == "wait":
-                            self.recipe_copy_waits = (
-                                getattr(self, "recipe_copy_waits", 0) + 1
-                            )
-                            self._log_copy_waits()
-                            if spent:
-                                return None
-                            # its group's later tasks keep their order behind it
-                            held.add(group)
-                            continue
-                        if decision == "copy":
-                            task.bind(submission_id, group)
-                            return self._grade_copy(submission_id, first)
+                taken = []
+                try:
+                    return self._claim_and_grade(
+                        sequencer, task, skipped, claims, taken
+                    )
+                except _NextTask:
+                    continue
+                finally:
+                    for owner in taken:
+                        claims.release(owner)
+
+    def _claim_and_grade(self, sequencer, task, skipped, claims, taken):
+        """The body of one parallel claim (`_run_once_parallel`): returns the round's outcome, or raises `_NextTask` when
+        the claimed task was not gradable now. An owner this round takes (`OwnerClaims`) is put in ``taken``, released
+        by the caller when the task ends."""
+        busy = sequencer.in_flight()
+        # exam-cap allowance: a later task of a group with a grade in flight (or one held back below) waits, so
+        # each group's allowance is read in that group's submission order after its earlier settles, as one at
+        # a time does (None = a group not known: every later task waits behind it)
+        held = sequencer.groups_in_flight()
+        candidates = [
+            sid for sid in self.pending() if sid not in busy and sid not in skipped
+        ]
+        for submission_id in candidates:
+            group = self._allowance_group(submission_id)
+            if group is None:
+                if busy or held:
+                    # an unknown group waits until it is the only grade in flight
+                    held.add(None)
+                    continue
+            elif None in held or group in held:
+                held.add(group)
+                continue
+            if claims is not None:
+                # A19: never two rounds of one owner (an advance round may build this owner's next task now)
+                owner = self._owner_of(submission_id)
+                if owner is None or not claims.try_claim(owner):
+                    held.add(group)
+                    continue
+                taken.append(owner)
+            if self._withdrawn_pending(submission_id):
+                # a withdrawal's row and marker are written in this task's commit turn
+                task.bind(submission_id, group)
+                task.turn()
+                if self._settle_withdrawn(submission_id):
+                    return submission_id, "WITHDRAWN_BY_MINER"
+                # the repair failed (asked again next round): the task goes on as the serial round does; its
+                # claim is spent, so this round grades it or ends (it never scans further without the claim)
+                spent = True
+            else:
+                spent = False
+            copy = self._copy_decision(submission_id)
+            if copy is not None:
+                decision, first = copy
+                if decision == "wait":
+                    self.recipe_copy_waits = getattr(self, "recipe_copy_waits", 0) + 1
+                    self._log_copy_waits()
+                    if spent:
+                        return None
+                    # its group's later tasks keep their order behind it
+                    held.add(group)
+                    continue
+                if decision == "copy":
                     task.bind(submission_id, group)
-                    outcome = self._grade_one(submission_id, turn=task.turn)
-                    if outcome is _NEXT:
-                        # not gradable now: the claim may already be spent, so the next task gets a fresh ticket
-                        skipped.add(submission_id)
-                        break
-                    return outcome
-                else:
-                    return None
+                    return self._grade_copy(submission_id, first)
+            task.bind(submission_id, group)
+            outcome = self._grade_one(submission_id, turn=task.turn)
+            if outcome is _NEXT:
+                # not gradable now: the claim may already be spent, so the next task gets a fresh ticket
+                skipped.add(submission_id)
+                raise _NextTask
+            return outcome
+        return None
+
+    def _owner_of(self, submission_id):
+        """The owner (hotkey) of ``submission_id``, or None when it cannot be read now."""
+        try:
+            return self.intake.adapter.owner(submission_id)
+        except Exception:  # noqa: BLE001
+            return None
 
     def _allowance_group(self, submission_id):
         """The exam-cap allowance group of ``submission_id``'s owner (`exam_cap.group_of`), or None when it cannot be

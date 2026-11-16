@@ -121,6 +121,69 @@ class _Task:
         self._turned = True
 
 
+class OwnerClaims:
+    """The owners (miner hotkeys) with a round in flight on this door, across BOTH kinds of round (A19, Lead 16 Nov
+    2026: N advance rounds beside N grade rounds). Each owner's work runs in that owner's own ledger, whose numerical
+    lease is NON-blocking (`research_carrier._numerical_lease`): two rounds of one owner at once would fail the second.
+    So a round takes an owner only when no other round holds it (`try_claim`), and the incumbent's own steps (the
+    king's upkeep, the crown sweep, due retries), which run in the king's owner's ledger, take every owner at once
+    (`exclusive`). Decides nothing about order: the grade commit order stays the sequencer's.
+    """
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._held = set()
+        self._exclusive = False
+
+    def try_claim(self, owner):
+        """Take ``owner`` for one round, or False (another round holds it, or the incumbent's steps run)."""
+        with self._cond:
+            if self._exclusive or owner in self._held:
+                return False
+            self._held.add(owner)
+            return True
+
+    def release(self, owner):
+        with self._cond:
+            self._held.discard(owner)
+            self._cond.notify_all()
+
+    def held(self):
+        with self._cond:
+            return set(self._held)
+
+    @contextmanager
+    def exclusive(self):
+        """No owner is claimed while this runs: new claims are refused, and it waits for the held ones to end."""
+        with self._cond:
+            while self._exclusive:
+                self._cond.wait(1.0)
+            self._exclusive = True
+            try:
+                while self._held:
+                    self._cond.wait(1.0)
+            except BaseException:
+                self._exclusive = False
+                self._cond.notify_all()
+                raise
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._exclusive = False
+                self._cond.notify_all()
+
+
+@contextmanager
+def owner_exclusive(claims):
+    """`OwnerClaims.exclusive` of ``claims``, or nothing when there are none (one-lane doors, tools, tests)."""
+    if claims is None:
+        yield
+    else:
+        with claims.exclusive():
+            yield
+
+
 def current():
     """The sequenced grade of the calling context, or None."""
     return _CURRENT.get()
@@ -140,4 +203,11 @@ def turn():
         task.turn()
 
 
-__all__ = ["Sequencer", "claimed", "current", "turn"]
+__all__ = [
+    "OwnerClaims",
+    "Sequencer",
+    "claimed",
+    "current",
+    "owner_exclusive",
+    "turn",
+]

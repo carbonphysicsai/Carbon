@@ -305,3 +305,54 @@ def test_the_sequencer_is_a_grading_path():
     assert (
         "carbon/challenge_validator/grade_sequencer.py" in direct_receiver.GRADING_PATHS
     )
+
+
+# -- A19: owners never in two rounds at once (advance + grade) ------------------------------------------------------------
+
+
+def test_an_owner_is_held_by_one_round_at_a_time():
+    claims = grade_sequencer.OwnerClaims()
+    assert claims.try_claim("5A") and not claims.try_claim("5A")
+    assert claims.try_claim("5B")
+    claims.release("5A")
+    assert claims.try_claim("5A")
+    assert claims.held() == {"5A", "5B"}
+
+
+def test_the_incumbents_steps_take_every_owner_and_wait_for_the_held_ones():
+    claims = grade_sequencer.OwnerClaims()
+    assert claims.try_claim("5A")
+    entered, log = threading.Event(), []
+
+    def king():
+        with claims.exclusive():
+            entered.set()
+            log.append("king")
+
+    thread = threading.Thread(target=king)
+    thread.start()
+    time.sleep(0.2)
+    assert not entered.is_set()  # waits for 5A's round
+    assert not claims.try_claim("5B")  # and no new owner is taken meanwhile
+    claims.release("5A")
+    thread.join(5)
+    assert log == ["king"] and claims.try_claim("5B")
+
+
+def test_a_parallel_grade_skips_a_task_whose_owner_another_round_holds():
+    def steps(grader, sid, turn):
+        grader.marked.add(sid)
+        return sid, "GRADED"
+
+    grader = _grader(["a", "b"], steps)
+    grader._owner_of = lambda sid: "owner-" + sid
+    grader.owner_claims = grade_sequencer.OwnerClaims()
+    assert grader.owner_claims.try_claim(
+        "owner-a"
+    )  # an advance round builds owner a's next task now
+    assert grader._run_once() == ("b", "GRADED")
+    assert grader.owner_claims.held() == {
+        "owner-a"
+    }  # the grade round released its own owner
+    grader.owner_claims.release("owner-a")
+    assert grader._run_once() == ("a", "GRADED")
