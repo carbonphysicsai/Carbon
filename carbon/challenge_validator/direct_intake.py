@@ -1211,6 +1211,7 @@ def serve_loopback(
             threading.Thread(
                 target=_advance_loop,
                 args=(intake, stop, work, getattr(grader, "oldest_pending_ns", None)),
+                kwargs={"idle_s": ADVANCE_IDLE_S if advance_rounds > 1 else 1},
                 daemon=True,
             )
         )
@@ -2038,7 +2039,7 @@ def _round(work, kind, has_work=None, since=None):
 ADVANCE_IDLE_S = 5
 
 
-def _advance_loop(intake, stop, work=None, since=None):
+def _advance_loop(intake, stop, work=None, since=None, idle_s=1):
     work = work or _WorkLock(stop=stop)
     failures = 0
     while not stop.is_set():
@@ -2048,7 +2049,7 @@ def _advance_loop(intake, stop, work=None, since=None):
                 moved = intake.advance()
             failures = 0
             if not moved:
-                wait = ADVANCE_IDLE_S  # nothing queued: an idle build round holds no lane every second
+                wait = idle_s  # nothing queued: N parallel build rounds take no lane every second
         except WorkDeclined:
             pass  # stopping, draining, or the host lock is another door's: never a failure
         except Exception as failure:  # noqa: BLE001 - no private content in log

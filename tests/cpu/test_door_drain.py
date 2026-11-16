@@ -250,9 +250,9 @@ def test_snapshot_refresh_never_waits_on_the_host_lock(dirs):
     import inspect
 
     source = inspect.getsource(direct_intake.serve_loopback)
-    refresh_args = source[
-        source.index("target=refresher") : source.index("target=_advance_loop")
-    ]
+    start = source.index("target=refresher")
+    # the refresher thread's own arguments only (up to its daemon flag)
+    refresh_args = source[start : source.index("daemon=True", start)]
     assert "work" not in refresh_args
 
 
