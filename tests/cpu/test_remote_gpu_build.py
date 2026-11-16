@@ -1174,3 +1174,28 @@ def test_a_lane_edited_after_start_with_the_same_device_refuses(host):
         remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
     ):
         pass
+
+
+def test_the_prelude_is_never_placed_inside_a_docstring(host):
+    """Line ends as the parser counts them: a docstring holding a form feed or a line separator does not move it."""
+    lane = _lane(host, slots=2)
+    source = '"""a\x0cb\u2028c"""\nx = 1\n'
+    with remote_gpu_build.offered(lane), _op():
+        changed = remote_gpu_build.with_slot_prelude(source)
+    module = ast.parse(changed)
+    assert ast.get_docstring(module, clean=False) == "a\x0cb\u2028c"
+    assert ast.dump(module.body[1]) == ast.dump(
+        ast.parse(remote_gpu_build.SLOT_PRELUDE).body[0]
+    )
+
+
+def test_only_a_python_program_can_carry_the_slot_cap(host):
+    lane = _lane(host, slots=2)
+    with remote_gpu_build.offered(lane), _op(), pytest.raises(RemoteLaneDown):
+        remote_gpu_build.with_slot_prelude("x = 1\n", program_name="program.jl")
+    one = _lane(host, slots=1, cpusets=("0-3",))
+    with remote_gpu_build.offered(one), _op():
+        assert (
+            remote_gpu_build.with_slot_prelude("x\n", program_name="program.jl")
+            == "x\n"
+        )
