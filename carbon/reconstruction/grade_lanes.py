@@ -52,6 +52,10 @@ REGISTRY = (
 SCHEMA = "carbon.exam.grade-lanes.v1"
 #: The most lanes a values row may ask for (the owner's pick: two).
 MAX_LANES = 2
+#: The most REMOTE lanes (`carbon.reconstruction.remote_lane`) a values row may ask for, beside the local ones: lane
+#: indices ``MAX_LANES`` onwards. A one-lane round holds them too (`ALL_LANES`), so it never runs beside a remote round.
+MAX_REMOTE_LANES = 1
+ALL_LANES = MAX_LANES + MAX_REMOTE_LANES
 #: Lane 0's lock is the host's existing official-grading lock (`receipt_job.GRADING_LOCK`), so every reader of "is the
 #: host grading" keeps working; lane k >= 1 has its own file beside it.
 LANE_LOCK = "official-grading.lane-{index}.lock"
@@ -82,22 +86,42 @@ def _log(event, **fields):
         log(event, **fields)
 
 
+def _row(challenge_id, version, path):
+    """The well-formed values row of ``"<challenge_id> <version>"`` (``{"lanes": n}``, optionally with
+    ``"remote_lanes": m``), or None."""
+    document = json.loads(Path(REGISTRY if path is None else path).read_bytes())
+    if type(document) is not dict or document.get("schema") != SCHEMA:
+        return None
+    row = (document.get("rows") or {}).get(f"{challenge_id} {version}")
+    if type(row) is not dict or set(row) not in ({"lanes"}, {"lanes", "remote_lanes"}):
+        return None
+    lanes = row["lanes"]
+    if type(lanes) is not int or not 1 <= lanes <= MAX_LANES:
+        return None
+    remote = row.get("remote_lanes", 0)
+    if type(remote) is not int or not 0 <= remote <= MAX_REMOTE_LANES:
+        return None
+    return row
+
+
 def registered_lanes(challenge_id, version, *, path=None):
     """The lane count the values row of ``"<challenge_id> <version>"`` allows: 2 only for a well-formed row
-    ``{"lanes": 2}``, else 1. Never raises."""
+    ``{"lanes": 2}`` (with or without ``"remote_lanes"``), else 1. Never raises."""
     try:
-        document = json.loads(Path(REGISTRY if path is None else path).read_bytes())
-        if type(document) is not dict or document.get("schema") != SCHEMA:
-            return 1
-        row = (document.get("rows") or {}).get(f"{challenge_id} {version}")
-        if type(row) is not dict or set(row) != {"lanes"}:
-            return 1
-        lanes = row["lanes"]
-        if type(lanes) is not int or not 1 <= lanes <= MAX_LANES:
-            return 1
-        return lanes
+        row = _row(challenge_id, version, path)
+        return 1 if row is None else row["lanes"]
     except Exception:  # noqa: BLE001 - one lane, never a failure
         return 1
+
+
+def registered_remote_lanes(challenge_id, version, *, path=None):
+    """The REMOTE lane count the values row of ``"<challenge_id> <version>"`` allows: ``"remote_lanes"`` of a
+    well-formed row, else 0. Never raises."""
+    try:
+        row = _row(challenge_id, version, path)
+        return 0 if row is None else row.get("remote_lanes", 0)
+    except Exception:  # noqa: BLE001 - no remote lane, never a failure
+        return 0
 
 
 def lane_lock_name(index):
@@ -174,13 +198,57 @@ def door_lanes(challenge_id, version, *, registry=None, host_root=None, sys_cpu=
     return lanes
 
 
+def door_remote_lanes(
+    challenge_id, version, *, registry=None, host_root=None, sys_cpu=None
+):
+    """The REMOTE lanes (`remote_lane.RemoteSpec`) a door of ``"<challenge_id> <version>"`` may also grade on: only in
+    two-lane mode (`door_lanes`), with ``"remote_lanes"`` in its values row and the operator's remote record installed
+    (`remote_lane.load`). Else ``()``. Says which, and why, once. Never raises."""
+    reason = None
+    remote = ()
+    try:
+        wanted = registered_remote_lanes(challenge_id, version, path=registry)
+        if wanted < 1:
+            reason = "no_values_row"
+        elif not door_lanes(
+            challenge_id,
+            version,
+            registry=registry,
+            host_root=host_root,
+            sys_cpu=sys_cpu,
+        ):
+            reason = "not_two_lane_mode"
+        else:
+            from carbon.reconstruction import remote_lane
+
+            listed = remote_lane.load(host_root)
+            if not listed:
+                reason = "no_remote_record"
+            else:
+                remote = tuple(listed[:wanted])
+    except Exception as failure:  # noqa: BLE001 - no remote lane, never a failure
+        reason = f"unreadable:{type(failure).__name__}"
+        remote = ()
+    _log(
+        "grade_remote_lanes",
+        lanes=len(remote),
+        hosts=[spec.docker_host for spec in remote],
+        reason=reason,
+    )
+    return remote
+
+
 @dataclass(frozen=True)
 class Lane:
-    """The lane a round holds: its index, its cores, and the host lock directory its gates live in."""
+    """The lane a round holds: its index, its cores, and the host lock directory its gates live in. A REMOTE lane
+    (`carbon.reconstruction.remote_lane`) also names its daemon (``docker_host``, ssh) and the path under which inputs
+    may be mirrored there (``stage_root``); its cores are the remote machine's."""
 
     index: int
     cpuset: str
     lock_dir: str
+    docker_host: str | None = None
+    stage_root: str | None = None
 
 
 _BOUND: ContextVar[Lane | None] = ContextVar("carbon_grade_lane", default=None)
@@ -212,6 +280,11 @@ def bound(lane):
         yield lane
     finally:
         unbind(token)
+
+
+def timing_requested():
+    """Whether the calling context is inside `timing_exclusive`."""
+    return _EXCLUSIVE.get()
 
 
 @contextmanager

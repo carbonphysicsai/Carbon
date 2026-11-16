@@ -1201,9 +1201,18 @@ def serve_loopback(
         if getattr(grader, "others_waiting", None) is None:
             # slow-tail F2: the king's upkeep waits while another door waits for the host lock
             grader.others_waiting = getattr(work, "_others_waiting", None)
-        threads.append(
-            threading.Thread(target=_grade_loop, args=(grader, stop, work), daemon=True)
-        )
+        rounds = len(work._lanes) if work._parallel else 1
+        if rounds > 1:
+            # PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): one grade thread per lane, committing in claim order
+            from .grade_sequencer import Sequencer
+
+            grader.sequencer = Sequencer()
+        for _ in range(rounds):
+            threads.append(
+                threading.Thread(
+                    target=_grade_loop, args=(grader, stop, work), daemon=True
+                )
+            )
     host, port = httpd.server_address[:2]
     serving = threading.Thread(target=httpd.serve_forever, daemon=True)
     started = []
@@ -1306,15 +1315,22 @@ MAINNET_FIRST_PATIENCE_S = 7200.0
 
 def _door_lanes(intake, grading_lock_dir):
     """This door's grade lanes (`grade_lanes.door_lanes`): ``()`` = one lane, today's single host lock. Only a door
-    that holds the host lock at all can have lanes."""
+    that holds the host lock at all can have lanes. In two-lane mode, a REMOTE lane the values row asks for and the
+    operator installed (`grade_lanes.door_remote_lanes`) follows the local lanes (a `remote_lane.RemoteSpec`).
+    """
     if grading_lock_dir is None:
         return ()
     from carbon.reconstruction import grade_lanes
 
     challenge = getattr(intake, "challenge", None)
-    return grade_lanes.door_lanes(
-        getattr(challenge, "challenge_id", None), getattr(challenge, "version", None)
+    key = (
+        getattr(challenge, "challenge_id", None),
+        getattr(challenge, "version", None),
     )
+    local = grade_lanes.door_lanes(*key)
+    if not local:
+        return ()
+    return (*local, *grade_lanes.door_remote_lanes(*key))
 
 
 class WorkDeclined(Exception):
@@ -1385,6 +1401,18 @@ class _WorkLock:
         self._lanes = tuple(lanes)
         self._lane = None
         self._fds = []
+        #: PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): in lane mode with two or more lanes, this door runs up to
+        #: one round PER LANE at once (`_slots`); ``_lock`` is then held only while a round acquires its lane, and each
+        #: round keeps its own lane and lock files (`_Taking`). Rounds of DIFFERENT kinds (``advance`` / ``grade``) still
+        #: never overlap (`_kinds`), as before. One lane: one slot, ``_lock`` held for the whole round, exactly today.
+        self._parallel = len(self._lanes) > 1
+        self._slots = threading.BoundedSemaphore(max(1, len(self._lanes)))
+        self._kinds = threading.Condition()
+        #: The live rounds of this door: ``{round: (kind, in-flight record)}`` (parallel mode only).
+        self._live = {}
+        #: How many rounds of each kind wait for the other kind to finish: a waiting kind stops NEW rounds of the other
+        #: kind from starting, so a build round is never starved by back-to-back grade rounds (or the reverse).
+        self._kind_waiters = {}
         if network is None:
             from carbon.chain import models
 
@@ -1570,7 +1598,7 @@ class _WorkLock:
 
         if not self._lanes:
             # one lane: lane 0 (the host lock) and every other lane, all or none
-            for index in range(grade_lanes.MAX_LANES):
+            for index in range(grade_lanes.ALL_LANES):
                 fd = self._take(
                     GRADING_LOCK if index == 0 else grade_lanes.lane_lock_name(index)
                 )
@@ -1581,7 +1609,7 @@ class _WorkLock:
             self._hold(None, grade_lanes.ONE_LANE_MODE)
             return True
         # two lanes: the first free lane, in index order
-        for index, cpuset in enumerate(self._lanes):
+        for index, spec in enumerate(self._lanes):
             fd = self._take(grade_lanes.lane_lock_name(index))
             if fd is None:
                 continue
@@ -1590,7 +1618,18 @@ class _WorkLock:
                 self._release_fds()
                 return False
             self._hold(
-                grade_lanes.Lane(index, cpuset, str(self._dir)),
+                (
+                    grade_lanes.Lane(index, spec, str(self._dir))
+                    if type(spec) is str
+                    # a remote lane (`remote_lane.RemoteSpec`): its daemon, its cores, its mirror root
+                    else grade_lanes.Lane(
+                        index,
+                        spec.cpuset,
+                        str(self._dir),
+                        spec.docker_host,
+                        spec.stage_root,
+                    )
+                ),
                 grade_lanes.TWO_LANE_MODE,
             )
             return True
@@ -1631,7 +1670,7 @@ class _WorkLock:
 
         self._fd = self._fds[0]
         self._lane = lane
-        for index in range(grade_lanes.MAX_LANES) if lane is None else (lane.index,):
+        for index in range(grade_lanes.ALL_LANES) if lane is None else (lane.index,):
             grade_lanes.write_holder(self._dir, index, mode)
 
     @staticmethod
@@ -1649,20 +1688,88 @@ class _WorkLock:
             self._unlock(fd)
 
     def _release_host(self):
-        held = self._fd is not None
+        fd, fds, lane = self._fd, self._fds, self._lane
+        self._fd, self._fds, self._lane = None, [], None
+        self._release_round(fd, fds, lane)
+
+    def _release_round(self, fd, fds, lane):
+        """Give back one round's host lanes: its holder records, then its lock files."""
+        held = fd is not None
         if held:
             from carbon.reconstruction import grade_lanes
 
-            lane, self._lane = self._lane, None
             # the holder records go BEFORE the locks: a reader never sees a free lock with a stale holder of ours
             for index in (
-                range(grade_lanes.MAX_LANES) if lane is None else (lane.index,)
+                range(grade_lanes.ALL_LANES) if lane is None else (lane.index,)
             ):
                 grade_lanes.clear_holder(self._dir, index)
-        self._fd = None
-        self._release_fds()
+        for one in reversed(fds):
+            self._unlock(one)
         if held and self._others_waiting():
             self._yield_until = time.monotonic() + 2 * self._poll
+
+    # -- parallel rounds (lane mode, two or more lanes) ------------------------------------------------------------------
+
+    def _enter_parallel(self, kind):
+        """Take one of this door's round slots, then wait until no live round of another kind runs. Polls, and gives up
+        the round (`WorkDeclined`) as soon as the door stops or drains."""
+        while not self._slots.acquire(timeout=self._poll):
+            reason = self._declined()
+            if reason is not None:
+                raise WorkDeclined(reason)
+        try:
+            with self._kinds:
+                waiting = False
+                try:
+                    while any(other != kind for other, _ in self._live.values()) or any(
+                        count and other != kind
+                        for other, count in self._kind_waiters.items()
+                    ):
+                        if not waiting and any(
+                            other != kind for other, _ in self._live.values()
+                        ):
+                            waiting = True
+                            self._kind_waiters[kind] = (
+                                self._kind_waiters.get(kind, 0) + 1
+                            )
+                        self._kinds.wait(self._poll)
+                        reason = self._declined()
+                        if reason is not None:
+                            raise WorkDeclined(reason)
+                finally:
+                    if waiting:
+                        self._kind_waiters[kind] -= 1
+                        self._kinds.notify_all()
+                self._live[threading.get_ident()] = (kind, None)
+        except BaseException:
+            self._slots.release()
+            raise
+
+    def _record_live(self, record):
+        """This round's in-flight record; the door's file names the OLDEST live round (a drain sees busy until all end)."""
+        with self._kinds:
+            kind, _ = self._live[threading.get_ident()]
+            self._live[threading.get_ident()] = (kind, record)
+            self._write_oldest()
+
+    def _leave_parallel(self):
+        with self._kinds:
+            self._live.pop(threading.get_ident(), None)
+            self._write_oldest()
+            self._kinds.notify_all()
+        self._slots.release()
+
+    def _write_oldest(self):
+        if self._state is None:
+            return
+        records = [record for _, record in self._live.values() if record is not None]
+        if records:
+            _write_record(
+                self._state / INFLIGHT_NAME,
+                min(records, key=lambda record: record["since_ns"]),
+            )
+        else:
+            (self._state / INFLIGHT_NAME).unlink(missing_ok=True)
 
     def taking(self, kind, *, has_work=None, since=None):
         """A context for one round of ``kind`` work (``advance`` or ``grade``). ``has_work`` (called under the
@@ -1692,6 +1799,9 @@ class _Taking:
         self.place = None
         #: A two-lane round's lane binding (`grade_lanes.bind`), reset at exit.
         self._lane_token = None
+        #: PARALLEL rounds only: this round's own host lanes (moved off the shared lock object once held).
+        self._parallel = False
+        self._held = (None, [], None)
 
     def _place(self):
         """The round's place from ``since`` (a non-negative int of ns), or None: a failing or odd reader never
@@ -1707,7 +1817,7 @@ class _Taking:
         return place if type(place) is int and place >= 0 else None
 
     def _inflight(self):
-        lane = self.work._lane
+        lane = self.work._lane if not self._parallel else self._held[2]
         return {
             "schema": INFLIGHT_SCHEMA,
             "kind": self.kind,
@@ -1720,10 +1830,18 @@ class _Taking:
 
     def __enter__(self):
         work = self.work
-        while not work._lock.acquire(timeout=work._poll):
-            reason = work._declined()
-            if reason is not None:
-                raise WorkDeclined(reason)
+        self._parallel = work._parallel
+        if self._parallel:
+            work._enter_parallel(self.kind)
+        try:
+            while not work._lock.acquire(timeout=work._poll):
+                reason = work._declined()
+                if reason is not None:
+                    raise WorkDeclined(reason)
+        except BaseException:
+            if self._parallel:
+                work._leave_parallel()
+            raise
         recorded = False
         # Only a GRADE with work waits visibly (the starvation-alert input and the host's waiting list): an advance
         # round cannot tell whether it has work, and must never look like a starving door.
@@ -1771,31 +1889,47 @@ class _Taking:
                 if work._state is not None:
                     (work._state / WAIT_NAME).unlink(missing_ok=True)
                 waiting = False
+            if self._parallel:
+                # this round's host lanes are its own from here (another round of this door may take the next lane)
+                self._held = (work._fd, work._fds, work._lane)
+                work._fd, work._fds, work._lane = None, [], None
             # The in-flight record goes down BEFORE the last check, so a drain that reads "no record" can never be
             # followed by a round starting: either the round sees DRAINING here, or the drain sees its record.
             if work._state is not None:
-                _write_record(work._state / INFLIGHT_NAME, self._inflight())
+                if self._parallel:
+                    work._record_live(self._inflight())
+                else:
+                    _write_record(work._state / INFLIGHT_NAME, self._inflight())
                 recorded = True
             reason = work._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
-            if work._lane is not None:
+            lane = self._held[2] if self._parallel else work._lane
+            if lane is not None:
                 # this round's containers run on its lane's cores (`host_execution.resolve_cpuset`)
                 from carbon.reconstruction import grade_lanes
 
-                self._lane_token = grade_lanes.bind(work._lane)
+                self._lane_token = grade_lanes.bind(lane)
         except BaseException:
             try:
                 if waiting:
                     work._mark_waiting(False)
                 if work._state is not None:
                     (work._state / WAIT_NAME).unlink(missing_ok=True)
-                    if recorded:
+                    if recorded and not self._parallel:
                         (work._state / INFLIGHT_NAME).unlink(missing_ok=True)
+                if self._parallel:
+                    held, self._held = self._held, (None, [], None)
+                    work._release_round(*held)
                 work._release_host()
             finally:
                 work._lock.release()
+                if self._parallel:
+                    work._leave_parallel()
             raise
+        if self._parallel:
+            # the shared lock only guards acquiring a lane: the next round of this door may now take another one
+            work._lock.release()
         return work
 
     def __exit__(self, *exc):
@@ -1807,6 +1941,13 @@ class _Taking:
             from carbon.reconstruction import grade_lanes
 
             grade_lanes.unbind(token)
+        if self._parallel:
+            held, self._held = self._held, (None, [], None)
+            try:
+                work._release_round(*held)
+            finally:
+                work._leave_parallel()
+            return False
         try:
             if work._state is not None:
                 (work._state / INFLIGHT_NAME).unlink(missing_ok=True)

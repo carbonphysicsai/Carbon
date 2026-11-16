@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -51,6 +52,12 @@ WITHDRAWN_CODE = "withdrawn_by_miner"
 #: Slow-tail F2: the longest the king's upkeep step is deferred in a row while other doors wait (engineering pacing,
 #: not a scientific value; Validator-2B / owner may set it): after this the upkeep runs even with a door waiting.
 UPKEEP_DEFER_MAX_SECONDS = 30 * 60
+
+
+#: `AutoGrader._grade_one`: not gradable now, try the next pending task.
+_NEXT = object()
+#: The set of stalled tasks is replaced whole by a door's grade threads; one at a time.
+_STALLED_LOCK = threading.Lock()
 
 
 class AutoGrader:
@@ -371,8 +378,10 @@ class AutoGrader:
             return
 
     def _run_once(self):
-        from .lean_recipe_retention import RetentionUnavailable
-
+        sequencer = getattr(self, "sequencer", None)
+        if sequencer is not None:
+            # a door grading one round per lane (`grade_sequencer`)
+            return self._run_once_parallel(sequencer)
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
         self._settle_queue_places()
@@ -404,112 +413,257 @@ class AutoGrader:
                     continue
                 if decision == "copy":
                     return self._grade_copy(submission_id, first)
-            sampler = _Sampler(
-                self.containers, self.sample_seconds, getattr(self, "gpu", None)
-            )
-            started_ns = time.time_ns()
-            try:
-                self.activity = "grade"
+            outcome = self._grade_one(submission_id)
+            if outcome is _NEXT:
+                continue
+            return outcome
+        return None
+
+    #: The least time between two runs of the incumbent's steps in a parallel door when nothing new made them due
+    #: (an operational bound, not a scientific value): a check that keeps answering "due" without anything to apply
+    #: must not hold every lane back each round.
+    PRELUDE_MIN_SECONDS = 60.0
+
+    def _prelude_due(self, pending):
+        """Whether the incumbent's own steps (stranded challengers, due retries, the crown sweep, the king's upkeep)
+        would DO something now, as the round would run them: in a parallel door they run with no grade in flight
+        (`grade_sequencer.Sequencer.exclusive`), so a doubtful "due" waits `PRELUDE_MIN_SECONDS`.
+        """
+        from . import auto_retry
+
+        now = time.monotonic()
+        if now < getattr(self, "_prelude_after", 0.0):
+            return False
+        try:
+            retries = bool(auto_retry.due(self.root, idle=not pending))
+        except Exception:  # noqa: BLE001
+            retries = False
+        # (`_upkeep_deferred` is not asked here: it moves its own clock; the prelude asks it once, as the serial round)
+        due = bool(
+            (self._stranded_due() and getattr(self, "pool_store", None) is not None)
+            or retries
+            or self._crowns_due()
+            or self._upkeep_due()
+        )
+        if due:
+            self._prelude_after = now + self.PRELUDE_MIN_SECONDS
+        return due
+
+    def _run_once_parallel(self, sequencer):
+        """One grade round of a door that grades one round per lane at once (owner's order 16 Nov; `grade_sequencer`).
+
+        The incumbent's own steps run first, with no grade in flight, and only when due. Then this round claims the
+        next pending task no other round holds (the claim lock, pending order), grades it on its lane, and commits in
+        claim order: `exam_cap` settle, the crown, the Ladder and the marker wait for every earlier claim to finish.
+        Same steps as `_run_once`, in the same order for each task."""
+        if self.chain_degraded():
+            return None  # (H8) a stale chain: grade nothing, mark nothing
+        if self._prelude_due(self.pending()):
+            with sequencer.exclusive():
+                self._settle_queue_places()
+                self.activity = "king"
                 try:
-                    with sampler:
-                        result = self.intake.retain_result(
-                            submission_id,
-                            artifact_directory=self.artifacts,
-                            entry_directory=self.entries,
-                            pool_store=self._pool(),
-                        )
+                    if self._upkeep_deferred():
+                        self._file_stranded()
+                    else:
+                        self._king_upkeep()
                 finally:
                     self.activity = None
-            except RetentionUnavailable as unavailable:
-                code = getattr(unavailable, "code", None) or str(unavailable)
-                if not isinstance(code, str):
-                    # a non-str code (unhashable, e.g. a structured worker code) is never a set member: typed by text
-                    code = str(unavailable) or type(unavailable).__name__
-                if code in _NOT_YET:
-                    # not gradable now: one waiting submission per coldkey (`coldkey_waiting`) does not let it hold its
-                    # coldkey's place (a new set, swapped whole, so the intake's thread reads it without a lock)
+                self._resume_paused_crowns()
+                self._apply_due_retries(idle=not self.pending())
+        skipped = set()
+        while True:
+            with sequencer.task() as task:
+                busy = sequencer.in_flight()
+                # exam-cap allowance: a later task of a group with a grade in flight (or one held back below) waits, so
+                # each group's allowance is read in that group's submission order after its earlier settles, as one at
+                # a time does (None = a group not known: every later task waits behind it)
+                held = sequencer.groups_in_flight()
+                candidates = [
+                    sid
+                    for sid in self.pending()
+                    if sid not in busy and sid not in skipped
+                ]
+                for submission_id in candidates:
+                    group = self._allowance_group(submission_id)
+                    if group is None:
+                        if busy or held:
+                            # an unknown group waits until it is the only grade in flight
+                            held.add(None)
+                            continue
+                    elif None in held or group in held:
+                        held.add(group)
+                        continue
+                    if self._withdrawn_pending(submission_id):
+                        # a withdrawal's row and marker are written in this task's commit turn
+                        task.bind(submission_id, group)
+                        task.turn()
+                        if self._settle_withdrawn(submission_id):
+                            return submission_id, "WITHDRAWN_BY_MINER"
+                        # the repair failed (asked again next round): the task goes on as the serial round does; its
+                        # claim is spent, so this round grades it or ends (it never scans further without the claim)
+                        spent = True
+                    else:
+                        spent = False
+                    copy = self._copy_decision(submission_id)
+                    if copy is not None:
+                        decision, first = copy
+                        if decision == "wait":
+                            self.recipe_copy_waits = (
+                                getattr(self, "recipe_copy_waits", 0) + 1
+                            )
+                            self._log_copy_waits()
+                            if spent:
+                                return None
+                            # its group's later tasks keep their order behind it
+                            held.add(group)
+                            continue
+                        if decision == "copy":
+                            task.bind(submission_id, group)
+                            return self._grade_copy(submission_id, first)
+                    task.bind(submission_id, group)
+                    outcome = self._grade_one(submission_id, turn=task.turn)
+                    if outcome is _NEXT:
+                        # not gradable now: the claim may already be spent, so the next task gets a fresh ticket
+                        skipped.add(submission_id)
+                        break
+                    return outcome
+                else:
+                    return None
+
+    def _allowance_group(self, submission_id):
+        """The exam-cap allowance group of ``submission_id``'s owner (`exam_cap.group_of`), or None when it cannot be
+        read now."""
+        from . import exam_cap
+
+        try:
+            owner = self.intake.adapter.owner(submission_id)
+            return None if owner is None else exam_cap.group_of(owner)
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _withdrawn_pending(self, submission_id):
+        """Whether ``submission_id`` is a withdrawal `_settle_withdrawn` would settle now (read only)."""
+        find = getattr(
+            getattr(self.intake, "adapter", None), "withdrawn_by_miner", None
+        )
+        if find is None:
+            return False
+        try:
+            return find(submission_id) is not None
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _grade_one(self, submission_id, turn=lambda: None):
+        """Grade ONE pending task; returns ``(submission_id, state)``, None (stop the round), or `_NEXT` (try the next
+        pending task). ``turn`` is called before every order-dependent write after the grade's compute (a door grading
+        in parallel commits in claim order, `grade_sequencer`); a door with one lane passes a no-op.
+        """
+        from .lean_recipe_retention import RetentionUnavailable
+
+        sampler = _Sampler(
+            self.containers, self.sample_seconds, getattr(self, "gpu", None)
+        )
+        started_ns = time.time_ns()
+        try:
+            self.activity = "grade"
+            try:
+                with sampler:
+                    result = self.intake.retain_result(
+                        submission_id,
+                        artifact_directory=self.artifacts,
+                        entry_directory=self.entries,
+                        pool_store=self._pool(),
+                    )
+            finally:
+                self.activity = None
+        except RetentionUnavailable as unavailable:
+            code = getattr(unavailable, "code", None) or str(unavailable)
+            if not isinstance(code, str):
+                # a non-str code (unhashable, e.g. a structured worker code) is never a set member: typed by text
+                code = str(unavailable) or type(unavailable).__name__
+            if code in _NOT_YET:
+                # not gradable now: one waiting submission per coldkey (`coldkey_waiting`) does not let it hold its
+                # coldkey's place (a new set, swapped whole, so the intake's thread reads it without a lock)
+                with _STALLED_LOCK:
                     self.stalled = getattr(self, "stalled", frozenset()) | {
                         submission_id
                     }
-                if code in _PENDING or code in _NOT_YET:
-                    continue
-                if (
-                    isinstance(code, str)
-                    and code in _CHAIN_CODES
-                    and self.chain_degraded()
-                ):
-                    # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
-                    # other pending task would meet the same stale chain)
-                    return None
-                self._keep(submission_id, unavailable)
-                self._fail(submission_id, _code(code))
-                return submission_id, "FAILED"
-            except Exception as failure:  # noqa: BLE001 - typed, no private content
-                failure_code = getattr(failure, "code", None)
-                if (
-                    # a code may be any type (a WorkerFailure carries an unhashable one): only a str is a chain code
-                    isinstance(failure_code, str)
-                    and failure_code in _CHAIN_CODES
-                    and self.chain_degraded()
-                ):
-                    # the provider could not read the owner's registration because the chain went stale under this
-                    # round: not yet, never FAILED (H8; the cause the A2 one-shot requeue had to repair by hand). The
-                    # round stops here. Narrow race left (a refresh landing between the provider's read and this check):
-                    # it gives today's behaviour, a FAILED_INFRA give-back = a free rerun.
-                    return None
-                self._keep(submission_id, failure)
-                if _candidate_wall_stop(failure) and self._wall_counted(
-                    submission_id, sampler, started_ns
-                ):
-                    # The candidate's own graph at the graded-inference wall: its outcome, COUNTED, never given back
-                    # as infrastructure (Validator 4 Nov 16:52: else a changed recipe probes the hidden inputs free).
-                    self._write(
-                        submission_id,
-                        "CANDIDATE_FAILED",
-                        code=_WALL_LIMIT_REACHED,
-                        pass_name=getattr(failure, "carbon_pass", None),
-                    )
-                    return submission_id, "CANDIDATE_FAILED"
-                self._fail(
-                    submission_id,
-                    (
-                        REPLAYED_NOT_RERUN
-                        if getattr(failure, "replayed", False) is True
-                        else type(failure).__name__
-                    ),
-                )
-                return submission_id, "FAILED"
-            entry = result.get("entry_id") if type(result) is dict else None
+            if code in _PENDING or code in _NOT_YET:
+                return _NEXT
+            if isinstance(code, str) and code in _CHAIN_CODES and self.chain_degraded():
+                # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
+                # other pending task would meet the same stale chain)
+                return None
+            turn()
+            self._keep(submission_id, unavailable)
+            self._fail(submission_id, _code(code))
+            return submission_id, "FAILED"
+        except Exception as failure:  # noqa: BLE001 - typed, no private content
+            failure_code = getattr(failure, "code", None)
             if (
-                type(result) is dict
-                and result.get("private_evaluation_state") == "CANDIDATE_FAILED"
+                # a code may be any type (a WorkerFailure carries an unhashable one): only a str is a chain code
+                isinstance(failure_code, str)
+                and failure_code in _CHAIN_CODES
+                and self.chain_degraded()
             ):
-                # The candidate's own wall hit, twice, in the official inference pair
-                # (Validator ruling 2026-11-01): typed, unscored, the slot COUNTED. Not a
-                # FAILED marker, and nothing is given back.
+                # the provider could not read the owner's registration because the chain went stale under this
+                # round: not yet, never FAILED (H8; the cause the A2 one-shot requeue had to repair by hand). The
+                # round stops here. Narrow race left (a refresh landing between the provider's read and this check):
+                # it gives today's behaviour, a FAILED_INFRA give-back = a free rerun.
+                return None
+            turn()
+            self._keep(submission_id, failure)
+            if _candidate_wall_stop(failure) and self._wall_counted(
+                submission_id, sampler, started_ns
+            ):
+                # The candidate's own graph at the graded-inference wall: its outcome, COUNTED, never given back
+                # as infrastructure (Validator 4 Nov 16:52: else a changed recipe probes the hidden inputs free).
                 self._write(
                     submission_id,
                     "CANDIDATE_FAILED",
-                    code=result.get("private_evaluation_reason"),
-                    entry_id=entry if type(entry) is str else None,
-                    pass_name=result.get("private_evaluation_pass"),
+                    code=_WALL_LIMIT_REACHED,
+                    pass_name=getattr(failure, "carbon_pass", None),
                 )
                 return submission_id, "CANDIDATE_FAILED"
-            # A grade that could not be computed keeps ITS reason in the marker (a typed code): an operator's
-            # idempotent re-retention reports whatever it meets on the retry, which can hide the first reason.
-            reason = (
-                result.get("private_evaluation_reason")
-                if type(result) is dict
-                else None
+            self._fail(
+                submission_id,
+                (
+                    REPLAYED_NOT_RERUN
+                    if getattr(failure, "replayed", False) is True
+                    else type(failure).__name__
+                ),
             )
+            return submission_id, "FAILED"
+        turn()
+        entry = result.get("entry_id") if type(result) is dict else None
+        if (
+            type(result) is dict
+            and result.get("private_evaluation_state") == "CANDIDATE_FAILED"
+        ):
+            # The candidate's own wall hit, twice, in the official inference pair
+            # (Validator ruling 2026-11-01): typed, unscored, the slot COUNTED. Not a
+            # FAILED marker, and nothing is given back.
             self._write(
                 submission_id,
-                "GRADED",
-                code=_code(reason) if type(reason) is str and reason else None,
+                "CANDIDATE_FAILED",
+                code=result.get("private_evaluation_reason"),
                 entry_id=entry if type(entry) is str else None,
+                pass_name=result.get("private_evaluation_pass"),
             )
-            return submission_id, "GRADED"
-        return None
+            return submission_id, "CANDIDATE_FAILED"
+        # A grade that could not be computed keeps ITS reason in the marker (a typed code): an operator's
+        # idempotent re-retention reports whatever it meets on the retry, which can hide the first reason.
+        reason = (
+            result.get("private_evaluation_reason") if type(result) is dict else None
+        )
+        self._write(
+            submission_id,
+            "GRADED",
+            code=_code(reason) if type(reason) is str and reason else None,
+            entry_id=entry if type(entry) is str else None,
+        )
+        return submission_id, "GRADED"
 
     def _log_copy_waits(self):
         """At most one ``recipe_copy_waits_hourly`` line per hour: how many grade rounds left a copy waiting for its
@@ -586,6 +740,9 @@ class AutoGrader:
                 ),
             )
         except exam_cap.ExamCapRefused as refused:
+            from . import grade_sequencer
+
+            grade_sequencer.turn()  # a parallel door: the refusal's marker in claim order (no-op otherwise)
             self._write(submission_id, "GRADED", code=refused.code)
             return submission_id, "GRADED"
         cap.settle(reservation, recipe_copies.DUPLICATE)

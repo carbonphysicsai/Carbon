@@ -19,6 +19,7 @@ from contextvars import ContextVar
 from functools import partial
 
 from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
+from carbon.reconstruction import remote_lane
 from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
@@ -336,6 +337,22 @@ def _one_trial_per_task(ledger, identity, extra_resources):
 
 
 def _run(ledger, **kwargs):
+    identity = kwargs["identity"]
+    if (
+        remote_lane.current() is not None
+        and kwargs.get("provenance") == "MINER_SELF_REPORTED"
+    ):
+        # The miner's own lane bind-mounts a writable scratch it reads back here: never on a REMOTE grade lane, nor
+        # rebound to this host's cores beside a local lane.
+        raise remote_lane.RemoteLaneDown(b"remote_lane_miner_lane")
+    # A REMOTE grade lane's timing stage, and any op whose control asks for a timing measurement, runs on this host
+    # (`remote_lane.local_for`); every other op of such a round sends its docker calls to the lane's daemon.
+    with remote_lane.local_for(identity, timed=_timed_control(kwargs.get("files"))):
+        return _run_supervised(ledger, **kwargs)
+
+
+def _run_supervised(ledger, **kwargs):
+    import contextvars
     import threading
 
     owner, identity = kwargs["owner"], kwargs["identity"]
@@ -368,7 +385,10 @@ def _run(ledger, **kwargs):
             if errors:
                 raise ValueError(errors[0])
 
-        watcher = threading.Thread(target=watch, daemon=True)
+        # the round's context (its grade lane, so a remote lane's container is cancelled on its own daemon)
+        watcher = threading.Thread(
+            target=contextvars.copy_context().run, args=(watch,), daemon=True
+        )
         watcher.start()
         try:
             result = _run_locked(ledger, before_finish=settle, **kwargs)
@@ -1178,6 +1198,9 @@ def _candidate_resource_stop(
         b"stream command timed out" in diagnostic
         and setup_seconds <= _PROGRAM_SETUP_BUDGET_SECONDS
         and time.monotonic() >= program_started + program_timeout - 1
+        # a REMOTE grade lane: a stalled link looks exactly like a stalled program, so the stop is the candidate's
+        # only with the container observed at the stop and the link up now (else Carbon's)
+        and remote_lane.wall_stop_observable(observation)
     ):
         return (
             WorkerCode.DEADLINE,
@@ -1185,6 +1208,19 @@ def _candidate_resource_stop(
             {"kind": "wall", "seconds": int(program_timeout)},
         )
     return None
+
+
+@contextmanager
+def _remote_inputs_discarded(stage):
+    """On every exit, a REMOTE grade lane's copy of ``stage`` is removed (best effort: a failed link leaves it to the
+    remote machine's own sweep). Outside a remote round, or for a grade session's op (``stage`` None: the session
+    removes its own), nothing."""
+    try:
+        yield
+    finally:
+        if stage is not None:
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_lane.discard(stage)
 
 
 @contextmanager
@@ -1363,6 +1399,16 @@ def _timed_control(files):
     )
 
 
+def _cli_for(remote):
+    """This module's Docker CLI for a recorded REMOTE lane's daemon (`remote_lane.recorded`), or the local one (None)."""
+    cli = DockerCLI()
+    if remote is not None:
+        cli.docker_host = remote.docker_host
+    elif getattr(cli, "docker_host", None) is not None:
+        cli.docker_host = None
+    return cli
+
+
 def _sweep_stale_sessions(root, cli):
     """Remove session folders a dead controller left (its recorded controller is gone and its container is absent);
     a folder whose controller lives, or with no readable intent yet, is never touched.
@@ -1376,10 +1422,17 @@ def _sweep_stale_sessions(root, cli):
                 continue
             if liveness_reaper.process_identity(guard["pid"]) == guard["identity"]:
                 continue
-            if cli.run(
+            # the daemon the session's intent names (a REMOTE grade lane's, or this host's), never the caller's
+            remote = remote_lane.recorded(intent)
+            daemon = _cli_for(remote) if remote is not None else cli
+            if remote is None and getattr(cli, "docker_host", None) is not None:
+                daemon = _cli_for(None)
+            if daemon.run(
                 ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
             ).stdout.strip():
                 continue
+            if remote is not None:
+                remote_lane.discard(directory / "input", remote)
         except Exception:  # noqa: BLE001, S112 - an unreadable folder is left as it is
             continue
         shutil.rmtree(directory, ignore_errors=True)
@@ -1403,6 +1456,8 @@ class _GradeSession:
         self.worker = None
         self.cpuset = None
         self.deadline_unix = None
+        #: The REMOTE grade lane (`remote_lane`) the container runs on, set when it is opened; None: this host.
+        self.remote = None
         self.hold = ExitStack()
         self.sequence = 0
         #: How many session containers this grade opened (evidence for the timing run; never read by a decision).
@@ -1427,6 +1482,7 @@ class _GradeSession:
         """
         if (
             not plain
+            or getattr(self, "broken", False)
             or provenance not in SESSION_PROVENANCES
             or bootstrap != BOOTSTRAP
             or type(seconds) is not int
@@ -1513,6 +1569,8 @@ class _GradeSession:
 
         guard = liveness_reaper.controller_guard()
         deadline = time.time() + SESSION_LIFETIME_SECONDS
+        #: The REMOTE grade lane the container runs on (`remote_lane`), or None: its inputs live there too.
+        self.remote = remote_lane.current()
         try:
             self.hold.enter_context(
                 grade_lanes.container_hold(identity="grade-session-" + self.launch[7:])
@@ -1527,6 +1585,8 @@ class _GradeSession:
                         "owner": self.owner,
                         "deadline_unix": deadline,
                         "reaper": guard,
+                        # a REMOTE grade lane: the daemon (and mirror root) the stale-session sweep must use
+                        **remote_lane.intent_fields(),
                     }
                 ),
             )
@@ -1568,6 +1628,12 @@ class _GradeSession:
                     # A development host that will not unlink a read-only file (Windows); a door unlinks directly.
                     path.chmod(0o600)
                     path.unlink()
+            if self.remote is not None:
+                # the remote container's /input empties too (a link fault raises: the caller closes the session)
+                try:
+                    remote_lane.mirror(self.input, self.remote)
+                except remote_lane.RemoteLaneDown as error:
+                    raise OSError("grade session remote input not cleared") from error
 
     def after_op(self, cli, *, ok):
         """The op's inputs leave `/input`; an op that did not finish cleanly takes the container with it."""
@@ -1588,6 +1654,13 @@ class _GradeSession:
         """
         try:
             if self.created:
+                remote = self.remote
+                if cli is None and remote is not None:
+                    # the container is on the remote lane's daemon, whatever context closes it
+                    from carbon.reconstruction import grade_lanes
+
+                    with grade_lanes.bound(remote):
+                        cli = DockerCLI()
                 cli = cli or DockerCLI()
                 remove_exact_container(
                     cli=cli, container_name=self.name, launch_digest=self.launch
@@ -1596,6 +1669,9 @@ class _GradeSession:
                     ["ps", "-aq", "--filter", "name=^" + self.name + "$"], timeout=10
                 ).stdout.strip():
                     raise ValueError("grade session cleanup uncertain")
+            if self.remote is not None and self.input is not None:
+                with suppress(remote_lane.RemoteLaneDown):
+                    remote_lane.discard(self.input, self.remote)
             if self.directory is not None:
                 shutil.rmtree(self.directory, ignore_errors=True)
         finally:
@@ -1604,6 +1680,26 @@ class _GradeSession:
         self.live = self.created = False
         self.launch = self.name = self.directory = self.input = None
         self.image_id = self.worker = self.cpuset = self.deadline_unix = None
+
+
+def yield_grade_session():
+    """Remove this grade's live session container now (the grade goes on; its next member op opens a new one). Called by
+    a grade waiting for its commit turn (`carbon.challenge_validator.grade_sequencer`): the container holds the host
+    timing gate shared, and an earlier grade's speed stage waits for it exclusive. No-op without a live session.
+    """
+    session = _GRADE_SESSION.get()
+    if session is not None and session.live:
+        try:
+            session.close()
+        except Exception as failure:  # noqa: BLE001 - best effort, retried at exit
+            # Its timing hold is already released (close's finally). The container is NOT confirmed gone: no later op
+            # joins it (`broken`), and the grade session's own exit removes it, confirmed, or reports it.
+            session.live = False
+            session.broken = True
+            with suppress(Exception):
+                from carbon.battery.intake import log
+
+                log("grade_session_yield_uncertain", type=type(failure).__name__)
 
 
 @contextmanager
@@ -1660,6 +1756,9 @@ def _run_locked(
     # positive wall allowance, or none at all. Carbon's own work in this carrier
     # keeps its bounded allowance.
     miner_lane = provenance == "MINER_SELF_REPORTED"
+    if miner_lane and remote_lane.current() is not None:
+        # The miner's own lane bind-mounts a writable scratch it reads back here: never on a REMOTE grade lane.
+        raise remote_lane.RemoteLaneDown(b"remote_lane_miner_lane")
     if miner_lane:
         if seconds is not None and (type(seconds) is not int or seconds < 1):
             raise ValueError("a positive wall allowance, or none")
@@ -1944,6 +2043,8 @@ def _run_locked(
                     None if seconds is None else started_unix + seconds - 30
                 ),
                 **({} if guard is None else {"reaper": guard}),
+                # a REMOTE grade lane: the daemon (and mirror root) recovery must use
+                **remote_lane.intent_fields(),
                 **(
                     {}
                     if session is None
@@ -1993,6 +2094,16 @@ def _run_locked(
                 )
             if session is not None:
                 session.link(stage)
+            # a REMOTE grade lane: the container's /input, at the same path on the lane's machine. A session op's
+            # session already holds the timing gate; any other op holds it shared for the upload, so the upload never
+            # runs beside a local lane's EXCLUSIVE timing stage.
+            if session is not None:
+                remote_lane.mirror(session.input)
+            elif remote_lane.current() is not None:
+                from carbon.reconstruction import grade_lanes
+
+                with grade_lanes.container_hold(identity=identity):
+                    remote_lane.mirror(stage)
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
             if provenance == LIBRARY_BUILD_PROVENANCE:
                 from .research_image import verify_library_worker_image
@@ -2043,6 +2154,10 @@ def _run_locked(
         if session is not None:
             with suppress(Exception):
                 session.after_op(cli, ok=False)
+        else:
+            # a REMOTE grade lane's copy of the inputs never outlives an op that made nothing
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_lane.discard(stage)
         _settle_nothing_created(
             ledger,
             owner=owner,
@@ -2432,7 +2547,10 @@ def _run_locked(
         candidate_stop = stop
     finally:
         try:
-            with _fixed_practice_stage(operation, provenance, "CLEANUP"):
+            with (
+                _fixed_practice_stage(operation, provenance, "CLEANUP"),
+                _remote_inputs_discarded(stage if session is None else None),
+            ):
                 if create_attempted:
                     # C-03 checks the exact launch label, removes the entire
                     # container, and confirms absence before any output becomes an
@@ -3415,12 +3533,17 @@ def reconcile_worker(ledger, *, owner, identity):
             or path.parent.name != "operation-" + launch[7:]
         ):
             raise ValueError("worker intent identity conflict")
-        cli = DockerCLI()
+        # the daemon the intent names: a REMOTE grade lane's, or this host's
+        remote = remote_lane.recorded(intent)
+        cli = _cli_for(remote)
         remove_exact_container(cli=cli, container_name=name, launch_digest=label)
         if cli.run(
             ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
         ).stdout.strip():
             raise ValueError("cleanup uncertain; reservation retained")
+        if remote is not None:
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_lane.discard(path.parent / "input", remote)
         result = {
             "schema": "carbon.autoresearch.worker-reconciliation.v1",
             "operation": path.parent.name,

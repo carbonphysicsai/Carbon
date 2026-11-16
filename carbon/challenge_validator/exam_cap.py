@@ -748,6 +748,10 @@ class ExamCap:
         ``lane_seconds`` is the GPU-lane time of this submission (lane start to release, from
         the receipts); it feeds the rolling mean that sets the cadence.
         """
+        # one door grading in parallel commits in claim order (`grade_sequencer`); a no-op otherwise
+        from . import grade_sequencer
+
+        grade_sequencer.turn()
         if status in COUNTED:
             state = "COUNTED"
         elif status in RELEASED:

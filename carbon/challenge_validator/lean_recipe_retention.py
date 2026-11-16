@@ -1406,6 +1406,19 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
     return raw
 
 
+def _unblock_timing():
+    """A door grading in parallel (`grade_sequencer`): give up this grade's session container BEFORE taking the
+    process-wide pair-read lock (`pair_read_bound`). Another grade may hold that lock while its speed stage waits for the
+    host timing gate EXCLUSIVE, and this container holds the gate SHARED. No-op for an unsequenced grade.
+    """
+    from . import grade_sequencer
+
+    if grade_sequencer.current() is not None:
+        from carbon.development_session.research_carrier import yield_grade_session
+
+        yield_grade_session()
+
+
 def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, procedure):
     """The FIRST fresh instance's flat raw answers of a re-check pair, read through the pair reader with the pair's own
     identities and the subset's shapes; the state is bound to the graded entry's. Unreadable = Carbon's gap.
@@ -1422,6 +1435,7 @@ def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, pro
         for n in tuple(subset_shape)[1:]:
             width *= int(n)
         # read under a ceiling sized from the subset's own shape (a menu version's re-check: Motor / Cooling 1.8 only)
+        _unblock_timing()
         with pair_read_bound.raised(pair_read_bound.pair_bytes(len(subset), width)):
             read = pair_reader.read_inference_pair(
                 raw,
@@ -2198,6 +2212,7 @@ def _retain_selected_pack_evaluation(
             from carbon.scoring.subset_repeat_produce import (
                 produce_registered_dual_measurement,
             )
+        _unblock_timing()  # the produce takes the process-wide pair-read lock
         with pool_menu.staged_rowcheck(menu_rowcheck):
             prepared = produce_registered_dual_measurement(
                 selected_pack=snapshot,
@@ -3501,6 +3516,11 @@ def _counted_bank_grade(
             "private_evaluation_reason": code,
             **_limit_message(adapter, submission_id, code),
         }
+    finally:
+        # the order-dependent reservation is made (or refused): a door grading in parallel lets its next grade claim
+        from . import grade_sequencer
+
+        grade_sequencer.claimed()
     from carbon.development_session.research_carrier import grade_session
 
     try:
