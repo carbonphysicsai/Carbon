@@ -172,9 +172,20 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
     Inside a lane-bound grading round (`carbon.reconstruction.grade_lanes`, two-lane mode only) the round's lane wins:
     exactly that lane's cores, which must be exactly ``count`` of this host's cores, or it refuses. It never falls back to
     the record's or the derived cores, which may be the other lane's.
-    """
-    from carbon.reconstruction import grade_lanes
 
+    A build bound to a remote GPU build slot (`carbon.reconstruction.remote_gpu_build`) runs on the lane machine: exactly
+    its slot's cores there (``logical_cpus`` is that machine's, from its own daemon), whatever round it is part of.
+    """
+    from carbon.reconstruction import grade_lanes, remote_gpu_build
+
+    remote = remote_gpu_build.cpuset()
+    if remote is not None:
+        cores = parse_cpuset(remote)
+        if len(cores) != count or (
+            type(logical_cpus) is int and max(cores) >= logical_cpus
+        ):
+            raise WorkerFailure(WorkerCode.POLICY)
+        return remote
     lane = grade_lanes.current()
     if lane is not None:
         cores = parse_cpuset(lane.cpuset)

@@ -2113,88 +2113,114 @@ class DirectDevelopmentTasksV3:
                 "interface_digest": kit["interface_digest"],
                 "construction_limits_digest": kit["construction_limits_digest"],
             }
-            graph_gpu, graph_note, graph_cpu_ops = None, None, None
-            if source_kind == "graph":
-                graph_gpu, graph_lane = self._graph_lane(source_envelope, image)
-                if graph_gpu is None and self.graph_gpu_image is not None:
-                    from .graph_gpu_lane import OPS_NOTE, cpu_forced_ops
+            # A remote GPU build lane offered to this door's graph GPU builds (`remote_gpu_build`): the graph's GPU
+            # build ops (the repeat probes and the build child) run on its machine; inference, timing and every CPU
+            # build stay here. No lane: unchanged. A catalog bundle's GPU twin keeps this host's GPU: its device is
+            # bound in the door as ``gpu_construction_device``, which no door migration may move yet.
+            from contextlib import nullcontext
 
-                    graph_cpu_ops = cpu_forced_ops(source_envelope, self.graph_gpu_ops)
-                    if graph_cpu_ops is not None:
-                        graph_note = OPS_NOTE
-                if graph_gpu is not None:
-                    repeats, graph_note = self._graph_gpu_repeats(
-                        task_id, request, recipe, binding, source_envelope, graph_gpu
+            from carbon.reconstruction import remote_gpu_build
+
+            with (
+                remote_gpu_build.offered_for(kit["id"], kit["version"])
+                if source_kind == "graph"
+                else nullcontext()
+            ):
+                graph_gpu, graph_note, graph_cpu_ops = None, None, None
+                if source_kind == "graph":
+                    graph_gpu, graph_lane = self._graph_lane(source_envelope, image)
+                    if graph_gpu is None and self.graph_gpu_image is not None:
+                        from .graph_gpu_lane import OPS_NOTE, cpu_forced_ops
+
+                        graph_cpu_ops = cpu_forced_ops(
+                            source_envelope, self.graph_gpu_ops
+                        )
+                        if graph_cpu_ops is not None:
+                            graph_note = OPS_NOTE
+                    if graph_gpu is not None:
+                        repeats, graph_note = self._graph_gpu_repeats(
+                            task_id,
+                            request,
+                            recipe,
+                            binding,
+                            source_envelope,
+                            graph_gpu,
+                        )
+                        if not repeats:
+                            graph_gpu, graph_lane = None, {"image": image}
+                    result = reconstruct_and_infer_graph_public(
+                        self.ledger,
+                        owner=self.owner,
+                        identity=task_id.value,
+                        **graph_lane,
+                        recipe=recipe,
+                        challenge_binding=binding,
+                        limits_document=material["construction_limits_document"],
+                        source_envelope=source_envelope,
+                        train=material["train"],
+                        seed=self._seed_for(task_id.value),
+                        inputs=material["practice_inputs"],
+                        expected_output_shape=material["expected_output_shape"],
+                        allowlist_bytes=material["allowlist_bytes"],
+                        measure_query=task_id.value in self._measured_tasks,
+                        adapter_id=self.discovery.graph_adapter_for(
+                            request.challenge_key
+                        ),
                     )
-                    if not repeats:
-                        graph_gpu, graph_lane = None, {"image": image}
-                result = reconstruct_and_infer_graph_public(
-                    self.ledger,
-                    owner=self.owner,
-                    identity=task_id.value,
-                    **graph_lane,
-                    recipe=recipe,
-                    challenge_binding=binding,
-                    limits_document=material["construction_limits_document"],
-                    source_envelope=source_envelope,
-                    train=material["train"],
-                    seed=self._seed_for(task_id.value),
-                    inputs=material["practice_inputs"],
-                    expected_output_shape=material["expected_output_shape"],
-                    allowlist_bytes=material["allowlist_bytes"],
-                    measure_query=task_id.value in self._measured_tasks,
-                    adapter_id=self.discovery.graph_adapter_for(request.challenge_key),
-                )
-            else:
-                bundle_accelerator = self._build_accelerator_for(
-                    LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
-                )
-                result = reconstruct_and_infer_public(
-                    self.ledger,
-                    owner=self.owner,
-                    identity=task_id.value,
-                    image=image,
-                    inference_image=self.inference_image,
-                    construction_parent=self._parent_for(
+                else:
+                    bundle_accelerator = self._build_accelerator_for(
                         LibraryBundleRef.from_dict(
                             request.recipe["source"]["bundle_ref"]
                         )
-                    ),
-                    recipe=recipe,
-                    challenge_binding=binding,
-                    limits_document=material["construction_limits_document"],
-                    train=material["train"],
-                    example=material["example"],
-                    seed=self._seed_for(task_id.value),
-                    inputs=material["practice_inputs"],
-                    expected_output_shape=material["expected_output_shape"],
-                    allowlist_bytes=material["allowlist_bytes"],
-                    expected_output_dtype=(
-                        output_dtype(material["interface_document"])
-                        if (
-                            kit["id"] == BATTERY_CHALLENGE
-                            and version_registry.find(kit["id"], kit["version"])
-                            is not None
-                        )
-                        # The synthetic Challenge's 1.3 (its own kit module).
-                        or kit["version"] == "1.3"
-                        or physical_material.is_registered(kit["id"], kit["version"])
-                        or task_id.value in self._measured_tasks
-                        else None
-                    ),
-                    measure_query=task_id.value in self._measured_tasks,
-                    total_deadline_started=total_deadline_started,
-                    **(
-                        {}
-                        if bundle_accelerator is None
-                        else {"accelerator": bundle_accelerator}
-                    ),
-                    **(
-                        {}
-                        if self.inference_accelerator is None
-                        else {"inference_accelerator": self.inference_accelerator}
-                    ),
-                )
+                    )
+                    result = reconstruct_and_infer_public(
+                        self.ledger,
+                        owner=self.owner,
+                        identity=task_id.value,
+                        image=image,
+                        inference_image=self.inference_image,
+                        construction_parent=self._parent_for(
+                            LibraryBundleRef.from_dict(
+                                request.recipe["source"]["bundle_ref"]
+                            )
+                        ),
+                        recipe=recipe,
+                        challenge_binding=binding,
+                        limits_document=material["construction_limits_document"],
+                        train=material["train"],
+                        example=material["example"],
+                        seed=self._seed_for(task_id.value),
+                        inputs=material["practice_inputs"],
+                        expected_output_shape=material["expected_output_shape"],
+                        allowlist_bytes=material["allowlist_bytes"],
+                        expected_output_dtype=(
+                            output_dtype(material["interface_document"])
+                            if (
+                                kit["id"] == BATTERY_CHALLENGE
+                                and version_registry.find(kit["id"], kit["version"])
+                                is not None
+                            )
+                            # The synthetic Challenge's 1.3 (its own kit module).
+                            or kit["version"] == "1.3"
+                            or physical_material.is_registered(
+                                kit["id"], kit["version"]
+                            )
+                            or task_id.value in self._measured_tasks
+                            else None
+                        ),
+                        measure_query=task_id.value in self._measured_tasks,
+                        total_deadline_started=total_deadline_started,
+                        **(
+                            {}
+                            if bundle_accelerator is None
+                            else {"accelerator": bundle_accelerator}
+                        ),
+                        **(
+                            {}
+                            if self.inference_accelerator is None
+                            else {"inference_accelerator": self.inference_accelerator}
+                        ),
+                    )
             if (
                 type(result) is not DirectReconstructionResult
                 or result.execution_boundary != "C03_DOCKER"

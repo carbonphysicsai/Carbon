@@ -48,11 +48,16 @@ def host_device():
     owner-authorised path reads it, and a miner-lane record (another schema)
     fails here.
     """
+    from carbon.reconstruction import remote_gpu_build
     from carbon.reconstruction.host_inventory import (
         HostDeviceRecord,
         require_host_device,
     )
 
+    # A build bound to a remote GPU build slot runs on that machine's device: its own strict record, never this host's.
+    remote = remote_gpu_build.device()
+    if remote is not None:
+        return remote
     return require_host_device(HostDeviceRecord.load(HOST_ROOT), GPU_PROFILE)
 
 
@@ -61,12 +66,16 @@ def miner_host_device():
     installed and sound, else the miner-lane record (some GPU fields unknown).
     Only code that runs for the miner role calls this, and it states that from
     the run's own role, never from the record."""
+    from carbon.reconstruction import remote_gpu_build
     from carbon.reconstruction.host_inventory import (
         MinerHostDeviceRecord,
         require_miner_host_device,
     )
     from carbon.reconstruction.worker.model import WorkerFailure
 
+    remote = remote_gpu_build.device()
+    if remote is not None:
+        return remote
     try:
         return host_device()
     except WorkerFailure as strict_failure:
@@ -613,12 +622,30 @@ def require_strict_observation(observation: object) -> dict[str, object]:
     return observation
 
 
+def _allocation_dir() -> Path:
+    """Where the running launch's device allocation record lives: HOST_ROOT, or the slot directory of a remote GPU
+    build slot (`carbon.reconstruction.remote_gpu_build`), which has one record per slot, not one per host.
+    """
+    from carbon.reconstruction import remote_gpu_build
+
+    slot = remote_gpu_build.allocation_root()
+    return HOST_ROOT if slot is None else Path(slot)
+
+
 def reject_existing_device_containers(*, cli, device_uuid: str | None = None) -> None:
     """After controller loss, a released flock cannot duplicate a live allocation.
 
     Retained containers block admission until the existing watchdog/reconciliation
     path confirms exact removal. This function never deletes unrelated work.
+
+    A remote GPU build slot admits up to its lane's slot count of Carbon containers
+    on the device, each with its own slot record (`remote_gpu_build.reject_crowded`).
     """
+    from carbon.reconstruction import remote_gpu_build
+
+    if remote_gpu_build.current_op() is not None:
+        remote_gpu_build.reject_crowded(cli)
+        return
     if (HOST_ROOT / "active-allocation.json").exists():
         raise WorkerFailure(WorkerCode.CONFLICT)
     raw = cli.run(
@@ -660,13 +687,14 @@ def mark_device_allocation(
         "authority": authority,
     }
     try:
-        path = HOST_ROOT / "active-allocation.json"
+        root = _allocation_dir()
+        path = root / "active-allocation.json"
         with path.open("xb") as stream:
             stream.write(canonical(payload))
             stream.flush()
             os.fsync(stream.fileno())
         path.chmod(0o600)
-        descriptor = os.open(HOST_ROOT, os.O_DIRECTORY)
+        descriptor = os.open(root, os.O_DIRECTORY)
         try:
             os.fsync(descriptor)
         finally:
@@ -678,7 +706,7 @@ def mark_device_allocation(
 def _allocation_document() -> dict | None:
     from carbon.development_session.research_admission import private_json
 
-    path = HOST_ROOT / "active-allocation.json"
+    path = _allocation_dir() / "active-allocation.json"
     if not path.exists():
         return None
     try:
@@ -747,8 +775,8 @@ def finish_device_allocation(*, container_name: str, launch_digest: str) -> None
         raise WorkerFailure(WorkerCode.CLEANUP)
     verify_device_release()
     try:
-        (HOST_ROOT / "active-allocation.json").unlink()
-        descriptor = os.open(HOST_ROOT, os.O_DIRECTORY)
+        (_allocation_dir() / "active-allocation.json").unlink()
+        descriptor = os.open(_allocation_dir(), os.O_DIRECTORY)
         try:
             os.fsync(descriptor)
         finally:
@@ -785,8 +813,8 @@ def finish_local_device_allocation(*, container_name: str, launch_digest: str) -
     ):
         raise WorkerFailure(WorkerCode.CLEANUP)
     try:
-        (HOST_ROOT / "active-allocation.json").unlink()
-        descriptor = os.open(HOST_ROOT, os.O_DIRECTORY)
+        (_allocation_dir() / "active-allocation.json").unlink()
+        descriptor = os.open(_allocation_dir(), os.O_DIRECTORY)
         try:
             os.fsync(descriptor)
         finally:

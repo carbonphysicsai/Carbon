@@ -1,0 +1,687 @@
+"""The remote GPU build lane (`carbon.reconstruction.remote_gpu_build`; owner's order Mon 16 Nov 2026 via the Lead, TE3):
+a door's GPU BUILD ops run on a rented GPU's ssh docker daemon in one of N slots, inputs mirrored there, the door keeps the
+ledger and computes the state digest, and a link or GPU fault is Carbon's (FAILED_INFRA), never the miner's. No ssh, no
+docker, no GPU: every process boundary is faked, and every device UUID is synthetic.
+"""
+
+from __future__ import annotations
+
+import ast
+import json
+import threading
+from pathlib import Path
+
+import accelerator_host
+import pytest
+
+from carbon.reconstruction import (
+    accelerators,
+    host_execution,
+    remote_gpu_build,
+    remote_lane,
+)
+from carbon.reconstruction.remote_lane import RemoteLaneDown
+from carbon.reconstruction.worker import accelerator_runtime
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+HOST = "ssh://carbon-build@a100-1.example:2222"
+STAGE = "/var/lib/carbon/doors"
+KIND = "NVIDIA A100-SXM4-80GB"
+UUID = "GPU-a1a1a1a1-0000-1111-2222-333333333333"
+BUILD = "direct-" + "a" * 64 + "-build"
+
+
+def _install(
+    root, *, slots=2, cpusets=("0-3", "4-7"), kind=KIND, row=True, values=None
+):
+    """A synthetic operator install: the lane record, the lane machine's device record and a values row."""
+    root.mkdir(parents=True, exist_ok=True)
+    (root / remote_gpu_build.RECORD).write_text(
+        json.dumps(
+            {
+                "schema": remote_gpu_build.SCHEMA,
+                "lanes": [
+                    {
+                        "docker_host": HOST,
+                        "stage_root": STAGE,
+                        "slot_cpusets": list(cpusets),
+                    }
+                ],
+            }
+        )
+    )
+    lane_dir = root / remote_gpu_build.LANE_DIR.format(index=0)
+    accelerator_host.install(
+        lane_dir,
+        accelerator_host.document(
+            "hosted_instance",
+            device_uuid=UUID,
+            device_kind=kind,
+            device_memory_mib=81920,
+            compute_capability="8.0",
+        ),
+    )
+    values = root / "values.json" if values is None else values
+    values.write_text(
+        json.dumps(
+            {
+                "schema": remote_gpu_build.VALUES_SCHEMA,
+                "rows": (
+                    {
+                        "electric-motor-magnetics 1.8": {
+                            "device_kind": KIND,
+                            "slots": slots,
+                        }
+                    }
+                    if row
+                    else {}
+                ),
+            }
+        )
+    )
+    return values
+
+
+@pytest.fixture
+def host(tmp_path, monkeypatch):
+    root = tmp_path / "accelerators"
+    monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", root)
+    monkeypatch.setattr(remote_gpu_build, "_docker_binary", lambda: "/usr/bin/docker")
+    return root
+
+
+def _lane(host, **kwargs):
+    values = _install(host, **kwargs)
+    return remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
+
+
+def _op(identity=BUILD, **kwargs):
+    return remote_gpu_build.op(
+        identity,
+        accelerator=kwargs.pop("accelerator", "VALIDATOR_OWN_GPU"),
+        provenance=kwargs.pop("provenance", "DIRECT_GRAPH_PUBLIC_BUILD"),
+        timed=kwargs.pop("timed", False),
+        **kwargs,
+    )
+
+
+# -- configuration ---------------------------------------------------------------------------------------------------------
+
+
+def test_no_record_and_no_row_is_no_lane(host):
+    assert remote_gpu_build.load(host) == ()
+    values = _install(host, row=False)
+    assert (
+        remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
+        is None
+    )
+
+
+def test_the_checked_in_values_file_names_no_door_yet():
+    document = json.loads(remote_gpu_build.VALUES.read_bytes())
+    assert (
+        document["schema"] == remote_gpu_build.VALUES_SCHEMA and document["rows"] == {}
+    )
+
+
+def test_a_well_formed_install_is_a_door_lane(host):
+    lane = _lane(host)
+    assert (
+        lane.slots == 2
+        and lane.device.device_uuid == UUID
+        and lane.device.device_kind == KIND
+    )
+    assert lane.spec.slot_cpusets == ("0-3", "4-7") and lane.spec.docker_host == HOST
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"docker_host": "tcp://10.0.0.2:2375"},
+        {"stage_root": "/"},
+        {"slot_cpusets": []},
+        {"slot_cpusets": ["0-3", "3-6"]},  # overlapping
+        {"slot_cpusets": ["0-3", "4-5"]},  # unequal
+        {"slot_cpusets": ["0-1"] * 5},
+        {"extra": 1},
+    ],
+)
+def test_a_malformed_record_refuses(host, change):
+    _install(host)
+    document = json.loads((host / remote_gpu_build.RECORD).read_text())
+    document["lanes"][0].update(change)
+    (host / remote_gpu_build.RECORD).write_text(json.dumps(document))
+    with pytest.raises(ValueError):
+        remote_gpu_build.load(host)
+
+
+@pytest.mark.parametrize(
+    ("row", "expected"),
+    [
+        ({"device_kind": KIND}, {"device_kind": KIND, "slots": 1}),
+        ({"device_kind": KIND, "slots": 4}, {"device_kind": KIND, "slots": 4}),
+        ({"device_kind": KIND, "slots": 0}, None),
+        ({"device_kind": KIND, "slots": 5}, None),
+        ({"device_kind": KIND, "slots": True}, None),
+        ({"device_kind": "x; rm -rf /"}, None),
+        ({"slots": 2}, None),
+        ({"device_kind": KIND, "other": 1}, None),
+    ],
+)
+def test_the_values_row_defaults_to_one_slot_and_refuses_anything_else(
+    tmp_path, row, expected
+):
+    path = tmp_path / "values.json"
+    path.write_text(
+        json.dumps({"schema": remote_gpu_build.VALUES_SCHEMA, "rows": {"c 1": row}})
+    )
+    assert remote_gpu_build.values_row("c", "1", path=path) == expected
+    assert remote_gpu_build.values_row("c", "2", path=path) is None
+    assert remote_gpu_build.values_row("c", "1", path=tmp_path / "missing.json") is None
+
+
+def test_a_device_of_another_kind_refuses(host):
+    with pytest.raises(ValueError, match="device_kind"):
+        _lane(host, kind="NVIDIA GeForce RTX 4090")
+
+
+def test_more_slots_than_cpusets_refuses(host):
+    with pytest.raises(ValueError, match="slots_exceed"):
+        _lane(host, slots=3)
+
+
+def test_a_missing_device_record_refuses(host):
+    values = _install(host)
+    (host / remote_gpu_build.LANE_DIR.format(index=0) / "host-device.json").unlink()
+    with pytest.raises(ValueError, match="device_record"):
+        remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
+
+
+def test_a_lane_that_broke_since_start_is_carbons_at_the_build(host):
+    values = _install(host)
+    (host / remote_gpu_build.LANE_DIR.format(index=0) / "host-device.json").unlink()
+    with (
+        pytest.raises(RemoteLaneDown) as raised,
+        remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
+    ):
+        pass
+    assert raised.value.code is WorkerCode.UNAVAILABLE
+
+
+# -- which ops go ----------------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("identity", "accelerator", "provenance", "timed", "expected"),
+    [
+        (BUILD, "VALIDATOR_OWN_GPU", "X", False, True),
+        ("task-1~gpu1", "MINER_OWN_GPU", "X", False, True),
+        ("task-1~gpu2", "MINER_OWN_GPU", "X", False, True),
+        (BUILD, None, "X", False, False),  # a CPU build
+        (
+            BUILD,
+            "VALIDATOR_OWN_GPU",
+            "MINER_SELF_REPORTED",
+            False,
+            False,
+        ),  # the miner's own lane
+        (BUILD, "VALIDATOR_OWN_GPU", "X", True, False),  # a timing measurement
+        ("direct-" + "a" * 64 + "-inference", "VALIDATOR_OWN_GPU", "X", False, False),
+        ("direct-" + "a" * 64 + "-timed", "VALIDATOR_OWN_GPU", "X", False, False),
+        ("single-call-abc", "VALIDATOR_OWN_GPU", "X", False, False),
+        ("task-1~gpu3", "VALIDATOR_OWN_GPU", "X", False, False),
+    ],
+)
+def test_only_gpu_builds_are_eligible(
+    identity, accelerator, provenance, timed, expected
+):
+    assert (
+        remote_gpu_build.eligible(
+            identity, accelerator=accelerator, provenance=provenance, timed=timed
+        )
+        is expected
+    )
+
+
+def test_an_op_outside_an_offer_or_ineligible_is_unchanged(host):
+    lane = _lane(host)
+    with _op() as binding:
+        assert binding is None and remote_gpu_build.current_op() is None
+    with remote_gpu_build.offered(lane), _op(accelerator=None) as binding:
+        assert binding is None and remote_gpu_build.device() is None
+        assert remote_gpu_build.cli() is None and remote_gpu_build.intent_fields() == {}
+
+
+def test_n_slots_run_at_once_and_the_next_build_waits_then_is_carbons(
+    host, monkeypatch
+):
+    lane = _lane(host, slots=2)
+    held, release, seen = threading.Barrier(3), threading.Event(), []
+
+    def build():
+        with remote_gpu_build.offered(lane), _op() as binding:
+            seen.append(binding.slot)
+            held.wait(5)
+            release.wait(5)
+
+    threads = [threading.Thread(target=build) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    held.wait(5)
+    assert sorted(seen) == [0, 1]
+    monkeypatch.setattr(remote_gpu_build, "SLOT_WAIT_SECONDS", 0)
+    with (
+        pytest.raises(RemoteLaneDown) as raised,
+        remote_gpu_build.offered(lane),
+        _op(poll_s=0, sleep=lambda _: None),
+    ):
+        pass
+    assert raised.value.code is WorkerCode.UNAVAILABLE
+    release.set()
+    for thread in threads:
+        thread.join(5)
+    with remote_gpu_build.offered(lane), _op() as binding:
+        assert binding.slot == 0  # freed
+
+
+# -- what a bound op runs with ----------------------------------------------------------------------------------------------
+
+
+def test_a_bound_op_uses_the_lane_machines_device_cores_and_allocation_record(host):
+    lane = _lane(host)
+    with remote_gpu_build.offered(lane), _op() as binding:
+        assert accelerator_runtime.host_device().digest == lane.device.digest
+        assert accelerator_runtime.miner_host_device().digest == lane.device.digest
+        assert host_execution.resolve_cpuset(logical_cpus=16, count=4) == binding.cpuset
+        with pytest.raises(WorkerFailure):
+            host_execution.resolve_cpuset(logical_cpus=16, count=2)
+        assert remote_lane.docker_host() == HOST
+        assert remote_lane.current_environment()["DOCKER_HOST"] == HOST
+        from carbon.reconstruction.worker.model import MINER_HOST_AUTHORITY
+
+        launch = "sha256:" + "b" * 64
+        accelerator_runtime.mark_device_allocation(
+            container_name="c", launch_digest=launch, authority=MINER_HOST_AUTHORITY
+        )
+        assert (binding.slot_dir / "active-allocation.json").exists()
+        assert not (host / "active-allocation.json").exists()
+        assert accelerator_runtime.owns_device_allocation(
+            container_name="c", launch_digest=launch
+        )
+        accelerator_runtime.finish_local_device_allocation(
+            container_name="c", launch_digest=launch
+        )
+        assert not (binding.slot_dir / "active-allocation.json").exists()
+    assert remote_lane.docker_host() is None
+
+
+def test_the_worker_environment_is_the_pinned_deterministic_one_on_the_lane_device(
+    host,
+):
+    lane = _lane(host)
+    environment = accelerators.worker_environment(
+        accelerators.GPU_PROFILE,
+        accelerators.AcceleratorRole.VALIDATOR_RECONSTRUCTION,
+        host_device=lane.device,
+    )
+    assert environment["CUDA_VISIBLE_DEVICES"] == UUID
+    assert environment["CARBON_ACCELERATOR_DEVICE_KIND"] == KIND
+    assert environment["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+    assert environment["NVIDIA_TF32_OVERRIDE"] == "0"
+    for flag in accelerators.GPU_DETERMINISM_XLA_FLAGS:
+        assert flag in environment["XLA_FLAGS"]
+    assert environment["XLA_PYTHON_CLIENT_PREALLOCATE"] == "false"
+
+
+def _argv():
+    return [
+        "create",
+        "--env",
+        "XLA_PYTHON_CLIENT_PREALLOCATE=false",
+        "--env",
+        "XLA_PYTHON_CLIENT_ALLOCATOR=platform",
+        "--env",
+        "XLA_FLAGS=" + " ".join(accelerators.GPU_DETERMINISM_XLA_FLAGS),
+        "--env",
+        "CUBLAS_WORKSPACE_CONFIG=:4096:8",
+        "sha256:" + "c" * 64,
+    ]
+
+
+def test_one_slot_changes_nothing(host):
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    source = '"""doc"""\nfrom __future__ import annotations\nx = 1\n'
+    with remote_gpu_build.offered(lane), _op():
+        assert remote_gpu_build.slot_environment() == {}
+        assert remote_gpu_build.with_slot_environment(_argv()) == _argv()
+        assert remote_gpu_build.with_torch_prelude(source) == source
+        assert remote_gpu_build.request_fields() == {}
+
+
+def test_n_slots_cap_each_processs_device_memory_and_keep_determinism(host):
+    lane = _lane(host, slots=2)
+    with remote_gpu_build.offered(lane), _op():
+        argv = remote_gpu_build.with_slot_environment(_argv())
+        assert remote_gpu_build.request_fields() == {"remote_gpu_slots": 2}
+    environment = dict(
+        value.split("=", 1)
+        for index, value in enumerate(argv)
+        if index and argv[index - 1] == "--env"
+    )
+    assert argv[-1] == _argv()[-1] and argv[0] == "create"
+    assert environment["XLA_PYTHON_CLIENT_PREALLOCATE"] == "false"
+    assert (
+        environment["XLA_PYTHON_CLIENT_ALLOCATOR"] == "bfc"
+    )  # the fraction binds only the BFC allocator
+    assert environment["XLA_PYTHON_CLIENT_MEM_FRACTION"] == "0.45"
+    assert environment[remote_gpu_build.TORCH_FRACTION_ENV] == "0.45"
+    assert environment["XLA_FLAGS"] == " ".join(accelerators.GPU_DETERMINISM_XLA_FLAGS)
+    assert environment["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+    assert argv.count("--env") == len(environment)
+
+
+@pytest.mark.parametrize(
+    ("slots", "fraction"), [(1, 0.9), (2, 0.45), (3, 0.3), (4, 0.22)]
+)
+def test_the_slot_fraction(slots, fraction):
+    assert remote_gpu_build.slot_fraction(slots) == fraction
+    assert (
+        remote_gpu_build.slot_fraction(slots) * slots <= remote_gpu_build.MEMORY_SHARE
+    )
+
+
+def test_the_torch_prelude_follows_the_docstring_and_future_imports(host):
+    lane = _lane(host, slots=2)
+    source = (
+        '"""doc\nmore"""\n\nfrom __future__ import annotations\n\nimport os\nx = 1\n'
+    )
+    with remote_gpu_build.offered(lane), _op():
+        changed = remote_gpu_build.with_torch_prelude(source)
+    module = ast.parse(changed)
+    assert ast.get_docstring(module) == "doc\nmore"
+    assert (
+        isinstance(module.body[1], ast.ImportFrom)
+        and module.body[1].module == "__future__"
+    )
+    assert remote_gpu_build.TORCH_PRELUDE in changed
+    assert changed.index(remote_gpu_build.TORCH_PRELUDE) > changed.index("annotations")
+    assert changed.endswith("import os\nx = 1\n")
+    compile(changed, "program.py", "exec")
+
+
+def test_the_prelude_compiles_on_the_carriers_real_build_programs(host):
+    from carbon.development_session import bundle_construction_worker
+
+    lane = _lane(host, slots=2)
+    with remote_gpu_build.offered(lane), _op():
+        for program in (bundle_construction_worker.BUILD_PROGRAM,):
+            changed = remote_gpu_build.with_torch_prelude(program)
+            compile(changed, "program.py", "exec")
+            assert changed != program
+
+
+def test_the_prelude_caps_torch_and_leaves_a_jax_image_alone(monkeypatch):
+    calls = []
+
+    class Cuda:
+        @staticmethod
+        def is_available():
+            return True
+
+        @staticmethod
+        def set_per_process_memory_fraction(fraction, device):
+            calls.append((fraction, device))
+
+    import sys
+    import types
+
+    fake = types.ModuleType("torch")
+    fake.cuda = Cuda
+    monkeypatch.setitem(sys.modules, "torch", fake)
+    monkeypatch.setenv(remote_gpu_build.TORCH_FRACTION_ENV, "0.45")
+    prelude = compile(remote_gpu_build.TORCH_PRELUDE, "prelude", "exec")
+    exec(prelude, {})  # noqa: S102 - the prelude itself
+    assert calls == [(0.45, 0)]
+    monkeypatch.setitem(sys.modules, "torch", None)  # a JAX image: no torch
+    exec(prelude, {})  # noqa: S102 - the prelude itself
+    assert calls == [(0.45, 0)]
+
+
+# -- the remote machine ----------------------------------------------------------------------------------------------------
+
+
+def test_the_wrapper_is_the_docker_cli_with_the_lanes_daemon(host):
+    lane = _lane(host)
+    text = remote_gpu_build.wrapper_text(HOST, "/home/carbon", "/usr/bin/docker")
+    assert "DOCKER_HOST=ssh://carbon-build@a100-1.example:2222\n" in text
+    assert text.endswith('exec /usr/bin/docker "$@"\n')
+    with pytest.raises(ValueError):
+        remote_gpu_build.wrapper_text(
+            "ssh://x@h -oProxyCommand=y", "/home/carbon", "/usr/bin/docker"
+        )
+    with pytest.raises(RemoteLaneDown):
+        remote_gpu_build.wrapper_text(HOST, "/home/$(id)", "/usr/bin/docker")
+    with remote_gpu_build.offered(lane), _op():
+        cli = remote_gpu_build.cli()
+    path = Path(cli.executable)
+    assert (
+        path == Path(lane.lane_dir) / "docker" and path.stat().st_mode & 0o777 == 0o500
+    )
+    assert cli.docker_host == HOST
+
+
+def test_inputs_mirror_to_the_lane_machine_only_inside_a_bound_op(host, monkeypatch):
+    lane = _lane(host)
+    calls = []
+    monkeypatch.setattr(
+        remote_lane,
+        "mirror",
+        lambda stage, binding: calls.append(("mirror", stage, binding)),
+    )
+    monkeypatch.setattr(
+        remote_lane,
+        "discard",
+        lambda stage, binding: calls.append(("discard", stage, binding)),
+    )
+    remote_gpu_build.mirror(Path(STAGE) / "x" / "input")
+    remote_gpu_build.discard(Path(STAGE) / "x" / "input")
+    assert calls == []
+    with remote_gpu_build.offered(lane), _op() as binding:
+        remote_gpu_build.mirror(Path(STAGE) / "x" / "input")
+        remote_gpu_build.discard(Path(STAGE) / "x" / "input")
+    assert [call[0] for call in calls] == ["mirror", "discard"] and calls[0][
+        2
+    ] is binding
+    # remote_lane's own guards apply: only paths under the lane's stage root
+    with pytest.raises(RemoteLaneDown):
+        remote_lane._remote_path(Path("/etc/passwd"), binding)
+
+
+def test_the_gpu_probe_names_the_recorded_device(host, monkeypatch):
+    lane = _lane(host)
+    binding = remote_gpu_build.OpBinding(lane, 0)
+    rows = {"value": f"{UUID}, {KIND}\n".encode()}
+    monkeypatch.setattr(remote_gpu_build, "_ssh_capture", lambda *a, **k: rows["value"])
+    assert remote_gpu_build.gpu_present(binding)
+    rows["value"] = b"GPU-other, NVIDIA A100-SXM4-80GB\n"
+    assert not remote_gpu_build.gpu_present(binding)
+
+    def down(*a, **k):
+        raise RemoteLaneDown(b"x")
+
+    monkeypatch.setattr(remote_gpu_build, "_ssh_capture", down)
+    assert not remote_gpu_build.gpu_present(binding)
+
+
+class _FakeCLI:
+    def __init__(self, stdout=b""):
+        self.stdout, self.calls = stdout, []
+
+    def run(self, arguments, timeout=30, accepted=(0,)):
+        from types import SimpleNamespace
+
+        self.calls.append(arguments)
+        return SimpleNamespace(stdout=self.stdout, returncode=0, stderr=b"")
+
+
+def test_at_most_n_carbon_containers_share_the_device(host):
+    lane = _lane(host, slots=2)
+    with remote_gpu_build.offered(lane), _op() as binding:
+        accelerator_runtime.reject_existing_device_containers(
+            cli=_FakeCLI(b'"a"\n'), device_uuid=UUID
+        )
+        with pytest.raises(WorkerFailure) as raised:
+            accelerator_runtime.reject_existing_device_containers(
+                cli=_FakeCLI(b'"a"\n"b"\n'), device_uuid=UUID
+            )
+        assert raised.value.code is WorkerCode.CONFLICT
+        (binding.slot_dir / "active-allocation.json").write_text("{}")
+        with pytest.raises(WorkerFailure):
+            accelerator_runtime.reject_existing_device_containers(
+                cli=_FakeCLI(), device_uuid=UUID
+            )
+
+
+def test_a_changed_device_record_refuses_at_dispatch(host):
+    lane = _lane(host)
+    with remote_gpu_build.offered(lane), _op(), pytest.raises(RemoteLaneDown):
+        remote_gpu_build.check_host(_FakeCLI(), None, None)
+
+
+# -- failure typing --------------------------------------------------------------------------------------------------------
+
+
+def test_a_failure_with_the_link_or_gpu_down_is_carbons(host, monkeypatch):
+    lane = _lane(host)
+    binding = remote_gpu_build.OpBinding(lane, 0)
+    error = WorkerFailure(WorkerCode.RUNTIME)
+    monkeypatch.setattr(remote_lane, "link_up", lambda b: True)
+    monkeypatch.setattr(remote_gpu_build, "gpu_present", lambda b: True)
+    assert remote_gpu_build.retyped(error, binding) is None
+    monkeypatch.setattr(remote_gpu_build, "gpu_present", lambda b: False)
+    down = remote_gpu_build.retyped(error, binding)
+    assert isinstance(down, RemoteLaneDown) and down.code is WorkerCode.UNAVAILABLE
+    monkeypatch.setattr(remote_lane, "link_up", lambda b: False)
+    assert isinstance(remote_gpu_build.retyped(error, binding), RemoteLaneDown)
+    assert remote_gpu_build.retyped(RemoteLaneDown(b"x"), binding) is None
+    assert (
+        remote_gpu_build.retyped(error, None) is None
+    )  # outside a remote op: as before
+
+
+def test_the_carrier_retypes_a_remote_build_failure_and_leaves_other_ops_alone(
+    host, monkeypatch
+):
+    from carbon.development_session import research_carrier
+
+    lane = _lane(host)
+
+    def failing(ledger, **kwargs):
+        assert (remote_gpu_build.current_op() is not None) is kwargs["expect_remote"]
+        raise WorkerFailure(WorkerCode.RUNTIME)
+
+    monkeypatch.setattr(research_carrier, "_run_supervised", failing)
+    monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: False)
+    with remote_gpu_build.offered(lane):
+        with pytest.raises(RemoteLaneDown):
+            research_carrier._run(
+                None,
+                identity=BUILD,
+                accelerator="VALIDATOR_OWN_GPU",
+                provenance="X",
+                expect_remote=True,
+            )
+        inference = "direct-" + "a" * 64 + "-inference"
+        with pytest.raises(WorkerFailure) as raised:
+            research_carrier._run(
+                None, identity=inference, provenance="X", expect_remote=False
+            )
+        assert (
+            type(raised.value) is WorkerFailure
+            and raised.value.code is WorkerCode.RUNTIME
+        )
+    monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: True)
+    with remote_gpu_build.offered(lane):
+        with pytest.raises(WorkerFailure) as raised:
+            research_carrier._run(
+                None,
+                identity=BUILD,
+                accelerator="VALIDATOR_OWN_GPU",
+                provenance="X",
+                expect_remote=True,
+            )
+        assert (
+            type(raised.value) is WorkerFailure
+        )  # a healthy lane: the failure stands as it is
+
+
+def test_a_wall_stop_on_the_lane_is_never_the_candidates(host):
+    from carbon.development_session import research_carrier
+
+    lane = _lane(host)
+    stop = {
+        "container_name": "c",
+        "launch_digest": "sha256:" + "d" * 64,
+        "image_id": "sha256:" + "e" * 64,
+        "program_started": 0.0,
+        "program_timeout": 1,
+        "setup_seconds": 0,
+        "memory_limit_bytes": None,
+        "deadline": 0.0,
+        "observation": {"status": "UNOBSERVED"},
+        "accelerated": True,
+    }
+    error = WorkerFailure(
+        WorkerCode.DEADLINE, private_diagnostic=b"stream command timed out"
+    )
+    assert (
+        research_carrier._candidate_resource_stop(None, error, **stop)[0]
+        is WorkerCode.DEADLINE
+    )
+    with remote_gpu_build.offered(lane), _op():
+        assert research_carrier._candidate_resource_stop(None, error, **stop) is None
+
+
+def test_the_carriers_device_record_is_the_lane_machines_inside_a_bound_op(host):
+    from carbon.development_session import research_carrier
+
+    lane = _lane(host)
+    with remote_gpu_build.offered(lane), _op():
+        assert research_carrier._gpu_device().digest == lane.device.digest
+
+
+# -- recovery --------------------------------------------------------------------------------------------------------------
+
+
+def test_an_intent_records_the_slot_and_recovery_rebinds_it(host):
+    lane = _lane(host)
+    with remote_gpu_build.offered(lane), _op() as binding:
+        fields = remote_gpu_build.intent_fields()
+    assert fields == {
+        "remote_gpu_build": {
+            "docker_host": HOST,
+            "stage_root": STAGE,
+            "lane": 0,
+            "slot": binding.slot,
+        }
+    }
+    recovered = remote_gpu_build.recorded(fields)
+    assert (
+        recovered.slot == binding.slot
+        and recovered.lane.device.digest == lane.device.digest
+    )
+    with remote_gpu_build.bound(recovered):
+        assert accelerator_runtime.host_device().digest == lane.device.digest
+    assert remote_gpu_build.recorded({}) is None
+    for broken in (
+        {"remote_gpu_build": {"docker_host": HOST}},
+        {
+            "remote_gpu_build": {
+                **fields["remote_gpu_build"],
+                "docker_host": "ssh://x@other",
+            }
+        },
+        {"remote_gpu_build": {**fields["remote_gpu_build"], "slot": 9}},
+    ):
+        with pytest.raises(ValueError):
+            remote_gpu_build.recorded(broken)
