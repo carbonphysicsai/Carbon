@@ -419,16 +419,35 @@ class AutoGrader:
             return outcome
         return None
 
-    def _prelude_due(self):
-        """Whether the incumbent's own steps (stranded challengers, due retries, the crown sweep, the king's upkeep) have
-        anything to do now: in a parallel door they run with no grade in flight (`grade_sequencer.Sequencer.exclusive`).
+    #: The least time between two runs of the incumbent's steps in a parallel door when nothing new made them due
+    #: (an operational bound, not a scientific value): a check that keeps answering "due" without anything to apply
+    #: must not hold every lane back each round.
+    PRELUDE_MIN_SECONDS = 60.0
+
+    def _prelude_due(self, pending):
+        """Whether the incumbent's own steps (stranded challengers, due retries, the crown sweep, the king's upkeep)
+        would DO something now, as the round would run them: in a parallel door they run with no grade in flight
+        (`grade_sequencer.Sequencer.exclusive`), so a doubtful "due" waits `PRELUDE_MIN_SECONDS`.
         """
-        return bool(
-            self._stranded_due()
-            or self._retries_due()
+        from . import auto_retry
+
+        now = time.monotonic()
+        if now < getattr(self, "_prelude_after", 0.0):
+            return False
+        try:
+            retries = bool(auto_retry.due(self.root, idle=not pending))
+        except Exception:  # noqa: BLE001
+            retries = False
+        deferred = self._upkeep_deferred()
+        due = bool(
+            (self._stranded_due() and getattr(self, "pool_store", None) is not None)
+            or retries
             or self._crowns_due()
-            or self._upkeep_due()
+            or (not deferred and self._upkeep_due())
         )
+        if due:
+            self._prelude_after = now + self.PRELUDE_MIN_SECONDS
+        return due
 
     def _run_once_parallel(self, sequencer):
         """One grade round of a door that grades one round per lane at once (owner's order 16 Nov; `grade_sequencer`).
@@ -439,7 +458,7 @@ class AutoGrader:
         Same steps as `_run_once`, in the same order for each task."""
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
-        if self._prelude_due():
+        if self._prelude_due(self.pending()):
             with sequencer.exclusive():
                 self._settle_queue_places()
                 self.activity = "king"
@@ -456,14 +475,31 @@ class AutoGrader:
         while True:
             with sequencer.task() as task:
                 busy = sequencer.in_flight()
+                # exam-cap allowance: a later task of a group with a grade in flight (or one held back below) waits, so
+                # each group's allowance is read in that group's submission order after its earlier settles, as one at
+                # a time does (None = a group not known: every later task waits behind it)
+                held = sequencer.groups_in_flight()
                 candidates = [
                     sid
                     for sid in self.pending()
                     if sid not in busy and sid not in skipped
                 ]
                 for submission_id in candidates:
-                    if self._settle_withdrawn(submission_id):
+                    group = self._allowance_group(submission_id)
+                    if group is None:
+                        if busy or held:
+                            # an unknown group waits until it is the only grade in flight
+                            held.add(None)
+                            continue
+                    elif None in held or group in held:
+                        held.add(group)
                         continue
+                    if self._withdrawn_pending(submission_id):
+                        # a withdrawal's row and marker are written in this task's commit turn
+                        task.bind(submission_id, group)
+                        task.turn()
+                        self._settle_withdrawn(submission_id)
+                        return submission_id, "WITHDRAWN_BY_MINER"
                     copy = self._copy_decision(submission_id)
                     if copy is not None:
                         decision, first = copy
@@ -472,11 +508,14 @@ class AutoGrader:
                                 getattr(self, "recipe_copy_waits", 0) + 1
                             )
                             self._log_copy_waits()
+                            held.add(
+                                group
+                            )  # its group's later tasks keep their order behind it
                             continue
                         if decision == "copy":
-                            task.bind(submission_id)
+                            task.bind(submission_id, group)
                             return self._grade_copy(submission_id, first)
-                    task.bind(submission_id)
+                    task.bind(submission_id, group)
                     outcome = self._grade_one(submission_id, turn=task.turn)
                     if outcome is _NEXT:
                         # not gradable now: the claim may already be spent, so the next task gets a fresh ticket
@@ -485,6 +524,29 @@ class AutoGrader:
                     return outcome
                 else:
                     return None
+
+    def _allowance_group(self, submission_id):
+        """The exam-cap allowance group of ``submission_id``'s owner (`exam_cap.group_of`), or None when it cannot be
+        read now."""
+        from . import exam_cap
+
+        try:
+            owner = self.intake.adapter.owner(submission_id)
+            return None if owner is None else exam_cap.group_of(owner)
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _withdrawn_pending(self, submission_id):
+        """Whether ``submission_id`` is a withdrawal `_settle_withdrawn` would settle now (read only)."""
+        find = getattr(
+            getattr(self.intake, "adapter", None), "withdrawn_by_miner", None
+        )
+        if find is None:
+            return False
+        try:
+            return find(submission_id) is not None
+        except Exception:  # noqa: BLE001
+            return False
 
     def _grade_one(self, submission_id, turn=lambda: None):
         """Grade ONE pending task; returns ``(submission_id, state)``, None (stop the round), or `_NEXT` (try the next
@@ -672,6 +734,9 @@ class AutoGrader:
                 ),
             )
         except exam_cap.ExamCapRefused as refused:
+            from . import grade_sequencer
+
+            grade_sequencer.turn()  # a parallel door: the refusal's marker in claim order (no-op otherwise)
             self._write(submission_id, "GRADED", code=refused.code)
             return submission_id, "GRADED"
         cap.settle(reservation, recipe_copies.DUPLICATE)

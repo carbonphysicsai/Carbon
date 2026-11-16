@@ -57,7 +57,9 @@ def test_a_later_claim_commits_only_after_every_earlier_one(_no_session):
     for thread in threads:
         thread.join(10)
     assert log == ["commit a", "commit b"]
-    assert len(_no_session) == 2  # each gave up its session container before waiting
+    assert (
+        len(_no_session) == 1
+    )  # only the grade that had to wait gave up its session container
 
 
 def test_the_next_claim_waits_for_the_reservation():
@@ -131,9 +133,11 @@ def _grader(pending, steps):
     grader.sequencer = grade_sequencer.Sequencer()
     grader.marked = set()
     grader.chain_degraded = lambda: False
-    grader._prelude_due = lambda: False
+    grader._prelude_due = lambda pending: False
     grader.pending = lambda: [sid for sid in pending if sid not in grader.marked]
     grader._settle_withdrawn = lambda sid: False
+    grader._withdrawn_pending = lambda sid: False
+    grader._allowance_group = lambda sid: "h:" + sid  # one hotkey per task
     grader._copy_decision = lambda sid: None
 
     def grade_one(sid, turn=lambda: None):
@@ -191,7 +195,8 @@ def test_a_task_not_gradable_now_lets_the_round_try_the_next(monkeypatch):
 def test_the_incumbents_steps_run_only_when_due_and_alone(monkeypatch):
     ran = []
     grader = _grader([], lambda *a: None)
-    grader._prelude_due = lambda: True
+    grader._prelude_due = lambda pending: True
+    grader.pending = list
     grader._settle_queue_places = lambda: ran.append("places")
     grader._upkeep_deferred = lambda: False
     grader._king_upkeep = lambda: ran.append("king")
@@ -204,3 +209,58 @@ def test_the_incumbents_steps_run_only_when_due_and_alone(monkeypatch):
 def test_a_grader_without_a_sequencer_keeps_the_serial_round():
     grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
     assert getattr(grader, "sequencer", None) is None
+
+
+def test_a_later_task_of_the_same_allowance_group_waits_for_the_earlier_one():
+    """Two tasks of one hotkey: the second is not claimed while the first is in flight (its allowance is read after
+    the first settles, as one at a time does); another hotkey's task is."""
+    claimed, a_started, b_claimed, release = (
+        [],
+        threading.Event(),
+        threading.Event(),
+        threading.Event(),
+    )
+
+    def steps(grader, sid, turn):
+        claimed.append(sid)
+        grade_sequencer.claimed()
+        if sid == "a1":
+            a_started.set()
+            assert release.wait(5)
+        else:
+            b_claimed.set()
+        turn()
+        grader.marked.add(sid)
+        return sid, "GRADED"
+
+    grader = _grader(["a1", "a2", "b1"], steps)
+    grader._allowance_group = lambda sid: "h:" + sid[0]
+    rounds = [threading.Thread(target=grader._run_once) for _ in range(2)]
+    rounds[0].start()
+    assert a_started.wait(5)
+    rounds[1].start()
+    assert b_claimed.wait(5)
+    assert claimed == ["a1", "b1"]  # a2 held back behind a1
+    release.set()
+    for thread in rounds:
+        thread.join(5)
+    assert grader._run_once() == ("a2", "GRADED")
+
+
+def test_a_lone_task_of_an_unknown_group_is_still_graded():
+    def steps(grader, sid, turn):
+        grader.marked.add(sid)
+        return sid, "GRADED"
+
+    grader = _grader(["x"], steps)
+    grader._allowance_group = lambda sid: None
+    assert grader._run_once() == ("x", "GRADED")
+
+
+def test_a_withdrawal_is_settled_in_its_commit_turn():
+    settled = []
+    grader = _grader(["w"], lambda *a: None)
+    grader._withdrawn_pending = lambda sid: True
+    grader._settle_withdrawn = lambda sid: bool(settled.append(sid) or True)
+    assert grader._run_once() == ("w", "WITHDRAWN_BY_MINER")
+    assert settled == ["w"]

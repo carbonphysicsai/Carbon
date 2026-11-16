@@ -35,11 +35,20 @@ class Sequencer:
         self._next = 0
         #: ticket -> submission id, for every grade claimed and not yet finished
         self._open = {}
+        #: ticket -> its task's exam-cap allowance group (`exam_cap.group_of`), None when unknown
+        self._groups = {}
 
     def in_flight(self):
         """The submission ids claimed and not yet finished (a claim skips them)."""
         with self._order:
             return {sid for sid in self._open.values() if sid is not None}
+
+    def groups_in_flight(self):
+        """The exam-cap allowance groups of the grades in flight (a claim holds a later task of the same group back,
+        so its allowance is read after the earlier one settles, as one at a time does). An unknown group is "any".
+        """
+        with self._order:
+            return set(self._groups.values())
 
     @contextmanager
     def task(self):
@@ -58,6 +67,7 @@ class Sequencer:
             state.release_claim()
             with self._order:
                 self._open.pop(ticket, None)
+                self._groups.pop(ticket, None)
                 self._order.notify_all()
 
     @contextmanager
@@ -77,9 +87,11 @@ class _Task:
         self._claim_held = True
         self._turned = False
 
-    def bind(self, submission_id):
+    def bind(self, submission_id, group=None):
+        """Name the task this ticket grades, and its exam-cap allowance group (None: unknown)."""
         with self.sequencer._order:
             self.sequencer._open[self.ticket] = submission_id
+            self.sequencer._groups[self.ticket] = group
 
     def release_claim(self):
         if self._claim_held:
@@ -92,10 +104,20 @@ class _Task:
         if self._turned:
             return
         self.release_claim()
-        from carbon.development_session.research_carrier import yield_grade_session
-
-        yield_grade_session()
         order = self.sequencer._order
+        with order:
+            earlier = any(other < self.ticket for other in self.sequencer._open)
+        if earlier:
+            from carbon.development_session.research_carrier import (
+                yield_grade_session,
+            )
+
+            # best effort: a removal that cannot be confirmed still releases the session's timing hold, and the
+            # grade session's own exit removes (and reports) it again
+            try:
+                yield_grade_session()
+            except Exception:  # noqa: BLE001, S110
+                pass
         with order:
             while any(other < self.ticket for other in self.sequencer._open):
                 order.wait(1.0)
