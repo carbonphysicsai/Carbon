@@ -127,7 +127,8 @@ _COPY_NEW = (
     '        shutil.copyfile(work / (name + ".py"), destination)\n'
 )
 _LAST_LINE = (
-    "            blocks.extend(case_block(index) for index in range(low, high))\n"
+    "            blocks.extend(sample.get(index) if index in sample else case_block(index)\n"
+    "                          for index in range(low, high))\n"
 )
 
 _PROCS_CALLS = """    # public constant (zeros), so no output can depend on another case.
@@ -156,12 +157,17 @@ __COUNT_SOURCE__
         np.save(procs_dir / f"head-{low}.tmp.npy", blocks[0])
         os.replace(procs_dir / f"head-{low}.tmp.npy", procs_dir / f"head-{low}.npy")
         # every executable exists now, made for the parent's cpuset: only now every thread goes to one core
-        for task in os.listdir("/proc/self/task"):
-            try:
-                os.sched_setaffinity(int(task), {core})
-            except OSError:
-                pass
-        os.sched_setaffinity(0, {core})
+        pinned = set()
+        while True:  # until no thread appears that is not pinned yet
+            tasks = set(os.listdir("/proc/self/task")) - pinned
+            if not tasks:
+                break
+            for task in tasks:
+                try:
+                    os.sched_setaffinity(int(task), {core})
+                except OSError:
+                    pass
+            pinned |= tasks
         for index in range(low + 1, high):
             blocks.append(case_block(index))
         np.save(procs_dir / f"part-{low}.tmp.npy", np.concatenate(blocks))
@@ -187,7 +193,7 @@ __COUNT_SOURCE__
     if script is None or not os.path.isfile(script) or jax.default_backend() != "cpu":
         procs = 1
     slices = [(k * rows // procs, (k + 1) * rows // procs) for k in range(procs)] if procs > 1 else []
-    done = {}
+    done, sample = {}, {}
     if slices:
         import subprocess
         same = lambda a, b: a.dtype == b.dtype and a.shape == b.shape and a.tobytes() == b.tobytes()
@@ -200,9 +206,14 @@ __COUNT_SOURCE__
                 if index not in sample:
                     sample[index] = case_block(index)
         per_row = (time.perf_counter() - clock) / max(1, len(sample) - 1)
+        # Workers only when they can help and the candidate's OWN one-process time fits the wall: a candidate too slow
+        # for the wall in one process runs in one process and meets the wall exactly as before (its stop is its own).
+        if len(sample) >= rows or time.monotonic() + per_row * (rows - len(sample)) > case_wall_end:
+            slices = []
+    if slices:
         # operational, not science: a worker runs on one core, so a row may take up to the cores' count times longer
         allowance = __SLACK__ * (first + per_row * len(cores) * max(high - low for low, high in slices))
-        workers, agreed, started = [], True, True
+        workers, agreed, started, late = [], True, True, set()
         try:
             shutil.rmtree(procs_dir, ignore_errors=True)
             procs_dir.mkdir()
@@ -211,6 +222,11 @@ __COUNT_SOURCE__
                     [sys.executable, "-I", script],
                     env=dict(case_env, __CONTROL_NAME__=f"{k},{low},{high},{cores[k]}"),
                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        except OSError as error:
+            started = agreed = False
+            print(f"case_procs: workers not started ({type(error).__name__}); every call in one process",
+                  file=sys.stderr)
+        try:
             deadline = min(time.monotonic() + allowance, case_wall_end)
             waiting = dict(enumerate(slices))
             while waiting and agreed:
@@ -225,6 +241,7 @@ __COUNT_SOURCE__
                     if time.monotonic() > deadline:
                         for k in waiting:
                             workers[k].kill()  # past its deadline: its slice is computed here
+                            late.add(k)
                         break
                     time.sleep(0.05)
             for k, worker in enumerate(workers):
@@ -235,6 +252,7 @@ __COUNT_SOURCE__
                     code = worker.wait(timeout=max(0.0, deadline - time.monotonic()))
                 except subprocess.TimeoutExpired:
                     worker.kill()
+                    late.add(k)
                     code = worker.wait()
                 part = procs_dir / f"part-{low}.npy"
                 if code == 0 and part.exists():
@@ -245,10 +263,12 @@ __COUNT_SOURCE__
                     else:
                         agreed = False
                 if agreed and low not in done:
-                    print(f"case_procs: worker {k} exit {code}; its rows in one process", file=sys.stderr)
-        except OSError:
-            started = agreed = False
-            print("case_procs: a worker could not start; every call in one process", file=sys.stderr)
+                    why = "past its deadline" if k in late else f"exit {code}, {'a' if part.exists() else 'no'} part"
+                    print(f"case_procs: worker {k} {why}; its rows in one process", file=sys.stderr)
+        except OSError as error:
+            agreed = False
+            print(f"case_procs: worker results unreadable ({type(error).__name__}); every call in one process",
+                  file=sys.stderr)
         finally:
             for worker in workers:
                 if worker.poll() is None:
@@ -270,7 +290,9 @@ __COUNT_SOURCE__
         if low in done:
             blocks.append(done[low])
         else:
-            blocks.extend(case_block(index) for index in range(low, high))
+            # the rows this process already computed (the sample) are its own answers: reused, not recomputed
+            blocks.extend(sample.get(index) if index in sample else case_block(index)
+                          for index in range(low, high))
 """
 
 

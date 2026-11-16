@@ -159,7 +159,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
 #: sha256 of Motor 1.8's per-case processes program at this head: any edit of the GRADED program (the count
 #: function's source included) must change this pin on purpose.
 PROCS_PROGRAM_SHA256 = (
-    "76b14f5355b12e3da743975d2c81a23253a853d2258d78ed91afe902ac3f4a3b"
+    "d97c120de552ef5bec7df9ddc4809e0047773781bc4675bbd02e244c8d3c75ae"
 )
 
 
@@ -394,7 +394,7 @@ _SPAWN = '                    [sys.executable, "-I", script],\n'
                 _WORKER_START,
                 _WORKER_START + "        if low > 0:\n            os._exit(3)\n",
             ),
-            "exit 3; its rows in one process",
+            "exit 3, no part; its rows in one process",
         ),
         # a worker that hangs after its first row: stopped at its deadline, its slice in one process
         (
@@ -417,7 +417,7 @@ _SPAWN = '                    [sys.executable, "-I", script],\n'
             lambda source: source.replace(
                 _WORKER_START, _WORKER_START + "        os._exit(3)\n"
             ),
-            "exit 3; its rows in one process",
+            "exit 3, no part; its rows in one process",
         ),
         # no worker can start: every call in one process
         (
@@ -425,7 +425,7 @@ _SPAWN = '                    [sys.executable, "-I", script],\n'
                 _SPAWN,
                 '                    ["/nonexistent/carbon-python", "-I", script],\n',
             ),
-            "a worker could not start; every call in one process",
+            "workers not started (FileNotFoundError); every call in one process",
         ),
         # a worker whose first row agrees but whose LAST row differs: every call in one process
         (
@@ -462,17 +462,18 @@ def test_a_differing_or_failed_worker_gives_the_one_process_answers(
 def test_a_fallback_that_cannot_finish_inside_the_wall_stops_as_carbons(
     motor18, tmp_path
 ):
-    """Every worker fails and no time is left before the wall margin: the parent stops at once, nonzero, with the
-    CARBON line on stderr (the host reads it as Carbon's), never running into the wall.
+    """Every worker fails and (forced here) the parent's own calls for their rows cannot finish before the wall margin:
+    the parent stops at once, nonzero, with the CARBON line on stderr (the host reads it as Carbon's), never running
+    into the wall.
     """
     from test_paired_inference import FixtureLedger
 
     def variant(source):
-        wall = f"case_start + {MOTOR_18_WALL} - "
-        assert source.count(wall) == 1 and source.count(_WORKER_START) == 1
-        return source.replace(wall, "case_start + 0 - ").replace(
-            _WORKER_START, _WORKER_START + "        os._exit(3)\n"
-        )
+        check = "1.25 * per_row * left > case_wall_end"
+        assert source.count(check) == 1 and source.count(_WORKER_START) == 1
+        return source.replace(
+            check, "1.25 * per_row * left > case_wall_end - 10**9"
+        ).replace(_WORKER_START, _WORKER_START + "        os._exit(3)\n")
 
     ledger, seen = FixtureLedger(tmp_path / "wall"), []
     try:
@@ -560,3 +561,35 @@ def test_the_host_never_charges_the_candidate_for_a_pass_that_fell_back():
         )
         is None
     )
+
+
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_a_candidate_too_slow_for_the_wall_in_one_process_gets_no_workers(
+    motor18, tmp_path
+):
+    """The candidate's own one-process time (projected from the sample) is past the wall margin (forced here): no
+    worker starts, no fallback line is written, and the pass is the one-process pass, so a real overrun would meet the
+    wall and be the candidate's, exactly as before."""
+    from test_paired_inference import FixtureLedger
+
+    rows = _rows(motor18, 40)
+    serial = _serial(motor18, tmp_path, rows)
+
+    def variant(source):
+        wall = f"case_start + {MOTOR_18_WALL} - "
+        assert source.count(wall) == 1
+        return source.replace(wall, "case_start + 0 - ").replace(
+            _WORKER_START,
+            _WORKER_START + "        raise SystemExit('no worker may start')\n",
+        )
+
+    ledger, seen = FixtureLedger(tmp_path / "slow"), []
+    try:
+        primary, repeat = _graded(
+            motor18, ledger, _file_runner(ledger, seen, variant), "slow", rows
+        )
+    finally:
+        ledger.connection.close()
+    assert all("case_procs:" not in call["stderr"] for call in seen)
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
