@@ -123,6 +123,54 @@ def _withdrawn_cancellation(provider, task_value):
     return type(cancellation) is str and cancellation == WITHDRAW_PREFIX + task_value
 
 
+#: OPERATIONAL, not science: how often a parallel build round samples its host (as `AutoGrader`'s grade samples).
+BUILD_PROBE_SECONDS = 5.0
+
+
+@contextlib.contextmanager
+def _build_wall_guard(claims):
+    """A19 (V2 F-A19): while a door runs parallel build rounds (``claims``: its `grade_sequencer.OwnerClaims`), each build
+    samples its host (Carbon worker containers, foreign GPU compute) and a wall stop is the candidate's only when every
+    sample saw at most its own container and no foreign GPU compute (`research_carrier.BUILD_WALL_GUARD`); a build on a
+    REMOTE lane is never quiet (its neighbours there are invisible from here). Without claims: nothing, as before.
+    """
+    if claims is None:
+        yield
+        return
+    from carbon.challenge_validator import host_quiet
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction import remote_lane
+
+    def count():
+        ids = host_quiet.worker_containers()
+        return None if ids is None else len(ids)
+
+    probe = host_quiet.Probe(
+        lock_held=True,
+        containers=count,
+        gpu=host_quiet.foreign_gpu_compute,
+        seconds=BUILD_PROBE_SECONDS,
+    ).start()
+
+    def quiet():
+        if remote_lane.current() is not None:
+            return False
+        samples, gpu = list(probe.samples), list(probe.gpu_samples)
+        return bool(
+            samples
+            and gpu
+            and all(sample is not None and sample <= 1 for sample in samples)
+            and all(value == 0 for value in gpu)
+        )
+
+    token = research_carrier.BUILD_WALL_GUARD.set(quiet)
+    try:
+        yield
+    finally:
+        research_carrier.BUILD_WALL_GUARD.reset(token)
+        probe.verdict()  # ends the sampling thread
+
+
 class LeanRecipeAdapter(ChallengeAdapter):
     """One registered kit; provider instances remain bound to signer owners."""
 
@@ -868,7 +916,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
             raise
         if task.state is DirectTaskStateV3.QUEUED:
             try:
-                provider.run_queued_task(task_id)
+                with _build_wall_guard(getattr(self, "owner_claims", None)):
+                    provider.run_queued_task(task_id)
             except ResearchTaskProviderError as refused:
                 if (
                     refused.code is ResearchServiceErrorCode.INVALID_TASK_TRANSITION

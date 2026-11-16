@@ -1201,6 +1201,8 @@ def _candidate_resource_stop(
         # a REMOTE grade lane: a stalled link looks exactly like a stalled program, so the stop is the candidate's
         # only with the container observed at the stop and the link up now (else Carbon's)
         and remote_lane.wall_stop_observable(observation)
+        # a build beside other rounds: its wall is the candidate's only on a quiet host (A19, V2 F-A19)
+        and _build_wall_quiet()
     ):
         return (
             WorkerCode.DEADLINE,
@@ -1341,6 +1343,16 @@ t=os.stat('/scratch')
 if t.st_atime_ns or t.st_mtime_ns: sys.exit(9)
 """
 _GRADE_SESSION: ContextVar = ContextVar("carbon_grade_session", default=None)
+#: A19 (V2's F-A19): a build that runs beside other rounds (a door's parallel build rounds, `lean_recipe`) carries a
+#: guard over its host: called at a wall stop, it says whether the host was QUIET for that build (no other Carbon
+#: worker container, no foreign GPU compute). A wall stop is the candidate's only on a quiet host, else Carbon's
+#: (FAILED_INFRA, retried), as for grades (`host_quiet`). None: no guard (today's single build loop), unchanged.
+BUILD_WALL_GUARD: ContextVar = ContextVar("carbon_build_wall_guard", default=None)
+
+
+def _build_wall_quiet():
+    guard = BUILD_WALL_GUARD.get()
+    return True if guard is None else bool(guard())
 
 
 def _container_names(launch_digest):
