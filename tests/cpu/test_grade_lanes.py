@@ -288,17 +288,17 @@ def _held(path):
     return False
 
 
-def _in_round(work, entered, leave, seen):
-    with work.taking("grade", has_work=lambda: True):
+def _in_round(work, entered, leave, seen, kind="grade"):
+    with work.taking(kind, has_work=lambda: True):
         seen.append((grade_lanes.current(), work._lane))
         entered.set()
         leave.wait(10)
 
 
-def _start_round(work):
+def _start_round(work, kind="grade"):
     entered, leave, seen = threading.Event(), threading.Event(), []
     thread = threading.Thread(
-        target=_in_round, args=(work, entered, leave, seen), daemon=True
+        target=_in_round, args=(work, entered, leave, seen, kind), daemon=True
     )
     thread.start()
     return entered, leave, seen, thread
@@ -340,8 +340,9 @@ def test_two_two_lane_doors_grade_at_once_each_on_its_own_lane(host, tmp_path):
     second = _start_round(works[1])
     assert second[0].wait(5)
     (lane_a, held_a), (lane_b, held_b) = first[2][0], second[2][0]
-    assert (lane_a.index, lane_a.cpuset) == (0, "0-3") and held_a == lane_a
-    assert (lane_b.index, lane_b.cpuset) == (1, "4-7") and held_b == lane_b
+    # a two-lane round keeps its lane on the round itself (parallel rounds), never on the door's shared lock object
+    assert (lane_a.index, lane_a.cpuset) == (0, "0-3") and held_a is None
+    assert (lane_b.index, lane_b.cpuset) == (1, "4-7") and held_b is None
     for state, lane in zip(states, (lane_a, lane_b)):
         record = json.loads((state / INFLIGHT_NAME).read_text())
         assert (record["lane"], record["cpuset"]) == (lane.index, lane.cpuset)
@@ -361,6 +362,83 @@ def test_two_two_lane_doors_grade_at_once_each_on_its_own_lane(host, tmp_path):
     assert not receipt_job.grading_busy(host)
     for name in ("lane-0", "lane-1"):
         assert not (host / f"official-grading.{name}.holder").exists()
+
+
+# -- one door, a round per lane (parallel rounds, owner's order 16 Nov) ---------------------------------------------------
+
+
+def test_one_two_lane_door_runs_two_grade_rounds_at_once_one_per_lane(host, tmp_path):
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    work = _WorkLock(host, state_dir=state, poll_s=POLL, lanes=LANES)
+    first = _start_round(work)
+    assert first[0].wait(5)
+    second = _start_round(work)
+    assert second[0].wait(5)
+    lanes = sorted(round_[2][0][0].index for round_ in (first, second))
+    assert lanes == [0, 1]
+    # a third round of the same door waits: both lanes are held
+    third = _start_round(work)
+    assert not third[0].wait(0.5)
+    # the door's in-flight record names its OLDEST live round while any runs (a drain sees busy)
+    record = json.loads((state / INFLIGHT_NAME).read_text())
+    assert record["lane"] == first[2][0][0].index
+    first[1].set()
+    first[3].join(5)
+    assert third[0].wait(5)  # the freed lane goes to the waiting round
+    assert third[2][0][0].index == first[2][0][0].index
+    assert (state / INFLIGHT_NAME).exists()
+    for round_ in (second, third):
+        round_[1].set()
+        round_[3].join(5)
+    assert not (state / INFLIGHT_NAME).exists()
+    assert not receipt_job.grading_busy(host)
+    for name in ("lane-0", "lane-1"):
+        assert not (host / f"official-grading.{name}.holder").exists()
+
+
+def test_rounds_of_another_kind_still_never_overlap(host, tmp_path):
+    """A build (advance) round never runs beside a grade round of the same door, as before."""
+    work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    grade = _start_round(work, "grade")
+    assert grade[0].wait(5)
+    advance = _start_round(work, "advance")
+    assert not advance[0].wait(0.5)
+    grade[1].set()
+    grade[3].join(5)
+    assert advance[0].wait(5)
+    advance[1].set()
+    advance[3].join(5)
+
+
+def test_a_one_lane_door_still_runs_one_round_at_a_time(host):
+    work = _WorkLock(host, poll_s=POLL)
+    first = _start_round(work)
+    assert first[0].wait(5)
+    second = _start_round(work)
+    assert not second[0].wait(0.5)
+    first[1].set()
+    first[3].join(5)
+    assert second[0].wait(5)
+    second[1].set()
+    second[3].join(5)
+
+
+def test_a_draining_door_gives_up_a_round_waiting_for_a_slot(host, tmp_path):
+    from carbon.challenge_validator.direct_intake import DRAIN_NAME, WorkDeclined
+
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    work = _WorkLock(host, state_dir=state, poll_s=POLL, lanes=LANES)
+    rounds = [_start_round(work) for _ in range(2)]
+    for round_ in rounds:
+        assert round_[0].wait(5)
+    (state / DRAIN_NAME).touch()
+    with pytest.raises(WorkDeclined), work.taking("grade"):
+        pass
+    for round_ in rounds:
+        round_[1].set()
+        round_[3].join(5)
 
 
 def test_a_two_lane_round_never_runs_beside_a_door_that_does_not_know_about_lanes(host):
