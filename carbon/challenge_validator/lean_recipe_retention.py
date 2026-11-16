@@ -1848,45 +1848,60 @@ def _single_call_raw(
                 ),
             )
         )
-        stage = _infer_state(
-            provider.ledger,
-            owner=owner,
-            identity="single-call-"
-            + hashlib.sha256(
-                (snapshot.manifest_digest + "|" + submission_id).encode()
-            ).hexdigest()
-            + ("" if attempt is None else f"-attempt{attempt}"),
-            inference_image=_inference_image_of(provider, regrade),
-            recipe=(
-                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
-                if regrade is None
-                else regrade.recipe
-            ),
-            binding={
-                "challenge_id": kit["id"],
-                "challenge_version": kit["version"],
-                "train_digest": kit["train_digest"],
-                "interface_digest": kit["interface_digest"],
-                "construction_limits_digest": kit["construction_limits_digest"],
-            },
-            state=artifacts["state.npz"],
-            state_digest=entry["state_digest"],
-            inputs=delivered,
-            expected_output_shape=(
-                single_call_timing.SAMPLE,
-                *tuple(material["expected_output_shape"])[1:],
-            ),
-            expected_output_dtype=output_dtype(interface),
-            allowlist_bytes=material["allowlist_bytes"],
-            seconds=policy["inference_wall_seconds_max"],
-            accelerator=getattr(provider, "inference_accelerator", None),
-            runner=runner,
-            single_call={"indices": indices, "warmup": public},
-            # The version's registered rebuild wall (a graph-route-v2 / pool version's is
-            # longer than the carrier's default 600 s): without it the carrier refuses the
-            # allowance ('bounded worker wall allowance required', valV3 2026-10-27).
-            **rebuild_wall_kwargs(limits),
-            **{**graph_query, "program": derived},
+        name = hashlib.sha256(
+            (snapshot.manifest_digest + "|" + submission_id).encode()
+        ).hexdigest() + ("" if attempt is None else f"-attempt{attempt}")
+        ceiling = _speed_ceiling(adapter)
+
+        def timed(identity):
+            return _infer_state(
+                provider.ledger,
+                owner=owner,
+                identity=identity,
+                inference_image=_inference_image_of(provider, regrade),
+                recipe=(
+                    ConstructionRecipe.from_dict(
+                        provider._requests[submission_id].recipe
+                    )
+                    if regrade is None
+                    else regrade.recipe
+                ),
+                binding={
+                    "challenge_id": kit["id"],
+                    "challenge_version": kit["version"],
+                    "train_digest": kit["train_digest"],
+                    "interface_digest": kit["interface_digest"],
+                    "construction_limits_digest": kit["construction_limits_digest"],
+                },
+                state=artifacts["state.npz"],
+                state_digest=entry["state_digest"],
+                inputs=delivered,
+                expected_output_shape=(
+                    single_call_timing.SAMPLE,
+                    *tuple(material["expected_output_shape"])[1:],
+                ),
+                expected_output_dtype=output_dtype(interface),
+                allowlist_bytes=material["allowlist_bytes"],
+                seconds=policy["inference_wall_seconds_max"],
+                accelerator=getattr(provider, "inference_accelerator", None),
+                runner=runner,
+                single_call={"indices": indices, "warmup": public},
+                # The version's registered rebuild wall (a graph-route-v2 / pool version's is
+                # longer than the carrier's default 600 s): without it the carrier refuses the
+                # allowance ('bounded worker wall allowance required', valV3 2026-10-27).
+                **rebuild_wall_kwargs(limits),
+                **{**graph_query, "program": derived},
+            )
+
+        # SPEED IN-LANE (CV-Motor L12433, Lead's A19): the timed calls run in the grade's own lane beside other rounds
+        # (contention can only slow them, so a PASS there is final); a FAIL while the host was contended runs ONCE
+        # more alone (the host's exclusive timing gate: `single-call-` identities) and that verdict is final; a
+        # failure on a quiet host is final. Without a registered ceiling the stage runs alone from the start, as before.
+        stage = _speed_stage(
+            timed,
+            name,
+            ceiling,
+            record=lambda runs: _record_speed_runs(result, submission_id, runs),
         )
         call_s = stage.receipt["single_call"]["call_s"]
         if tolerance is None:
@@ -1916,6 +1931,102 @@ def _single_call_raw(
     raw = _json(document)
     write_once(path, raw)
     return raw
+
+
+#: The in-lane speed stage's identity prefix: NOT a timing identity (`grade_lanes.TIMING_IDENTITY_PREFIXES`), so its
+#: container holds the host timing gate SHARED, in the grade's own lane (CV-Motor L12433).
+SPEED_LANE_PREFIX = "speed-lane-"
+#: A speed stage that failed under contention and whose solo rerun could not get a quiet host: Carbon's (FAILED_INFRA).
+SPEED_ALONE_NOT_QUIET = "single_call_alone_host_not_quiet"
+#: OPERATIONAL, not science: how often the speed stage's contention probe samples the host (seconds).
+SPEED_PROBE_SECONDS = 1.0
+
+
+def _speed_ceiling(adapter):
+    """The registered speed ceiling (seconds per design) of the adapter's Challenge, or None when none is registered."""
+    from carbon.challenge_registry import speed_gate
+
+    try:
+        return speed_gate.ceiling_seconds(adapter.challenge_id)
+    except (KeyError, AttributeError, TypeError, ZeroDivisionError):
+        return None
+
+
+def _speed_probe():
+    """A host probe for one speed run: Carbon worker containers and foreign GPU compute, sampled during and at the end
+    (`host_quiet.Probe`; the stage's own container is one)."""
+    from . import host_quiet
+
+    def count():
+        ids = host_quiet.worker_containers()
+        return None if ids is None else len(ids)
+
+    return host_quiet.Probe(
+        lock_held=True,
+        containers=count,
+        gpu=host_quiet.foreign_gpu_compute,
+        seconds=SPEED_PROBE_SECONDS,
+    ).start()
+
+
+def _speed_stage(timed, name, ceiling, *, record, probe=None):
+    """The speed stage under CV-Motor L12433: ``timed(identity)`` runs the timed calls. In-lane first (shared timing
+    gate); a FAIL while the host was contended runs once alone (exclusive gate) and that verdict is final; a solo run
+    that cannot get a quiet host is Carbon's (`SPEED_ALONE_NOT_QUIET`). ``record(runs)`` keeps both runs (host-private).
+    Without a ceiling (None) the stage runs alone from the start, as before. Returns the stage whose calls are final.
+    """
+    probe = _speed_probe if probe is None else probe
+    if ceiling is None:
+        return timed("single-call-" + name)
+    watching = probe()
+    stage = timed(SPEED_LANE_PREFIX + name)
+    contention = watching.verdict()
+    runs = [_speed_run("in_lane", stage, ceiling, contention)]
+    if not runs[-1]["passed"] and not contention.quiet:
+        watching = probe()
+        stage = timed("single-call-" + name + "-alone")
+        alone = watching.verdict()
+        runs.append(_speed_run("alone", stage, ceiling, alone))
+        if not alone.quiet:
+            # the solo rerun could not get a quiet host: Carbon's, never a pass and never a fail
+            record(runs)
+            raise RetentionUnavailable(SPEED_ALONE_NOT_QUIET)
+    record(runs)
+    return stage
+
+
+def _speed_run(kind, stage, ceiling, contention):
+    """One speed run's record (host-private): its median against the registered ceiling and the host it ran on."""
+    from carbon.scoring import pool_exam
+
+    call_s = stage.receipt["single_call"]["call_s"]
+    verdict = pool_exam.single_call_speed_gate(call_s, ceiling_seconds=ceiling)
+    return {
+        "run": kind,
+        "operation": stage.worker_operation,
+        "median_seconds": verdict["median_seconds"],
+        "ceiling_seconds": ceiling,
+        "passed": verdict["passed"],
+        "host_quiet": contention.quiet,
+        "max_worker_containers": contention.max_worker_containers,
+        "samples": contention.samples,
+    }
+
+
+def _record_speed_runs(result, submission_id, runs):
+    """Both speed runs' medians and hosts, kept beside the speed side file (CV-Motor L12433 (1): both medians are kept in
+    the speed evidence). Host-private; never a producer input."""
+    from carbon.development_session.data import write_once
+
+    path = (
+        _private_evaluation_directory(result, submission_id) / "single-call-runs.json"
+    )
+    if path.exists() or path.is_symlink():
+        return  # a retry after a stop between this record and the side file keeps the first record
+    write_once(
+        path,
+        _json({"schema": "carbon.lean-recipe.speed-runs.v1", "runs": runs}),
+    )
 
 
 #: The retained graded predictions were produced by a different inference (program text, staged modules or worker
