@@ -52,11 +52,13 @@ def torch_gpu_image():
 
 def test_only_an_accepted_device_class_scores(record, monkeypatch):
     # OWNER-GPU-DEVICE-CLASSES-01: the A40 and the RTX 4090 (this fixture's
-    # device), each for both frameworks; no other class.
+    # device), each for both frameworks; OWNER-A100-40GB-BUILD-CLASS-01 adds the
+    # Lambda A100 40GB SXM4 (finney only); no other class.
     both = {GPU_PROFILE.profile_id, torch_profile.GPU_PROFILE_ID}
     assert {k: set(v) for k, v in ha.ACCEPTED_DEVICE_CLASSES.items()} == {
         "NVIDIA A40": both,
         "NVIDIA GeForce RTX 4090": both,
+        "NVIDIA A100-SXM4-40GB": both,
     }
     assert record.device_kind == "NVIDIA GeForce RTX 4090"
     worker.CarrierBackend(
@@ -409,11 +411,13 @@ def test_a_gpu_deployment_may_name_the_pytorch_gpu_worker(tmp_path):
 
 def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
     # OWNER-GPU-DEVICE-CLASSES-01 is testnet only; OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01 adds
-    # finney (mainnet 116) for the RTX 4090 alone, under both profiles, and no other class or network.
+    # finney (mainnet 116) for the RTX 4090 under both profiles; OWNER-A100-40GB-BUILD-CLASS-01 is
+    # the A100 40GB SXM4 on finney alone; no other class or network.
     for kind, profiles in ha.ACCEPTED_DEVICE_CLASSES.items():
-        expected = (
-            ("testnet", "finney") if kind == "NVIDIA GeForce RTX 4090" else ("testnet",)
-        )
+        expected = {
+            "NVIDIA GeForce RTX 4090": ("testnet", "finney"),
+            "NVIDIA A100-SXM4-40GB": ("finney",),
+        }.get(kind, ("testnet",))
         assert all(e["networks"] == expected for e in profiles.values()), kind
         for entry in profiles.values():
             assert set(entry["by_network"]) == set(expected)
