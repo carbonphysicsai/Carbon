@@ -117,8 +117,11 @@ def test_the_values_row_may_ask_for_one_remote_lane(tmp_path, row, lanes, remote
     assert grade_lanes.registered_remote_lanes("m", "1.8", path=path) == remote
 
 
-def test_the_shipped_values_file_asks_for_no_remote_lane():
-    assert grade_lanes.registered_remote_lanes("electric-motor-magnetics", "1.8") == 0
+def test_the_shipped_values_file_asks_for_the_two_box_remote_lanes():
+    # PROPOSED: two 5950X boxes x 4 lanes (OWNER-5950X-GRADING-CLASS-01; CV-Motor/V2 to confirm); no other version
+    assert grade_lanes.registered_remote_lanes("electric-motor-magnetics", "1.8") == 8
+    assert grade_lanes.registered_remote_lanes("electric-motor-magnetics", "1.7") == 0
+    assert 8 == remote_lane.MAX_REMOTE_LANES
 
 
 def test_a_remote_lane_needs_the_row_two_lane_mode_and_the_record(

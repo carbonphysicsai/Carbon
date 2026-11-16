@@ -1,7 +1,8 @@
 {
   "rows": {
     "electric-motor-magnetics 1.8": {
-      "lanes": 2
+      "lanes": 2,
+      "remote_lanes": 8
     }
   },
   "schema": "carbon.exam.grade-lanes.v1"

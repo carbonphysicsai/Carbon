@@ -103,14 +103,19 @@ def test_the_values_row_allows_two_lanes_and_anything_else_is_one(tmp_path):
 
 
 def test_the_shipped_values_file_enables_two_lanes_for_motor_18_only():
-    """The owner's row (typed 15 Nov 17:02 CST, Deploy-B): two lanes for Motor 1.8 and no other version."""
+    """The owner's row (typed 15 Nov 17:02 CST, Deploy-B): two lanes for Motor 1.8 and no other version. Remote lanes:
+    PROPOSED 8 = two 5950X boxes x 4 lanes (OWNER-5950X-GRADING-CLASS-01; CV-Motor/V2 to confirm).
+    """
     document = json.loads(grade_lanes.REGISTRY.read_bytes())
     assert document == {
         "schema": grade_lanes.SCHEMA,
-        "rows": {"electric-motor-magnetics 1.8": {"lanes": 2}},
+        "rows": {"electric-motor-magnetics 1.8": {"lanes": 2, "remote_lanes": 8}},
     }
     assert grade_lanes.registered_lanes("electric-motor-magnetics", "1.8") == 2
     assert grade_lanes.registered_lanes("electric-motor-magnetics", "1.7") == 1
+    assert grade_lanes.registered_remote_lanes("electric-motor-magnetics", "1.8") == 8
+    assert grade_lanes.registered_remote_lanes("electric-motor-magnetics", "1.7") == 0
+    assert 8 <= grade_lanes.MAX_REMOTE_LANES
     assert grade_lanes.REGISTRY.read_bytes().count(b"\r") == 0
 
 
