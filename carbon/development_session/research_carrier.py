@@ -338,6 +338,13 @@ def _one_trial_per_task(ledger, identity, extra_resources):
 
 def _run(ledger, **kwargs):
     identity = kwargs["identity"]
+    if (
+        remote_lane.current() is not None
+        and kwargs.get("provenance") == "MINER_SELF_REPORTED"
+    ):
+        # The miner's own lane bind-mounts a writable scratch it reads back here: never on a REMOTE grade lane, nor
+        # rebound to this host's cores beside a local lane.
+        raise remote_lane.RemoteLaneDown(b"remote_lane_miner_lane")
     # A REMOTE grade lane's timing stage, and any op whose control asks for a timing measurement, runs on this host
     # (`remote_lane.local_for`); every other op of such a round sends its docker calls to the lane's daemon.
     with remote_lane.local_for(identity, timed=_timed_control(kwargs.get("files"))):

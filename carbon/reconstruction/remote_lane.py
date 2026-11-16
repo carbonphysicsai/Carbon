@@ -218,7 +218,8 @@ def local_for(identity, *, timed=False):
     if record is None:
         raise RemoteLaneDown(b"remote_lane_timing_no_local_cores")
     twin = grade_lanes.Lane(lane.index, record.cpuset, lane.lock_dir)
-    with grade_lanes.bound(twin):
+    # EXCLUSIVE whatever the identity: the host record's cores may be a local lane's, so nothing else may run beside it
+    with grade_lanes.bound(twin), grade_lanes.timing_exclusive():
         yield
 
 
@@ -257,10 +258,12 @@ def _remote_path(directory, lane):
 
 
 def _run(lane, script, *, feed=None, timeout=SSH_SECONDS):
-    """One remote shell script over ssh; ``feed`` writes its stdin from a helper thread, so ``timeout`` bounds the
-    WHOLE exchange (a link that stalls mid-upload is killed at the deadline, never waited on).
+    """One remote shell script over ssh. ``feed`` writes its stdin from a helper thread and stderr is drained by
+    another, so ``timeout`` bounds the WHOLE exchange: a link that stalls mid-upload is killed at the deadline, never
+    waited on. (``communicate`` is not used: it would close the stdin pipe under the writer.)
     """
     import threading
+    import time
 
     command = [*_ssh(lane), "sh -c " + shlex.quote(script)]
     try:
@@ -274,7 +277,8 @@ def _run(lane, script, *, feed=None, timeout=SSH_SECONDS):
         )
     except OSError as error:
         raise RemoteLaneDown(repr(error).encode()[:512]) from None
-    fed = []
+    deadline = time.monotonic() + timeout
+    fed, err = [], bytearray()
 
     def write():
         try:
@@ -287,23 +291,35 @@ def _run(lane, script, *, feed=None, timeout=SSH_SECONDS):
             except OSError:
                 pass
 
-    writer = None
+    def drain():
+        try:
+            while chunk := process.stderr.read(4096):
+                if len(err) < 4096:
+                    err.extend(chunk)
+        except (OSError, ValueError):
+            pass
+
+    helpers = [threading.Thread(target=drain, daemon=True)]
     if feed is not None:
-        writer = threading.Thread(target=write, daemon=True)
-        writer.start()
+        helpers.append(threading.Thread(target=write, daemon=True))
+    for helper in helpers:
+        helper.start()
     try:
-        _out, err = process.communicate(timeout=timeout)
+        for helper in helpers[1:]:
+            helper.join(max(0.0, deadline - time.monotonic()))
+            if helper.is_alive():
+                raise subprocess.TimeoutExpired(command, timeout)
+        process.wait(timeout=max(0.0, deadline - time.monotonic()))
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
         raise RemoteLaneDown(b"remote_lane_ssh_timeout") from None
     finally:
-        if writer is not None:
-            writer.join(timeout=5)
+        helpers[0].join(timeout=5)
     if fed:
         raise RemoteLaneDown(repr(fed[0]).encode()[:512])
     if process.returncode != 0:
-        raise RemoteLaneDown(b"exit=%d\n" % process.returncode + (err or b"")[-512:])
+        raise RemoteLaneDown(b"exit=%d\n" % process.returncode + bytes(err)[-512:])
 
 
 def mirror(directory, lane=None):

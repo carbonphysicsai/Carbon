@@ -273,55 +273,34 @@ def test_a_remote_timing_stage_with_no_local_cores_refuses_as_carbons(monkeypatc
 # -- inputs on the remote machine ----------------------------------------------------------------------------------------
 
 
-class _Process:
-    def __init__(self, command, returncode=0, **kwargs):
-        self.command = command
-        self.kwargs = kwargs
-        self.stdin = None
-        self.returncode = returncode
-        self.sent = b""
-
-    def communicate(self, timeout=None):
-        return b"", b"boom" if self.returncode else b""
-
-    def kill(self):
-        pass
-
-    def wait(self):
-        return self.returncode
+#: A stand-in for ``ssh ... -- 'sh -c <script>'``: a REAL child process (real pipes, so the upload's threading is
+#: exercised), which records its argv and stdin, writes a line to stderr, and exits with ``CODE``.
+_CHILD = (
+    "import sys, pathlib\n"
+    "out = pathlib.Path(sys.argv[1])\n"
+    "(out / 'argv').write_text('\\n'.join(sys.argv[3:]))\n"
+    "(out / 'stdin').write_bytes(sys.stdin.buffer.read())\n"
+    "sys.stderr.write('remote said no\\n')\n"
+    "raise SystemExit(int(sys.argv[2]))\n"
+)
 
 
-def _fake_ssh(monkeypatch, returncode=0):
-    calls = []
+def _child_ssh(monkeypatch, tmp_path, code=0, *, hang=False):
+    import sys
 
-    class Stdin(io.BytesIO):
-        def close(self):
-            calls[-1].sent = self.getvalue()
-            super().close()
-
-    def popen(command, **kwargs):
-        process = _Process(command, returncode, **kwargs)
-        if kwargs.get("stdin") == remote_lane.subprocess.PIPE:
-            process.stdin = Stdin()
-        calls.append(process)
-        return process
-
-    monkeypatch.setattr(remote_lane.subprocess, "Popen", popen)
-    return calls
+    record = tmp_path / "child"
+    record.mkdir(exist_ok=True)
+    program = _CHILD if not hang else "import time; time.sleep(30)"
+    monkeypatch.setattr(
+        remote_lane,
+        "_ssh",
+        lambda lane: [sys.executable, "-c", program, str(record), str(code)],
+    )
+    return record
 
 
-@pytest.mark.skipif(os.name != "posix", reason="a POSIX stage path")
-def test_mirror_sends_the_directory_to_the_same_path_there(monkeypatch, tmp_path):
-    calls = _fake_ssh(monkeypatch)
-    stage = tmp_path / "input"
-    stage.mkdir()
-    (stage / "a.json").write_bytes(b"{}")
-    (stage / "overlay").mkdir()
-    (stage / "overlay" / "b.bin").write_bytes(b"\x00\x01")
-    lane = grade_lanes.Lane(2, "0-3", LOCK, HOST, str(tmp_path))
-    remote_lane.mirror(stage, lane)
-    (call,) = calls
-    assert call.command[:-1] == [
+def test_the_ssh_command_is_fixed_and_bounded():
+    assert remote_lane._ssh(_remote()) == [
         "ssh",
         "-o",
         "BatchMode=yes",
@@ -336,27 +315,41 @@ def test_mirror_sends_the_directory_to_the_same_path_there(monkeypatch, tmp_path
         "carbon-grade@grader-2.example",
         "--",
     ]
-    assert str(stage) in call.command[-1] and "find" in call.command[-1]
-    assert "chmod -R u+w" in call.command[-1]  # overlay dirs are 0555
-    assert "ServerAliveInterval=10" in call.command
-    assert call.kwargs["env"]["DOCKER_HOST"] == HOST
-    with tarfile.open(fileobj=io.BytesIO(call.sent)) as archive:
+
+
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stage path")
+def test_mirror_streams_the_directory_to_the_same_path_there(monkeypatch, tmp_path):
+    stage = tmp_path / "input"
+    stage.mkdir()
+    (stage / "a.json").write_bytes(b"{}")
+    (stage / "overlay").mkdir()
+    (stage / "overlay" / "b.bin").write_bytes(
+        b"\x00\x01" * 300_000
+    )  # more than one pipe buffer
+    record = _child_ssh(monkeypatch, tmp_path)
+    remote_lane.mirror(stage, grade_lanes.Lane(2, "0-3", LOCK, HOST, str(tmp_path)))
+    script = (record / "argv").read_text()
+    assert str(stage) in script and "chmod -R u+w" in script and "find" in script
+    with tarfile.open(fileobj=io.BytesIO((record / "stdin").read_bytes())) as archive:
         names = {member.name: member for member in archive.getmembers()}
         assert set(names) == {"a.json", "overlay", "overlay/b.bin"}
-        assert archive.extractfile(names["overlay/b.bin"]).read() == b"\x00\x01"
+        assert (
+            archive.extractfile(names["overlay/b.bin"]).read() == b"\x00\x01" * 300_000
+        )
 
 
 def test_nothing_outside_the_stage_root_is_written_or_removed(monkeypatch, tmp_path):
-    calls = _fake_ssh(monkeypatch)
+    record = _child_ssh(monkeypatch, tmp_path)
     lane = grade_lanes.Lane(2, "0-3", LOCK, HOST, "/var/lib/carbon/doors")
     for path in ("/etc", "/var/lib/carbon/doors", "/var/lib/carbon/doorsX/a"):
         with pytest.raises(remote_lane.RemoteLaneDown):
             remote_lane.discard(Path(path), lane)
-    assert calls == []
+    assert not (record / "argv").exists()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="a POSIX stage path")
 def test_a_failed_mirror_or_discard_is_carbons(monkeypatch, tmp_path):
-    _fake_ssh(monkeypatch, returncode=255)
+    _child_ssh(monkeypatch, tmp_path, code=255)
     stage = tmp_path / "input"
     stage.mkdir()
     lane = grade_lanes.Lane(2, "0-3", LOCK, HOST, str(tmp_path))
@@ -365,15 +358,47 @@ def test_a_failed_mirror_or_discard_is_carbons(monkeypatch, tmp_path):
             act(stage, lane)
         assert isinstance(caught.value, WorkerFailure)
         assert caught.value.code is WorkerCode.UNAVAILABLE
+        assert b"exit=255" in caught.value.private_diagnostic
+        assert b"remote said no" in caught.value.private_diagnostic
+
+
+def test_a_large_upload_through_a_real_pipe_completes(monkeypatch, tmp_path):
+    record = _child_ssh(monkeypatch, tmp_path)
+    body = (
+        b"" * 3_000_000
+    )  # several pipe buffers: the writer and the reader must overlap
+    remote_lane._run(_remote(), "true", feed=lambda stream: stream.write(body))
+    assert (record / "stdin").read_bytes() == body
+
+
+def test_a_stalled_link_is_killed_at_the_deadline(monkeypatch, tmp_path):
+    _child_ssh(monkeypatch, tmp_path, hang=True)
+    stage = tmp_path / "input"
+    stage.mkdir()
+    (stage / "big.bin").write_bytes(
+        b"\x00" * 4_000_000
+    )  # the child never reads: the writer blocks
+    lane = grade_lanes.Lane(2, "0-3", LOCK, HOST, str(tmp_path))
+    monkeypatch.setattr(remote_lane, "SSH_SECONDS", 1)
+    began = time.monotonic()
+    with pytest.raises(remote_lane.RemoteLaneDown) as caught:
+        remote_lane._run(
+            lane,
+            "true",
+            feed=lambda stream: stream.write(b"\x00" * 4_000_000),
+            timeout=1,
+        )
+    assert time.monotonic() - began < 15
+    assert b"timeout" in caught.value.private_diagnostic
 
 
 def test_outside_a_remote_round_nothing_is_sent(monkeypatch, tmp_path):
-    calls = _fake_ssh(monkeypatch)
+    record = _child_ssh(monkeypatch, tmp_path)
     remote_lane.mirror(tmp_path)
     remote_lane.discard(tmp_path)
     with grade_lanes.bound(grade_lanes.Lane(1, "4-7", LOCK)):
         remote_lane.mirror(tmp_path)
-    assert calls == []
+    assert not (record / "argv").exists()
 
 
 # -- a stalled link is never the candidate's wall -------------------------------------------------------------------------
@@ -472,6 +497,7 @@ def test_a_timed_control_of_a_remote_round_stays_here(monkeypatch):
     with grade_lanes.bound(_remote()):
         with remote_lane.local_for("grade-op-1", timed=True):
             assert remote_lane.docker_host() is None
+            assert grade_lanes.timing_requested()  # the gate is taken EXCLUSIVE
         with remote_lane.local_for("grade-op-1", timed=False):
             assert remote_lane.docker_host() == HOST
 
