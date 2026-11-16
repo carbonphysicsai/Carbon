@@ -281,11 +281,8 @@ def test_a_failed_withdrawal_repair_falls_through_to_grading():
 
 
 def test_a_failed_session_yield_marks_it_broken_and_keeps_going(monkeypatch):
-    import importlib
-
-    carrier = importlib.reload(
-        research_carrier
-    )  # the real yield (the fixture patches it)
+    # never reload research_carrier: a fresh MinerProgramFailure class would break every later test that types it
+    carrier = research_carrier
     session = carrier._GradeSession()
     session.live = True
 
