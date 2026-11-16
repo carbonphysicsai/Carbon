@@ -114,6 +114,7 @@ carbon/reconstruction/host_inventory.py
 carbon/reconstruction/model.py
 carbon/reconstruction/numerics_environment.py
 carbon/reconstruction/profile.py
+carbon/reconstruction/remote_lane.py
 carbon/reconstruction/repeats.py
 carbon/reconstruction/scaling.py
 carbon/reconstruction/service.py

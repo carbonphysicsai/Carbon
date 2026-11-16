@@ -365,7 +365,7 @@ class DockerCLI:
         accepted: tuple[int, ...] = (0,),
     ) -> subprocess.CompletedProcess[bytes]:
         # the daemon this CLI was made for: a remote lane's (ssh), or the local one
-        environment = remote_lane.docker_environment(self.docker_host)
+        environment = remote_lane.docker_environment(getattr(self, "docker_host", None))
         result = _bounded_capture(
             [self.executable, *arguments],
             environment=environment,
@@ -415,7 +415,7 @@ class DockerCLI:
         ):
             raise WorkerFailure(WorkerCode.INVALID)
         # the daemon this CLI was made for: a remote lane's (ssh), or the local one
-        environment = remote_lane.docker_environment(self.docker_host)
+        environment = remote_lane.docker_environment(getattr(self, "docker_host", None))
         process: subprocess.Popen[bytes] | None = None
         diagnostic = bytearray()
         total = 0
