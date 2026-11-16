@@ -258,3 +258,17 @@ def test_the_shared_mode_runs_the_program_and_env_unchanged(record):
         assert not any(
             value.startswith(remote_gpu_build.SLOT_FRACTION_ENV) for value in argv
         )
+
+
+def test_the_motor18_program_is_a_float64_graph_build_of_the_bench_shape():
+    program = bench.PROGRAMS["motor18"]
+    module = ast.parse(program)
+    assert module.body
+    assert program.index('os.environ["JAX_ENABLE_X64"] = "true"') < program.index(
+        "import jax"
+    )
+    from itertools import pairwise
+
+    sizes = (8, 512, 512, 512, 512, 512, 240)
+    assert sum(a * b + b for a, b in pairwise(sizes)) == 1_178_352
+    assert "sizes = (8, 512, 512, 512, 512, 512, 240)" in program
