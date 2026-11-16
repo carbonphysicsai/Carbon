@@ -14,9 +14,10 @@ Either is the mainnet profile a mainnet image would be built for. Mainnet
 needs its own acceptance of the larger profile first, or the flag False.
 
 The owner accepted the larger profile for mainnet 116 on the GPUYard validator
-(OWNER-LARGE-MODEL-PROFILE-APPLIED-GPUYARD-MAINNET-01, 2026-11-13). That
-acceptance is scoped here to exactly the two device-class entries
-`hardware_acceptance` opens for finney, and to no other entry or network.
+(OWNER-LARGE-MODEL-PROFILE-APPLIED-GPUYARD-MAINNET-01, 2026-11-13) and on the
+Lambda A100 40GB build box (OWNER-LARGE-MODEL-PROFILE-APPLIED-A100-MAINNET-01,
+2026-11-16). Each acceptance is scoped here to exactly its two device-class
+entries `hardware_acceptance` opens for finney, and to no other entry or network.
 """
 
 from __future__ import annotations
@@ -44,11 +45,24 @@ MAINNET_RECORD_FILE = (
     ROOT / ".agent" / "decisions" / ("2026-11-13-" + MAINNET_RECORD + ".md")
 )
 MAINNET_NETWORK = "finney"
-MAINNET_ENTRIES = frozenset(
+#: The second: finney 116 on the Lambda A100 40GB build box (OWNER-LARGE-MODEL-PROFILE-APPLIED-A100-MAINNET-01), for
+#: exactly its two (device class, profile) entries.
+A100_RECORD = "OWNER-LARGE-MODEL-PROFILE-APPLIED-A100-MAINNET-01"
+A100_RECORD_FILE = ROOT / ".agent" / "decisions" / ("2026-11-16-" + A100_RECORD + ".md")
+A100_ENTRIES = frozenset(
     {
-        ("NVIDIA GeForce RTX 4090", hardware_acceptance.JAX_GPU),
-        ("NVIDIA GeForce RTX 4090", hardware_acceptance.TORCH_GPU),
+        ("NVIDIA A100-SXM4-40GB", hardware_acceptance.JAX_GPU),
+        ("NVIDIA A100-SXM4-40GB", hardware_acceptance.TORCH_GPU),
     }
+)
+MAINNET_ENTRIES = (
+    frozenset(
+        {
+            ("NVIDIA GeForce RTX 4090", hardware_acceptance.JAX_GPU),
+            ("NVIDIA GeForce RTX 4090", hardware_acceptance.TORCH_GPU),
+        }
+    )
+    | A100_ENTRIES
 )
 WHY = (
     "a mainnet profile is built while LARGE_MODEL_PROFILE_APPLIED is True "
@@ -142,4 +156,38 @@ def test_any_other_non_testnet_entry_still_fails():
     ]
     assert _mainnet_profiles({"scope": "MAINNET"}, {}) == [
         ("validator host class", "MAINNET")
+    ]
+
+
+def test_the_a100_record_carries_the_owners_words_and_no_host():
+    text = A100_RECORD_FILE.read_text(encoding="utf-8")
+    assert text.startswith("# " + A100_RECORD + ":")
+    assert (
+        "I accept the LARGE_MODEL worker profile (the same 2/4/16 GiB container limits and "
+        "containment settings\nas testnet) on the Lambda A100 40GB build box for mainnet 116."
+    ) in text
+    assert "13:41 CST" in text and "TE3 session" in text
+    assert not re.search(r"\b\d{1,3}(\.\d{1,3}){3}\b", text), "a host address"
+
+
+def test_the_a100_acceptance_widens_nothing_else():
+    """Another A100 variant, another profile or another network is still a mainnet profile."""
+    host = {"scope": "DEVELOPMENT"}
+    jax = hardware_acceptance.JAX_GPU
+    a100 = "NVIDIA A100-SXM4-40GB"
+
+    def entry(*networks):
+        return {"record": "X", "networks": networks, "evidence": "X"}
+
+    assert _mainnet_profiles(host, {a100: {jax: entry("finney")}}) == []
+    for classes, expected in (
+        (
+            {"NVIDIA A100-SXM4-80GB": {jax: entry("finney")}},
+            ("NVIDIA A100-SXM4-80GB", jax),
+        ),
+        ({a100: {"other_profile": entry("finney")}}, (a100, "other_profile")),
+    ):
+        assert _mainnet_profiles(host, classes) == [(*expected, "finney")]
+    assert _mainnet_profiles(host, {a100: {jax: entry("finney", "mainnet")}}) == [
+        (a100, jax, "mainnet")
     ]
