@@ -587,15 +587,6 @@ class ExamCap:
             # the grouping's own refusal (an owner-chosen ``refuse`` policy): told at once, like a limit
             return {"code": refused.code, "message": plain_text(refused.code)}
         epoch = epoch_of(block)
-        # the group's earlier queued submissions (A20): read only once the cap applies to this Challenge, and before
-        # this check's own ledger transaction (the reader opens its own)
-        pending = tuple(
-            epoch_of(other)
-            for other in (
-                pending_blocks() if callable(pending_blocks) else pending_blocks
-            )
-            if type(other) is int and other >= 0
-        )
         with self.ledger._db() as db:
             row = db.execute(
                 "SELECT state FROM exam_graded WHERE challenge_id=? AND "
@@ -617,6 +608,19 @@ class ExamCap:
             ).fetchone()
             if first is not None and block - first[0] >= MAX_EXAM_AGE_BLOCKS:
                 return None
+        # the group's earlier queued submissions (A20): read only now that the cap applies to this submission, between
+        # two short transactions (the reader opens its own); a reader that fails counts nothing (errs toward admitting)
+        try:
+            pending = tuple(
+                epoch_of(other)
+                for other in (
+                    pending_blocks() if callable(pending_blocks) else pending_blocks
+                )
+                if type(other) is int and other >= 0
+            )
+        except Exception:  # noqa: BLE001 - a failed read refuses nothing
+            pending = ()
+        with self.ledger._db() as db:
             code = self._limit_refusal(
                 db,
                 hotkey,

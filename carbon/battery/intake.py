@@ -287,12 +287,13 @@ def updating_answer(flag):
     try:
         if not flag.exists():
             return None
-        text = flag.read_text(encoding="ascii").strip()
+        with flag.open("rb") as handle:
+            text = handle.read(16).decode("ascii").strip()
     except (OSError, UnicodeDecodeError):
         text = ""
     retry = (
         int(text)
-        if text.isdigit() and 1 <= int(text) <= UPDATING_RETRY_MAX_S
+        if text.isdigit() and len(text) <= 6 and 1 <= int(text) <= UPDATING_RETRY_MAX_S
         else UPDATING_RETRY_DEFAULT_S
     )
     return Answer(
@@ -1456,7 +1457,13 @@ def _handler(intake):
                 ):
                     return self._answer(_refused(413, "body"))
                 length = int(declared)
-            updating = updating_answer(getattr(intake, "updating_flag", None))
+            # a drained door refuses new WORK at once (submit, withdraw, research calls); its reads (public facts, the
+            # king and queue views, status polls) keep answering, as they did while drained
+            updating = (
+                updating_answer(getattr(intake, "updating_flag", None))
+                if method != "GET"
+                else None
+            )
             if updating is not None:
                 # a drained door says so at once, before any body, slot or bucket (A19)
                 self._drain(length)

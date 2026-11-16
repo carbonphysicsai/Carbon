@@ -537,12 +537,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     def _pending_group_blocks(self, hotkey, task_id, block):
         """The receipt blocks of the ``hotkey``'s allowance group's EARLIER accepted submissions to this door (a receipt
-        block before ``block``) that hold no exam slot yet and are QUEUED or RUNNING (A20, Lead 16 Nov 2026), for the
-        admission check (`ExamCap.admission_refusal`): each will take a slot of its window when graded. Read-only and
-        best effort: one query for the door's owners; provider reads only for the group's own unslotted ones; anything
-        unreadable is left out (never a refusal from a guess). A built task waiting for its grade (SUCCEEDED) is not
-        counted (its state cannot tell a later refusal apart): the check errs toward admitting.
-        """
+        block before ``block``, in its daily window) that hold no exam slot yet, are not a re-queued grade, and are QUEUED
+        or RUNNING (A20, Lead 16 Nov 2026), for the admission check (`ExamCap.admission_refusal`): each will take a slot
+        of that window when graded. Read-only and best effort: the group's hotkeys first, then only their receipts; a
+        provider read only for the group's own unslotted ones inside the window; anything unreadable is left out (never a
+        refusal from a guess). A built task waiting for its grade (SUCCEEDED) is not counted (its state cannot tell a
+        later refusal apart): the check errs toward admitting."""
         from carbon.challenge_validator import exam_cap
         from carbon.research import (
             DirectGetTaskRequestV3,
@@ -556,32 +556,49 @@ class LeanRecipeAdapter(ChallengeAdapter):
             group = exam_cap.group_of(hotkey)
         except exam_cap.ExamCapRefused:
             return ()
+        low = exam_cap.epoch_of(block) - exam_cap.DAY_EPOCHS
         with self.ledger._db() as db:
-            slotted = {
+            hotkeys = [
                 row[0]
                 for row in db.execute(
-                    "SELECT submission_id FROM exam_graded WHERE kind='GRADED'"
+                    "SELECT DISTINCT hotkey FROM attempts WHERE kind='OUTCOME' "
+                    "AND contract_digest=? AND hotkey IS NOT NULL",
+                    (self.contract_digest,),
                 ).fetchall()
-            }
-            owners = db.execute(
+            ]
+            mine = []
+            for owner in hotkeys:
+                try:
+                    if owner == hotkey or exam_cap.group_of(owner) == group:
+                        mine.append(owner)
+                except exam_cap.ExamCapRefused:
+                    continue
+            if not mine:
+                return ()
+            marks = ",".join("?" * len(mine))
+            rows = db.execute(
                 "SELECT submission_id, hotkey, receipt FROM attempts WHERE kind='OUTCOME' "
-                "AND contract_digest=? AND submission_id IS NOT NULL AND hotkey IS NOT NULL "
+                f"AND contract_digest=? AND submission_id IS NOT NULL AND hotkey IN ({marks}) "
+                "AND submission_id NOT IN (SELECT submission_id FROM exam_graded WHERE kind='GRADED') "
+                "AND submission_id NOT IN (SELECT submission_id FROM exam_requeues) "
                 "ORDER BY seq",
-                (self.contract_digest,),
+                (self.contract_digest, *mine),
             ).fetchall()
         first = {}
-        for other, owner, raw in owners:
+        for other, owner, raw in rows:
             if other not in first:
                 first[other] = (owner, raw)
         blocks = []
         for other, (owner, raw) in first.items():
-            if other == task_id or other in slotted:
+            if other == task_id:
                 continue
             try:
-                if owner != hotkey and exam_cap.group_of(owner) != group:
-                    continue
                 other_block = json.loads(raw).get("block") if raw else None
-                if type(other_block) is not int or other_block >= block:
+                if (
+                    type(other_block) is not int
+                    or other_block >= block
+                    or exam_cap.epoch_of(other_block) <= low
+                ):
                     continue
                 task = (
                     self._provider(owner)

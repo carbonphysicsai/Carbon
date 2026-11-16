@@ -48,3 +48,21 @@ def test_the_receiver_points_its_intake_at_its_own_draining_flag():
 
     source = inspect.getsource(direct_intake.serve_loopback)
     assert "intake.updating_flag = Path(state_dir) / DRAIN_NAME" in source
+
+
+def test_reads_keep_answering_on_a_drained_door():
+    """Only new work (POST: submit, withdraw, research calls) is told 'updating'; reads (facts, king and queue views,
+    status polls) keep answering while drained, as before (A20 review)."""
+    import inspect
+
+    source = inspect.getsource(battery_intake._handler)
+    assert 'if method != "GET"' in source
+
+
+def test_a_huge_flag_text_never_breaks_the_answer(tmp_path):
+    flag = tmp_path / "draining"
+    flag.write_text("9" * 5000, encoding="ascii")
+    assert (
+        battery_intake.updating_answer(flag).body["retry_after_s"]
+        == battery_intake.UPDATING_RETRY_DEFAULT_S
+    )

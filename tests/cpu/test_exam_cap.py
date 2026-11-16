@@ -1768,3 +1768,44 @@ def test_queued_submissions_of_the_group_count_at_admission(tight):
         )
         is None
     )
+
+
+def test_the_pending_reader_is_lazy_and_a_failing_one_admits(tight):
+    """A20 review: the group's pending submissions are read only once the cap applies (never for a submission that already
+    holds its slot), and a reader that fails counts nothing (the check errs toward admitting).
+    """
+    block = 360 * 3 + 7
+    slot = _reserve(tight, 1, block=block)
+    calls = []
+
+    def reader():
+        calls.append(1)
+        return (block - 1,)
+
+    held = tight.admission_refusal(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=EXAM,
+        submission_id="rtsk_1",  # already holds its slot: answered before any read
+        block=block,
+        pending_blocks=reader,
+    )
+    assert held is None and calls == []
+    tight.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE")
+
+    def broken():
+        raise RuntimeError("ledger busy")
+
+    assert (
+        tight.admission_refusal(
+            hotkey=HOTKEY,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=EXAM,
+            submission_id="rtsk_9",
+            block=block + 360,
+            pending_blocks=broken,
+        )
+        is None
+    )
