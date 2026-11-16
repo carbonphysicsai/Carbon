@@ -761,7 +761,12 @@ def test_the_trainer_digest_is_pinned_and_in_each_v2_limits_document():
         block = physical_material.bundle_material(*key)["construction_limits_document"][
             "graph_training_adapter"
         ]
-        assert block["trainer"]["sha256"] == "sha256:" + adapter.TRAINER_SHA256
+        pinned = (
+            adapter.TRAINER_V3_SHA256
+            if adapter.SPECS[key].trainer == "v3"
+            else adapter.TRAINER_SHA256
+        )
+        assert block["trainer"]["sha256"] == "sha256:" + pinned
         assert block == adapter.adapter_block(*key)
 
 

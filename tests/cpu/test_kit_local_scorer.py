@@ -399,7 +399,7 @@ REFUSALS = [
         "training": {"steps": STEPS},
         "output_weights": [0.0] * adapter.SPECS[KEY].outputs,
     },
-    {"training": {"steps": STEPS, "h1_weight": 1.0}},
+    {"training": {"steps": STEPS, "pde_weight": 1.0}},
 ]
 
 

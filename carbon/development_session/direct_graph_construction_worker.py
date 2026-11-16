@@ -360,6 +360,7 @@ PHYSICAL_V2_STAGED_MODULES = (
     "carbon.development_session.physical_graph_state",
     "carbon.development_session.physical_graph_state_v2",
     "carbon.development_session.physical_graph_trainer_v2",
+    "carbon.development_session.physical_graph_trainer_v3",
     "carbon.development_session.physical_graph_adapter_v2",
 )
 
@@ -405,6 +406,19 @@ def _v2_build_program() -> str:
         (
             '(work / "carbon.development_session.physical_graph_trainer.py")',
             '(work / "carbon.development_session.physical_graph_trainer_v2.py")',
+        ),
+        (
+            "    TRAINER_SHA256, build_validated_graph, checked_train, spec_for,\n",
+            "    TRAINER_SHA256, TRAINER_V3_SHA256, build_validated_graph, checked_train, spec_for,\n",
+        ),
+        (
+            '    raise ValueError("pinned graph trainer differs")\n',
+            (
+                '    raise ValueError("pinned graph trainer differs")\n'
+                'trainer3 = (work / "carbon.development_session.physical_graph_trainer_v3.py").read_bytes()\n'
+                'if digest(trainer3) != "sha256:" + TRAINER_V3_SHA256:\n'
+                '    raise ValueError("pinned graph trainer v3 differs")\n'
+            ),
         ),
         (
             '    if not error.code.endswith("_graph_nonfinite_state"):\n',
@@ -895,6 +909,7 @@ def _v2_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
     if binding["train_digest"] != "sha256:" + spec.train_sha256:
         raise RecipeRefused("direct_graph_train_binding_invalid")
     adapter.trainer_source()
+    adapter.trainer_source(spec)
     root = Path(__file__).resolve().parents[2]
     files = {
         name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
