@@ -18,6 +18,7 @@ import contextlib
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -35,15 +36,144 @@ ROWS, WIDTH = 2564, 240
 
 
 @pytest.fixture
-def one_point_eight(monkeypatch):
+def one_point_eight(monkeypatch, tmp_path):
     monkeypatch.setattr(graph_e2e, "VERSION", "1.8")
+    # Motor 1.8 grades with the keyed subset repeat. The stand-in exam registers Motor 1.5's pool policies (no coverage
+    # plan, no in-range case set, no menu), so the fixture registers synthetic COHORT strata for its synthetic bank and the
+    # owner's f and P; the real 1.8 strata are tested in test_motor18_subset_repeat_strata.
+    from carbon.development_session import direct_graph_construction_worker as worker
+    from carbon.scoring import subset_repeat_evidence as subset
+
+    strata = ["probe_response", "pool_design"]
+    monkeypatch.setattr(
+        subset,
+        "STRATA",
+        {
+            ("electric-motor-magnetics", "1.8"): {
+                name: subset.Stratum("cohort", name) for name in strata
+            }
+        },
+    )
+    values = tmp_path / "subset_repeat.json"
+    values.write_text(
+        json.dumps(
+            {
+                "schema": subset.VALUES_SCHEMA,
+                "rows": {
+                    "electric-motor-magnetics 1.8": {
+                        "repeat_fail_fraction": 0.10,
+                        "repeat_detect_prob": 0.999,
+                        "strata": strata,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(subset, "VALUES_PATH", values)
+    # the fixture's model state is a stand-in: its vmap-64 lane count is given (the real one is tested on the real program)
+    monkeypatch.setattr(worker, "vmap64_state_lanes", lambda *a: 64)
+
+
+def _subset_repeat_worker(monkeypatch, case, fixture):
+    """The subset repeat's ONE fresh run, as the carrier settles it: the graded model answers the re-run rows exactly as
+    graded (a deterministic model), with C-03-shaped evidence (the stand-in of the pair fixture's Platform envelope).
+    """
+    import base64
+    import hashlib
+
+    import numpy as np
+
+    from carbon.development_session import bundle_construction_worker, paired_inference
+    from carbon.scoring import subset_repeat_evidence as subset
+
+    def sha(raw):
+        return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+    graded = json.loads(fixture.artifacts["predictions.json"])
+    index = {}
+    for i, row in enumerate(np.asarray(case["bank"]["inputs"])):
+        index.setdefault(row.tobytes(), i)
+    receipt = json.loads(fixture.artifacts["inference-receipt.json"])
+    calls = []
+
+    def once(_ledger, **kwargs):
+        rows = kwargs["inputs"]
+        calls.append(len(rows))
+        answers = [graded[index[row.tobytes()]] for row in np.asarray(rows)]
+        predictions = json.dumps(answers).encode()
+        inputs_digest = sha(bundle_construction_worker._tensors(inputs=rows))
+        phase_receipt = json.dumps(
+            {
+                "schema": "carbon.development.bundle-inference.v1",
+                "recipe_digest": receipt["recipe_digest"],
+                "state_digest": receipt["state_digest"],
+                "inputs_digest": inputs_digest,
+                "predictions_digest": sha(predictions),
+            }
+        ).encode()
+        operation = "operation-" + "e" * 64
+        files = {
+            "predictions.json": sha(predictions),
+            "receipt.json": sha(phase_receipt),
+        }
+        return SimpleNamespace(
+            evidence={
+                "schema": subset.RUN_SCHEMA,
+                "execution_boundary": "C03_DOCKER",
+                "recipe_digest": receipt["recipe_digest"],
+                "state_digest": receipt["state_digest"],
+                "inputs_digest": inputs_digest,
+                "inference_image_id": graph_e2e.IMAGE,
+                "logical_prediction_rows": len(rows),
+                "elapsed_seconds": 1.0,
+                "repeat": {
+                    "worker_operation": operation,
+                    "controls_digest": "sha256:" + "6" * 64,
+                    "originals": {
+                        name: {
+                            "sha256": sha(raw),
+                            "raw_base64": base64.b64encode(raw).decode(),
+                        }
+                        for name, raw in (
+                            ("predictions.json", predictions),
+                            ("receipt.json", phase_receipt),
+                        )
+                    },
+                    "accounting": {
+                        "ledger_identity": paired_inference.repeat_identity(
+                            kwargs["identity"]
+                        ),
+                        "state": "SUCCEEDED",
+                        "reservation": {"numerical_milliseconds": 10},
+                        "actual": {"numerical_milliseconds": 5},
+                        "worker_result": {
+                            "operation": operation,
+                            "files": files,
+                            "schema": "carbon.autoresearch.worker-result.v1",
+                            "provenance": "DIRECT_GRAPH_PUBLIC_INFERENCE",
+                            "output_digest": "sha256:" + "8" * 64,
+                            "scientific_qualification": False,
+                            "official_eligible": False,
+                        },
+                    },
+                },
+                "scientific_qualification": False,
+                "official_eligible": False,
+            }
+        )
+
+    monkeypatch.setattr(paired_inference, "infer_frozen_once", once)
+    return calls
 
 
 def counted_grade(tmp_path, monkeypatch, pad):
     case = build_case(tmp_path / "pack", monkeypatch, pad)
     with custody.raised_json_bytes(pair_read_bound.pair_bytes(ROWS, WIDTH)):
         fixture = graph_e2e._setup(case, tmp_path, monkeypatch)
+    subset_calls = _subset_repeat_worker(monkeypatch, case, fixture)
     result = graph_e2e._grade(fixture, counted=True)
+    assert len(subset_calls) == 1  # ONE fresh subset run, never the full pair
     regrade = next(
         p
         for p in fixture.base.iterdir()

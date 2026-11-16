@@ -1118,6 +1118,294 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     return raw
 
 
+def _subset_repeat_version(adapter) -> bool:
+    """Whether this receiver's version is graded with the keyed subset repeat (`subset_repeat_evidence`)."""
+    from carbon.scoring import subset_repeat_evidence
+
+    return subset_repeat_evidence.is_subset_version(
+        getattr(adapter, "challenge_id", None),
+        getattr(adapter, "challenge_version", None),
+    )
+
+
+def subset_repeat_serve_check(
+    challenge_id,
+    version,
+    *,
+    pack_snapshot=None,
+    public_root=None,
+    private_root=None,
+    copy_hotkey=None,
+    speed_key=None,
+):
+    """The receiver's start-up check of a subset version (Validator-2B R-5): None for every other version. For a subset
+    version the owner's promise must be registered, its strata named (else `subset_repeat_promise_unregistered` /
+    `subset_repeat_strata_unregistered`: the door does not serve), the grading host's K_speed (``speed_key``) must be
+    present (else `subset_repeat_key_unavailable`), and, with the served sealed pack, its carried bank must split into
+    exactly the version's strata, each row in at least one (`subset_repeat_evidence.bank_strata`), and its pinned producer must bind the producer recomputed
+    now, exactly or through the version's ONE successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
+    binding), so the start-up log says which row the door grades under."""
+    from carbon.scoring import physical_dual_pack, producer_successor
+    from carbon.scoring import subset_repeat_evidence as subset
+
+    if not subset.is_subset_version(challenge_id, version):
+        return None
+    try:
+        promise = subset.registered_promise(challenge_id, version)
+        # the grading host's K_speed draws every grade's keyed rows: a subset door without it never serves (M4)
+        subset.grade_key(speed_key, "serve-check", "serve-check")
+    except subset.SubsetRepeatRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    named = {
+        "challenge": challenge_id,
+        "version": version,
+        "repeat_fail_fraction": promise[0],
+        "repeat_detect_prob": promise[1],
+        "strata": promise[2],
+        "successor_row": producer_successor.row(challenge_id, version),
+    }
+    if pack_snapshot is None:
+        return named
+    from carbon.scoring import sealed_batch_source
+
+    try:
+        sealed = sealed_batch_source.resolve(
+            challenge=challenge_id,
+            version=version,
+            selected_pack=pack_snapshot,
+            private_root=private_root,
+            development_adapter=None,
+            copy_hotkey=copy_hotkey,
+        )
+        if sealed is None:
+            raise RetentionUnavailable("subset_repeat_bank_unavailable")
+        strata = subset.bank_strata(challenge_id, version, sealed[0])
+        named["counts"] = subset.registered_counts(challenge_id, version, strata)
+    except subset.SubsetRepeatRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    except (sealed_batch_source.SealedBankRefused, ValueError, KeyError) as exc:
+        if isinstance(exc, RetentionUnavailable):
+            raise
+        raise RetentionUnavailable("subset_repeat_bank_unavailable") from exc
+    try:
+        accuracy = pack_snapshot.read_json_role(
+            public_root, "public", "accuracy_definition", max_bytes=1024 * 1024
+        )
+        from carbon.scoring import motor18_dual_pack
+
+        # (static imports only: every subset version's producer module, by its registered name)
+        modules = {motor18_dual_pack.__name__: motor18_dual_pack}
+        module = modules[subset.PRODUCERS[(challenge_id, version)]]
+        identity = physical_dual_pack.producer_digest(module)
+    except (ImportError, KeyError, OSError, ValueError) as exc:
+        raise RetentionUnavailable("producer_successor_mismatch") from exc
+    pinned = accuracy.get("producer_digest") if type(accuracy) is dict else None
+    if not producer_successor.binds(challenge_id, version, pinned, identity):
+        raise RetentionUnavailable("producer_successor_mismatch")
+    return {**named, "pack_producer_digest": pinned, "producer_digest": identity}
+
+
+def _subset_bank(adapter, inputs):
+    """The sealed bank this grade's delivered query IS (row for row), from the served pack's carried batch (as the
+    single-call stage resolves it). A query that is not that bank is Carbon's gap.
+    """
+    import numpy as np
+
+    from carbon.scoring import sealed_batch_source
+
+    try:
+        sealed = sealed_batch_source.resolve(
+            challenge=adapter.challenge_id,
+            version=adapter.challenge_version,
+            selected_pack=adapter.discovery.evaluation_pack_snapshot,
+            private_root=adapter.discovery.evaluation_pack_private_root,
+            development_adapter=None,
+            copy_hotkey=getattr(adapter, "copy_hotkey", None),
+        )
+    except (sealed_batch_source.SealedBankRefused, ValueError, KeyError) as exc:
+        raise RetentionUnavailable("subset_repeat_bank_unavailable") from exc
+    if sealed is None:
+        raise RetentionUnavailable("subset_repeat_bank_unavailable")
+    bank = sealed[0]
+    if len(bank["cohorts"]) != len(inputs) or not np.array_equal(
+        np.asarray(bank["inputs"], dtype=inputs.dtype), inputs
+    ):
+        raise RetentionUnavailable("subset_repeat_query_is_not_the_bank")
+    return bank
+
+
+def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
+    """A subset version's repeat (owner, Sun 15 Nov 2026 08:19 + 08:38 CST; CV-Motor-B's rulings; Validator-2B R-1..R-5),
+    in place of the two full-bank pair passes: after the graded predictions are retained, ONE fresh worker process
+    re-predicts ALL the bank's sealed cells plus, inside each registered stratum (owner ~09:5x: "Yes for 66 per
+    stratum"), ``k`` rows drawn by a per-grade, per-stratum key (HMAC of the grading host's K_speed under the subset
+    repeat's own domain tag, the submission id and the stratum) (same image, state and inputs; the pack's per-case
+    procedure). ``k`` comes from the version's registered promise
+    (`subset_repeat_evidence.plan`): none registered is Carbon's typed gap, never "no repeat". Kept write-once beside the
+    dual measurement as a host-private side file naming the evaluation pack and the submission (one file per promise; a
+    retry or regrade reads it back after checking it is this grade's plan), never a public byte.
+
+    A candidate wall hit is retried once under a fresh identity; a second is the candidate's typed failure, counted as
+    the closed public pass ``inference_pair``. Any other fault is Carbon's (`subset_repeat_incomplete`).
+    """
+    import numpy as np
+
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.data import write_once
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS as vmap64_versions,
+    )
+    from carbon.development_session.direct_graph_construction_worker import (
+        vmap64_rerun_rows,
+        vmap64_state_lanes,
+    )
+    from carbon.development_session.paired_inference import (
+        InferencePairFailure,
+        infer_frozen_once,
+    )
+    from carbon.scoring import subset_repeat_evidence as subset
+
+    material = adapter.discovery._material
+    kit = material["construction_kit"]
+    pack = adapter.discovery.evaluation_pack_snapshot.manifest_digest
+    inputs, output_shape = _graded_query(material, artifacts)
+    try:
+        # (the promise and the key first: neither missing ever reaches the pack)
+        promise = subset.registered_promise(kit["id"], kit["version"])
+        speed_key = getattr(adapter, "speed_sample_key", None)
+        subset.grade_key(speed_key, submission_id, "key-check")
+        strata = subset.bank_strata(
+            kit["id"], kit["version"], _subset_bank(adapter, inputs)
+        )
+        sealed, keyed = subset.plan(
+            speed_key,
+            submission_id,
+            challenge=kit["id"],
+            version=kit["version"],
+            strata=strata,
+        )
+    except subset.SubsetRepeatRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    positions = subset.positions_of(sealed, keyed)
+    # one write-once file per registered promise (a changed promise re-plans; the old file stays as history)
+    tag = hashlib.sha256(_json(list(promise))).hexdigest()[:16]
+    path = _private_evaluation_directory(result, submission_id) / (
+        f"subset-repeat-{tag}.json"
+    )
+    if path.exists() or path.is_symlink():
+        cached = _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))
+        try:
+            document = json.loads(cached)
+            same = (
+                document.get("sealed_positions") == sealed
+                and document.get("keyed_positions") == keyed
+                and document.get("submission_id") == submission_id
+                and document.get("evaluation_pack_digest") == pack
+            )
+        except (ValueError, AttributeError):
+            same = False
+        if not same:
+            raise RetentionUnavailable("subset_repeat_cache_not_this_draw")
+        return cached
+    owner = adapter.owner(submission_id) if regrade is None else regrade.owner
+    provider = adapter._provider(owner)
+    limits = material["construction_limits_document"]
+    policy = limits["reconstruction_resource_policy"]
+    interface = material["interface_document"]
+    accuracy = adapter.discovery.evaluation_pack_snapshot.read_json_role(
+        adapter.discovery.evaluation_pack_public_root,
+        "public",
+        "accuracy_definition",
+        max_bytes=65536,
+    )
+    if (
+        type(accuracy) is not dict
+        or accuracy.get("paired_repeat_procedure") != "per_case"
+    ):
+        raise RetentionUnavailable("subset_repeat_procedure_unregistered")
+    recipe = (
+        ConstructionRecipe.from_dict(_served_recipe(adapter, submission_id))
+        if regrade is None
+        else regrade.recipe
+    )
+    # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) graded each row in an isolated lane
+    # of a chunk of the model's own L lanes, bit for bit only beside the same companions and padding: the fresh process
+    # re-runs the ORIGINAL chunks that hold every drawn row (`vmap64_rerun_rows` at the model's L), never single rows,
+    # and the side file names L so the scorer picks each drawn row's answer from that run. Every other version queries
+    # the drawn rows themselves.
+    lanes, queried = None, positions
+    if (kit["id"], kit["version"]) in vmap64_versions:
+        try:
+            lanes = vmap64_state_lanes(
+                kit["id"],
+                kit["version"],
+                artifacts["state.npz"],
+                recipe,
+                material["allowlist_bytes"],
+            )
+        except (KeyError, TypeError, ValueError, RuntimeError) as exc:
+            raise RetentionUnavailable("subset_repeat_lanes_unavailable") from exc
+        queried, _where = vmap64_rerun_rows(positions, len(inputs), lanes)
+    rows = np.ascontiguousarray(inputs[queried])
+    rows_shape = (len(queried), *tuple(output_shape)[1:])
+    image = _inference_image_of(provider, regrade)
+
+    def attempt(retry):
+        return infer_frozen_once(
+            provider.ledger,
+            owner=owner,
+            identity=subset.run_identity(pack, submission_id, retry=retry),
+            inference_image=image,
+            recipe=recipe,
+            challenge_binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
+            limits_document=limits,
+            state_bytes=artifacts["state.npz"],
+            expected_state_digest=entry["state_digest"],
+            inputs=rows,
+            expected_output_shape=rows_shape,
+            expected_output_dtype=output_dtype(interface),
+            allowlist_bytes=material["allowlist_bytes"],
+            seconds=policy["inference_wall_seconds_max"],
+            total_seconds=policy["total_reconstruction_wall_seconds_max"],
+            accelerator=getattr(provider, "inference_accelerator", None),
+            procedure="per_case",
+        )
+
+    walls = 0
+    while True:
+        try:
+            run = attempt(walls > 0)
+            break
+        except InferencePairFailure as failure:
+            if not _is_candidate_wall_hit(failure.cause):
+                raise RetentionUnavailable("subset_repeat_incomplete") from failure
+            walls += 1
+            if walls == 2:
+                stopped = CandidateWallLimitReached(CANDIDATE_WALL_LIMIT_REACHED)
+                # the closed public pass name of the repeat (exam feedback v8), unchanged by the subset form
+                stopped.carbon_pass = "inference_pair"
+                raise stopped from failure
+    raw = subset.side_file(
+        challenge=kit["id"],
+        version=kit["version"],
+        evaluation_pack_digest=pack,
+        submission_id=submission_id,
+        n_rows=len(inputs),
+        sealed=sealed,
+        keyed=keyed,
+        lanes=lanes,
+        run=run.evidence,
+    )
+    write_once(path, raw)
+    return raw
+
+
 def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, procedure):
     """The FIRST fresh instance's flat raw answers of a re-check pair, read through the pair reader with the pair's own
     identities and the subset's shapes; the state is bound to the graded entry's. Unreadable = Carbon's gap.
@@ -1167,6 +1455,104 @@ def _served_recipe(adapter, submission_id):
     )
 
 
+#: The basis record of a vmap-64 version's structural row check: its side file holds the RETAINED GRADED rows, never a
+#: fresh re-run, and this host-private record (beside it) says so (`pool_menu.read_rowcheck_side_file` is strict).
+ROWCHECK_BASIS_SCHEMA = "carbon.lean-recipe.menu-rowcheck-basis.v1"
+ROWCHECK_BASIS = "STRUCTURAL_ISOLATED_VMAP64"
+#: The tests that prove a vmap-64 graded row is a function of that row alone (R1 code path + the planted cross-row model).
+ROWCHECK_PROOF_TESTS = (
+    "tests/cpu/test_motor18_vmap64_row_isolation.py::test_every_bank_prediction_of_motor_1_8_is_an_isolated_lane",
+    "tests/cpu/test_motor18_vmap64_row_isolation.py::test_the_planted_model_really_depends_on_its_batch_rows",
+    (
+        "tests/cpu/test_motor18_vmap64_row_isolation.py::"
+        "test_under_isolated_lanes_a_rows_answer_ignores_its_companion_lanes"
+    ),
+)
+
+
+#: The structural row check could not be proven to read rows of the isolated vmap-64 pass: Carbon's, typed. Refused
+#: rather than run as a real re-check, which would compare the graded rows against another program's.
+ROWCHECK_STRUCTURAL_UNPROVEN = "menu_rowcheck_structural_unproven"
+
+
+def _structural_rowcheck(
+    adapter, result, submission_id, artifacts, regrade, positions, path, tag, material
+):
+    """A vmap-64 version's menu row check with NO inference operation (owner "Yes and yes", Lead ledger ~09:xx: "record
+    row independence as STRUCTURAL under the 64-row mode ... IN PLACE OF re-predicting rows"; Lead trim change 3, V-Motor
+    and V2B to sign). Every graded row was answered in its own isolated lane (the R1 code path and the planted cross-row
+    test, `ROWCHECK_PROOF_TESTS`), so the side file holds the RETAINED GRADED rows at the keyed positions (unchanged,
+    `pool_menu.rowcheck_plan`) and the measure reads D = 0 by construction. The graded rows must come from the vmap
+    program (CV-Motor-B, condition 1, FAIL CLOSED): the retained graded-inference digest must equal this version's vmap
+    program's digest recomputed now, the program the regrade query names must BE that vmap program (every lane one real
+    case: row i in lane i % L of chunk i // L, the other batch rows zero), and the model's lane count must be a
+    registered vmap one (1..64, `vmap64_lanes`). Anything unproven is `ROWCHECK_STRUCTURAL_UNPROVEN` (a real re-check
+    would compare different programs); a grade with no recorded graded inference is `VMAP64_NEEDS_SEALED_PACK`. A
+    write-once host-private basis record beside the side file says the rows are the graded ones, never a fresh run,
+    and the row check is never repeatability evidence."""
+    from carbon.development_session.data import write_once
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_LANES,
+        vmap64_infer_program,
+        vmap64_state_lanes,
+    )
+    from carbon.scoring import pool_menu
+
+    recorded = getattr(regrade, "graded_inference_sha256", None)
+    if regrade is None or recorded is None:
+        raise RetentionUnavailable(VMAP64_NEEDS_SEALED_PACK)
+    kit = material["construction_kit"]
+    try:
+        image = _inference_image_of(adapter._provider(regrade.owner), regrade)
+        current = _graded_inference_digest(adapter, material, regrade.recipe, image)
+        program = _graph_regrade_query(
+            adapter.discovery, material, recipe=regrade.recipe
+        ).get("program")
+        vmap_program = vmap64_infer_program(kit["id"], kit["version"])
+        lanes = vmap64_state_lanes(
+            kit["id"],
+            kit["version"],
+            artifacts["state.npz"],
+            regrade.recipe,
+            material["allowlist_bytes"],
+        )
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as exc:
+        raise RetentionUnavailable(ROWCHECK_STRUCTURAL_UNPROVEN) from exc
+    if (
+        recorded != current
+        or program != vmap_program
+        or type(lanes) is not int
+        or not 1 <= lanes <= VMAP64_LANES
+    ):
+        raise RetentionUnavailable(ROWCHECK_STRUCTURAL_UNPROVEN)
+    try:
+        graded = json.loads(artifacts["predictions.json"])
+        rows = [[float(v) for v in graded[p]] for p in positions]
+    except (KeyError, TypeError, ValueError, IndexError) as exc:
+        raise RetentionUnavailable("menu_rowcheck_graded_rows_unreadable") from exc
+    side = pool_menu.rowcheck_side_file(positions, rows)
+    directory = _private_evaluation_directory(result, submission_id)
+    write_once(
+        directory / f"menu-rowcheck-basis-{tag}.json",
+        _json(
+            {
+                "schema": ROWCHECK_BASIS_SCHEMA,
+                "basis": ROWCHECK_BASIS,
+                "side_file_sha256": _sha(side),
+                "positions_sha256": _sha(_json(positions)),
+                "graded_predictions_sha256": _sha(artifacts["predictions.json"]),
+                "graded_inference_sha256": recorded,
+                "program_sha256": _sha(vmap_program.encode()),
+                "lanes": lanes,
+                "repeatability_evidence": False,
+                "proof_tests": list(ROWCHECK_PROOF_TESTS),
+            }
+        ),
+    )
+    write_once(path, side)
+    return side
+
+
 def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """A menu-D version's row-independence re-check (Carbon Validator-B 7 Nov (1); Validator-2B 7 Nov conditions 1-4):
     a FRESH instance of the retained model answers a keyed subset of the graded query in a keyed order
@@ -1185,10 +1571,6 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     from carbon.development_session.data import write_once
     from carbon.development_session.direct_graph_construction_worker import (
         VMAP64_INFERENCE_VERSIONS as vmap64_versions,
-    )
-    from carbon.development_session.direct_graph_construction_worker import (
-        vmap64_rerun_rows,
-        vmap64_state_lanes,
     )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
@@ -1242,29 +1624,27 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         if not same:
             raise RetentionUnavailable("menu_rowcheck_cache_not_this_epoch")
         return cached
+    if (kit["id"], kit["version"]) in vmap64_versions:
+        # vmap-64: row independence is STRUCTURAL, so no inference runs (owner "Yes and yes"; Lead, trim change 3)
+        return _structural_rowcheck(
+            adapter,
+            result,
+            submission_id,
+            artifacts,
+            regrade,
+            positions,
+            path,
+            tag,
+            material,
+        )
     recipe = (
         ConstructionRecipe.from_dict(_served_recipe(adapter, submission_id))
         if regrade is None
         else regrade.recipe
     )
-    # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) answers each row in an isolated
-    # lane of a chunk of the model's own L lanes, bit for bit only beside the same companions and padding: its fresh
-    # instance re-runs the ORIGINAL chunks that hold the planned positions (`vmap64_rerun_rows` at the model's L), so
-    # every row sits in its original chunk and lane, and the side file keeps the planned positions in the keyed order
-    # with their answers picked from that run. Every other version queries the keyed subset in the keyed order.
-    queried, picked = positions, None
-    if (kit["id"], kit["version"]) in vmap64_versions:
-        try:
-            lanes = vmap64_state_lanes(
-                kit["id"],
-                kit["version"],
-                artifacts["state.npz"],
-                recipe,
-                material["allowlist_bytes"],
-            )
-        except (KeyError, TypeError, ValueError, RuntimeError) as exc:
-            raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
-        queried, picked = vmap64_rerun_rows(positions, len(inputs), lanes)
+    # (A vmap-64 version never reaches here: its row check is structural, `_structural_rowcheck`, above.) Every other
+    # version's fresh instance queries the keyed subset in the keyed order.
+    queried = positions
     subset = np.ascontiguousarray(inputs[queried])
     subset_shape = (len(queried), *tuple(output_shape)[1:])
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
@@ -1339,8 +1719,6 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     if not width or width * len(queried) != len(flat):
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
     rows = [flat[i * width : (i + 1) * width] for i in range(len(queried))]
-    if picked is not None:
-        rows = [rows[i] for i in picked]
     side = pool_menu.rowcheck_side_file(positions, rows)
     write_once(path, side)
     return side
@@ -1769,7 +2147,8 @@ def _retain_selected_pack_evaluation(
                     else {}
                 ),
             }
-        # Before any comparison against the retained graded bytes (the pair, the single calls, the menu row check):
+        # Before any comparison against the retained graded bytes (the pair or the subset repeat, the single calls, the
+        # menu row check, whose vmap-64 form reads them under the basis STRUCTURAL_ISOLATED_VMAP64):
         # they were made by the program those comparisons run.
         _check_graded_program(
             adapter, getattr(discovery, "_material", None), artifacts, regrade
@@ -1777,7 +2156,10 @@ def _retain_selected_pack_evaluation(
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
         # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
-        pair_raw = _inference_pair_raw(
+        # A subset version (Motor 1.8) runs ONE keyed subset repeat instead of the pair: its side file rides in the same
+        # repeat-evidence slot, read only by that version's own producer (`subset_repeat_produce`).
+        subset_repeat = _subset_repeat_version(adapter)
+        pair_raw = (_subset_repeat_raw if subset_repeat else _inference_pair_raw)(
             adapter,
             submission_id,
             result,
@@ -1812,6 +2194,10 @@ def _retain_selected_pack_evaluation(
 
         # (a menu-D version's re-check is staged for the measure, never passed through a producer file: None stages
         # nothing for every other version)
+        if subset_repeat:
+            from carbon.scoring.subset_repeat_produce import (
+                produce_registered_dual_measurement,
+            )
         with pool_menu.staged_rowcheck(menu_rowcheck):
             prepared = produce_registered_dual_measurement(
                 selected_pack=snapshot,
@@ -2113,6 +2499,10 @@ def _write_exam_se(
                 )
             bank, module = sealed[0], sealed[1]
             measure = pool_exam_se.bootstrap_total_se
+            if _subset_repeat_version(adapter):
+                from carbon.scoring import subset_repeat_produce
+
+                measure = subset_repeat_produce.bootstrap_total_se
         else:
             bank = physical_pack.development_bank(
                 adapter.challenge_id, adapter.challenge_version
@@ -2168,7 +2558,10 @@ def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):
     of its worker operations (build, graded inference, timed query, repeat pair), one official lane. None when the
     receipts carry none, so the registered measured value keeps standing in for it."""
     try:
-        from carbon.development_session.paired_inference import pair_identities
+        from carbon.development_session.paired_inference import (
+            pair_identities,
+            repeat_identity,
+        )
 
         provider = adapter._provider(adapter.owner(submission_id))
         operations = [
@@ -2176,6 +2569,10 @@ def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):
             for name in ("build_operation", "inference_operation", "timed_operation")
         ]
         operations += list(pair_identities("pair-" + exam_key + "-" + submission_id))
+        # (a subset version's one keyed repeat; no such operation exists for any other version)
+        operations.append(
+            repeat_identity("subset-repeat-" + exam_key + "-" + submission_id)
+        )
         milliseconds = 0
         with provider.ledger.db() as db:
             for operation in operations:

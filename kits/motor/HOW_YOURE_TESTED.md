@@ -116,7 +116,7 @@ Gates come first: a failed gate means no score, however good the rest.
 - When a try ends at a limit, the result of a kit that shows it names the
   pass it ended in. The four pass names, each in one line:
   - `graded_pass`: Your built model answers the hidden exam designs once, and its answers are scored.
-  - `inference_pair`: Carbon runs your built model on the exam a second time, as the repeat that the public accuracy definition describes.
+  - `inference_pair`: Carbon runs your built model again in a fresh process on a secret sample of the exam designs it already answered, and the answers must match.
   - `menu_rowcheck`: Carbon checks that each of your model's design answers does not depend on which other designs are in the batch.
   - `early_stop`: Before the graded pass, a model projected to run past the limit is stopped early when the early stop is on; it counts as a try, like a timeout.
   A stop in any other part of a grade is counted the same way and shows no

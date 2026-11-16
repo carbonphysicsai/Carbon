@@ -66,17 +66,24 @@ def test_every_bank_prediction_of_motor_1_8_is_an_isolated_lane():
     graph_route = inspect.getsource(worker.reconstruct_and_infer_graph_public)
     assert "measure_query=False,\n        per_case=True," in graph_route
     assert "registered_inference_contract(" in graph_route
-    # the repeat pair and the menu row check repeat the registered procedure, which for Motor 1.8 is per-case
+    # the repeat pair, the menu row check and the subset repeat repeat the registered procedure, which for Motor 1.8 is
+    # per-case (its query form lives in `_frozen_query`, shared by the pair and the subset repeat's one run)
     assert '{"measure_query": False, "per_case": True}' in inspect.getsource(
-        paired_inference.infer_frozen_pair
+        paired_inference._frozen_query
     )
+    for run in (paired_inference.infer_frozen_pair, paired_inference.infer_frozen_once):
+        assert "_frozen_query(" in inspect.getsource(run)
+    subset_run = inspect.getsource(lean_recipe_retention._subset_repeat_raw)
+    assert 'procedure="per_case"' in subset_run and "vmap64_rerun_rows(" in subset_run
     from carbon.scoring import motor18_dual_pack
 
     assert '"paired_repeat_procedure": "per_case"' in inspect.getsource(
         motor18_dual_pack._sl().definition
     )
+    # the row check: a vmap-64 version's is STRUCTURAL (no op; tests/cpu/test_motor18_structural_rowcheck.py), every
+    # other version's repeats the registered procedure
     rowcheck = inspect.getsource(lean_recipe_retention._menu_rowcheck_raw)
-    assert "procedure=procedure" in rowcheck and "vmap64_rerun_rows(" in rowcheck
+    assert "procedure=procedure" in rowcheck and "_structural_rowcheck(" in rowcheck
 
 
 def test_every_menu_prediction_is_a_lookup_of_the_graded_rows():

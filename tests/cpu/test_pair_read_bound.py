@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import json
 import random
 import sys
@@ -182,7 +183,20 @@ def test_the_motor_1_8_overlay_arms_the_sized_produce_inside_its_own_producer_id
 
     assert getattr(physical.produce, "pair_read_bound", False) is True
     assert ("electric-motor-magnetics", "1.8") in bound._SIZED
-    # the bound is in 1.8's OWN producer files, never a shared or a live version's
-    assert motor18_dual_pack.FILES[-1] == "pair_read_bound.py"
-    assert "pair_read_bound.py" not in physical._SHARED_FILES
-    assert "pair_read_bound.py" not in motor_sealed_dual_pack.FILES
+    # the bound is in 1.8's OWN producer files, never a shared or a live version's. (Since the keyed subset repeat, 1.8
+    # grades through its own subset producer, which sizes the same ceiling for its graded originals itself; both are 1.8's
+    # own files, listed after the sealed grader's.)
+    files = motor18_dual_pack.FILES
+    assert "pair_read_bound.py" in files and "subset_repeat_produce.py" in files
+    assert files.index("pair_read_bound.py") > len(motor_sealed_dual_pack.FILES)
+    for name in (
+        "pair_read_bound.py",
+        "subset_repeat_produce.py",
+        "subset_repeat_evidence.py",
+    ):
+        assert name in files  # Motor 1.8's adapter only
+        assert name not in physical._SHARED_FILES
+        assert name not in motor_sealed_dual_pack.FILES
+    from carbon.scoring import subset_repeat_produce
+
+    assert "pair_read_bound.raised(" in inspect.getsource(subset_repeat_produce.produce)

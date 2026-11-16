@@ -1,0 +1,86 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "confirm_before_switch": "Deploy-B / Validator-2B confirm producer_successor.pack_producer_digest equals the live Motor 1.8 pack's accuracy_definition.producer_digest (computed here as Motor 1.8's producer digest at e6f67358, the compiled-forward head, before this change).",
+  "implementation": [
+    "Rows that are not repeated are not repeat-checked.",
+    "Since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026, typed in Deploy-B; main c0059854 empties direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS) Motor 1.8 grades per case with the compiled program, so its menu row check runs the REAL fresh-instance re-predict over the keyed positions, as every other version's does. The structural form (owner 'Yes and yes'; Lead trim change 3; CV-Motor-B Y on four conditions) stays in code, DORMANT, for a later ruling: it applies only to a version in the vmap-64 set, holds the RETAINED GRADED rows at the keyed positions with a host-private basis record (menu-rowcheck-basis-*.json, basis STRUCTURAL_ISOLATED_VMAP64) binding the graded-inference digest, and fails closed (menu_rowcheck_structural_unproven) unless the graded pass provably ran the vmap program. The row check is never repeatability evidence: repeatability is the subset repeat's.",
+    "Motor 1.8 (per case since the rollback): the ONE fresh process re-runs exactly the drawn rows, per case, in the drawn order, and the side file names lanes null (subset_repeat_evidence.rerun_rows refuses a lane count for a version that is not vmap-64). The dormant vmap-64 form re-runs instead the ORIGINAL chunks holding every drawn row at the model's own lane count (direct_graph_construction_worker.vmap64_rerun_rows), named in the side file as lanes. Before the comparison, the graded-inference guard (lean_recipe_retention._check_graded_program) refuses graded rows made by another program, staged modules or image as Carbon's graded_program_changed (FAILED_INFRA, not retried).",
+    "The shared sealed measure takes two full twin rows, so a row that is not repeated (or whose fresh answer is not one finite row of the graded width) is given its own graded answer as its twin. Its internal paired_repeat then reads PASS; that verdict is never exported (the aggregate counts only FAIL) and has no score effect (score_case reads the twin only inside its gates; the pool rows' twins are never read).",
+    "The bit-exact whole-row check (subset_repeat_evidence.rows_agree) is the decisive gate over every repeated row; a failure sets native_motor_valid and complete_fixed_coverage FAIL, A None, D 0.",
+    "The strata are defined in code (subset_repeat_evidence.STRATA), each tied to its registered source in pool_constants and checked at every build: probe_response = the bank's probe cohort; H-1 / H-3a / H-3b = pool rows of the targets the registered coverage plan (coverage_plan_sha256 65e3d90b, sums 0893d54b, coverage_class_vocabulary) classes so; gate_torque_7d1761c3 / gate_oc_697a0d7b = the rows of the registered in-range case set (in_range_cases_sha256 8ee64cc0) whose truths are exactly the torque outputs (mean_torque_nm, ripple_pk_pk_nm) / exactly the OC output (back_emf_open_circuit), checked against their registered sizes n 23 / n 24; menu_D3 .. menu_D6 = each registered menu task's (design x duty) rows. The values row names exactly these strata (null or another name fails closed). Each keyed stratum is drawn under its own key HMAC(K_speed, 'carbon.subset-repeat/1' || 0x00 || submission id || 0x00 || stratum).",
+    "The menu rows of D3-D6 ARE bank rows: the bank's pool rows are every target design, every menu (design x duty) row and every in-range case row, quantised and deduplicated (pool_version.rows_from_material); the grade requires the menu rows to be bank rows (pool_exam.measure_pool).",
+    "scripts/dev/sealed_exam/subset_repeat_counts.py prints, where the sealed bank is in custody, only the per-stratum row count n, its mode, the rows it re-runs per grade, the overlap and remainder counts, and the per-grade total.",
+    "The side file binds the served version, the evaluation pack digest and the submission id; the scorer requires exactly the bank's sealed cells, for each registered stratum exactly min(k, its rows) distinct keyed rows of that stratum with their count, and the ledger identity the door gives this submission's repeat or its one wall retry."
+  ],
+  "label": "Motor 1.8: the two full-bank inference-pair passes become ONE fresh repeat of all 30 sealed cells plus 66 keyed rows inside EACH keyed stratum and ALL rows of each registered gate set (bit-exact whole rows), as the SAME version (pack and exam key unchanged); k from the owner's promise (f 0.10, P 0.999); strata as CV-Motor-B ruled",
+  "owner_words": [
+    {
+      "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, the Sun 15 Nov 08:19 CST Lead line",
+      "typed_at": "Sun 15 Nov 2026 08:19 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "Annoying. Yeah. Get that in. The most efficient way to check. I also do not think that needs a new exam version."
+    },
+    {
+      "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, the Sun 15 Nov 08:38 CST Lead line",
+      "typed_at": "Sun 15 Nov 2026 08:38 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "66 rows. But we need a % that generalizes for challenges"
+    },
+    {
+      "source": "codex-queue/handoff-20261021/TEAM_BOARD.md and the decision ledger, the Sun 15 Nov ~09:5x CST Lead line",
+      "typed_at": "Sun 15 Nov 2026 ~09:5x CST",
+      "typed_in": "the Lead session",
+      "verbatim": "Yes for 66 per stratum"
+    }
+  ],
+  "rule": "k = min(ceil(ln(1 - P) / ln(1 - f)), the stratum's rows) per registered stratum, from scripts/validator_host_classes/subset_repeat.json (f = repeat_fail_fraction, P = repeat_detect_prob, each strictly between 0 and 1; strata = the cohort labels). A missing, null or malformed promise or strata, an unknown stratum, or no grading-host K_speed: the receiver does not serve and a grade is Carbon's typed unavailable. Code: carbon/scoring/subset_repeat_evidence.py, subset_repeat_produce.py, producer_successor.py (Motor 1.8 producer files only); door: lean_recipe_retention._subset_repeat_raw and subset_repeat_serve_check; key: bank_promotion._key_producer.",
+  "schema": "carbon.exam.subset-repeat-record.v1",
+  "science_ruling": {
+    "by": "CV-Motor-B",
+    "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, board Sun 15 Nov (the ~08:2x ruling and the later Q1/Q2 ruling)",
+    "summary": [
+      "(1) The subset repeat is its own mandatory gate: a per-grade secret key, never disclosed, draws rows of the graded bank after the graded predictions are committed; they are re-predicted in ONE fresh process (same image, state and inputs). A repeat failure leaves the grade unscored, the candidate's failure, exactly as a pair mismatch today (native_motor_valid and complete_fixed_coverage FAIL, A None, D 0).",
+      "(Q1 = B, STRATIFIED) The repeat re-runs ALL the sealed cells (30) PLUS keyed rows in one op; the promise's k applies to the keyed part. Superseded in its keyed part by the owner's ~09:5x line: k keyed rows INDEPENDENTLY inside EACH scored stratum (capped at the stratum's size), plus any gate sets CV-Motor names.",
+      "(Q2) The decisive rule: each repeated row must equal the graded row BIT-EXACT over the WHOLE 240-wide row. Any differing value, or a malformed or non-finite fresh answer, is a repeat FAIL. Motor's existing torque-slice paired_repeat gate stays as it is.",
+      "(2) The repeat feeds pass/fail only and never changes a score value.",
+      "(3) 'Three runs agree' (graded vs repeat 1 vs repeat 2) becomes graded vs the fresh repeat on the repeated rows, for Motor 1.8 only.",
+      "(STRATA) sealed: all 30 decision_sealed_grid rows; probe_response: one stratum; pool rows split by their REGISTERED coverage class, exactly H-1, H-3a, H-3b; in-range torque gate cases (gate case set 7d1761c3): ALL rows; in-range OC gate cases (gate case set 697a0d7b): ALL rows; the menu rows of each task D3-D6, one stratum per task; remainder expected 0. A row in NONE refuses the build and the serve check. A row in TWO strata is expected (the bank dedupes quantised rows across target designs, menu rows and in-range case rows): CV-Motor-B, Sun 15 Nov 17:43 CST, OVERLAPS ALLOWED, DEDUPE AFTER DRAWING: each stratum keeps its FULL membership and draws its own rows under its own key; the op re-runs the union of the sealed cells and all drawn rows once each; a shared row counts for every stratum that drew it; overlaps stay reported (counts only); a gate set != its registered n still refuses. Each keyed stratum gets min(66, n) rows."
+    ]
+  },
+  "validator_conditions": {
+    "L2": "A successor row may name only a subset-repeat version; any other row makes the registry refuse.",
+    "Q3 (a)": "The bank-promotion evaluation key (private_evaluation_key, carry_identity) reads a grade carrying exactly the row's producer digest under the pinned digest (the record and the row only, so a stored key re-verifies after any later code change; the running producer is checked where a grade is made), so new-digest grades share the sitting king's key. A-1 one hop through the R-1 row only, no chains, no reverse; A-2 key computation only, no record rewritten; A-3 only producer_digest maps; A-5 repeat values reach gates only.",
+    "R-1": "ONE successor row, Motor 1.8 only, mapping the live pack's exact pinned producer digest to the exact new code digest; recomputed at load, any mismatch refused; this record carries the owner's words and CV-Motor-B's sign-off.",
+    "R-2": "The repeat feeds pass/fail only.",
+    "R-3": "New grades carry the NEW producer digest in their evidence and measurement basis; old grades are read with their own digest; nothing is rescored.",
+    "R-4": "The pack's public accuracy_definition does not change; the kit page and launchpad inference_pair line say the repeat is a keyed sample of the graded designs.",
+    "R-5": "Door switch with declared evidence; the receiver's start-up check names the successor row (and refuses without the promise or the grading host's K_speed).",
+    "by": "Validator-2B",
+    "rejected": "Patching the reader at runtime from a non-producer module."
+  },
+  "values": {
+    "derived_k_per_stratum": 66,
+    "producer_successor": {
+      "pack_producer_digest": "sha256:9c5ac4dbee486fbf9b986b22f5b1b2f2b1a4b415512a950379761159967e32cc",
+      "producer_digest": "sha256:42990bf90c37822ac8dbaf32be2c25806feb8f2e4fb54b90014e0eb8109f1b3c"
+    },
+    "promise": {
+      "repeat_detect_prob": 0.999,
+      "repeat_fail_fraction": 0.10,
+      "strata": [
+        "probe_response",
+        "H-1",
+        "H-3a",
+        "H-3b",
+        "gate_torque_7d1761c3",
+        "gate_oc_697a0d7b",
+        "menu_D3",
+        "menu_D4",
+        "menu_D5",
+        "menu_D6"
+      ]
+    },
+    "sealed_cells_repeated": 30
+  },
+  "version": "1.8"
+}

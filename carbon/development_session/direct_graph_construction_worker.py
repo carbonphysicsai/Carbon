@@ -534,8 +534,10 @@ PHYSICAL_V2_COMPILED_INFER_PROGRAM = _v2_compiled_infer_program()
 #: per-call timing, the batched timing query) stays the per-case compiled `forward`. So a timed call and the graded row
 #: agree only within the registered speed-match tolerance (`carbon.challenge_validator.speed_match`, a values row; a
 #: disagreement beyond it is Carbon's), while two runs of the same chunks agree bit for bit (the repeat pair over the
-#: whole query; the menu row check and the subset repeat over the ORIGINAL chunks, `vmap64_rerun_rows`). A version here
-#: must also be in `JIT_INFERENCE_VERSIONS`.
+#: whole query; the subset repeat over the ORIGINAL chunks, `vmap64_rerun_rows`). The menu row check of a vmap-64 version
+#: runs no inference: its row independence is STRUCTURAL (each row its own lane), its side file holds the retained graded
+#: rows under the basis STRUCTURAL_ISOLATED_VMAP64, and it is never repeatability evidence
+#: (`lean_recipe_retention._structural_rowcheck`). A version here must also be in `JIT_INFERENCE_VERSIONS`.
 #: EMPTY since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026, typed in Deploy-B: per-case compiled, no batched
 #: grading): Motor 1.8 grades with the per-case compiled program again, byte for byte the 57af6692 program
 #: (tests/cpu/test_motor18_compiled_forward.py pins its sha). The vmap-64 machinery stays, unused, for a later ruling.

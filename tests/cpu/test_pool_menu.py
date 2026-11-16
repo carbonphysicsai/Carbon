@@ -616,13 +616,12 @@ def test_on_a_menu_receiver_an_adapter_with_no_kit_is_carbons_gap(monkeypatch):
         lrr._menu_rowcheck_raw(adapter, "rtsk_x", {}, {}, {})
 
 
-@pytest.mark.parametrize("lanes", [False, True], ids=["per-case", "vmap64"])
+@pytest.mark.parametrize("lanes", [False], ids=["per-case"])
 def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
     monkeypatch, tmp_path, lanes
 ):
-    """Off vmap-64 the fresh instance answers the keyed subset in the keyed order; Motor 1.8 under vmap-64 (its
-    registered state) re-runs the ORIGINAL 64-row chunks holding the planned positions, so each row sits in its
-    original lane, and the side file still keeps the planned positions in the keyed order.
+    """Off vmap-64 the fresh instance answers the keyed subset in the keyed order. (Motor 1.8 under vmap-64 runs no
+    re-check operation: its row check is STRUCTURAL, tests/cpu/test_motor18_structural_rowcheck.py.)
     """
     from types import SimpleNamespace
 
