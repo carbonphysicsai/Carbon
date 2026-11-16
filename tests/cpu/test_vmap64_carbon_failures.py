@@ -168,7 +168,9 @@ def test_a_timed_disagreement_is_failed_infra_and_its_one_retry_really_times_aga
     outcome, marker = _graded_by(grader, root)
     assert outcome == (e2e.TASK, "GRADED"), marker
     assert fixture.calls == ["bank", "pair", "single", "single"]
-    assert len(identities) == 2 and identities[1] == identities[0] + "-attempt2"
+    # its own identity (A20's in-lane speed stage names each run `speed-lane-<name>[-attempt2]-r<k>`)
+    assert len(identities) == 2 and identities[1] != identities[0]
+    assert "-attempt2" in identities[1] and "-attempt2" not in identities[0]
     assert e2e._cap_rows(fixture)[-1][2] == "COUNTED"
 
 
