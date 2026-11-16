@@ -40,7 +40,7 @@ nothing, and keeps a local GPU build's wall-stop reading; a GPU fault found afte
 
 **Configuration.** Operator-installed, beside the host execution record: ``<HOST_ROOT>/remote-gpu-build-lanes.json``
 (`RECORD`, schema `SCHEMA`) ``{"lanes": [{"docker_host", "stage_root", "slot_cpusets"}]}``, and per lane the remote
-machine's own strict host device record (``host-device.json``, written by the GPU class check run ON that machine) in
+machine's own strict host device record (``host-device.json``, written ON that machine by `scripts/dev/carbon_accelerator.py prepare`) in
 ``<HOST_ROOT>/remote-gpu-build/lane-<i>/``. A lane is used only when the values row `VALUES` names the door's
 ``"<challenge> <version>"`` with the one ``device_kind`` the record must report. No row, no record: today's path. This
 module sets no threshold and makes no scientific decision; the GPU class is admitted for scoring only by the owner's
@@ -357,7 +357,7 @@ def door_lane(challenge_id, version, *, root=None, values=None):
 
 def _lane_device(lane_dir):
     """The lane machine's strict device record, bound to the GPU profile, or ValueError: a remote lane's own (in its
-    lane directory, written by the class check run ON that machine), or a local lane's: this host's installed record.
+    lane directory, written ON that machine by `carbon_accelerator.py prepare`), or a local lane's: this host's installed record.
     """
     from carbon.reconstruction.accelerators import GPU_PROFILE
     from carbon.reconstruction.host_inventory import (
