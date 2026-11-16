@@ -6,9 +6,9 @@ For each N in ``--slots`` (default 1,2,4) it starts N builds AT ONCE on the one 
 pinned GPU worker image, with what a slot of `carbon.reconstruction.remote_gpu_build` gives a build: the pinned
 determinism environment (`accelerators.worker_environment`: XLA deterministic ops, autotune off,
 ``CUBLAS_WORKSPACE_CONFIG``, TF32 off), the device bound by its uuid, each slot on its own cores (``--cpusets``), the
-worker user, and for N > 1 the torch prelude's memory share (`remote_gpu_build.slot_environment`,
-`remote_gpu_build.with_torch_prelude`; JAX has no per-process cap under the pinned environment, which is what
-`remote_gpu_build.JAX_SLOT_MEMORY_CAP` waits on). It is not the carrier: no worker protocol, staging, exporter or the
+worker user, and for N > 1 the slot's in-process memory share (`remote_gpu_build.slot_environment` and
+`remote_gpu_build.with_slot_prelude`: JAX's BFC allocator with its fraction, PyTorch's per-process fraction; the
+door enables N > 1 only once Validator-2 accepts it, `remote_gpu_build.SLOT_PRELUDE_RULED`). It is not the carrier: no worker protocol, staging, exporter or the
 worker profile's memory and pids limits. While builds run it samples ``nvidia-smi`` for device memory (every compute
 process on the device, so run it on an otherwise idle GPU; the baseline before each N is reported; short peaks between
 samples are missed). Each build writes its state bytes to stdout; the bench hashes them. It reports, per N: each build's
@@ -340,7 +340,7 @@ def bench(
         workers = []
         for run in runs:
             binding = remote_gpu_build.OpBinding(lane, run.slot)
-            source = remote_gpu_build.with_torch_prelude(program, binding)
+            source = remote_gpu_build.with_slot_prelude(program, binding)
             argv = run_argv(
                 image_id, record, binding, f"carbon-slot-bench-{slots}-{run.slot}"
             )

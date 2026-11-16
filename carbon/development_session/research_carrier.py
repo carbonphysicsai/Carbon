@@ -1812,9 +1812,9 @@ def _run_locked(
     rebuild_wall_seconds=None,
 ):
     before_finish = before_finish or (lambda: None)
-    # A remote GPU build slot of a lane split into N > 1 slots: the program caps PyTorch's share of the device first
-    # (`remote_gpu_build.with_torch_prelude`); one slot, or any other op: the program is unchanged.
-    source = remote_gpu_build.with_torch_prelude(source)
+    # A GPU build slot of a lane split into N > 1 slots: the program caps its own share of the device first, JAX's and
+    # PyTorch's (`remote_gpu_build.with_slot_prelude`); one slot, or any other op: the program is unchanged.
+    source = remote_gpu_build.with_slot_prelude(source)
     # The miner's own research has no Carbon limits (owner direction): any
     # positive wall allowance, or none at all. Carbon's own work in this carrier
     # keeps its bounded allowance.

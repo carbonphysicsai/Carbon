@@ -98,7 +98,7 @@ def host(tmp_path, monkeypatch):
     monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", root)
     monkeypatch.setattr(remote_gpu_build, "_docker_binary", lambda: "/usr/bin/docker")
     # the slot machinery under test; the shipped value (False) refuses N > 1: test_n_slots_wait_for_a_jax_memory_cap
-    monkeypatch.setattr(remote_gpu_build, "JAX_SLOT_MEMORY_CAP", True)
+    monkeypatch.setattr(remote_gpu_build, "SLOT_PRELUDE_RULED", True)
     monkeypatch.setattr(remote_gpu_build, "_ENVIRONMENT_BINDING", [])
     monkeypatch.setattr(remote_gpu_build, "_PINNED", {})
     return root
@@ -373,7 +373,7 @@ def test_one_slot_changes_nothing(host):
     with remote_gpu_build.offered(lane), _op():
         assert remote_gpu_build.slot_environment() == {}
         assert remote_gpu_build.with_slot_environment(_argv()) == _argv()
-        assert remote_gpu_build.with_torch_prelude(source) == source
+        assert remote_gpu_build.with_slot_prelude(source) == source
         assert remote_gpu_build.request_fields() == {}
 
 
@@ -381,7 +381,17 @@ def test_n_slots_cap_each_processs_device_memory_and_keep_determinism(host):
     lane = _lane(host, slots=2)
     with remote_gpu_build.offered(lane), _op():
         argv = remote_gpu_build.with_slot_environment(_argv())
-        assert remote_gpu_build.request_fields() == {"remote_gpu_slots": 2}
+        assert remote_gpu_build.request_fields() == {
+            "remote_gpu_slots": 2,
+            "slot_memory": {
+                "fraction": "0.45",
+                "jax": {
+                    "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
+                    "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+                },
+                "torch": "set_per_process_memory_fraction",
+            },
+        }
     environment = dict(
         value.split("=", 1)
         for index, value in enumerate(argv)
@@ -392,7 +402,7 @@ def test_n_slots_cap_each_processs_device_memory_and_keep_determinism(host):
     # the pinned (image-input) environment keeps JAX on the on-demand platform allocator: no BFC fraction
     assert environment["XLA_PYTHON_CLIENT_ALLOCATOR"] == "platform"
     assert "XLA_PYTHON_CLIENT_MEM_FRACTION" not in environment
-    assert environment[remote_gpu_build.TORCH_FRACTION_ENV] == "0.45"
+    assert environment[remote_gpu_build.SLOT_FRACTION_ENV] == "0.45"
     assert environment["XLA_FLAGS"] == " ".join(accelerators.GPU_DETERMINISM_XLA_FLAGS)
     assert environment["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
     assert argv.count("--env") == len(environment)
@@ -414,31 +424,62 @@ def test_the_torch_prelude_follows_the_docstring_and_future_imports(host):
         '"""doc\nmore"""\n\nfrom __future__ import annotations\n\nimport os\nx = 1\n'
     )
     with remote_gpu_build.offered(lane), _op():
-        changed = remote_gpu_build.with_torch_prelude(source)
+        changed = remote_gpu_build.with_slot_prelude(source)
     module = ast.parse(changed)
     assert ast.get_docstring(module) == "doc\nmore"
     assert (
         isinstance(module.body[1], ast.ImportFrom)
         and module.body[1].module == "__future__"
     )
-    assert remote_gpu_build.TORCH_PRELUDE in changed
-    assert changed.index(remote_gpu_build.TORCH_PRELUDE) > changed.index("annotations")
+    assert remote_gpu_build.SLOT_PRELUDE in changed
+    assert changed.index(remote_gpu_build.SLOT_PRELUDE) > changed.index("annotations")
     assert changed.endswith("import os\nx = 1\n")
     compile(changed, "program.py", "exec")
 
 
-def test_the_prelude_compiles_on_the_carriers_real_build_programs(host):
-    from carbon.development_session import bundle_construction_worker
+def test_the_prelude_runs_before_any_import_in_the_carriers_real_build_programs(host):
+    """The cap binds only if it is set before JAX is imported: in every real build program a slot may run, the prelude
+    is the first code after the docstring and ``__future__`` imports, ahead of every import.
+    """
+    from carbon.development_session import (
+        bundle_construction_worker,
+        direct_graph_construction_worker,
+    )
 
     lane = _lane(host, slots=2)
+    programs = (
+        bundle_construction_worker.BUILD_PROGRAM,
+        direct_graph_construction_worker.BUILD_PROGRAM,
+        direct_graph_construction_worker.PHYSICAL_BUILD_PROGRAM,
+    )
+    prelude_first = ast.parse(remote_gpu_build.SLOT_PRELUDE).body[0]
     with remote_gpu_build.offered(lane), _op():
-        for program in (bundle_construction_worker.BUILD_PROGRAM,):
-            changed = remote_gpu_build.with_torch_prelude(program)
+        for program in programs:
+            changed = remote_gpu_build.with_slot_prelude(program)
             compile(changed, "program.py", "exec")
-            assert changed != program
+            body = [
+                node
+                for node in ast.parse(changed).body
+                if not (
+                    isinstance(node, ast.ImportFrom) and node.module == "__future__"
+                )
+                and not (
+                    isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                )
+            ]
+            assert ast.dump(body[0]) == ast.dump(prelude_first)
+            first_import = next(
+                index
+                for index, node in enumerate(body)
+                if isinstance(node, (ast.Import, ast.ImportFrom))
+                and node is not body[0]
+                and not ast.dump(node).count("_carbon_")
+            )
+            prelude_length = len(ast.parse(remote_gpu_build.SLOT_PRELUDE).body)
+            assert first_import >= prelude_length
 
 
-def test_the_prelude_caps_torch_and_leaves_a_jax_image_alone(monkeypatch):
+def test_the_prelude_caps_jax_and_torch_and_leaves_a_jax_only_image_alone(monkeypatch):
     calls = []
 
     class Cuda:
@@ -450,19 +491,40 @@ def test_the_prelude_caps_torch_and_leaves_a_jax_image_alone(monkeypatch):
         def set_per_process_memory_fraction(fraction, device):
             calls.append((fraction, device))
 
+    import os
     import sys
     import types
 
+    for key in (
+        "XLA_PYTHON_CLIENT_ALLOCATOR",
+        "XLA_PYTHON_CLIENT_PREALLOCATE",
+        "XLA_PYTHON_CLIENT_MEM_FRACTION",
+    ):
+        monkeypatch.setenv(key, "pinned")  # restored after the test
     fake = types.ModuleType("torch")
     fake.cuda = Cuda
     monkeypatch.setitem(sys.modules, "torch", fake)
-    monkeypatch.setenv(remote_gpu_build.TORCH_FRACTION_ENV, "0.45")
-    prelude = compile(remote_gpu_build.TORCH_PRELUDE, "prelude", "exec")
+    monkeypatch.setenv(remote_gpu_build.SLOT_FRACTION_ENV, "0.45")
+    prelude = compile(remote_gpu_build.SLOT_PRELUDE, "prelude", "exec")
     exec(prelude, {})  # noqa: S102 - the prelude itself
     assert calls == [(0.45, 0)]
-    monkeypatch.setitem(sys.modules, "torch", None)  # a JAX image: no torch
+    assert os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] == "bfc"
+    assert os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] == "false"
+    assert os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] == "0.45"
+    monkeypatch.setitem(sys.modules, "torch", None)  # a JAX-only image: no torch
     exec(prelude, {})  # noqa: S102 - the prelude itself
     assert calls == [(0.45, 0)]
+    # no share in the environment (one slot): nothing is touched
+    monkeypatch.delenv(remote_gpu_build.SLOT_FRACTION_ENV)
+    monkeypatch.setenv("XLA_PYTHON_CLIENT_ALLOCATOR", "platform")
+    exec(prelude, {})  # noqa: S102 - the prelude itself
+    assert os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] == "platform"
+
+
+def test_n_slots_need_validator_2s_ruling(host, monkeypatch):
+    monkeypatch.setattr(remote_gpu_build, "SLOT_PRELUDE_RULED", False)
+    with pytest.raises(ValueError, match="jax_memory_cap"):
+        _lane(host, slots=2)
 
 
 # -- the remote machine ----------------------------------------------------------------------------------------------------
@@ -743,9 +805,19 @@ def test_a_local_slot_lane_uses_this_hosts_gpu_daemon_and_record_with_the_same_s
         assert accelerator_runtime.host_device().digest == lane.device.digest
         assert host_execution.resolve_cpuset(logical_cpus=16, count=4) == binding.cpuset
         assert remote_gpu_build.slot_environment() == {
-            remote_gpu_build.TORCH_FRACTION_ENV: "0.45"
+            remote_gpu_build.SLOT_FRACTION_ENV: "0.45"
         }
-        assert remote_gpu_build.request_fields() == {"remote_gpu_slots": 2}
+        assert remote_gpu_build.request_fields() == {
+            "remote_gpu_slots": 2,
+            "slot_memory": {
+                "fraction": "0.45",
+                "jax": {
+                    "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
+                    "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+                },
+                "torch": "set_per_process_memory_fraction",
+            },
+        }
         assert (
             remote_gpu_build.intent_fields()["remote_gpu_build"]["docker_host"] is None
         )
@@ -830,7 +902,7 @@ def test_a_slot_container_passes_the_controls_environment_check(host):
         if index and changed[index - 1] == "--env"
     )
     assert all(environment.get(key) == value for key, value in required.items())
-    assert environment[remote_gpu_build.TORCH_FRACTION_ENV] == "0.22"
+    assert environment[remote_gpu_build.SLOT_FRACTION_ENV] == "0.22"
 
 
 def test_a_settled_candidate_failure_is_never_retyped(host, monkeypatch):
@@ -1053,14 +1125,14 @@ def test_a_settled_replay_takes_no_slot_even_when_every_slot_is_held(host):
 
 
 def test_n_slots_wait_for_a_jax_memory_cap(host, monkeypatch):
-    monkeypatch.setattr(remote_gpu_build, "JAX_SLOT_MEMORY_CAP", False)
+    monkeypatch.setattr(remote_gpu_build, "SLOT_PRELUDE_RULED", False)
     with pytest.raises(ValueError, match="jax_memory_cap"):
         _lane(host, slots=2)
     assert _lane(host, slots=1).slots == 1
 
 
 def test_the_shipped_lane_refuses_more_than_one_slot():
-    assert remote_gpu_build.JAX_SLOT_MEMORY_CAP is False
+    assert remote_gpu_build.SLOT_PRELUDE_RULED is False
 
 
 @pytest.mark.parametrize(
@@ -1097,7 +1169,8 @@ def test_a_lane_edited_after_start_with_the_same_device_refuses(host):
     lane = remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
     remote_gpu_build.pin("electric-motor-magnetics", "1.8", lane)
     _install(host, cpusets=("0-3", "8-11"))  # same device record, other cores
-    with pytest.raises(RemoteLaneDown), remote_gpu_build.offered_for(
-        "electric-motor-magnetics", "1.8", values=values
+    with (
+        pytest.raises(RemoteLaneDown),
+        remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
     ):
         pass

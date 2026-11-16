@@ -62,7 +62,7 @@ def test_a_slot_runs_with_the_pinned_environment_its_cores_and_its_share(record)
     assert environment["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
     assert environment["CUDA_VISIBLE_DEVICES"] == UUID
     assert environment["XLA_PYTHON_CLIENT_ALLOCATOR"] == "platform"
-    assert environment[remote_gpu_build.TORCH_FRACTION_ENV] == "0.45"
+    assert environment[remote_gpu_build.SLOT_FRACTION_ENV] == "0.45"
     one = bench.lane_for(record, 1, ["0-3"], None)
     single = _env(
         bench.run_argv(
@@ -116,7 +116,7 @@ def test_identical_states_at_every_n_is_the_identical_verdict(record):
     assert report["groups"][0]["peak_process_memory_mib"] == 2000
     # the torch prelude rides only the N > 1 programs, as a slot lane runs them
     for slots, _, program, _ in seen:
-        assert (remote_gpu_build.TORCH_PRELUDE in program) is (slots > 1)
+        assert (remote_gpu_build.SLOT_PRELUDE in program) is (slots > 1)
 
 
 def test_a_state_that_moves_with_n_or_a_failed_build_is_not_identical(record):

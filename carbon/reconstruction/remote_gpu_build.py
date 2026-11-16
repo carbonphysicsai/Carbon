@@ -19,11 +19,11 @@ to the same path under ``stage_root``, link loss = FAILED_INFRA) applied to one 
   same build on the same GPU class and slot configuration; the graph route's two-rebuild repeat check runs here too.
 - **N build slots per GPU** (`values_row` ``"slots"``, default 1, at most `MAX_SLOTS`): the door holds one of N slot
   locks per op (`op`), each slot with its own cores on the remote machine (``slot_cpusets``) and its own device
-  allocation record. With N > 1 PyTorch gets a hard share of the device memory (``set_per_process_memory_fraction``,
-  applied by a prelude the controller adds to the build program: `with_torch_prelude`); JAX keeps the pinned
-  no-preallocation, on-demand platform allocator (each process holds only its live buffers) because a hard JAX fraction
-  needs the BFC allocator, which the image-pinned environment and its controls check do not allow yet
-  (`slot_environment`). With N = 1 the environment and the program are byte-identical to a local GPU build.
+  allocation record. With N > 1 each process caps its own share of the device memory in-process, through a prelude the
+  controller adds to the build program (`with_slot_prelude`): JAX's BFC allocator with no preallocation and
+  ``XLA_PYTHON_CLIENT_MEM_FRACTION``, PyTorch's ``set_per_process_memory_fraction``; the container keeps the image-pinned
+  environment, and the request records the cap. N > 1 waits on Validator-2 (`SLOT_PRELUDE_RULED`). With N = 1 the
+  environment and the program are byte-identical to a local GPU build.
 - **What stays on the door.** A build whose stage carries a HOST-PRIVATE seed (the crown's averaging rebuilds) or a
   derived rebind is withheld (`offered_for` ``withhold``): refused as Carbon's until the owner rules it may leave.
   Every build runs on exactly the lane the door bound at start (`pin`), or refuses as Carbon's.
@@ -93,14 +93,20 @@ SLOT_WAIT_SECONDS = 3600
 POLL_S = 0.5
 #: How long the GPU probe may take.
 PROBE_SECONDS = 20
-#: Whether a JAX build may share the device with other slots: False until the pinned GPU environment (an image input,
-#: `accelerators.pinned_environment`) gives JAX a hard per-process cap (the BFC allocator with
-#: ``XLA_PYTHON_CLIENT_MEM_FRACTION``) through its own image and door migration. Until then a values row asking for more
-#: than one slot refuses at the door's start (`door_lane`); the slot machinery itself is built and tested, and
-#: scripts/dev/gpu_slot_bench.py measures N slots to inform that decision.
-JAX_SLOT_MEMORY_CAP = False
-#: The environment variable the build program's torch prelude reads.
-TORCH_FRACTION_ENV = "CARBON_TORCH_MEMORY_FRACTION"
+#: Whether more than one build may share a lane's GPU (JAX_MEMORY_CAP_PLAN option A, Lead OK 16 Nov): each slot's
+#: program caps its own device memory in-process (`SLOT_PRELUDE`: JAX's BFC allocator with no preallocation and
+#: ``XLA_PYTHON_CLIENT_MEM_FRACTION``, PyTorch's ``set_per_process_memory_fraction``), while the container keeps the
+#: image-pinned environment the controls check requires (``XLA_PYTHON_CLIENT_ALLOCATOR=platform``). That in-process
+#: override is Validator-2's to accept: False until V2 says yes, so a values row asking for more than one slot refuses
+#: at the door's start (`door_lane`). It is the ONLY switch; flipping it changes nothing for a one-slot lane.
+SLOT_PRELUDE_RULED = False
+#: The environment variable the slot prelude reads: this process's share of the device (``0.9 / N``, two decimals).
+SLOT_FRACTION_ENV = "CARBON_SLOT_MEMORY_FRACTION"
+#: What the prelude sets for JAX before any import (read when JAX's GPU backend starts).
+SLOT_JAX_ENVIRONMENT = {
+    "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
+    "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+}
 #: The ops a lane may run: a direct task's build child, or a graph GPU repeat probe.
 _BUILD_IDENTITY = re.compile(r"direct-[0-9a-f]{64}-build|.{1,200}~gpu[12]")
 _DEVICE_KIND = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._()-]{0,63}")
@@ -344,9 +350,9 @@ def door_lane(challenge_id, version, *, root=None, values=None):
     spec = specs[0]
     if row["slots"] > len(spec.slot_cpusets):
         raise ValueError("remote_gpu_build_slots_exceed_cpusets")
-    if row["slots"] > 1 and not JAX_SLOT_MEMORY_CAP:
-        # every build offered a lane is a graph build on the JAX worker: N > 1 would share the device with no
-        # per-process cap, so one build's memory or load could become another miner's failure
+    if row["slots"] > 1 and not SLOT_PRELUDE_RULED:
+        # every build offered a lane is a graph build on the JAX worker: N > 1 shares the device, capped per process
+        # only by the slot prelude, which waits on Validator-2's ruling (`SLOT_PRELUDE_RULED`)
         raise ValueError("remote_gpu_build_slots_need_jax_memory_cap")
     lane_dir = _host_root(root) / LANE_DIR.format(index=spec.index)
     device = _lane_device(_host_root(root) if spec.local else lane_dir)
@@ -636,19 +642,19 @@ def slot_fraction(slots):
 
 
 def slot_environment(binding=None):
-    """The per-process memory controls of the running op beyond the pinned worker environment: none with one slot
-    (a local GPU build's environment, byte for byte); with N > 1 the torch prelude's fraction.
+    """The container environment the running op gets beyond the pinned worker environment: nothing with one slot (a
+    local GPU build's environment, byte for byte); with N > 1 the slot's share (`SLOT_FRACTION_ENV`), which the
+    program's `SLOT_PRELUDE` applies in-process.
 
-    JAX is NOT given ``XLA_PYTHON_CLIENT_MEM_FRACTION``: that cap binds only the BFC allocator, and the pinned GPU
-    environment (`accelerators.pinned_environment`, a worker-image input) fixes ``XLA_PYTHON_CLIENT_ALLOCATOR=platform``
-    with no preallocation, which the controls check (`docker_runtime.inspect_effective_controls`) requires exactly.
-    Under it each JAX process holds exactly its live buffers and frees them at once, so N processes share the device
-    by what they use; a hard per-process JAX cap needs that environment changed with its own image and door
-    migration."""
+    The container env never carries JAX's allocator settings: the pinned GPU environment
+    (`accelerators.pinned_environment`, a worker-image input) fixes ``XLA_PYTHON_CLIENT_ALLOCATOR=platform`` and the
+    controls check (`docker_runtime.inspect_effective_controls`) requires it exactly. The prelude switches JAX to the
+    BFC allocator with the fraction inside the program, before JAX is imported (the carrier's BOOTSTRAP ``exec``s a
+    fresh interpreter on the program), and the request records it (`request_fields`)."""
     binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return {}
-    return {TORCH_FRACTION_ENV: f"{slot_fraction(binding.lane.slots):.2f}"}
+    return {SLOT_FRACTION_ENV: f"{slot_fraction(binding.lane.slots):.2f}"}
 
 
 def with_slot_environment(arguments, binding=None):
@@ -671,23 +677,29 @@ def with_slot_environment(arguments, binding=None):
     return result
 
 
-TORCH_PRELUDE = (
-    "# Carbon remote GPU build slot (remote_gpu_build.TORCH_PRELUDE): this process's share of the device.\n"
+SLOT_PRELUDE = (
+    "# Carbon GPU build slot (remote_gpu_build.SLOT_PRELUDE): this process's share of the device, before any import.\n"
     "import os as _carbon_os\n"
-    f'if _carbon_os.environ.get("{TORCH_FRACTION_ENV}"):\n'
+    f'_carbon_share = _carbon_os.environ.get("{SLOT_FRACTION_ENV}")\n'
+    "if _carbon_share:\n"
+    "    # JAX: the BFC allocator, no preallocation, at most this share (read when its GPU backend starts)\n"
+    + "".join(
+        f'    _carbon_os.environ["{key}"] = "{value}"\n'
+        for key, value in SLOT_JAX_ENVIRONMENT.items()
+    )
+    + '    _carbon_os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = _carbon_share\n'
+    "    # PyTorch, when this image has it: the same share as a hard per-process cap\n"
     "    try:\n"
     "        import torch as _carbon_torch\n"
     "    except ImportError:\n"
     "        _carbon_torch = None\n"
     "    if _carbon_torch is not None and _carbon_torch.cuda.is_available():\n"
-    "        _carbon_torch.cuda.set_per_process_memory_fraction(\n"
-    f'            float(_carbon_os.environ["{TORCH_FRACTION_ENV}"]), 0\n'
-    "        )\n"
+    "        _carbon_torch.cuda.set_per_process_memory_fraction(float(_carbon_share), 0)\n"
 )
 
 
-def with_torch_prelude(source, binding=None):
-    """The build program with `TORCH_PRELUDE` after its docstring and ``__future__`` imports: only with N > 1 slots.
+def with_slot_prelude(source, binding=None):
+    """The build program with `SLOT_PRELUDE` after its docstring and ``__future__`` imports: only with N > 1 slots.
     Unchanged otherwise, so a one-slot lane runs exactly the local program."""
     binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
@@ -707,7 +719,7 @@ def with_torch_prelude(source, binding=None):
     lines = source.splitlines(keepends=True)
     if after and not lines[after - 1].endswith("\n"):
         lines[after - 1] += "\n"
-    return "".join(lines[:after]) + TORCH_PRELUDE + "".join(lines[after:])
+    return "".join(lines[:after]) + SLOT_PRELUDE + "".join(lines[after:])
 
 
 def request_fields(binding=None):
@@ -717,7 +729,15 @@ def request_fields(binding=None):
     binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return {}
-    return {"remote_gpu_slots": binding.lane.slots}
+    # the program's in-process memory cap (`SLOT_PRELUDE`), recorded where the container env cannot show it
+    return {
+        "remote_gpu_slots": binding.lane.slots,
+        "slot_memory": {
+            "fraction": f"{slot_fraction(binding.lane.slots):.2f}",
+            "jax": dict(SLOT_JAX_ENVIRONMENT),
+            "torch": "set_per_process_memory_fraction",
+        },
+    }
 
 
 def intent_fields():
@@ -993,7 +1013,7 @@ __all__ = [
     "MAX_SLOTS",
     "RECORD",
     "SCHEMA",
-    "TORCH_PRELUDE",
+    "SLOT_PRELUDE",
     "VALUES",
     "VALUES_SCHEMA",
     "DoorLane",
@@ -1031,7 +1051,7 @@ __all__ = [
     "values_row",
     "wall_counts",
     "with_slot_environment",
-    "with_torch_prelude",
+    "with_slot_prelude",
     "wrapper",
     "wrapper_text",
 ]
