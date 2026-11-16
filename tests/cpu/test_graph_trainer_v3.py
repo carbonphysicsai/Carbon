@@ -1,9 +1,11 @@
-"""Graph trainer v3 (Motor 1.8): the construction-only knobs, every default bit-identical to v2.
+"""Graph trainer v3: the construction-only knobs, every default bit-identical to v2.
 
-Lead call 16 Nov 2026 (CV-Motor L12281 (2)(a) and L12299 group (b)). Grading is unchanged; the
-trainer and the version's limits block are the only moved material.
+Lead call 16 Nov 2026 (CV-Motor L12281 (2)(a) and L12299 group (b)). A18 (16 Nov): NO served version pins
+trainer v3 yet. Moving Motor 1.8 to v3 moves its construction-limits digest and would refuse every recipe cut
+before (Runner-B), so v3 ships dormant and these tests run it on a test-local Motor 1.8 Spec (`v3` fixture).
 """
 
+import dataclasses
 import hashlib
 import json
 from pathlib import Path
@@ -16,6 +18,21 @@ from carbon.development_session import physical_graph_adapter_v2 as adapter
 
 KEY = (MOTOR, "1.8")
 ROOT = Path(__file__).resolve().parents[2]
+#: Motor 1.8's construction-limits digest at origin/main db6c0096 and 49524449 (A17), which recipes bind to.
+MOTOR_18_LIMITS = (
+    "sha256:c16ee6563fa28e4c1571ac5575892437de106f3c3c9efdd5e3d836ba08a2c12d"
+)
+
+
+def v3_spec():
+    return dataclasses.replace(
+        adapter.SPECS[KEY], trainer="v3", layout=adapter.MOTOR_18_LAYOUT
+    )
+
+
+@pytest.fixture
+def v3(monkeypatch):
+    monkeypatch.setitem(adapter.SPECS, KEY, v3_spec())
 
 
 def fit(training, **extra):
@@ -29,15 +46,33 @@ def blob(model):
     )
 
 
-def test_trainer_v3_pin_is_its_own_bytes_and_only_motor_18_uses_it():
+def test_no_served_version_pins_trainer_v3_and_motor_18_limits_do_not_move():
+    from carbon.challenge_kit import physical_public
+
+    assert [k for k, s in adapter.SPECS.items() if s.trainer == "v3"] == []
+    kit = physical_public.construction_kit(*KEY)
+    assert kit["construction_limits_digest"] == MOTOR_18_LIMITS
+    assert adapter.adapter_block(*KEY)["trainer"]["sha256"] == (
+        "sha256:" + adapter.TRAINER_SHA256
+    )
+
+
+def test_a_pre_a18_motor_18_recipe_builds_on_trainer_v2_unchanged():
+    model, fitted, _ = fit({})
+    assert model.spec.trainer == "v2" and "layout" not in model.settings
+    assert fitted["trainer_sha256"] == "sha256:" + adapter.TRAINER_SHA256
+    assert (
+        model.recipe.to_dict()["challenge"]["construction_limits_digest"]
+        == MOTOR_18_LIMITS
+    )
+
+
+def test_trainer_v3_pin_is_its_own_bytes(v3):
     raw = (ROOT / adapter.TRAINER_V3_PATH).read_bytes()
     assert hashlib.sha256(raw).hexdigest() == adapter.TRAINER_V3_SHA256
     assert adapter.trainer_source(adapter.SPECS[KEY]) == raw
-    assert [k for k, s in adapter.SPECS.items() if s.trainer == "v3"] == [KEY]
     block = adapter.adapter_block(*KEY)["trainer"]
     assert block["sha256"] == "sha256:" + adapter.TRAINER_V3_SHA256
-    other = adapter.adapter_block("f08-ribbed-bracket", "1.7")["trainer"]
-    assert other["sha256"] == "sha256:" + adapter.TRAINER_SHA256
 
 
 def test_the_layout_limits_are_the_public_important_limit_definition():
@@ -53,20 +88,18 @@ def test_the_layout_limits_are_the_public_important_limit_definition():
     assert adapter.MOTOR_18_LAYOUT["slices"] * adapter.MOTOR_18_LAYOUT["steps"] == 240
 
 
-def test_every_default_reproduces_the_v2_trainer_bit_for_bit():
+def test_every_default_reproduces_the_v2_trainer_bit_for_bit(v3):
+    from test_graph_route_v2 import _train
+
     from carbon.development_session import physical_graph_trainer_v2 as v2
-    from carbon.development_session import physical_graph_trainer_v3 as v3
+    from carbon.development_session import physical_graph_trainer_v3 as trainer3
 
     model, fitted, inputs = fit({})
-    _raw, _inputs, targets = (
-        None,
-        inputs,
-        __import__("test_graph_route_v2")._train(KEY)[2],
-    )
+    targets = _train(KEY)[2]
     with _x64(KEY):
         settings = dict(model.settings)
         old = v2.train(model.prepared, inputs, targets, settings, seed=0)
-        new = v3.train(model.prepared, inputs, targets, settings, seed=0)
+        new = trainer3.train(model.prepared, inputs, targets, settings, seed=0)
     for a, b in zip(old["members"], new["members"], strict=True):
         for left, right in zip(a, b, strict=True):
             assert np.array_equal(left, right)
@@ -92,11 +125,12 @@ KNOBS = {
 
 @pytest.fixture(scope="module")
 def default():
+    # The served Motor 1.8 (trainer v2) default: v3's defaults must not differ from it.
     return blob(fit({})[0])
 
 
 @pytest.mark.parametrize("name", sorted(KNOBS))
-def test_each_knob_changes_the_build_and_repeats_bit_for_bit(name, default):
+def test_each_knob_changes_the_build_and_repeats_bit_for_bit(name, default, v3):
     first, repeat = fit(KNOBS[name])[0], fit(KNOBS[name])[0]
     assert blob(first) == blob(repeat)
     assert blob(first) != default
@@ -158,7 +192,7 @@ def test_the_important_region_mask_reads_the_public_limits():
         ({"weight_decay_mask": "bias"}, "training_value_invalid"),
     ],
 )
-def test_v3_validation_refuses_by_name(training, code):
+def test_v3_validation_refuses_by_name(training, code, v3):
     assert code in _refused(KEY, {"training": training})
 
 
@@ -166,3 +200,8 @@ def test_a_version_on_v2_still_refuses_every_new_knob_as_unserved():
     f08 = ("f08-ribbed-bracket", "1.7")
     for name in ("ema_decay", "polish_steps", "weight_decay_mask", "microbatches"):
         assert "surface_unserved" in _refused(f08, {"training": {name: 1}})
+
+
+def test_the_served_motor_18_refuses_every_new_knob_as_unserved():
+    for name in ("ema_decay", "polish_steps", "weight_decay_mask", "h1_weight"):
+        assert "surface_unserved" in _refused(KEY, {"training": {name: 1}})

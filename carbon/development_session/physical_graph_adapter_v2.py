@@ -183,7 +183,9 @@ class Spec:
     #: The predecessor version whose TRAIN, bank and measurement this one
     #: reuses ("predecessor + graph route v2"), recorded, never implied.
     predecessor: str
-    #: The trainer this version pins: "v2" (every version before) or "v3".
+    #: The trainer this version pins: "v2" or "v3". NO served version pins v3 yet (A18, 16 Nov 2026): moving
+    #: Motor 1.8 to v3 moves its construction-limits digest, which would refuse every recipe miners cut
+    #: before; v3 opens on a version only with a reviewed legacy-digest route (or on a new version).
     trainer: str = "v2"
     #: Trainer v3 only: the row layout the group-(b) terms read (None = those
     #: surfaces are not offered).
@@ -360,8 +362,6 @@ SPECS = {
         240,
         "float64",
         "1.6",
-        "v3",
-        MOTOR_18_LAYOUT,
     ),
     ("chip-cold-plate", "1.8"): Spec(
         "chip-cold-plate",
