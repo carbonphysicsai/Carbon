@@ -1266,6 +1266,17 @@ class _CandidateResourceStop(Exception):
         self.original = original
 
 
+def _case_procs_fell_back(source, error) -> bool:
+    """Whether a failed per-case processes program fell back in this run (`case_procs.fell_back`, Validator-2 F2): then
+    the failure is Carbon's (never a candidate resource stop) and `bundle_construction_worker._infer_state` records it,
+    so every later run of the same pass runs the one-process program. Any other program: False, whatever its stderr.
+    """
+    from .case_procs import fell_back
+
+    diagnostic = error.private_diagnostic if isinstance(error, WorkerFailure) else b""
+    return fell_back(source, diagnostic)
+
+
 def _candidate_resource_stop(
     cli,
     error,
@@ -1310,12 +1321,6 @@ def _candidate_resource_stop(
             image_id=image_id,
             deadline=deadline,
         )
-    from .case_procs import FALLBACK_MARK
-
-    if FALLBACK_MARK in diagnostic:
-        # Carbon's per-case worker processes fell back in this pass (`case_procs`): a worker killed for memory, or a
-        # fallback stopped before the wall, is Carbon's, never the candidate's resource stop
-        return None
     exhausted = any(marker in diagnostic for marker in _MEMORY_EXHAUSTED_MARKERS)
     requested = requested_allocation_bytes(diagnostic) if exhausted else None
     if (
@@ -2721,6 +2726,9 @@ def _run_locked(
                 if (
                     provenance in _CANDIDATE_RESOURCE_PROVENANCES
                     and not _cancel_path(ledger, owner, identity).exists()
+                    # a per-case processes pass that fell back is Carbon's, ONCE: its every later run is the
+                    # one-process program (`case_procs.pass_program`), classified below exactly as any other
+                    and not _case_procs_fell_back(source, error)
                 ):
                     stop = _candidate_resource_stop(
                         cli,

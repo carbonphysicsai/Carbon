@@ -17,11 +17,18 @@ those rows must equal them bit for bit (dtype, shape and bytes). Any difference 
 runs as one process's per-case calls; a worker that fails, cannot start or passes its deadline has its slice computed by
 the parent.
 
-Never the candidate's: Carbon's workers must not turn into a wall or memory stop the candidate is charged for
-(`research_carrier._candidate_resource_stop`). Every worker deadline ends a margin before the version's inference wall;
-when the parent's own calls for the rows left cannot finish before that margin, the parent stops at once with a
-nonzero exit (never the wall), and every fallback leaves a ``case_procs:`` line on stderr, which the host reads as
-Carbon's (a worker killed for memory, the parent's late failure): never a candidate resource stop.
+Workers only when the WORST case fits (Validator-2 F1, 16 Nov): every worker stopped at its deadline and then every
+row made by the parent alone (`CASE_PROCS_FALLBACK_SLACK` x the sampled per-row time x the rows) must still end by the
+wall margin, else the pass is the one-process pass from the start (`case_procs_deadline`). A pass that fits in one
+process but sits near the wall is therefore graded exactly as before.
+
+A fallback is Carbon's ONCE (Validator-2 F2, 16 Nov): every fallback leaves a ``case_procs:`` line on stderr; a failed
+pass of a per-case processes program that carries it is Carbon's (`research_carrier._case_procs_fell_back`), and a
+durable record of it, keyed on the pass's content (owner, program, control, state, inputs: `fallback_key`), makes EVERY
+later run of that same pass run the one-process program (`serial_program`, via `pass_program`), whose wall and memory
+stops the host classifies exactly as any one-process pass. The wall margin lies before the host's own program wall
+(its 45 s reserve, its 60 s setup budget and 30 s for the exec), and a fallback stops with the mark the moment it
+passes it, so a fallback never meets the host's wall without the mark.
 
 Timing is untouched: the speed gate's single-call program and the practice timed program are derived from the
 version's program after `serial_program` removes these edits, so they are byte for byte today's programs (and the speed
@@ -46,11 +53,21 @@ CASE_PROCS_PROCESS_BYTES = 1024**3
 #: rows at the parent's per-row time times the cpuset's cores), and never later than the wall margin below; past it the
 #: worker is stopped and its slice computed in the parent.
 CASE_PROCS_DEADLINE_SLACK = 4.0
+#: The host's own program reserve: `research_carrier._run_locked` ends the program stage ``seconds - 45`` after the op
+#: started (its `program_timeout`). Held equal by a test.
+CASE_PROCS_HOST_RESERVE_SECONDS = 45
+#: The host's setup budget (`research_carrier._PROGRAM_SETUP_BUDGET_SECONDS`): a program stage that started later has
+#: no candidate wall stop at all. Held equal by a test.
+CASE_PROCS_HOST_SETUP_SECONDS = 60
 #: OPERATIONAL, not science: the seconds before the version's inference wall (counted from the program's start) by
-#: which the parent's own calls must be done; a fallback that cannot make it stops the pass as Carbon's instead.
-CASE_PROCS_WALL_MARGIN_SECONDS = 30
+#: which the parent's own calls must be done; a fallback past it stops the pass as Carbon's instead. The host's reserve
+#: and setup budget plus 30 s for the exec and the interpreter's start, so it always lies before the host's own program
+#: wall (Validator-2 F1/F2 repair, 16 Nov: at 30 s it lay AFTER the host's wall).
+CASE_PROCS_WALL_MARGIN_SECONDS = (
+    CASE_PROCS_HOST_RESERVE_SECONDS + CASE_PROCS_HOST_SETUP_SECONDS + 30
+)
 #: OPERATIONAL, not science: the parent's estimate of its own remaining calls is multiplied by this before it is
-#: compared with the time left.
+#: compared with the time left, and in the worst-case gate (`case_procs_deadline`).
 CASE_PROCS_FALLBACK_SLACK = 1.25
 
 #: Marks a per-case processes program (the parent's environment name for its workers' control).
@@ -82,6 +99,36 @@ def case_procs_count(
     each = 3 * parameter_bytes + state_bytes + per_case_bytes + process_bytes
     held = int(memory_bytes * share) // max(1, each) - 1
     return max(1, min(cores, rows, held))
+
+
+def case_procs_deadline(
+    now,
+    startup,
+    first,
+    per_row,
+    cores,
+    longest,
+    rows,
+    sampled,
+    wall_end,
+    slack,
+    fallback_slack,
+):
+    """The workers' deadline (monotonic seconds), or None: no workers, the one-process pass (Validator-2 F1).
+
+    A worker repeats the parent's start and first call, then runs on one core, so a row may take up to ``cores`` times
+    the parent's per-row time: its allowance is ``slack`` x (startup + first + per_row x cores x the longest slice).
+    WORST CASE: every worker stopped at that deadline and then all ``rows`` made by the parent alone (``fallback_slack``
+    x per_row x rows) must still end by ``wall_end``, else None; the deadline is capped there. None too when the sample
+    already made every row. Self-contained: the program carries its source.
+    """
+    if sampled >= rows:
+        return None
+    latest = wall_end - fallback_slack * per_row * rows
+    deadline = now + slack * (startup + first + per_row * cores * longest)
+    if deadline > latest:
+        return None
+    return min(deadline, latest)
 
 
 #: The one-process per-case loop of `PHYSICAL_V2_COMPILED_INFER_PROGRAM` (= `direct_graph_construction_worker.
@@ -126,10 +173,7 @@ _COPY_NEW = (
     "    if case_proc is None:\n"
     '        shutil.copyfile(work / (name + ".py"), destination)\n'
 )
-_LAST_LINE = (
-    "            blocks.extend(sample.get(index) if index in sample else case_block(index)\n"
-    "                          for index in range(low, high))\n"
-)
+_LAST_LINE = "            blocks.append(sample[index] if index in sample else case_block(index))\n"
 
 _PROCS_CALLS = """    # public constant (zeros), so no output can depend on another case.
     # PER-CASE PROCESSES (Lead's order, Mon 16 Nov 2026; carbon.development_session.case_procs): the SAME per-case
@@ -146,6 +190,7 @@ _PROCS_CALLS = """    # public constant (zeros), so no output can depend on anot
             raise ValueError(arity)
         return np.asarray(outputs[0][:1])
 __COUNT_SOURCE__
+__DEADLINE_SOURCE__
     rows = len(input_array)
     procs_dir = work / "case-procs"
     case_wall_end = case_start + __WALL_SECONDS__ - __WALL_MARGIN__
@@ -208,15 +253,14 @@ __COUNT_SOURCE__
                 if index not in sample:
                     sample[index] = case_block(index)
         per_row = (time.perf_counter() - clock) / max(1, len(sample) - 1)
-        # Workers only when they can help and the candidate's OWN one-process time fits the wall: a candidate too slow
-        # for the wall in one process runs in one process and meets the wall exactly as before (its stop is its own).
-        if len(sample) >= rows or time.monotonic() + per_row * (rows - len(sample)) > case_wall_end:
+        # Workers only when the WORST case fits: every worker stopped at its deadline and every row then made here
+        # still ends by the wall margin (operational, not science). Else the one-process pass, exactly as before.
+        deadline = case_procs_deadline(time.monotonic(), startup, first, per_row, len(cores),
+                                       max(high - low for low, high in slices), rows, len(sample), case_wall_end,
+                                       __SLACK__, __FALLBACK_SLACK__)
+        if deadline is None:
             slices = []
     if slices:
-        # operational, not science: a worker repeats this process's start and first call, then runs on one core, so a
-        # row may take up to the cores' count times longer
-        allowance = __SLACK__ * (
-            startup + first + per_row * len(cores) * max(high - low for low, high in slices))
         workers, agreed, started, late = [], True, True, set()
         try:
             shutil.rmtree(procs_dir, ignore_errors=True)
@@ -231,7 +275,6 @@ __COUNT_SOURCE__
             print(f"case_procs: workers not started ({type(error).__name__}); every call in one process",
                   file=sys.stderr)
         try:
-            deadline = min(time.monotonic() + allowance, case_wall_end)
             waiting = dict(enumerate(slices))
             while waiting and agreed:
                 for k, (low, high) in list(waiting.items()):
@@ -290,21 +333,27 @@ __COUNT_SOURCE__
             # Carbon's (nonzero exit with this line on stderr), never as the candidate's wall stop
             print(f"case_procs: CARBON: {left} rows left cannot finish inside the inference wall", file=sys.stderr)
             sys.exit(3)
+    fell_back = len(done) < len(slices)
     for low, high in slices or [(0, rows)]:
         if low in done:
             blocks.append(done[low])
-        else:
+            continue
+        for index in range(low, high):
+            if fell_back and time.monotonic() > case_wall_end:
+                # a fallback past the wall margin (rows slower than sampled): Carbon's, with the mark, before the wall
+                print(f"case_procs: CARBON: row {index} of {rows} past the wall margin after a fallback",
+                      file=sys.stderr)
+                sys.exit(3)
             # the rows this process already computed (the sample) are its own answers: reused, not recomputed
-            blocks.extend(sample.get(index) if index in sample else case_block(index)
-                          for index in range(low, high))
+            blocks.append(sample[index] if index in sample else case_block(index))
 """
 
 
-def _count_source() -> str:
-    """`case_procs_count`'s own source, indented into the per-case branch."""
+def _indented_source(function) -> str:
+    """A function's own source, indented into the per-case branch."""
     return "".join(
         ("    " + line) if line.strip() else line
-        for line in inspect.getsource(case_procs_count).splitlines(keepends=True)
+        for line in inspect.getsource(function).splitlines(keepends=True)
     ).rstrip("\n")
 
 
@@ -313,7 +362,8 @@ def _edits(memory_bytes: int, wall_seconds: int):
         if type(value) is not int or value <= 0:
             raise RuntimeError("per-case processes version worker limits unregistered")
     calls = (
-        _PROCS_CALLS.replace("__COUNT_SOURCE__", _count_source())
+        _PROCS_CALLS.replace("__COUNT_SOURCE__", _indented_source(case_procs_count))
+        .replace("__DEADLINE_SOURCE__", _indented_source(case_procs_deadline))
         .replace("__MEMORY_BYTES__", str(memory_bytes))
         .replace("__WALL_SECONDS__", str(wall_seconds))
         .replace("__WALL_MARGIN__", str(CASE_PROCS_WALL_MARGIN_SECONDS))
@@ -386,16 +436,139 @@ def serial_program(program: str) -> str:
     return result
 
 
+def is_procs_program(program) -> bool:
+    """Whether ``program`` is a per-case processes program (`procs_program`)."""
+    return type(program) is str and CONTROL_NAME in program
+
+
+def fell_back(program, diagnostic) -> bool:
+    """Whether a FAILED run of ``program`` fell back (Validator-2 F2): a per-case processes program whose private
+    diagnostic carries a fallback line. Only then is the failure Carbon's; a one-process program's diagnostic is never
+    read for the mark (its stops are classified as before, whatever its stderr says)."""
+    return (
+        is_procs_program(program)
+        and type(diagnostic) is bytes
+        and FALLBACK_MARK in diagnostic
+    )
+
+
+#: The durable record of one pass's fallback, beside the owner's ledger (`fallback_path`).
+FALLBACK_SCHEMA = "carbon.development.case-procs-fallback.v1"
+
+
+def fallback_key(owner, program, files) -> str:
+    """The content of one graded pass: the owner, the program and the staged control, state and inputs. Every later run
+    of the same pass has the same key, whatever its ledger identity (a re-queued attempt, a regrade re-run).
+    """
+    import hashlib
+    import json
+
+    def sha(raw):
+        return hashlib.sha256(raw).hexdigest()
+
+    return sha(
+        json.dumps(
+            {
+                "schema": FALLBACK_SCHEMA,
+                "owner": owner,
+                "program_sha256": sha(program.encode()),
+                **{
+                    name: sha(files[name])
+                    for name in ("control.json", "state.npz", "inputs.npz")
+                },
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    )
+
+
+def fallback_path(root, key):
+    from pathlib import Path
+
+    return Path(root) / ("case-procs-fallback-" + key + ".json")
+
+
+def record_fallback(root, owner, program, files) -> None:
+    """Write (once, durably) that this pass fell back: every later run of it runs `serial_program` (`pass_program`)."""
+    import json
+    import os
+    from pathlib import Path
+
+    key = fallback_key(owner, program, files)
+    Path(root).mkdir(parents=True, exist_ok=True)
+    body = json.dumps(
+        {"schema": FALLBACK_SCHEMA, "key": key}, sort_keys=True, separators=(",", ":")
+    ).encode()
+    try:
+        with open(fallback_path(root, key), "xb") as stream:
+            stream.write(body)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except FileExistsError:
+        pass
+
+
+def pass_program(ledger, owner, program, files) -> str:
+    """The program a run of this pass runs: ``program``, or its one-process program (`serial_program`) once a run of
+    the same pass fell back (`record_fallback` under ``ledger.root``). Any program other than a per-case processes one
+    is returned unchanged (the ledger is then not read).
+    """
+    if not is_procs_program(program):
+        return program
+    if fallback_path(ledger.root, fallback_key(owner, program, files)).is_file():
+        return serial_program(program)
+    return program
+
+
+def program_digests(challenge_id, version) -> dict:
+    """The two inference programs a per-case processes version can grade with (Validator-2 F3): the graded program
+    (per-case processes) and the one-process program a pass runs after its recorded fallback (`pass_program`), as
+    ``sha256:`` digests of their text. For the version's declared-change record and evidence.
+    """
+    import hashlib
+
+    from .direct_graph_construction_worker import case_procs_infer_program
+
+    graded = case_procs_infer_program(challenge_id, version)
+    return {
+        "graded_program_sha256": "sha256:"
+        + hashlib.sha256(graded.encode()).hexdigest(),
+        "fallback_retry_program_sha256": "sha256:"
+        + hashlib.sha256(serial_program(graded).encode()).hexdigest(),
+    }
+
+
 __all__ = [
     "CASE_PROCS_DEADLINE_SLACK",
     "CASE_PROCS_FALLBACK_SLACK",
+    "CASE_PROCS_HOST_RESERVE_SECONDS",
+    "CASE_PROCS_HOST_SETUP_SECONDS",
     "CASE_PROCS_MEMORY_SHARE",
     "CASE_PROCS_PROCESS_BYTES",
     "CASE_PROCS_WALL_MARGIN_SECONDS",
     "CONTROL_NAME",
     "FALLBACK_MARK",
+    "FALLBACK_SCHEMA",
     "SERIAL_CALLS",
     "case_procs_count",
+    "case_procs_deadline",
+    "fallback_key",
+    "fallback_path",
+    "fell_back",
+    "is_procs_program",
+    "pass_program",
     "procs_program",
+    "program_digests",
+    "record_fallback",
     "serial_program",
 ]
+
+
+if (
+    __name__ == "__main__"
+):  # python -I -m carbon.development_session.case_procs CHALLENGE VERSION
+    import json
+    import sys
+
+    print(json.dumps(program_digests(sys.argv[1], sys.argv[2]), sort_keys=True))

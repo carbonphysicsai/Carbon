@@ -4421,6 +4421,35 @@ def _vmap64_served(material):
         return False
 
 
+def _case_procs_served(material):
+    """Whether the served version grades with per-case processes (`direct_graph_construction_worker.
+    CASE_PROCS_INFERENCE_VERSIONS`)."""
+    from carbon.development_session.direct_graph_construction_worker import (
+        CASE_PROCS_INFERENCE_VERSIONS,
+    )
+
+    try:
+        kit = material["construction_kit"]
+        return (kit["id"], kit["version"]) in CASE_PROCS_INFERENCE_VERSIONS
+    except (KeyError, TypeError):
+        return False
+
+
+def _ran_program_digest(ledger, operation):
+    """The ``sha256:`` digest of the program text an op ran: its intent's request source digest, or None when the op
+    wrote no readable intent (a test runner)."""
+    try:
+        path = ledger.root / operation / "intent.json"
+        if path.is_symlink() or path.stat().st_size > 65536:
+            return None
+        source = json.loads(path.read_bytes())["request"]["source"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    if type(source) is not str or re.fullmatch(r"sha256:[0-9a-f]{64}", source) is None:
+        return None
+    return source
+
+
 def _inference_image_of(provider, regrade, submission_id=None):
     """The image an evaluation step infers on: the regrade's chosen image, else (a grade with no regrade, of the task
     ``submission_id``) the ADMITTED inference image of a task built under an earlier door of the declared migration
@@ -5690,6 +5719,13 @@ def regrade_retained_entry(
             # version's operations file keeps its bytes.
             operations["graded_inference_sha256"] = _graded_inference_digest(
                 adapter, material, recipe, inference_image
+            )
+        if kind == "graph" and _case_procs_served(material):
+            # Which inference program text made these graded bytes (Validator-2 F3): the per-case processes program,
+            # or its one-process program on a run after a recorded fallback (`case_procs.pass_program`). Read from the
+            # graded op's own intent (its request's source digest); None when no intent was written (a test runner).
+            operations["graded_program_sha256"] = _ran_program_digest(
+                provider.ledger, graded.worker_operation
             )
         worker_evidence = (
             _graph_regrade_worker_evidence(

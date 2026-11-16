@@ -1699,37 +1699,50 @@ def _infer_state(
             raise ValueError("bundle inference output identity differs")
         return raw, predictions, receipt
 
-    worker = (runner or _run)(
-        ledger,
-        owner=owner,
-        identity=identity,
-        source=(
-            timed_program(INFER_PROGRAM if program is None else program)
-            if measure_query and practice_timing
-            else (INFER_PROGRAM if program is None else program)
-        ),
-        files=files,
-        image=inference_image,
-        seconds=seconds,
-        provenance=provenance,
-        extra_resources=(
-            {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
-        ),
-        output_validator=checked,
-        **_accelerator_kwargs(accelerator),
-        **(
-            {}
-            if rebuild_wall_seconds is None
-            else {"rebuild_wall_seconds": rebuild_wall_seconds}
-        ),
-        # A model built under a next version's larger resources is loaded
-        # and run under them too.
-        **(
-            {}
-            if worker_resources_version(allowed.version) is None
-            else {"worker_resources_version": allowed.version}
-        ),
+    from . import case_procs
+
+    source = (
+        timed_program(INFER_PROGRAM if program is None else program)
+        if measure_query and practice_timing
+        # A per-case processes pass whose earlier run fell back runs its one-process program from then on, under any
+        # identity (Validator-2 F2: Carbon's ONCE, then the candidate's own outcome exactly as a one-process pass's).
+        else case_procs.pass_program(
+            ledger, owner, INFER_PROGRAM if program is None else program, files
+        )
     )
+    try:
+        worker = (runner or _run)(
+            ledger,
+            owner=owner,
+            identity=identity,
+            source=source,
+            files=files,
+            image=inference_image,
+            seconds=seconds,
+            provenance=provenance,
+            extra_resources=(
+                {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
+            ),
+            output_validator=checked,
+            **_accelerator_kwargs(accelerator),
+            **(
+                {}
+                if rebuild_wall_seconds is None
+                else {"rebuild_wall_seconds": rebuild_wall_seconds}
+            ),
+            # A model built under a next version's larger resources is loaded
+            # and run under them too.
+            **(
+                {}
+                if worker_resources_version(allowed.version) is None
+                else {"worker_resources_version": allowed.version}
+            ),
+        )
+    except Exception as failure:
+        if case_procs.fell_back(source, getattr(failure, "private_diagnostic", None)):
+            # durable before the failure leaves: every later run of this pass is the one-process program
+            case_procs.record_fallback(ledger.root, owner, source, files)
+        raise
     snapshot = ledger.root / worker["operation"] / "snapshot"
     raw, predictions, receipt = checked(snapshot)
     if any(

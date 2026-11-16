@@ -7,7 +7,9 @@ are byte for byte those of A9's per-case compiled program (timing untouched); th
 cut by the operational memory bound. Run for real (subprocesses over a real codec state with seeded synthetic
 parameters, POSIX): the workers' reassembled answers equal the one-process program's bit for bit and the workers were
 really used; a worker answer that differs on the checked row, and a worker that fails, both give the one-process
-answers. Program-contract evidence, not a speed measurement, science or qualification.
+answers. Validator-2's findings of 16 Nov: workers only when the WORST case fits the wall (F1); a fallback is Carbon's
+ONCE and every later run of the same pass is the one-process program (F2); the two program digests (F3). Program-contract
+evidence, not a speed measurement, science or qualification.
 """
 
 from __future__ import annotations
@@ -119,14 +121,15 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
         "case_procs_count(doc, len(member_arrays), len(state),"
         f" {MOTOR_18_MEMORY}, 0.5, {1024**3}," in procs
     )
-    assert (
-        "allowance = 4.0 * (\n            startup + first + per_row * len(cores)"
-        in procs
-    )
-    assert "case_wall_end = case_start + 648 - 30\n" in procs
+    for function in (case_procs.case_procs_count, case_procs.case_procs_deadline):
+        assert case_procs._indented_source(function) in procs
+    assert "rows, len(sample), case_wall_end,\n" in procs
+    assert "                                       4.0, 1.25)\n" in procs
+    assert "case_wall_end = case_start + 648 - 135\n" in procs
     assert "time.monotonic() + 1.25 * per_row * left > case_wall_end" in procs
     for placeholder in (
         "__COUNT_SOURCE__",
+        "__DEADLINE_SOURCE__",
         "__MEMORY_BYTES__",
         "__SHARE__",
         "__PROCESS_BYTES__",
@@ -147,8 +150,11 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
     for changed in (
         procs.replace("def case_block(index):", "x", 1),
         procs.replace("same(answer[-1:], sample[high - 1])", "True", 1),
-        procs.replace("allowance = 4.0 *", "allowance = 40.0 *", 1),
-        procs.replace("case_start + 648 - 30", "case_start + 648 - 3", 1),
+        procs.replace("  4.0, 1.25)\n", "  40.0, 1.25)\n", 1),
+        procs.replace("case_start + 648 - 135", "case_start + 648 - 3", 1),
+        procs.replace(
+            "if fell_back and time.monotonic() > case_wall_end:", "if False:", 1
+        ),
     ):
         with pytest.raises(RuntimeError, match="anchor moved"):
             case_procs.serial_program(changed)
@@ -162,7 +168,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
 #: sha256 of Motor 1.8's per-case processes program at this head: any edit of the GRADED program (the count
 #: function's source included) must change this pin on purpose.
 PROCS_PROGRAM_SHA256 = (
-    "c2e07dbae238dc80116d316740c482ac8b44fab8c622fb7bc158eb1b51630332"
+    "ebc651da557519875132256a10907367c977a1e16db2b6da8b60d91067d36c52"
 )
 
 
@@ -223,6 +229,7 @@ def test_the_process_count_is_the_cores_cut_by_the_memory_bound():
 
 @pytest.fixture(scope="module")
 def motor18():
+    pytest.importorskip("jax")
     from test_registered_graph_pair_execution import _artifact
 
     return _artifact("ensemble64", MOTOR_18, seed=18)
@@ -532,44 +539,226 @@ def test_without_a_program_file_the_pass_is_one_process(motor18, tmp_path):
     assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
 
 
-def test_the_host_never_charges_the_candidate_for_a_pass_that_fell_back():
-    """`research_carrier._candidate_resource_stop`: a failure whose stderr carries a per-case fallback line is
-    Carbon's, even with the container's OOM flag set (a worker killed for memory); without the line it stays the
-    candidate's memory stop, as before."""
+def _stop(diagnostic, observed):
     from carbon.development_session import research_carrier
     from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
-    observed = {"status": "OBSERVED", "state": {"oom_killed": True}, "memory": None}
-
-    def stop(diagnostic):
-        return research_carrier._candidate_resource_stop(
-            None,
-            WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic),
-            container_name="c",
-            launch_digest="sha256:" + "1" * 64,
-            image_id="sha256:" + "2" * 64,
-            program_started=0.0,
-            program_timeout=648,
-            setup_seconds=1.0,
-            observation=observed,
-            deadline=0.0,
-            memory_limit_bytes=16 * 1024**3,
-            accelerated=False,
-        )
-
-    assert stop(b"exit=1\nstderr:\nTraceback ...") is not None
-    assert (
-        stop(
-            b"exit=1\nstderr:\ncase_procs: worker 2 exit -9; its rows in one process\n"
-        )
-        is None
+    return research_carrier._candidate_resource_stop(
+        None,
+        WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic),
+        container_name="c",
+        launch_digest="sha256:" + "1" * 64,
+        image_id="sha256:" + "2" * 64,
+        program_started=0.0,
+        program_timeout=648,
+        setup_seconds=1.0,
+        observation=observed,
+        deadline=0.0,
+        memory_limit_bytes=16 * 1024**3,
+        accelerated=False,
     )
-    assert (
-        stop(
-            b"exit=3\nstderr:\ncase_procs: CARBON: 40 rows left cannot finish inside the inference wall\n"
-        )
-        is None
+
+
+def test_a_fallback_is_carbons_only_for_a_per_case_processes_program():
+    """Validator-2 F2: a FAILED per-case processes run whose stderr carries a fallback line is Carbon's
+    (`research_carrier._case_procs_fell_back`, read before the resource checks); a one-process program's failure is
+    never read for the mark, so its OOM and wall stops are classified exactly as main classifies them
+    (`_candidate_resource_stop` itself is main's, unchanged)."""
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    procs, serial = _procs(), case_procs.serial_program(_procs())
+    worker_killed = (
+        b"exit=1\nstderr:\ncase_procs: worker 2 exit -9; its rows in one process\n"
     )
+    past_margin = b"exit=3\nstderr:\ncase_procs: CARBON: row 9 of 40 past the wall margin after a fallback\n"
+
+    def fell_back(source, diagnostic):
+        return research_carrier._case_procs_fell_back(
+            source, WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic)
+        )
+
+    for diagnostic in (worker_killed, past_margin):
+        assert fell_back(procs, diagnostic)
+        # the one-process program (every run after a recorded fallback): the mark is never Carbon's
+        assert not fell_back(serial, diagnostic)
+    assert not fell_back(procs, b"exit=1\nstderr:\nTraceback ...")
+    assert not fell_back(procs, b"stream command timed out")
+    assert not research_carrier._case_procs_fell_back(procs, ValueError("other"))
+    # the candidate's own stops, as main: an OOM (even with a forged mark) and the wall
+    oom = {"status": "OBSERVED", "state": {"oom_killed": True}, "memory": None}
+    for diagnostic in (b"exit=1\nstderr:\nTraceback ...", worker_killed):
+        assert _stop(diagnostic, oom) == (
+            WorkerCode.RUNTIME,
+            research_carrier.CANDIDATE_MEMORY_LIMIT,
+            {"kind": "memory", "bytes": 16 * 1024**3},
+        )
+    clean = {"status": "OBSERVED", "state": {"oom_killed": False}, "memory": None}
+    assert _stop(b"exit=1\nstderr:\nTraceback ...", clean) is None
+
+
+def test_the_wall_margin_lies_before_the_hosts_own_program_wall():
+    """The program's wall margin is the host's program reserve plus its setup budget plus 30 s, so a fallback's soft
+    wall (and the workers' deadlines) always end before the host stops the program (Validator-2 F1/F2).
+    """
+    from carbon.development_session import research_carrier
+
+    assert (
+        case_procs.CASE_PROCS_HOST_SETUP_SECONDS
+        == research_carrier._PROGRAM_SETUP_BUDGET_SECONDS
+    )
+    source = inspect.getsource(research_carrier._run_locked)
+    assert (
+        "program_timeout = max(1, seconds - "
+        f"{case_procs.CASE_PROCS_HOST_RESERVE_SECONDS} - (program_started - started))"
+        in source
+    )
+    assert case_procs.CASE_PROCS_WALL_MARGIN_SECONDS == 45 + 60 + 30
+
+
+def test_workers_only_when_the_worst_case_fits():
+    """Validator-2 F1, `case_procs_deadline` (the program carries its source): workers only when every worker stopped
+    at its deadline and then every row made by the parent alone still ends by the wall margin; the deadline is capped
+    there. Runner-B's shape (4 cores, workers ~2x the one-process time): a pass whose ONE-process time fits but sits
+    near the wall gets no workers (the one-process pass, graded as before); a short pass gets them.
+    """
+    deadline = case_procs.case_procs_deadline
+    end = MOTOR_18_WALL - case_procs.CASE_PROCS_WALL_MARGIN_SECONDS
+
+    def plan(per_row, rows=1000, now=10.0, startup=5.0, first=2.0, cores=4):
+        return deadline(
+            now,
+            startup,
+            first,
+            per_row,
+            cores,
+            -(-rows // cores),
+            rows,
+            2 * cores,
+            end,
+            case_procs.CASE_PROCS_DEADLINE_SLACK,
+            case_procs.CASE_PROCS_FALLBACK_SLACK,
+        )
+
+    # one process: 400 s of rows, fits the 513 s end, but the worst case (deadline + 1.25 x 400 s) does not
+    assert 10.0 + 0.4 * 1000 < end and plan(0.4) is None
+    # 10 s of rows: workers, deadline = now + 4 x (5 + 2 + 0.01 x 4 x 250) = 78 s
+    assert plan(0.01) == pytest.approx(10.0 + 4.0 * (5 + 2 + 0.01 * 4 * 250))
+    # the worst case always fits whenever workers start
+    for per_row in (0.001, 0.01, 0.05, 0.1, 0.2, 0.23, 0.4):
+        for rows in (10, 100, 1000, 2564):
+            for now in (1.0, 50.0, 300.0):
+                got = plan(per_row, rows=rows, now=now)
+                if got is not None:
+                    assert got + 1.25 * per_row * rows <= end + 1e-9
+    # the sample already made every row: no workers
+    assert deadline(0.0, 1.0, 1.0, 0.01, 4, 2, 8, 8, end, 4.0, 1.25) is None
+
+
+def _ledger(root):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(root=root)
+
+
+def test_a_recorded_fallback_makes_every_later_run_of_the_pass_one_process(tmp_path):
+    """Validator-2 F2: a pass that fell back is recorded durably, keyed on its content (owner, program, control, state,
+    inputs) and not on its ledger identity; every later run of that same pass is the one-process program. Any other
+    pass, and any program other than a per-case processes one, is unchanged."""
+    procs = _procs()
+    files = {
+        "control.json": b'{"per_case":true}',
+        "state.npz": b"state",
+        "inputs.npz": b"inputs",
+        "recipe.json": b"recipe",
+    }
+    ledger = _ledger(tmp_path / "ledger")
+    assert case_procs.pass_program(ledger, "hk", procs, files) is procs
+    case_procs.record_fallback(ledger.root, "hk", procs, files)
+    case_procs.record_fallback(ledger.root, "hk", procs, files)  # once is enough
+    (record,) = ledger.root.glob("case-procs-fallback-*.json")
+    assert json.loads(record.read_bytes()) == {
+        "schema": case_procs.FALLBACK_SCHEMA,
+        "key": case_procs.fallback_key("hk", procs, files),
+    }
+    serial = case_procs.pass_program(ledger, "hk", procs, files)
+    assert serial == case_procs.serial_program(procs)
+    assert hashlib.sha256(serial.encode()).hexdigest() == A9_MOTOR_18_PROGRAM_SHA256
+    # only the inputs the program reads key it; another state, inputs, control or owner is another pass
+    assert (
+        case_procs.pass_program(ledger, "hk", procs, {**files, "recipe.json": b"x"})
+        == serial
+    )
+    for name in ("control.json", "state.npz", "inputs.npz"):
+        assert (
+            case_procs.pass_program(ledger, "hk", procs, {**files, name: b"x"}) is procs
+        )
+    assert case_procs.pass_program(ledger, "other", procs, files) is procs
+    # a one-process program passes unchanged, and its ledger is not even read
+    for other in (serial, worker.PHYSICAL_V2_INFER_PROGRAM):
+        assert case_procs.pass_program(None, "hk", other, files) is other
+    # the two programs' digests, for the declared-change record and the evidence (F3)
+    assert case_procs.program_digests(*MOTOR_18) == {
+        "graded_program_sha256": "sha256:" + PROCS_PROGRAM_SHA256,
+        "fallback_retry_program_sha256": "sha256:" + A9_MOTOR_18_PROGRAM_SHA256,
+    }
+
+
+class _WorkerFailed(Exception):
+    """Test-only: what the carrier raises for a failed program (a WorkerFailure with its private diagnostic)."""
+
+
+def _failing_runner(ledger, seen, change, fail):
+    """`_file_runner`, but a nonzero exit is raised as the carrier raises it: a WorkerFailure whose private diagnostic
+    is ``exit=N`` and the program's stderr; ``fail(source)`` says which runs fail on purpose (else as `_file_runner`).
+    """
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    plain = _file_runner(ledger, seen, change)
+
+    def runner(current_ledger, *, source, **kwargs):
+        if not fail(source):
+            return plain(current_ledger, source=source, **kwargs)
+        seen.append({"source": source, "stderr": "", "code": None})
+        raise WorkerFailure(
+            WorkerCode.RUNTIME,
+            private_diagnostic=b"exit=3\nstderr:\ncase_procs: CARBON: row 9 of 40 past the wall margin after a fallback\n",
+        )
+
+    return runner
+
+
+def test_the_retry_of_a_pass_that_fell_back_runs_the_one_process_program(
+    motor18, tmp_path
+):
+    """Through the real `_infer_state` (the graded pair's own path): a per-case processes run that fails with a
+    fallback line is recorded; the NEXT run of the same pass, under a NEW ledger identity (a re-queued attempt, a
+    regrade re-run), is handed the one-process program, and its answers are the one-process answers. Its own failures
+    would then be classified exactly as a one-process pass's (no mark is ever read for it).
+    """
+    pytest.importorskip("jax")
+    from test_paired_inference import FixtureLedger
+
+    rows = _rows(motor18, 20)
+    serial = _serial(motor18, tmp_path, rows)
+    ledger, seen = FixtureLedger(tmp_path / "retry"), []
+    try:
+        run = _failing_runner(
+            ledger, seen, lambda source: source, case_procs.is_procs_program
+        )
+        with pytest.raises(Exception) as failed:
+            _graded(motor18, ledger, run, "attempt-1", rows)
+        cause = failed.value.__cause__
+        assert case_procs.FALLBACK_MARK in cause.private_diagnostic
+        assert len(list(ledger.root.glob("case-procs-fallback-*.json"))) == 1
+        assert len(seen) == 1 and seen[0]["source"] == _procs()
+        primary, repeat = _graded(motor18, ledger, run, "attempt-2", rows)
+    finally:
+        ledger.connection.close()
+    assert [call["source"] for call in seen[1:]] == [
+        case_procs.serial_program(_procs())
+    ] * 2
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
 
 
 @posix
@@ -601,4 +790,133 @@ def test_a_candidate_too_slow_for_the_wall_in_one_process_gets_no_workers(
     finally:
         ledger.connection.close()
     assert all("case_procs:" not in call["stderr"] for call in seen)
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+
+
+_DEADLINE_CALL = "        deadline = case_procs_deadline(time.monotonic(), "
+
+
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_a_near_wall_pass_with_slow_workers_is_graded_in_one_process(motor18, tmp_path):
+    """Validator-2 F1 (Runner-B 08:33: workers slower than one process on a dense graph): a pass whose worst case
+    (every worker stopped at its deadline, then every row here) does not fit the wall margin starts no worker, even when
+    its one-process time fits (forced here: the gate sees the clock 10**6 s later, the workers would be very slow), so
+    it is graded, one process, with no fallback line: never FAILED_INFRA."""
+    from test_paired_inference import FixtureLedger
+
+    rows = _rows(motor18, 40)
+    serial = _serial(motor18, tmp_path, rows)
+
+    def variant(source):
+        assert source.count(_DEADLINE_CALL) == 1 and source.count(_WORKER_START) == 1
+        return source.replace(
+            _DEADLINE_CALL,
+            "        deadline = case_procs_deadline(time.monotonic() + 10**6, ",
+        ).replace(_WORKER_START, _WORKER_START + "        time.sleep(10**6)\n")
+
+    ledger, seen = FixtureLedger(tmp_path / "near-wall"), []
+    try:
+        primary, repeat = _graded(
+            motor18, ledger, _file_runner(ledger, seen, variant), "near-wall", rows
+        )
+    finally:
+        ledger.connection.close()
+    assert all(call["code"] == 0 for call in seen)
+    assert all("case_procs:" not in call["stderr"] for call in seen)
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+
+
+_CASE_BLOCK = "    def case_block(index):\n"
+_PER_ROW = "        per_row = (time.perf_counter() - clock) / max(1, len(sample) - 1)\n"
+_PINNED = "        pinned = set()\n"
+
+
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_a_pass_slow_on_unsampled_rows_is_carbons_once_then_one_process(
+    motor18, tmp_path
+):
+    """Validator-2 F2 (a 'cond' graph: per-row time differs by row, the sample under-estimates): the rows after the
+    sample are slow (forced here: the workers hang after their first row, this process takes 4 s a row after its
+    sample), so the workers pass their deadline, the parent falls back and passes the wall margin (forced near: 150 s
+    after the program's start) mid-slice. It stops at once with the mark
+    (exit 3), never at the host's wall; the host reads it as Carbon's, `_infer_state` records the fallback, and the
+    retry of the same pass runs the ONE-process program, whose outcome (here: it finishes; a real overrun would be
+    the candidate's own wall stop, classified as main) is decided exactly as today."""
+    from test_paired_inference import FixtureLedger
+
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    rows = _rows(motor18)
+    serial = _serial(motor18, tmp_path, rows)
+    wall = f"case_start + {MOTOR_18_WALL} - "
+
+    def variant(source):
+        if not case_procs.is_procs_program(source):
+            return source  # the one-process retry runs as it is
+        for anchor in (_CASE_BLOCK, _PER_ROW, _PINNED, wall):
+            assert source.count(anchor) == 1, anchor
+        return (
+            source.replace(
+                wall,
+                f"case_start + {150 + case_procs.CASE_PROCS_WALL_MARGIN_SECONDS} - ",
+            )
+            .replace(
+                _CASE_BLOCK,
+                "    slow_rows = []\n"
+                + _CASE_BLOCK
+                + "        if slow_rows:\n            time.sleep(4)\n",
+            )
+            .replace(_PER_ROW, _PER_ROW + "        slow_rows.append(1)\n")
+            .replace(_PINNED, "        time.sleep(10**6)\n" + _PINNED)
+        )
+
+    def runner_for(ledger, seen):
+        plain = _file_runner(ledger, seen, variant)
+
+        def runner(current_ledger, *, source, **kwargs):
+            try:
+                return plain(current_ledger, source=source, **kwargs)
+            except AssertionError:
+                # as the carrier raises a nonzero exit: a WorkerFailure with the exit and the program's stderr
+                raise WorkerFailure(
+                    WorkerCode.RUNTIME,
+                    private_diagnostic=(
+                        f"exit={seen[-1]['code']}\nstderr:\n{seen[-1]['stderr']}"
+                    ).encode(),
+                ) from None
+
+        return runner
+
+    ledger, seen = FixtureLedger(tmp_path / "cond"), []
+    try:
+        with pytest.raises(Exception) as failed:
+            _graded(motor18, ledger, runner_for(ledger, seen), "cond-1", rows)
+        assert seen[-1]["code"] == 3, seen[-1]["stderr"][-4000:]
+        assert "past its deadline; its rows in one process" in seen[-1]["stderr"]
+        assert "past the wall margin after a fallback" in seen[-1]["stderr"]
+        assert research_carrier._case_procs_fell_back(_procs(), failed.value.__cause__)
+        assert len(list(ledger.root.glob("case-procs-fallback-*.json"))) == 1
+        first = len(seen)
+        primary, repeat = _graded(
+            motor18, ledger, runner_for(ledger, seen), "cond-2", rows
+        )
+    finally:
+        ledger.connection.close()
+    retry = seen[first:]
+    assert [call["source"] for call in retry] == [
+        case_procs.serial_program(_procs())
+    ] * 2
+    assert all(
+        call["code"] == 0 and "case_procs:" not in call["stderr"] for call in retry
+    )
+    # the one-process program's failure would never be read for the mark: classified as main
+    assert not research_carrier._case_procs_fell_back(
+        retry[0]["source"],
+        WorkerFailure(
+            WorkerCode.RUNTIME, private_diagnostic=b"stream command timed out"
+        ),
+    )
     assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
