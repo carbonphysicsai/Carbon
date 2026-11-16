@@ -643,7 +643,10 @@ class EnsembleGraphModel:
 #: Motor 1.8: owner, Sun 15 Nov 2026 via the Lead ("Just don't count it out due to a tiny difference"; item 7 y): on 5 of
 #: 5 public models the trained parameters and train_loss equalled eager and the compiled build repeated bit for bit in
 #: the same and a fresh process (tests/cpu/test_motor18_build_jit.py).
-JIT_BUILD_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
+#: EMPTY since the item 7 revert (Sun 15 Nov 2026, via the Lead: under A14 the same recipe's graded-pass rebuild went
+#: from 44-75 s to over 601 s and walled): Motor 1.8 builds eager again, the A13 build behaviour. The compiled-build
+#: code stays, unused, for a later ruling.
+JIT_BUILD_VERSIONS: frozenset = frozenset()
 
 
 def build_forward_mode(challenge_id: str, version: str) -> str:

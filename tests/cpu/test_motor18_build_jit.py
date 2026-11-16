@@ -1,5 +1,6 @@
-"""Motor 1.8's graph build runs its forward compiled (physical_graph_adapter_v2.JIT_BUILD_VERSIONS; owner via the Lead,
-Sun 15 Nov 2026: "Just don't count it out due to a tiny difference", item 7 y).
+"""Motor 1.8's graph build: EAGER since the item 7 revert (Sun 15 Nov 2026, via the Lead); the dormant compiled build
+(physical_graph_adapter_v2.JIT_BUILD_VERSIONS; owner via the Lead, Sun 15 Nov 2026: "Just don't count it out due to a
+tiny difference", item 7 y) is exercised with Motor 1.8 opted back in.
 
 Claims, on a PUBLIC synthetic Motor 1.8 graph fitted on Motor 1.8's public TRAIN through the real
 physical_graph_adapter_v2 build: the compiled build repeats bit for bit (a second fit in the same process, and a build in
@@ -36,7 +37,18 @@ def _fitted(monkeypatch, *, compiled):
     return model, fitted, inputs
 
 
+def test_after_the_item_7_revert_motor_1_8_builds_eager():
+    """Item 7 reverted (Sun 15 Nov 2026, via the Lead: the compiled build walled under A14): no version builds compiled,
+    and Motor 1.8 builds with the shared registry's forward, eager (the A13 build behaviour).
+    """
+    assert adapter.JIT_BUILD_VERSIONS == frozenset()
+    assert adapter.build_forward_mode(*MOTOR_18) == train.FORWARD_EAGER
+    assert train.forward_mode(*MOTOR_18) == train.FORWARD_EAGER
+
+
 def test_motor_1_8_builds_compiled_and_matches_the_eager_build(monkeypatch):
+    """The dormant compiled build, Motor 1.8 opted back in."""
+    monkeypatch.setattr(adapter, "JIT_BUILD_VERSIONS", frozenset({MOTOR_18}))
     assert adapter.build_forward_mode(*MOTOR_18) == train.FORWARD_JIT
     assert adapter.build_forward_mode("electric-motor-magnetics", "1.6") == (
         train.FORWARD_EAGER
@@ -63,6 +75,8 @@ _CHILD = """
 import json, sys
 sys.path[:0] = [{here!r}]
 from test_graph_route_v2 import _fit, _x64
+from carbon.development_session import physical_graph_adapter_v2 as adapter
+adapter.JIT_BUILD_VERSIONS = frozenset({{{key!r}}})  # the dormant compiled build, opted in
 with _x64({key!r}):
     print(json.dumps(_fit({key!r}, {configuration!r})[1]["params_sha256"]))
 """
