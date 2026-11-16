@@ -124,8 +124,15 @@ class SingleCallRefused(ValueError):
 
 
 def program(base_program: str) -> str:
-    """The single-call program derived from an adapter's own inference program (never edited in place)."""
-    result = base_program
+    """The single-call program derived from an adapter's own inference program (never edited in place); a per-case
+    processes program's single calls derive from its one-process program (`case_procs.serial_program`).
+    """
+    from .case_procs import serial_program
+
+    try:
+        result = serial_program(base_program)
+    except RuntimeError as moved:
+        raise SingleCallRefused("single_call_program_anchor_moved") from moved
     for old, new in _ANCHORS:
         if result.count(old) != 1:
             raise SingleCallRefused("single_call_program_anchor_moved")

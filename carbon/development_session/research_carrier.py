@@ -1310,6 +1310,12 @@ def _candidate_resource_stop(
             image_id=image_id,
             deadline=deadline,
         )
+    from .case_procs import FALLBACK_MARK
+
+    if FALLBACK_MARK in diagnostic:
+        # Carbon's per-case worker processes fell back in this pass (`case_procs`): a worker killed for memory, or a
+        # fallback stopped before the wall, is Carbon's, never the candidate's resource stop
+        return None
     exhausted = any(marker in diagnostic for marker in _MEMORY_EXHAUSTED_MARKERS)
     requested = requested_allocation_bytes(diagnostic) if exhausted else None
     if (

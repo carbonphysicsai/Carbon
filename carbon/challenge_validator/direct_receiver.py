@@ -936,6 +936,8 @@ GRADING_PATHS = (
     "carbon/development_session/graph_gpu_lane.py",
     # the graph rebuild (Validator 16:38): the direct-graph worker, the graph engine and what it stages
     "carbon/development_session/direct_graph_construction_worker.py",
+    # the graded per-case loop over pinned worker processes (Lead's order 16 Nov): it runs the graded calls
+    "carbon/development_session/case_procs.py",
     "carbon/level4/",
     "carbon/development_session/construction_tensor_codec.py",
     "carbon/development_session/build_refusal.py",

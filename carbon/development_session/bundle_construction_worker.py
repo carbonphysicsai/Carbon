@@ -1888,7 +1888,11 @@ def timed_program(program: str) -> str:
     query, one timed single-design call per practice row (`per_call_s`). A
     separate derived program (the inference programs stay frozen); a program
     without the measurement anchors (Battery's own) is returned unchanged and
-    reports no per-call figure."""
+    reports no per-call figure. A per-case processes program is timed as its
+    one-process program (`case_procs.serial_program`)."""
+    from .case_procs import serial_program
+
+    program = serial_program(program)
     if (
         program.count(_PER_CALL_HEAD) != 1
         or program.count(_PER_CALL_TAIL) != 1

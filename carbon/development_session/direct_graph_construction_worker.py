@@ -742,6 +742,40 @@ def vmap64_rerun_rows(positions, row_count: int, lanes: int) -> tuple:
     return rows, [at[p] for p in positions]
 
 
+#: Graph route v2 versions whose GRADED per-case loop runs in per-case worker processes inside the one inference
+#: container (Lead's order, Mon 16 Nov 2026; `case_procs`): one process per core of the container's cpuset (the round's
+#: lane), each pinned to its core, the rows split into contiguous slices and reassembled in row order. Each row is still
+#: its own per-case call of the same compiled forward, and every pass checks the first row of every slice against the
+#: parent's own one-process answer BIT FOR BIT (any difference: the whole pass in one process), so the graded answers,
+#: the repeat pair, the subset repeat and the menu row check are the one-process ones. The speed gate's single calls
+#: and the practice timed program derive from the one-process program (`case_procs.serial_program`): timing is
+#: unchanged byte for byte. A version here must also be in `JIT_INFERENCE_VERSIONS` and not in
+#: `VMAP64_INFERENCE_VERSIONS` (which wins). A program change: it reaches a door only by a door switch on the owner's words.
+CASE_PROCS_INFERENCE_VERSIONS: frozenset = frozenset(
+    {("electric-motor-magnetics", "1.8")}
+)
+
+
+@functools.lru_cache(maxsize=8)
+def case_procs_infer_program(challenge_id: str, version: str) -> str:
+    """The per-case processes inference program of one version: the compiled program with that version's registered
+    worker memory and inference wall (`case_procs.procs_program`)."""
+    from . import case_procs
+
+    if (challenge_id, version) not in CASE_PROCS_INFERENCE_VERSIONS:
+        raise RuntimeError("not a per-case processes version")
+    from carbon.challenge_kit import physical_public
+
+    wall = physical_public.construction_limits_document(challenge_id, version)[
+        "reconstruction_resource_policy"
+    ]["inference_wall_seconds_max"]
+    return case_procs.procs_program(
+        PHYSICAL_V2_COMPILED_INFER_PROGRAM,
+        _version_memory_bytes(challenge_id, version),
+        wall,
+    )
+
+
 def graph_adapter_ids() -> frozenset:
     """Every graph adapter the receiver can run: the synthetic one (1.3), the
     F08 1.4 / F02 2.3 adapters and every graph route v2 adapter."""
@@ -765,6 +799,13 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
     lanes = (challenge_id, version) in VMAP64_INFERENCE_VERSIONS
     if lanes and not compiled:
         raise RuntimeError("a vmap-64 version must also be a compiled version")
+    # (vmap-64 wins over per-case processes: the two sets are disjoint, a test holds that; a test opting a version
+    # into the dormant vmap-64 machinery gets the vmap-64 program, as before)
+    procs = (challenge_id, version) in CASE_PROCS_INFERENCE_VERSIONS and not lanes
+    if procs and not compiled:
+        raise RuntimeError(
+            "a per-case processes version must also be a compiled version"
+        )
     root = Path(__file__).resolve().parents[2]
     names = (
         "carbon.development_session.physical_graph_state",
@@ -776,9 +817,13 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
             vmap64_infer_program(challenge_id, version)
             if lanes
             else (
-                PHYSICAL_V2_COMPILED_INFER_PROGRAM
-                if compiled
-                else PHYSICAL_V2_INFER_PROGRAM
+                case_procs_infer_program(challenge_id, version)
+                if procs
+                else (
+                    PHYSICAL_V2_COMPILED_INFER_PROGRAM
+                    if compiled
+                    else PHYSICAL_V2_INFER_PROGRAM
+                )
             )
         ),
         "staged_files": {

@@ -26,7 +26,11 @@ def test_no_version_is_vmap64():
 
 
 def test_motor_1_8_serves_a9s_per_case_compiled_program_byte_for_byte():
-    program = worker.v2_infer_query(*MOTOR_18)["program"]
+    # since the per-case processes head (Lead's order, Mon 16 Nov 2026; tests/cpu/test_case_procs.py) Motor 1.8 runs
+    # A9's per-case calls over pinned worker processes: its one-process program is still A9's, byte for byte
+    from carbon.development_session import case_procs
+
+    program = case_procs.serial_program(worker.v2_infer_query(*MOTOR_18)["program"])
     assert program == worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
     assert hashlib.sha256(program.encode()).hexdigest() == A9_MOTOR_18_PROGRAM_SHA256
 
