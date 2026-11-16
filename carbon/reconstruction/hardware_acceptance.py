@@ -13,7 +13,8 @@ reviewed commit naming the record. OWNER-GPU-DEVICE-CLASSES-01 (2026-10-09)
 entered the A40 and the RTX 4090, each for JAX and PyTorch, for validator
 scoring on testnet. OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01 (2026-11-12)
 enters the RTX 4090 (the GPUYard validator's GPU) for finney (mainnet 116),
-under the same two profiles; the A40 has no mainnet acceptance.
+under the same two profiles; the A40 has no mainnet acceptance. OWNER-A100-40GB-BUILD-CLASS-01 (2026-11-16) enters the
+Lambda A100 40GB SXM4 (``NVIDIA A100-SXM4-40GB``) for JAX and PyTorch builds on finney, the remote GPU build lane's class.
 """
 
 from __future__ import annotations
@@ -47,6 +48,20 @@ _OWNER_GPUYARD_FINNEY = {
 }
 
 
+#: The owner's own words, typed in the Deploy-B session at 13:14 CST on 16 Nov 2026 (PC board L12667): "Deploy-B: I
+#: accept the Lambda 1× A100 40GB SXM4 as a Carbon GPU build class for JAX and PyTorch builds, after TE3's arrival
+#: checklist and Validator-2's receipt. Standing until I say stop." Given for the 116 GPU build lane: finney only.
+_OWNER_A100_40GB_FINNEY = {
+    "record": "OWNER-A100-40GB-BUILD-CLASS-01",
+    "networks": ("finney",),
+    "evidence": (
+        "the owner's direct acceptance, 2026-11-16, of the Lambda 1x A100 40GB SXM4 as a Carbon GPU build class "
+        "for JAX and PyTorch builds, after TE3's arrival checklist and Validator-2's receipt "
+        "(.agent/decisions/2026-11-16-OWNER-A100-40GB-BUILD-CLASS-01.md)"
+    ),
+}
+
+
 def _entry(*records):
     """One profile's acceptance: the first record's own fields, the networks every record names, and each
     network's record (`by_network`) so a network's acceptance is never read as another's.
@@ -74,6 +89,11 @@ ACCEPTED_DEVICE_CLASSES: dict = {
     "NVIDIA GeForce RTX 4090": {
         JAX_GPU: _entry(_OWNER, _OWNER_GPUYARD_FINNEY),
         TORCH_GPU: _entry(_OWNER, _OWNER_GPUYARD_FINNEY),
+    },
+    # the remote GPU build lane's rented class (OWNER-A100-40GB-BUILD-CLASS-01): the exact name nvidia-smi reports
+    "NVIDIA A100-SXM4-40GB": {
+        JAX_GPU: _entry(_OWNER_A100_40GB_FINNEY),
+        TORCH_GPU: _entry(_OWNER_A100_40GB_FINNEY),
     },
 }
 
