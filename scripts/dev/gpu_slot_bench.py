@@ -147,7 +147,7 @@ def parse_slots(value):
     return slots
 
 
-def lane_for(record, slots, cpusets, docker_host):
+def lane_for(record, slots, cpusets, docker_host, memory="shared"):
     """A `remote_gpu_build.DoorLane` describing the bench's GPU with ``slots`` slots (nothing is installed)."""
     from carbon.reconstruction import remote_gpu_build
 
@@ -157,7 +157,7 @@ def lane_for(record, slots, cpusets, docker_host):
         None if docker_host is None else "/nonexistent",
         tuple(cpusets),
     )
-    return remote_gpu_build.DoorLane(spec, slots, record, "/nonexistent")
+    return remote_gpu_build.DoorLane(spec, slots, record, "/nonexistent", memory)
 
 
 def environment(record, binding):
@@ -316,6 +316,7 @@ def bench(
     cpusets,
     docker_host,
     program,
+    memory="shared",
     runner=run_one,
     query=None,
     interval=SAMPLE_SECONDS,
@@ -328,7 +329,7 @@ def bench(
     query = _gpu_query(record, docker_host) if query is None else query
     groups, reference = [], None
     for slots in slots_list:
-        lane = lane_for(record, slots, cpusets, docker_host)
+        lane = lane_for(record, slots, cpusets, docker_host, memory)
         runs = [Run(slots, slot) for slot in range(slots)]
         sampler = Sampler(query)
         try:
@@ -369,8 +370,11 @@ def bench(
             {
                 "slots": slots,
                 # a torch build's hard share; a JAX build has none (`remote_gpu_build.slot_environment`)
-                "torch_memory_fraction": (
-                    None if slots == 1 else remote_gpu_build.slot_fraction(slots)
+                "slot_memory": "none" if slots == 1 else memory,
+                "memory_fraction": (
+                    remote_gpu_build.slot_fraction(slots)
+                    if slots > 1 and memory == "capped"
+                    else None
                 ),
                 "baseline_device_memory_mib": baseline,
                 "runs": [run.__dict__ for run in runs],
@@ -430,6 +434,12 @@ def main(argv=None):
     )
     parser.add_argument("--slots", default="1,2,4")
     parser.add_argument(
+        "--memory",
+        choices=("shared", "capped"),
+        default="shared",
+        help="N > 1: shared = no cap (pinned platform allocator); capped = the slot prelude's 0.9/N share",
+    )
+    parser.add_argument(
         "--cpusets",
         required=True,
         help="one cpuset per slot of the largest N, comma-separated groups",
@@ -451,6 +461,7 @@ def main(argv=None):
         image_id=args.image,
         record=record,
         slots_list=parse_slots(args.slots),
+        memory=args.memory,
         cpusets=split_cpusets(args.cpusets),
         docker_host=args.docker_host,
         program=DEFAULT_PROGRAM if args.program is None else args.program.read_text(),

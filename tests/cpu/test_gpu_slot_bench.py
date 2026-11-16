@@ -39,7 +39,8 @@ def _env(argv):
 
 def test_the_slots_list_is_ascending_from_one_within_the_maximum():
     assert bench.parse_slots("1,2,4") == (1, 2, 4)
-    for bad in ("2,4", "1,1", "1,4,2", "1,8"):
+    assert bench.parse_slots("1,2,4,7") == (1, 2, 4, 7)
+    for bad in ("2,4", "1,1", "1,4,2", "1,9"):
         with pytest.raises(ValueError):
             bench.parse_slots(bad)
     assert bench.split_cpusets("0-3,4-7") == ["0-3", "4-7"]
@@ -48,7 +49,7 @@ def test_the_slots_list_is_ascending_from_one_within_the_maximum():
 
 
 def test_a_slot_runs_with_the_pinned_environment_its_cores_and_its_share(record):
-    lane = bench.lane_for(record, 2, ["0-3", "4-7"], None)
+    lane = bench.lane_for(record, 2, ["0-3", "4-7"], None, "capped")
     argv = bench.run_argv(
         "sha256:" + "c" * 64, record, remote_gpu_build.OpBinding(lane, 1), "n"
     )
@@ -102,6 +103,7 @@ def test_identical_states_at_every_n_is_the_identical_verdict(record):
         cpusets=["0-1", "2-3", "4-5", "6-7"],
         docker_host=None,
         program=bench.DEFAULT_PROGRAM,
+        memory="capped",
         runner=_fake_runner(lambda run: "state", seen),
         query=lambda: [1000, 2000],
         interval=0.01,
@@ -110,7 +112,8 @@ def test_identical_states_at_every_n_is_the_identical_verdict(record):
     assert [group["slots"] for group in report["groups"]] == [1, 2, 4]
     assert [len(group["runs"]) for group in report["groups"]] == [1, 2, 4]
     assert report["groups"][2]["seconds_max"] == 4.0
-    assert report["groups"][1]["torch_memory_fraction"] == 0.45
+    assert report["groups"][1]["slot_memory"] == "capped"
+    assert report["groups"][1]["memory_fraction"] == 0.45
     assert report["groups"][0]["baseline_device_memory_mib"] == 3000
     assert report["groups"][0]["peak_device_memory_mib"] == 3000
     assert report["groups"][0]["peak_process_memory_mib"] == 2000
@@ -232,3 +235,26 @@ def test_a_stuck_build_is_killed_and_recorded(record):
         timeout=5,
     )
     assert killed and run.state_sha256 is None and "timed out" in run.error
+
+
+def test_the_shared_mode_runs_the_program_and_env_unchanged(record):
+    seen = []
+    report = bench.bench(
+        image_id="sha256:" + "c" * 64,
+        record=record,
+        slots_list=(1, 4),
+        cpusets=["0-1", "2-3", "4-5", "6-7"],
+        docker_host=None,
+        program=bench.DEFAULT_PROGRAM,
+        runner=_fake_runner(lambda run: "state", seen),
+        query=lambda: [500],
+        interval=0.01,
+    )
+    assert report["verdict"] == "IDENTICAL"
+    assert report["groups"][1]["slot_memory"] == "shared"
+    assert report["groups"][1]["memory_fraction"] is None
+    for _, _, program, argv in seen:
+        assert program == bench.DEFAULT_PROGRAM
+        assert not any(
+            value.startswith(remote_gpu_build.SLOT_FRACTION_ENV) for value in argv
+        )

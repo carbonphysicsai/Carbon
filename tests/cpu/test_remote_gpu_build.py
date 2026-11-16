@@ -34,6 +34,7 @@ BUILD = "direct-" + "a" * 64 + "-build"
 def _install(
     root,
     *,
+    memory=None,
     slots=2,
     cpusets=("0-3", "4-7"),
     kind=KIND,
@@ -81,6 +82,7 @@ def _install(
                         "electric-motor-magnetics 1.8": {
                             "device_kind": KIND,
                             "slots": slots,
+                            **({} if memory is None else {"memory": memory}),
                         }
                     }
                     if row
@@ -172,10 +174,21 @@ def test_a_malformed_record_refuses(host, change):
 @pytest.mark.parametrize(
     ("row", "expected"),
     [
-        ({"device_kind": KIND}, {"device_kind": KIND, "slots": 1}),
-        ({"device_kind": KIND, "slots": 4}, {"device_kind": KIND, "slots": 4}),
+        (
+            {"device_kind": KIND},
+            {"device_kind": KIND, "slots": 1, "memory": "capped"},
+        ),
+        (
+            {"device_kind": KIND, "slots": 4},
+            {"device_kind": KIND, "slots": 4, "memory": "capped"},
+        ),
+        (
+            {"device_kind": KIND, "slots": 4, "memory": "shared"},
+            {"device_kind": KIND, "slots": 4, "memory": "shared"},
+        ),
+        ({"device_kind": KIND, "slots": 4, "memory": "loose"}, None),
         ({"device_kind": KIND, "slots": 0}, None),
-        ({"device_kind": KIND, "slots": 5}, None),
+        ({"device_kind": KIND, "slots": 9}, None),
         ({"device_kind": KIND, "slots": True}, None),
         ({"device_kind": "x; rm -rf /"}, None),
         ({"slots": 2}, None),
@@ -1199,3 +1212,67 @@ def test_only_a_python_program_can_carry_the_slot_cap(host):
             remote_gpu_build.with_slot_prelude("x\n", program_name="program.jl")
             == "x\n"
         )
+
+
+# -- N > 1 with no cap ("memory": "shared"; Lead + owner, 16 Nov) -------------------------------------------------------------
+
+
+def test_shared_slots_need_no_ruling_and_change_nothing_in_the_program_or_env(
+    host, monkeypatch
+):
+    monkeypatch.setattr(remote_gpu_build, "SLOT_PRELUDE_RULED", False)
+    with pytest.raises(ValueError, match="jax_memory_cap"):
+        _lane(host, slots=4, cpusets=("0-3", "4-7", "8-11", "12-15"))  # capped: waits
+    lane = _lane(
+        host, slots=4, cpusets=("0-3", "4-7", "8-11", "12-15"), memory="shared"
+    )
+    assert lane.slots == 4 and lane.memory == "shared"
+    source = '"""doc"""\nimport jax\n'
+    with remote_gpu_build.offered(lane), _op() as binding:
+        assert remote_gpu_build.slot_environment() == {}
+        assert remote_gpu_build.with_slot_environment(_argv()) == _argv()
+        assert remote_gpu_build.with_slot_prelude(source) == source
+        assert remote_gpu_build.request_fields() == {
+            "remote_gpu_slots": 4,
+            "slot_memory": "shared",
+        }
+        handed = remote_gpu_build._from_handoff(remote_gpu_build._handoff(binding))
+        assert handed.lane.memory == "shared"
+    import dataclasses
+
+    capped = dataclasses.replace(lane, memory="capped")
+    assert remote_gpu_build.fingerprint(lane) != remote_gpu_build.fingerprint(capped)
+
+
+def test_a_device_oom_on_a_shared_gpu_is_carbons_not_a_cpu_rebuild(host, monkeypatch):
+    from carbon.development_session import research_carrier
+
+    shared = _lane(
+        host, slots=4, cpusets=("0-3", "4-7", "8-11", "12-15"), memory="shared"
+    )
+    one = _lane(host, slots=1, cpusets=("0-3",))
+    oom = WorkerFailure(
+        WorkerCode.RUNTIME,
+        private_diagnostic=b"exit=1\nstderr:\nXlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory",
+    )
+
+    def failing(ledger, **kwargs):
+        raise oom
+
+    monkeypatch.setattr(research_carrier, "_run_supervised", failing)
+    monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: True)
+    with remote_gpu_build.offered(shared), pytest.raises(RemoteLaneDown):
+        research_carrier._run(
+            None, identity="t~gpu1", accelerator="VALIDATOR_OWN_GPU", provenance="X"
+        )
+    with remote_gpu_build.offered(one), pytest.raises(WorkerFailure) as raised:
+        research_carrier._run(
+            None, identity="t~gpu1", accelerator="VALIDATOR_OWN_GPU", provenance="X"
+        )
+    assert type(raised.value) is WorkerFailure  # one build on the GPU: as before
+    other = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=1\nValueError")
+    assert not remote_gpu_build.shared_memory_exhausted(
+        other,
+        research_carrier._MEMORY_EXHAUSTED_MARKERS,
+        remote_gpu_build.OpBinding(shared, 0),
+    )
