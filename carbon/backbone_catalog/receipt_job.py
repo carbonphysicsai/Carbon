@@ -24,8 +24,8 @@ class Yielded(Exception):
 
 
 #: The other grade lanes' locks beside it (`carbon.reconstruction.grade_lanes`, two-lane hosts only): a round on any
-#: lane is official grading.
-LANE_LOCKS = ("official-grading.lane-1.lock",)
+#: lane is official grading, a REMOTE lane's too (`carbon.reconstruction.remote_lane`: its speed stage runs here).
+LANE_LOCKS = ("official-grading.lane-1.lock", "official-grading.lane-2.lock")
 
 
 def grading_busy(state_dir) -> bool:

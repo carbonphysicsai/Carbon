@@ -1306,15 +1306,22 @@ MAINNET_FIRST_PATIENCE_S = 7200.0
 
 def _door_lanes(intake, grading_lock_dir):
     """This door's grade lanes (`grade_lanes.door_lanes`): ``()`` = one lane, today's single host lock. Only a door
-    that holds the host lock at all can have lanes."""
+    that holds the host lock at all can have lanes. In two-lane mode, a REMOTE lane the values row asks for and the
+    operator installed (`grade_lanes.door_remote_lanes`) follows the local lanes (a `remote_lane.RemoteSpec`).
+    """
     if grading_lock_dir is None:
         return ()
     from carbon.reconstruction import grade_lanes
 
     challenge = getattr(intake, "challenge", None)
-    return grade_lanes.door_lanes(
-        getattr(challenge, "challenge_id", None), getattr(challenge, "version", None)
+    key = (
+        getattr(challenge, "challenge_id", None),
+        getattr(challenge, "version", None),
     )
+    local = grade_lanes.door_lanes(*key)
+    if not local:
+        return ()
+    return (*local, *grade_lanes.door_remote_lanes(*key))
 
 
 class WorkDeclined(Exception):
@@ -1570,7 +1577,7 @@ class _WorkLock:
 
         if not self._lanes:
             # one lane: lane 0 (the host lock) and every other lane, all or none
-            for index in range(grade_lanes.MAX_LANES):
+            for index in range(grade_lanes.ALL_LANES):
                 fd = self._take(
                     GRADING_LOCK if index == 0 else grade_lanes.lane_lock_name(index)
                 )
@@ -1581,7 +1588,7 @@ class _WorkLock:
             self._hold(None, grade_lanes.ONE_LANE_MODE)
             return True
         # two lanes: the first free lane, in index order
-        for index, cpuset in enumerate(self._lanes):
+        for index, spec in enumerate(self._lanes):
             fd = self._take(grade_lanes.lane_lock_name(index))
             if fd is None:
                 continue
@@ -1590,7 +1597,18 @@ class _WorkLock:
                 self._release_fds()
                 return False
             self._hold(
-                grade_lanes.Lane(index, cpuset, str(self._dir)),
+                (
+                    grade_lanes.Lane(index, spec, str(self._dir))
+                    if type(spec) is str
+                    # a remote lane (`remote_lane.RemoteSpec`): its daemon, its cores, its mirror root
+                    else grade_lanes.Lane(
+                        index,
+                        spec.cpuset,
+                        str(self._dir),
+                        spec.docker_host,
+                        spec.stage_root,
+                    )
+                ),
                 grade_lanes.TWO_LANE_MODE,
             )
             return True
@@ -1631,7 +1649,7 @@ class _WorkLock:
 
         self._fd = self._fds[0]
         self._lane = lane
-        for index in range(grade_lanes.MAX_LANES) if lane is None else (lane.index,):
+        for index in range(grade_lanes.ALL_LANES) if lane is None else (lane.index,):
             grade_lanes.write_holder(self._dir, index, mode)
 
     @staticmethod
@@ -1656,7 +1674,7 @@ class _WorkLock:
             lane, self._lane = self._lane, None
             # the holder records go BEFORE the locks: a reader never sees a free lock with a stale holder of ours
             for index in (
-                range(grade_lanes.MAX_LANES) if lane is None else (lane.index,)
+                range(grade_lanes.ALL_LANES) if lane is None else (lane.index,)
             ):
                 grade_lanes.clear_holder(self._dir, index)
         self._fd = None

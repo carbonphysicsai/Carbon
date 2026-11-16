@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
 
+from carbon.reconstruction import remote_lane
 from carbon.reconstruction.worker.model import (
     CLEANUP_CONFIRMATION_SECONDS,
     CPU_COUNT,
@@ -302,6 +303,9 @@ class DockerCLI:
         if executable != "docker":
             raise WorkerFailure(WorkerCode.INVALID)
         self.executable = executable
+        #: The daemon every call goes to, fixed when the CLI is made: the bound round's REMOTE lane
+        #: (`carbon.reconstruction.remote_lane`, ``ssh://``) or None, the local daemon (the operator's own DOCKER_*).
+        self.docker_host = remote_lane.docker_host()
         # Recorded image id -> (exact tag, store-neutral fingerprint), only for a parent a containerd store (Docker 29)
         # does not answer to by its recorded config digest and whose fingerprint was verified (register_parent_alias).
         self._aliases: dict[str, tuple[str, str]] = {}
@@ -360,15 +364,8 @@ class DockerCLI:
         timeout: float = 30,
         accepted: tuple[int, ...] = (0,),
     ) -> subprocess.CompletedProcess[bytes]:
-        environment = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
-        for name in (
-            "DOCKER_HOST",
-            "DOCKER_CONTEXT",
-            "DOCKER_TLS_VERIFY",
-            "DOCKER_CERT_PATH",
-        ):
-            if name in os.environ:
-                environment[name] = os.environ[name]
+        # the daemon this CLI was made for: a remote lane's (ssh), or the local one
+        environment = remote_lane.docker_environment(self.docker_host)
         result = _bounded_capture(
             [self.executable, *arguments],
             environment=environment,
@@ -417,15 +414,8 @@ class DockerCLI:
             or not destination.parent.is_dir()
         ):
             raise WorkerFailure(WorkerCode.INVALID)
-        environment = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
-        for name in (
-            "DOCKER_HOST",
-            "DOCKER_CONTEXT",
-            "DOCKER_TLS_VERIFY",
-            "DOCKER_CERT_PATH",
-        ):
-            if name in os.environ:
-                environment[name] = os.environ[name]
+        # the daemon this CLI was made for: a remote lane's (ssh), or the local one
+        environment = remote_lane.docker_environment(self.docker_host)
         process: subprocess.Popen[bytes] | None = None
         diagnostic = bytearray()
         total = 0
@@ -1614,15 +1604,8 @@ def spawn_watchdog(
     exact_digest(launch_digest)
     if type(deadline_unix) is not float or deadline_unix <= time.time():
         raise WorkerFailure(WorkerCode.INVALID)
-    environment = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
-    for name in (
-        "DOCKER_HOST",
-        "DOCKER_CONTEXT",
-        "DOCKER_TLS_VERIFY",
-        "DOCKER_CERT_PATH",
-    ):
-        if name in os.environ:
-            environment[name] = os.environ[name]
+    # the running round's daemon: a remote lane's (ssh), or the local one
+    environment = remote_lane.current_environment()
     try:
         subprocess.Popen(
             [
