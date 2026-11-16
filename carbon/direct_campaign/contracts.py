@@ -85,6 +85,7 @@ IMPLEMENTATION_SOURCES = (
     "carbon/development_session/physical_graph_adapter_v2.py",
     "carbon/development_session/physical_graph_state_v2.py",
     "carbon/development_session/physical_graph_trainer_v2.py",
+    "carbon/development_session/physical_graph_trainer_v3.py",
     "carbon/development_session/build_refusal_v2.py",
     "carbon/challenge_kit/version_registry.py",
 )

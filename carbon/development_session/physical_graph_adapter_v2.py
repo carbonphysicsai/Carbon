@@ -54,6 +54,13 @@ TRAINER_PATH = "carbon/development_session/physical_graph_trainer_v2.py"
 #: trainer is a new digest, so a new version.
 TRAINER_SHA256 = "8379cbc3b876ed9bc33624ff54a52f26459a34a4791c258c1fa377048e07f543"
 TRAINER_PIN = (TRAINER_PATH, TRAINER_SHA256)
+#: The v3 trainer (`physical_graph_trainer_v3`: v2 plus the construction-only
+#: knobs, every default bit-identical to v2), pinned only by the versions whose
+#: Spec names it (`Spec.trainer`). A change to it is a new digest, so a new version.
+TRAINER_V3_MODULE = "carbon.development_session.physical_graph_trainer_v3"
+TRAINER_V3_PATH = "carbon/development_session/physical_graph_trainer_v3.py"
+TRAINER_V3_SHA256 = "31739f4cb7de0abafb888a949d0a940cd155ec80ee9a00930576c0b279173ee8"
+TRAINER_V3_PIN = (TRAINER_V3_PATH, TRAINER_V3_SHA256)
 CODE = "graph_route_"
 #: A graph recipe may carry a loss graph over the whole training batch with the
 #: model's parameters as inputs (`carbon.level4.loss.check_batch`); it replaces the
@@ -95,6 +102,43 @@ TRAIN_SURFACES = {
     "min_learning_rate_ratio": ("unit", None, 0.0),
     "clip_norm": ("nonneg", None, 0.0),
 }
+#: Graph route v2 versions on trainer v3 add these (CV-Motor L12281 (2)(a), L12299
+#: (b); Lead 16 Nov 2026). Extra kinds: bool; range (low, high) a finite number
+#: inside the closed range; uintrange (low, high) an integer inside it; vector
+#: (length) a list of that many finite numbers, none negative, one above zero.
+TRAIN_SURFACES_V3_ADDED = {
+    "microbatches": ("uintrange", (1, 8), 1),
+    "weight_decay_mask": ("choice", ("matrices", "all"), "all"),
+    "relative_loss": ("bool", None, False),
+    "hard_example_weight": ("range", (0.0, 4.0), 0.0),
+    "ema_decay": ("range", (0.0, 0.99999), 0.99),
+    "inference_weights": ("choice", ("params", "ema"), "params"),
+    "tail_averaging": ("range", (0.0, 0.9), 0.0),
+    "polish_steps": ("uintrange", (0, 2000), 0),
+    "h1_weight": ("range", (0.0, 10.0), 0.0),
+    "h2_weight": ("range", (0.0, 10.0), 0.0),
+    "spectral_weight": ("range", (0.0, 10.0), 0.0),
+    "time_weighting": ("vector", 60, None),
+    "important_region_weight": ("range", (0.0, 10.0), 0.0),
+    "important_region_band": ("range", (0.0, 1.0), 0.1),
+}
+TRAIN_SURFACES_V3 = {**TRAIN_SURFACES, **TRAIN_SURFACES_V3_ADDED}
+#: The knobs that shape the menu loss, so cannot meet a recipe's own loss graph.
+MENU_LOSS_KNOBS = (
+    "relative_loss",
+    "hard_example_weight",
+    "time_weighting",
+    "important_region_weight",
+    "h1_weight",
+    "h2_weight",
+    "spectral_weight",
+)
+#: A v3 version's still-unserved surfaces: the PDE pair has no Motor definition
+#: (CV-Motor L12299 (6)), curriculum is not a public TRAIN-order schedule, and
+#: the GPU backend rides the GPU ruling.
+UNSERVED_SURFACES_V3 = frozenset(
+    {"backend", "curriculum", "pde_weight", "physics_warmup_steps"}
+)
 #: train_fraction: above zero, at most one (`train_use`).
 TRAIN_FRACTION = ("fraction", None, 1.0)
 #: Carbon's other registered training surfaces (Burgers' and Battery's train
@@ -139,11 +183,27 @@ class Spec:
     #: The predecessor version whose TRAIN, bank and measurement this one
     #: reuses ("predecessor + graph route v2"), recorded, never implied.
     predecessor: str
+    #: The trainer this version pins: "v2" (every version before) or "v3".
+    trainer: str = "v2"
+    #: Trainer v3 only: the row layout the group-(b) terms read (None = those
+    #: surfaces are not offered).
+    layout: dict | None = None
 
 
 #: The graph route v2 versions, each its predecessor's TRAIN and interface
 #: (a test holds them equal to the served material). Their train_use ids are
 #: the predecessor's TRAIN names: the same TRAIN bytes.
+#: Motor 1.8's row: 4 slices x 60 rotor steps (torque, then phase linkages A, B, C)
+#: over one 15 deg window; the torque is periodic over it, the linkages are not.
+#: `limits` are the public important-limit definition's constraints (a test holds
+#: them equal to `motor-important-limit-definition-20261018.json`).
+MOTOR_18_LAYOUT = {
+    "slices": 4,
+    "steps": 60,
+    "periodic": [0],
+    "spectral_slice": 0,
+    "limits": {"min_mean_torque_nm": 4.0, "max_ripple_fraction": 0.3},
+}
 SPECS = {
     ("f08-ribbed-bracket", "1.5"): Spec(
         "f08-ribbed-bracket",
@@ -300,6 +360,8 @@ SPECS = {
         240,
         "float64",
         "1.6",
+        "v3",
+        MOTOR_18_LAYOUT,
     ),
     ("chip-cold-plate", "1.8"): Spec(
         "chip-cold-plate",
@@ -371,26 +433,71 @@ def _admitted(value, surface) -> bool:
         return _number(value) and 0 <= value <= 1
     if kind == "fraction":
         return _number(value) and 0 < value <= 1
+    if kind == "bool":
+        return type(value) is bool
+    if kind == "range":
+        return _number(value) and low[0] <= value <= low[1]
+    if kind == "uintrange":
+        return type(value) is int and low[0] <= value <= low[1]
+    if kind == "vector":
+        if value is None:
+            return True
+        return (
+            type(value) is list
+            and len(value) == low
+            and all(_number(v) and v >= 0 for v in value)
+            and any(v > 0 for v in value)
+        )
     return type(value) is str and value in low
 
 
-def _training(selected, base=None) -> dict:
+def surfaces_for(spec: Spec) -> dict:
+    """The training surfaces a version offers: v2's, plus v3's on trainer v3."""
+    return TRAIN_SURFACES_V3 if spec.trainer == "v3" else TRAIN_SURFACES
+
+
+def _dependencies(values: dict, selected: dict) -> None:
+    """Trainer v3's cross-field rules: a supplied field must change the build,
+    and a combination the trainer does not define is refused by name."""
+    ema = values["inference_weights"] == "ema"
+    if "ema_decay" in selected and not ema:
+        raise RecipeRefused(CODE + "training_dependency_invalid")
+    if values["tail_averaging"] and ema:
+        raise RecipeRefused(CODE + "training_dependency_invalid")
+    if values["polish_steps"]:
+        if ema or values["tail_averaging"]:
+            raise RecipeRefused(CODE + "training_dependency_invalid")
+        if values["steps"] - values["polish_steps"] < 16:
+            raise RecipeRefused(CODE + "training_dependency_invalid")
+    if "weight_decay_mask" in selected and (
+        values["weight_decay"] == 0
+        or values["optimizer_family"] not in ("adamw", "lion")
+    ):
+        raise RecipeRefused(CODE + "training_dependency_invalid")
+    if "important_region_band" in selected and not values["important_region_weight"]:
+        raise RecipeRefused(CODE + "training_dependency_invalid")
+
+
+def _training(selected, base=None, spec=None) -> dict:
     """A training block resolved over `base` (the defaults when None)."""
     if type(selected) is not dict:
         raise RecipeRefused(CODE + "training_field_invalid")
-    unknown = set(selected) - set(TRAIN_SURFACES)
-    if unknown - UNSERVED_SURFACES:
+    v3 = spec is not None and spec.trainer == "v3"
+    surfaces = TRAIN_SURFACES_V3 if v3 else TRAIN_SURFACES
+    unserved = UNSERVED_SURFACES_V3 if v3 else UNSERVED_SURFACES
+    unknown = set(selected) - set(surfaces)
+    if unknown - unserved:
         raise RecipeRefused(CODE + "training_field_invalid")
     if unknown:
         raise RecipeRefused(CODE + "surface_unserved")
     values = (
-        {name: row[2] for name, row in TRAIN_SURFACES.items()}
-        if base is None
-        else dict(base)
+        {name: row[2] for name, row in surfaces.items()} if base is None else dict(base)
     )
     values.update(selected)
-    if not all(_admitted(values[name], row) for name, row in TRAIN_SURFACES.items()):
+    if not all(_admitted(values[name], row) for name, row in surfaces.items()):
         raise RecipeRefused(CODE + "training_value_invalid")
+    if v3:
+        _dependencies(values, selected)
     return values
 
 
@@ -407,7 +514,7 @@ def _output_weights(value, width: int) -> list:
     return [float(w) for w in value]
 
 
-def _ensemble(value, training: dict, weights: list, width: int) -> list:
+def _ensemble(value, training: dict, weights: list, width: int, spec=None) -> list:
     """The resolved members: each its sorted outputs, weight and training."""
     if value is None:
         return [{"outputs": list(range(width)), "weight": 1.0, "training": training}]
@@ -437,7 +544,7 @@ def _ensemble(value, training: dict, weights: list, width: int) -> list:
         if not any(weights[i] > 0 for i in outputs):
             # The member would train on nothing it is weighted on.
             raise RecipeRefused(CODE + "ensemble_invalid")
-        own = _training(member.get("training", {}), training)
+        own = _training(member.get("training", {}), training, spec)
         if own["batch_size"] != training["batch_size"]:
             # The graph is validated and run at one declared batch.
             raise RecipeRefused(CODE + "ensemble_invalid")
@@ -467,11 +574,11 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
         or use["dataset"] != spec.train_use
     ):
         raise RecipeRefused(CODE + "procedure_invalid")
-    training = _training(config.get("training", {}))
+    training = _training(config.get("training", {}), None, spec)
     if not _admitted(use["train_fraction"], TRAIN_FRACTION):
         raise RecipeRefused(CODE + "training_value_invalid")
     weights = _output_weights(config.get("output_weights"), spec.outputs)
-    members = _ensemble(config.get("ensemble"), training, weights, spec.outputs)
+    members = _ensemble(config.get("ensemble"), training, weights, spec.outputs, spec)
     rows = selected_rows(spec, use["train_fraction"])
     if rows < 1:
         raise RecipeRefused(CODE + "train_empty")
@@ -484,6 +591,8 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
         "ensemble": members,
         # The one batch the graph is validated and every member trains at.
         "batch_size": training["batch_size"],
+        # Trainer v3 only: the row layout the group-(b) terms read.
+        **({"layout": spec.layout} if spec.trainer == "v3" else {}),
     }
 
 
@@ -542,7 +651,10 @@ class EnsembleGraphModel:
     sd: np.ndarray | None = None
 
     def fit(self, inputs: np.ndarray, targets: np.ndarray, *, seed: int) -> dict:
-        from . import physical_graph_trainer_v2
+        if self.spec.trainer == "v3":
+            from . import physical_graph_trainer_v3 as trainer
+        else:
+            from . import physical_graph_trainer_v2 as trainer
 
         if type(seed) is not int or seed < 0:
             raise RecipeRefused(CODE + "seed_invalid")
@@ -555,9 +667,18 @@ class EnsembleGraphModel:
             or targets.shape != (self.spec.rows, self.spec.outputs)
         ):
             raise RecipeRefused(CODE + "train_invalid")
-        fitted = physical_graph_trainer_v2.train(
-            self.prepared, inputs, targets, self.settings, seed=seed
-        )
+        if (
+            self.spec.trainer == "v3"
+            and getattr(self.prepared, "loss", None)
+            and any(
+                member["training"][name] != TRAIN_SURFACES_V3[name][2]
+                for member in self.settings["ensemble"]
+                for name in MENU_LOSS_KNOBS
+            )
+        ):
+            # The menu-loss knobs do not apply to a recipe's own loss graph.
+            raise RecipeRefused(CODE + "training_dependency_invalid")
+        fitted = trainer.train(self.prepared, inputs, targets, self.settings, seed=seed)
         if fitted["selected_rows"] < 1:
             raise RecipeRefused(CODE + "train_empty")
         members = fitted["members"]
@@ -579,7 +700,8 @@ class EnsembleGraphModel:
         )
         return {
             "adapter_id": self.spec.adapter_id,
-            "trainer_sha256": "sha256:" + TRAINER_SHA256,
+            "trainer_sha256": "sha256:"
+            + (TRAINER_V3_SHA256 if self.spec.trainer == "v3" else TRAINER_SHA256),
             "members": len(members),
             "steps": [
                 member["training"]["steps"] for member in self.settings["ensemble"]
@@ -732,13 +854,18 @@ def served_allowlist_bytes(challenge_id: str, version: str) -> bytes:
     return graph_allowlist_bytes(challenge_id, version)
 
 
-def trainer_source() -> bytes:
-    """The v2 trainer's exact bytes, or ValueError if they moved."""
+def trainer_source(spec: Spec | None = None) -> bytes:
+    """The version's trainer's exact bytes (v2's unless the Spec names v3), or
+    ValueError if they moved."""
     from pathlib import Path
 
-    raw = (Path(__file__).resolve().parents[2] / TRAINER_PATH).read_bytes()
-    if hashlib.sha256(raw).hexdigest() != TRAINER_SHA256:
-        raise ValueError("pinned physical graph trainer v2 bytes differ")
+    v3 = spec is not None and spec.trainer == "v3"
+    path, pinned = (
+        (TRAINER_V3_PATH, TRAINER_V3_SHA256) if v3 else (TRAINER_PATH, TRAINER_SHA256)
+    )
+    raw = (Path(__file__).resolve().parents[2] / path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != pinned:
+        raise ValueError("pinned physical graph trainer bytes differ")
     return raw
 
 
@@ -748,6 +875,8 @@ def _surface(row) -> dict:
         "kind": kind,
         **({"choices": list(low)} if kind == "choice" else {}),
         **({"low": low} if kind == "uint" else {}),
+        **({"range": list(low)} if kind in ("range", "uintrange") else {}),
+        **({"length": low} if kind == "vector" else {}),
         "default": default,
     }
 
@@ -773,7 +902,7 @@ def adapter_block(challenge_id: str, version: str) -> dict:
             "output_shape": [spec.outputs],
         },
         "train_surfaces": {
-            name: _surface(row) for name, row in sorted(TRAIN_SURFACES.items())
+            name: _surface(row) for name, row in sorted(surfaces_for(spec).items())
         },
         "train_fraction": _surface(TRAIN_FRACTION),
         "batch_size_limit": "selected_train_rows",
@@ -794,8 +923,9 @@ def adapter_block(challenge_id: str, version: str) -> dict:
             "member_seed": "carbon.level4.train.keys folded with the member index",
         },
         "trainer": {
-            "module": TRAINER_MODULE,
-            "sha256": "sha256:" + TRAINER_SHA256,
+            "module": TRAINER_V3_MODULE if spec.trainer == "v3" else TRAINER_MODULE,
+            "sha256": "sha256:"
+            + (TRAINER_V3_SHA256 if spec.trainer == "v3" else TRAINER_SHA256),
             "target_standardisation": "per_column_selected_train_rows",
             "loss": TRAINER_LOSS_TEXT,
             "seed": "carbon.level4.train.keys",

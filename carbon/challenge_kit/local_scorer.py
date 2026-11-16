@@ -86,6 +86,7 @@ CODE_MODULES = (
     "carbon/development_session/build_refusal_v2.py",
     "carbon/development_session/physical_graph_adapter_v2.py",
     "carbon/development_session/physical_graph_trainer_v2.py",
+    "carbon/development_session/physical_graph_trainer_v3.py",
     "carbon/development_session/physical_graph_state_v2.py",
     "carbon/level4/allowlist.py",
     "carbon/level4/graph.py",
