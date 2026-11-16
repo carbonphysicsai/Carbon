@@ -119,6 +119,9 @@ async def execute(args):
     from carbon.rewards import testnet_winner_publication as publication
 
     config = load_config(Path(args.config).absolute())
+    archive = getattr(args, "reconcile_archive_endpoint", None)
+    if archive is not None:
+        return await reconcile_from_archive(args, config, archive)
     if args.action != "preview" and operator_pause.weights_paused(
         Path(args.journal).parent
     ):
@@ -186,6 +189,53 @@ async def execute(args):
             }
         snapshot, _ = await backend.observe()
         return await publisher.publish(issuer.issue(snapshot))
+    finally:
+        await backend.close()
+
+
+async def reconcile_from_archive(args, config, archive_endpoint):
+    """RECONCILE ONLY: settle a pending dispatch whose finalized history is past the pinned node's state window.
+
+    Reads that history (the transaction, the reveal events, the weight readback) through `archive_endpoint`; the
+    journal keeps its pinned context (endpoint included) and the pinned node still names every block, whose hash the
+    archive must match (`BittensorPublicationBackend._history`). It never publishes: no wallet is opened (the backend
+    gets none) and no new dispatch is issued; the normal loop publishes the next epoch afterwards on the normal
+    config. It runs only while the operator's weights pause is ON, so the loop cannot touch the journal meanwhile.
+    """
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+    from carbon.rewards import testnet_winner_publication as publication
+
+    if args.action != "run":
+        raise SetupRefused("ARCHIVE_RECONCILE_REQUIRES_RUN")
+    if not operator_pause.weights_paused(Path(args.journal).parent):
+        raise SetupRefused("ARCHIVE_RECONCILE_REQUIRES_WEIGHTS_PAUSE")
+    if not Path(args.journal).is_file():
+        raise SetupRefused("ARCHIVE_RECONCILE_REQUIRES_EXISTING_JOURNAL")
+    issuer = publication._issuer(args, config, args.journal)
+    try:
+        backend = BittensorPublicationBackend(
+            config.context,
+            config.publisher_hotkey,
+            None,
+            network=config.context.network,
+            archive_endpoint=archive_endpoint,
+        )
+    except PublicationFailure as failure:
+        raise SetupRefused(str(failure)) from None
+    try:
+        publisher = publication.TestnetWinnerPublisher(issuer, backend)
+        before = publisher.journal.pending()
+        if before is None:
+            return {"status": "NOTHING_PENDING", "published": False}
+        pending = await publication.settle_pending(publisher)
+        return {
+            "status": "RECONCILE_PENDING" if pending is not None else "SETTLED",
+            "dispatch": before,
+            "state": None if pending is None else pending["state"],
+            "reason": None if pending is None else pending.get("reason"),
+            "settled_row": publisher.journal.get(before)["state"],
+            "published": False,
+        }
     finally:
         await backend.close()
 

@@ -322,16 +322,29 @@ async def capture_capabilities(client, sub, context, publisher):
 class BittensorPublicationBackend:
     """Exact-network checked SDK lifecycle. Wallet is supplied externally."""
 
-    def __init__(self, context, publisher, wallet, *, network="localnet"):
+    def __init__(
+        self, context, publisher, wallet, *, network="localnet", archive_endpoint=None
+    ):
         if (
             type(context) is not ChainContext
             or context.network != network
             or context.netuid == 0
         ):
             raise PublicationFailure("DISPOSABLE_SUBNET_REQUIRED")
+        if archive_endpoint is not None and (
+            type(archive_endpoint) is not str
+            or not archive_endpoint.startswith(("wss://", "ws://"))
+            or len(archive_endpoint) > 512
+        ):
+            raise PublicationFailure("INVALID_ARCHIVE_ENDPOINT")
         self.context, self.publisher, self.wallet = context, publisher, wallet
         self.network = network
         self.client = self.substrate = None
+        # Read-only reconcile reads of finalized history past the pinned node's state window (a non-archive node
+        # serves events/state for ~256 blocks). The pinned context, the journal and every signing path are unchanged:
+        # the archive is never given to `observe` or `execute`.
+        self.archive_endpoint = archive_endpoint
+        self.archive_client = self.archive = None
 
     async def start(self):
         require_sdk()
@@ -362,8 +375,57 @@ class BittensorPublicationBackend:
 
     async def close(self):
         client, self.client, self.substrate = self.client, None, None
-        if client is not None:
+        archive, self.archive_client, self.archive = self.archive_client, None, None
+        try:
+            if client is not None:
+                await client.close()
+        finally:
+            if archive is not None:
+                await archive.close()
+
+    async def _start_archive(self):
+        if self.archive is not None:
+            return
+        import bittensor as bt
+
+        sub = bt.RpcSubstrate(
+            self.archive_endpoint,
+            fallback_endpoints=[],
+            archive_endpoints=[],
+            retry_forever=False,
+        )
+        client = bt.Client(self.archive_endpoint, substrate=sub)
+        succeeded = False
+        try:
+            async with asyncio.timeout(30):
+                await sub.connect()
+                succeeded = (
+                    hash256(await sub.block_hash(0)) == self.context.genesis_hash
+                )
+        except Exception:  # noqa: BLE001 - never retain provider messages
+            succeeded = False
+        if not succeeded:
             await client.close()
+            raise PublicationFailure("ARCHIVE_UNAVAILABLE_OR_GENESIS_MISMATCH")
+        self.archive_client, self.archive = client, sub
+
+    async def _history(self, block):
+        """The substrate and block hash a reconcile read uses for finalized `block`.
+
+        Without an archive endpoint: the pinned node, as before. With one: the pinned node still names the block
+        (genesis + its hash for `block`), and the archive must report the same genesis and the same hash for that
+        block before its state/events are read at that hash.
+        """
+        block_hash = await self._block(block)
+        if self.archive_endpoint is None:
+            return self.substrate, block_hash
+        await self._start_archive()
+        if (
+            hash256(await self.archive.block_hash(0)) != self.context.genesis_hash
+            or hash256(await self.archive.block_hash(block)) != block_hash
+        ):
+            raise PublicationFailure("ARCHIVE_CHAIN_MISMATCH")
+        return self.archive, block_hash
 
     async def observe(self):
         await self.start()
@@ -437,8 +499,8 @@ class BittensorPublicationBackend:
 
         result, failed = None, False
         try:
-            block_hash = await self._block(block)
-            found = await self.substrate.find_extrinsic(hash256(tx_hash), block_hash)
+            reader, block_hash = await self._history(block)
+            found = await reader.find_extrinsic(hash256(tx_hash), block_hash)
             if found is not None:
                 if found.block_hash != block_hash or type(found.success) is not bool:
                     raise PublicationFailure("CONFLICTING_TRANSACTION_BLOCK")
@@ -452,17 +514,17 @@ class BittensorPublicationBackend:
     async def weight_row(self, snapshot, uid):
         result, failed = None, False
         try:
-            block_hash = await self._block(snapshot.finalized_block)
+            reader, block_hash = await self._history(snapshot.finalized_block)
             if block_hash != snapshot.block_hash:
                 raise PublicationFailure("CONFLICTING_READBACK_BLOCK")
             row, last = await asyncio.gather(
-                self.substrate.query(
+                reader.query(
                     "SubtensorModule",
                     "Weights",
                     [self.context.netuid, uid],
                     block_hash=block_hash,
                 ),
-                self.substrate.query(
+                reader.query(
                     "SubtensorModule",
                     "LastUpdate",
                     [self.context.netuid],
@@ -492,7 +554,8 @@ class BittensorPublicationBackend:
         """
         matched, failed = False, False
         try:
-            events = await self.substrate.events(await self._block(block))
+            reader, block_hash = await self._history(block)
+            events = await reader.events(block_hash)
             if type(events) is not list or len(events) > 10000:
                 raise PublicationFailure("MALFORMED_REVEAL_EVENTS")
             for entry in events:

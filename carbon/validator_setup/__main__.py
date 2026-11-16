@@ -124,6 +124,12 @@ def main(argv=None):
             command.add_argument("--out")
         if name == "weights":
             command.add_argument("action", choices=("preview", "run"))
+            command.add_argument(
+                "--reconcile-archive-endpoint",
+                default=None,
+                help="RECONCILE ONLY (weights pause ON): settle the pending dispatch reading finalized history "
+                "from this archive node; never publishes",
+            )
             for flag in ("standing", "journal", "ledger"):
                 command.add_argument("--" + flag, required=True)
             command.add_argument("--battery-deployment")
