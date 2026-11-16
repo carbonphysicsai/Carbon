@@ -456,7 +456,13 @@ def test_a_differing_or_failed_worker_gives_the_one_process_answers(
         )
     finally:
         ledger.connection.close()
-    assert all(said in call["stderr"] for call in seen)
+    # the answers first (a missed detection would show here), then the fallback line each call wrote (shown on failure)
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+    lines = [
+        [line for line in call["stderr"].splitlines() if "case_procs:" in line]
+        for call in seen
+    ]
+    assert all(said in call["stderr"] for call in seen), lines
     assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
 
 
