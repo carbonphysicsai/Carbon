@@ -1681,3 +1681,95 @@ def test_the_program_wall_is_the_streams_timeout_at_its_allowance():
         program_started=started,
         program_timeout=50,
     )
+
+
+# -- alone retry: review fixes ------------------------------------------------------------------------------------------------
+
+
+def _marked(host, **kwargs):
+    lane = _lane(host, slots=2, memory="shared", **kwargs)
+    with remote_gpu_build.offered(lane), _op(key=_key()):
+        assert remote_gpu_build.note_uncounted_wall()
+    return lane
+
+
+def test_an_alone_retry_waits_while_a_slot_holds_a_lost_controllers_record(
+    host, monkeypatch
+):
+    lane = _marked(host)
+    stale = Path(lane.lane_dir) / "slot-1" / "active-allocation.json"
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text("{}")
+    monkeypatch.setattr(remote_gpu_build, "SLOT_WAIT_SECONDS", 0)
+    with (
+        pytest.raises(RemoteLaneDown) as raised,
+        remote_gpu_build.offered(lane),
+        _op(key=_key(), poll_s=0, sleep=lambda _: None),
+    ):
+        pass
+    assert b"alone_busy" in raised.value.private_diagnostic
+    stale.unlink()
+    with remote_gpu_build.offered(lane), _op(key=_key()) as binding:
+        assert binding.alone
+
+
+def test_an_alone_retry_needs_the_device_to_itself(host):
+    lane = _marked(host)
+    with remote_gpu_build.offered(lane), _op(key=_key()) as binding:
+        assert binding.alone
+        remote_gpu_build.reject_crowded(_FakeCLI(b""))
+        with pytest.raises(WorkerFailure) as raised:
+            remote_gpu_build.reject_crowded(_FakeCLI(b'"other"\n'))
+        assert raised.value.code is WorkerCode.CONFLICT
+
+
+def test_an_uncounted_alone_retry_is_not_retried_alone_again(host):
+    lane = _marked(host)
+    with remote_gpu_build.offered(lane), _op(key=_key()) as binding:
+        assert binding.alone
+        assert not remote_gpu_build.note_uncounted_wall()
+    assert not remote_gpu_build.needs_alone(lane, _key())
+
+
+def test_an_alone_op_counts_its_wall_on_a_local_lane_and_owns_its_oom(host):
+    lane = _marked(host, local=True)
+    binding = remote_gpu_build.OpBinding(lane, 0, _key(), alone=True)
+    assert remote_gpu_build.wall_counts(binding) is True
+    assert remote_gpu_build.wall_counts(remote_gpu_build.OpBinding(lane, 0)) is False
+    oom = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"RESOURCE_EXHAUSTED")
+    markers = (b"RESOURCE_EXHAUSTED",)
+    assert not remote_gpu_build.shared_memory_exhausted(oom, markers, binding)
+    assert remote_gpu_build.shared_memory_exhausted(
+        oom, markers, remote_gpu_build.OpBinding(lane, 1)
+    )
+
+
+def test_an_old_mark_lapses(host, monkeypatch):
+    import os
+    import time as clock
+
+    lane = _marked(host)
+    marker = Path(lane.lane_dir) / remote_gpu_build.ALONE_DIR / _key()
+    old = clock.time() - remote_gpu_build.ALONE_MARK_SECONDS - 10
+    os.utime(marker, (old, old))
+    assert not remote_gpu_build.needs_alone(lane, _key())
+    assert not marker.exists()
+
+
+def test_no_content_key_is_computed_without_a_multi_slot_lane(host, monkeypatch):
+    from carbon.development_session import research_carrier
+
+    computed = []
+    monkeypatch.setattr(
+        remote_gpu_build, "alone_key", lambda **kwargs: computed.append(1) or None
+    )
+    monkeypatch.setattr(research_carrier, "_run_supervised", lambda ledger, **k: "ok")
+    research_carrier._run(
+        None, identity=BUILD, accelerator="VALIDATOR_OWN_GPU", provenance="X"
+    )
+    one = _lane(host, slots=1, cpusets=("0-3",))
+    with remote_gpu_build.offered(one):
+        research_carrier._run(
+            None, identity=BUILD, accelerator="VALIDATOR_OWN_GPU", provenance="X"
+        )
+    assert computed == []

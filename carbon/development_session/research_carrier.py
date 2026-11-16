@@ -371,11 +371,16 @@ def _run(ledger, **kwargs):
                 if ledger is None or owner is None
                 else lambda: _check_cancel(ledger, owner, identity)
             ),
-            # the build's content key: a build marked for an ALONE retry (`remote_gpu_build.needs_alone`) holds the lane
-            key=remote_gpu_build.alone_key(
-                source=kwargs.get("source"),
-                files=kwargs.get("files"),
-                image_id=getattr(kwargs.get("image"), "image_id", None),
+            # the build's content key: a build marked for an ALONE retry (`remote_gpu_build.needs_alone`) holds the lane;
+            # only computed where a multi-slot lane is offered
+            key=(
+                remote_gpu_build.alone_key(
+                    source=kwargs.get("source"),
+                    files=kwargs.get("files"),
+                    image_id=getattr(kwargs.get("image"), "image_id", None),
+                )
+                if getattr(remote_gpu_build.offered_lane(), "slots", 1) > 1
+                else None
             ),
         ) as remote_build,
     ):

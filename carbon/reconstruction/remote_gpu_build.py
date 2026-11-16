@@ -524,10 +524,25 @@ def _marker(lane, key):
     return Path(lane.lane_dir) / ALONE_DIR / key
 
 
+#: How long a mark stands: a build not retried within this is not waiting for its retry any more (an operational
+#: bound, so a mark nothing cleared, e.g. a repeat probe's or a withdrawn build's, never costs a lane for good).
+ALONE_MARK_SECONDS = 24 * 3600
+
+
 def needs_alone(lane, key):
-    """Whether the build of ``key`` is marked for an alone retry on ``lane``."""
+    """Whether the build of ``key`` is marked for an alone retry on ``lane`` (a mark younger than
+    `ALONE_MARK_SECONDS`; an older one is removed)."""
     marker = None if lane is None or lane is _WITHHELD else _marker(lane, key)
-    return marker is not None and marker.exists()
+    if marker is None:
+        return False
+    try:
+        age = time.time() - marker.stat().st_mtime
+    except OSError:
+        return False
+    if age > ALONE_MARK_SECONDS:
+        marker.unlink(missing_ok=True)
+        return False
+    return True
 
 
 def note_uncounted_wall(binding=None):
@@ -539,6 +554,11 @@ def note_uncounted_wall(binding=None):
         return False
     marker = _marker(binding.lane, binding.key)
     if marker is None:
+        return False
+    if binding.alone:
+        # the alone retry itself was not counted (a foreign process or the link, not a neighbour): it is not retried
+        # alone again, so a box that cannot be read never holds the whole lane over and over; its retry is ordinary
+        marker.unlink(missing_ok=True)
         return False
     try:
         marker.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -674,9 +694,12 @@ def _gate(lane, *, alone, check, pause, poll, deadline):
     own = f"{os.getpid()}-{grade_lanes.process_start(os.getpid())}-{id(fd)}"
     try:
         if alone:
-            (directory / ALONE_WANTED_DIR).mkdir(mode=0o700, exist_ok=True)
-            wanted = directory / ALONE_WANTED_DIR / own
-            wanted.touch(mode=0o600)
+            try:
+                (directory / ALONE_WANTED_DIR).mkdir(mode=0o700, exist_ok=True)
+                wanted = directory / ALONE_WANTED_DIR / own
+                wanted.touch(mode=0o600)
+            except OSError as error:
+                raise RemoteLaneDown(repr(error).encode()[:512]) from None
             while True:
                 try:
                     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -713,9 +736,16 @@ def _all_slots(lane, *, check, pause, poll, deadline):
             while True:
                 try:
                     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
                 except BlockingIOError:
                     _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
+                    continue
+                if not (
+                    Path(lane.lane_dir) / f"slot-{slot}" / "active-allocation.json"
+                ).exists():
+                    break
+                # a lost controller's record: its container may still run, so the lane is not this op's alone yet
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
         yield
     finally:
         for fd in held:
@@ -1193,7 +1223,9 @@ def reject_crowded(cli_, binding=None):
         ],
         timeout=10,
     ).stdout
-    if len([line for line in raw.splitlines() if line.strip()]) >= binding.lane.slots:
+    running = len([line for line in raw.splitlines() if line.strip()])
+    # an alone retry needs the device to itself: no other Carbon container on it at all
+    if running >= (1 if binding.alone else binding.lane.slots):
         raise WorkerFailure(WorkerCode.CONFLICT)
 
 
@@ -1256,7 +1288,8 @@ def wall_counts(binding=None):
     binding = _current() if binding is None else binding
     if binding is None or not binding.lane.spec.local:
         return True
-    return binding.lane.slots == 1
+    # an alone retry holds every slot: its lane is, for this op, a one-slot lane
+    return binding.lane.slots == 1 or binding.alone
 
 
 def shared_memory_exhausted(error, markers, binding=None):
@@ -1265,7 +1298,12 @@ def shared_memory_exhausted(error, markers, binding=None):
     beside a neighbour is never turned into a CPU rebuild that could run into the CPU's wall as the miner's.
     """
     binding = _current() if binding is None else binding
-    if binding is None or binding.lane.slots == 1 or isinstance(error, RemoteLaneDown):
+    if (
+        binding is None
+        or binding.lane.slots == 1
+        or binding.alone
+        or isinstance(error, RemoteLaneDown)
+    ):
         return False
     diagnostic = getattr(error, "private_diagnostic", b"")
     return type(diagnostic) is bytes and any(marker in diagnostic for marker in markers)
@@ -1286,6 +1324,7 @@ def retyped(error, binding=None):
 
 __all__ = [
     "ALONE_DIR",
+    "ALONE_MARK_SECONDS",
     "DEFAULT_SLOTS",
     "GATE_LOCK",
     "MAX_LANES",
