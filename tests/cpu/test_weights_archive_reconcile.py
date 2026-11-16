@@ -236,9 +236,21 @@ def setup(tmp_path, monkeypatch, *, pending="dispatch-26433", settled=None):
 
     class Backend:
         def __init__(
-            self, context, publisher, wallet, *, network, archive_endpoint=None
+            self,
+            context,
+            publisher,
+            wallet,
+            *,
+            network,
+            archive_endpoint=None,
+            archive_fallback=False,
         ):
-            seen.update(context=context, wallet=wallet, archive=archive_endpoint)
+            seen.update(
+                context=context,
+                wallet=wallet,
+                archive=archive_endpoint,
+                fallback=archive_fallback,
+            )
 
         async def close(self):
             seen["closed"] = True
@@ -358,3 +370,118 @@ def test_cli_flag_parses_into_the_weights_command():
 
     source = inspect.getsource(cli.main)
     assert '"--reconcile-archive-endpoint"' in source
+
+
+# --- the pause blocks new commits only; a committed epoch keeps reconciling (116 epochs 26433 / 26442) ------------
+
+
+class Flaky(Pinned):
+    """The pinned node past its window: it names blocks, but its history reads raise (pruned state)."""
+
+    async def events(self, _block_hash):
+        raise RuntimeError("State discarded for block")
+
+    async def find_extrinsic(self, *_args):
+        raise RuntimeError("State discarded for block")
+
+    async def query(self, *_args, **_kwargs):
+        raise RuntimeError("State discarded for block")
+
+
+class Fresh(Archive):
+    """A pinned node that still serves the block."""
+
+
+def fallback_backend(pinned, archive):
+    value = backend(archive)
+    value.archive_fallback = True
+    value.substrate = pinned
+    return value
+
+
+def test_fallback_reads_the_pinned_node_first_and_never_touches_the_archive_when_it_serves():
+    archive, pinned = Archive(), Fresh()
+    value = fallback_backend(pinned, archive)
+    value.archive_client = value.archive = None  # an archive must not even be started
+    assert run(value.revealed("validator", 105)) is True
+    assert pinned.reads == [("events", BLOCK)] and archive.reads == []
+
+
+def test_fallback_retries_a_pruned_pinned_read_on_the_checked_archive():
+    archive = Archive()
+    value = fallback_backend(Flaky(), archive)
+    assert run(value.revealed("validator", 105)) is True
+    observed = run(value.transaction("0x" + "d" * 64, 105))
+    assert observed.block_hash == BLOCK
+    assert {block_hash for _, block_hash in archive.reads} == {BLOCK}
+
+
+@pytest.mark.parametrize(
+    "archive",
+    [Archive(genesis=OTHER), Archive(block=OTHER)],
+    ids=["archive-genesis-differs", "archive-block-hash-differs"],
+)
+def test_fallback_never_reads_an_archive_on_another_chain(archive):
+    value = fallback_backend(Flaky(), archive)
+    with pytest.raises(PublicationFailure, match="REVEAL_OBSERVATION_UNAVAILABLE"):
+        run(value.revealed("validator", 105))
+    assert archive.reads == []
+
+
+def test_the_fallback_flag_needs_an_endpoint():
+    installed_sdk()
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+
+    assert (
+        BittensorPublicationBackend(
+            context(), "validator", None, archive_fallback=True
+        ).archive_fallback
+        is False
+    )
+
+
+def test_a_paused_run_reconciles_the_pending_epoch_without_a_wallet_and_stays_paused(
+    tmp_path, monkeypatch, capsys
+):
+    from carbon.challenge_validator import operator_pause
+
+    args, parent, seen = setup(tmp_path, monkeypatch, settled="FINALIZED")
+    del args.reconcile_archive_endpoint
+    args.archive_fallback_endpoint = ARCHIVE
+    pause(parent)
+    with pytest.raises(SetupRefused, match=operator_pause.WEIGHTS_PAUSED):
+        asyncio.run(weights.execute(args))
+    assert seen["settled"] and seen["closed"] and seen["wallet"] is None
+    assert seen["archive"] == ARCHIVE and seen["fallback"] is True
+    report = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert report["paused_reconcile"]["status"] == "SETTLED"
+
+
+def test_a_paused_run_whose_reconcile_fails_still_ends_paused_and_says_why(
+    tmp_path, monkeypatch, capsys
+):
+    from carbon.challenge_validator import operator_pause
+    from carbon.rewards import testnet_winner_publication as publication
+
+    args, parent, seen = setup(tmp_path, monkeypatch)
+    del args.reconcile_archive_endpoint
+
+    async def unavailable(_publisher):
+        raise PublicationFailure("REVEAL_OBSERVATION_UNAVAILABLE")
+
+    monkeypatch.setattr(publication, "settle_pending", unavailable)
+    pause(parent)
+    with pytest.raises(SetupRefused, match=operator_pause.WEIGHTS_PAUSED):
+        asyncio.run(weights.execute(args))
+    report = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert report["paused_reconcile"] == {
+        "status": "RECONCILE_UNAVAILABLE",
+        "reason": "REVEAL_OBSERVATION_UNAVAILABLE",
+    }
+    assert seen["fallback"] is False and seen["closed"]
+
+
+def test_the_cli_carries_the_archive_fallback_flag():
+    from carbon.validator_setup import __main__ as cli
+
+    assert '"--archive-fallback-endpoint"' in inspect.getsource(cli.main)

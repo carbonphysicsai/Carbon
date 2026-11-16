@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import stat
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -122,10 +123,18 @@ async def execute(args):
     archive = getattr(args, "reconcile_archive_endpoint", None)
     if archive is not None:
         return await reconcile_from_archive(args, config, archive)
+    fallback = getattr(args, "archive_fallback_endpoint", None)
     if args.action != "preview" and operator_pause.weights_paused(
         Path(args.journal).parent
     ):
-        # The operator's pause, before any issuer, reader or wallet access; preview stays available.
+        # The operator's pause blocks every NEW commit or publish (no wallet is opened), but a dispatch already
+        # committed keeps reconciling, read-only, so a long pause cannot age its reveal past the node's window
+        # (116 epochs 26433 and 26442). Its outcome is reported on stderr; the run still ends WEIGHTS_PAUSED.
+        reconciled = await reconcile_during_pause(args, config, fallback)
+        print(
+            json.dumps({"paused_reconcile": reconciled}, sort_keys=True),
+            file=sys.stderr,
+        )
         raise SetupRefused(operator_pause.WEIGHTS_PAUSED)
     if args.action == "preview":
         # The operator image has a read-only root and no implicit writable /tmp.
@@ -175,7 +184,12 @@ async def execute(args):
         wallet_path=config.wallet_path,
     )
     backend = BittensorPublicationBackend(
-        config.context, config.publisher_hotkey, wallet, network=config.context.network
+        config.context,
+        config.publisher_hotkey,
+        wallet,
+        network=config.context.network,
+        archive_endpoint=fallback,
+        archive_fallback=fallback is not None,
     )
     try:
         publisher = publication.TestnetWinnerPublisher(issuer, backend)
@@ -189,6 +203,45 @@ async def execute(args):
             }
         snapshot, _ = await backend.observe()
         return await publisher.publish(issuer.issue(snapshot))
+    finally:
+        await backend.close()
+
+
+async def reconcile_during_pause(args, config, fallback):
+    """RECONCILE ONLY while the weights pause is ON: settle the journal's pending dispatch (reads only; no wallet,
+    no new dispatch, no publish), reading history from the pinned node with the archive fallback when one is
+    configured. Never raises: the pause outcome is the caller's; this returns what happened.
+    """
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+    from carbon.rewards import testnet_winner_publication as publication
+
+    if args.action != "run" or not Path(args.journal).is_file():
+        return {"status": "NOTHING_PENDING"}
+    try:
+        issuer = publication._issuer(args, config, args.journal)
+        backend = BittensorPublicationBackend(
+            config.context,
+            config.publisher_hotkey,
+            None,
+            network=config.context.network,
+            archive_endpoint=fallback,
+            archive_fallback=fallback is not None,
+        )
+    except (PublicationFailure, SetupRefused, OSError, ValueError) as failure:
+        return {"status": "RECONCILE_NOT_RUN", "reason": str(failure)[:120]}
+    try:
+        publisher = publication.TestnetWinnerPublisher(issuer, backend)
+        before = publisher.journal.pending()
+        if before is None:
+            return {"status": "NOTHING_PENDING"}
+        pending = await publication.settle_pending(publisher)
+        return {
+            "status": "RECONCILE_PENDING" if pending is not None else "SETTLED",
+            "dispatch": before,
+            "reason": None if pending is None else pending.get("reason"),
+        }
+    except (PublicationFailure, ChainFailure, OSError, ValueError) as failure:
+        return {"status": "RECONCILE_UNAVAILABLE", "reason": str(failure)[:120]}
     finally:
         await backend.close()
 

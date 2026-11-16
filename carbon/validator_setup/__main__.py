@@ -130,6 +130,12 @@ def main(argv=None):
                 help="RECONCILE ONLY (weights pause ON): settle the pending dispatch reading finalized history "
                 "from this archive node; never publishes",
             )
+            command.add_argument(
+                "--archive-fallback-endpoint",
+                default=None,
+                help="Archive node for reconcile reads the pinned node can no longer serve (genesis + block hash "
+                "checked; the journal keeps its pinned context); used in normal runs and in the pause reconcile",
+            )
             for flag in ("standing", "journal", "ledger"):
                 command.add_argument("--" + flag, required=True)
             command.add_argument("--battery-deployment")

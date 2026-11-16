@@ -323,7 +323,14 @@ class BittensorPublicationBackend:
     """Exact-network checked SDK lifecycle. Wallet is supplied externally."""
 
     def __init__(
-        self, context, publisher, wallet, *, network="localnet", archive_endpoint=None
+        self,
+        context,
+        publisher,
+        wallet,
+        *,
+        network="localnet",
+        archive_endpoint=None,
+        archive_fallback=False,
     ):
         if (
             type(context) is not ChainContext
@@ -344,6 +351,10 @@ class BittensorPublicationBackend:
         # serves events/state for ~256 blocks). The pinned context, the journal and every signing path are unchanged:
         # the archive is never given to `observe` or `execute`.
         self.archive_endpoint = archive_endpoint
+        # FALLBACK mode (the normal loop): history is read from the pinned node first, and only a pinned read that
+        # FAILS (state past the node's window) is retried on the archive, under the same genesis + block-hash check.
+        # Without it, a configured archive serves every history read (the one-off reconcile, cffc9e08).
+        self.archive_fallback = bool(archive_fallback) and archive_endpoint is not None
         self.archive_client = self.archive = None
 
     async def start(self):
@@ -419,6 +430,9 @@ class BittensorPublicationBackend:
         block_hash = await self._block(block)
         if self.archive_endpoint is None:
             return self.substrate, block_hash
+        return await self._archive_at(block, block_hash)
+
+    async def _archive_at(self, block, block_hash):
         await self._start_archive()
         if (
             hash256(await self.archive.block_hash(0)) != self.context.genesis_hash
@@ -426,6 +440,21 @@ class BittensorPublicationBackend:
         ):
             raise PublicationFailure("ARCHIVE_CHAIN_MISMATCH")
         return self.archive, block_hash
+
+    async def _read_history(self, block, read):
+        """`read(reader, block_hash)` at finalized `block`: the pinned node (no archive), the archive (explicit
+        archive mode), or the pinned node with an archive retry when the pinned read raises (fallback mode).
+        """
+        if not self.archive_fallback:
+            reader, block_hash = await self._history(block)
+            return await read(reader, block_hash)
+        block_hash = await self._block(block)
+        try:
+            return await read(self.substrate, block_hash)
+        except Exception:  # noqa: BLE001
+            # A pinned miss (state past the node's window) is retried on the checked archive.
+            reader, block_hash = await self._archive_at(block, block_hash)
+            return await read(reader, block_hash)
 
     async def observe(self):
         await self.start()
@@ -497,14 +526,17 @@ class BittensorPublicationBackend:
     async def transaction(self, tx_hash, block):
         from .publisher import TransactionObservation
 
+        async def read(reader, block_hash):
+            found = await reader.find_extrinsic(hash256(tx_hash), block_hash)
+            if found is None:
+                return None
+            if found.block_hash != block_hash or type(found.success) is not bool:
+                raise PublicationFailure("CONFLICTING_TRANSACTION_BLOCK")
+            return TransactionObservation(found.success, block, block_hash)
+
         result, failed = None, False
         try:
-            reader, block_hash = await self._history(block)
-            found = await reader.find_extrinsic(hash256(tx_hash), block_hash)
-            if found is not None:
-                if found.block_hash != block_hash or type(found.success) is not bool:
-                    raise PublicationFailure("CONFLICTING_TRANSACTION_BLOCK")
-                result = TransactionObservation(found.success, block, block_hash)
+            result = await self._read_history(block, read)
         except Exception:  # noqa: BLE001
             failed = True
         if failed:
@@ -512,9 +544,7 @@ class BittensorPublicationBackend:
         return result
 
     async def weight_row(self, snapshot, uid):
-        result, failed = None, False
-        try:
-            reader, block_hash = await self._history(snapshot.finalized_block)
+        async def read(reader, block_hash):
             if block_hash != snapshot.block_hash:
                 raise PublicationFailure("CONFLICTING_READBACK_BLOCK")
             row, last = await asyncio.gather(
@@ -538,7 +568,11 @@ class BittensorPublicationBackend:
                 or uid >= len(last)
             ):
                 raise PublicationFailure("MALFORMED_WEIGHT_READBACK")
-            result = [[uint(u, 65535), uint(v, 65535)] for u, v in row], uint(last[uid])
+            return [[uint(u, 65535), uint(v, 65535)] for u, v in row], uint(last[uid])
+
+        result, failed = None, False
+        try:
+            result = await self._read_history(snapshot.finalized_block, read)
         except Exception:  # noqa: BLE001
             failed = True
         if failed:
@@ -552,9 +586,9 @@ class BittensorPublicationBackend:
         reveal event plus checked row is required; a repeated old row alone is not.
         Credential compromise remains outside development security qualification.
         """
-        matched, failed = False, False
-        try:
-            reader, block_hash = await self._history(block)
+
+        async def read(reader, block_hash):
+            matched = False
             events = await reader.events(block_hash)
             if type(events) is not list or len(events) > 10000:
                 raise PublicationFailure("MALFORMED_REVEAL_EVENTS")
@@ -577,6 +611,11 @@ class BittensorPublicationBackend:
                     and type(attributes["hotkey"]) is str
                 ):
                     matched = True
+            return matched
+
+        matched, failed = False, False
+        try:
+            matched = await self._read_history(block, read)
         except Exception:  # noqa: BLE001
             failed = True
         if failed:
