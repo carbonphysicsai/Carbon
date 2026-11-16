@@ -371,6 +371,12 @@ def _run(ledger, **kwargs):
                 if ledger is None or owner is None
                 else lambda: _check_cancel(ledger, owner, identity)
             ),
+            # the build's content key: a build marked for an ALONE retry (`remote_gpu_build.needs_alone`) holds the lane
+            key=remote_gpu_build.alone_key(
+                source=kwargs.get("source"),
+                files=kwargs.get("files"),
+                image_id=getattr(kwargs.get("image"), "image_id", None),
+            ),
         ) as remote_build,
     ):
         try:
@@ -378,9 +384,13 @@ def _run(ledger, **kwargs):
                 return _run_supervised(ledger, **kwargs)
             # a REMOTE GPU build's wall is read against its own box (CV-Motor L12624 (b) + (c))
             with _remote_build_guarded(remote_build):
-                return _run_supervised(ledger, **kwargs)
+                result = _run_supervised(ledger, **kwargs)
+            # an alone retry that reached a verdict: its build's mark is done
+            remote_gpu_build.clear_alone(remote_build)
+            return result
         except MinerProgramFailure:
             # settled in the ledger as the candidate's (a resource stop is retyped BEFORE it is settled): never retyped
+            remote_gpu_build.clear_alone(remote_build)
             raise
         except Exception as error:
             # A GPU shared by more than one build: a device memory exhaustion beside a neighbour is Carbon's.
@@ -1487,6 +1497,16 @@ _GRADE_SESSION: ContextVar = ContextVar("carbon_grade_session", default=None)
 #: worker container, no foreign GPU compute). A wall stop is the candidate's only on a quiet host, else Carbon's
 #: (FAILED_INFRA, retried), as for grades (`host_quiet`). None: no guard (today's single build loop), unchanged.
 BUILD_WALL_GUARD: ContextVar = ContextVar("carbon_build_wall_guard", default=None)
+
+
+def _program_wall_reached(error, *, program_started, program_timeout):
+    """Whether ``error`` is the program stage's own wall elapsing (the stream timed out at the program's allowance)."""
+    diagnostic = error.private_diagnostic if isinstance(error, WorkerFailure) else b""
+    return (
+        type(diagnostic) is bytes
+        and b"stream command timed out" in diagnostic
+        and time.monotonic() >= program_started + program_timeout - 1
+    )
 
 
 def _build_wall_quiet():
@@ -2665,6 +2685,16 @@ def _run_locked(
                     )
                     if stop is not None:
                         raise _CandidateResourceStop(*stop, error) from error
+                    if (
+                        remote_gpu_build.current_op() is not None
+                        and _program_wall_reached(
+                            error,
+                            program_started=program_started,
+                            program_timeout=program_timeout,
+                        )
+                    ):
+                        # a wall stop not counted on a GPU shared by more than one build: its retry runs ALONE
+                        remote_gpu_build.note_uncounted_wall()
                 raise
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)

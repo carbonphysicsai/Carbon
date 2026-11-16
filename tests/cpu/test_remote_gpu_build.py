@@ -1532,3 +1532,152 @@ def test_a_device_oom_on_a_shared_gpu_is_carbons_not_a_cpu_rebuild(host, monkeyp
         research_carrier._MEMORY_EXHAUSTED_MARKERS,
         remote_gpu_build.OpBinding(shared, 0),
     )
+
+
+# -- the alone retry (Validator-2, 16 Nov) -----------------------------------------------------------------------------------
+
+
+def _key(seed="0"):
+    return remote_gpu_build.alone_key(
+        source="print(1)",
+        files={"control.json": seed.encode()},
+        image_id="sha256:" + "c" * 64,
+    )
+
+
+def test_a_builds_content_key_ignores_its_identity_and_follows_its_bytes():
+    assert _key() == _key() and len(_key()) == 64
+    assert _key("1") != _key("0")
+    assert remote_gpu_build.alone_key(source=None, files={}, image_id="x") is None
+
+
+def test_an_uncounted_wall_on_a_shared_lane_marks_the_build_and_an_alone_verdict_clears_it(
+    host,
+):
+    shared = _lane(host, slots=2, memory="shared")
+    with remote_gpu_build.offered(shared), _op(key=_key()) as binding:
+        assert binding.key == _key() and not binding.alone
+        assert remote_gpu_build.note_uncounted_wall()
+    assert remote_gpu_build.needs_alone(shared, _key())
+    assert not remote_gpu_build.needs_alone(shared, _key("1"))
+    with remote_gpu_build.offered(shared), _op(key=_key()) as binding:
+        assert binding.alone and binding.slot == 0
+        remote_gpu_build.clear_alone()
+    assert not remote_gpu_build.needs_alone(shared, _key())
+    one = _lane(host, slots=1, cpusets=("0-3",))
+    with remote_gpu_build.offered(one), _op(key=_key()):
+        assert (
+            not remote_gpu_build.note_uncounted_wall()
+        )  # one slot: its box is already its own
+
+
+def test_an_alone_retry_holds_every_slot_and_waits_for_the_running_ops(
+    host, monkeypatch
+):
+    shared = _lane(host, slots=2, memory="shared")
+    with remote_gpu_build.offered(shared), _op(key=_key()):
+        remote_gpu_build.note_uncounted_wall()
+    monkeypatch.setattr(remote_gpu_build, "SLOT_WAIT_SECONDS", 0)
+    with remote_gpu_build.offered(shared), _op(key=_key("other")):
+        # an ordinary op runs: the alone retry cannot start beside it
+        with (
+            pytest.raises(RemoteLaneDown) as raised,
+            _op(key=_key(), poll_s=0, sleep=lambda _: None),
+        ):
+            pass
+        assert b"alone_busy" in raised.value.private_diagnostic
+    with remote_gpu_build.offered(shared), _op(key=_key()) as alone:
+        assert alone.alone
+        # while it runs, no ordinary op starts, though the lane has 2 slots
+        with (
+            pytest.raises(RemoteLaneDown),
+            _op(key=_key("other"), poll_s=0, sleep=lambda _: None),
+        ):
+            pass
+
+
+def test_an_announced_alone_retry_stops_new_ops_from_starting(host, monkeypatch):
+    import os
+
+    from carbon.reconstruction import grade_lanes
+
+    shared = _lane(host, slots=2, memory="shared")
+    wanted = Path(shared.lane_dir) / remote_gpu_build.ALONE_WANTED_DIR
+    wanted.mkdir(parents=True)
+    (wanted / f"{os.getpid()}-{grade_lanes.process_start(os.getpid())}-1").touch()
+    monkeypatch.setattr(remote_gpu_build, "SLOT_WAIT_SECONDS", 0)
+    with (
+        pytest.raises(RemoteLaneDown),
+        remote_gpu_build.offered(shared),
+        _op(key=_key("other"), poll_s=0, sleep=lambda _: None),
+    ):
+        pass
+    # a dead process's announcement is not a wait
+    for entry in wanted.iterdir():
+        entry.unlink()
+    (wanted / "999999999-1-1").touch()
+    with remote_gpu_build.offered(shared), _op(key=_key("other")) as binding:
+        assert binding is not None and not binding.alone
+
+
+def test_the_carrier_clears_an_alone_mark_on_a_verdict_and_keeps_it_on_infra(
+    host, monkeypatch
+):
+    from carbon.development_session import research_carrier
+
+    shared = _lane(host, slots=2, memory="shared")
+    files = {"control.json": b"{}"}  # a build's control (not a timing measurement)
+    image = type("Image", (), {"image_id": "sha256:" + "c" * 64})()
+    key = remote_gpu_build.alone_key(
+        source="print(1)", files=files, image_id=image.image_id
+    )
+    marker = Path(shared.lane_dir) / remote_gpu_build.ALONE_DIR / key
+    marker.parent.mkdir(parents=True)
+    marker.write_text("{}")
+    calls = {"n": 0}
+
+    def run(ledger, **kwargs):
+        calls["n"] += 1
+        assert remote_gpu_build.current_op().alone
+        if calls["n"] == 1:
+            raise WorkerFailure(WorkerCode.UNAVAILABLE)  # infra: no verdict
+        return "built"
+
+    monkeypatch.setattr(research_carrier, "_run_supervised", run)
+    monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: True)
+    kwargs = {
+        "identity": BUILD,
+        "accelerator": "VALIDATOR_OWN_GPU",
+        "provenance": "X",
+        "source": "print(1)",
+        "files": files,
+        "image": image,
+    }
+    with remote_gpu_build.offered(shared):
+        with pytest.raises(WorkerFailure):
+            research_carrier._run(None, **kwargs)
+        assert marker.exists()
+        assert research_carrier._run(None, **kwargs) == "built"
+    assert not marker.exists()
+
+
+def test_the_program_wall_is_the_streams_timeout_at_its_allowance():
+    import time
+
+    from carbon.development_session import research_carrier
+
+    wall = WorkerFailure(
+        WorkerCode.DEADLINE, private_diagnostic=b"stream command timed out"
+    )
+    started = time.monotonic() - 100
+    assert research_carrier._program_wall_reached(
+        wall, program_started=started, program_timeout=50
+    )
+    assert not research_carrier._program_wall_reached(
+        wall, program_started=time.monotonic(), program_timeout=50
+    )
+    assert not research_carrier._program_wall_reached(
+        WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"ValueError"),
+        program_started=started,
+        program_timeout=50,
+    )
