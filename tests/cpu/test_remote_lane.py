@@ -119,9 +119,25 @@ def test_the_shipped_values_file_asks_for_no_remote_lane():
     assert grade_lanes.registered_remote_lanes("electric-motor-magnetics", "1.8") == 0
 
 
+def test_parked_no_door_grades_on_a_remote_lane(tmp_path, monkeypatch):
+    """Lead's pick for A17 (Mon 16 Nov 2026): the worker image's inputs are A16's, so the remote lane is parked even with
+    the row, two-lane mode and the record all present."""
+    assert grade_lanes.REMOTE_LANES_PARKED is True
+    entry = {"docker_host": HOST, "cpuset": "0-3", "stage_root": ROOT}
+    host_root = _record(tmp_path, [entry])
+    asked = _values(tmp_path, {"lanes": 2, "remote_lanes": 1})
+    monkeypatch.setattr(grade_lanes, "door_lanes", lambda *a, **k: ("0-3", "4-7"))
+    assert (
+        grade_lanes.door_remote_lanes("m", "1.8", registry=asked, host_root=host_root)
+        == ()
+    )
+
+
 def test_a_remote_lane_needs_the_row_two_lane_mode_and_the_record(
     tmp_path, monkeypatch
 ):
+    # the dormant machinery, unparked for this test only
+    monkeypatch.setattr(grade_lanes, "REMOTE_LANES_PARKED", False)
     entry = {"docker_host": HOST, "cpuset": "0-3", "stage_root": ROOT}
     host_root = _record(tmp_path, [entry])
     asked = _values(tmp_path, {"lanes": 2, "remote_lanes": 1})
@@ -184,7 +200,10 @@ def test_a_local_lane_is_unchanged():
         assert remote_lane.docker_host() is None
 
 
-def test_the_docker_cli_keeps_the_daemon_it_was_made_for(monkeypatch):
+def test_parked_the_docker_cli_is_a16s_and_talks_to_the_local_daemon(monkeypatch):
+    """The image's `docker_runtime.py` is A16's byte for byte (Lead's pick for A17): its CLI never takes a bound remote
+    lane's daemon. This is why the remote lane is parked (`grade_lanes.REMOTE_LANES_PARKED`).
+    """
     from carbon.reconstruction.worker import docker_runtime
 
     seen = []
@@ -204,11 +223,12 @@ def test_the_docker_cli_keeps_the_daemon_it_was_made_for(monkeypatch):
     local = docker_runtime.DockerCLI()
     remote.run(["ps"])
     local.run(["ps"])
-    assert seen[0]["DOCKER_HOST"] == HOST
+    assert seen[0].get("DOCKER_HOST") != HOST
     assert seen[1].get("DOCKER_HOST") != HOST
 
 
-def test_the_watchdog_and_reaper_inherit_the_rounds_daemon(monkeypatch):
+def test_parked_the_watchdog_spawn_uses_the_local_daemon(monkeypatch):
+    """A16's `spawn_watchdog` (the image's `docker_runtime.py`) never takes a bound remote lane's daemon."""
     from carbon.reconstruction.worker import docker_runtime
 
     started = []
@@ -223,7 +243,7 @@ def test_the_watchdog_and_reaper_inherit_the_rounds_daemon(monkeypatch):
             launch_digest="sha256:" + "1" * 64,
             deadline_unix=time.time() + 60,
         )
-    assert started[0]["DOCKER_HOST"] == HOST
+    assert started[0].get("DOCKER_HOST") != HOST
 
 
 # -- the speed stage stays here ------------------------------------------------------------------------------------------

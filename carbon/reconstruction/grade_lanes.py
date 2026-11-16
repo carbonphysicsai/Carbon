@@ -198,17 +198,27 @@ def door_lanes(challenge_id, version, *, registry=None, host_root=None, sys_cpu=
     return lanes
 
 
+#: PARKED (Lead's pick for A17, Mon 16 Nov 2026): no door grades on a remote lane. The worker image's own inputs
+#: (`docker_runtime.py`, the image listings) are back to A16's bytes so the current images verify and the door binding
+#: holds; that `DockerCLI` always talks to the LOCAL daemon (the operator's DOCKER_*), so a remote lane cannot run on
+#: it. The remote lane comes back with its own image and door-binding migration.
+REMOTE_LANES_PARKED = True
+
+
 def door_remote_lanes(
     challenge_id, version, *, registry=None, host_root=None, sys_cpu=None
 ):
     """The REMOTE lanes (`remote_lane.RemoteSpec`) a door of ``"<challenge_id> <version>"`` may also grade on: only in
     two-lane mode (`door_lanes`), with ``"remote_lanes"`` in its values row and the operator's remote record installed
-    (`remote_lane.load`). Else ``()``. Says which, and why, once. Never raises."""
+    (`remote_lane.load`), and never while `REMOTE_LANES_PARKED`. Else ``()``. Says which, and why, once. Never
+    raises."""
     reason = None
     remote = ()
     try:
         wanted = registered_remote_lanes(challenge_id, version, path=registry)
-        if wanted < 1:
+        if REMOTE_LANES_PARKED:
+            reason = "parked"
+        elif wanted < 1:
             reason = "no_values_row"
         elif not door_lanes(
             challenge_id,
