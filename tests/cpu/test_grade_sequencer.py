@@ -299,3 +299,12 @@ def test_a_failed_session_yield_marks_it_broken_and_keeps_going(monkeypatch):
     finally:
         carrier._GRADE_SESSION.reset(token)
     assert session.live is False and session.broken is True
+
+
+def test_the_sequencer_is_a_grading_path():
+    """It decides which king a crown is compared against: a change to it is an exam change (exam_identity)."""
+    from carbon.challenge_validator import direct_receiver
+
+    assert (
+        "carbon/challenge_validator/grade_sequencer.py" in direct_receiver.GRADING_PATHS
+    )

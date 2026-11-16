@@ -952,6 +952,9 @@ GRADING_PATHS = (
     # whether a timed build ran on a quiet host decides whose failure a wall stop is (owner 5 Nov: rebuilds consistently
     # timed; Validator-2 21:28)
     "carbon/challenge_validator/host_quiet.py",
+    # one door grading a round per lane commits settles, crowns and markers in claim order (owner's order 16 Nov): it
+    # decides which king a crown is compared against
+    "carbon/challenge_validator/grade_sequencer.py",
     "carbon/challenge_validator/bank_promotion.py",
     "carbon/battery/pool_store.py",
     # registry
