@@ -153,7 +153,9 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
         procs.replace("  4.0, 1.25)\n", "  40.0, 1.25)\n", 1),
         procs.replace("case_start + 648 - 135", "case_start + 648 - 3", 1),
         procs.replace(
-            "if fell_back and time.monotonic() > case_wall_end:", "if False:", 1
+            "if fell_back and time.monotonic() + 1.25 * row_time > case_wall_end:",
+            "if False:",
+            1,
         ),
     ):
         with pytest.raises(RuntimeError, match="anchor moved"):
@@ -168,7 +170,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
 #: sha256 of Motor 1.8's per-case processes program at this head: any edit of the GRADED program (the count
 #: function's source included) must change this pin on purpose.
 PROCS_PROGRAM_SHA256 = (
-    "ebc651da557519875132256a10907367c977a1e16db2b6da8b60d91067d36c52"
+    "8bd92bf5fda70bf58d128877930acbe07cfd7d9a6e02c4afcbfb0cc0fb4099a0"
 )
 
 
@@ -920,3 +922,147 @@ def test_a_pass_slow_on_unsampled_rows_is_carbons_once_then_one_process(
         ),
     )
     assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+
+
+#: A failing run's diagnostic whose candidate-chosen text (a graph node or parameter name echoed by an exception, or
+#: anything the candidate can make reach stderr) carries the fallback mark.
+_FORGED = (
+    b"exit=1\nstderr:\nValueError: graph node "
+    b"'case_procs: CARBON: worker 0 exit 3; its rows in one process' refused\n"
+)
+
+
+def _infer_args(tmp_path):
+    """`_infer_state`'s arguments for Motor 1.8 up to the runner (no state is ever loaded: the runner fails first)."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_kit import physical_material
+    from carbon.development_session import graph_adapters
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    material = physical_material.bundle_material(*MOTOR_18)
+    kit = material["construction_kit"]
+    inputs = np.ascontiguousarray(material["practice_inputs"][:4])
+    state = b"synthetic state bytes"
+    return {
+        "ledger": SimpleNamespace(root=tmp_path / "ledger"),
+        "owner": "hk",
+        "identity": "forged-mark",
+        "inference_image": WorkerImageIdentity(*(("sha256:" + "a" * 64,) * 8)),
+        "recipe": ConstructionRecipe.from_dict(
+            graph_adapters.graph_recipe(*MOTOR_18, "sha256:" + "0" * 64)
+        ),
+        "binding": {
+            "challenge_id": MOTOR_18[0],
+            "challenge_version": MOTOR_18[1],
+            **{
+                name: kit[name]
+                for name in (
+                    "train_digest",
+                    "interface_digest",
+                    "construction_limits_digest",
+                )
+            },
+        },
+        "state": state,
+        "state_digest": "sha256:" + hashlib.sha256(state).hexdigest(),
+        "inputs": inputs,
+        "expected_output_shape": (len(inputs), 1),
+        "expected_output_dtype": "float64",
+        "allowlist_bytes": material["allowlist_bytes"],
+        "input_name": "inputs/features",
+        "provenance": "DIRECT_GRAPH_PUBLIC_INFERENCE",
+        "seconds": MOTOR_18_WALL,
+    }
+
+
+def _failing(seen, diagnostic, raised=None):
+    """A runner whose run fails as the carrier's does (a WorkerFailure with ``diagnostic``); it notes each source."""
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    def runner(_ledger, *, source, **_kwargs):
+        seen.append(source)
+        failure = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic)
+        if raised is not None:
+            raised.append(failure)
+        raise failure
+
+    return runner
+
+
+def test_a_candidate_chosen_mark_never_makes_a_one_process_run_fall_back(tmp_path):
+    """Review of 2ebb34d6, gap 3: a ONE-process program (the serial retry, any other graph program) that fails with the
+    mark in candidate-chosen text is never read as fallen back and writes no record, so its stop is classified as
+    main's. A per-case processes program with the same forged text is Carbon's at most ONCE: it is recorded, and every
+    later run of the pass is the one-process program, where the same text no longer counts.
+    """
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    infer = bundle_construction_worker._infer_state
+    args = _infer_args(tmp_path)
+    procs, serial = _procs(), case_procs.serial_program(_procs())
+    forged = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=_FORGED)
+    seen = []
+
+    def records():
+        root = args["ledger"].root
+        return list(root.glob("case-procs-fallback-*.json")) if root.exists() else []
+
+    for program in (serial, worker.PHYSICAL_V2_INFER_PROGRAM):
+        with pytest.raises(WorkerFailure):
+            infer(**args, program=program, runner=_failing(seen, _FORGED))
+        assert seen[-1] == program and not records()
+        assert not research_carrier._case_procs_fell_back(program, forged)
+    # the per-case processes program: Carbon's once, then one process for good
+    assert research_carrier._case_procs_fell_back(procs, forged)
+    with pytest.raises(WorkerFailure):
+        infer(**args, program=procs, runner=_failing(seen, _FORGED))
+    assert seen[-1] == procs and len(records()) == 1
+    for _ in range(2):
+        with pytest.raises(WorkerFailure):
+            infer(**args, program=procs, runner=_failing(seen, _FORGED))
+        assert seen[-1] == serial and len(records()) == 1
+        assert not research_carrier._case_procs_fell_back(seen[-1], forged)
+
+
+def test_a_record_that_cannot_be_written_never_masks_the_runs_own_failure(
+    tmp_path, monkeypatch, capsys
+):
+    """Review of 2ebb34d6, gap 1: when the fallback record cannot be written (disk full), the run's ORIGINAL failure
+    leaves `_infer_state` unchanged, with a line saying the record was not written."""
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    def full(*_args, **_kwargs):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(case_procs, "record_fallback", full)
+    seen, raised = [], []
+    with pytest.raises(WorkerFailure) as failed:
+        bundle_construction_worker._infer_state(
+            **_infer_args(tmp_path),
+            program=_procs(),
+            runner=_failing(
+                seen,
+                b"exit=1\nstderr:\ncase_procs: worker 1 exit -9; its rows in one process\n",
+                raised,
+            ),
+        )
+    assert failed.value is raised[-1]
+    assert "fallback record not written (OSError)" in capsys.readouterr().err
+
+
+def test_a_fallback_never_starts_a_row_it_cannot_end_by_the_wall_margin():
+    """Review of 2ebb34d6, gap 2: after a fallback the parent looks ahead: a row is started only when now plus
+    FALLBACK_SLACK x the longest row it has made (the sampled per-row time to start with) ends by the wall margin;
+    else it exits 3 with the mark, before the host's wall. The 135 s margin stays."""
+    procs = _procs()
+    assert (
+        "    row_time = per_row if fell_back else 0.0\n" in procs
+        and "            if fell_back and time.monotonic() + 1.25 * row_time > case_wall_end:\n"
+        in procs
+        and "                row_time = max(row_time, time.perf_counter() - row_clock)\n"
+        in procs
+    )
+    assert case_procs.CASE_PROCS_WALL_MARGIN_SECONDS == 135

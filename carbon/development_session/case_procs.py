@@ -173,7 +173,10 @@ _COPY_NEW = (
     "    if case_proc is None:\n"
     '        shutil.copyfile(work / (name + ".py"), destination)\n'
 )
-_LAST_LINE = "            blocks.append(sample[index] if index in sample else case_block(index))\n"
+_LAST_LINE = (
+    "            if fell_back and index not in sample:\n"
+    "                row_time = max(row_time, time.perf_counter() - row_clock)\n"
+)
 
 _PROCS_CALLS = """    # public constant (zeros), so no output can depend on another case.
     # PER-CASE PROCESSES (Lead's order, Mon 16 Nov 2026; carbon.development_session.case_procs): the SAME per-case
@@ -334,18 +337,24 @@ __DEADLINE_SOURCE__
             print(f"case_procs: CARBON: {left} rows left cannot finish inside the inference wall", file=sys.stderr)
             sys.exit(3)
     fell_back = len(done) < len(slices)
+    # after a fallback, the longest row this process has made (the sampled per-row time to start with)
+    row_time = per_row if fell_back else 0.0
     for low, high in slices or [(0, rows)]:
         if low in done:
             blocks.append(done[low])
             continue
         for index in range(low, high):
-            if fell_back and time.monotonic() > case_wall_end:
-                # a fallback past the wall margin (rows slower than sampled): Carbon's, with the mark, before the wall
-                print(f"case_procs: CARBON: row {index} of {rows} past the wall margin after a fallback",
+            if fell_back and time.monotonic() + __FALLBACK_SLACK__ * row_time > case_wall_end:
+                # look-ahead: a row is never STARTED after a fallback unless it can end by the wall margin (rows
+                # slower than sampled): Carbon's, with the mark, before the host's wall
+                print(f"case_procs: CARBON: row {index} of {rows} would end past the wall margin after a fallback",
                       file=sys.stderr)
                 sys.exit(3)
+            row_clock = time.perf_counter()
             # the rows this process already computed (the sample) are its own answers: reused, not recomputed
             blocks.append(sample[index] if index in sample else case_block(index))
+            if fell_back and index not in sample:
+                row_time = max(row_time, time.perf_counter() - row_clock)
 """
 
 

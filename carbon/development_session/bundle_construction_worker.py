@@ -13,6 +13,7 @@ import io
 import json
 import math
 import re
+import sys
 import tarfile
 import time
 from collections.abc import Callable
@@ -1740,8 +1741,17 @@ def _infer_state(
         )
     except Exception as failure:
         if case_procs.fell_back(source, getattr(failure, "private_diagnostic", None)):
-            # durable before the failure leaves: every later run of this pass is the one-process program
-            case_procs.record_fallback(ledger.root, owner, source, files)
+            # durable before the failure leaves: every later run of this pass is the one-process program; a record
+            # that cannot be written (disk full) never masks the run's own failure
+            try:
+                case_procs.record_fallback(ledger.root, owner, source, files)
+            except Exception as unrecorded:  # noqa: BLE001
+                print(
+                    "case_procs: fallback record not written ("
+                    + type(unrecorded).__name__
+                    + "); the run's own failure stands",
+                    file=sys.stderr,
+                )
         raise
     snapshot = ledger.root / worker["operation"] / "snapshot"
     raw, predictions, receipt = checked(snapshot)
