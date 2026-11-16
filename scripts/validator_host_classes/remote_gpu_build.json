@@ -1,5 +1,11 @@
 {
   "schema": "carbon.remote-gpu-build.values.v1",
-  "_comment": "Remote GPU build lane rows (carbon/reconstruction/remote_gpu_build.py): \"<challenge> <version>\": {\"device_kind\": <the ONE rented GPU variant, exactly as nvidia-smi names it>, \"slots\": N (optional, default 1, at most 4)}. No row: the door's builds run where they run today. A row is used only with the operator's remote-gpu-build-lanes.json and the lane machine's own host-device.json installed, and the GPU class needs the owner's hardware acceptance.",
-  "rows": {}
+  "_comment": "Remote GPU build lane rows (carbon/reconstruction/remote_gpu_build.py): \"<challenge> <version>\": {\"device_kind\": <the ONE rented GPU variant, exactly as nvidia-smi names it>, \"slots\": N (optional, default 1, at most 8, one 4-core cpuset each in the lane record), \"memory\": \"shared\" (no cap: each build holds what it uses) or \"capped\" (default; N > 1 waits on Validator-2)}. No row: the door's builds run where they run today. A row is used only with the operator's remote-gpu-build-lanes.json and the lane machine's own host-device.json installed, and the GPU class needs the owner's hardware acceptance in code. Motor 1.8 (Lead, 16 Nov, for Validator-2's read): the Lambda A100 40GB, 4 shared slots to start (bench: bit-identical at N=1/2/4/7, 2.2x throughput at 4, 2.5x at 7); 7 after a day of live FAILED_INFRA counts.",
+  "rows": {
+    "electric-motor-magnetics 1.8": {
+      "device_kind": "NVIDIA A100-SXM4-40GB",
+      "slots": 4,
+      "memory": "shared"
+    }
+  }
 }
