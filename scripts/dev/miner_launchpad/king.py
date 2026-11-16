@@ -28,11 +28,14 @@ import urllib.parse
 import urllib.request
 
 SCHEMA = "carbon.koth.public.v1"
-#: v2 (read first when the grader serves it, at its own path): v1 plus ``to_beat_rule``, with the
-#: conservative score to beat (the step-floored total + one Ladder step + the margin, rounded up).
+#: v2 (read first when the grader serves it, at its own path): v1 plus ``to_beat_rule``. Since 16 Nov
+#: (`TO_BEAT_RULE`) the totals are shown to 3 decimals (half up) and the score to beat is the crown
+#: rule's own bar, the king's exact total (no king: the baseline) + the margin, rounded up to 3 places.
 SCHEMA_V2 = "carbon.koth.public.v2"
 V2_SUFFIX = "/v2"
-TO_BEAT_RULE = "floor_plus_step_plus_margin"
+TO_BEAT_RULE = "king_plus_margin"
+#: a grader before 16 Nov: the step-floored total + one Ladder step + the margin, rounded up
+TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin"
 #: crown averaging on: the king's rebuild mean plus the averaging margin, rounded up; only the sum is public, so the
 #: reader checks its range, not its arithmetic
 TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
@@ -90,7 +93,9 @@ def parse(document, challenge_id):
         or document["schema"] not in (SCHEMA, SCHEMA_V2)
         or document["challenge_id"] != challenge_id
         or (
-            v2 and document["to_beat_rule"] not in (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED)
+            v2
+            and document["to_beat_rule"]
+            not in (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_FLOOR)
         )
     ):
         raise KingUnreadable("shape")
@@ -128,8 +133,18 @@ def parse(document, challenge_id):
     # receipt: the margin itself is never part of the tolerance).
     held = king["total"] if king is not None else baseline
     averaged = v2 and document["to_beat_rule"] == TO_BEAT_RULE_AVERAGED
+    exact_bar = v2 and document["to_beat_rule"] == TO_BEAT_RULE
     if to_beat is not None and averaged:
         if held is None:
+            raise KingUnreadable("to_beat")
+    elif to_beat is not None and exact_bar:
+        # the crown rule's bar: the exact total + the margin, rounded up to 3 places; the shown total is that exact
+        # total rounded half up to 3 places, so the exact one lies within half a unit of it
+        if held is None:
+            raise KingUnreadable("to_beat")
+        low = min(1.0, math.ceil((held - 0.0005 + margin) * 1000 - 1e-6) / 1000)
+        high = min(1.0, math.ceil((held + 0.0005 + margin) * 1000 - 1e-6) / 1000)
+        if not low - 1e-9 <= to_beat <= high + 1e-9:
             raise KingUnreadable("to_beat")
     elif to_beat is not None and v2:
         # the conservative bar: the shown (step-floored) score + one step + the margin, rounded up to 3 places
@@ -155,7 +170,8 @@ def parse(document, challenge_id):
         "margin": margin,
         "to_beat": to_beat,
         "baseline_total": baseline,
-        **({"conservative": True} if v2 else {}),
+        **({"conservative": True} if v2 and not exact_bar else {}),
+        **({"exact_bar": True} if exact_bar else {}),
         **({"averaged": True} if averaged else {}),
     }
 
@@ -220,6 +236,12 @@ def words(answer):
                 f"king's average over several rebuilds plus the averaging margin, "
                 f"rounded up, and your model is then rebuilt and its average must "
                 f"beat the king's."
+            )
+        elif answer["to_beat"] is not None and answer.get("exact_bar"):
+            lines.append(
+                f"Score above {_score(answer['to_beat'])} to take the crown: the "
+                f"king's exact score plus the margin {_score(answer['margin'])}, "
+                f"rounded up to 3 decimals."
             )
         elif answer["to_beat"] is not None and answer.get("conservative"):
             lines.append(

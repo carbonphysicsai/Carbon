@@ -618,7 +618,9 @@ const LAUNCH_MAX_LADDER = 512;
 const LAUNCH_MAX_GATES = 16;
 const LAUNCH_FIELDS = ["challenge", "counts", "generated_at", "king", "labels", "ladder", "network", "schema", "signature", "validator", "version"];
 const LAUNCH_KING_FIELDS = ["baseline_total", "king", "margin", "to_beat"];
-const LAUNCH_TO_BEAT_RULE = "floor_plus_step_plus_margin";
+// since 16 Nov: the king's exact total + the margin, rounded up (koth_public); a board built before says the floored rule
+const LAUNCH_TO_BEAT_RULE = "king_plus_margin";
+const LAUNCH_TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin";
 // a door with crown averaging on: the king's rebuild mean plus the averaging margin, rounded up (koth_public)
 const LAUNCH_TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n";
 const LAUNCH_KING_ROW = ["hotkey", "since_epoch", "total"];
@@ -691,7 +693,7 @@ function launchCheck(document) {
   if (!sameKeys(validator, ["feed_key"]) || typeof validator.feed_key !== "string" || !HEX_KEY.test(validator.feed_key)) throw new FeedRefused("validator_invalid");
   const king = get(document, "king");
   if (!sameKeys(king, v5 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "crowned_utc"].sort() : v4 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "measure"].sort() : v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
-  if (v2 && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE_AVERAGED) throw new FeedRefused("king_invalid");
+  if (v2 && ![LAUNCH_TO_BEAT_RULE, LAUNCH_TO_BEAT_RULE_AVERAGED, LAUNCH_TO_BEAT_RULE_FLOOR].includes(king.to_beat_rule)) throw new FeedRefused("king_invalid");
   if (v4) {
     launchMeasure(king.measure, king.king);
     const expected = king.king === null ? null : ({MEASURED: "STABLE", UNSTABLE: "UNSTABLE"})[king.measure.state] ?? null;

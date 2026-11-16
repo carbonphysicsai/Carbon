@@ -1,18 +1,17 @@
-"""The conservative score to beat (koth v2) and the launch board's crown changes (week-1 item 48 and crown_changes).
+"""The score to beat (koth v2) and the launch board's crown changes (week-1 item 48 and crown_changes).
 
-Claims: the v2 king document adds ``to_beat_rule`` and publishes ``floor(total, step) + step + margin`` rounded UP to three
-places, from public values only, so beating the shown bar always beats the true bar (exact total + margin) and the bar
-depends on nothing finer than the step-floored total; v1 is served byte-identical at its own path; the miners' reader
-reads both and prefers v2; a v1 client of the old formula still reads the new receiver's v1 answer. The v2 launch board adds
-at most five ``crown_changes`` (four keys, step-floored totals, nothing but incumbent events) under its own signing domain,
-and the v1 board is unchanged.
+Claims: the v2 king document adds ``to_beat_rule`` and (owner 16 Nov) shows the king's total to three places, half up, and
+publishes the crown rule's own bar, the exact total + margin rounded UP to three places, so beating the shown bar always
+beats the true bar and the shown bar is at most a thousandth above it; v1 is served byte-identical at its own path; the
+miners' reader reads both and prefers v2; a v1 client of the old formula still reads the new receiver's v1 answer. The v2
+launch board adds at most five ``crown_changes`` (four keys, totals to three places, nothing but incumbent events) under
+its own signing domain, and the v1 board is unchanged.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import math
 import os
 import random
 import re
@@ -49,30 +48,30 @@ def _args(**changes):
 # --- v2: the conservative bar -----------------------------------------------------------------------------
 
 
-def test_v2_is_v1_plus_the_rule_and_a_bar_above_the_true_bar():
+def test_v2_is_v1_plus_the_rule_with_totals_to_three_places_and_the_crown_rules_bar():
+    """Owner 16 Nov: v2 shows the king's total to 3 places (half up) and the bar is the crown rule's own (exact total +
+    margin, rounded UP to 3 places); every other field is v1's."""
     one, two = kp.document(**_args()), kp.document_v2(**_args())
     assert set(two) == kp.FIELDS_V2 and two["schema"] == kp.SCHEMA_V2
-    assert two["to_beat_rule"] == "floor_plus_step_plus_margin"
+    assert two["to_beat_rule"] == kp.TO_BEAT_RULE == "king_plus_margin"
     assert {
-        k: v for k, v in two.items() if k not in ("schema", "to_beat", "to_beat_rule")
-    } == {k: v for k, v in one.items() if k not in ("schema", "to_beat")}
-    # Motor: step 0.02 would apply for 0.02 noise; here noise 0.0079 -> step max(eta, 0.0079)
-    step = gf.step(0.0079)
-    exact_bar = 0.7123 + 0.0079
-    assert two["to_beat"] > exact_bar
-    assert two["to_beat"] == pytest.approx(
-        math.ceil((two["king"]["total"] + step + 0.0079) * 1000 - 1e-9) / 1000
-    )
-    assert (
-        two["to_beat"] - exact_bar < step + 0.0079 + 0.001
-    )  # overstates by at most a step (+ the 3-place round-up)
+        k: v
+        for k, v in two.items()
+        if k not in ("schema", "king", "to_beat", "to_beat_rule")
+    } == {k: v for k, v in one.items() if k not in ("schema", "king", "to_beat")}
+    assert {k: v for k, v in two["king"].items() if k != "total"} == {
+        k: v for k, v in one["king"].items() if k != "total"
+    }
+    assert one["king"]["total"] == gf.floor_to_step(0.7123, 0.0079)  # v1: floored
+    assert two["king"]["total"] == 0.712  # v2: 0.7123 to 3 places
+    # 0.7123 + 0.0079 = 0.7202, rounded up: 0.721
+    assert two["to_beat"] == 0.721
 
 
-def test_the_bar_is_always_above_the_true_bar_and_depends_only_on_the_floored_total():
+def test_the_bar_is_never_below_the_true_bar_and_at_most_a_thousandth_above():
     rng = random.Random(48)
     for _ in range(300):
-        margin = rng.choice([0.0079, 0.02, 0.0473, 0.004, 0.05])
-        step = gf.step(margin)
+        margin = rng.choice([0.0079, 0.02, 0.0473, 0.004, 0.05, 0.0129])
         total = rng.uniform(0.0, 0.9)
         doc = kp.document_v2(
             **_args(
@@ -83,34 +82,24 @@ def test_the_bar_is_always_above_the_true_bar_and_depends_only_on_the_floored_to
                 },
             )
         )
-        assert (
-            doc["to_beat"] > total + margin
-        )  # beating the shown bar always beats the true bar
-        # another total in the same step cell publishes the very same bar
-        floored = doc["king"]["total"]
-        twin = floored + rng.uniform(0.0, step * 0.999)
-        other = kp.document_v2(
-            **_args(
-                king={"hotkey": HOTKEY, "total": twin, "since_epoch": 1},
-                rebuild_noise={
-                    "value": margin,
-                    "measurement_digest": "sha256:" + "a" * 64,
-                },
-            )
-        )
-        if other["king"]["total"] == floored:
-            assert other["to_beat"] == doc["to_beat"]
+        true_bar = total + margin
+        # a score above the shown bar always beats the true bar
+        assert true_bar - 1e-12 <= doc["to_beat"] < true_bar + 0.001 + 1e-12
+        assert doc["to_beat"] == round(doc["to_beat"], 3)
+        assert abs(doc["king"]["total"] - total) <= 0.0005 + 1e-12
 
 
 def test_with_no_king_the_baseline_gets_the_same_rule():
     doc = kp.document_v2(**_args(king=None, baseline_total=0.4))
-    step = gf.step(0.0079)
-    floored = doc["baseline_total"]
-    assert doc["king"] is None and floored <= 0.4 < floored + step
-    assert doc["to_beat"] > 0.4 + 0.0079
-    assert doc["to_beat"] == pytest.approx(
-        math.ceil((floored + step + 0.0079) * 1000 - 1e-9) / 1000
-    )
+    assert doc["king"] is None and doc["baseline_total"] == 0.4
+    # 0.4 + 0.0079 = 0.4079, rounded up: 0.408
+    assert doc["to_beat"] == 0.408 and doc["to_beat_rule"] == kp.TO_BEAT_RULE
+    odd = kp.document_v2(**_args(king=None, baseline_total=0.41237))
+    assert odd["baseline_total"] == 0.412  # half up to 3 places
+    assert odd["to_beat"] == 0.421  # 0.41237 + 0.0079 = 0.42027 -> 0.421
+    assert kp.document(**_args(king=None, baseline_total=0.41237))[
+        "baseline_total"
+    ] == gf.floor_to_step(0.41237, 0.0079)
 
 
 def test_when_the_step_equals_the_margin_f02():
@@ -121,10 +110,8 @@ def test_when_the_step_equals_the_margin_f02():
             rebuild_noise=noise, king={"hotkey": HOTKEY, "total": 0.6, "since_epoch": 3}
         )
     )
-    floored = doc["king"]["total"]
-    assert doc["to_beat"] == pytest.approx(
-        math.ceil((floored + 2 * 0.0473) * 1000 - 1e-9) / 1000
-    )
+    # the step plays no part in the v2 bar any more: 0.6 + 0.0473 = 0.6473 -> 0.648
+    assert doc["king"]["total"] == 0.6 and doc["to_beat"] == 0.648
     assert doc["to_beat"] > 0.6 + 0.0473
 
 
@@ -202,8 +189,9 @@ def test_the_reader_reads_both_documents_and_an_old_client_still_reads_v1():
     one, two = kp.document(**_args()), kp.document_v2(**_args())
     old = king.parse(one, KEY.challenge_id)
     new = king.parse(two, KEY.challenge_id)
-    assert "conservative" not in old and new["conservative"] is True
-    assert new["to_beat"] > old["to_beat"]
+    assert "conservative" not in old and "exact_bar" not in old
+    assert new["exact_bar"] is True and "conservative" not in new
+    assert (new["king"]["total"], new["to_beat"]) == (0.712, 0.721)
     assert _old_client_parse(
         json.loads(json.dumps(one)), KEY.challenge_id
     )  # the new receiver's v1 bytes
@@ -239,18 +227,20 @@ def test_the_reader_asks_v2_first_and_falls_back_to_v1_on_a_404():
         return _Response(io.BytesIO(body))
 
     answer, why = king.read("http://127.0.0.1:9999", KEY.challenge_id, opener=opener)
-    assert why is None and answer["conservative"] is True and len(asked) == 1
+    assert why is None and answer["exact_bar"] is True and len(asked) == 1
     assert asked[0].endswith(KEY.challenge_id + kp.V2_SUFFIX)
     served["v2"] = False
     asked.clear()
     answer, why = king.read("http://127.0.0.1:9999", KEY.challenge_id, opener=opener)
-    assert why is None and "conservative" not in answer and len(asked) == 2
+    assert why is None and "exact_bar" not in answer and len(asked) == 2
     assert asked[1].endswith(KEY.challenge_id)
     lines = king.words(king.parse(kp.document_v2(**_args()), KEY.challenge_id))
     assert any(
-        "to be sure to take the crown" in line and "one Ladder step lower" in line
+        "Score above 0.7210 to take the crown" in line
+        and "king's exact score plus the margin 0.0079" in line
         for line in lines
     )
+    assert not any("one Ladder step lower" in line for line in lines)
 
 
 class _Response:
@@ -300,7 +290,7 @@ def _view(store, noise=0.02):
     )
 
 
-def test_crown_changes_are_the_incumbent_events_floored_newest_first_and_capped():
+def test_crown_changes_are_the_incumbent_events_shown_to_three_places_newest_first_and_capped():
     exact = 0.8141579644010861
     standings = {
         "a": {"owner": HOTKEY, "total": exact},
@@ -314,7 +304,7 @@ def test_crown_changes_are_the_incumbent_events_floored_newest_first_and_capped(
         "from_hotkey": None,
         "to_hotkey": HOTKEY,
         "since_epoch": 5,
-        "total": 0.8,
+        "total": 0.814,  # 0.81415... to 3 places (owner 16 Nov)
     }
     assert all(set(c) == lb.CROWN_CHANGE_FIELDS for c in changes)
     assert (
@@ -475,7 +465,7 @@ def test_the_signed_body_leaks_nothing_beyond_the_page():
     assert set(re.findall(r"[0-9a-f]{64}", raw)) <= allowed
     assert all(set(c) == lb.CROWN_CHANGE_FIELDS for c in board["crown_changes"])
     assert board["crown_changes"] == [
-        {"from_hotkey": None, "to_hotkey": HOTKEY, "since_epoch": 5, "total": 0.8}
+        {"from_hotkey": None, "to_hotkey": HOTKEY, "since_epoch": 5, "total": 0.814}
     ]
 
 

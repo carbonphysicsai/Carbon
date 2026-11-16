@@ -62,13 +62,16 @@ from .feed_file import canonical as _canonical
 from .feed_file import write_feed
 from .koth_public import FIELDS as KOTH_FIELDS
 from .koth_public import FIELDS_V2 as KOTH_FIELDS_V2
-from .koth_public import KING_FIELDS, TO_BEAT_RULES
+from .koth_public import KING_FIELDS, TO_BEAT_RULES, shown_total
 from .score_feed import FeedKey, FeedRefused
 
 SCHEMA = "carbon.validator.launch-board.v1"
 BOARD_DOMAIN = b"carbon.validator.launch-board.v1\x00"
 #: The v2 board: v1's shape plus the king's ``to_beat_rule`` and ``crown_changes``, under its OWN signing domain. v1
 #: stays byte-identical and is still built from a v1 king document; a v1 signature never verifies as v2 or the reverse.
+#: Since 16 Nov (owner: "Show scores to 3 decimals"), a v2-v5 board shows a ladder row's own exact total at 3 decimals
+#: (half up; `ladder_rows`), and its king section and crown changes are the v2 king page's (3 decimals, the bar
+#: `koth_public.TO_BEAT_RULE`). Same schemas and signing domains: the field sets and types are unchanged.
 SCHEMA_V2 = "carbon.validator.launch-board.v2"
 BOARD_DOMAIN_V2 = b"carbon.validator.launch-board.v2\x00"
 #: The v3 board (OWNER-CROWN-AVG-UNSTABLE-KING-01, Validator 3 Nov receipted wording): v2's shape plus ONE king field, ``stability``
@@ -404,6 +407,7 @@ def ladder_rows(
     exact=None,
     king_hotkey=None,
     king_total=None,
+    king_shown=None,
     rebuild_noise=None,
     reasons=False,
 ):
@@ -418,10 +422,13 @@ def ladder_rows(
     which ``exact`` holds no total (only the crown path keeps one) is ordered by its own floored total, as on v1; none
     is invented. An exact total orders its row only when it IS that row's total: floored the Ladder's way (its step,
     from ``rebuild_noise``, the Challenge's registration as the Ladder reads it, or None) it gives the row's published
-    total; otherwise the row keeps the floored rule (Validator, 1 Nov 19:05 CST). The published ``total`` stays
-    step-floored, and the exact totals never leave this function: only the order is revealed. On such a
-    board the KING row's shown total is ``king_total`` (the crown standing's floored total, as the king page shows it)
-    rather than its single best grade, so the board and the king page always agree.
+    total; otherwise the row keeps the floored rule (Validator, 1 Nov 19:05 CST). On such a board the KING row is
+    ordered by ``king_total`` (the crown standing's step-floored total) rather than its single best grade.
+
+    Shown totals on such a board (owner 16 Nov, display only; the order above is unchanged): a row whose exact total is
+    its own (the check above) shows it at `koth_public.TOTAL_DECIMALS`, half up (`koth_public.shown_total`); a row
+    with none keeps its floored total; the KING row shows ``king_shown`` (the king page's total) when given, so the
+    board and the king page always agree. A v1 board (no ``exact``) is exactly as before: floored totals only.
 
     With ``reasons`` (a v5 board) each row also carries ``reason``: `PUBLIC_REASONS` for a NOT_SCORED latest result that
     stopped at the inference wall, else null.
@@ -457,9 +464,24 @@ def ladder_rows(
                 (h, king_total if h == king_hotkey else t, st, g)
                 for h, t, st, g in kept
             ]
-        keys = _true_order(kept, exact, king_hotkey, _noise_value(rebuild_noise))
+        keys, own = _true_order(kept, exact, king_hotkey, _noise_value(rebuild_noise))
         kept = [row for row, _ in keys]
         keys = [key for _, key in keys]
+        # owner 16 Nov: the shown total is the row's own exact total at 3 decimals (half up); a row with none keeps its
+        # floored total; the king row shows what the king page shows. The order above is unchanged.
+        kept = [
+            (
+                h,
+                (
+                    king_shown
+                    if h == king_hotkey and king_shown is not None
+                    else t if own[h] is None else shown_total(own[h])
+                ),
+                st,
+                g,
+            )
+            for h, t, st, g in kept
+        ]
     out, rank, previous = [], 0, object()
     for position, ((hotkey, total, status, gates), key) in enumerate(
         zip(kept, keys, strict=True), 1
@@ -494,9 +516,10 @@ def _noise_value(rebuild_noise):
 
 
 def _true_order(kept, exact, king_hotkey, noise):
-    """``[(row, tie_key)]`` in the true order: the king first (alone at rank 1), then descending exact best total; the
-    tie key is the exact total itself (so only bit-equal totals share a rank), the row's own floored total when no exact
-    total is held for it (v1's order and ties for that row), or None for a row with no best total.
+    """``([(row, tie_key)], own)`` in the true order: the king first (alone at rank 1), then descending exact best
+    total; the tie key is the exact total itself (so only bit-equal totals share a rank), the row's own floored total
+    when no exact total is held for it (v1's order and ties for that row), or None for a row with no best total.
+    ``own`` maps each hotkey to its exact total when that total IS the row's own (the check below), else None.
     """
     if type(exact) is not dict:
         raise BoardRefused("board_exact")
@@ -562,7 +585,7 @@ def _true_order(kept, exact, king_hotkey, noise):
         if group_key is not None and any(equal_to_king(ordered[i][0]) for i in group):
             for i in group:
                 ordered[i] = (ordered[i][0], kkey)
-    return ordered
+    return ordered, values
 
 
 def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None):
@@ -672,11 +695,20 @@ def build(
         )  # the v2 board's order is the true one
     if v2 and rebuild_noise is _REQUIRED:
         raise BoardRefused("board_rebuild_noise_required")
+    shown_king = king["king"]
+    order_total = None if shown_king is None else shown_king["total"]
+    if v2 and shown_king is not None and type(exact_totals) is dict:
+        # the king row is ordered by his step-floored total, as before 16 Nov; a v2 king page now shows his total at 3
+        # decimals, so the floored one is taken from his exact standing when the operator holds it
+        own = exact_totals.get(shown_king["hotkey"])
+        if type(own) is float and math.isfinite(own) and 0.0 <= own <= 1.0:
+            order_total = floor9(gf.floor_to_step(own, _noise_value(rebuild_noise)))
     ladder = ladder_rows(
         rows,
         exact=exact_totals if v2 else None,
-        king_hotkey=None if king["king"] is None else king["king"]["hotkey"],
-        king_total=None if king["king"] is None else king["king"]["total"],
+        king_hotkey=None if shown_king is None else shown_king["hotkey"],
+        king_total=order_total,
+        king_shown=None if shown_king is None or not v2 else shown_king["total"],
         rebuild_noise=rebuild_noise if v2 else None,
         reasons=v5,
     )

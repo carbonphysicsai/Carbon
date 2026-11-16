@@ -121,12 +121,13 @@ FIELDS = frozenset(
 FIELDS_V2 = FIELDS | {"crown_changes"}
 CROWN_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
 KING_FIELDS = frozenset({"king", "margin", "to_beat", "baseline_total"})
-TO_BEAT_RULE = (
-    "floor_plus_step_plus_margin"  # v2 king section names its rule; v1 has none
-)
+# v2 king section names its rule; v1 has none. Since 16 Nov: the king's exact total + the margin, rounded up
+TO_BEAT_RULE = "king_plus_margin"
+# a board built before 16 Nov: the step-floored total + one step + the margin, rounded up
+TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin"
 # a door with crown averaging on: the bar is the king's rebuild mean plus the averaging margin, rounded up
 TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
-TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED)
+TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_FLOOR)
 KING_ROW = frozenset({"hotkey", "total", "since_epoch"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
 

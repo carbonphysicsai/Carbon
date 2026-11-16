@@ -19,7 +19,8 @@ A board is served only when all of these hold:
   and with ``pinned_key`` (64 hex, the key the operator configured) when one is given;
 - every total it shows (the king's, each ladder row's and, on a v2 board, each crown
   change's) is exactly on the Ladder step of its own margin: none is finer than a miner
-  sees;
+  sees; on a v2-v5 board a total at 3 decimals also passes (owner 16 Nov: totals shown
+  to 3 decimals, `koth_public.shown_total`);
 - the key is not the dashboard's public fixture key: a fixture-signed board is never
   served, and the dashboard refuses it too.
 
@@ -101,7 +102,7 @@ def _on_the_ladder_step(board):
     passes when the largest step multiple at or below it (counting the sub-9-decimal remainder the floor dropped),
     floored to 9 decimals, is the total itself. A failing check is a refusal to serve, never a rounding.
     """
-    from carbon.challenge_validator import koth_registry
+    from carbon.challenge_validator import koth_public, koth_registry, launch_board
     from carbon.scoring import grade_feedback as gf
 
     from .launch_board import floor9
@@ -116,10 +117,17 @@ def _on_the_ladder_step(board):
     # a v2 board's crown changes show each past king's step-floored total (`koth_public.PoolKingView.crown_changes`)
     totals += [change["total"] for change in board.get("crown_changes", ())]
     nudge = Decimal(1).scaleb(-9)
+    # owner 16 Nov: a v2-v5 board shows a total at 3 decimals (koth_public.TOTAL_DECIMALS, half up from the exact one)
+    # wherever the exact total is held; any other total there is still the Ladder's floored one. A v1 board is unchanged.
+    three = board["schema"] != launch_board.SCHEMA
+    grid = Decimal(1).scaleb(-koth_public.TOTAL_DECIMALS)
 
     def on_grid(total):
+        shown = Decimal(repr(float(total)))
+        if three and shown == shown.quantize(grid):
+            return True
         # the floor to 9 places dropped less than one unit in the 9th place: add it back before asking the grid
-        lifted = float(Decimal(repr(float(total))) + nudge)
+        lifted = float(shown + nudge)
         return floor9(gf.floor_to_step(lifted, noise)) == total
 
     return all(on_grid(total) for total in totals)

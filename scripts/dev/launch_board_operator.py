@@ -349,16 +349,18 @@ def king_stability(config, item, king_document):
 def official_rule(item, king):
     """The v2 king document with the bar's rule NAMED as it decides: for a version that registers official-score crowns
     (`official_score`), a door whose king page still says the averaged id (`koth_public.TO_BEAT_RULE_AVERAGED`, a receiver
-    before the official bar's id) is shown under the single-grade id (`koth_public.TO_BEAT_RULE`), the rule that decides
-    its crowns. Only the name: the score to beat is the door's own number (for this rule both ids give the same
-    guaranteed bound, floor + step + margin, rounded up). Any other document is returned as it is.
+    before the official bar's id) is shown under the single-grade floored id (`koth_public.TO_BEAT_RULE_FLOOR`), the
+    single-grade rule that decides its crowns. Only the name: the score to beat is the door's own number (for this rule
+    both ids give the same guaranteed bound, floor + step + margin, rounded up), so it is never named
+    `koth_public.TO_BEAT_RULE` (the exact total + margin, 16 Nov), which is not how that number was made. Any other
+    document is returned as it is.
     """
     if (
         type(king) is dict
         and king.get("to_beat_rule") == koth_public.TO_BEAT_RULE_AVERAGED
         and official_score(item)
     ):
-        return {**king, "to_beat_rule": koth_public.TO_BEAT_RULE}
+        return {**king, "to_beat_rule": koth_public.TO_BEAT_RULE_FLOOR}
     return king
 
 

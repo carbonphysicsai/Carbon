@@ -24,26 +24,40 @@ from __future__ import annotations
 
 import math
 import re
-from decimal import ROUND_CEILING, Decimal
+from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
 
 from carbon.scoring import grade_feedback as gf
 
 SCHEMA = "carbon.koth.public.v1"
 PATH = "/carbon/v1/koth/"
-#: The v2 document (`document_v2`): the v1 fields plus ``to_beat_rule``, with the conservative score to beat. It is served
-#: at ``PATH + <challenge_id> + V2_SUFFIX``; v1 stays byte-identical at its own path so current clients keep reading it.
+#: The v2 document (`document_v2`): the v1 fields plus ``to_beat_rule``. It is served at ``PATH + <challenge_id> +
+#: V2_SUFFIX``; v1 stays byte-identical at its own path so current clients keep reading it. Since the owner's 16 Nov
+#: order ("Show scores to 3 decimals, so a lead smaller than the margin is visible. Make the posted bar match the real
+#: rule.") a v2 document shows the king's total and Carbon's baseline at `TOTAL_DECIMALS` (round half up) from the EXACT
+#: total, not floored to the Ladder step, and its single-grade score to beat is the crown rule's own bar
+#: (`TO_BEAT_RULE`). Display only: crowns are decided on exact totals (`bank_promotion.compare_private_pair`), never on
+#: a shown number. The schema id is unchanged: v2's field set and types are; the rounding of the totals changed and the
+#: bar's new rule id says which bar is shown.
 SCHEMA_V2 = "carbon.koth.public.v2"
 V2_SUFFIX = "/v2"
-TO_BEAT_RULE = "floor_plus_step_plus_margin"
+#: The v2 single-grade bar (owner 16 Nov): a challenger is crowned iff his exact total > the king's exact total + the
+#: registered margin (`bank_promotion.compare_private_pair`), so the score to beat is ``king exact total + margin``
+#: (no king: Carbon's exact baseline + margin, the first-crown rule), rounded UP to `TO_BEAT_DECIMALS`, capped at 1.
+TO_BEAT_RULE = "king_plus_margin"
+#: The v2 single-grade bar before 16 Nov: ``floor(total, step) + step + margin`` rounded up (`to_beat_v2`). No current
+#: document states it; readers still accept it, because a receiver or board built before 16 Nov says it.
+TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin"
 #: The v2 bar on a door with crown averaging on (Lead 5 Nov): a single screening grade must beat the king's N-rebuild
 #: MEAN by more than margin_N (the averaging rule's screening step), so the score to beat is
 #: ``floor(mean, step) + step + margin_N`` rounded UP (a KING_UNSTABLE king: his single total for the mean; no king: the
 #: baseline). Only that rounded-up sum is published: never the mean or margin_N on their own, never a seed. ``margin``
 #: stays the registered rebuild noise (the Ladder step's basis) and the king's total stays his graded total.
 TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
-TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED)
+TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_FLOOR)
 #: The decimals a displayed score to beat carries; it is always rounded UP.
 TO_BEAT_DECIMALS = 3
+#: The decimals a v2 total carries (the king's, Carbon's baseline, a crown change's): rounded HALF UP from the exact one.
+TOTAL_DECIMALS = 3
 MAX_BYTES = 16384
 FIELDS = frozenset(
     {
@@ -150,11 +164,27 @@ def document(
 
 
 def to_beat_v2(base, margin):
-    """The conservative public score to beat: ``floor(total, step) + step + margin``, rounded UP to
-    `TO_BEAT_DECIMALS`, capped at 1. ``base`` is the already step-floored king total (or baseline), so this reads
-    public values only; the true bar (exact total + margin) is always below it, by at most one step.
+    """The pre-16-Nov conservative score to beat (`TO_BEAT_RULE_FLOOR`): ``floor(total, step) + step + margin``,
+    rounded UP to `TO_BEAT_DECIMALS`, capped at 1. ``base`` is the already step-floored king total (or baseline). No
+    current document publishes it; `document_v2` publishes `to_beat_exact`.
     """
     return _rounded_up(base, gf.step(margin), margin)
+
+
+def to_beat_exact(total, margin):
+    """The v2 single-grade score to beat (`TO_BEAT_RULE`): the king's EXACT total (or Carbon's exact baseline) plus the
+    registered margin, the crown rule's own bar, rounded UP to `TO_BEAT_DECIMALS`, capped at 1. A challenger is crowned
+    iff his exact total exceeds ``total + margin``; the shown bar is never below that.
+    """
+    return _rounded_up(total, 0.0, margin)
+
+
+def shown_total(value):
+    """A total as a v2 document shows it: ``value`` rounded HALF UP to `TOTAL_DECIMALS`, exactly (decimal arithmetic on
+    the float's shortest form), so 0.7795 shows 0.780 and 0.77949 shows 0.779."""
+    exact = Decimal(repr(float(value)))
+    grid = Decimal(1).scaleb(-TOTAL_DECIMALS)
+    return float(exact.quantize(grid, rounding=ROUND_HALF_UP))
 
 
 def _rounded_up(base, step, margin):
@@ -179,23 +209,28 @@ def to_beat_averaged(bar, noise):
 
 
 def document_v2(*, crown_bar=None, **kwargs):
-    """The v2 public document: `document` (same arguments, same checks) with the conservative ``to_beat`` and
-    ``to_beat_rule``. Every other field is exactly v1's. ``crown_bar`` (`PoolKingView.crown_bar`) is the averaged bar of
-    a door with crown averaging on; the score to beat is then `to_beat_averaged` under `TO_BEAT_RULE_AVERAGED`.
+    """The v2 public document: `document` (same arguments, same checks) with ``to_beat_rule``, and (owner 16 Nov) the
+    king's total and Carbon's baseline shown at `TOTAL_DECIMALS`, half up, from their EXACT values, and the score to beat
+    `to_beat_exact` (exact total + margin, rounded up) under `TO_BEAT_RULE`. ``margin`` and every other field are
+    exactly v1's. ``crown_bar`` (`PoolKingView.crown_bar`) is the averaged bar of a door with crown averaging on; the
+    score to beat is then `to_beat_averaged` under `TO_BEAT_RULE_AVERAGED`, unchanged.
     """
     base = document(**kwargs)
     result = {**base, "schema": SCHEMA_V2, "to_beat_rule": TO_BEAT_RULE}
+    # `document` checked both values and shows them floored to the step; v2 shows them from the exact value
+    exact = None
+    if base["king"] is not None:
+        exact = float(kwargs["king"]["total"])
+        result["king"] = {**base["king"], "total": shown_total(exact)}
+    elif base["baseline_total"] is not None:
+        exact = float(kwargs["baseline_total"])
+        result["baseline_total"] = shown_total(exact)
     margin = base["margin"]
     if margin is not None and crown_bar is not None:
         result["to_beat"] = to_beat_averaged(crown_bar, margin)
         result["to_beat_rule"] = TO_BEAT_RULE_AVERAGED
     elif margin is not None:
-        held = (
-            base["king"]["total"]
-            if base["king"] is not None
-            else base["baseline_total"]
-        )
-        result["to_beat"] = to_beat_v2(held, margin)
+        result["to_beat"] = to_beat_exact(exact, margin)
     if set(result) != FIELDS_V2:
         raise KothPublicRefused("koth_fields")
     return result
@@ -232,14 +267,13 @@ class PoolKingView:
 
     def crown_changes(self, limit=5):
         """The last ``limit`` changes of incumbent, newest first, from the pool's incumbent events only:
-        ``[{"from_hotkey", "to_hotkey", "since_epoch", "total"}]``, each exactly what the king page shows for that king
-        (its hotkey, the epoch its signed submission arrived in, its step-floored total). ``from_hotkey`` is None for a
+        ``[{"from_hotkey", "to_hotkey", "since_epoch", "total"}]``, each exactly what the v2 king page shows for that
+        king (its hotkey, the epoch its signed submission arrived in, its total at `TOTAL_DECIMALS`, half up; only the
+        v2 board shows these). ``from_hotkey`` is None for a
         first incumbent. A change whose king cannot be shown on the king page (no scored total, no epoch, a host-owned
         derived row) is left out, never partly shown. Nothing but incumbent events is read: no undecided crown, averaging
         record, derived rebuild, regrade, repeat or private evaluation."""
         store = self._open()
-        noise = self.rebuild_noise
-        noise = None if noise is None else noise.get("value")
 
         def shown(model_id):
             standing = store.incumbent_standing(model_id)
@@ -249,7 +283,7 @@ class PoolKingView:
             hotkey = _owner_hotkey(standing["owner"])
             if not _SS58.fullmatch(hotkey):
                 return None
-            total = gf.floor_to_step(_unit(standing["total"], "koth_king"), noise)
+            total = shown_total(_unit(standing["total"], "koth_king"))
             return hotkey, total, epoch
 
         changes = []
@@ -343,7 +377,10 @@ __all__ = [
     "PATH",
     "SCHEMA",
     "SCHEMA_V2",
+    "TOTAL_DECIMALS",
+    "TO_BEAT_RULE",
     "TO_BEAT_RULE_AVERAGED",
+    "TO_BEAT_RULE_FLOOR",
     "V2_SUFFIX",
     "KothPublicRefused",
     "PoolKingView",
@@ -351,4 +388,6 @@ __all__ = [
     "document_v2",
     "serve",
     "serve_v2",
+    "shown_total",
+    "to_beat_exact",
 ]
