@@ -1897,23 +1897,27 @@ def _single_call_raw(
         # (contention can only slow them, so a PASS there is final); a FAIL while the host was contended runs ONCE
         # more alone (the host's exclusive timing gate: `single-call-` identities) and that verdict is final; a
         # failure on a quiet host is final. Without a registered ceiling the stage runs alone from the start, as before.
-        stage = _speed_stage(
+        def outputs_match(stage):
+            """The timed answers against the graded run on the same rows: False is the candidate's; a vmap-64
+            disagreement beyond the tolerance is CARBON's (two programs of ours), typed unavailable, FAILED_INFRA.
+            """
+            if tolerance is None:
+                return single_call_timing.outputs_match_graded(
+                    stage.predictions, graded, indices
+                )
+            if speed_match.outputs_agree(stage.predictions, graded, indices, tolerance):
+                return True
+            raise RetentionUnavailable(speed_match.DISAGREE)
+
+        stage, match = _speed_stage(
             timed,
             name,
             ceiling,
-            record=lambda runs: _record_speed_runs(result, submission_id, runs),
+            outputs_match=outputs_match,
+            runs_dir=_private_evaluation_directory(result, submission_id)
+            / "single-call-runs",
         )
         call_s = stage.receipt["single_call"]["call_s"]
-        if tolerance is None:
-            match = single_call_timing.outputs_match_graded(
-                stage.predictions, graded, indices
-            )
-        elif speed_match.outputs_agree(stage.predictions, graded, indices, tolerance):
-            match = True
-        else:
-            # a vmap-64 version (owner, Sun 15 Nov 2026 ~11:1x): a timed answer beyond the wide-margin tolerance is
-            # CARBON's (two programs of ours disagree), never the miner's speed FAIL: typed unavailable, FAILED_INFRA
-            raise RetentionUnavailable(speed_match.DISAGREE)
         document = single_call_timing.side_file(
             indices=indices,
             warmup_digest=stage.receipt["single_call"]["warmup_digest"],
@@ -1969,64 +1973,118 @@ def _speed_probe():
     ).start()
 
 
-def _speed_stage(timed, name, ceiling, *, record, probe=None):
-    """The speed stage under CV-Motor L12433: ``timed(identity)`` runs the timed calls. In-lane first (shared timing
-    gate); a FAIL while the host was contended runs once alone (exclusive gate) and that verdict is final; a solo run
-    that cannot get a quiet host is Carbon's (`SPEED_ALONE_NOT_QUIET`). ``record(runs)`` keeps both runs (host-private).
-    Without a ceiling (None) the stage runs alone from the start, as before. Returns the stage whose calls are final.
+def _speed_stage(timed, name, ceiling, *, outputs_match, runs_dir, probe=None):
+    """The speed stage under CV-Motor L12433. ``timed(identity)`` runs the 20 timed calls; ``outputs_match(stage)`` is
+    the timed-vs-graded answers check. Returns ``(stage whose calls are final, outputs match)``.
+
+    In-lane first (the host timing gate shared). A PASS is final (contention only slows). A FAIL on a quiet host is
+    final. A FAIL while the host was contended runs ONCE more alone (the exclusive gate) and that verdict is final; a
+    solo run without a quiet host is Carbon's (`SPEED_ALONE_NOT_QUIET`). An outputs mismatch in EITHER run is the
+    candidate's (not a timing verdict, so no rerun for it). Each run has a FRESH identity (numbered from the runs this
+    grade already recorded) and is recorded write-once in ``runs_dir`` the moment it ends, so a retry never replays an
+    earlier run under a new quiet verdict. The host probe covers each run's own hold window only (`grade_lanes`'
+    `watch_holds`), never the wait for the exclusive gate; a run whose hold was never seen is not quiet. Without a
+    registered ceiling (None) the stage runs alone from the start, as before.
     """
-    probe = _speed_probe if probe is None else probe
     if ceiling is None:
-        return timed("single-call-" + name)
-    watching = probe()
-    stage = timed(SPEED_LANE_PREFIX + name)
-    contention = watching.verdict()
-    runs = [_speed_run("in_lane", stage, ceiling, contention)]
-    if not runs[-1]["passed"] and not contention.quiet:
-        watching = probe()
-        stage = timed("single-call-" + name + "-alone")
-        alone = watching.verdict()
-        runs.append(_speed_run("alone", stage, ceiling, alone))
-        if not alone.quiet:
-            # the solo rerun could not get a quiet host: Carbon's, never a pass and never a fail
-            record(runs)
-            raise RetentionUnavailable(SPEED_ALONE_NOT_QUIET)
-    record(runs)
-    return stage
+        stage = timed("single-call-" + name)
+        return stage, outputs_match(stage)
+    probe = _speed_probe if probe is None else probe
+    done = _recorded_runs(runs_dir)
+
+    def one(kind, identity):
+        window = _HoldWindow(probe)
+        from carbon.reconstruction import grade_lanes
+
+        try:
+            with grade_lanes.watch_holds(window):
+                stage = timed(identity)
+        finally:
+            contention = window.verdict()
+        run = _speed_run(kind, stage, ceiling, contention, identity)
+        run["outputs_match"] = outputs_match(stage)
+        _write_run(runs_dir, len(done) + len(runs), run)
+        runs.append(run)
+        return stage, run
+
+    runs = []
+    k = len(done)
+    stage, first = one("in_lane", f"{SPEED_LANE_PREFIX}{name}-r{k}")
+    if not first["outputs_match"]:
+        return stage, False
+    if first["passed"] or first["host_quiet"]:
+        return stage, True
+    stage, alone = one("alone", f"single-call-{name}-alone{k}")
+    if not alone["host_quiet"]:
+        # the solo rerun could not get a quiet host: Carbon's, never a pass and never a fail
+        raise RetentionUnavailable(SPEED_ALONE_NOT_QUIET)
+    return stage, alone["outputs_match"]
 
 
-def _speed_run(kind, stage, ceiling, contention):
-    """One speed run's record (host-private): its median against the registered ceiling and the host it ran on."""
+class _HoldWindow:
+    """A probe over the LAST container hold seen in its context (`grade_lanes.watch_holds`): started once the hold is
+    taken, its verdict taken just before the hold is let go (the stage's own container already removed).
+    """
+
+    def __init__(self, probe):
+        self.probe, self.running, self.verdicts = probe, None, []
+
+    def __call__(self, event, _identity):
+        if event == "held" and self.running is None:
+            self.running = self.probe()
+        elif event == "release" and self.running is not None:
+            self.verdicts.append(self.running.verdict())
+            self.running = None
+
+    def verdict(self):
+        if self.running is not None:
+            self.verdicts.append(self.running.verdict())
+            self.running = None
+        return self.verdicts[-1] if self.verdicts else None
+
+
+def _recorded_runs(runs_dir):
+    """The speed runs this grade already recorded (``NN.json``), in order."""
+    if not runs_dir.is_dir():
+        return []
+    return sorted(
+        path.name
+        for path in runs_dir.iterdir()
+        if path.name.endswith(".json") and not path.name.startswith(".")
+    )
+
+
+def _write_run(runs_dir, index, run):
+    """One speed run's record (host-private, write-once; CV-Motor L12433 (1): both medians kept in the speed evidence)."""
+    from carbon.development_session.data import write_once
+
+    runs_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    write_once(
+        runs_dir / f"{index:02d}.json",
+        _json({"schema": "carbon.lean-recipe.speed-run.v1", **run}),
+    )
+
+
+def _speed_run(kind, stage, ceiling, contention, identity):
+    """One speed run's record: its median against the registered ceiling and the host it ran on (no hold seen: not
+    quiet)."""
     from carbon.scoring import pool_exam
 
     call_s = stage.receipt["single_call"]["call_s"]
     verdict = pool_exam.single_call_speed_gate(call_s, ceiling_seconds=ceiling)
     return {
         "run": kind,
+        "identity": identity,
         "operation": stage.worker_operation,
         "median_seconds": verdict["median_seconds"],
         "ceiling_seconds": ceiling,
         "passed": verdict["passed"],
-        "host_quiet": contention.quiet,
-        "max_worker_containers": contention.max_worker_containers,
-        "samples": contention.samples,
+        "host_quiet": contention is not None and contention.quiet,
+        "max_worker_containers": (
+            None if contention is None else contention.max_worker_containers
+        ),
+        "samples": 0 if contention is None else contention.samples,
     }
-
-
-def _record_speed_runs(result, submission_id, runs):
-    """Both speed runs' medians and hosts, kept beside the speed side file (CV-Motor L12433 (1): both medians are kept in
-    the speed evidence). Host-private; never a producer input."""
-    from carbon.development_session.data import write_once
-
-    path = (
-        _private_evaluation_directory(result, submission_id) / "single-call-runs.json"
-    )
-    if path.exists() or path.is_symlink():
-        return  # a retry after a stop between this record and the side file keeps the first record
-    write_once(
-        path,
-        _json({"schema": "carbon.lean-recipe.speed-runs.v1", "runs": runs}),
-    )
 
 
 #: The retained graded predictions were produced by a different inference (program text, staged modules or worker
@@ -2135,6 +2193,7 @@ def _propagated_carbon_failures():
             VMAP64_NEEDS_SEALED_PACK,
             speed_match.DISAGREE,
             speed_match.UNREGISTERED,
+            SPEED_ALONE_NOT_QUIET,
         }
     )
 

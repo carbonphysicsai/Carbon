@@ -265,6 +265,26 @@ _BOUND: ContextVar[Lane | None] = ContextVar("carbon_grade_lane", default=None)
 _EXCLUSIVE: ContextVar[bool] = ContextVar(
     "carbon_grade_lane_timing_exclusive", default=False
 )
+#: A watcher of the calling context's container holds (`watch_holds`): told ``("held", identity)`` once the hold is
+#: taken (after any wait for the timing gate) and ``("release", identity)`` before it is let go.
+_HOLD_WATCH: ContextVar = ContextVar("carbon_grade_lane_hold_watch", default=None)
+
+
+@contextmanager
+def watch_holds(callback):
+    """Tell ``callback(event, identity)`` about every container hold taken in this context (A19 speed stage: its host
+    probe covers the hold's own window only, never the wait for the exclusive gate)."""
+    token = _HOLD_WATCH.set(callback)
+    try:
+        yield
+    finally:
+        _HOLD_WATCH.reset(token)
+
+
+def _tell(event, identity):
+    watch = _HOLD_WATCH.get()
+    if watch is not None:
+        watch(event, identity)
 
 
 def current():
@@ -344,12 +364,16 @@ def container_hold(*, identity=None, poll_s=None, sleep=None):
     """Held by the carrier for one container's whole life (before create, until it is removed). Outside a lane-bound
     round: nothing. Inside one: the host timing gate SHARED, or EXCLUSIVE for a timing stage (inside
     `timing_exclusive`, or an operation ``identity`` that `is_timing_identity`)."""
-    import fcntl
-
     lane = current()
     if lane is None:
-        yield None
+        _tell("held", identity)
+        try:
+            yield None
+        finally:
+            _tell("release", identity)
         return
+    import fcntl
+
     poll = POLL_S if poll_s is None else poll_s
     pause = time.sleep if sleep is None else sleep
     exclusive = _EXCLUSIVE.get() or is_timing_identity(identity)
@@ -357,6 +381,7 @@ def container_hold(*, identity=None, poll_s=None, sleep=None):
     fd = os.open(directory / TIMING_LOCK, os.O_RDWR | os.O_CREAT, 0o600)
     wanted = None
     began = time.monotonic()
+    held = False
     try:
         if exclusive:
             name = f"{os.getpid()}-{process_start(os.getpid())}-{threading.get_ident()}"
@@ -386,9 +411,15 @@ def container_hold(*, identity=None, poll_s=None, sleep=None):
                 exclusive=exclusive,
                 waited_s=round(waited, 1),
             )
+        held = True
+        _tell("held", identity)
         yield lane
     finally:
         try:
+            if held:
+                _tell(
+                    "release", identity
+                )  # before the gate is let go: no waiting lane has started yet
             fcntl.flock(fd, fcntl.LOCK_UN)
         finally:
             os.close(fd)

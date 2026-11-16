@@ -619,16 +619,22 @@ def test_a_timing_wish_of_a_dead_process_holds_nobody_back(host):
 
 def test_the_speed_stage_is_a_timing_stage_by_its_carrier_identity(host):
     """No grading file outside the carrier carries a lane line: the single-design speed calls are recognised by the
-    identity `lean_recipe_retention._single_call_raw` gives its operation. Renaming it there must fail here.
+    identity `lean_recipe_retention._speed_stage` gives its operation: the SOLO run (and a version with no registered
+    ceiling) is a timing identity (exclusive gate); the in-lane run (A19, CV-Motor L12433) is not. Renaming either
+    there must fail here.
     """
     from pathlib import Path
 
     import carbon.challenge_validator.lean_recipe_retention as retention
 
     source = Path(retention.__file__).read_text(encoding="utf-8")
-    body = source[source.index("def _single_call_raw(") :]
+    body = source[source.index("def _speed_stage(") :]
     body = body[: body.index("\ndef ", 1)]
-    assert 'identity="single-call-"' in body.replace("\n", "").replace(" ", "")
+    flat = body.replace("\n", "").replace(" ", "")
+    assert 'timed("single-call-"+name)' in flat
+    assert 'f"single-call-{name}-alone{k}"' in flat
+    assert 'f"{SPEED_LANE_PREFIX}{name}-r{k}"' in flat
+    assert not grade_lanes.is_timing_identity(retention.SPEED_LANE_PREFIX + "x-r0")
     assert grade_lanes.is_timing_identity("single-call-" + "0" * 64)
     assert not grade_lanes.is_timing_identity("graded-" + "0" * 64)
     assert not grade_lanes.is_timing_identity(None)
