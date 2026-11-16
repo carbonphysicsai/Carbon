@@ -663,3 +663,41 @@ def test_the_speed_stage_is_a_timing_stage_by_its_carrier_identity(host):
     neighbour.join(5)
     assert done.wait(5)
     thread.join(5)
+
+
+def test_a_remote_only_door_takes_only_its_remote_lanes_at_their_usual_places(host):
+    """A door's own remote record with ``"only": true`` (a scratch door's re-grades on a remote box): its rounds take
+    its remote lanes alone, at the places they have beside the local lanes (2, 3), so lock names and holder records
+    never collide with a live door's local lanes 0 and 1."""
+    from carbon.reconstruction import remote_lane
+
+    remote = remote_lane.RemoteSpec("ssh://carbon-grade@box.example", "0-3", "/srv/gb")
+    work = _WorkLock(
+        host,
+        poll_s=POLL,
+        lanes=(
+            *LANES,
+            remote,
+            remote_lane.RemoteSpec("ssh://carbon-grade@box.example", "4-7", "/srv/gb"),
+        ),
+        remote_only=True,
+    )
+    assert work._usable == (2, 3) and work._parallel
+    rounds = [_start_round(work) for _ in range(2)]
+    for round_ in rounds:
+        assert round_[0].wait(5)
+    assert sorted(r[2][0][0].index for r in rounds) == [2, 3]
+    assert all(r[2][0][0].docker_host for r in rounds)
+    third = _start_round(work)
+    assert not third[0].wait(0.5)  # the local lanes are never taken
+    for round_ in (*rounds, third):
+        round_[1].set()
+        round_[3].join(5)
+
+
+def test_a_remote_only_record_with_one_lane_keeps_every_lane():
+    from carbon.reconstruction import remote_lane
+
+    one = remote_lane.RemoteSpec("ssh://carbon-grade@box.example", "0-3", "/srv/gb")
+    work = _WorkLock(None, lanes=(*LANES, one), remote_only=True)
+    assert work._usable == (0, 1, 2)

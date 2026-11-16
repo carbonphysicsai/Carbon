@@ -45,8 +45,9 @@ from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 RECORD = "remote-grade-lanes.json"
 SCHEMA = "carbon.remote-grade-lanes.v1"
-#: The most remote lanes a host may name (the owner's order: one second machine).
-MAX_REMOTE_LANES = 1
+#: The most remote lanes a record may name: two remote boxes x 4 lanes of 4 physical cores (the owner's FSN1 + HEL1
+#: acceptance, 16 Nov 2026; CV-Motor L12464). An operational bound, not science.
+MAX_REMOTE_LANES = 8
 #: ``ssh://user@host`` or ``ssh://user@host:port``: plain names only, no options, no paths.
 _DOCKER_HOST = re.compile(
     r"^ssh://(?P<user>[a-z_][a-z0-9_-]{0,31})@(?P<host>[A-Za-z0-9.-]{1,253})(?::(?P<port>[0-9]{1,5}))?$"
@@ -102,16 +103,24 @@ def _checked_root(value):
 def load(root=None):
     """The installed remote lanes (a tuple of `RemoteSpec`), ``()`` when none is installed. A record that is present but
     malformed raises ValueError: an operator who installed one meant something by it."""
+    return load_record(root)[0]
+
+
+def load_record(root=None):
+    """``(remote lanes, only)`` of the record in ``root`` (default HOST_ROOT): ``only`` (optional, a bool) asks that the
+    door grade and build on its remote lanes alone (a scratch door's re-grades on a remote box). ``((), False)`` when
+    none is installed; a record that is present but malformed raises ValueError."""
     from carbon.reconstruction.host_execution import parse_cpuset
     from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
 
     path = Path(HOST_ROOT if root is None else root) / RECORD
     if not path.exists():
-        return ()
+        return (), False
     document = json.loads(path.read_bytes())
     if (
         type(document) is not dict
-        or set(document) != {"schema", "lanes"}
+        or not {"schema", "lanes"} <= set(document) <= {"schema", "lanes", "only"}
+        or type(document.get("only", False)) is not bool
         or document["schema"] != SCHEMA
         or type(document["lanes"]) is not list
         or not 1 <= len(document["lanes"]) <= MAX_REMOTE_LANES
@@ -137,7 +146,7 @@ def load(root=None):
                 _checked_root(entry["stage_root"]),
             )
         )
-    return tuple(specs)
+    return tuple(specs), document.get("only", False)
 
 
 # -- the bound round ------------------------------------------------------------------------------------------------------

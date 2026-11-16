@@ -1183,7 +1183,8 @@ def serve_loopback(
         grading_lock_dir,
         state_dir=state_dir,
         stop=stop,
-        lanes=_door_lanes(intake, grading_lock_dir),
+        lanes=_door_lanes(intake, grading_lock_dir, state_dir),
+        remote_only=_door_remote_only(intake, grading_lock_dir, state_dir),
     )
     threads = [
         threading.Thread(
@@ -1193,7 +1194,7 @@ def serve_loopback(
             daemon=True,
         ),
     ]
-    lanes_rounds = len(work._lanes) if work._parallel else 1
+    lanes_rounds = len(work._usable) if work._parallel else 1
     adapter = getattr(intake, "adapter", None)
     # A19 (Lead, 16 Nov 2026): one ADVANCE round per lane too (a build holds a lane like a grade), when the adapter
     # takes owners through the door's `OwnerClaims` (one owner's ledger lease is non-blocking); grades share them.
@@ -1338,7 +1339,16 @@ MAINNET_FIRST_NETWORK = "finney"
 MAINNET_FIRST_PATIENCE_S = 7200.0
 
 
-def _door_lanes(intake, grading_lock_dir):
+def _door_remote_only(intake, grading_lock_dir, state_dir):
+    """Whether this door's own remote record asks for its remote lanes alone (`grade_lanes.door_remote_only`)."""
+    if grading_lock_dir is None or state_dir is None:
+        return False
+    from carbon.reconstruction import grade_lanes
+
+    return grade_lanes.door_remote_only(state_dir)
+
+
+def _door_lanes(intake, grading_lock_dir, state_dir=None):
     """This door's grade lanes (`grade_lanes.door_lanes`): ``()`` = one lane, today's single host lock. Only a door
     that holds the host lock at all can have lanes. In two-lane mode, a REMOTE lane the values row asks for and the
     operator installed (`grade_lanes.door_remote_lanes`) follows the local lanes (a `remote_lane.RemoteSpec`).
@@ -1355,7 +1365,7 @@ def _door_lanes(intake, grading_lock_dir):
     local = grade_lanes.door_lanes(*key)
     if not local:
         return ()
-    return (*local, *grade_lanes.door_remote_lanes(*key))
+    return (*local, *grade_lanes.door_remote_lanes(*key, state_root=state_dir))
 
 
 class WorkDeclined(Exception):
@@ -1420,10 +1430,21 @@ class _WorkLock:
         poll_s=None,
         network=None,
         lanes=(),
+        remote_only=False,
     ):
         self._lock = threading.Lock()
         #: The lane cpusets of two-lane mode (empty: one lane), the lane the current round holds, and its lock files.
         self._lanes = tuple(lanes)
+        #: The lanes this door's rounds may take: every one, or its remote lanes alone (``remote_only``: a door's own
+        #: record asks for it); local lanes keep their places, so lock names and holder records never move.
+        self._usable = tuple(
+            index
+            for index, spec in enumerate(self._lanes)
+            if not (remote_only and type(spec) is str)
+        )
+        if remote_only and len(self._usable) < 2:
+            # fewer than two remote lanes cannot be a remote-only lane door: every lane, as without the record
+            self._usable = tuple(range(len(self._lanes)))
         self._lane = None
         self._fds = []
         #: PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): in lane mode with two or more lanes, this door runs up to
@@ -1431,10 +1452,10 @@ class _WorkLock:
         #: round keeps its own lane and lock files (`_Taking`). Rounds of DIFFERENT kinds (``advance`` / ``grade``) run
         #: at once too (A19), never two of one owner (`grade_sequencer.OwnerClaims`). One lane: one slot, ``_lock`` held for
         #: the whole round, exactly today.
-        self._parallel = len(self._lanes) > 1
+        self._parallel = len(self._usable) > 1
         #: A19: rounds of both kinds may run at once (set by the serving loop when every round takes its owner).
         self.overlap_kinds = False
-        self._slots = threading.BoundedSemaphore(max(1, len(self._lanes)))
+        self._slots = threading.BoundedSemaphore(max(1, len(self._usable)))
         self._kinds = threading.Condition()
         #: The live rounds of this door: ``{round: (kind, in-flight record)}`` (parallel mode only).
         self._live = {}
@@ -1638,6 +1659,8 @@ class _WorkLock:
             return True
         # two lanes: the first free lane, in index order
         for index, spec in enumerate(self._lanes):
+            if index not in self._usable:
+                continue
             fd = self._take(grade_lanes.lane_lock_name(index))
             if fd is None:
                 continue
