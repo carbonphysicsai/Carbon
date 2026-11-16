@@ -84,7 +84,13 @@ VALUES_SCHEMA = "carbon.remote-gpu-build.values.v1"
 MAX_LANES = 1
 DEFAULT_SLOTS = 1
 #: The most build slots one GPU may be split into (an operational bound, not a scientific value).
-MAX_SLOTS = 4
+MAX_SLOTS = 8
+#: How N > 1 slots share the device (the values row's ``"memory"``): ``"capped"`` (the default) = each process caps its
+#: own share in-process (`SLOT_PRELUDE`, waits on Validator-2: `SLOT_PRELUDE_RULED`); ``"shared"`` = no cap at all: the
+#: image-pinned platform allocator with no preallocation, so each build holds only the device memory it uses (Lead +
+#: owner, 16 Nov: "no way we can only build 1 at a time"). Under ``"shared"`` a build's device memory exhaustion beside
+#: another build is Carbon's (`shared_memory_exhausted`; a GPU OOM is never the miner's anyway).
+SLOT_MEMORY_MODES = ("capped", "shared")
 #: The share of device memory all slots together may take; each slot gets an equal part of it, rounded down to 0.01.
 #: Operational headroom for the CUDA context and the driver, not a scientific value.
 MEMORY_SHARE = 0.9
@@ -138,6 +144,8 @@ class DoorLane:
     slots: int
     device: object  # host_inventory.HostDeviceRecord
     lane_dir: str
+    #: `SLOT_MEMORY_MODES`: how N > 1 slots share the device (meaningless at N = 1)
+    memory: str = "capped"
 
 
 @dataclass(frozen=True)
@@ -203,6 +211,7 @@ def _handoff(binding):
             "stage_root": spec.stage_root,
             "slot_cpusets": list(spec.slot_cpusets),
             "slots": binding.lane.slots,
+            "memory": binding.lane.memory,
             "lane_dir": binding.lane.lane_dir,
             "slot": binding.slot,
             "device": binding.lane.device.document,
@@ -232,8 +241,11 @@ def _from_handoff(raw):
         slot = entry["slot"]
         if type(slot) is not int or not 0 <= slot < len(spec.slot_cpusets):
             return None
+        memory = entry.get("memory", "capped")
+        if memory not in SLOT_MEMORY_MODES:
+            return None
         return OpBinding(
-            DoorLane(spec, entry["slots"], device, entry["lane_dir"]), slot
+            DoorLane(spec, entry["slots"], device, entry["lane_dir"], memory), slot
         )
     except (ValueError, TypeError, KeyError, WorkerFailure):
         return None
@@ -325,6 +337,7 @@ def values_row(challenge_id, version, *, path=None):
     if type(row) is not dict or set(row) not in (
         {"device_kind"},
         {"device_kind", "slots"},
+        {"device_kind", "slots", "memory"},
     ):
         return None
     kind = row["device_kind"]
@@ -333,7 +346,10 @@ def values_row(challenge_id, version, *, path=None):
         return None
     if type(slots) is not int or not 1 <= slots <= MAX_SLOTS:
         return None
-    return {"device_kind": kind, "slots": slots}
+    memory = row.get("memory", "capped")
+    if memory not in SLOT_MEMORY_MODES:
+        return None
+    return {"device_kind": kind, "slots": slots, "memory": memory}
 
 
 def door_lane(challenge_id, version, *, root=None, values=None):
@@ -350,7 +366,7 @@ def door_lane(challenge_id, version, *, root=None, values=None):
     spec = specs[0]
     if row["slots"] > len(spec.slot_cpusets):
         raise ValueError("remote_gpu_build_slots_exceed_cpusets")
-    if row["slots"] > 1 and not SLOT_PRELUDE_RULED:
+    if row["slots"] > 1 and row["memory"] == "capped" and not SLOT_PRELUDE_RULED:
         # every build offered a lane is a graph build on the JAX worker: N > 1 shares the device, capped per process
         # only by the slot prelude, which waits on Validator-2's ruling (`SLOT_PRELUDE_RULED`)
         raise ValueError("remote_gpu_build_slots_need_jax_memory_cap")
@@ -358,7 +374,7 @@ def door_lane(challenge_id, version, *, root=None, values=None):
     device = _lane_device(_host_root(root) if spec.local else lane_dir)
     if device.device_kind != row["device_kind"]:
         raise ValueError("remote_gpu_build_device_kind")
-    return DoorLane(spec, row["slots"], device, str(lane_dir))
+    return DoorLane(spec, row["slots"], device, str(lane_dir), row["memory"])
 
 
 def _lane_device(lane_dir):
@@ -409,6 +425,7 @@ def fingerprint(lane):
         spec.stage_root,
         spec.slot_cpusets,
         lane.slots,
+        lane.memory,
     )
 
 
@@ -652,7 +669,7 @@ def slot_environment(binding=None):
     BFC allocator with the fraction inside the program, before JAX is imported (the carrier's BOOTSTRAP ``exec``s a
     fresh interpreter on the program), and the request records it (`request_fields`)."""
     binding = _current() if binding is None else binding
-    if binding is None or binding.lane.slots == 1:
+    if binding is None or binding.lane.slots == 1 or binding.lane.memory != "capped":
         return {}
     return {SLOT_FRACTION_ENV: f"{slot_fraction(binding.lane.slots):.2f}"}
 
@@ -709,7 +726,7 @@ def with_slot_prelude(source, binding=None, *, program_name="program.py"):
     build whose cap might not run never starts). Only a Python program (``program.py``) can carry the cap.
     """
     binding = _current() if binding is None else binding
-    if binding is None or binding.lane.slots == 1:
+    if binding is None or binding.lane.slots == 1 or binding.lane.memory != "capped":
         return source
     if program_name != "program.py":
         raise RemoteLaneDown(b"remote_gpu_build_slot_cap_needs_python_program")
@@ -752,6 +769,9 @@ def request_fields(binding=None):
     binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return {}
+    if binding.lane.memory == "shared":
+        # no cap: the pinned platform allocator, each build holding only what it uses
+        return {"remote_gpu_slots": binding.lane.slots, "slot_memory": "shared"}
     # the program's in-process memory cap (`SLOT_PRELUDE`), recorded where the container env cannot show it
     return {
         "remote_gpu_slots": binding.lane.slots,
@@ -1027,6 +1047,18 @@ def wall_counts(binding=None):
     if binding is None or not binding.lane.spec.local:
         return True
     return binding.lane.slots == 1
+
+
+def shared_memory_exhausted(error, markers, binding=None):
+    """Whether ``error`` of the running op is device memory exhaustion (one of ``markers`` in its diagnostic) on a lane
+    whose GPU more than one build shares: Carbon's (`RemoteLaneDown`), so a GPU repeat probe that ran out of memory
+    beside a neighbour is never turned into a CPU rebuild that could run into the CPU's wall as the miner's.
+    """
+    binding = _current() if binding is None else binding
+    if binding is None or binding.lane.slots == 1 or isinstance(error, RemoteLaneDown):
+        return False
+    diagnostic = getattr(error, "private_diagnostic", b"")
+    return type(diagnostic) is bytes and any(marker in diagnostic for marker in markers)
 
 
 def retyped(error, binding=None):

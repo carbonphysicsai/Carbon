@@ -383,6 +383,13 @@ def _run(ledger, **kwargs):
             # settled in the ledger as the candidate's (a resource stop is retyped BEFORE it is settled): never retyped
             raise
         except Exception as error:
+            # A GPU shared by more than one build: a device memory exhaustion beside a neighbour is Carbon's.
+            if remote_build is not None and remote_gpu_build.shared_memory_exhausted(
+                error, _MEMORY_EXHAUSTED_MARKERS
+            ):
+                raise remote_lane.RemoteLaneDown(
+                    b"remote_gpu_build_shared_device_memory"
+                ) from error
             # A remote build that failed while its link or its GPU is unhealthy is Carbon's, never the miner's.
             down = None if remote_build is None else remote_gpu_build.retyped(error)
             if down is not None:
