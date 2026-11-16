@@ -698,12 +698,21 @@ SLOT_PRELUDE = (
 )
 
 
-def with_slot_prelude(source, binding=None):
+def _prelude_statements():
+    return [ast.dump(node) for node in ast.parse(SLOT_PRELUDE).body]
+
+
+def with_slot_prelude(source, binding=None, *, program_name="program.py"):
     """The build program with `SLOT_PRELUDE` after its docstring and ``__future__`` imports: only with N > 1 slots.
-    Unchanged otherwise, so a one-slot lane runs exactly the local program."""
+    Unchanged otherwise, so a one-slot lane runs exactly the local program. With N > 1 the result is checked: its first
+    statements after the docstring and ``__future__`` imports ARE the prelude (else Carbon's, `RemoteLaneDown`: a
+    build whose cap might not run never starts). Only a Python program (``program.py``) can carry the cap.
+    """
     binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return source
+    if program_name != "program.py":
+        raise RemoteLaneDown(b"remote_gpu_build_slot_cap_needs_python_program")
     module = ast.parse(source)
     after = 0
     for position, node in enumerate(module.body):
@@ -716,10 +725,24 @@ def with_slot_prelude(source, binding=None):
             after = node.end_lineno
             continue
         break
-    lines = source.splitlines(keepends=True)
+    # line ends as the parser counts them: "\n" only (str.splitlines also splits on \x0c, \x1c, \u2028, ...)
+    lines = re.split(r"(?<=\n)", source)
     if after and not lines[after - 1].endswith("\n"):
         lines[after - 1] += "\n"
-    return "".join(lines[:after]) + SLOT_PRELUDE + "".join(lines[after:])
+    changed = "".join(lines[:after]) + SLOT_PRELUDE + "".join(lines[after:])
+    try:
+        body = [
+            ast.dump(node)
+            for node in ast.parse(changed).body
+            if not (isinstance(node, ast.ImportFrom) and node.module == "__future__")
+        ]
+    except SyntaxError:
+        raise RemoteLaneDown(b"remote_gpu_build_slot_prelude_misplaced") from None
+    prelude = _prelude_statements()
+    start = 1 if after and module.body and isinstance(module.body[0], ast.Expr) else 0
+    if body[start : start + len(prelude)] != prelude:
+        raise RemoteLaneDown(b"remote_gpu_build_slot_prelude_misplaced")
+    return changed
 
 
 def request_fields(binding=None):
