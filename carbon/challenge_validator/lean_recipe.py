@@ -131,29 +131,37 @@ BUILD_PROBE_SECONDS = 5.0
 def _build_wall_guard(claims):
     """A19 (V2 F-A19): while a door runs parallel build rounds (``claims``: its `grade_sequencer.OwnerClaims`), each build
     samples its host (Carbon worker containers, foreign GPU compute) and a wall stop is the candidate's only when every
-    sample saw at most its own container and no foreign GPU compute (`research_carrier.BUILD_WALL_GUARD`); a build on a
-    REMOTE lane is never quiet (its neighbours there are invisible from here). Without claims: nothing, as before.
+    sample saw at most its own container and no foreign GPU compute (`research_carrier.BUILD_WALL_GUARD`). A build on a
+    REMOTE lane samples its BOX instead, on the box (`host_quiet.box_counters`, CV-Motor L12624 (b) + (c)); a build whose
+    lane is not the one its probe watched is never quiet. A build on a remote lane is guarded so even without claims
+    (one build round). Without claims on this host: nothing, as before.
     """
-    if claims is None:
+    from carbon.reconstruction import remote_lane
+
+    if claims is None and remote_lane.current() is None:
         yield
         return
     from carbon.challenge_validator import host_quiet
     from carbon.development_session import research_carrier
-    from carbon.reconstruction import remote_lane
 
     def count():
         ids = host_quiet.worker_containers()
         return None if ids is None else len(ids)
 
+    watched = remote_lane.current()
+    if watched is not None:
+        count, gpu = host_quiet.box_counters(watched)
+    else:
+        gpu = host_quiet.foreign_gpu_compute
     probe = host_quiet.Probe(
         lock_held=True,
         containers=count,
-        gpu=host_quiet.foreign_gpu_compute,
+        gpu=gpu,
         seconds=BUILD_PROBE_SECONDS,
     ).start()
 
     def quiet():
-        if remote_lane.current() is not None:
+        if remote_lane.current() != watched:
             return False
         samples, gpu = list(probe.samples), list(probe.gpu_samples)
         return bool(

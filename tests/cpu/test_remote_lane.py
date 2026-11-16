@@ -403,10 +403,10 @@ def test_outside_a_remote_round_nothing_is_sent(monkeypatch, tmp_path):
     assert not (record / "argv").exists()
 
 
-# -- a stalled link is never the candidate's wall -------------------------------------------------------------------------
+# -- a stalled link is never the candidate's wall: no box clock, Carbon's (L12624: test_remote_wall_stop) -------------
 
 
-def test_a_remote_wall_stop_is_never_the_candidates():
+def test_a_remote_wall_stop_without_the_boxs_clock_is_never_the_candidates():
     assert remote_lane.wall_stop_observable(None) is True  # this host: unchanged
     with grade_lanes.bound(_remote()):
         assert remote_lane.wall_stop_observable({"status": "OBSERVED"}) is False
@@ -415,7 +415,7 @@ def test_a_remote_wall_stop_is_never_the_candidates():
         assert remote_lane.wall_stop_observable(None) is True
 
 
-def test_the_carriers_wall_stop_on_a_remote_lane_is_carbons():
+def test_the_carriers_wall_stop_on_a_remote_lane_without_a_box_clock_is_carbons():
     from carbon.development_session import research_carrier as carrier
 
     observed = {

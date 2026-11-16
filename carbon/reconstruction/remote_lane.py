@@ -17,9 +17,13 @@ written or removed there; anything else refuses.
 
 **Failure typing.** Anything the link does wrong (ssh refused, timed out, a mirror that did not complete) raises
 `RemoteLaneDown`, a ``WorkerFailure`` of code UNAVAILABLE: Carbon's infrastructure, never the candidate's. A wall stop
-on a remote lane is NEVER the candidate's (`wall_stop_observable`): a stalled link looks exactly like a stalled program,
-and whether a wall measured on the remote class may count at all is Validator-Motor's ruling, not made here. Measured
-queries (a timed control) stay on the grading host with the speed stage (`local_for`).
+on a remote lane is the candidate's only as CV-Motor ruled (L12624, 16 Nov 2026), every part read from records: (a) the
+BOX's own clock says the program was still running there and had run its whole wall (`wall_stop_observable`: the
+program's age read inside its container, never a clock across the link); (b) the box was quiet for the run (no other
+Carbon worker container on any of its lanes, no foreign GPU compute: sampled on the box itself, `host_quiet`'s box
+probes); (c) the link stayed healthy for the whole run (every one of those samples answered, the stop observed, the
+daemon answering at the stop). Anything else is Carbon's (FAILED_INFRA, never charged). Measured queries (a timed
+control) stay on the grading host with the speed stage (`local_for`).
 
 **Configuration.** Operator-installed, beside the host execution record: ``<HOST_ROOT>/remote-grade-lanes.json``
 (`RECORD`), schema `SCHEMA`, ``{"lanes": [{"docker_host": ..., "cpuset": ..., "stage_root": ...}]}``, at most
@@ -397,12 +401,48 @@ def link_up(lane=None, *, timeout=PROBE_SECONDS):
     return done.returncode == 0 and bool(done.stdout.strip())
 
 
-def wall_stop_observable(observation):
-    """Whether a wall stop may be read as the candidate's: always outside a remote round (unchanged); NEVER inside one
-    (Carbon's: a stalled link looks exactly like a stalled program, and the remote class's walls wait on
-    Validator-Motor's ruling). ``observation`` is kept for the caller's evidence."""
-    del observation
-    return current() is None
+def wall_stop_observable(observation, *, box_seconds=None, needed=None):
+    """Whether a wall stop may be read as the candidate's. Outside a remote round: always (unchanged). Inside one, only
+    by the BOX's own records (CV-Motor L12624 (a) + the link part of (c)): the container was observed at the stop
+    (``observation``), the lane's daemon answers now (`link_up`), and ``box_seconds()`` (the program's age on the box's
+    own kernel clock, read in its container; None when the program is gone or unreadable) is at least ``needed`` seconds.
+    A stalled link looks exactly like a stalled program, so a program that already ended there, or any read that fails,
+    is Carbon's. Whether the box was quiet for the run is the caller's guard (`host_quiet`'s box probes).
+    """
+    import math
+
+    if current() is None:
+        return True
+    if type(observation) is not dict or observation.get("status") != "OBSERVED":
+        return False
+    if box_seconds is None or type(needed) not in (int, float):
+        return False
+    if not link_up():
+        return False
+    try:
+        age = box_seconds()
+    except Exception:  # noqa: BLE001 - unreadable: Carbon's
+        return False
+    return type(age) is float and math.isfinite(age) and age >= needed
+
+
+def box_output(lane, script, *, timeout=PROBE_SECONDS):
+    """The stdout of one short read-only shell ``script`` on ``lane``'s box over ssh (bounded), or None on any fault."""
+    try:
+        done = subprocess.run(
+            [*_ssh(lane), "sh -c " + shlex.quote(script)],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            env=docker_environment(lane.docker_host),
+            timeout=timeout,
+            check=False,
+            cwd=os.sep,
+        )
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0 or len(done.stdout) > 65536:
+        return None
+    return done.stdout
 
 
 # -- recovery: the daemon an operation's intent names ---------------------------------------------------------------------
@@ -445,6 +485,7 @@ __all__ = [
     "SCHEMA",
     "RemoteLaneDown",
     "RemoteSpec",
+    "box_output",
     "cli_for",
     "current",
     "current_environment",

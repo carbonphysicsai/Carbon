@@ -594,11 +594,22 @@ class AutoGrader:
         pending task). ``turn`` is called before every order-dependent write after the grade's compute (a door grading
         in parallel commits in claim order, `grade_sequencer`); a door with one lane passes a no-op.
         """
+        from carbon.reconstruction import remote_lane
+
         from .lean_recipe_retention import RetentionUnavailable
 
-        sampler = _Sampler(
-            self.containers, self.sample_seconds, getattr(self, "gpu", None)
-        )
+        lane = remote_lane.current()
+        if lane is not None:
+            # a REMOTE round: the box's own containers and GPU, sampled there (CV-Motor L12624 (b)); each answered
+            # sample is a heartbeat of the link, an unanswered one (None) never quiet ((c))
+            from . import host_quiet
+
+            containers, gpu = host_quiet.box_counters(lane)
+            sampler = _Sampler(containers, self.sample_seconds, gpu)
+        else:
+            sampler = _Sampler(
+                self.containers, self.sample_seconds, getattr(self, "gpu", None)
+            )
         started_ns = time.time_ns()
         try:
             self.activity = "grade"
