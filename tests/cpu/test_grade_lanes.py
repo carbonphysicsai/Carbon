@@ -397,8 +397,10 @@ def test_one_two_lane_door_runs_two_grade_rounds_at_once_one_per_lane(host, tmp_
         assert not (host / f"official-grading.{name}.holder").exists()
 
 
-def test_rounds_of_another_kind_still_never_overlap(host, tmp_path):
-    """A build (advance) round never runs beside a grade round of the same door, as before."""
+def test_without_owner_claims_rounds_of_another_kind_still_never_overlap(
+    host, tmp_path
+):
+    """A door whose rounds take no owners keeps the old rule: a build round never runs beside a grade round."""
     work = _WorkLock(host, poll_s=POLL, lanes=LANES)
     grade = _start_round(work, "grade")
     assert grade[0].wait(5)
@@ -411,23 +413,71 @@ def test_rounds_of_another_kind_still_never_overlap(host, tmp_path):
     advance[3].join(5)
 
 
-def test_a_waiting_build_round_is_not_starved_by_new_grade_rounds(host):
+def test_a_build_round_and_a_grade_round_run_at_once_each_on_its_own_lane(
+    host, tmp_path
+):
+    """A19 (Lead, 16 Nov 2026): a build (advance) round runs beside a grade round of the same door, each on a lane."""
     work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    work.overlap_kinds = (
+        True  # a door whose rounds take owners (`grade_sequencer.OwnerClaims`)
+    )
     grade = _start_round(work, "grade")
     assert grade[0].wait(5)
     advance = _start_round(work, "advance")
-    time.sleep(0.2)  # the build round now waits for the grade round
-    late = _start_round(work, "grade")
-    assert not late[0].wait(0.3)  # a NEW grade round does not jump the waiting build
-    grade[1].set()
-    grade[3].join(5)
     assert advance[0].wait(5)
-    assert not late[0].is_set()
-    advance[1].set()
-    advance[3].join(5)
+    assert sorted(r[2][0][0].index for r in (grade, advance)) == [0, 1]
+    for round_ in (grade, advance):
+        round_[1].set()
+        round_[3].join(5)
+
+
+def test_a_waiting_build_round_is_not_starved_by_new_grade_rounds(host):
+    """Both lanes grading, a build round waits: the next free lane goes to the build, not to a NEW grade round."""
+    work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    work.overlap_kinds = (
+        True  # a door whose rounds take owners (`grade_sequencer.OwnerClaims`)
+    )
+    grades = [_start_round(work, "grade") for _ in range(2)]
+    for grade in grades:
+        assert grade[0].wait(5)
+    advance = _start_round(work, "advance")
+    time.sleep(0.2)  # the build round now waits for a lane
+    late = _start_round(work, "grade")
+    assert not late[0].wait(0.3)
+    grades[0][1].set()
+    grades[0][3].join(5)
+    assert advance[0].wait(5)  # the freed lane went to the waiting build
+    assert not late[0].wait(0.3)
+    grades[1][1].set()
+    grades[1][3].join(5)
     assert late[0].wait(5)
-    late[1].set()
-    late[3].join(5)
+    for round_ in (advance, late):
+        round_[1].set()
+        round_[3].join(5)
+
+
+def test_a_waiting_grade_round_is_not_starved_by_new_build_rounds(host):
+    work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    work.overlap_kinds = (
+        True  # a door whose rounds take owners (`grade_sequencer.OwnerClaims`)
+    )
+    builds = [_start_round(work, "advance") for _ in range(2)]
+    for build in builds:
+        assert build[0].wait(5)
+    grade = _start_round(work, "grade")
+    time.sleep(0.2)
+    late = _start_round(work, "advance")
+    assert not late[0].wait(0.3)
+    builds[0][1].set()
+    builds[0][3].join(5)
+    assert grade[0].wait(5)
+    assert not late[0].wait(0.3)
+    builds[1][1].set()
+    builds[1][3].join(5)
+    assert late[0].wait(5)
+    for round_ in (grade, late):
+        round_[1].set()
+        round_[3].join(5)
 
 
 def test_a_one_lane_door_still_runs_one_round_at_a_time(host):
