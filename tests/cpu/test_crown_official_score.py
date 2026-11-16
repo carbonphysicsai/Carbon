@@ -392,13 +392,7 @@ def test_the_king_page_shows_the_official_margin_and_a_bar_never_below_the_real_
         assert shown >= king_total + MARGIN - 1e-12, (king_total, shown)
     # the live 116 case: a king floored to 0.66 shows 0.693 (the true bar lies between 0.673 and 0.693)
     assert koth_public.to_beat_v2(0.66, MARGIN) == 0.693
-    assert koth_public.TO_BEAT_RULE_FLOOR == "floor_plus_step_plus_margin"
-    # owner 16 Nov: the page's bar is now the crown rule's own, the exact king total + the margin, rounded UP
-    assert koth_public.TO_BEAT_RULE == "king_plus_margin"
-    for king_total in (0.5, 0.55999, 0.6, 0.66, 0.6655, 0.7129, 0.79):
-        shown = koth_public.to_beat_exact(king_total, MARGIN)
-        assert king_total + MARGIN - 1e-12 <= shown < king_total + MARGIN + 0.001
-    assert koth_public.to_beat_exact(0.77951, MARGIN) == 0.793
+    assert koth_public.TO_BEAT_RULE == "floor_plus_step_plus_margin"
 
 
 def test_off_the_king_page_is_as_before(monkeypatch):

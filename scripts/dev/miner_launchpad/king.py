@@ -28,14 +28,17 @@ import urllib.parse
 import urllib.request
 
 SCHEMA = "carbon.koth.public.v1"
-#: v2 (read first when the grader serves it, at its own path): v1 plus ``to_beat_rule``. Since 16 Nov
-#: (`TO_BEAT_RULE`) the totals are shown to 3 decimals (half up) and the score to beat is the crown
-#: rule's own bar, the king's exact total (no king: the baseline) + the margin, rounded up to 3 places.
+#: v2 (read first when the grader serves it, at its own path): v1 plus ``to_beat_rule``, with the
+#: conservative score to beat (the step-floored total + one Ladder step + the margin, rounded up).
 SCHEMA_V2 = "carbon.koth.public.v2"
 V2_SUFFIX = "/v2"
-TO_BEAT_RULE = "king_plus_margin"
-#: a grader before 16 Nov: the step-floored total + one Ladder step + the margin, rounded up
-TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin"
+TO_BEAT_RULE = "floor_plus_step_plus_margin"
+#: v3 (owner 16 Nov; read first, at its own path): v2's fields, the totals shown to 3 decimals (half
+#: up) and the crown rule's own bar, the king's exact total (no king: the baseline) + the margin,
+#: rounded up to 3 places. An older grader has no v3 route (404): v2, then v1, is read instead.
+SCHEMA_V3 = "carbon.koth.public.v3"
+V3_SUFFIX = "/v3"
+TO_BEAT_RULE_EXACT = "king_plus_margin"
 #: crown averaging on: the king's rebuild mean plus the averaging margin, rounded up; only the sum is public, so the
 #: reader checks its range, not its arithmetic
 TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
@@ -86,16 +89,16 @@ def _total(value, *, nullable=True):
 
 def parse(document, challenge_id):
     """The route's answer for `challenge_id`, checked field by field."""
-    v2 = type(document) is dict and document.get("schema") == SCHEMA_V2
+    v2 = type(document) is dict and document.get("schema") in (SCHEMA_V2, SCHEMA_V3)
     if (
         type(document) is not dict
         or set(document) != (FIELDS_V2 if v2 else FIELDS)
-        or document["schema"] not in (SCHEMA, SCHEMA_V2)
+        or document["schema"] not in (SCHEMA, SCHEMA_V2, SCHEMA_V3)
         or document["challenge_id"] != challenge_id
         or (
             v2
             and document["to_beat_rule"]
-            not in (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_FLOOR)
+            not in (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_EXACT)
         )
     ):
         raise KingUnreadable("shape")
@@ -133,7 +136,7 @@ def parse(document, challenge_id):
     # receipt: the margin itself is never part of the tolerance).
     held = king["total"] if king is not None else baseline
     averaged = v2 and document["to_beat_rule"] == TO_BEAT_RULE_AVERAGED
-    exact_bar = v2 and document["to_beat_rule"] == TO_BEAT_RULE
+    exact_bar = v2 and document["to_beat_rule"] == TO_BEAT_RULE_EXACT
     if to_beat is not None and averaged:
         if held is None:
             raise KingUnreadable("to_beat")
@@ -194,8 +197,8 @@ def read(intake, challenge_id, *, timeout=10.0, opener=_open):
         return None, NO_GRADER
     url = intake.rstrip("/") + PATH + urllib.parse.quote(challenge_id, safe="")
     raw = None
-    # v2 first when the grader serves it (404 means it does not: an older grader), then the v1 route
-    for candidate in (url + V2_SUFFIX, url):
+    # v3, then v2, when the grader serves them (404 means it does not: an older grader), then the v1 route
+    for candidate in (url + V3_SUFFIX, url + V2_SUFFIX, url):
         try:
             with opener(candidate, timeout=timeout) as response:
                 raw = response.read(MAX_BYTES + 1)

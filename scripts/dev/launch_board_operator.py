@@ -67,6 +67,14 @@ is exactly the v1 run: same requests, same reads, same bytes.
 Turn v2 on for a door only after the dashboard Worker that reads launch-board.v2 is
 deployed; until then a v2 board would be refused there and the last good board kept.
 
+`"board": "v6"` (owner 16 Nov: "Show scores to 3 decimals, so a lead smaller than the
+margin is visible. Make the posted bar match the real rule.") is the v5 run built from
+the receiver's v3 king document (`GET /carbon/v1/koth/<id>/v3`): totals at 3 decimals
+(half up) and the bar `koth_public.TO_BEAT_RULE_EXACT`. A receiver that serves v1 but
+no v3 yet is refused (`receiver_no_v3`), never shown as kingless. The same rule holds:
+turn v6 on only after the Worker that reads launch-board.v6 and the door that serves
+v3 are deployed; v1-v5 runs are unchanged.
+
 Exit codes: 0 every board written and uploaded; 2 a board could not be built, checked
 or uploaded (the run names which and why).
 
@@ -102,7 +110,7 @@ from carbon.dashboard import feed as dashboard_feed
 CONFIG_SCHEMA = "carbon.launch-board.operator.config.v1"
 NAMES = {"schema", "network", "ledger", "receiver_url", "key", "out", "challenges"}
 OPTIONAL = {"upload_command", "fetch_timeout_seconds", "board"}
-BOARDS = ("v1", "v2", "v3", "v4", "v5")
+BOARDS = ("v1", "v2", "v3", "v4", "v5", "v6")
 CHALLENGE_NAMES = {"id", "version", "exam_version_label"}
 CHALLENGE_OPTIONAL = {"exam_key"}
 #: What a v2 Challenge must also name; a v1 config never carries them.
@@ -137,7 +145,9 @@ def load_config(path):
         "v3",
         "v4",
         "v5",
-    )  # v3 is v2 plus the king's stability; v4 adds measure + checks; v5 is v3 plus crown time + row reasons
+        "v6",
+    )  # v3 is v2 plus the king's stability; v4 adds measure + checks; v5 is v3 plus crown time + row reasons; v6 is
+    # v5's shape with totals to 3 decimals
     for item in raw["challenges"]:
         required = CHALLENGE_NAMES | (CHALLENGE_V2 if v2 else set())
         if (
@@ -163,13 +173,24 @@ def load_config(path):
     return raw
 
 
-def fetch_king(receiver_url, challenge, timeout, *, v2=False):
+def fetch_king(receiver_url, challenge, timeout, *, v2=False, v3=False):
     """The receiver's king document for ``challenge`` (its v2 document at its own path
-    when ``v2``), or None when it publishes none yet (404); an unreachable or malformed
-    answer is `OperatorRefused`."""
+    when ``v2``, its v3 one when ``v3``), or None when it publishes none yet (404); an
+    unreachable or malformed answer is `OperatorRefused`. With ``v3``, a 404 is "none
+    yet" only when the v1 route is 404 too: a receiver serving v1 but no v3 (a door
+    before 16 Nov) is `OperatorRefused` ("receiver_no_v3"), never a kingless board."""
     url = f"{receiver_url}{koth_public.PATH}{challenge['id']}"
+    if v3:
+        found = _fetch_king(url + koth_public.V3_SUFFIX, challenge, timeout)
+        if found is None and _fetch_king(url, challenge, timeout) is not None:
+            raise OperatorRefused("receiver_no_v3")
+        return found
     if v2:
         url += koth_public.V2_SUFFIX
+    return _fetch_king(url, challenge, timeout)
+
+
+def _fetch_king(url, challenge, timeout):
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
             body = response.read(MAX_KOTH_BYTES + 1)
@@ -190,9 +211,14 @@ def fetch_king(receiver_url, challenge, timeout, *, v2=False):
     return document
 
 
-def unpublished_king(challenge, *, v2=False):
+def unpublished_king(challenge, *, v2=False, v3=False):
     """The king document of a receiver that publishes none yet: no king, no margin."""
-    return (koth_public.document_v2 if v2 else koth_public.document)(
+    build = (
+        koth_public.document_v3
+        if v3
+        else koth_public.document_v2 if v2 else koth_public.document
+    )
+    return build(
         challenge_id=challenge["id"],
         challenge_version=challenge["version"],
         exam_version_label=challenge["exam_version_label"],
@@ -252,14 +278,15 @@ class _ReadOnlyLedger:
             yield connection
 
 
-def v2_sources(config, item, king_document, exam_key):
+def v2_sources(config, item, king_document, exam_key, *, v3=False):
     """``(crown_changes, exact_totals)`` for a v2 board, read here, on the validator host,
     from the receiver's pool store and ledger (both read-only). The crown changes are the
     receiver's own `PoolKingView.crown_changes`; the exact totals are
     `launch_board.exact_best_totals` on ``exam_key`` (the sealed pack digest the board's
     rows are read under), with the king's entry its standing. They are returned to
     `run_once` only, which hands them to `launch_board.build`: nothing here writes, prints or keeps them. No pool store yet is
-    no change of king and no exact total."""
+    no change of king and no exact total. With ``v3`` (a v6 board) the crown changes show
+    each total as the v3 king page does (3 decimals, half up)."""
     from carbon.challenge_validator import exam_cap
 
     if not os.path.lexists(item["pool_store"]):
@@ -283,7 +310,7 @@ def v2_sources(config, item, king_document, exam_key):
             item["id"], version=item["version"]
         ),
     )
-    changes = view.crown_changes(limit=launch_board.MAX_CROWN_CHANGES)
+    changes = view.crown_changes(limit=launch_board.MAX_CROWN_CHANGES, v3=v3)
     king_model_id = None
     if king_document["king"] is not None:
         # The king row's exact entry is the standing of the king the document names; a
@@ -349,18 +376,16 @@ def king_stability(config, item, king_document):
 def official_rule(item, king):
     """The v2 king document with the bar's rule NAMED as it decides: for a version that registers official-score crowns
     (`official_score`), a door whose king page still says the averaged id (`koth_public.TO_BEAT_RULE_AVERAGED`, a receiver
-    before the official bar's id) is shown under the single-grade floored id (`koth_public.TO_BEAT_RULE_FLOOR`), the
-    single-grade rule that decides its crowns. Only the name: the score to beat is the door's own number (for this rule
-    both ids give the same guaranteed bound, floor + step + margin, rounded up), so it is never named
-    `koth_public.TO_BEAT_RULE` (the exact total + margin, 16 Nov), which is not how that number was made. Any other
-    document is returned as it is.
+    before the official bar's id) is shown under the single-grade id (`koth_public.TO_BEAT_RULE`), the rule that decides
+    its crowns. Only the name: the score to beat is the door's own number (for this rule both ids give the same
+    guaranteed bound, floor + step + margin, rounded up). Any other document is returned as it is.
     """
     if (
         type(king) is dict
         and king.get("to_beat_rule") == koth_public.TO_BEAT_RULE_AVERAGED
         and official_score(item)
     ):
-        return {**king, "to_beat_rule": koth_public.TO_BEAT_RULE_FLOOR}
+        return {**king, "to_beat_rule": koth_public.TO_BEAT_RULE}
     return king
 
 
@@ -527,8 +552,10 @@ def run_once(config, *, version=None):
     out.mkdir(parents=True, exist_ok=True)
     version = launch_board.now_version() if version is None else version
     timeout = config.get("fetch_timeout_seconds", 10)
-    v2 = config.get("board") in ("v2", "v3", "v4", "v5")
-    v5 = config.get("board") == "v5"
+    v2 = config.get("board") in ("v2", "v3", "v4", "v5", "v6")
+    v6 = config.get("board") == "v6"  # v5's run, from the v3 king document
+    v5 = v6 or config.get("board") == "v5"
+    three = {"v3": True} if v6 else {}
     v4 = config.get("board") == "v4"
     v3 = v5 or v4 or config.get("board") == "v3"
     rows = []
@@ -539,23 +566,26 @@ def run_once(config, *, version=None):
         name = slug_of(item) + ".json"
         row = {"challenge": item["id"], "version": item["version"], "file": name}
         try:
-            king = fetch_king(config["receiver_url"], item, timeout, v2=v2)
-            king = unpublished_king(item, v2=v2) if king is None else king
+            king = fetch_king(config["receiver_url"], item, timeout, v2=v2, **three)
+            king = unpublished_king(item, v2=v2, **three) if king is None else king
             exam_key = item.get("exam_key", "latest")
-            extra = {}
+            extra = {"v6": True} if v6 else {}
             if v2:
-                king = official_rule(item, king)
+                if not v6:
+                    # a v3 king page never states the averaged id on an official-score door
+                    king = official_rule(item, king)
                 # The closed v2 king check the build makes, first: the sources read
                 # only a king document of exactly that shape.
-                launch_board._king(king, v2=True)
+                launch_board._king(king, v2=True, v6=v6)
                 if exam_key == "latest":
                     # one exam for the rows and their exact totals, resolved once
                     exam_key = latest_exam_key(config["ledger"], challenge)
                 try:
-                    changes, exact = v2_sources(config, item, king, exam_key)
+                    changes, exact = v2_sources(config, item, king, exam_key, **three)
                 except (sqlite3.Error, StateError):
                     raise OperatorRefused("pool_store_unavailable") from None
                 extra = {
+                    **extra,
                     "crown_changes": changes,
                     "exact_totals": exact,
                     "rebuild_noise": koth_registry.rebuild_noise(
@@ -606,7 +636,11 @@ def run_once(config, *, version=None):
             )
             if v2:
                 row.update(
-                    board="v5" if v5 else "v4" if v4 else "v3" if v3 else "v2",
+                    board=(
+                        "v6"
+                        if v6
+                        else "v5" if v5 else "v4" if v4 else "v3" if v3 else "v2"
+                    ),
                     crown_changes=len(board["crown_changes"]),
                 )
             if upload(config.get("upload_command"), path, name):

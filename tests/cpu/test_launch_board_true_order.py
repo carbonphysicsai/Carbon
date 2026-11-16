@@ -1,7 +1,6 @@
 """OWNER-BOARD-TRUE-ORDER-01: the v2 board's rank is the TRUE order. The king is always rank 1, the others follow by
-descending EXACT best total, equal ranks only when the exact totals are bit-equal. Owner 16 Nov: a row whose exact total
-is its own shows it to 3 places (half up; other rows keep the floored total), and no exact total reaches the signed
-bytes. The v1 board is unchanged."""
+descending EXACT best total, equal ranks only when the exact totals are bit-equal; the published total stays
+step-floored and no exact total reaches the signed bytes. The v1 board is unchanged."""
 
 from __future__ import annotations
 
@@ -88,9 +87,7 @@ def test_the_order_follows_exact_totals_inside_one_floored_step():
     }  # all three challengers show 0.70
     board = _board(exact)
     assert _ranks(board) == [(HOTKEY, 1), (B, 2), (C, 3), (A, 4)]
-    # owner 16 Nov: each shows its own exact total to 3 places (half up), not the shared floored total
-    assert [row["total"] for row in board["ladder"][1:]] == [0.715, 0.713, 0.71]
-    assert {_floor(exact[h]) for h in (A, B, C)} == {_floor(0.71)}  # one step cell
+    assert {row["total"] for row in board["ladder"][1:]} == {lb.floor9(_floor(0.71))}
 
 
 def test_bit_equal_exact_totals_share_a_rank_and_only_those():
@@ -106,7 +103,7 @@ def test_bit_equal_exact_totals_share_a_rank_and_only_those():
     assert len({r for _, r in _ranks(_board(near))[1:]}) == 2
 
 
-def test_the_signed_bytes_hold_no_exact_total():
+def test_the_signed_bytes_hold_no_unfloored_total():
     exact = {HOTKEY: 0.8037421953, A: 0.7129184761, B: 0.7101552937}
     board = _board(exact)
     blob = lb._canonical({k: v for k, v in board.items() if k != "signature"})
@@ -117,7 +114,9 @@ def test_the_signed_bytes_hold_no_exact_total():
     assert "exact" not in blob  # no field name that could carry one
     for row in board["ladder"]:
         assert row["total"] is None or lb.on_nine(row["total"])
-        assert row["total"] == kp.shown_total(exact[row["hotkey"]])  # 3 places only
+        assert row["total"] == lb.floor9(
+            _floor(exact[row["hotkey"]])
+        )  # step-floored only
     assert lb.verify(board, KEY.public_key) == board
 
 
@@ -293,14 +292,14 @@ def test_an_exact_total_orders_only_rows_that_also_hold_one():
 
 
 def test_a_challenger_without_an_exact_total_at_the_kings_shown_total_co_ranks_one():
+    king_shown = _partial({HOTKEY: 0.7123}, {HOTKEY: 0.7123})["king"]["king"]["total"]
     document = kp.document_v2(
         **_args(king={"hotkey": HOTKEY, "total": 0.7123, "since_epoch": 12})
     )
     scored = {"status": "IMPROVED", "gate_names": []}
     rows = [
         (HOTKEY, {"total": 0.7123}, scored),
-        # the king's own floored total (his step cell), no exact total held
-        (A, {"total": lb.floor9(_floor(0.7123))}, scored),
+        (A, {"total": king_shown}, scored),  # equal floored total, no exact total held
         (B, {"total": lb.floor9(_floor(0.60))}, scored),
     ]
     board = lb.build(
@@ -505,9 +504,7 @@ def test_a_king_whose_crown_mean_is_below_its_single_best_shows_the_floored_mean
     document = kp.document_v2(
         **_args(king={"hotkey": HOTKEY, "total": 0.7712, "since_epoch": 12})
     )
-    koth_total = document["king"][
-        "total"
-    ]  # what the king page shows: the mean, 3 places
+    koth_total = document["king"]["total"]  # what the king page shows: the floored mean
     single_best = {
         "total": lb.floor9(0.80)
     }  # the Ladder's best row for the king: a higher single grade
@@ -536,6 +533,6 @@ def test_a_king_whose_crown_mean_is_below_its_single_best_shows_the_floored_mean
     )  # the single best is NOT what the king row shows
     assert king_row["rank"] == 1 and _ranks(board) == [(HOTKEY, 1), (A, 2)]
     assert lb.verify(board, KEY.public_key) == board
-    # another row shows its own exact total to 3 places (owner 16 Nov)
+    # other rows keep their floored ladder best
     other = next(r for r in board["ladder"] if r["hotkey"] == A)
-    assert other["total"] == 0.713
+    assert other["total"] == lb.floor9(_floor(0.7129))

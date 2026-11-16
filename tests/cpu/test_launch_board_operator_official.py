@@ -118,8 +118,8 @@ def test_the_boards_score_to_beat_is_the_doors_for_an_official_score_version(
 ):
     """V2B 15 Nov: under official-score crowns the door's v2 king page (built by the receiver's own king view, with its
     `_crown_bar` and `_page_noise`) and the board carry the SAME score to beat, under the original single-grade id
-    (`koth_public.TO_BEAT_RULE`: since 16 Nov the exact king total + the margin, rounded up), never below the real bar
-    (the exact official total + the margin)."""
+    (`koth_public.TO_BEAT_RULE`: the guaranteed bound, the step-floored king total + step + margin, rounded up), never
+    below the real bar (the exact official total + the margin)."""
     import types
 
     from carbon.challenge_validator import crown_average, direct_receiver

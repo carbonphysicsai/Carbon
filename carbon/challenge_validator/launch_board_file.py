@@ -10,7 +10,7 @@ key.** It verifies; it does not sign.
 A board is served only when all of these hold:
 
 - the file is a readable JSON object of at most `MAX_BYTES`;
-- it is a v1, v2, v3, v4 or v5 board (`launch_board.SCHEMA` .. `SCHEMA_V5`) in its closed shape
+- it is a v1, v2, v3, v4, v5 or v6 board (`launch_board.SCHEMA` .. `SCHEMA_V6`) in its closed shape
   (`launch_board.check`): no field outside that schema's allow-lists, so nothing finer
   than the Ladder's rounded totals, the king document, counts and (v2) the crown
   changes can appear; an exact total never can;
@@ -19,8 +19,8 @@ A board is served only when all of these hold:
   and with ``pinned_key`` (64 hex, the key the operator configured) when one is given;
 - every total it shows (the king's, each ladder row's and, on a v2 board, each crown
   change's) is exactly on the Ladder step of its own margin: none is finer than a miner
-  sees; on a v2-v5 board a total at 3 decimals also passes (owner 16 Nov: totals shown
-  to 3 decimals, `koth_public.shown_total`);
+  sees; on a v6 board a total at 3 decimals also passes (owner 16 Nov: totals shown to
+  3 decimals, `koth_public.shown_total`); v1-v5 boards are checked exactly as before;
 - the key is not the dashboard's public fixture key: a fixture-signed board is never
   served, and the dashboard refuses it too.
 
@@ -76,6 +76,7 @@ def read_board(path, challenge_id, pinned_key=None):
                 launch_board.SCHEMA_V3,
                 launch_board.SCHEMA_V4,
                 launch_board.SCHEMA_V5,
+                launch_board.SCHEMA_V6,
             )
             or (board.get("challenge") or {}).get("id") != challenge_id
         ):
@@ -117,9 +118,9 @@ def _on_the_ladder_step(board):
     # a v2 board's crown changes show each past king's step-floored total (`koth_public.PoolKingView.crown_changes`)
     totals += [change["total"] for change in board.get("crown_changes", ())]
     nudge = Decimal(1).scaleb(-9)
-    # owner 16 Nov: a v2-v5 board shows a total at 3 decimals (koth_public.TOTAL_DECIMALS, half up from the exact one)
-    # wherever the exact total is held; any other total there is still the Ladder's floored one. A v1 board is unchanged.
-    three = board["schema"] != launch_board.SCHEMA
+    # owner 16 Nov: a v6 board shows a total at 3 decimals (koth_public.TOTAL_DECIMALS, half up from the exact one)
+    # wherever the exact total is held; any other total there is still the Ladder's floored one
+    three = board["schema"] == launch_board.SCHEMA_V6
     grid = Decimal(1).scaleb(-koth_public.TOTAL_DECIMALS)
 
     def on_grid(total):

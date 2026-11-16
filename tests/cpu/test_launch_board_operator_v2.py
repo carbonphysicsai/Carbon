@@ -343,18 +343,19 @@ def test_the_v2_board_has_the_crown_changes_and_the_true_order(tmp_path, door, f
     assert lb.verify(document, lb.LaunchBoardKey(SEED).public_key) == document
     assert document["schema"] == lb.SCHEMA_V2
     assert document["king"]["to_beat_rule"] == kp.TO_BEAT_RULE
+    noise = koth_registry.rebuild_noise(COOLING["id"])["value"]
     assert document["crown_changes"] == [
         {
             "from_hotkey": OTHER,
             "to_hotkey": KING,
             "since_epoch": 12,
-            "total": kp.shown_total(KING_EXACT),
+            "total": lb.floor9(gf.floor_to_step(KING_EXACT, noise)),
         },
         {
             "from_hotkey": None,
             "to_hotkey": OTHER,
             "since_epoch": 10,
-            "total": kp.shown_total(OTHER_EXACT),
+            "total": lb.floor9(gf.floor_to_step(OTHER_EXACT, noise)),
         },
     ]
     assert [(r["hotkey"], r["rank"]) for r in document["ladder"]] == [
@@ -529,7 +530,7 @@ def test_a_ladder_row_with_no_exact_total_keeps_its_floored_order(
     noise = koth_registry.rebuild_noise(COOLING["id"])["value"]
     assert [(r["hotkey"], r["rank"], r["total"]) for r in document["ladder"]] == [
         (KING, 1, document["king"]["king"]["total"]),
-        (OTHER, 2, kp.shown_total(OTHER_EXACT)),
+        (OTHER, 2, lb.floor9(gf.floor_to_step(OTHER_EXACT, noise))),
         (third, 3, lb.floor9(gf.floor_to_step(0.5, noise))),
     ]
     text = _board_bytes(config, COOLING).decode()

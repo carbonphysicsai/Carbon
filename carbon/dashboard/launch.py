@@ -54,6 +54,10 @@ DOMAIN_V4 = b"carbon.validator.launch-board.v4\x00"
 # (PUBLIC_REASONS on a NOT_SCORED row that stopped at the inference wall, else null). Held equal to launch_board's v5.
 SCHEMA_V5 = "carbon.validator.launch-board.v5"
 DOMAIN_V5 = b"carbon.validator.launch-board.v5\x00"
+# v6 (owner 16 Nov) = v5's shape exactly, under its own domain: totals to 3 decimals (half up) and the bar
+# `king_plus_margin` (the king's exact total + the margin, rounded up). Held equal to launch_board's v6.
+SCHEMA_V6 = "carbon.validator.launch-board.v6"
+DOMAIN_V6 = b"carbon.validator.launch-board.v6\x00"
 PUBLIC_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
 MEASURE_STATES = ("MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED")
 DECIDED_OUTCOMES = (
@@ -81,6 +85,7 @@ SCHEMAS = {
     SCHEMA_V3: DOMAIN_V3,
     SCHEMA_V4: DOMAIN_V4,
     SCHEMA_V5: DOMAIN_V5,
+    SCHEMA_V6: DOMAIN_V6,
 }
 MAX_CROWN_CHANGES = 5
 TOTAL = "total"
@@ -121,13 +126,14 @@ FIELDS = frozenset(
 FIELDS_V2 = FIELDS | {"crown_changes"}
 CROWN_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
 KING_FIELDS = frozenset({"king", "margin", "to_beat", "baseline_total"})
-# v2 king section names its rule; v1 has none. Since 16 Nov: the king's exact total + the margin, rounded up
-TO_BEAT_RULE = "king_plus_margin"
-# a board built before 16 Nov: the step-floored total + one step + the margin, rounded up
-TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin"
+TO_BEAT_RULE = (
+    "floor_plus_step_plus_margin"  # v2 king section names its rule; v1 has none
+)
 # a door with crown averaging on: the bar is the king's rebuild mean plus the averaging margin, rounded up
 TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
-TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_FLOOR)
+# a v6 board (owner 16 Nov): the king's exact total + the margin, rounded up
+TO_BEAT_RULE_EXACT = "king_plus_margin"
+TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED, TO_BEAT_RULE_EXACT)
 KING_ROW = frozenset({"hotkey", "total", "since_epoch"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
 
@@ -260,7 +266,8 @@ def _crown_checks(checks):
 
 
 def _check(document):
-    v5 = document.get("schema") == SCHEMA_V5
+    v6 = document.get("schema") == SCHEMA_V6
+    v5 = v6 or document.get("schema") == SCHEMA_V5
     v4 = document.get("schema") == SCHEMA_V4
     v3 = v5 or v4 or document.get("schema") == SCHEMA_V3
     v2 = v3 or document.get("schema") == SCHEMA_V2

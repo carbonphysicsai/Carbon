@@ -3023,8 +3023,8 @@ def _crown_bar(pool_store, challenge_id):
 
     if crown_official.ACTIVE is not None:
         # Official-score crowns (owner 14 Nov) ARE the single-grade rule: the king's official total + the rule's margin.
-        # So the page keeps the single-grade bar (`koth_public.TO_BEAT_RULE`: since 16 Nov the king's exact total +
-        # `_page_noise`'s margin, rounded up), under its own id, never the averaged one.
+        # So the page keeps the original bar (`koth_public.TO_BEAT_RULE`: the step-floored king total + step + margin,
+        # rounded up, with `_page_noise`'s margin), under its original id, never the averaged one.
         return None
     active = crown_average.ACTIVE
     if active is None:

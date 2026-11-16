@@ -311,10 +311,12 @@ def _variants(signer, boards):
         reason="TIMED_OUT",
         signed_under=launch.DOMAIN_V5,
         mutate=None,
+        schema=launch.SCHEMA_V5,
+        rule=launch.TO_BEAT_RULE,
     ):
         body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
-        body["schema"] = launch.SCHEMA_V5
-        body["king"]["to_beat_rule"] = launch.TO_BEAT_RULE
+        body["schema"] = schema
+        body["king"]["to_beat_rule"] = rule
         body["king"]["stability"] = "STABLE"
         body["king"]["crowned_utc"] = crowned
         body["crown_changes"] = two
@@ -341,6 +343,29 @@ def _variants(signer, boards):
     v5("v5_bad_crown_time", crowned="15 Nov")
     v5("v5_missing_reason_key", mutate=lambda b: b["ladder"][0].pop("reason"))
     v5("v5_signed_under_v3_domain", signed_under=launch.DOMAIN_V3)
+
+    # v6 (owner 16 Nov): v5's shape under its own domain, totals to 3 decimals and the bar king_plus_margin
+    def v6(name, **changes):
+        v5(
+            name,
+            **{
+                "schema": launch.SCHEMA_V6,
+                "rule": launch.TO_BEAT_RULE_EXACT,
+                "signed_under": launch.DOMAIN_V6,
+                **changes,
+            },
+        )
+
+    def three_places(body):
+        body["ladder"][0]["total"] = 0.781  # the king row, as the v3 king page shows it
+        body["king"]["king"]["total"] = 0.781
+        body["king"]["to_beat"] = 0.794
+
+    v6("v6_exact_rule", mutate=three_places)
+    v6("v6_averaged_rule", rule=launch.TO_BEAT_RULE_AVERAGED)
+    v6("v6_wrong_rule", rule="king_plus_nothing")
+    v6("v6_signed_under_v5_domain", signed_under=launch.DOMAIN_V5)
+    v5("v5_signed_under_v6_domain", signed_under=launch.DOMAIN_V6)
     return out
 
 
@@ -395,8 +420,14 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
         "v5_bad_crown_time",
         "v5_missing_reason_key",
         "v5_signed_under_v3_domain",
+        "v6_wrong_rule",
+        "v6_signed_under_v5_domain",
+        "v5_signed_under_v6_domain",
     ):
         assert codes[name] is not None, name
+    assert codes["v6_exact_rule"] is None and codes["v6_averaged_rule"] is None
+    six = dict(expected_v2)["v6_exact_rule"]["board"]["launch"]
+    assert six["to_beat"] == 0.794 and six["crowned_utc"] == "2026-11-15T03:48:35Z"
     page = dict(expected_v2)["v4_in_progress"]["board"]["launch"]
     assert page["king_measure"] == {"state": "IN_PROGRESS", "kept": 3, "n": 10}
     assert [c["state"] for c in page["crown_checks"]] == ["DECIDED", "PENDING"]

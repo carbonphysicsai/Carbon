@@ -30,6 +30,9 @@ export const LAUNCH_DOMAIN_V4 = "carbon.validator.launch-board.v4\u0000";
 // v5 = v3 plus the king's `crowned_utc` and a ladder-row `reason` (held equal to launch.py's v5).
 export const LAUNCH_SCHEMA_V5 = "carbon.validator.launch-board.v5";
 export const LAUNCH_DOMAIN_V5 = "carbon.validator.launch-board.v5\u0000";
+// v6 (owner 16 Nov) = v5's shape exactly: totals to 3 decimals, the bar king_plus_margin (held equal to launch.py's v6).
+export const LAUNCH_SCHEMA_V6 = "carbon.validator.launch-board.v6";
+export const LAUNCH_DOMAIN_V6 = "carbon.validator.launch-board.v6\u0000";
 const LAUNCH_PUBLIC_REASONS = ["TIMED_OUT", "STOPPED_EARLY"];
 const LAUNCH_MEASURE_STATES = ["MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED"];
 const LAUNCH_DECIDED = ["FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "INCUMBENT_DETHRONED"];
@@ -618,11 +621,11 @@ const LAUNCH_MAX_LADDER = 512;
 const LAUNCH_MAX_GATES = 16;
 const LAUNCH_FIELDS = ["challenge", "counts", "generated_at", "king", "labels", "ladder", "network", "schema", "signature", "validator", "version"];
 const LAUNCH_KING_FIELDS = ["baseline_total", "king", "margin", "to_beat"];
-// since 16 Nov: the king's exact total + the margin, rounded up (koth_public); a board built before says the floored rule
-const LAUNCH_TO_BEAT_RULE = "king_plus_margin";
-const LAUNCH_TO_BEAT_RULE_FLOOR = "floor_plus_step_plus_margin";
+const LAUNCH_TO_BEAT_RULE = "floor_plus_step_plus_margin";
 // a door with crown averaging on: the king's rebuild mean plus the averaging margin, rounded up (koth_public)
 const LAUNCH_TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n";
+// a v6 board (owner 16 Nov): the king's exact total + the margin, rounded up (koth_public.TO_BEAT_RULE_EXACT)
+const LAUNCH_TO_BEAT_RULE_EXACT = "king_plus_margin";
 const LAUNCH_KING_ROW = ["hotkey", "since_epoch", "total"];
 const LAUNCH_LADDER_FIELDS = ["gate_names", "hotkey", "rank", "status", "total"];
 const LAUNCH_SS58 = /^[1-9A-HJ-NP-Za-km-z]{47,48}$/u;
@@ -670,7 +673,8 @@ function launchCrownChecks(checks) {
   }
 }
 function launchCheck(document) {
-  const v5 = get(document, "schema") === LAUNCH_SCHEMA_V5;
+  const v6 = get(document, "schema") === LAUNCH_SCHEMA_V6;
+  const v5 = v6 || get(document, "schema") === LAUNCH_SCHEMA_V5;
   const v4 = get(document, "schema") === LAUNCH_SCHEMA_V4;
   const v3 = v5 || v4 || get(document, "schema") === LAUNCH_SCHEMA_V3;
   const v2 = v3 || get(document, "schema") === LAUNCH_SCHEMA_V2;
@@ -693,7 +697,7 @@ function launchCheck(document) {
   if (!sameKeys(validator, ["feed_key"]) || typeof validator.feed_key !== "string" || !HEX_KEY.test(validator.feed_key)) throw new FeedRefused("validator_invalid");
   const king = get(document, "king");
   if (!sameKeys(king, v5 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "crowned_utc"].sort() : v4 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "measure"].sort() : v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
-  if (v2 && ![LAUNCH_TO_BEAT_RULE, LAUNCH_TO_BEAT_RULE_AVERAGED, LAUNCH_TO_BEAT_RULE_FLOOR].includes(king.to_beat_rule)) throw new FeedRefused("king_invalid");
+  if (v2 && ![LAUNCH_TO_BEAT_RULE, LAUNCH_TO_BEAT_RULE_AVERAGED, LAUNCH_TO_BEAT_RULE_EXACT].includes(king.to_beat_rule)) throw new FeedRefused("king_invalid");
   if (v4) {
     launchMeasure(king.measure, king.king);
     const expected = king.king === null ? null : ({MEASURED: "STABLE", UNSTABLE: "UNSTABLE"})[king.measure.state] ?? null;
@@ -736,12 +740,13 @@ function launchCheck(document) {
 }
 async function projectLaunch(document, pinned) {
   if (pinned.fixture) throw new FeedRefused("fixture_launch_board");
-  const v5 = document.schema === LAUNCH_SCHEMA_V5;
+  const v6 = document.schema === LAUNCH_SCHEMA_V6;
+  const v5 = v6 || document.schema === LAUNCH_SCHEMA_V5;
   const v4 = document.schema === LAUNCH_SCHEMA_V4;
   const v3 = v5 || v4 || document.schema === LAUNCH_SCHEMA_V3;
   const v2 = v3 || document.schema === LAUNCH_SCHEMA_V2;
-  const domain = v5 ? LAUNCH_DOMAIN_V5 : v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
-  const signer = await verify(document, pinned, domain, v5 ? LAUNCH_SCHEMA_V5 : v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
+  const domain = v6 ? LAUNCH_DOMAIN_V6 : v5 ? LAUNCH_DOMAIN_V5 : v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
+  const signer = await verify(document, pinned, domain, v6 ? LAUNCH_SCHEMA_V6 : v5 ? LAUNCH_SCHEMA_V5 : v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
   const counts = launchCheck(document);
   const ladder = document.ladder;
   const king = document.king;
@@ -818,7 +823,7 @@ async function projectLaunch(document, pinned) {
 }
 
 export async function project(document, pinned) {
-  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4, LAUNCH_SCHEMA_V5].includes(get(document, "schema"))) return projectLaunch(document, pinned);
+  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4, LAUNCH_SCHEMA_V5, LAUNCH_SCHEMA_V6].includes(get(document, "schema"))) return projectLaunch(document, pinned);
   const signer = await verify(document, pinned);
   if (own(document, "live")) throw new FeedRefused("live_not_authorized");
   const vals = values(get(document, "values"));

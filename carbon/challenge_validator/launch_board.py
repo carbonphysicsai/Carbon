@@ -62,16 +62,14 @@ from .feed_file import canonical as _canonical
 from .feed_file import write_feed
 from .koth_public import FIELDS as KOTH_FIELDS
 from .koth_public import FIELDS_V2 as KOTH_FIELDS_V2
-from .koth_public import KING_FIELDS, TO_BEAT_RULES, shown_total
+from .koth_public import KING_FIELDS, TO_BEAT_RULES, TO_BEAT_RULES_V3, shown_total
+from .koth_public import SCHEMA_V3 as KOTH_SCHEMA_V3
 from .score_feed import FeedKey, FeedRefused
 
 SCHEMA = "carbon.validator.launch-board.v1"
 BOARD_DOMAIN = b"carbon.validator.launch-board.v1\x00"
 #: The v2 board: v1's shape plus the king's ``to_beat_rule`` and ``crown_changes``, under its OWN signing domain. v1
 #: stays byte-identical and is still built from a v1 king document; a v1 signature never verifies as v2 or the reverse.
-#: Since 16 Nov (owner: "Show scores to 3 decimals"), a v2-v5 board shows a ladder row's own exact total at 3 decimals
-#: (half up; `ladder_rows`), and its king section and crown changes are the v2 king page's (3 decimals, the bar
-#: `koth_public.TO_BEAT_RULE`). Same schemas and signing domains: the field sets and types are unchanged.
 SCHEMA_V2 = "carbon.validator.launch-board.v2"
 BOARD_DOMAIN_V2 = b"carbon.validator.launch-board.v2\x00"
 #: The v3 board (OWNER-CROWN-AVG-UNSTABLE-KING-01, Validator 3 Nov receipted wording): v2's shape plus ONE king field, ``stability``
@@ -97,6 +95,14 @@ MEASURE_STATES = ("MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED")
 #: official-score king has no rebuild measure. v1-v4 stay byte-identical; no other version's signature verifies as v5.
 SCHEMA_V5 = "carbon.validator.launch-board.v5"
 BOARD_DOMAIN_V5 = b"carbon.validator.launch-board.v5\x00"
+#: The v6 board (owner 16 Nov: "Show scores to 3 decimals, so a lead smaller than the margin is visible. Make the posted
+#: bar match the real rule."): v5's shape exactly, under its OWN signing domain, built from the v3 king document
+#: (`koth_public.document_v3`). A ladder row whose exact total is its own shows it at `koth_public.TOTAL_DECIMALS` (half
+#: up); a row with none keeps its floored total; the king section and crown changes are the v3 king page's (3 decimals,
+#: the bar `koth_public.TO_BEAT_RULE_EXACT` or the averaged one). The order is v5's true order, unchanged. A new version
+#: because the dashboard readers before 16 Nov refuse the new rule id on a v2-v5 board: v1-v5 stay byte-identical.
+SCHEMA_V6 = "carbon.validator.launch-board.v6"
+BOARD_DOMAIN_V6 = b"carbon.validator.launch-board.v6\x00"
 #: The NOT_SCORED reasons a public row may name (`grade_feedback.REASONS`): the two counted wall outcomes only. Any other
 #: reason stays the miner's own feedback; the row says null.
 PUBLIC_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
@@ -217,6 +223,8 @@ class BoardRefused(ValueError):
 def _domain(document):
     """The signing domain of a board's schema: v2 and v3 each have their own, anything else is v1's."""
     schema = document.get("schema")
+    if schema == SCHEMA_V6:
+        return BOARD_DOMAIN_V6
     if schema == SCHEMA_V5:
         return BOARD_DOMAIN_V5
     if schema == SCHEMA_V4:
@@ -248,11 +256,13 @@ def _unit(value, code):
     return float(value)
 
 
-def _king(raw, *, v2=False):
-    """The closed king document (`koth_public.document`'s shape, or `document_v2`'s) or a refusal."""
+def _king(raw, *, v2=False, v6=False):
+    """The closed king document (`koth_public.document`'s shape, or `document_v2`'s; with ``v6``, `document_v3`'s,
+    whose field set is v2's) or a refusal."""
+    v2 = v2 or v6
     if type(raw) is not dict or set(raw) != (KOTH_FIELDS_V2 if v2 else KOTH_FIELDS):
         raise BoardRefused("board_king")
-    if v2 and raw["to_beat_rule"] not in TO_BEAT_RULES:
+    if v2 and raw["to_beat_rule"] not in (TO_BEAT_RULES_V3 if v6 else TO_BEAT_RULES):
         raise BoardRefused("board_king")
     king = raw["king"]
     if king is not None:
@@ -410,6 +420,7 @@ def ladder_rows(
     king_shown=None,
     rebuild_noise=None,
     reasons=False,
+    three=False,
 ):
     """The board's ladder from `ladder_store.board_rows`: ``[(hotkey, best,
     latest)]`` with each document as the Ladder serves it. One row per hotkey:
@@ -422,16 +433,18 @@ def ladder_rows(
     which ``exact`` holds no total (only the crown path keeps one) is ordered by its own floored total, as on v1; none
     is invented. An exact total orders its row only when it IS that row's total: floored the Ladder's way (its step,
     from ``rebuild_noise``, the Challenge's registration as the Ladder reads it, or None) it gives the row's published
-    total; otherwise the row keeps the floored rule (Validator, 1 Nov 19:05 CST). On such a board the KING row is
-    ordered by ``king_total`` (the crown standing's step-floored total) rather than its single best grade.
-
-    Shown totals on such a board (owner 16 Nov, display only; the order above is unchanged): a row whose exact total is
-    its own (the check above) shows it at `koth_public.TOTAL_DECIMALS`, half up (`koth_public.shown_total`); a row
-    with none keeps its floored total; the KING row shows ``king_shown`` (the king page's total) when given, so the
-    board and the king page always agree. A v1 board (no ``exact``) is exactly as before: floored totals only.
+    total; otherwise the row keeps the floored rule (Validator, 1 Nov 19:05 CST). The published ``total`` stays
+    step-floored, and the exact totals never leave this function: only the order is revealed. On such a
+    board the KING row's shown total is ``king_total`` (the crown standing's floored total, as the king page shows it)
+    rather than its single best grade, so the board and the king page always agree.
 
     With ``reasons`` (a v5 board) each row also carries ``reason``: `PUBLIC_REASONS` for a NOT_SCORED latest result that
     stopped at the inference wall, else null.
+
+    With ``three`` (a v6 board, with ``exact``; owner 16 Nov, display only, the order above unchanged) a row whose exact
+    total is its own (the check above) shows it at `koth_public.TOTAL_DECIMALS`, half up (`koth_public.shown_total`); a
+    row with none keeps its floored total; the KING row shows ``king_shown`` (the v3 king page's total) when given, so
+    the board and the king page always agree. The exact totals themselves still never leave this function.
     """
     kept = []
     reason_of = {}
@@ -467,21 +480,22 @@ def ladder_rows(
         keys, own = _true_order(kept, exact, king_hotkey, _noise_value(rebuild_noise))
         kept = [row for row, _ in keys]
         keys = [key for _, key in keys]
-        # owner 16 Nov: the shown total is the row's own exact total at 3 decimals (half up); a row with none keeps its
-        # floored total; the king row shows what the king page shows. The order above is unchanged.
-        kept = [
-            (
-                h,
+        if three:
+            # v6: the row's own exact total at 3 decimals (half up), else its floored total; the king row as the v3
+            # king page shows it. The order above is unchanged.
+            kept = [
                 (
-                    king_shown
-                    if h == king_hotkey and king_shown is not None
-                    else t if own[h] is None else shown_total(own[h])
-                ),
-                st,
-                g,
-            )
-            for h, t, st, g in kept
-        ]
+                    h,
+                    (
+                        king_shown
+                        if h == king_hotkey and king_shown is not None
+                        else t if own[h] is None else shown_total(own[h])
+                    ),
+                    st,
+                    g,
+                )
+                for h, t, st, g in kept
+            ]
     out, rank, previous = [], 0, object()
     for position, ((hotkey, total, status, gates), key) in enumerate(
         zip(kept, keys, strict=True), 1
@@ -660,6 +674,7 @@ def build(
     measure=_ABSENT,
     crown_checks=None,
     crowned_utc=_ABSENT,
+    v6=False,
 ):
     """The signed launch board for one Challenge.
 
@@ -668,12 +683,21 @@ def build(
     `ladder_store.board_rows`; ``key`` a `LaunchBoardKey`; ``version`` a whole
     number that grows with every build (the Worker keeps the last-good board
     when it does not). A v2 board also takes ``exact_totals`` and ``rebuild_noise`` (the Challenge's registration, or
-    None when none is registered: the Ladder's step), with no default, so neither can be left out.
+    None when none is registered: the Ladder's step), with no default, so neither can be left out. ``v6`` (a v5
+    board's arguments, and the v3 king document `koth_public.document_v3`) builds the v6 board: totals to 3 decimals.
     """
     if network not in NETWORKS:
         raise BoardRefused("board_network")
     if type(version) is not int or version < 1:
         raise BoardRefused("board_version")
+    if v6 is not False and v6 is not True:
+        raise BoardRefused("board_v6")
+    if v6 and crowned_utc is _ABSENT:
+        raise BoardRefused("board_v6_is_v5_shape")
+    if v6 and (
+        type(king_document) is not dict or king_document.get("schema") != KOTH_SCHEMA_V3
+    ):
+        raise BoardRefused("board_king")  # a v6 board shows the v3 king page only
     v5 = crowned_utc is not _ABSENT
     v4 = measure is not _ABSENT
     v3 = v5 or v4 or stability is not _ABSENT
@@ -686,7 +710,7 @@ def build(
         raise BoardRefused(
             "board_v4_needs_stability_and_checks"
         )  # v4 is v3 plus two fields
-    king = _king(king_document, v2=v2)
+    king = _king(king_document, v2=v2, v6=v6)
     if v3 and not _stability_ok(stability, king["king"], measure if v4 else _ABSENT):
         raise BoardRefused("board_stability")
     if v2 and exact_totals is None:
@@ -697,29 +721,43 @@ def build(
         raise BoardRefused("board_rebuild_noise_required")
     shown_king = king["king"]
     order_total = None if shown_king is None else shown_king["total"]
-    if v2 and shown_king is not None and type(exact_totals) is dict:
-        # the king row is ordered by his step-floored total, as before 16 Nov; a v2 king page now shows his total at 3
-        # decimals, so the floored one is taken from his exact standing when the operator holds it
-        own = exact_totals.get(shown_king["hotkey"])
-        if type(own) is float and math.isfinite(own) and 0.0 <= own <= 1.0:
-            order_total = floor9(gf.floor_to_step(own, _noise_value(rebuild_noise)))
+    if v6 and shown_king is not None:
+        # the king row is ordered by his step-floored total, as on v2-v5; the v3 king page shows his total at 3
+        # decimals, so the floored one is taken from his exact standing (the operator holds it)
+        own = (
+            exact_totals.get(shown_king["hotkey"])
+            if type(exact_totals) is dict
+            else None
+        )
+        if type(own) is not float or not math.isfinite(own) or not 0.0 <= own <= 1.0:
+            raise BoardRefused("board_v6_king_exact")
+        order_total = floor9(gf.floor_to_step(own, _noise_value(rebuild_noise)))
     ladder = ladder_rows(
         rows,
         exact=exact_totals if v2 else None,
         king_hotkey=None if shown_king is None else shown_king["hotkey"],
         king_total=order_total,
-        king_shown=None if shown_king is None or not v2 else shown_king["total"],
+        king_shown=None if shown_king is None or not v6 else shown_king["total"],
         rebuild_noise=rebuild_noise if v2 else None,
         reasons=v5,
+        three=v6,
     )
     if v5 and not _crowned_ok(crowned_utc, king["king"]):
         raise BoardRefused("board_crowned_utc")
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
         "schema": (
-            SCHEMA_V5
-            if v5
-            else SCHEMA_V4 if v4 else SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA
+            SCHEMA_V6
+            if v6
+            else (
+                SCHEMA_V5
+                if v5
+                else (
+                    SCHEMA_V4
+                    if v4
+                    else SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA
+                )
+            )
         ),
         "version": version,
         "labels": list(LABELS[network]),
@@ -747,7 +785,8 @@ def build(
 def check(document, *, unsigned=False):
     """The document when it has exactly the board's closed shape, else a
     `BoardRefused`: the writer's last step and the reader's first."""
-    v5 = type(document) is dict and document.get("schema") == SCHEMA_V5
+    v6 = type(document) is dict and document.get("schema") == SCHEMA_V6
+    v5 = v6 or (type(document) is dict and document.get("schema") == SCHEMA_V5)
     v4 = type(document) is dict and document.get("schema") == SCHEMA_V4
     v3 = v5 or v4 or (type(document) is dict and document.get("schema") == SCHEMA_V3)
     v2 = v3 or (type(document) is dict and document.get("schema") == SCHEMA_V2)
@@ -757,7 +796,8 @@ def check(document, *, unsigned=False):
     if type(document) is not dict or set(document) != want:
         raise BoardRefused("board_fields")
     if (
-        document["schema"] not in (SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5)
+        document["schema"]
+        not in (SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6)
         or document["network"] not in NETWORKS
     ):
         raise BoardRefused("board_schema")
@@ -814,6 +854,7 @@ def check(document, *, unsigned=False):
             },
         },
         v2=v2,
+        v6=v6,
     )
     shown = [king[name] for name in ("margin", "to_beat", "baseline_total")]
     if king["king"] is not None:
@@ -924,6 +965,7 @@ def build_from_ledger(
     measure=_ABSENT,
     crown_checks=None,
     crowned_utc=_ABSENT,
+    v6=False,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -947,6 +989,7 @@ def build_from_ledger(
         measure=measure,
         crown_checks=crown_checks,
         crowned_utc=crowned_utc,
+        v6=v6,
     )
 
 

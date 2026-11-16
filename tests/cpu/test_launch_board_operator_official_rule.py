@@ -27,7 +27,6 @@ from test_launch_board_operator_v2 import (  # noqa: F401 - the fixtures and hel
 from carbon.challenge_validator import crown_official, koth_registry
 from carbon.challenge_validator import koth_public as kp
 from carbon.challenge_validator import launch_board as lb
-from carbon.scoring import grade_feedback as gf
 
 REAL = crown_official.registered
 MARGIN = 0.0129
@@ -80,15 +79,12 @@ def test_an_official_score_board_names_the_single_grade_rule_with_the_doors_numb
     served = _averaged_king()
     assert served["to_beat_rule"] == kp.TO_BEAT_RULE_AVERAGED
     board = _run(tmp_path, door, served)
-    # the door's number is the floored bound, so it is named by the floored single-grade id, never the 16 Nov
-    # `king_plus_margin` id (the exact total + margin), which is not how that number was made
-    assert board["king"]["to_beat_rule"] == kp.TO_BEAT_RULE_FLOOR
+    assert board["king"]["to_beat_rule"] == kp.TO_BEAT_RULE
     assert (
         board["king"]["to_beat"] == served["to_beat"]
     )  # the door's number, not recomputed
     # for this rule both ids give the same guaranteed bound
-    # (the v2 page shows the king's total to 3 places since 16 Nov; the floored bound uses his step-floored total)
-    floored = gf.floor_to_step(KING_EXACT, MARGIN)
+    floored = served["king"]["total"]
     assert kp.to_beat_v2(floored, MARGIN) == served["to_beat"]
 
 

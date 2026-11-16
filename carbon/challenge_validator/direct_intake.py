@@ -534,6 +534,9 @@ class DirectRecipeIntake(BatteryIntake):
         if asked.endswith(koth_public.V2_SUFFIX):
             # the v2 document at its own path; v1 is served unchanged at the existing one
             asked, serve = asked[: -len(koth_public.V2_SUFFIX)], koth_public.serve_v2
+        elif asked.endswith(koth_public.V3_SUFFIX):
+            # the v3 document (owner 16 Nov: totals to 3 decimals, the crown rule's own bar) at its own path
+            asked, serve = asked[: -len(koth_public.V3_SUFFIX)], koth_public.serve_v3
         if asked != self.challenge.challenge_id:
             return _refused(404, "not_found")
         status, body = serve(self.koth_view, self.challenge)
