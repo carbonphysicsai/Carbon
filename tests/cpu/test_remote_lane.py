@@ -683,3 +683,43 @@ def test_the_record_s_only_flag(tmp_path):
     with pytest.raises(ValueError, match="remote_lane_record"):
         remote_lane.load_record(tmp_path)
     assert grade_lanes.door_remote_only(tmp_path) is False
+
+
+def test_a_rebuild_on_a_remote_lane_is_never_quiet():
+    """Its neighbours on the remote machine are invisible to this host's `docker ps`: a failure there is Carbon's."""
+    from carbon.challenge_validator import host_quiet
+
+    token = host_quiet.activate(
+        lock_held=True, containers=lambda: 1, gpu=lambda: 0, seconds=1
+    )
+    try:
+        with grade_lanes.bound(_remote()):
+            verdict = host_quiet.finish(host_quiet.start())
+    finally:
+        host_quiet.deactivate(token)
+    assert verdict.quiet is False
+
+
+def test_the_receipt_worker_tests_every_lane_lock():
+    from carbon.backbone_catalog import receipt_job
+
+    assert {
+        f"official-grading.lane-{i}.lock" for i in range(1, grade_lanes.ALL_LANES)
+    } == set(receipt_job.LANE_LOCKS)
+
+
+def test_a_door_whose_state_root_is_the_host_root_has_no_record_of_its_own(
+    tmp_path, monkeypatch
+):
+    entry = {"docker_host": HOST, "cpuset": "0-3", "stage_root": ROOT}
+    _record(tmp_path, [entry])
+    plain = _values(
+        tmp_path, {"lanes": 2}
+    )  # no remote_lanes: the host's record needs it
+    monkeypatch.setattr(grade_lanes, "door_lanes", lambda *a, **k: ("0-3", "4-7"))
+    assert (
+        grade_lanes.door_remote_lanes(
+            "m", "1.8", registry=plain, host_root=tmp_path, state_root=tmp_path
+        )
+        == ()
+    )

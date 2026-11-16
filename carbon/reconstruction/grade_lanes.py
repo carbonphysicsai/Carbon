@@ -217,8 +217,16 @@ def door_remote_lanes(
     remote = ()
     try:
         from carbon.reconstruction import remote_lane
+        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
 
-        own = remote_lane.load(state_root) if state_root is not None else ()
+        own = (
+            remote_lane.load(state_root)
+            if state_root is not None
+            # a door whose state root IS the host root has no record of its own: the host's needs the values row
+            and Path(state_root).resolve()
+            != Path(HOST_ROOT if host_root is None else host_root).resolve()
+            else ()
+        )
         wanted = registered_remote_lanes(challenge_id, version, path=registry)
         if not door_lanes(
             challenge_id,

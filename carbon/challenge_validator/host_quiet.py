@@ -236,7 +236,30 @@ def start():
     params = _ACTIVE.get()
     if params is None:
         return None
+    from carbon.reconstruction import remote_lane
+
+    if remote_lane.current() is not None:
+        # a REMOTE lane's containers run on another machine this host's `docker ps` cannot see: its neighbours there
+        # are invisible, so it is never provably quiet (a failure is Carbon's, never the model's)
+        return _NotQuiet()
     return Probe(**params).start()
+
+
+class _NotQuiet:
+    """A probe whose verdict is never quiet (a rebuild on a remote lane: its host cannot be observed from here)."""
+
+    def verdict(self):
+        return QuietVerdict(
+            lock_held=False,
+            samples=0,
+            unknown_samples=0,
+            max_worker_containers=None,
+            stop_worker_containers=None,
+            gpu_unknown_samples=0,
+            max_foreign_gpu=None,
+            stop_foreign_gpu=None,
+            quiet=False,
+        )
 
 
 def finish(probe):

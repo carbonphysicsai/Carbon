@@ -1343,8 +1343,11 @@ def _door_remote_only(intake, grading_lock_dir, state_dir):
     """Whether this door's own remote record asks for its remote lanes alone (`grade_lanes.door_remote_only`)."""
     if grading_lock_dir is None or state_dir is None:
         return False
-    from carbon.reconstruction import grade_lanes
+    from carbon.reconstruction import grade_lanes, remote_lane
 
+    if (Path(state_dir) / remote_lane.RECORD).exists():
+        # the door's OWN record was installed on purpose: a broken one refuses the start (never silently local lanes)
+        remote_lane.load_record(state_dir)
     return grade_lanes.door_remote_only(state_dir)
 
 
