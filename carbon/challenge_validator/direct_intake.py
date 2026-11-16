@@ -1211,7 +1211,8 @@ def serve_loopback(
             threading.Thread(
                 target=_advance_loop,
                 args=(intake, stop, work, getattr(grader, "oldest_pending_ns", None)),
-                kwargs={"idle_s": ADVANCE_IDLE_S if advance_rounds > 1 else 1},
+                # N parallel build rounds wait longer when idle; one keeps the loop's default (and its signature)
+                kwargs={"idle_s": ADVANCE_IDLE_S} if advance_rounds > 1 else {},
                 daemon=True,
             )
         )
