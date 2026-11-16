@@ -1204,6 +1204,8 @@ def serve_loopback(
         adapter.owner_claims = claims
         if grader is not None:
             grader.owner_claims = claims
+        # only now may a build round run beside a grade round: every round of this door takes its owner
+        work.overlap_kinds = True
     for _ in range(advance_rounds):
         threads.append(
             threading.Thread(
@@ -1254,8 +1256,9 @@ def serve_loopback(
             finally:
                 # Cancel through the durable task API, then retain provider
                 # ownership until the finite carrier observes stop.
-                if threads[1] in started:
-                    threads[1].join()
+                for thread in threads[1 : 1 + advance_rounds]:
+                    if thread in started:
+                        thread.join()
                 if threads[0] in started:
                     threads[0].join(5)
                 if serving.ident is not None:
@@ -1424,6 +1427,8 @@ class _WorkLock:
         #: at once too (A19), never two of one owner (`grade_sequencer.OwnerClaims`). One lane: one slot, ``_lock`` held for
         #: the whole round, exactly today.
         self._parallel = len(self._lanes) > 1
+        #: A19: rounds of both kinds may run at once (set by the serving loop when every round takes its owner).
+        self.overlap_kinds = False
         self._slots = threading.BoundedSemaphore(max(1, len(self._lanes)))
         self._kinds = threading.Condition()
         #: The live rounds of this door: ``{round: (kind, in-flight record)}`` (parallel mode only).
@@ -1729,6 +1734,47 @@ class _WorkLock:
     # -- parallel rounds (lane mode, two or more lanes) ------------------------------------------------------------------
 
     def _enter_parallel(self, kind):
+        if not getattr(self, "overlap_kinds", False):
+            return self._enter_parallel_one_kind(kind)
+        return self._enter_parallel_both_kinds(kind)
+
+    def _enter_parallel_one_kind(self, kind):
+        """Take one of this door's round slots, then wait until no live round of another kind runs (a door whose rounds
+        take no owners, `grade_sequencer.OwnerClaims`: an owner's ledger lease is non-blocking). Polls, and gives up
+        the round (`WorkDeclined`) as soon as the door stops or drains."""
+        while not self._slots.acquire(timeout=self._poll):
+            reason = self._declined()
+            if reason is not None:
+                raise WorkDeclined(reason)
+        try:
+            with self._kinds:
+                waiting = False
+                try:
+                    while any(other != kind for other, _ in self._live.values()) or any(
+                        count and other != kind
+                        for other, count in self._kind_waiters.items()
+                    ):
+                        if not waiting and any(
+                            other != kind for other, _ in self._live.values()
+                        ):
+                            waiting = True
+                            self._kind_waiters[kind] = (
+                                self._kind_waiters.get(kind, 0) + 1
+                            )
+                        self._kinds.wait(self._poll)
+                        reason = self._declined()
+                        if reason is not None:
+                            raise WorkDeclined(reason)
+                finally:
+                    if waiting:
+                        self._kind_waiters[kind] -= 1
+                        self._kinds.notify_all()
+                self._live[threading.get_ident()] = (kind, None)
+        except BaseException:
+            self._slots.release()
+            raise
+
+    def _enter_parallel_both_kinds(self, kind):
         """Take one of this door's round slots (A19, Lead 16 Nov 2026: rounds of BOTH kinds run at once, each on its own
         lane; owners never overlap, `grade_sequencer.OwnerClaims`). Fairness: while another kind waits for a slot and
         has no live round, a kind that already has one live round starts no NEW one, so neither builds nor grades are
@@ -1987,6 +2033,11 @@ def _round(work, kind, has_work=None, since=None):
     return taking(kind, has_work=has_work, since=since)
 
 
+#: OPERATIONAL, not science: how long an advance loop with nothing to start waits before its next round (it takes
+#: a lane for each round).
+ADVANCE_IDLE_S = 5
+
+
 def _advance_loop(intake, stop, work=None, since=None):
     work = work or _WorkLock(stop=stop)
     failures = 0
@@ -1994,8 +2045,10 @@ def _advance_loop(intake, stop, work=None, since=None):
         wait = 1
         try:
             with _round(work, "advance", since=since):
-                intake.advance()
+                moved = intake.advance()
             failures = 0
+            if not moved:
+                wait = ADVANCE_IDLE_S  # nothing queued: an idle build round holds no lane every second
         except WorkDeclined:
             pass  # stopping, draining, or the host lock is another door's: never a failure
         except Exception as failure:  # noqa: BLE001 - no private content in log

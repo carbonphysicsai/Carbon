@@ -467,7 +467,7 @@ class AutoGrader:
         claims = getattr(self, "owner_claims", None)
         if self._prelude_due(self.pending()):
             # the incumbent's steps run in the king's owner's ledger: no owner is in any round meanwhile (A19)
-            with sequencer.exclusive(), owner_exclusive(claims):
+            with owner_exclusive(claims), sequencer.exclusive():
                 self._settle_queue_places()
                 self.activity = "king"
                 try:
@@ -541,6 +541,9 @@ class AutoGrader:
                     self._log_copy_waits()
                     if spent:
                         return None
+                    if claims is not None and taken:
+                        # its owner is free again for a build round (the round goes on with another task)
+                        claims.release(taken.pop())
                     # its group's later tasks keep their order behind it
                     held.add(group)
                     continue

@@ -397,11 +397,30 @@ def test_one_two_lane_door_runs_two_grade_rounds_at_once_one_per_lane(host, tmp_
         assert not (host / f"official-grading.{name}.holder").exists()
 
 
+def test_without_owner_claims_rounds_of_another_kind_still_never_overlap(
+    host, tmp_path
+):
+    """A door whose rounds take no owners keeps the old rule: a build round never runs beside a grade round."""
+    work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    grade = _start_round(work, "grade")
+    assert grade[0].wait(5)
+    advance = _start_round(work, "advance")
+    assert not advance[0].wait(0.5)
+    grade[1].set()
+    grade[3].join(5)
+    assert advance[0].wait(5)
+    advance[1].set()
+    advance[3].join(5)
+
+
 def test_a_build_round_and_a_grade_round_run_at_once_each_on_its_own_lane(
     host, tmp_path
 ):
     """A19 (Lead, 16 Nov 2026): a build (advance) round runs beside a grade round of the same door, each on a lane."""
     work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    work.overlap_kinds = (
+        True  # a door whose rounds take owners (`grade_sequencer.OwnerClaims`)
+    )
     grade = _start_round(work, "grade")
     assert grade[0].wait(5)
     advance = _start_round(work, "advance")
@@ -415,6 +434,9 @@ def test_a_build_round_and_a_grade_round_run_at_once_each_on_its_own_lane(
 def test_a_waiting_build_round_is_not_starved_by_new_grade_rounds(host):
     """Both lanes grading, a build round waits: the next free lane goes to the build, not to a NEW grade round."""
     work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    work.overlap_kinds = (
+        True  # a door whose rounds take owners (`grade_sequencer.OwnerClaims`)
+    )
     grades = [_start_round(work, "grade") for _ in range(2)]
     for grade in grades:
         assert grade[0].wait(5)
@@ -436,6 +458,9 @@ def test_a_waiting_build_round_is_not_starved_by_new_grade_rounds(host):
 
 def test_a_waiting_grade_round_is_not_starved_by_new_build_rounds(host):
     work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    work.overlap_kinds = (
+        True  # a door whose rounds take owners (`grade_sequencer.OwnerClaims`)
+    )
     builds = [_start_round(work, "advance") for _ in range(2)]
     for build in builds:
         assert build[0].wait(5)

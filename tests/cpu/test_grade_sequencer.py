@@ -356,3 +356,21 @@ def test_a_parallel_grade_skips_a_task_whose_owner_another_round_holds():
     }  # the grade round released its own owner
     grader.owner_claims.release("owner-a")
     assert grader._run_once() == ("a", "GRADED")
+
+
+def test_a_copy_that_waits_gives_its_owner_back_for_the_rest_of_the_round():
+    seen = []
+
+    def steps(grader, sid, turn):
+        seen.append(grader.owner_claims.held())
+        grader.marked.add(sid)
+        return sid, "GRADED"
+
+    grader = _grader(["a", "b"], steps)
+    grader._owner_of = lambda sid: "owner-" + sid
+    grader.owner_claims = grade_sequencer.OwnerClaims()
+    grader._copy_decision = lambda sid: ("wait", None) if sid == "a" else None
+    grader._log_copy_waits = lambda: None
+    assert grader._run_once() == ("b", "GRADED")
+    assert seen == [{"owner-b"}]  # while b grades, a's owner is free for a build round
+    assert grader.owner_claims.held() == set()
