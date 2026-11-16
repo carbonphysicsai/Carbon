@@ -157,9 +157,14 @@ def load_record(root=None):
 
 
 def current():
-    """The remote lane the running round is bound to (a `grade_lanes.Lane` with a ``docker_host``), or None."""
-    from carbon.reconstruction import grade_lanes
+    """The remote lane the running round is bound to (a `grade_lanes.Lane` with a ``docker_host``), or None. None too
+    while an op of the round is bound to a GPU build slot (`carbon.reconstruction.remote_gpu_build`): that op's
+    container, inputs, link and clock are its slot's machine's (or this host's, for a local slot), never the grade
+    box's."""
+    from carbon.reconstruction import grade_lanes, remote_gpu_build
 
+    if remote_gpu_build.current_op() is not None:
+        return None
     lane = grade_lanes.current()
     if lane is None or getattr(lane, "docker_host", None) is None:
         return None

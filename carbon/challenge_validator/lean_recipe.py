@@ -176,7 +176,8 @@ def _remote_gpu_build_guard(binding):
         seconds=BUILD_PROBE_SECONDS,
         require_samples=True,
     ).start()
-    return (lambda: _quiet_samples(probe)), probe.verdict
+    # stop: end the sampling only (no stop samples over a link that may be down, with the slot still held)
+    return (lambda: _quiet_samples(probe)), probe._stop.set
 
 
 @contextlib.contextmanager

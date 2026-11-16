@@ -1389,3 +1389,62 @@ def test_only_a_python_program_can_carry_the_slot_cap(host):
             remote_gpu_build.with_slot_prelude("x\n", program_name="program.jl")
             == "x\n"
         )
+
+
+def test_inside_a_remote_grade_round_a_gpu_slot_op_sees_only_its_own_machine(
+    host, monkeypatch
+):
+    """A19 build rounds may hold a REMOTE grade lane: an op bound to a GPU slot never reaches the grade box (its
+    daemon, its mirror, its link check), whether its slot is remote or this host's own.
+    """
+    from carbon.reconstruction import grade_lanes
+
+    grade = grade_lanes.Lane(
+        2, "0-3", str(host), "ssh://carbon-grade@grade-box.example", STAGE
+    )
+    for local, expected in ((False, HOST), (True, None)):
+        lane = _lane(host, slots=1, cpusets=("0-3",), local=local)
+        with grade_lanes.bound(grade):
+            assert remote_lane.current() is grade
+            with remote_gpu_build.offered(lane), _op():
+                assert remote_lane.current() is None
+                assert remote_lane.docker_host() == expected
+                assert remote_lane.intent_fields() == {}
+                links = []
+                monkeypatch.setattr(
+                    remote_lane,
+                    "link_up",
+                    lambda lane=None, _seen=links, **k: _seen.append(lane) or True,
+                )
+                remote_lane.wall_stop_observable(
+                    {"status": "OBSERVED"}, box_seconds=lambda: 100.0, needed=10
+                )
+                assert links == ([] if local else [remote_gpu_build.current_op()])
+            assert remote_lane.current() is grade
+
+
+def test_the_box_probe_stop_takes_no_more_samples(host, monkeypatch):
+    import time
+
+    from carbon.challenge_validator import host_quiet, lean_recipe
+
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    calls = []
+    monkeypatch.setattr(
+        host_quiet,
+        "box_counters",
+        lambda box: (
+            (lambda: calls.append("c") or 1),
+            (lambda: calls.append("g") or 0),
+        ),
+    )
+    monkeypatch.setattr(lean_recipe, "BUILD_PROBE_SECONDS", 0.01)
+    quiet, stop = lean_recipe._remote_gpu_build_guard(
+        remote_gpu_build.OpBinding(lane, 0)
+    )
+    time.sleep(0.05)
+    stop()
+    time.sleep(0.05)
+    before = len(calls)
+    time.sleep(0.05)
+    assert len(calls) == before and quiet() is True
