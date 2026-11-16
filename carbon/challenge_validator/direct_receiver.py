@@ -848,19 +848,38 @@ _REVISION_FIELDS = frozenset(
 )
 
 
-def _revision_only_change(frozen, candidate):
+#: The image fields of an owner's frozen manifest that may follow a DECLARED door migration of the worker images
+#: (`state_binding.migrated_images`): the run binding's image ids and the runtime's image list. Nothing else.
+_MIGRATED_IMAGE_FIELDS = {
+    "receiver_binding": frozenset(
+        {"parent_image", "inference_image", "construction_parents"}
+    ),
+    "runtime": frozenset({"images"}),
+}
+
+
+def _revision_only_change(frozen, candidate, *, images_migrated=False):
     """Whether ``frozen`` and ``candidate`` differ only by the accepted revision: every other field equal, ``runtime``
     and ``receiver_binding`` equal but for their ``implementation`` (so the same images, receiver, Challenge, pack and
-    owner), ``campaign_id`` the one the new binding derives."""
+    owner), ``campaign_id`` the one the new binding derives. With ``images_migrated`` (this state's door was moved to
+    new worker images by a declared migration, `state_binding.migrated_images`) the image fields
+    (`_MIGRATED_IMAGE_FIELDS`) may also differ, present or added, never dropped."""
     if set(frozen) != set(candidate):
         return False
     if any(frozen[k] != candidate[k] for k in candidate if k not in _REVISION_FIELDS):
         return False
     for key in ("runtime", "receiver_binding"):
         old, new = frozen[key], candidate[key]
-        if type(old) is not dict or type(new) is not dict or set(old) != set(new):
+        movable = _MIGRATED_IMAGE_FIELDS[key] if images_migrated else frozenset()
+        if type(old) is not dict or type(new) is not dict:
             return False
-        if any(old[k] != new[k] for k in new if k != "implementation"):
+        if not set(old) <= set(new) or set(new) - set(old) - movable:
+            return False
+        if any(
+            old.get(k) != new[k]
+            for k in new
+            if k != "implementation" and k not in movable
+        ):
             return False
     old, new = frozen["implementation"], candidate["implementation"]
     return (
@@ -1193,7 +1212,9 @@ def _retained_contracts(ledger):
     return found
 
 
-def _migrate_owner_manifest(ledger, hotkey, raw, frozen, candidate):
+def _migrate_owner_manifest(
+    ledger, hotkey, raw, frozen, candidate, *, images_migrated=False
+):
     """Re-freeze a retained owner's campaign manifest to a NEW accepted revision (Lead 4 Nov, option (a)), or False.
 
     A byte-exact carry of the owners/ store into a receiver on a newer revision met its own frozen manifest
@@ -1208,7 +1229,7 @@ def _migrate_owner_manifest(ledger, hotkey, raw, frozen, candidate):
     from carbon.development_session.profile import canonical, digest
     from carbon.reconstruction.served_recipe_contract import registered
 
-    if not _revision_only_change(frozen, candidate):
+    if not _revision_only_change(frozen, candidate, images_migrated=images_migrated):
         return False
     old, new = (
         frozen["implementation"]["revision"],
@@ -1578,6 +1599,7 @@ class OwnerProviders:
         parents=None,
         graph_gpu_image=None,
         graph_gpu_ops=None,
+        images_migrated=False,
     ):
         from carbon.development_session.gpu_practice import DirectParents
 
@@ -1593,6 +1615,8 @@ class OwnerProviders:
         self.inference_image = parent if inference_image is None else inference_image
         self.material_cache_bytes = material_cache_bytes
         self.evaluation_pack_digest = evaluation_pack_digest
+        #: the door of this state was moved to new worker images by a declared migration (`state_binding`)
+        self.images_migrated = images_migrated
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -1796,7 +1820,12 @@ class OwnerProviders:
                 if not (
                     restoring
                     and _migrate_owner_manifest(
-                        ledger, hotkey, row[0], frozen, candidate
+                        ledger,
+                        hotkey,
+                        row[0],
+                        frozen,
+                        candidate,
+                        images_migrated=self.images_migrated,
                     )
                 ):
                     raise ValueError("retained direct owner campaign binding changed")
@@ -2361,7 +2390,9 @@ def serve(
         # The door part is write-once for the state's life; each release's whole binding is added beside it, so a
         # later release (or a rollback to an earlier one) starts on the same state (`state_binding`).
         from carbon.challenge_validator.state_binding import bind as bind_state
+        from carbon.challenge_validator.state_binding import migrated_images
 
+        # a door moved by the operator's DECLARED migration (state_binding, M1-M5) is accepted here; nothing else moves
         bind_state(root, immutable)
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)
@@ -2380,6 +2411,7 @@ def serve(
             parents=parents,
             graph_gpu_image=graph_gpu_image,
             graph_gpu_ops=graph_gpu_ops,
+            images_migrated=migrated_images(root),
         )
         # A service (no lifetime) runs until it is stopped.
         timer = (

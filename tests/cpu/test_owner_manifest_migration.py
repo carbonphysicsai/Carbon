@@ -323,3 +323,36 @@ def test_the_validators_own_m2_check_of_the_a1_move_reproduces(old):
     if old_sha is None or new_sha is None:
         pytest.skip("this checkout lacks the door revisions")
     assert dr._grading_change(old_sha, new_sha, root) == ()
+
+
+def test_a_declared_door_image_migration_lets_the_manifest_adopt_the_new_images():
+    """`state_binding` M1-M5: on a state whose door was moved to new worker images by the operator's declared
+    migration, an owner's manifest may follow the image ids (run binding and runtime list), and only them.
+    """
+    frozen = _manifest(OLD)
+    moved = _manifest(NEW, image="sha256:" + "2" * 64)
+    assert not dr._revision_only_change(frozen, moved)
+    assert dr._revision_only_change(frozen, moved, images_migrated=True)
+    # an added image field (an inference image now distinct) is admitted, a dropped one is not
+    added = _manifest(NEW, image="sha256:" + "2" * 64)
+    added["receiver_binding"]["inference_image"] = "sha256:" + "3" * 64
+    assert dr._revision_only_change(frozen, added, images_migrated=True)
+    assert not dr._revision_only_change(
+        added | {"implementation": frozen["implementation"]},
+        frozen,
+        images_migrated=True,
+    )
+    # nothing else moves with it
+    for other in (
+        {**moved, "owner": "5Other"},
+        {**moved, "challenge": {"id": "f02", "version": "2.6"}},
+        {
+            **moved,
+            "receiver_binding": {
+                **moved["receiver_binding"],
+                "evaluation_pack_digest": "sha256:" + "9" * 64,
+            },
+        },
+        {**moved, "runtime": {**moved["runtime"], "extra": 1}},
+    ):
+        assert not dr._revision_only_change(frozen, other, images_migrated=True)
