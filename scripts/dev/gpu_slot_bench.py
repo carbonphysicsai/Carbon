@@ -142,7 +142,144 @@ assert jax.devices()[0].platform == "gpu", jax.devices()
 assert params[0][0].dtype == jnp.float64
 sys.stdout.buffer.write(b"".join(np.asarray(a).tobytes() for layer in params for a in layer))
 '''
-PROGRAMS = {"default": DEFAULT_PROGRAM, "motor18": MOTOR18_PROGRAM}
+#: Motor 1.8's REAL graph build (`physical_graph_adapter_v2.build_validated_graph` + `fit` + `frozen_state`, the build
+#: program's own path) on a public tanh MLP graph of the version's interface (8 inputs -> width x depth -> outputs;
+#: default 512 x 5, about the 15 Nov public bench graph) fitted on Motor 1.8's PUBLIC TRAIN, with item 7 (the compiled
+#: build forward, `physical_graph_adapter_v2.JIT_BUILD_VERSIONS`) ON or OFF. Needs the Carbon tree read-only at /carbon
+#: (`--carbon-tree`). The state bytes go to stdout (the digest); the build's own seconds and params digest go to stderr
+#: as one JSON line (`Run.report`), so container start and imports do not blur the comparison.
+GRAPH18_PROGRAM = '''"""Carbon GPU slot bench: Motor 1.8's real graph build, item 7 __MODE__."""
+import os
+import sys
+
+os.environ["JAX_ENABLE_X64"] = "true"  # Motor 1.8's interface is float64: on before JAX loads, as the build program
+sys.path.insert(0, "/carbon")
+
+import hashlib
+import io
+import json
+import time
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+
+from carbon.challenge_kit import physical_material
+from carbon.development_session import graph_adapters
+from carbon.development_session import physical_graph_adapter_v2 as adapter
+from carbon.development_session.construction_recipe import ConstructionRecipe
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import graph, initializers, intake, submission
+from carbon.level4.tooling import through_bprime
+
+KEY = ("electric-motor-magnetics", "1.8")
+COMPILED = __COMPILED__
+adapter.JIT_BUILD_VERSIONS = frozenset({KEY}) if COMPILED else frozenset()
+width = int(os.environ.get("CARBON_BENCH_WIDTH", "512"))
+depth = int(os.environ.get("CARBON_BENCH_DEPTH", "5"))
+training = {}
+for name, key in (("CARBON_BENCH_STEPS", "steps"), ("CARBON_BENCH_BATCH", "batch_size")):
+    if os.environ.get(name):
+        training[key] = int(os.environ[name])
+batch = training.get("batch_size", 8)
+spec = adapter.SPECS[KEY]
+allowed = allowlist_module.Allowlist(adapter.served_allowlist_bytes(*KEY))
+sizes = [spec.inputs] + [width] * depth + [spec.outputs]
+
+
+def forward(*args):
+    *params, x = args
+    for i in range(len(sizes) - 2):
+        x = jnp.tanh(x @ params[2 * i] + params[2 * i + 1])
+    return x @ params[-2] + params[-1]
+
+
+examples = []
+for a, b in zip(sizes[:-1], sizes[1:]):
+    examples += [jnp.zeros((a, b), jnp.float64), jnp.zeros((b,), jnp.float64)]
+examples.append(jnp.ones((batch, spec.inputs), jnp.float64))
+names = [f"params/{i}" for i in range(len(examples) - 1)] + [adapter.INPUT_NAME]
+_, document, _ = through_bprime(
+    forward,
+    tuple(examples),
+    role="forward",
+    allowlist=allowed,
+    input_names=names,
+    max_bytes=intake.BOUNDS["document_bytes"],
+)
+parameters = []
+for i in range(len(examples) - 1):
+    weight = i % 2 == 0
+    parameters.append(
+        {
+            "input": f"params/{i}",
+            "initializer": "glorot_normal" if weight else "zeros",
+            "fan_in_axes": [0] if weight else [],
+            "fan_out_axes": [1] if weight else [],
+        }
+    )
+init_spec = {"schema": initializers.SCHEMA, "graph": graph.digest(document), "parameters": parameters}
+manifest, files = submission.build(
+    challenge=spec.challenge_id,
+    interface=adapter.graph_interface(spec).digest(),
+    allowlist=allowed,
+    forward=document,
+    init_spec=init_spec,
+)
+document = graph_adapters.graph_recipe(
+    *KEY, submission.digest(manifest), configuration={"training": training}
+)
+document["procedure"]["train_use"]["train_fraction"] = 1.0
+recipe = ConstructionRecipe.from_dict(document)
+with np.load(io.BytesIO(physical_material.bundle_material(*KEY)["train"]), allow_pickle=False) as archive:
+    inputs, targets = archive["inputs"].copy(), archive["targets"].copy()
+started = time.perf_counter()
+model = adapter.build_validated_graph(
+    recipe,
+    submission.canonical(manifest),
+    files,
+    allowlist_bytes=adapter.served_allowlist_bytes(*KEY),
+    train_cases=spec.rows,
+)
+fit = model.fit(inputs, targets, seed=0)
+state = model.frozen_state()
+seconds = time.perf_counter() - started
+platform = jax.devices()[0].platform
+assert platform == os.environ.get("CARBON_BENCH_PLATFORM", "gpu"), jax.devices()
+print(
+    json.dumps(
+        {
+            "item7": "ON" if COMPILED else "OFF",
+            "build_seconds": round(seconds, 3),
+            "params_sha256": fit["params_sha256"],
+            "train_loss": fit["train_loss"],
+            "state_sha256": "sha256:" + hashlib.sha256(state).hexdigest(),
+            "platform": platform,
+            "sizes": sizes,
+            "training": training,
+        },
+        sort_keys=True,
+    ),
+    file=sys.stderr,
+)
+sys.stdout.buffer.write(state)
+'''
+
+
+def _graph18(compiled):
+    return GRAPH18_PROGRAM.replace("__MODE__", "ON" if compiled else "OFF").replace(
+        "__COMPILED__", "True" if compiled else "False"
+    )
+
+
+PROGRAMS = {
+    "default": DEFAULT_PROGRAM,
+    "motor18": MOTOR18_PROGRAM,
+    "graph18-eager": _graph18(False),
+    "graph18-jit": _graph18(True),
+}
+#: The built-in programs that need the Carbon tree at /carbon (`--carbon-tree`).
+NEEDS_TREE = frozenset({"graph18-eager", "graph18-jit"})
 
 
 @dataclass
@@ -154,6 +291,8 @@ class Run:
     seconds: float | None = None
     state_sha256: str | None = None
     state_bytes: int | None = None
+    #: the program's own last stderr line, when it is a JSON object (`GRAPH18_PROGRAM`'s build seconds and digests)
+    report: dict | None = None
     exit_code: int | None = None
     error: str | None = None
 
@@ -228,8 +367,10 @@ def environment(record, binding):
     return result
 
 
-def run_argv(image_id, record, binding, name):
-    """``docker run`` for one slot's build: the program arrives on stdin, the state leaves on stdout."""
+def run_argv(image_id, record, binding, name, *, carbon_tree=None, cpu=False):
+    """``docker run`` for one slot's build: the program arrives on stdin, the state leaves on stdout. ``carbon_tree``: a
+    world-readable Carbon tree mounted read-only at /carbon. ``cpu``: the same container on its cores only (no GPU,
+    ``JAX_PLATFORMS=cpu``), the CPU side of a comparison."""
     from carbon.reconstruction.host_execution import parse_cpuset
 
     argv = [
@@ -246,10 +387,21 @@ def run_argv(image_id, record, binding, name):
         # the worker image's entrypoint is the carrier's worker protocol; the bench runs its interpreter directly
         "--entrypoint",
         WORKER_PYTHON,
-        "--runtime",
-        "nvidia",
-        "--gpus",
-        f"driver=nvidia,device={record.device_uuid}",
+        *(
+            ()
+            if cpu
+            else (
+                "--runtime",
+                "nvidia",
+                "--gpus",
+                f"driver=nvidia,device={record.device_uuid}",
+            )
+        ),
+        *(
+            ()
+            if carbon_tree is None
+            else ("--volume", f"{_checked_tree(carbon_tree)}:/carbon:ro")
+        ),
         "--cpuset-cpus",
         binding.cpuset,
         "--label",
@@ -260,12 +412,25 @@ def run_argv(image_id, record, binding, name):
         "--cpus",
         str(len(parse_cpuset(binding.cpuset))),
     ]
-    for key, value in sorted(environment(record, binding).items()):
+    environment_ = environment(record, binding)
+    if cpu:
+        environment_.update(JAX_PLATFORMS="cpu", CARBON_BENCH_PLATFORM="cpu")
+        environment_.pop("CUDA_VISIBLE_DEVICES", None)
+    for key, value in sorted(environment_.items()):
         argv.extend(["--env", f"{key}={value}"])
-    argv.extend(["--env", f"NVIDIA_VISIBLE_DEVICES={record.device_uuid}"])
-    argv.extend(["--env", "NVIDIA_DRIVER_CAPABILITIES=compute,utility"])
+    if not cpu:
+        argv.extend(["--env", f"NVIDIA_VISIBLE_DEVICES={record.device_uuid}"])
+        argv.extend(["--env", "NVIDIA_DRIVER_CAPABILITIES=compute,utility"])
     argv.extend([checked_image(image_id), "-I", "-"])
     return argv
+
+
+def _checked_tree(value):
+    """An absolute, plain directory path (it becomes one ``--volume`` word)."""
+    text = str(value)
+    if not re.fullmatch(r"/[A-Za-z0-9._/-]+", text) or ".." in text.split("/"):
+        raise ValueError("carbon tree: an absolute plain path")
+    return text
 
 
 def _docker_environment(docker_host):
@@ -321,6 +486,22 @@ def checked_image(value):
     return value
 
 
+def _last_json(err):
+    """The program's last stderr line when it is a JSON object, else None."""
+    lines = [
+        line
+        for line in (err or b"").decode("utf-8", "replace").splitlines()
+        if line.strip()
+    ]
+    if not lines:
+        return None
+    try:
+        value = json.loads(lines[-1])
+    except ValueError:
+        return None
+    return value if type(value) is dict else None
+
+
 def run_one(
     run,
     *,
@@ -353,6 +534,7 @@ def run_one(
         return run
     run.seconds = round(clock() - started, 3)
     run.exit_code = process.returncode
+    run.report = _last_json(err)
     if process.returncode == 0 and out:
         run.state_sha256 = "sha256:" + hashlib.sha256(out).hexdigest()
         run.state_bytes = len(out)
@@ -370,6 +552,8 @@ def bench(
     docker_host,
     program,
     memory="shared",
+    carbon_tree=None,
+    cpu=False,
     runner=run_one,
     query=None,
     interval=SAMPLE_SECONDS,
@@ -396,7 +580,12 @@ def bench(
             binding = remote_gpu_build.OpBinding(lane, run.slot)
             source = remote_gpu_build.with_slot_prelude(program, binding)
             argv = run_argv(
-                image_id, record, binding, f"carbon-slot-bench-{slots}-{run.slot}"
+                image_id,
+                record,
+                binding,
+                f"carbon-slot-bench-{slots}-{run.slot}",
+                carbon_tree=carbon_tree,
+                cpu=cpu,
             )
             workers.append(
                 threading.Thread(
@@ -509,8 +698,21 @@ def main(argv=None):
         default="default",
         help="the built-in program without --program (motor18: a Motor 1.8-sized FP64 graph build)",
     )
+    parser.add_argument(
+        "--carbon-tree",
+        type=Path,
+        default=None,
+        help="a world-readable Carbon tree, mounted read-only at /carbon (needed by the graph18-* programs)",
+    )
+    parser.add_argument(
+        "--cpu",
+        action="store_true",
+        help="run the same containers on their cores only (no GPU): the CPU side of a comparison",
+    )
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args(argv)
+    if args.program is None and args.builtin in NEEDS_TREE and args.carbon_tree is None:
+        parser.error(f"--builtin {args.builtin} needs --carbon-tree")
     record = require_host_device(HostDeviceRecord.load(args.device_record), GPU_PROFILE)
     if args.docker_host is not None:
         from carbon.reconstruction import remote_lane
@@ -521,6 +723,8 @@ def main(argv=None):
         record=record,
         slots_list=parse_slots(args.slots),
         memory=args.memory,
+        carbon_tree=args.carbon_tree,
+        cpu=args.cpu,
         cpusets=split_cpusets(args.cpusets),
         docker_host=args.docker_host,
         program=(

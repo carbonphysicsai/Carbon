@@ -272,3 +272,110 @@ def test_the_motor18_program_is_a_float64_graph_build_of_the_bench_shape():
     sizes = (8, 512, 512, 512, 512, 512, 240)
     assert sum(a * b + b for a, b in pairwise(sizes)) == 1_178_352
     assert "sizes = (8, 512, 512, 512, 512, 512, 240)" in program
+
+
+# -- item 7 (the compiled build forward) ON vs OFF: Motor 1.8's real graph build -------------------------------------------
+
+
+def test_the_graph18_programs_differ_only_in_item_7():
+    eager, jit = bench.PROGRAMS["graph18-eager"], bench.PROGRAMS["graph18-jit"]
+    assert "COMPILED = False" in eager and "COMPILED = True" in jit
+    assert (
+        eager.replace("COMPILED = False", "COMPILED = True").replace(
+            "item 7 OFF", "item 7 ON"
+        )
+        == jit
+    )
+    for program in (eager, jit):
+        ast.parse(program)
+        assert program.index('os.environ["JAX_ENABLE_X64"] = "true"') < program.index(
+            "import jax"
+        )
+        assert 'sys.path.insert(0, "/carbon")' in program
+        assert "build_validated_graph" in program and "frozen_state" in program
+    assert bench.NEEDS_TREE == {"graph18-eager", "graph18-jit"}
+
+
+def test_the_graph18_program_runs_the_real_build_and_item_7_is_bit_identical(
+    tmp_path, monkeypatch
+):
+    """Both programs, on this host's CPU, through the real physical_graph_adapter_v2 build of a small public graph on
+    Motor 1.8's public TRAIN: the same state bytes and params digest with item 7 ON as OFF.
+    """
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    pytest.importorskip("jax")
+    root = Path(__file__).resolve().parents[2]
+    outputs = {}
+    for name in ("graph18-eager", "graph18-jit"):
+        program = bench.PROGRAMS[name].replace(
+            'sys.path.insert(0, "/carbon")', f"sys.path.insert(0, {str(root)!r})"
+        )
+        done = subprocess.run(
+            [sys.executable, "-I", "-"],
+            input=program.encode(),
+            capture_output=True,
+            timeout=600,
+            check=False,
+            env={
+                "PATH": "/usr/bin:/bin",
+                "JAX_PLATFORMS": "cpu",
+                "CARBON_BENCH_PLATFORM": "cpu",
+                "CARBON_BENCH_WIDTH": "16",
+                "CARBON_BENCH_DEPTH": "1",
+                "CARBON_BENCH_STEPS": "16",
+                "CARBON_BENCH_BATCH": "8",
+            },
+        )
+        assert done.returncode == 0, done.stderr[-3000:]
+        report = bench._last_json(done.stderr)
+        assert report["platform"] == "cpu" and report["item7"] == (
+            "ON" if name.endswith("jit") else "OFF"
+        )
+        assert (
+            report["state_sha256"]
+            == "sha256:" + __import__("hashlib").sha256(done.stdout).hexdigest()
+        )
+        outputs[name] = report
+    assert (
+        outputs["graph18-eager"]["state_sha256"]
+        == outputs["graph18-jit"]["state_sha256"]
+    )
+    assert (
+        outputs["graph18-eager"]["params_sha256"]
+        == outputs["graph18-jit"]["params_sha256"]
+    )
+    json.dumps(outputs)
+
+
+def test_the_tree_is_mounted_read_only_and_cpu_mode_drops_the_gpu(record):
+    lane = bench.lane_for(record, 1, ["0-3"], None)
+    binding = remote_gpu_build.OpBinding(lane, 0)
+    argv = bench.run_argv(
+        "sha256:" + "c" * 64, record, binding, "n", carbon_tree="/srv/carbon-tree"
+    )
+    assert argv[argv.index("--volume") + 1] == "/srv/carbon-tree:/carbon:ro"
+    assert "--gpus" in argv
+    cpu = bench.run_argv(
+        "sha256:" + "c" * 64, record, binding, "n", carbon_tree="/srv/t", cpu=True
+    )
+    assert "--gpus" not in cpu and "--runtime" not in cpu
+    environment = _env(cpu)
+    assert environment["JAX_PLATFORMS"] == "cpu"
+    assert environment["CARBON_BENCH_PLATFORM"] == "cpu"
+    assert "CUDA_VISIBLE_DEVICES" not in environment
+    assert not any(value.startswith("NVIDIA_VISIBLE_DEVICES") for value in cpu)
+    for bad in ("relative/tree", "/srv/../etc", "/srv/tree:/etc"):
+        with pytest.raises(ValueError):
+            bench.run_argv("sha256:" + "c" * 64, record, binding, "n", carbon_tree=bad)
+
+
+def test_a_programs_json_report_is_kept():
+    assert bench._last_json(b'warming up\n{"build_seconds": 1.5}\n') == {
+        "build_seconds": 1.5
+    }
+    assert bench._last_json(b"Traceback\nValueError\n") is None
+    assert bench._last_json(b"") is None
