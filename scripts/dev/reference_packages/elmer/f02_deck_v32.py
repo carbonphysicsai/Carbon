@@ -554,3 +554,45 @@ def custody_outputs(observed):
 
 def public_scalars(observed):
     return v3.scalar_outputs(observed)
+
+
+#: Owner-approved extra scored outputs of 3.2 (peak time and the underside values at and over the peak).
+SCALAR_KEYS_V32 = v3.SCALAR_KEYS + (
+    "t_peak_s",
+    "underside_max_c",
+    "underside_max_at_peak_c",
+    "underside_min_at_peak_c",
+)
+
+_COL_MAX = "boundary max: temperature over bc save scalars"
+_COL_US = "boundary max: temperature over bc underside max"
+_COL_MIN = "boundary min: temperature over bc underside max"
+
+
+def public_scalars_v32(case_dir, obs, *, read_scalars=None):
+    """The 3.0 scalars plus the four 3.2 outputs, computed as the BT32 custody runner does. Refuses (never guesses)
+    when a needed scalars column or row is absent; it does not add the underside-min operator to any deck.
+    """
+    base = public_scalars(obs)
+    cols, rows = (read_scalars or v3.read_scalars)(case_dir)
+    for col, code in (
+        (_COL_MAX, "peak_column_absent"),
+        (_COL_US, "underside_max_column_absent"),
+        (_COL_MIN, "underside_min_column_absent"),
+    ):
+        if col not in cols:
+            raise v3.DeckRefused(code)
+    if not rows:
+        raise v3.DeckRefused("scalars_empty")
+    trace = (obs.get("custody") or {}).get("underside_max_trace_c")
+    if not trace:
+        raise v3.DeckRefused("underside_max_trace_absent")
+    im, ius, imin = cols.index(_COL_MAX), cols.index(_COL_US), cols.index(_COL_MIN)
+    k = max(range(len(rows)), key=lambda r: rows[r][im])
+    return {
+        **base,
+        "t_peak_s": rows[k][0],
+        "underside_max_c": max(v for _t, v in trace),
+        "underside_max_at_peak_c": rows[k][ius] - 273.15,
+        "underside_min_at_peak_c": rows[k][imin] - 273.15,
+    }

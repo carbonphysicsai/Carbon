@@ -884,3 +884,92 @@ def test_a_3_2_call_refuses_if_the_3_0_global_was_changed(tmp_path, monkeypatch)
             CASE, tmp_path / "d", curve_path=curve, curve_sha256=curve_sha, leakage=leak
         )
     assert v3.BASE_W == 12.0 and not (tmp_path / "d").exists()
+
+
+# --- 3.2 scored-output keys (BT32 custody runner formula) ----------------------------
+
+_NEW_KEYS = (
+    "t_peak_s",
+    "underside_max_c",
+    "underside_max_at_peak_c",
+    "underside_min_at_peak_c",
+)
+_C_MAX = "boundary max: temperature over bc save scalars"
+_C_US = "boundary max: temperature over bc underside max"
+_C_MIN = "boundary min: temperature over bc underside max"
+
+
+def _k_case(tmp_path, rows, cols=(_C_MAX, _C_US, _C_MIN)):
+    d = tmp_path / "kcase"
+    d.mkdir()
+    names = ["   1: time"] + [f"   {i + 2}: {c}" for i, c in enumerate(cols)]
+    (d / "scalars.dat").write_text(
+        "\n".join(" ".join(repr(v) for v in r) for r in rows) + "\n"
+    )
+    (d / "scalars.dat.names").write_text("\n".join(names) + "\n")
+    return d
+
+
+def _k_obs():
+    obs = {k: 1.0 for k in v3.SCALAR_KEYS}
+    obs["status"] = "OK"
+    obs["custody"] = {"underside_max_trace_c": [[0.0, 40.0], [1.0, 71.5], [2.0, 60.0]]}
+    return obs
+
+
+def test_scalar_keys_v32_extends_3_0_list():
+    assert v32.SCALAR_KEYS_V32 == v3.SCALAR_KEYS + _NEW_KEYS
+    assert v3.SCALAR_KEYS == (
+        "peak_top_c",
+        "first_95c_crossing_s",
+        "extra_energy_j",
+        "time_above_s",
+        "threshold_recovery_s",
+        "second_pulse_peak_c",
+    )
+
+
+def test_public_scalars_v32_matches_runner_formula_golden(tmp_path):
+    rows = [
+        [0.0, 300.0, 310.0, 305.0],
+        [0.5, 350.0, 330.0, 312.0],
+        [1.0, 360.0, 345.5, 320.25],
+        [1.5, 340.0, 335.0, 318.0],
+    ]
+    d = _k_case(tmp_path, rows)
+    obs = _k_obs()
+    got = v32.public_scalars_v32(d, obs)
+    assert set(got) == set(v32.SCALAR_KEYS_V32)
+    assert {k: got[k] for k in v3.SCALAR_KEYS} == v32.public_scalars(obs)
+    # Literal copy of codex-queue/reports/BT32_TRAIN_PAYLOAD_20261108/bt32_train_run.py lines ~170-180.
+    _cols, rows2 = v3.read_scalars(d)
+    under = max(v for _t, v in obs["custody"]["underside_max_trace_c"])
+    names = _cols
+    im, ius, imin = names.index(_C_MAX), names.index(_C_US), names.index(_C_MIN)
+    k = max(range(len(rows2)), key=lambda r: rows2[r][im])
+    want = {
+        "t_peak_s": rows2[k][0],
+        "underside_max_c": under,
+        "underside_max_at_peak_c": rows2[k][ius] - 273.15,
+        "underside_min_at_peak_c": rows2[k][imin] - 273.15,
+    }
+    assert {key: got[key] for key in _NEW_KEYS} == want
+    assert want["t_peak_s"] == 1.0 and want["underside_max_c"] == 71.5
+
+
+def test_public_scalars_v32_refuses_when_underside_min_column_absent(tmp_path):
+    d = _k_case(tmp_path, [[0.0, 300.0, 310.0]], cols=(_C_MAX, _C_US))
+    with pytest.raises(v3.DeckRefused, match="underside_min_column_absent"):
+        v32.public_scalars_v32(d, _k_obs())
+
+
+def test_public_scalars_v32_tie_in_peak_picks_first_row(tmp_path):
+    rows = [
+        [0.0, 300.0, 310.0, 305.0],
+        [0.5, 360.0, 320.0, 306.0],
+        [1.0, 360.0, 399.0, 399.0],
+    ]
+    got = v32.public_scalars_v32(_k_case(tmp_path, rows), _k_obs())
+    assert got["t_peak_s"] == 0.5
+    assert got["underside_max_at_peak_c"] == 320.0 - 273.15
+    assert got["underside_min_at_peak_c"] == 306.0 - 273.15
