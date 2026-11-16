@@ -1534,9 +1534,12 @@ def gpu_construction_parents(cfg, implementation, parents, chain_network):
     return with_gpu_parent(parents, images), device
 
 
-def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network):
+def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network, challenge=None):
     """The validator's graph GPU lane for an operator that configures one:
     ``(worker image, ops frozenset, ops record digest, host device record)``, else four Nones.
+
+    With a remote GPU build lane for the door's ``challenge`` (`remote_gpu_build.door_lane`), the device is that
+    lane machine's own record and the worker is checked on its daemon: the graph builds run there.
 
     The worker is the registered JAX GPU worker, verified as the receiver's other workers are;
     the ops are the record the hardware class check wrote, valid for the served graph allowlist
@@ -1556,24 +1559,40 @@ def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network):
     if allowlist_bytes is None:
         raise ValueError("the graph GPU lane needs a graph-route version")
     from carbon.development_session import research_carrier
-    from carbon.reconstruction.hardware_acceptance import require_accepted
 
     # The host's installed GPU record, and the owner's hardware acceptance for its class on
     # this chain network: a validator scores only on an accepted class, and refuses at start
     # otherwise (hardware_acceptance.py; the same gate the Battery GPU validator applies).
-    device = research_carrier._gpu_device()
-    require_accepted(
-        device.device_kind, research_carrier._gpu_profile_id(), chain_network
+    from carbon.reconstruction import remote_gpu_build
+    from carbon.reconstruction.hardware_acceptance import require_accepted
+
+    remote = (
+        None
+        if challenge is None
+        else remote_gpu_build.door_lane(challenge.challenge_id, challenge.version)
     )
-    image = load_image_identity(Path(cfg["graph_gpu_image_manifest"]))
-    if gpu_image_backend(image) != "jax":
-        raise ValueError("the graph GPU lane needs the JAX GPU worker")
-    try:
-        verify_current_worker(image, implementation)
-    except ValueError:
-        verify_direct_v13_worker(image, implementation, role="jax_gpu")
-    if not doctor(image_id=image.image_id, image_identity=image).eligible:
-        raise ReceiverUnavailable("installed_graph_gpu_worker_unavailable")
+    if challenge is not None:
+        # every graph build of this door runs on exactly the lane bound here, or refuses as Carbon's
+        remote_gpu_build.pin(challenge.challenge_id, challenge.version, remote)
+    startup = None if remote is None else remote_gpu_build.OpBinding(remote, 0)
+    with remote_gpu_build.bound(startup):
+        device = research_carrier._gpu_device()
+        require_accepted(
+            device.device_kind, research_carrier._gpu_profile_id(), chain_network
+        )
+        image = load_image_identity(Path(cfg["graph_gpu_image_manifest"]))
+        if gpu_image_backend(image) != "jax":
+            raise ValueError("the graph GPU lane needs the JAX GPU worker")
+        try:
+            verify_current_worker(image, implementation)
+        except ValueError:
+            verify_direct_v13_worker(image, implementation, role="jax_gpu")
+        if not doctor(
+            image_id=image.image_id,
+            image_identity=image,
+            **({} if startup is None else {"cli": remote_gpu_build.cli(startup)}),
+        ).eligible:
+            raise ReceiverUnavailable("installed_graph_gpu_worker_unavailable")
     raw = canonical(private_json(Path(cfg["graph_gpu_ops"])))
     ops = load_record(raw, allowlist_digest=Allowlist(allowlist_bytes).digest)
     return image, ops, digest(raw), device
@@ -2353,6 +2372,7 @@ def serve(
             implementation,
             material.get("allowlist_bytes"),
             network.context.network,
+            challenge,
         )
         immutable = {
             "schema": SCHEMA,

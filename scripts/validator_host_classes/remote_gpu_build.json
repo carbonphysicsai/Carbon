@@ -1,0 +1,5 @@
+{
+  "schema": "carbon.remote-gpu-build.values.v1",
+  "_comment": "Remote GPU build lane rows (carbon/reconstruction/remote_gpu_build.py): \"<challenge> <version>\": {\"device_kind\": <the ONE rented GPU variant, exactly as nvidia-smi names it>, \"slots\": N (optional, default 1, at most 4)}. No row: the door's builds run where they run today. A row is used only with the operator's remote-gpu-build-lanes.json and the lane machine's own host-device.json installed, and the GPU class needs the owner's hardware acceptance.",
+  "rows": {}
+}

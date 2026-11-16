@@ -154,9 +154,14 @@ def current():
 
 
 def docker_host():
-    """The ``DOCKER_HOST`` of the running round's remote lane, or None (the local daemon)."""
+    """The ``DOCKER_HOST`` of the running round's remote lane, or of the running op's remote GPU build slot
+    (`carbon.reconstruction.remote_gpu_build`), or None (the local daemon)."""
     lane = current()
-    return None if lane is None else lane.docker_host
+    if lane is None:
+        from carbon.reconstruction import remote_gpu_build
+
+        return remote_gpu_build.docker_host()
+    return lane.docker_host
 
 
 def docker_environment(host=None):

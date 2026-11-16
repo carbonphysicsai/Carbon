@@ -19,7 +19,7 @@ from contextvars import ContextVar
 from functools import partial
 
 from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
-from carbon.reconstruction import remote_lane
+from carbon.reconstruction import remote_gpu_build, remote_lane
 from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
@@ -347,8 +347,43 @@ def _run(ledger, **kwargs):
         raise remote_lane.RemoteLaneDown(b"remote_lane_miner_lane")
     # A REMOTE grade lane's timing stage, and any op whose control asks for a timing measurement, runs on this host
     # (`remote_lane.local_for`); every other op of such a round sends its docker calls to the lane's daemon.
-    with remote_lane.local_for(identity, timed=_timed_control(kwargs.get("files"))):
-        return _run_supervised(ledger, **kwargs)
+    timed = _timed_control(kwargs.get("files"))
+    # A GPU BUILD of a build offered a remote GPU build lane takes one of its slots for its whole life and runs on that
+    # machine (`remote_gpu_build.op`); every other op (inference, timing, grading) is unchanged. An op the ledger has
+    # already settled replays its recorded result here and takes no slot.
+    owner = kwargs.get("owner")
+    settled = (
+        remote_gpu_build.offered_lane() is not None
+        and owner is not None
+        and callable(getattr(ledger, "operation_state", None))
+        and ledger.operation_state(identity, owner=owner) not in (None, "RESERVED")
+    )
+    with (
+        remote_lane.local_for(identity, timed=timed),
+        remote_gpu_build.op(
+            identity,
+            accelerator=kwargs.get("accelerator"),
+            settled=settled,
+            provenance=kwargs.get("provenance"),
+            timed=timed,
+            check=(
+                None
+                if ledger is None or owner is None
+                else lambda: _check_cancel(ledger, owner, identity)
+            ),
+        ) as remote_build,
+    ):
+        try:
+            return _run_supervised(ledger, **kwargs)
+        except MinerProgramFailure:
+            # settled in the ledger as the candidate's (a resource stop is retyped BEFORE it is settled): never retyped
+            raise
+        except Exception as error:
+            # A remote build that failed while its link or its GPU is unhealthy is Carbon's, never the miner's.
+            down = None if remote_build is None else remote_gpu_build.retyped(error)
+            if down is not None:
+                raise down from error
+            raise
 
 
 def _run_supervised(ledger, **kwargs):
@@ -440,7 +475,14 @@ def _cancel_active_intent(ledger, *, owner, identity):
                 )
         except Exception:  # noqa: BLE001, S110 - observation never gates cleanup
             pass
-        remove_exact_container(cli=cli, container_name=name, launch_digest=label)
+        # a remote GPU build slot's container is removed on its lane's daemon, its slot record finished there
+        remote_build = remote_gpu_build.recorded(intent)
+        with remote_gpu_build.bound(remote_build):
+            remove_exact_container(
+                cli=remote_gpu_build.cli(remote_build) or cli,
+                container_name=name,
+                launch_digest=label,
+            )
 
 
 # Fixed public construction phases use the same private, closed diagnostic
@@ -1203,6 +1245,10 @@ def _candidate_resource_stop(
         and remote_lane.wall_stop_observable(observation)
         # a build beside other rounds: its wall is the candidate's only on a quiet host (A19, V2 F-A19)
         and _build_wall_quiet()
+        # a GPU build slot: never the candidate's on a remote lane (the remote class's walls wait on Validator-Motor),
+        # nor on a lane shared by more than one slot (a neighbour's load is not the candidate's); a one-slot local lane's
+        # wall is read as a local GPU build's always was
+        and remote_gpu_build.wall_counts()
     ):
         return (
             WorkerCode.DEADLINE,
@@ -1223,6 +1269,8 @@ def _remote_inputs_discarded(stage):
         if stage is not None:
             with suppress(remote_lane.RemoteLaneDown):
                 remote_lane.discard(stage)
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_gpu_build.discard(stage)
 
 
 @contextmanager
@@ -1764,6 +1812,9 @@ def _run_locked(
     rebuild_wall_seconds=None,
 ):
     before_finish = before_finish or (lambda: None)
+    # A remote GPU build slot of a lane split into N > 1 slots: the program caps PyTorch's share of the device first
+    # (`remote_gpu_build.with_torch_prelude`); one slot, or any other op: the program is unchanged.
+    source = remote_gpu_build.with_torch_prelude(source)
     # The miner's own research has no Carbon limits (owner direction): any
     # positive wall allowance, or none at all. Carbon's own work in this carrier
     # keeps its bounded allowance.
@@ -1953,6 +2004,8 @@ def _run_locked(
             "kind": accelerator,
             "profile": profile_id,
             "device": device.digest,
+            # a remote GPU build slot of a lane split into N > 1 slots: its memory share (absent otherwise)
+            **remote_gpu_build.request_fields(),
         }
     launch = digest(
         canonical({"owner": owner, "identity": identity, "request": request})
@@ -2057,6 +2110,8 @@ def _run_locked(
                 **({} if guard is None else {"reaper": guard}),
                 # a REMOTE grade lane: the daemon (and mirror root) recovery must use
                 **remote_lane.intent_fields(),
+                # a remote GPU build slot: its daemon, mirror root, lane and slot
+                **remote_gpu_build.intent_fields(),
                 **(
                     {}
                     if session is None
@@ -2071,7 +2126,8 @@ def _run_locked(
         ),
     )
     stage = operation / "input"
-    cli = DockerCLI()
+    # a remote GPU build slot: the lane's daemon (through its wrapper); otherwise this host's
+    cli = remote_gpu_build.cli() or DockerCLI()
     sizing = (
         {}
         if worker_resources_version is None
@@ -2111,6 +2167,12 @@ def _run_locked(
             # runs beside a local lane's EXCLUSIVE timing stage.
             if session is not None:
                 remote_lane.mirror(session.input)
+            elif remote_gpu_build.docker_host() is not None:
+                # a remote GPU build slot: the build's public stage at the same path on the lane machine
+                from carbon.reconstruction import grade_lanes
+
+                with grade_lanes.container_hold(identity=identity):
+                    remote_gpu_build.mirror(stage)
             elif remote_lane.current() is not None:
                 from carbon.reconstruction import grade_lanes
 
@@ -2170,6 +2232,8 @@ def _run_locked(
             # a REMOTE grade lane's copy of the inputs never outlives an op that made nothing
             with suppress(remote_lane.RemoteLaneDown):
                 remote_lane.discard(stage)
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_gpu_build.discard(stage)
         _settle_nothing_created(
             ledger,
             owner=owner,
@@ -2216,7 +2280,24 @@ def _run_locked(
     try:
         if session is None:
             with _fixed_practice_stage(operation, provenance, "DEVICE_LEASE"):
-                if device is not None:
+                if device is not None and remote_gpu_build.current_op() is not None:
+                    from carbon.reconstruction.worker.accelerator_runtime import (
+                        reject_existing_device_containers,
+                        shared_host_lease,
+                    )
+
+                    if remote_gpu_build.docker_host() is None:
+                        # a LOCAL slot lane shares this host's GPU with its other Carbon work: check and create under
+                        # the host's one Carbon device lock, as every other launch on this device does
+                        slot.enter_context(shared_host_lease())
+
+                    # A remote GPU build slot: the slot lock (`remote_gpu_build.op`) is this launch's share of the
+                    # lane's device, held since the op began; at most the lane's slot count of Carbon containers
+                    # run on it, each with its own slot record.
+                    reject_existing_device_containers(
+                        cli=cli, device_uuid=device.device_uuid
+                    )
+                elif device is not None:
                     from carbon.reconstruction.worker.accelerator_runtime import (
                         miner_device_lease,
                         reject_existing_device_containers,
@@ -2257,13 +2338,16 @@ def _run_locked(
                         )
                     create_attempted = True
                     cli.run(
-                        create_arguments(
-                            container_name=name,
-                            image_id=image.image_id,
-                            input_directory=stage,
-                            cpuset=checked.cpuset,
-                            launch_digest=launch,
-                            worker_profile=worker,
+                        # a remote GPU build slot of a lane split into N > 1 slots: each process's memory share
+                        remote_gpu_build.with_slot_environment(
+                            create_arguments(
+                                container_name=name,
+                                image_id=image.image_id,
+                                input_directory=stage,
+                                cpuset=checked.cpuset,
+                                launch_digest=launch,
+                                worker_profile=worker,
+                            )
                         ),
                         timeout=30,
                     )
@@ -2272,7 +2356,13 @@ def _run_locked(
             with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
                 _check_cancel(ledger, owner, identity)
             with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
-                spawn_watchdog(
+                # a remote GPU build slot: the watchdog watches the lane's daemon, where the container runs
+                (
+                    # a slot op's (remote or local): it is handed the slot, so it finishes that slot's record
+                    remote_gpu_build.spawn_watchdog
+                    if remote_gpu_build.current_op() is not None
+                    else spawn_watchdog
+                )(
                     container_name=name,
                     launch_digest=launch,
                     deadline_unix=float(started_unix + seconds - 30),
@@ -2555,6 +2645,10 @@ def _run_locked(
             )
         session_op_ok = True
     except _CandidateResourceStop as stop:
+        # A remote GPU build whose link or GPU is unhealthy now: the stop is Carbon's, never the candidate's.
+        down = remote_gpu_build.retyped(stop.original)
+        if down is not None:
+            raise down from stop.original
         # Settled below, once cleanup of this exact container is observed.
         candidate_stop = stop
     finally:
@@ -2671,10 +2765,15 @@ def _gpu_profile_id():
 
 
 def _gpu_device():
-    """The installed host device record; fails closed when absent."""
+    """The installed host device record (a remote GPU build slot's machine's own, inside one); fails closed when
+    absent."""
     from carbon.reconstruction.worker.accelerator_runtime import (
         miner_host_device,
     )
+
+    remote = remote_gpu_build.device()
+    if remote is not None:
+        return remote
 
     try:
         return miner_host_device()
@@ -2724,6 +2823,10 @@ def _check_gpu_host(cli, image, device, pins=None):
         verify_image_and_toolkit,
     )
 
+    if remote_gpu_build.docker_host() is not None:
+        # The lane machine's readiness, on its own daemon: this host's GPU doctor describes this host only.
+        remote_gpu_build.check_host(cli, image, device, pins)
+        return
     if image is None:
         info = cli.json(["info", "--format", "{{json .}}"])
         if type(info) is not dict or "nvidia" not in (info.get("Runtimes") or {}):
@@ -3545,10 +3648,12 @@ def reconcile_worker(ledger, *, owner, identity):
             or path.parent.name != "operation-" + launch[7:]
         ):
             raise ValueError("worker intent identity conflict")
-        # the daemon the intent names: a REMOTE grade lane's, or this host's
+        # the daemon the intent names: a REMOTE grade lane's, a remote GPU build slot's, or this host's
         remote = remote_lane.recorded(intent)
-        cli = _cli_for(remote)
-        remove_exact_container(cli=cli, container_name=name, launch_digest=label)
+        remote_build = remote_gpu_build.recorded(intent)
+        cli = remote_gpu_build.cli(remote_build) or _cli_for(remote)
+        with remote_gpu_build.bound(remote_build):
+            remove_exact_container(cli=cli, container_name=name, launch_digest=label)
         if cli.run(
             ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
         ).stdout.strip():
@@ -3556,6 +3661,9 @@ def reconcile_worker(ledger, *, owner, identity):
         if remote is not None:
             with suppress(remote_lane.RemoteLaneDown):
                 remote_lane.discard(path.parent / "input", remote)
+        if remote_build is not None:
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_gpu_build.discard(path.parent / "input", remote_build)
         result = {
             "schema": "carbon.autoresearch.worker-reconciliation.v1",
             "operation": path.parent.name,
