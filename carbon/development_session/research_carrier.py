@@ -1399,6 +1399,16 @@ def _timed_control(files):
     )
 
 
+def _cli_for(remote):
+    """This module's Docker CLI for a recorded REMOTE lane's daemon (`remote_lane.recorded`), or the local one (None)."""
+    cli = DockerCLI()
+    if remote is not None:
+        cli.docker_host = remote.docker_host
+    elif getattr(cli, "docker_host", None) is not None:
+        cli.docker_host = None
+    return cli
+
+
 def _sweep_stale_sessions(root, cli):
     """Remove session folders a dead controller left (its recorded controller is gone and its container is absent);
     a folder whose controller lives, or with no readable intent yet, is never touched.
@@ -1414,9 +1424,9 @@ def _sweep_stale_sessions(root, cli):
                 continue
             # the daemon the session's intent names (a REMOTE grade lane's, or this host's), never the caller's
             remote = remote_lane.recorded(intent)
-            daemon = remote_lane.cli_for(remote) if remote is not None else cli
+            daemon = _cli_for(remote) if remote is not None else cli
             if remote is None and getattr(cli, "docker_host", None) is not None:
-                daemon = remote_lane.cli_for(None)
+                daemon = _cli_for(None)
             if daemon.run(
                 ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
             ).stdout.strip():
@@ -3504,7 +3514,7 @@ def reconcile_worker(ledger, *, owner, identity):
             raise ValueError("worker intent identity conflict")
         # the daemon the intent names: a REMOTE grade lane's, or this host's
         remote = remote_lane.recorded(intent)
-        cli = remote_lane.cli_for(remote)
+        cli = _cli_for(remote)
         remove_exact_container(cli=cli, container_name=name, launch_digest=label)
         if cli.run(
             ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
