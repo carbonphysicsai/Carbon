@@ -1681,6 +1681,16 @@ class _GradeSession:
         self.image_id = self.worker = self.cpuset = self.deadline_unix = None
 
 
+def yield_grade_session():
+    """Remove this grade's live session container now (the grade goes on; its next member op opens a new one). Called by
+    a grade waiting for its commit turn (`carbon.challenge_validator.grade_sequencer`): the container holds the host
+    timing gate shared, and an earlier grade's speed stage waits for it exclusive. No-op without a live session.
+    """
+    session = _GRADE_SESSION.get()
+    if session is not None and session.live:
+        session.close()
+
+
 @contextmanager
 def grade_session():
     """One counted grade's session (item 4). Ops run in it only through `_run_locked`'s membership rule; everything is

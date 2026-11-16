@@ -1201,9 +1201,18 @@ def serve_loopback(
         if getattr(grader, "others_waiting", None) is None:
             # slow-tail F2: the king's upkeep waits while another door waits for the host lock
             grader.others_waiting = getattr(work, "_others_waiting", None)
-        threads.append(
-            threading.Thread(target=_grade_loop, args=(grader, stop, work), daemon=True)
-        )
+        rounds = len(work._lanes) if work._parallel else 1
+        if rounds > 1:
+            # PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): one grade thread per lane, committing in claim order
+            from .grade_sequencer import Sequencer
+
+            grader.sequencer = Sequencer()
+        for _ in range(rounds):
+            threads.append(
+                threading.Thread(
+                    target=_grade_loop, args=(grader, stop, work), daemon=True
+                )
+            )
     host, port = httpd.server_address[:2]
     serving = threading.Thread(target=httpd.serve_forever, daemon=True)
     started = []
@@ -1401,6 +1410,9 @@ class _WorkLock:
         self._kinds = threading.Condition()
         #: The live rounds of this door: ``{round: (kind, in-flight record)}`` (parallel mode only).
         self._live = {}
+        #: How many rounds of each kind wait for the other kind to finish: a waiting kind stops NEW rounds of the other
+        #: kind from starting, so a build round is never starved by back-to-back grade rounds (or the reverse).
+        self._kind_waiters = {}
         if network is None:
             from carbon.chain import models
 
@@ -1707,11 +1719,27 @@ class _WorkLock:
                 raise WorkDeclined(reason)
         try:
             with self._kinds:
-                while any(other != kind for other, _ in self._live.values()):
-                    self._kinds.wait(self._poll)
-                    reason = self._declined()
-                    if reason is not None:
-                        raise WorkDeclined(reason)
+                waiting = False
+                try:
+                    while any(other != kind for other, _ in self._live.values()) or any(
+                        count and other != kind
+                        for other, count in self._kind_waiters.items()
+                    ):
+                        if not waiting and any(
+                            other != kind for other, _ in self._live.values()
+                        ):
+                            waiting = True
+                            self._kind_waiters[kind] = (
+                                self._kind_waiters.get(kind, 0) + 1
+                            )
+                        self._kinds.wait(self._poll)
+                        reason = self._declined()
+                        if reason is not None:
+                            raise WorkDeclined(reason)
+                finally:
+                    if waiting:
+                        self._kind_waiters[kind] -= 1
+                        self._kinds.notify_all()
                 self._live[threading.get_ident()] = (kind, None)
         except BaseException:
             self._slots.release()

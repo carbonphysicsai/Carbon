@@ -3501,6 +3501,11 @@ def _counted_bank_grade(
             "private_evaluation_reason": code,
             **_limit_message(adapter, submission_id, code),
         }
+    finally:
+        # the order-dependent reservation is made (or refused): a door grading in parallel lets its next grade claim
+        from . import grade_sequencer
+
+        grade_sequencer.claimed()
     from carbon.development_session.research_carrier import grade_session
 
     try:

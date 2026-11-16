@@ -411,6 +411,25 @@ def test_rounds_of_another_kind_still_never_overlap(host, tmp_path):
     advance[3].join(5)
 
 
+def test_a_waiting_build_round_is_not_starved_by_new_grade_rounds(host):
+    work = _WorkLock(host, poll_s=POLL, lanes=LANES)
+    grade = _start_round(work, "grade")
+    assert grade[0].wait(5)
+    advance = _start_round(work, "advance")
+    time.sleep(0.2)  # the build round now waits for the grade round
+    late = _start_round(work, "grade")
+    assert not late[0].wait(0.3)  # a NEW grade round does not jump the waiting build
+    grade[1].set()
+    grade[3].join(5)
+    assert advance[0].wait(5)
+    assert not late[0].is_set()
+    advance[1].set()
+    advance[3].join(5)
+    assert late[0].wait(5)
+    late[1].set()
+    late[3].join(5)
+
+
 def test_a_one_lane_door_still_runs_one_round_at_a_time(host):
     work = _WorkLock(host, poll_s=POLL)
     first = _start_round(work)
