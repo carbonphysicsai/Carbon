@@ -62,7 +62,7 @@
     "derived_k_per_stratum": 66,
     "producer_successor": {
       "pack_producer_digest": "sha256:9c5ac4dbee486fbf9b986b22f5b1b2f2b1a4b415512a950379761159967e32cc",
-      "producer_digest": "sha256:73f72be161278e694cb620ebf36ae8c0dd278a53b30dcb6fb42bec53c5919d2e"
+      "producer_digest": "sha256:42990bf90c37822ac8dbaf32be2c25806feb8f2e4fb54b90014e0eb8109f1b3c"
     },
     "promise": {
       "repeat_detect_prob": 0.999,
