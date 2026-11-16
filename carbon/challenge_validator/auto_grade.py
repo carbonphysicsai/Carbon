@@ -438,12 +438,12 @@ class AutoGrader:
             retries = bool(auto_retry.due(self.root, idle=not pending))
         except Exception:  # noqa: BLE001
             retries = False
-        deferred = self._upkeep_deferred()
+        # (`_upkeep_deferred` is not asked here: it moves its own clock; the prelude asks it once, as the serial round)
         due = bool(
             (self._stranded_due() and getattr(self, "pool_store", None) is not None)
             or retries
             or self._crowns_due()
-            or (not deferred and self._upkeep_due())
+            or self._upkeep_due()
         )
         if due:
             self._prelude_after = now + self.PRELUDE_MIN_SECONDS
@@ -498,8 +498,13 @@ class AutoGrader:
                         # a withdrawal's row and marker are written in this task's commit turn
                         task.bind(submission_id, group)
                         task.turn()
-                        self._settle_withdrawn(submission_id)
-                        return submission_id, "WITHDRAWN_BY_MINER"
+                        if self._settle_withdrawn(submission_id):
+                            return submission_id, "WITHDRAWN_BY_MINER"
+                        # the repair failed (asked again next round): the task goes on as the serial round does; its
+                        # claim is spent, so this round grades it or ends (it never scans further without the claim)
+                        spent = True
+                    else:
+                        spent = False
                     copy = self._copy_decision(submission_id)
                     if copy is not None:
                         decision, first = copy
@@ -508,9 +513,10 @@ class AutoGrader:
                                 getattr(self, "recipe_copy_waits", 0) + 1
                             )
                             self._log_copy_waits()
-                            held.add(
-                                group
-                            )  # its group's later tasks keep their order behind it
+                            if spent:
+                                return None
+                            # its group's later tasks keep their order behind it
+                            held.add(group)
                             continue
                         if decision == "copy":
                             task.bind(submission_id, group)

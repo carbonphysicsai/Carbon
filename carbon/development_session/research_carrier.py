@@ -1482,6 +1482,7 @@ class _GradeSession:
         """
         if (
             not plain
+            or getattr(self, "broken", False)
             or provenance not in SESSION_PROVENANCES
             or bootstrap != BOOTSTRAP
             or type(seconds) is not int
@@ -1688,7 +1689,17 @@ def yield_grade_session():
     """
     session = _GRADE_SESSION.get()
     if session is not None and session.live:
-        session.close()
+        try:
+            session.close()
+        except Exception as failure:  # noqa: BLE001 - best effort, retried at exit
+            # Its timing hold is already released (close's finally). The container is NOT confirmed gone: no later op
+            # joins it (`broken`), and the grade session's own exit removes it, confirmed, or reports it.
+            session.live = False
+            session.broken = True
+            with suppress(Exception):
+                from carbon.battery.intake import log
+
+                log("grade_session_yield_uncertain", type=type(failure).__name__)
 
 
 @contextmanager

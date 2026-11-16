@@ -12,6 +12,9 @@ import pytest
 from carbon.challenge_validator import auto_grade, grade_sequencer
 from carbon.development_session import research_carrier
 
+#: the real yield, kept before the autouse fixture replaces it
+_REAL_YIELD = research_carrier.yield_grade_session
+
 
 @pytest.fixture(autouse=True)
 def _no_session(monkeypatch):
@@ -264,3 +267,35 @@ def test_a_withdrawal_is_settled_in_its_commit_turn():
     grader._settle_withdrawn = lambda sid: bool(settled.append(sid) or True)
     assert grader._run_once() == ("w", "WITHDRAWN_BY_MINER")
     assert settled == ["w"]
+
+
+def test_a_failed_withdrawal_repair_falls_through_to_grading():
+    def steps(grader, sid, turn):
+        grader.marked.add(sid)
+        return sid, "GRADED"
+
+    grader = _grader(["w"], steps)
+    grader._withdrawn_pending = lambda sid: True
+    grader._settle_withdrawn = lambda sid: False
+    assert grader._run_once() == ("w", "GRADED")
+
+
+def test_a_failed_session_yield_marks_it_broken_and_keeps_going(monkeypatch):
+    import importlib
+
+    carrier = importlib.reload(
+        research_carrier
+    )  # the real yield (the fixture patches it)
+    session = carrier._GradeSession()
+    session.live = True
+
+    def close(cli=None):
+        raise ValueError("grade session cleanup uncertain")
+
+    session.close = close
+    token = carrier._GRADE_SESSION.set(session)
+    try:
+        _REAL_YIELD()
+    finally:
+        carrier._GRADE_SESSION.reset(token)
+    assert session.live is False and session.broken is True

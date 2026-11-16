@@ -112,12 +112,9 @@ class _Task:
                 yield_grade_session,
             )
 
-            # best effort: a removal that cannot be confirmed still releases the session's timing hold, and the
-            # grade session's own exit removes (and reports) it again
-            try:
-                yield_grade_session()
-            except Exception:  # noqa: BLE001, S110
-                pass
+            # best effort itself: a removal that cannot be confirmed still releases the session's timing hold, no
+            # later op joins it, and the grade session's own exit removes (and reports) it again
+            yield_grade_session()
         with order:
             while any(other < self.ticket for other in self.sequencer._open):
                 order.wait(1.0)
