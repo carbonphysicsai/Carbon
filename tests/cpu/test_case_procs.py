@@ -119,7 +119,10 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
         "case_procs_count(doc, len(member_arrays), len(state),"
         f" {MOTOR_18_MEMORY}, 0.5, {1024**3}," in procs
     )
-    assert "allowance = 4.0 * (first + per_row * len(cores)" in procs
+    assert (
+        "allowance = 4.0 * (\n            startup + first + per_row * len(cores)"
+        in procs
+    )
     assert "case_wall_end = case_start + 648 - 30\n" in procs
     assert "time.monotonic() + 1.25 * per_row * left > case_wall_end" in procs
     for placeholder in (
@@ -159,7 +162,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
 #: sha256 of Motor 1.8's per-case processes program at this head: any edit of the GRADED program (the count
 #: function's source included) must change this pin on purpose.
 PROCS_PROGRAM_SHA256 = (
-    "d97c120de552ef5bec7df9ddc4809e0047773781bc4675bbd02e244c8d3c75ae"
+    "c2e07dbae238dc80116d316740c482ac8b44fab8c622fb7bc158eb1b51630332"
 )
 
 

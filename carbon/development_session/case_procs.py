@@ -197,6 +197,8 @@ __COUNT_SOURCE__
     if slices:
         import subprocess
         same = lambda a, b: a.dtype == b.dtype and a.shape == b.shape and a.tobytes() == b.tobytes()
+        # a worker repeats this process's start (interpreter, imports, state load and checks) before its first call
+        startup = time.monotonic() - case_start
         clock = time.perf_counter()
         sample = {0: case_block(0)}
         first = time.perf_counter() - clock
@@ -211,8 +213,10 @@ __COUNT_SOURCE__
         if len(sample) >= rows or time.monotonic() + per_row * (rows - len(sample)) > case_wall_end:
             slices = []
     if slices:
-        # operational, not science: a worker runs on one core, so a row may take up to the cores' count times longer
-        allowance = __SLACK__ * (first + per_row * len(cores) * max(high - low for low, high in slices))
+        # operational, not science: a worker repeats this process's start and first call, then runs on one core, so a
+        # row may take up to the cores' count times longer
+        allowance = __SLACK__ * (
+            startup + first + per_row * len(cores) * max(high - low for low, high in slices))
         workers, agreed, started, late = [], True, True, set()
         try:
             shutil.rmtree(procs_dir, ignore_errors=True)
