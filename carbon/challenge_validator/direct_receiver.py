@@ -1571,6 +1571,9 @@ def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network, challeng
         if challenge is None
         else remote_gpu_build.door_lane(challenge.challenge_id, challenge.version)
     )
+    if challenge is not None:
+        # every graph build of this door runs on exactly the lane bound here, or refuses as Carbon's
+        remote_gpu_build.pin(challenge.challenge_id, challenge.version, remote)
     startup = None if remote is None else remote_gpu_build.OpBinding(remote, 0)
     with remote_gpu_build.bound(startup):
         device = research_carrier._gpu_device()

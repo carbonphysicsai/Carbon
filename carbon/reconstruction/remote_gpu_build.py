@@ -19,15 +19,24 @@ to the same path under ``stage_root``, link loss = FAILED_INFRA) applied to one 
   same build on the same GPU class and slot configuration; the graph route's two-rebuild repeat check runs here too.
 - **N build slots per GPU** (`values_row` ``"slots"``, default 1, at most `MAX_SLOTS`): the door holds one of N slot
   locks per op (`op`), each slot with its own cores on the remote machine (``slot_cpusets``) and its own device
-  allocation record. With N > 1 each process gets a share of the device memory: JAX through the BFC allocator with no
-  preallocation and ``XLA_PYTHON_CLIENT_MEM_FRACTION``; PyTorch through ``set_per_process_memory_fraction``, applied by
-  a prelude the controller adds to the build program (`with_torch_prelude`). With N = 1 the environment and the program
-  are byte-identical to a local GPU build.
+  allocation record. With N > 1 PyTorch gets a hard share of the device memory (``set_per_process_memory_fraction``,
+  applied by a prelude the controller adds to the build program: `with_torch_prelude`); JAX keeps the pinned
+  no-preallocation, on-demand platform allocator (each process holds only its live buffers) because a hard JAX fraction
+  needs the BFC allocator, which the image-pinned environment and its controls check do not allow yet
+  (`slot_environment`). With N = 1 the environment and the program are byte-identical to a local GPU build.
+- **What stays on the door.** A build whose stage carries a HOST-PRIVATE seed (the crown's averaging rebuilds) or a
+  derived rebind is withheld (`offered_for` ``withhold``): refused as Carbon's until the owner rules it may leave.
+  Every build runs on exactly the lane the door bound at start (`pin`), or refuses as Carbon's.
 - **Failure typing.** Any link fault raises `remote_lane.RemoteLaneDown` (WorkerFailure UNAVAILABLE: Carbon's
   infrastructure, never the candidate's). A remote op that fails while the link or the GPU is unhealthy (`healthy`:
   ``docker version`` answers and ``nvidia-smi`` still names the recorded device) is retyped to it. A wall stop on the
   lane is never the candidate's (as on the remote grade lane; whether a remote wall may count is Validator-Motor's
   ruling, not made here).
+
+**Local slot lanes** (Lead, Mon 16 Nov: one design for both): a lane record with ``"docker_host": null`` and
+``"stage_root": null`` is THIS host's own GPU (the GPUYard 4090 lane). It takes the same slot locks, per-slot cores,
+per-slot allocation records and per-process memory shares, uses this host's installed device record and daemon, mirrors
+nothing, and keeps a local GPU build's wall-stop reading; a GPU fault found after a failed build is still Carbon's.
 
 **Configuration.** Operator-installed, beside the host execution record: ``<HOST_ROOT>/remote-gpu-build-lanes.json``
 (`RECORD`, schema `SCHEMA`) ``{"lanes": [{"docker_host", "stage_root", "slot_cpusets"}]}``, and per lane the remote
@@ -97,8 +106,15 @@ class GpuBuildSpec:
     """One remote GPU build lane as the operator installed it (`load`)."""
 
     index: int
-    docker_host: str
-    stage_root: str
+    #: The lane machine's ssh daemon, or None: THIS host's own GPU (a local slot lane: the GPUYard 4090's).
+    docker_host: str | None
+    #: Where inputs are mirrored on the lane machine; None for a local lane (nothing to mirror).
+    stage_root: str | None
+
+    @property
+    def local(self):
+        return self.docker_host is None
+
     slot_cpusets: tuple[str, ...]
 
 
@@ -142,6 +158,29 @@ _OFFERED: ContextVar[DoorLane | None] = ContextVar(
 _OP: ContextVar[OpBinding | None] = ContextVar(
     "carbon_remote_gpu_build_op", default=None
 )
+#: A slot op's binding handed to a process it spawns (its watchdog): the op's intent fields as JSON. Read only when no
+#: binding is set in the context, so the door process itself (which never sets it) is unaffected.
+ENVIRONMENT = "CARBON_REMOTE_GPU_BUILD"
+#: Marks a lane withheld from this build (`offered_for` ``withhold``): an eligible op then refuses as Carbon's.
+_WITHHELD = object()
+#: The lane device each door bound at start (`pin`): ``{(challenge_id, version): record digest or None}``.
+_PINNED: dict = {}
+_ENVIRONMENT_BINDING: list = []
+
+
+def _current():
+    """The running op's slot binding: the context's, else (in a process a slot op spawned) the one it was handed."""
+    binding = _OP.get()
+    if binding is not None or ENVIRONMENT not in os.environ:
+        return binding
+    if not _ENVIRONMENT_BINDING:
+        try:
+            entry = json.loads(os.environ[ENVIRONMENT])
+            _ENVIRONMENT_BINDING.append(recorded({"remote_gpu_build": entry}))
+        except (ValueError, OSError, WorkerFailure):
+            # a binding that cannot be read back is not this host's either: nothing here may guess it
+            raise RemoteLaneDown(b"remote_gpu_build_environment_binding") from None
+    return _ENVIRONMENT_BINDING[0]
 
 
 # -- configuration ---------------------------------------------------------------------------------------------------------
@@ -179,7 +218,12 @@ def load(root=None):
             "slot_cpusets",
         }:
             raise ValueError("remote_gpu_build_record")
-        remote_lane.parse_docker_host(entry["docker_host"])
+        local = entry["docker_host"] is None
+        if local != (entry["stage_root"] is None):
+            # a local lane names neither a daemon nor a mirror root; a remote one names both
+            raise ValueError("remote_gpu_build_record")
+        if not local:
+            remote_lane.parse_docker_host(entry["docker_host"])
         cpusets = entry["slot_cpusets"]
         if (
             type(cpusets) is not list
@@ -204,7 +248,7 @@ def load(root=None):
             GpuBuildSpec(
                 index,
                 entry["docker_host"],
-                remote_lane._checked_root(entry["stage_root"]),
+                None if local else remote_lane._checked_root(entry["stage_root"]),
                 tuple(cpusets),
             )
         )
@@ -251,14 +295,16 @@ def door_lane(challenge_id, version, *, root=None, values=None):
     if row["slots"] > len(spec.slot_cpusets):
         raise ValueError("remote_gpu_build_slots_exceed_cpusets")
     lane_dir = _host_root(root) / LANE_DIR.format(index=spec.index)
-    device = _lane_device(lane_dir)
+    device = _lane_device(_host_root(root) if spec.local else lane_dir)
     if device.device_kind != row["device_kind"]:
         raise ValueError("remote_gpu_build_device_kind")
     return DoorLane(spec, row["slots"], device, str(lane_dir))
 
 
 def _lane_device(lane_dir):
-    """The remote machine's strict device record, bound to the GPU profile, or ValueError."""
+    """The lane machine's strict device record, bound to the GPU profile, or ValueError: a remote lane's own (in its
+    lane directory, written by the class check run ON that machine), or a local lane's: this host's installed record.
+    """
     from carbon.reconstruction.accelerators import GPU_PROFILE
     from carbon.reconstruction.host_inventory import (
         HostDeviceRecord,
@@ -286,21 +332,41 @@ def offered(lane):
         _OFFERED.reset(token)
 
 
+def pin(challenge_id, version, lane):
+    """Record the lane device a door bound at start (``lane`` a `DoorLane`, or None: no lane), so a build never runs on
+    a lane other than the one the door's binding names (`offered_for`)."""
+    _PINNED[(challenge_id, version)] = None if lane is None else lane.device.digest
+
+
 @contextmanager
-def offered_for(challenge_id, version, *, root=None, values=None):
-    """`offered` with the door's lane for ``"<challenge_id> <version>"`` (`door_lane`), read at the build: a lane
-    configuration that broke since the door started is Carbon's (`RemoteLaneDown`), never the build's.
+def offered_for(challenge_id, version, *, root=None, values=None, withhold=False):
+    """`offered` with the door's lane for ``"<challenge_id> <version>"`` (`door_lane`), read at the build. Carbon's
+    (`RemoteLaneDown`), never the build's: a lane configuration that broke since the door started, or a lane (or its
+    device) that differs from the one the door bound at start (`pin`).
+
+    ``withhold``: this build's stage holds something that may not leave the door (a HOST-PRIVATE seed: the crown's
+    averaging rebuilds). Whether such a build may go to a rented machine is the owner's decision, not made here: while
+    a lane is configured, its GPU build ops refuse as Carbon's instead of running anywhere else.
     """
     try:
         lane = door_lane(challenge_id, version, root=root, values=values)
     except (ValueError, OSError) as error:
         raise RemoteLaneDown(str(error).encode()[:512]) from None
-    with offered(lane):
+    key = (challenge_id, version)
+    if key in _PINNED and _PINNED[key] != (
+        None if lane is None else lane.device.digest
+    ):
+        raise RemoteLaneDown(b"remote_gpu_build_lane_changed_since_start")
+    token = _OFFERED.set(_WITHHELD if withhold and lane is not None else lane)
+    try:
         yield lane
+    finally:
+        _OFFERED.reset(token)
 
 
 def offered_lane():
-    return _OFFERED.get()
+    lane = _OFFERED.get()
+    return None if lane is _WITHHELD else lane
 
 
 def eligible(identity, *, accelerator, provenance, timed):
@@ -317,23 +383,36 @@ def eligible(identity, *, accelerator, provenance, timed):
 
 def current_op():
     """The slot binding of the running op, or None (the door's own daemon)."""
-    return _OP.get()
+    return _current()
 
 
 @contextmanager
-def op(identity, *, accelerator, provenance, timed, poll_s=None, sleep=None):
+def op(
+    identity,
+    *,
+    accelerator,
+    provenance,
+    timed,
+    poll_s=None,
+    sleep=None,
+    check=None,
+):
     """Bind an eligible op (`eligible`) of a build that was offered a lane to one free slot for its whole life; anything
-    else: unchanged (yields None). No free slot within `SLOT_WAIT_SECONDS` is Carbon's (`RemoteLaneDown`).
-    """
+    else: unchanged (yields None). No free slot within `SLOT_WAIT_SECONDS` is Carbon's (`RemoteLaneDown`). ``check``
+    is called while waiting (the op's cancellation), and may raise. A slot whose allocation record a lost controller
+    left behind is passed over until recovery clears it."""
     lane = _OFFERED.get()
     if lane is None or not eligible(
         identity, accelerator=accelerator, provenance=provenance, timed=timed
     ):
         yield None
         return
+    if lane is _WITHHELD:
+        raise RemoteLaneDown(b"remote_gpu_build_withheld_host_private_build")
     pause = time.sleep if sleep is None else sleep
     poll = POLL_S if poll_s is None else poll_s
-    wrapper(lane)
+    if not lane.spec.local:
+        wrapper(lane)
     deadline = time.monotonic() + SLOT_WAIT_SECONDS
     held = None
     while held is None:
@@ -349,9 +428,16 @@ def op(identity, *, accelerator, provenance, timed, poll_s=None, sleep=None):
             except BlockingIOError:
                 os.close(fd)
                 continue
+            if (directory / "active-allocation.json").exists():
+                # a lost controller's record: this slot waits for recovery, another may be free
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
+                continue
             held = (slot, fd)
             break
         if held is None:
+            if check is not None:
+                check()
             if time.monotonic() >= deadline:
                 raise RemoteLaneDown(b"remote_gpu_build_slots_busy")
             pause(poll)
@@ -372,25 +458,25 @@ def op(identity, *, accelerator, provenance, timed, poll_s=None, sleep=None):
 
 def device():
     """The remote device record of the running op, or None."""
-    binding = _OP.get()
+    binding = _current()
     return None if binding is None else binding.lane.device
 
 
 def allocation_root():
     """Where the running op's device allocation record lives (its slot's directory), or None (HOST_ROOT)."""
-    binding = _OP.get()
+    binding = _current()
     return None if binding is None else binding.slot_dir
 
 
 def cpuset():
     """The running op's slot cores on the remote machine, or None."""
-    binding = _OP.get()
+    binding = _current()
     return None if binding is None else binding.cpuset
 
 
 def docker_host():
     """The ``DOCKER_HOST`` of the running op's lane, or None."""
-    binding = _OP.get()
+    binding = _current()
     return None if binding is None else binding.docker_host
 
 
@@ -452,8 +538,9 @@ def wrapper(lane):
 
 def cli(binding=None):
     """A Docker CLI for the running op's lane daemon (through the lane's wrapper), or None outside a remote op."""
-    binding = _OP.get() if binding is None else binding
-    if binding is None:
+    binding = _current() if binding is None else binding
+    if binding is None or binding.lane.spec.local:
+        # outside a slot, or a local slot lane: this host's own daemon (the caller's DockerCLI)
         return None
     from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
@@ -473,19 +560,19 @@ def slot_fraction(slots):
 
 
 def slot_environment(binding=None):
-    """The per-process memory controls of the running op: none with one slot (the environment is a local GPU
-    build's, byte for byte); with N > 1 JAX's BFC allocator, no preallocation and its fraction, and the torch prelude's
-    fraction."""
-    binding = _OP.get() if binding is None else binding
+    """The per-process memory controls of the running op beyond the pinned worker environment: none with one slot
+    (a local GPU build's environment, byte for byte); with N > 1 the torch prelude's fraction.
+
+    JAX is NOT given ``XLA_PYTHON_CLIENT_MEM_FRACTION``: that cap binds only the BFC allocator, and the pinned GPU
+    environment (`accelerators.pinned_environment`, a worker-image input) fixes ``XLA_PYTHON_CLIENT_ALLOCATOR=platform``
+    with no preallocation, which the controls check (`docker_runtime.inspect_effective_controls`) requires exactly.
+    Under it each JAX process holds exactly its live buffers and frees them at once, so N processes share the device
+    by what they use; a hard per-process JAX cap needs that environment changed with its own image and door
+    migration."""
+    binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return {}
-    fraction = f"{slot_fraction(binding.lane.slots):.2f}"
-    return {
-        "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
-        "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
-        "XLA_PYTHON_CLIENT_MEM_FRACTION": fraction,
-        TORCH_FRACTION_ENV: fraction,
-    }
+    return {TORCH_FRACTION_ENV: f"{slot_fraction(binding.lane.slots):.2f}"}
 
 
 def with_slot_environment(arguments, binding=None):
@@ -526,7 +613,7 @@ TORCH_PRELUDE = (
 def with_torch_prelude(source, binding=None):
     """The build program with `TORCH_PRELUDE` after its docstring and ``__future__`` imports: only with N > 1 slots.
     Unchanged otherwise, so a one-slot lane runs exactly the local program."""
-    binding = _OP.get() if binding is None else binding
+    binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return source
     module = ast.parse(source)
@@ -551,7 +638,7 @@ def request_fields(binding=None):
     """What a bound op's request records beside its accelerator: the slot count when it is above one (the per-process
     memory share is part of the build's environment), else nothing (identities as before).
     """
-    binding = _OP.get() if binding is None else binding
+    binding = _current() if binding is None else binding
     if binding is None or binding.lane.slots == 1:
         return {}
     return {"remote_gpu_slots": binding.lane.slots}
@@ -561,7 +648,7 @@ def intent_fields():
     """What an op's durable intent records about where its container runs: ``{"remote_gpu_build": {...}}`` for a
     remote op (the daemon, the mirror root, the lane and the slot recovery must use), else ``{}``.
     """
-    binding = _OP.get()
+    binding = _current()
     if binding is None:
         return {}
     return {
@@ -599,7 +686,12 @@ def recorded(intent, *, root=None):
     ):
         raise ValueError("remote_gpu_build_intent")
     lane_dir = _host_root(root) / LANE_DIR.format(index=spec.index)
-    lane = DoorLane(spec, len(spec.slot_cpusets), _lane_device(lane_dir), str(lane_dir))
+    lane = DoorLane(
+        spec,
+        len(spec.slot_cpusets),
+        _lane_device(_host_root(root) if spec.local else lane_dir),
+        str(lane_dir),
+    )
     return OpBinding(lane, entry["slot"])
 
 
@@ -621,20 +713,25 @@ def bound(binding):
 def mirror(stage):
     """Mirror the running op's ``/input`` to the same path on the lane machine (`remote_lane.mirror`). No-op outside
     a remote op."""
-    binding = _OP.get()
-    if binding is not None:
+    binding = _current()
+    if binding is not None and not binding.lane.spec.local:
         remote_lane.mirror(stage, binding)
 
 
 def discard(stage, binding=None):
     """Remove the lane machine's copy of ``stage`` (`remote_lane.discard`). No-op outside a remote op."""
-    binding = _OP.get() if binding is None else binding
-    if binding is not None:
+    binding = _current() if binding is None else binding
+    if binding is not None and not binding.lane.spec.local:
         remote_lane.discard(stage, binding)
 
 
 def _ssh_capture(binding, argv, timeout=PROBE_SECONDS):
-    command = [*remote_lane._ssh(binding), " ".join(shlex.quote(item) for item in argv)]
+    """``argv``'s stdout on the lane machine: over ssh for a remote lane, directly for a local one."""
+    command = (
+        list(argv)
+        if binding.lane.spec.local
+        else [*remote_lane._ssh(binding), " ".join(shlex.quote(item) for item in argv)]
+    )
     try:
         done = subprocess.run(
             command,
@@ -642,7 +739,11 @@ def _ssh_capture(binding, argv, timeout=PROBE_SECONDS):
             capture_output=True,
             timeout=timeout,
             check=False,
-            env=remote_lane.docker_environment(binding.docker_host),
+            env=(
+                {"PATH": "/usr/local/bin:/usr/bin:/bin"}
+                if binding.lane.spec.local
+                else remote_lane.docker_environment(binding.docker_host)
+            ),
             cwd=os.sep,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
@@ -654,7 +755,7 @@ def _ssh_capture(binding, argv, timeout=PROBE_SECONDS):
 
 def gpu_present(binding=None):
     """Whether the lane machine's ``nvidia-smi`` names the recorded device (its uuid, with the recorded kind)."""
-    binding = _OP.get() if binding is None else binding
+    binding = _current() if binding is None else binding
     record = binding.lane.device
     try:
         raw = _ssh_capture(
@@ -672,9 +773,11 @@ def gpu_present(binding=None):
 
 def healthy(binding=None):
     """Whether the running op's link and GPU are sound now: the daemon answers and the device is still there."""
-    binding = _OP.get() if binding is None else binding
+    binding = _current() if binding is None else binding
     if binding is None:
         return True
+    if binding.lane.spec.local:
+        return gpu_present(binding)
     return remote_lane.link_up(binding) and gpu_present(binding)
 
 
@@ -686,7 +789,7 @@ def check_host(cli_, image, record, pins=None):
         verify_image_and_toolkit,
     )
 
-    binding = _OP.get()
+    binding = _current()
     if binding is None:
         raise RemoteLaneDown(b"remote_gpu_build_unbound")
     if record is None or record.digest != binding.lane.device.digest:
@@ -720,9 +823,16 @@ def reject_crowded(cli_, binding=None):
     """Before create: the slot's own allocation record is free, and the lane's daemon runs fewer Carbon containers on
     the device than the lane has slots (a lost controller's retained container still counts). CONFLICT otherwise.
     """
-    binding = _OP.get() if binding is None else binding
+    binding = _current() if binding is None else binding
     if (binding.slot_dir / "active-allocation.json").exists():
         raise WorkerFailure(WorkerCode.CONFLICT)
+    if binding.lane.spec.local:
+        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+
+        # a local slot lane shares this host's GPU with its other Carbon work (practice, receipts), which holds the
+        # host's single allocation record: while that is held, no slot starts
+        if (Path(HOST_ROOT) / "active-allocation.json").exists():
+            raise WorkerFailure(WorkerCode.CONFLICT)
     raw = cli_.run(
         [
             "ps",
@@ -747,9 +857,14 @@ def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=
 
     from carbon.reconstruction.worker.model import exact_digest, exact_token
 
-    binding = _OP.get()
+    binding = _current()
     if binding is None:
         raise RemoteLaneDown(b"remote_gpu_build_unbound")
+    environment = remote_lane.docker_environment(binding.docker_host)
+    # the watchdog finishes the slot's own allocation record against the lane's device record (`_current`)
+    environment[ENVIRONMENT] = json.dumps(
+        intent_fields()["remote_gpu_build"], sort_keys=True
+    )
     exact_token(container_name)
     exact_digest(launch_digest)
     if type(deadline_unix) is not float or deadline_unix <= time.time():
@@ -771,7 +886,7 @@ def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=
             stderr=subprocess.DEVNULL,
             start_new_session=True,
             close_fds=True,
-            env=remote_lane.docker_environment(binding.docker_host),
+            env=environment,
         )
     except OSError:
         raise RemoteLaneDown(b"remote_gpu_build_watchdog") from None
@@ -780,7 +895,7 @@ def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=
 def retyped(error, binding=None):
     """``error`` of a remote op, retyped as Carbon's (`RemoteLaneDown`) when the link or the GPU is unhealthy now; else
     None (the error stands as it is)."""
-    binding = _OP.get() if binding is None else binding
+    binding = _current() if binding is None else binding
     if binding is None or isinstance(error, RemoteLaneDown):
         return None
     if healthy(binding):
@@ -822,6 +937,7 @@ __all__ = [
     "offered_for",
     "offered_lane",
     "op",
+    "pin",
     "recorded",
     "reject_crowded",
     "request_fields",

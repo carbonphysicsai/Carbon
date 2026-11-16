@@ -349,18 +349,34 @@ def _run(ledger, **kwargs):
     # (`remote_lane.local_for`); every other op of such a round sends its docker calls to the lane's daemon.
     timed = _timed_control(kwargs.get("files"))
     # A GPU BUILD of a build offered a remote GPU build lane takes one of its slots for its whole life and runs on that
-    # machine (`remote_gpu_build.op`); every other op (inference, timing, grading) is unchanged.
+    # machine (`remote_gpu_build.op`); every other op (inference, timing, grading) is unchanged. An op the ledger has
+    # already settled replays its recorded result here and takes no slot.
+    owner = kwargs.get("owner")
+    settled = (
+        remote_gpu_build.offered_lane() is not None
+        and owner is not None
+        and callable(getattr(ledger, "operation_state", None))
+        and ledger.operation_state(identity, owner=owner) not in (None, "RESERVED")
+    )
     with (
         remote_lane.local_for(identity, timed=timed),
         remote_gpu_build.op(
             identity,
-            accelerator=kwargs.get("accelerator"),
+            accelerator=None if settled else kwargs.get("accelerator"),
             provenance=kwargs.get("provenance"),
             timed=timed,
+            check=(
+                None
+                if ledger is None or owner is None
+                else lambda: _check_cancel(ledger, owner, identity)
+            ),
         ) as remote_build,
     ):
         try:
             return _run_supervised(ledger, **kwargs)
+        except MinerProgramFailure:
+            # settled in the ledger as the candidate's (a resource stop is retyped BEFORE it is settled): never retyped
+            raise
         except Exception as error:
             # A remote build that failed while its link or its GPU is unhealthy is Carbon's, never the miner's.
             down = None if remote_build is None else remote_gpu_build.retyped(error)
@@ -1226,8 +1242,9 @@ def _candidate_resource_stop(
         # a REMOTE grade lane: a stalled link looks exactly like a stalled program, so the stop is the candidate's
         # only with the container observed at the stop and the link up now (else Carbon's)
         and remote_lane.wall_stop_observable(observation)
-        # a remote GPU build slot: never the candidate's either (the remote class's walls wait on Validator-Motor)
-        and remote_gpu_build.current_op() is None
+        # a REMOTE GPU build slot: never the candidate's either (the remote class's walls wait on Validator-Motor); a
+        # local slot lane's wall is read as a local GPU build's always was
+        and remote_gpu_build.docker_host() is None
     ):
         return (
             WorkerCode.DEADLINE,
@@ -2136,7 +2153,7 @@ def _run_locked(
             # runs beside a local lane's EXCLUSIVE timing stage.
             if session is not None:
                 remote_lane.mirror(session.input)
-            elif remote_gpu_build.current_op() is not None:
+            elif remote_gpu_build.docker_host() is not None:
                 # a remote GPU build slot: the build's public stage at the same path on the lane machine
                 from carbon.reconstruction import grade_lanes
 
@@ -2321,6 +2338,7 @@ def _run_locked(
             with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
                 # a remote GPU build slot: the watchdog watches the lane's daemon, where the container runs
                 (
+                    # a slot op's (remote or local): it is handed the slot, so it finishes that slot's record
                     remote_gpu_build.spawn_watchdog
                     if remote_gpu_build.current_op() is not None
                     else spawn_watchdog
@@ -2785,7 +2803,7 @@ def _check_gpu_host(cli, image, device, pins=None):
         verify_image_and_toolkit,
     )
 
-    if remote_gpu_build.current_op() is not None:
+    if remote_gpu_build.docker_host() is not None:
         # The lane machine's readiness, on its own daemon: this host's GPU doctor describes this host only.
         remote_gpu_build.check_host(cli, image, device, pins)
         return

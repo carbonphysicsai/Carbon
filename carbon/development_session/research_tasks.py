@@ -568,6 +568,8 @@ class DirectDevelopmentTasksV3:
         are never swallowed."""
         import logging
 
+        from carbon.reconstruction.remote_lane import RemoteLaneDown
+
         from .direct_graph_construction_worker import reconstruct_public_graph
         from .gpu_practice import campaign_limits
         from .research_carrier import PRECHARGED_TRIAL
@@ -599,6 +601,11 @@ class DirectDevelopmentTasksV3:
                 )
                 digests.append(built.state_digest)
         except campaign_limits():
+            raise
+        except RemoteLaneDown:
+            # the remote GPU build lane's link or GPU (`remote_gpu_build`): Carbon's, FAILED_INFRA, never a CPU
+            # rebuild that could run into the CPU's wall as the miner's
+            self._reconcile_probes(task_id)
             raise
         except Exception:
             logging.getLogger(__name__).warning(
@@ -2122,7 +2129,16 @@ class DirectDevelopmentTasksV3:
             from carbon.reconstruction import remote_gpu_build
 
             with (
-                remote_gpu_build.offered_for(kit["id"], kit["version"])
+                remote_gpu_build.offered_for(
+                    kit["id"],
+                    kit["version"],
+                    # a HOST-PRIVATE seed (the crown's averaging rebuilds) or a derived rebind never leaves the door
+                    # until the owner rules it may (`offered_for` ``withhold``)
+                    withhold=(
+                        task_id.value in self._task_seeds
+                        or task_id.value in self._origin_rebinds
+                    ),
+                )
                 if source_kind == "graph"
                 else nullcontext()
             ):

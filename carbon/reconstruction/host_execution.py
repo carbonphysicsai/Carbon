@@ -180,9 +180,11 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
 
     remote = remote_gpu_build.cpuset()
     if remote is not None:
+        # read as an installed record is: cores the machine lacks refuse; a worker of other than today's CPU count needs
+        # exactly that many cores; today's count runs on the slot's cores whatever their number
         cores = parse_cpuset(remote)
-        if len(cores) != count or (
-            type(logical_cpus) is int and max(cores) >= logical_cpus
+        if (type(logical_cpus) is int and max(cores) >= logical_cpus) or (
+            count != CPU_COUNT and len(cores) != count
         ):
             raise WorkerFailure(WorkerCode.POLICY)
         return remote
