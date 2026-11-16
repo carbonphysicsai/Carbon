@@ -92,6 +92,59 @@ sys.stdout.buffer.write(b"".join(np.asarray(params[k]).tobytes() for k in sorted
 '''
 
 
+#: A Motor 1.8-sized public graph build: an 8 -> 512 x5 -> 240 tanh MLP (1,178,352 parameters; the 15 Nov public bench
+#: graph had 1,182,448) trained in FLOAT64 as Motor 1.8 graph builds are (x64 turned on before JAX loads, as the v2 build
+#: program does), batch 194, on synthetic data it generates itself (public by construction).
+MOTOR18_PROGRAM = '''"""Carbon GPU slot bench: a Motor 1.8-sized FP64 graph build (synthetic public data)."""
+import os
+import sys
+
+os.environ["JAX_ENABLE_X64"] = "true"
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+
+steps = int(os.environ.get("CARBON_BENCH_STEPS", "3000"))
+sizes = (8, 512, 512, 512, 512, 512, 240)
+rng = np.random.default_rng(0)
+x = rng.standard_normal((4096, sizes[0]))
+y = np.tanh(x @ rng.standard_normal((sizes[0], sizes[-1])))
+keys = jax.random.split(jax.random.PRNGKey(0), len(sizes) - 1)
+params = [
+    (jax.random.normal(k, (a, b), jnp.float64) / np.sqrt(a), jnp.zeros((b,), jnp.float64))
+    for k, a, b in zip(keys, sizes[:-1], sizes[1:])
+]
+
+
+def forward(p, x):
+    for w, b in p[:-1]:
+        x = jnp.tanh(x @ w + b)
+    w, b = p[-1]
+    return x @ w + b
+
+
+def loss(p, x, y):
+    return jnp.mean((forward(p, x) - y) ** 2)
+
+
+@jax.jit
+def step(p, x, y):
+    g = jax.grad(loss)(p, x, y)
+    return jax.tree_util.tree_map(lambda a, b: a - 1e-3 * b, p, g)
+
+
+x, y = jnp.asarray(x), jnp.asarray(y)
+for i in range(steps):
+    lo = (i * 194) % (len(x) - 194)
+    params = step(params, x[lo : lo + 194], y[lo : lo + 194])
+assert jax.devices()[0].platform == "gpu", jax.devices()
+assert params[0][0].dtype == jnp.float64
+sys.stdout.buffer.write(b"".join(np.asarray(a).tobytes() for layer in params for a in layer))
+'''
+PROGRAMS = {"default": DEFAULT_PROGRAM, "motor18": MOTOR18_PROGRAM}
+
+
 @dataclass
 class Run:
     """One build of one N."""
@@ -450,6 +503,12 @@ def main(argv=None):
         default=None,
         help="a build program writing its state to stdout",
     )
+    parser.add_argument(
+        "--builtin",
+        choices=sorted(PROGRAMS),
+        default="default",
+        help="the built-in program without --program (motor18: a Motor 1.8-sized FP64 graph build)",
+    )
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args(argv)
     record = require_host_device(HostDeviceRecord.load(args.device_record), GPU_PROFILE)
@@ -464,7 +523,9 @@ def main(argv=None):
         memory=args.memory,
         cpusets=split_cpusets(args.cpusets),
         docker_host=args.docker_host,
-        program=DEFAULT_PROGRAM if args.program is None else args.program.read_text(),
+        program=(
+            PROGRAMS[args.builtin] if args.program is None else args.program.read_text()
+        ),
     )
     text = json.dumps(report, indent=2, sort_keys=True)
     print(text)
