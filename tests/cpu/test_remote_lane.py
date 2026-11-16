@@ -327,12 +327,18 @@ def test_mirror_sends_the_directory_to_the_same_path_there(monkeypatch, tmp_path
         "BatchMode=yes",
         "-o",
         "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=10",
+        "-o",
+        "ServerAliveCountMax=3",
         "-p",
         "2222",
         "carbon-grade@grader-2.example",
         "--",
     ]
     assert str(stage) in call.command[-1] and "find" in call.command[-1]
+    assert "chmod -R u+w" in call.command[-1]  # overlay dirs are 0555
+    assert "ServerAliveInterval=10" in call.command
     assert call.kwargs["env"]["DOCKER_HOST"] == HOST
     with tarfile.open(fileobj=io.BytesIO(call.sent)) as archive:
         names = {member.name: member for member in archive.getmembers()}
@@ -373,18 +379,16 @@ def test_outside_a_remote_round_nothing_is_sent(monkeypatch, tmp_path):
 # -- a stalled link is never the candidate's wall -------------------------------------------------------------------------
 
 
-def test_a_remote_wall_stop_needs_an_observed_container_and_a_live_link(monkeypatch):
+def test_a_remote_wall_stop_is_never_the_candidates():
     assert remote_lane.wall_stop_observable(None) is True  # this host: unchanged
     with grade_lanes.bound(_remote()):
-        monkeypatch.setattr(remote_lane, "link_up", lambda *a, **k: True)
-        assert remote_lane.wall_stop_observable({"status": "OBSERVED"}) is True
-        assert remote_lane.wall_stop_observable({"status": "UNKNOWN"}) is False
-        assert remote_lane.wall_stop_observable(None) is False
-        monkeypatch.setattr(remote_lane, "link_up", lambda *a, **k: False)
         assert remote_lane.wall_stop_observable({"status": "OBSERVED"}) is False
+        assert remote_lane.wall_stop_observable(None) is False
+    with grade_lanes.bound(grade_lanes.Lane(1, "4-7", LOCK)):
+        assert remote_lane.wall_stop_observable(None) is True
 
 
-def test_the_carriers_wall_stop_is_carbons_when_the_remote_link_is_down(monkeypatch):
+def test_the_carriers_wall_stop_on_a_remote_lane_is_carbons():
     from carbon.development_session import research_carrier as carrier
 
     observed = {
@@ -413,10 +417,71 @@ def test_the_carriers_wall_stop_is_carbons_when_the_remote_link_is_down(monkeypa
 
     assert stop()[1] == carrier.CANDIDATE_WALL_LIMIT  # this host: unchanged
     with grade_lanes.bound(_remote()):
-        monkeypatch.setattr(remote_lane, "link_up", lambda *a, **k: False)
         assert stop() is None
-        monkeypatch.setattr(remote_lane, "link_up", lambda *a, **k: True)
-        assert stop()[1] == carrier.CANDIDATE_WALL_LIMIT
+
+
+def test_a_remote_ops_inputs_are_discarded_on_every_exit(monkeypatch, tmp_path):
+    from carbon.development_session import research_carrier as carrier
+
+    gone = []
+    monkeypatch.setattr(
+        remote_lane, "discard", lambda stage, lane=None: gone.append(stage)
+    )
+    with pytest.raises(RuntimeError), carrier._remote_inputs_discarded(tmp_path):
+        raise RuntimeError("cleanup failed")
+    with carrier._remote_inputs_discarded(None):
+        pass
+    assert gone == [tmp_path]
+
+
+# -- recovery uses the daemon the intent recorded -----------------------------------------------------------------------
+
+
+def test_an_intent_records_the_remote_daemon_and_recovery_reads_it(monkeypatch):
+    from carbon.reconstruction.worker import docker_runtime
+
+    monkeypatch.setattr(
+        docker_runtime.DockerCLI, "load_installed_aliases", lambda self: None
+    )
+    assert remote_lane.intent_fields() == {}
+    with grade_lanes.bound(_remote()):
+        fields = remote_lane.intent_fields()
+    assert fields == {"remote": {"docker_host": HOST, "stage_root": ROOT}}
+    spec = remote_lane.recorded(fields)
+    assert spec == remote_lane.RemoteSpec(HOST, "", ROOT)
+    assert remote_lane.cli_for(spec).docker_host == HOST
+    assert remote_lane.cli_for(None).docker_host is None
+    assert remote_lane.recorded({}) is None
+    for bad in (
+        {"remote": {"docker_host": HOST}},
+        {"remote": {"docker_host": "tcp://x:1", "stage_root": ROOT}},
+        {"remote": {"docker_host": HOST, "stage_root": "/"}},
+    ):
+        with pytest.raises(ValueError):
+            remote_lane.recorded(bad)
+
+
+def test_a_timed_control_of_a_remote_round_stays_here(monkeypatch):
+    from carbon.reconstruction import host_execution
+
+    monkeypatch.setattr(
+        host_execution.HostExecutionRecord,
+        "load",
+        classmethod(lambda cls, root: _host_record("4-7")),
+    )
+    with grade_lanes.bound(_remote()):
+        with remote_lane.local_for("grade-op-1", timed=True):
+            assert remote_lane.docker_host() is None
+        with remote_lane.local_for("grade-op-1", timed=False):
+            assert remote_lane.docker_host() == HOST
+
+
+def test_the_carrier_counts_a_measured_query_as_timed():
+    from carbon.development_session import research_carrier as carrier
+
+    assert carrier._timed_control({"control.json": b'{"measure_query": true}'})
+    assert not carrier._timed_control({"control.json": b"{}"})
+    assert not carrier._timed_control(None)
 
 
 # -- the watchdog of a remote container ----------------------------------------------------------------------------------
@@ -468,3 +533,77 @@ def test_the_local_watchdog_is_unchanged(monkeypatch):
         )
         == 0
     )
+
+
+def test_the_remote_reaper_rides_out_a_link_fault(monkeypatch):
+    import subprocess
+
+    from carbon.reconstruction.worker import liveness_reaper
+
+    monkeypatch.setenv("DOCKER_HOST", HOST)
+    answers = [
+        WorkerFailure(WorkerCode.UNAVAILABLE),  # inspect: link down -> keep watching
+        subprocess.CompletedProcess([], 1, b"", b"Error: No such object: x"),  # gone
+    ]
+
+    class CLI:
+        def run(self, arguments, timeout=None, accepted=(0,)):
+            answer = answers.pop(0)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+
+    code = liveness_reaper.watch(
+        "carbon-d4-" + "1" * 24,
+        "sha256:" + "1" * 64,
+        1,
+        "proc-start:1",
+        cli=CLI(),
+        identify=lambda pid: "proc-start:1",
+        sleep=lambda s: None,
+    )
+    assert code == 0 and answers == []
+
+
+def test_the_local_reaper_still_raises_on_a_runtime_fault(monkeypatch):
+    from carbon.reconstruction.worker import liveness_reaper
+
+    monkeypatch.delenv("DOCKER_HOST", raising=False)
+
+    class CLI:
+        def run(self, arguments, timeout=None, accepted=(0,)):
+            raise WorkerFailure(WorkerCode.UNAVAILABLE)
+
+    with pytest.raises(WorkerFailure):
+        liveness_reaper.watch(
+            "carbon-d4-" + "1" * 24,
+            "sha256:" + "1" * 64,
+            1,
+            "proc-start:1",
+            cli=CLI(),
+            identify=lambda pid: "proc-start:1",
+            sleep=lambda s: None,
+        )
+
+
+def test_the_remote_watchdog_retries_removal_after_its_deadline(monkeypatch):
+    from carbon.reconstruction.worker import watchdog
+
+    monkeypatch.setenv("DOCKER_HOST", HOST)
+    tries = []
+
+    def remove(**kwargs):
+        tries.append(1)
+        if len(tries) < 3:
+            raise WorkerFailure(WorkerCode.UNAVAILABLE)
+
+    monkeypatch.setattr(watchdog, "remove_exact_container", remove)
+    monkeypatch.setattr(watchdog, "DockerCLI", lambda: SimpleNamespace())
+    monkeypatch.setattr(watchdog.time, "sleep", lambda s: None)
+    assert (
+        watchdog.main(
+            ["carbon-d4-" + "1" * 24, "sha256:" + "1" * 64, str(time.time() - 1)]
+        )
+        == 0
+    )
+    assert len(tries) == 3

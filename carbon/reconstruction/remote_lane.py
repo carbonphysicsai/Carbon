@@ -17,8 +17,9 @@ written or removed there; anything else refuses.
 
 **Failure typing.** Anything the link does wrong (ssh refused, timed out, a mirror that did not complete) raises
 `RemoteLaneDown`, a ``WorkerFailure`` of code UNAVAILABLE: Carbon's infrastructure, never the candidate's. A wall stop
-on a remote lane is the candidate's only when the link is up and the container was observed at the stop
-(`wall_stop_observable`); otherwise it stays Carbon's.
+on a remote lane is NEVER the candidate's (`wall_stop_observable`): a stalled link looks exactly like a stalled program,
+and whether a wall measured on the remote class may count at all is Validator-Motor's ruling, not made here. Measured
+queries (a timed control) stay on the grading host with the speed stage (`local_for`).
 
 **Configuration.** Operator-installed, beside the host execution record: ``<HOST_ROOT>/remote-grade-lanes.json``
 (`RECORD`), schema `SCHEMA`, ``{"lanes": [{"docker_host": ..., "cpuset": ..., "stage_root": ...}]}``, at most
@@ -194,9 +195,9 @@ def is_remote_environment():
 
 
 @contextmanager
-def local_for(identity):
-    """Inside a remote round, run a TIMING container (`grade_lanes.is_timing_identity`, or inside
-    `grade_lanes.timing_exclusive`) on the grading host: the round's lane is rebound to its local twin (same index and
+def local_for(identity, *, timed=False):
+    """Inside a remote round, run a TIMING container (`grade_lanes.is_timing_identity`, inside
+    `grade_lanes.timing_exclusive`, or ``timed``: a control that asks for a timing measurement) on the grading host: the round's lane is rebound to its local twin (same index and
     lock directory, so the host timing gate is still taken EXCLUSIVE; the host record's cores; the local daemon).
     Anything else, or outside a remote round: unchanged. A host with no execution record has no local cores to name, so
     the timing stage refuses (Carbon's, UNAVAILABLE) rather than guess."""
@@ -204,7 +205,9 @@ def local_for(identity):
 
     lane = current()
     if lane is None or not (
-        grade_lanes.is_timing_identity(identity) or grade_lanes.timing_requested()
+        timed
+        or grade_lanes.is_timing_identity(identity)
+        or grade_lanes.timing_requested()
     ):
         yield
         return
@@ -230,6 +233,10 @@ def _ssh(lane):
         "BatchMode=yes",
         "-o",
         "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=10",
+        "-o",
+        "ServerAliveCountMax=3",
         "-p",
         str(port),
         f"{user}@{host}",
@@ -249,7 +256,12 @@ def _remote_path(directory, lane):
     return path
 
 
-def _run(lane, script, *, stdin=None, feed=None, timeout=SSH_SECONDS):
+def _run(lane, script, *, feed=None, timeout=SSH_SECONDS):
+    """One remote shell script over ssh; ``feed`` writes its stdin from a helper thread, so ``timeout`` bounds the
+    WHOLE exchange (a link that stalls mid-upload is killed at the deadline, never waited on).
+    """
+    import threading
+
     command = [*_ssh(lane), "sh -c " + shlex.quote(script)]
     try:
         process = subprocess.Popen(
@@ -262,21 +274,34 @@ def _run(lane, script, *, stdin=None, feed=None, timeout=SSH_SECONDS):
         )
     except OSError as error:
         raise RemoteLaneDown(repr(error).encode()[:512]) from None
-    try:
-        if feed is not None:
+    fed = []
+
+    def write():
+        try:
+            feed(process.stdin)
+        except BaseException as error:  # noqa: BLE001 - reported below
+            fed.append(error)
+        finally:
             try:
-                feed(process.stdin)
-            finally:
                 process.stdin.close()
+            except OSError:
+                pass
+
+    writer = None
+    if feed is not None:
+        writer = threading.Thread(target=write, daemon=True)
+        writer.start()
+    try:
         _out, err = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
         raise RemoteLaneDown(b"remote_lane_ssh_timeout") from None
-    except (OSError, ValueError, tarfile.TarError) as error:
-        process.kill()
-        process.wait()
-        raise RemoteLaneDown(repr(error).encode()[:512]) from None
+    finally:
+        if writer is not None:
+            writer.join(timeout=5)
+    if fed:
+        raise RemoteLaneDown(repr(fed[0]).encode()[:512])
     if process.returncode != 0:
         raise RemoteLaneDown(b"exit=%d\n" % process.returncode + (err or b"")[-512:])
 
@@ -294,7 +319,7 @@ def mirror(directory, lane=None):
     script = (
         "set -eu; umask 022; "
         f"mkdir -p -- {quoted}; chmod 0755 {quoted}; "
-        f"find {quoted} -mindepth 1 -delete; "
+        f"chmod -R u+w -- {quoted}; find {quoted} -mindepth 1 -delete; "
         f"tar -x -f - -C {quoted} --no-same-owner"
     )
 
@@ -322,7 +347,7 @@ def discard(directory, lane=None):
     parent = shlex.quote(posixpath.dirname(path))
     script = (
         "set -eu; "
-        f"if [ -d {quoted} ]; then find {quoted} -delete; fi; "
+        f"if [ -d {quoted} ]; then chmod -R u+w -- {quoted}; find {quoted} -delete; fi; "
         f"rmdir -- {parent} 2>/dev/null || true"
     )
     _run(lane, script)
@@ -348,16 +373,45 @@ def link_up(lane=None, *, timeout=PROBE_SECONDS):
 
 
 def wall_stop_observable(observation):
-    """Whether a wall stop may be read as the candidate's: always outside a remote round; inside one, only with the
-    container observed at the stop and the link up now (a stalled link looks exactly like a stalled program).
+    """Whether a wall stop may be read as the candidate's: always outside a remote round (unchanged); NEVER inside one
+    (Carbon's: a stalled link looks exactly like a stalled program, and the remote class's walls wait on
+    Validator-Motor's ruling). ``observation`` is kept for the caller's evidence."""
+    del observation
+    return current() is None
+
+
+# -- recovery: the daemon an operation's intent names ---------------------------------------------------------------------
+
+
+def intent_fields():
+    """What an operation's or grade session's durable intent records about where its container runs: ``{"remote":
+    {"docker_host", "stage_root"}}`` in a remote round, else ``{}`` (an intent outside one is byte-identical to before).
     """
-    if current() is None:
-        return True
-    return (
-        type(observation) is dict
-        and observation.get("status") == "OBSERVED"
-        and link_up()
-    )
+    lane = current()
+    if lane is None:
+        return {}
+    return {"remote": {"docker_host": lane.docker_host, "stage_root": lane.stage_root}}
+
+
+def recorded(intent):
+    """The remote lane an intent recorded (a `RemoteSpec` with no cores), or None (the local daemon). A malformed
+    record raises ValueError: recovery never guesses which daemon holds a container."""
+    entry = intent.get("remote") if type(intent) is dict else None
+    if entry is None:
+        return None
+    if type(entry) is not dict or set(entry) != {"docker_host", "stage_root"}:
+        raise ValueError("remote_lane_intent")
+    parse_docker_host(entry["docker_host"])
+    return RemoteSpec(entry["docker_host"], "", _checked_root(entry["stage_root"]))
+
+
+def cli_for(spec):
+    """A Docker CLI for ``spec``'s daemon (a recorded `RemoteSpec`), or the local daemon (None)."""
+    from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+    cli = DockerCLI()
+    cli.docker_host = None if spec is None else spec.docker_host
+    return cli
 
 
 __all__ = [
@@ -366,16 +420,19 @@ __all__ = [
     "SCHEMA",
     "RemoteLaneDown",
     "RemoteSpec",
+    "cli_for",
     "current",
     "current_environment",
     "discard",
     "docker_environment",
     "docker_host",
+    "intent_fields",
     "is_remote_environment",
     "link_up",
     "load",
     "local_for",
     "mirror",
     "parse_docker_host",
+    "recorded",
     "wall_stop_observable",
 ]

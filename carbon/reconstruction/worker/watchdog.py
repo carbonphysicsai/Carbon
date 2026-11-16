@@ -76,6 +76,12 @@ def _retain_deadline_request(intent_path, container_name, launch_digest, deadlin
         pass
 
 
+#: How often, and how far apart, a remote lane's watchdog retries removal after its deadline (operational bounds:
+#: about 10 minutes in all; not scientific values).
+REMOTE_REMOVAL_ATTEMPTS = 60
+REMOTE_REMOVAL_PAUSE_S = 10.0
+
+
 def _says_absent(stderr) -> bool:
     """Whether a failed ``docker inspect`` says the container does not exist (not a transport fault)."""
     text = stderr if type(stderr) is bytes else b""
@@ -117,13 +123,19 @@ def main(arguments: list[str] | None = None) -> int:
             )
         except Exception:  # noqa: BLE001, S110 - observation never gates cleanup
             pass
-    try:
-        remove_exact_container(
-            cli=cli, container_name=container_name, launch_digest=launch_digest
-        )
-    except WorkerFailure:
-        return 3
-    return 0
+    # A REMOTE lane's link may be down at the deadline: keep trying for a bounded while (the remote machine's own
+    # sweep is the last guard). Locally, one attempt, as before.
+    attempts = REMOTE_REMOVAL_ATTEMPTS if remote else 1
+    for attempt in range(attempts):
+        try:
+            remove_exact_container(
+                cli=cli, container_name=container_name, launch_digest=launch_digest
+            )
+            return 0
+        except WorkerFailure:
+            if attempt + 1 < attempts:
+                time.sleep(REMOTE_REMOVAL_PAUSE_S)
+    return 3
 
 
 if __name__ == "__main__":

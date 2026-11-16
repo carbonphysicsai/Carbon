@@ -96,17 +96,26 @@ def process_identity(pid: int) -> str | None:
 
 def _launch_label(cli, container_name):
     """The container's launch label; None when it is gone; "" when the
-    runtime could not answer (keep watching - that is not absence)."""
-    result = cli.run(
-        [
-            "inspect",
-            container_name,
-            "--format",
-            '{{index .Config.Labels "' + LAUNCH_LABEL + '"}}',
-        ],
-        timeout=10,
-        accepted=(0, 1),
-    )
+    runtime could not answer (keep watching - that is not absence). A REMOTE grade lane's daemon
+    (`carbon.reconstruction.remote_lane`) that cannot be reached is the same: not absence.
+    """
+    from carbon.reconstruction import remote_lane
+
+    try:
+        result = cli.run(
+            [
+                "inspect",
+                container_name,
+                "--format",
+                '{{index .Config.Labels "' + LAUNCH_LABEL + '"}}',
+            ],
+            timeout=10,
+            accepted=(0, 1),
+        )
+    except WorkerFailure:
+        if remote_lane.is_remote_environment():
+            return ""
+        raise
     if result.returncode != 0:
         return None if b"no such" in result.stderr.lower() else ""
     return result.stdout.decode("utf-8", errors="replace").strip()
@@ -140,7 +149,16 @@ def watch(
                     cli=cli, container_name=container_name, launch_digest=launch_digest
                 )
             except WorkerFailure:
-                return 3
+                from carbon.reconstruction import remote_lane
+
+                # a REMOTE lane's link may come back: retry, bounded like an unanswered runtime
+                unanswered += 1
+                if not remote_lane.is_remote_environment() or (
+                    unanswered >= UNANSWERED_LIMIT
+                ):
+                    return 3
+                sleep(poll)
+                continue
             if label or _launch_label(cli, container_name) is None:
                 return 0
             # The runtime still cannot say the container is gone.
