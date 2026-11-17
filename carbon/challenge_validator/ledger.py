@@ -111,6 +111,17 @@ class LedgerUnavailable(RuntimeError):
         self.code = code
 
 
+def _place(db, contract_digest, task, own_seq):
+    """The queue place ``task`` gives (`grant_queue_place`, `requeue_failed_build`): the place it holds itself when it
+    took another task's (a chain: a requeue of a stop-cancel resubmission keeps the original's), else its own first
+    accepted-submission sequence."""
+    held = db.execute(
+        "SELECT place_seq FROM queue_place_grants WHERE contract_digest=? AND new_task=?",
+        (contract_digest, task),
+    ).fetchone()
+    return int(own_seq if held is None else held[0])
+
+
 def _kept(value):
     """A string as recorded: itself if short, else its digest; never content
     of another type."""
@@ -467,11 +478,98 @@ class AttemptLedger:
                     new_task,
                     from_task,
                     _kept(hotkey),
-                    int(original[0]),
+                    _place(db, contract_digest, from_task, original[0]),
                     int(self.clock()),
                 ),
             )
         return "granted"
+
+    #: The code of the accepted-submission row a build requeue copies (`requeue_failed_build`): the door's, not a miner's.
+    BUILD_REQUEUED = "build_requeued"
+
+    def requeue_failed_build(
+        self, contract_digest, *, from_task, new_task, hotkey, apply=True
+    ):
+        """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): ``new_task`` (the next generation of ``from_task``'s recipe, a
+        build that ended on Carbon's infrastructure) is queued ONCE at ``from_task``'s ORIGINAL place, as if its miner had
+        resubmitted then: in one transaction it takes ``from_task``'s place (`queue_place_grants`, the stop-cancel
+        mechanism) and an accepted-submission row copied from ``from_task``'s first one (its signed receipt, so the grade
+        keeps the original epoch; code `BUILD_REQUEUED`). Returns ``"requeued"`` or a refusal, nothing written:
+        ``"no_original"``, ``"hotkey_mismatch"``, ``"same_task"``, ``"incomplete"``, ``"from_task_is_a_requeue"`` (a task
+        the door itself requeued is never requeued again: once), ``"from_task_used"`` / ``"already_requeued"`` (its place
+        was already given), ``"new_task_holds_a_place"`` or ``"new_task_known"`` (the miner already resubmitted it).
+        The place is ``from_task``'s own, or the one IT holds (a stop-cancel resubmission's): never a later one.
+        ``apply=False``: the same answer, ``"requeuable"`` instead of ``"requeued"``, nothing written.
+        """
+        values = (contract_digest, from_task, new_task, hotkey)
+        if not all(type(value) is str and value for value in values):
+            return "incomplete"
+        if from_task == new_task:
+            return "same_task"
+        with self._db() as db:
+            original = db.execute(
+                "SELECT seq, hotkey, receipt, submission_sha256, state FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id=? ORDER BY seq LIMIT 1",
+                (contract_digest, from_task),
+            ).fetchone()
+            if original is None:
+                return "no_original"
+            if original[1] != _kept(hotkey):
+                return "hotkey_mismatch"
+            first_code = db.execute(
+                "SELECT code FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=? "
+                "ORDER BY seq LIMIT 1",
+                (contract_digest, from_task),
+            ).fetchone()[0]
+            if first_code == self.BUILD_REQUEUED:
+                return "from_task_is_a_requeue"
+            prior = db.execute(
+                "SELECT new_task FROM queue_place_grants WHERE contract_digest=? AND from_task=?",
+                (contract_digest, from_task),
+            ).fetchone()
+            if prior is not None:
+                return "already_requeued" if prior[0] == new_task else "from_task_used"
+            if db.execute(
+                "SELECT 1 FROM queue_place_grants WHERE contract_digest=? AND new_task=?",
+                (contract_digest, new_task),
+            ).fetchone():
+                return "new_task_holds_a_place"
+            if db.execute(
+                "SELECT 1 FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=?",
+                (contract_digest, new_task),
+            ).fetchone():
+                return "new_task_known"
+            if not apply:
+                return "requeuable"
+            now = int(self.clock())
+            db.execute(
+                "INSERT INTO queue_place_grants VALUES(?,?,?,?,?,?)",
+                (
+                    contract_digest,
+                    new_task,
+                    from_task,
+                    _kept(hotkey),
+                    _place(db, contract_digest, from_task, original[0]),
+                    now,
+                ),
+            )
+            db.execute(
+                "INSERT INTO attempts(at_ns, kind, code, hotkey, contract_digest,"
+                " receipt, submission_sha256, submission_id, state)"
+                " VALUES(?,?,?,?,?,?,?,?,?)",
+                (
+                    now,
+                    "OUTCOME",
+                    self.BUILD_REQUEUED,
+                    original[1],
+                    contract_digest,
+                    original[2],
+                    original[3],
+                    new_task,
+                    original[4],
+                ),
+            )
+        return "requeued"
 
     def record_miner_withdrawal(self, contract_digest, submission_id, hotkey):
         """Record that ``hotkey`` withdrew its own queued submission ``submission_id`` (`LeanRecipeAdapter.withdraw`), ONCE:

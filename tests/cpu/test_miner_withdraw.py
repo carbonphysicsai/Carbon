@@ -340,7 +340,12 @@ def test_the_same_recipe_again_is_the_next_generation_and_no_copy_waits_on_the_w
 
     # the withdrawn first has a marker, so it is settled: the new one is graded, never held behind it
     assert decide(d.grader.marker) == (recipe_copies.GRADE, None)
-    # (the control: without that marker the earlier identical recipe would hold it WAITING for good)
+    # without that marker the withdrawn first still never holds it: it ended without a build (Order 3, 17 Nov)
+    assert decide(lambda task: None) == (recipe_copies.GRADE, None)
+    # (the control: an earlier task whose state cannot be read, and that has no marker, holds it WAITING, as before)
+    monkeypatch.setattr(
+        d.adapter, "outcome", lambda task: (_ for _ in ()).throw(LookupError(task))
+    )
     assert decide(lambda task: None) == (recipe_copies.WAIT, sid)
 
 

@@ -160,6 +160,23 @@ def note_admitted(adapter, submission_id):
     return recipe_digest(adapter, submission_id, adapter.ledger)
 
 
+#: The public states of a task that ended without a build (`LeanRecipeAdapter.outcome`): it never reads the exam.
+_UNBUILT = frozenset({"FAILED_INFRA", "RECONSTRUCTION_FAILED"})
+
+
+def _ended_unbuilt(adapter, submission_id):
+    """Whether ``submission_id``'s task ended without a build (Carbon's failure, a stop, a withdrawal, a refused build):
+    never a first, so a later task of its recipe (its miner's resubmit, or the door's requeue of it) is graded instead of
+    waiting for a grade that never comes. Unreadable: False (it waits, as before)."""
+    outcome = getattr(adapter, "outcome", None)
+    if outcome is None:
+        return False
+    try:
+        return outcome(submission_id).get("state") in _UNBUILT
+    except Exception:  # noqa: BLE001 - unreadable: waits, as before
+        return False
+
+
 def decide(
     *,
     adapter,
@@ -204,7 +221,11 @@ def decide(
             return COPY, earlier
         if row is not None and row[0] == "RESERVED":
             return WAIT, earlier
-        if row is None and marker(earlier) is None:
+        if (
+            row is None
+            and marker(earlier) is None
+            and not _ended_unbuilt(adapter, earlier)
+        ):
             return WAIT, earlier  # still building or queued: unsettled
         # RELEASED, or settled with no counted grade: never read the exam, not a first
     return GRADE, None

@@ -1058,8 +1058,107 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     # its owner withdrew it between this read and the start (`withdraw`): never a worker failure
                     return None
                 raise
+            finally:
+                # Order 3: a build that ended on Carbon's infrastructure is queued again once, at its place
+                self._requeue_failed_build(owner, task_id, provider)
             return 1
         return None
+
+    def _requeue_failed_build(self, owner, task_id, provider):
+        """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): a build whose task ended FAILED_INFRA (Carbon's, never charged)
+        is started again ONCE, as its next generation (`_request` ``rerun`` + 1: the same task its miner's resubmit would
+        make), at the failed task's ORIGINAL queue place and epoch (`AttemptLedger.requeue_failed_build`), and its grade
+        neither spends nor is refused by the miner's round or day (`ExamCap.mark_requeued`, the operator requeue's
+        bypass). Never a requeue of a requeue, never when the miner already resubmitted, never past `MAX_INFRA_RERUNS`.
+        Never raises: anything unreadable leaves the task as today (the miner may resubmit). Logged either way.
+        """
+        from carbon.challenge_validator.koth_journal import note
+
+        try:
+            from carbon.research import DirectGetTaskRequestV3, DirectTaskStateV3
+
+            task = provider.get_research_result(
+                DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
+            ).task
+            if task.state is not DirectTaskStateV3.FAILED_INFRA:
+                return None
+            if not hasattr(self.ledger, "requeue_failed_build"):
+                return None
+            retained = provider._requests.get(task_id.value)
+            if retained is None:
+                note("build_requeue_refused", task=task_id.value, code="no_request")
+                return None
+            recipe = self._retained_recipe(retained)
+            requests = [
+                self._request(
+                    owner,
+                    recipe,
+                    evaluation_pack_digest=provider.evaluation_pack_digest,
+                    rerun=rerun,
+                )
+                for rerun in range(MAX_INFRA_RERUNS + 1)
+            ]
+            rerun = next(
+                (n for n, request in enumerate(requests) if request == retained), None
+            )
+            if rerun is None or rerun >= MAX_INFRA_RERUNS:
+                note(
+                    "build_requeue_refused",
+                    task=task_id.value,
+                    code="no_next_generation",
+                )
+                return None
+            request = requests[rerun + 1]
+            new_task = provider._task_id(request).value
+            ask = {"from_task": task_id.value, "new_task": new_task, "hotkey": owner}
+            result = self.ledger.requeue_failed_build(
+                self.contract_digest, apply=False, **ask
+            )
+            if result != "requeuable":
+                note("build_requeue_refused", task=task_id.value, code=result)
+                return None
+            from carbon.research import canonical_bytes
+
+            # as a miner's resubmit does: its task intent, its catalog document, then the START. Only a started task gets
+            # the place and the bypass: a start that fails leaves an intent only (as an interrupted resubmit does), and
+            # the miner's own resubmit of the recipe still starts this same task
+            self.ledger.record_recipe_task_intent(
+                self.contract_digest,
+                new_task,
+                owner,
+                "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
+            )
+            catalog = self.ledger.catalog_submission(
+                self.contract_digest, task_id.value
+            )
+            if catalog is not None:
+                self.ledger.record_catalog_submission(
+                    self.contract_digest, new_task, catalog
+                )
+            provider.start_research_task(request, measure_query=self._measure_query)
+            result = self.ledger.requeue_failed_build(self.contract_digest, **ask)
+            if result != "requeued":
+                # the miner resubmitted it meanwhile: it runs as their resubmit, at the back, as today
+                note("build_requeue_refused", task=task_id.value, code=result)
+                return None
+            from carbon.challenge_validator.exam_cap import ExamCap
+
+            ExamCap(self.ledger).mark_requeued(new_task)
+            note("build_requeued", task=task_id.value, new_task=new_task)
+            return new_task
+        except Exception as failure:  # noqa: BLE001 - never fails the build round
+            note(
+                "build_requeue_failed",
+                task=getattr(task_id, "value", None),
+                type=type(failure).__name__,
+            )
+            return None
+
+    @staticmethod
+    def _retained_recipe(retained):
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+
+        return ConstructionRecipe.from_dict(retained.recipe)
 
     @staticmethod
     def _withdrawn_now(provider, submission_id):
