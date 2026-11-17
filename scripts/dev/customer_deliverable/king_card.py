@@ -53,6 +53,12 @@ ACCURACY_OUTPUTS = (
 )
 ACCURACY_SECTIONS = ("in_envelope", "beyond_envelope", "vs_classical")
 GATE_UNITS = ("s/design", "s")
+#: The public gates a card may name (Motor 1.8 kit): the speed gate, the graded inference wall and the
+#: invalid-output check. A number on a gate always carries a unit, so a unitless score cannot ride on one.
+GATE_NAMES = ("speed", "graded_wall", "finite_outputs")
+#: Every number a card shows from the facts is rounded to this many significant digits: enough for a reader,
+#: too coarse to carry an exact total or an unrounded hidden value.
+SIGNIFICANT = 4
 LIMITS = (
     "2-D periodic cross-section only: no end effects, no thermal model, no demagnetisation check.",
     "Fixed frame: 8 poles, 24 slots, single-layer winding (GRUCAD benchmark dimensions).",
@@ -88,11 +94,13 @@ MAX_CROSS_CHECKS = 8
 
 _TASK = re.compile(r"rtsk_[0-9a-f]{8,64}")
 _LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._:/+()-]{0,95}")
-_GATE = re.compile(r"[a-z][a-z0-9_.-]{0,63}")
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}")
 _HEX = re.compile(r"[0-9a-f]{8,128}")
 _COMMIT = re.compile(r"[0-9a-f]{7,40}")
 _REPORT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,199}")
+#: A free-text label never carries a long hex run (a seed, draw id or key looks like one); digests have own fields.
+_HEX_RUN = re.compile(r"[0-9a-fA-F]{16,}")
+_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 
 
 class CardRefused(ValueError):
@@ -119,7 +127,16 @@ def _label(value, code, *, pattern=_LABEL, optional=False):
         return None
     if type(value) is not str or not pattern.fullmatch(value):
         raise CardRefused(code)
+    if pattern in (_LABEL, _REPORT) and _HEX_RUN.search(value):
+        raise CardRefused(code)
     return value
+
+
+def _sig(value):
+    """``value`` rounded to `SIGNIFICANT` significant digits (None stays None)."""
+    if value is None or value == 0:
+        return value
+    return float(f"{value:.{SIGNIFICANT}g}")
 
 
 def _number(value, code, *, optional=False, minimum=0.0):
@@ -166,7 +183,9 @@ def _build(raw):
     return {
         "image": _label(raw["image"], "card_build"),
         "gpu_class": _label(raw["gpu_class"], "card_build", optional=True),
-        "build_seconds": _number(raw["build_seconds"], "card_build", optional=True),
+        "build_seconds": _sig(
+            _number(raw["build_seconds"], "card_build", optional=True)
+        ),
         "cpu_fallback": raw["cpu_fallback"],
     }
 
@@ -191,18 +210,26 @@ def _gates(raw):
     gates, seen = [], set()
     for gate in raw:
         gate = _closed(gate, GATE_FIELDS, "card_gates")
-        name = _label(gate["name"], "card_gates", pattern=_GATE)
-        if name in seen or gate["result"] not in ("PASS", "FAIL"):
+        name = gate["name"]
+        if (
+            name not in GATE_NAMES
+            or name in seen
+            or gate["result"] not in ("PASS", "FAIL")
+        ):
             raise CardRefused("card_gates")
+        limit = _number(gate["limit"], "card_gates", optional=True)
+        measured = _number(gate["measured"], "card_gates", optional=True)
         if gate["unit"] is not None and gate["unit"] not in GATE_UNITS:
+            raise CardRefused("card_gates")
+        if (limit is not None or measured is not None) and gate["unit"] is None:
             raise CardRefused("card_gates")
         seen.add(name)
         gates.append(
             {
                 "name": name,
                 "result": gate["result"],
-                "limit": _number(gate["limit"], "card_gates", optional=True),
-                "measured": _number(gate["measured"], "card_gates", optional=True),
+                "limit": _sig(limit),
+                "measured": _sig(measured),
                 "unit": gate["unit"],
             }
         )
@@ -239,9 +266,9 @@ def _accuracy_block(raw, code):
             {
                 "output": row["output"],
                 "n": n,
-                "median": median,
-                "p90": p90,
-                "ci95": [low, high],
+                "median": _sig(median),
+                "p90": _sig(p90),
+                "ci95": [_sig(low), _sig(high)],
                 "unit": row["unit"],
             }
         )
@@ -290,7 +317,7 @@ def facts_checked(raw):
     return {
         "task_id": _label(raw["task_id"], "card_task", pattern=_TASK),
         "uid": _count(raw["uid"], "card_uid"),
-        "hotkey": raw["hotkey"],
+        "hotkey": _label(raw["hotkey"], "card_hotkey", pattern=_SS58),
         "model": _model(raw.get("model")),
         "build": _build(raw.get("build")),
         "judge": _judge(raw.get("judge")),
@@ -485,14 +512,22 @@ def render_markdown(card, digest):
 def write_card(card, out_dir):
     out = Path(out_dir)
     paths = [out / "card.json", out / "card.md", out / "card.json.sha256"]
-    if any(path.exists() for path in paths):
+    if any(path.exists() or path.is_symlink() for path in paths):
         raise CardRefused("card_output_exists")
     body = canonical(card)
     digest = hashlib.sha256(body.encode()).hexdigest()
+    contents = (
+        body.encode() + b"\n",
+        render_markdown(card, digest).encode("utf-8"),
+        f"{digest}  card.json\n".encode(),
+    )
     out.mkdir(parents=True, exist_ok=True)
-    paths[0].write_bytes(body.encode() + b"\n")
-    paths[1].write_bytes(render_markdown(card, digest).encode("utf-8"))
-    paths[2].write_bytes(f"{digest}  card.json\n".encode())
+    for path, data in zip(paths, contents, strict=True):
+        try:
+            with path.open("xb") as handle:
+                handle.write(data)
+        except FileExistsError:
+            raise CardRefused("card_output_exists") from None
     return digest
 
 
@@ -510,7 +545,7 @@ def main(argv=None):
     except CardRefused as refused:
         print(f"REFUSED {refused.code}", file=sys.stderr)
         return 2
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         print(f"REFUSED card_input ({type(error).__name__})", file=sys.stderr)
         return 2
     print(digest)

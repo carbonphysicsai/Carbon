@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import datetime
 import json
+from pathlib import Path
 
 import pytest
 
@@ -332,3 +333,135 @@ def test_cli_prints_digest_or_refusal(tmp_path, capsys):
     )
     assert "REFUSED board_signature" in capsys.readouterr().err
     assert not (tmp_path / "o2").exists()
+
+
+@pytest.mark.parametrize("board", [None, [], "board", 5])
+def test_non_dict_board_refuses(board):
+    _refused(board, _facts(), "board_signature")
+
+
+@pytest.mark.parametrize("facts", [None, [], "facts", 5])
+def test_non_dict_facts_refuses(facts):
+    _refused(_board(), facts, "card_facts")
+
+
+def _gate(**changes):
+    return {
+        "name": "speed",
+        "result": "PASS",
+        "limit": 3.3,
+        "measured": 0.2,
+        "unit": "s/design",
+        **changes,
+    }
+
+
+@pytest.mark.parametrize(
+    "changes, code",
+    [
+        ({"hotkey": "not-a-hotkey"}, "card_hotkey"),
+        ({"gates": [_gate(name="king_total", unit="s")]}, "card_gates"),
+        ({"gates": [_gate(unit=None)]}, "card_gates"),
+        ({"gates": [_gate(), _gate()]}, "card_gates"),
+        ({"gates": [_gate(extra=1)]}, "card_gates"),
+        ({"gates": [_gate()] * (kc.MAX_GATES + 1)}, "card_gates"),
+        ({"gates": [{"name": "speed", "result": "PASS"}]}, "card_gates"),
+        (
+            {"build": {"image": "i", "gpu_class": None, "cpu_fallback": False}},
+            "card_build",
+        ),
+        ({"judge": {"image": "j", "receiver_commit": "abcdef1", "x": 1}}, "card_judge"),
+        (
+            {
+                "model": {
+                    "class": "seed 0123456789abcdef0123",
+                    "parameter_count": 5,
+                    "state_digest": None,
+                    "recipe_hash": None,
+                }
+            },
+            "card_model",
+        ),
+        (
+            {
+                "reference": {
+                    "solver": "s",
+                    "cross_checks": [
+                        {"solver": "f", "public_designs": 1, "report": "r", "x": 1}
+                    ],
+                }
+            },
+            "card_reference",
+        ),
+        (
+            {
+                "reference": {
+                    "solver": "s",
+                    "cross_checks": [
+                        {"solver": "f", "public_designs": 1, "report": "r"}
+                    ]
+                    * (kc.MAX_CROSS_CHECKS + 1),
+                }
+            },
+            "card_reference",
+        ),
+    ],
+)
+def test_facts_shape_is_closed_below_the_top(changes, code):
+    _refused(_board(), _facts(**changes), code)
+
+
+@pytest.mark.parametrize(
+    "ci95", [0.01, [0.008], [0.008, 0.01, 0.012], [False, 0.012], [0.008, float("nan")]]
+)
+def test_ci95_shape(ci95):
+    block = {"receipt": "r", "outputs": [{**_aggregate(), "ci95": ci95}]}
+    _refused(_board(), _facts(accuracy={"in_envelope": block}), "card_accuracy")
+
+
+def test_receipt_cannot_carry_a_hex_run():
+    block = {
+        "receipt": "seed 0123456789abcdef0123456789abcdef",
+        "outputs": [_aggregate()],
+    }
+    _refused(_board(), _facts(accuracy={"in_envelope": block}), "card_accuracy")
+
+
+def test_numbers_are_rounded_and_the_exact_total_never_appears():
+    gates = [_gate(measured=0.779512345)]
+    block = {
+        "receipt": "V2-fixture-1",
+        "outputs": [{**_aggregate(), "median": 0.0123456, "ci95": [0.01, 0.0134567]}],
+    }
+    card = kc.build_card(
+        _board(),
+        SIGNER.public_key,
+        _facts(gates=gates, accuracy={"in_envelope": block}),
+    )
+    assert card["gates"][0]["measured"] == 0.7795
+    assert card["accuracy"]["in_envelope"]["outputs"][0]["median"] == 0.01235
+    text = kc.canonical(card) + kc.render_markdown(card, "0" * 64)
+    assert "0.77951" not in text
+
+
+def test_cli_refuses_undecodable_or_deep_input(tmp_path, capsys):
+    good, bad, deep = tmp_path / "f.json", tmp_path / "bad.json", tmp_path / "deep.json"
+    good.write_text(json.dumps(_facts()), encoding="utf-8")
+    bad.write_bytes(b"\xff\xfe\x00")
+    deep.write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
+    for board in (bad, deep):
+        argv = ["--board", str(board), "--pinned-key", SIGNER.public_key]
+        argv += ["--facts", str(good), "--out-dir", str(tmp_path / "o")]
+        assert kc.main(argv) == 2
+        assert "REFUSED card_input" in capsys.readouterr().err
+    assert not (tmp_path / "o").exists()
+
+
+def test_no_carbon_module_imports_the_card():
+    root = Path(__file__).resolve().parents[2] / "carbon"
+    hits = [
+        path
+        for path in root.rglob("*.py")
+        if "king_card" in path.read_text(encoding="utf-8", errors="replace")
+    ]
+    assert hits == []
