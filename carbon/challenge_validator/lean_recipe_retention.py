@@ -5585,8 +5585,15 @@ def regrade_retained_entry(
         artifacts["worker-evidence.json"] = worker_evidence
         # A graph graded on another image than its build (a configured ``graded_inference_image``): that image's full
         # identity is retained as its own custody role, which binds the worker evidence's inference_image_id.
+        # Bound to the evidence actually kept (a retry reads back an earlier attempt's): the role is present only when
+        # that evidence names the chosen image and it is not the build's. A retry whose retained bytes were made under
+        # another inference keeps no role, so its own check (`_check_graded_program`) refuses it, never custody.
         artifacts.pop(GRADED_INFERENCE_IMAGE_FILE, None)
-        if inference_image.image_id != json.loads(files["image.json"])["image_id"]:
+        kept_inference = json.loads(worker_evidence)["inference_image_id"]
+        if (
+            kept_inference == inference_image.image_id
+            and kept_inference != json.loads(files["image.json"])["image_id"]
+        ):
             artifacts[GRADED_INFERENCE_IMAGE_FILE] = _json(asdict(inference_image))
     if timed:
         artifacts["timed-query-receipt.json"] = timed_raw
