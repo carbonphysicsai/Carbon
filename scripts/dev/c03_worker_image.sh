@@ -25,7 +25,12 @@ base_digest="sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab98
 
 mkdir -p "$(dirname -- "${output}")"
 temporary="$(mktemp -d)"
-trap 'rm -rf "${temporary}"' EXIT
+proxy_pid=""
+stop_apt_proxy() {
+  [[ -z "${proxy_pid}" ]] || kill "${proxy_pid}" >/dev/null 2>&1 || true
+  proxy_pid=""
+}
+trap 'stop_apt_proxy; rm -rf "${temporary}"' EXIT
 
 # The digest of the worker build inputs only (carbon/reconstruction/worker/build_inputs.txt), not the whole repository:
 # a change outside them (scripts/, docs/, tests/ ...) no longer moves any image id. The checkout is still clean as a whole.
@@ -58,9 +63,40 @@ tag="$(bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_parent_tag.sh" "${CARBON_W
 context="${temporary}/context"
 "${PYTHON}" -I -B "${image_modules_program}" stage "${repo_root}" "${context}" \
   || fail "could not stage the build context from the build inputs."
+
+# Ubuntu's archive from ONE dated snapshot (scripts/dev/apt_snapshot_proxy.py). The native mesh lock pins exact package
+# versions and bytes. When noble-updates replaces one (17 Nov 2026: mesa 25.2.8-0ubuntu0.24.04.4 -> .5) the live index
+# no longer lists it, so the pinned install cannot resolve. The lock, the install script and the Dockerfile are build
+# inputs and stay byte-identical. This script is not a build input, so the snapshot only changes where apt fetches the
+# same signed index and sha256-checked packages, not the image identity. Docker passes the predefined `http_proxy` build
+# argument to RUN steps without recording it in the image or its history. The proxy listens on the host's loopback, so
+# the build uses the host network. CARBON_APT_SNAPSHOT=live builds against the live archive (no proxy), as before.
+apt_snapshot="${CARBON_APT_SNAPSHOT:-20261116T000000Z}"
+apt_build_args=()
+if [[ "${apt_snapshot}" != "live" ]]; then
+  [[ "${apt_snapshot}" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || fail "CARBON_APT_SNAPSHOT must be YYYYMMDDTHHMMSSZ or live."
+  "${PYTHON}" -I "${script_dir}/apt_snapshot_proxy.py" "${apt_snapshot}" \
+    > "${temporary}/apt-proxy-port" 2> "${temporary}/apt-proxy.log" &
+  proxy_pid="$!"
+  for _ in $(seq 1 100); do
+    [[ -s "${temporary}/apt-proxy-port" ]] && break
+    kill -0 "${proxy_pid}" 2>/dev/null || break
+    sleep 0.1
+  done
+  apt_proxy_port="$(head -n 1 "${temporary}/apt-proxy-port" 2>/dev/null | tr -d '[:space:]')"
+  [[ "${apt_proxy_port}" =~ ^[0-9]+$ ]] \
+    || fail "the apt snapshot proxy did not start: $(tr '\n' ' ' < "${temporary}/apt-proxy.log")"
+  apt_build_args=(
+    --network host
+    --build-arg "http_proxy=http://127.0.0.1:${apt_proxy_port}"
+    --build-arg "HTTP_PROXY=http://127.0.0.1:${apt_proxy_port}"
+  )
+  echo "Carbon C-03 worker image: apt from snapshot.ubuntu.com ${apt_snapshot}"
+fi
 docker build \
   --platform linux/amd64 \
   --pull \
+  ${apt_build_args[@]+"${apt_build_args[@]}"} \
   --file "${context}/.devcontainer/Dockerfile.reconstruction-worker" \
   --build-arg "SOURCE_TREE_DIGEST=${source_tree_digest}" \
   --build-arg "LOCK_DIGEST=${lock_digest}" \
@@ -70,6 +106,7 @@ docker build \
   --iidfile "${temporary}/iid" \
   --tag "${tag}" \
   "${context}"
+stop_apt_proxy
 
 image_id="$(tr -d '[:space:]' < "${temporary}/iid")"
 [[ "${image_id}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Docker returned an invalid image ID."
