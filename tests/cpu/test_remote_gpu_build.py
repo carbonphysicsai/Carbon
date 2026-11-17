@@ -1908,11 +1908,20 @@ def test_a_build_round_waits_for_a_busy_remote_slot_without_its_local_lane(
     other = threading.Thread(target=neighbour, daemon=True)
     other.start()
     assert occupied.wait(5)
+    from carbon.challenge_validator import direct_intake
+
+    # the round's own release, not a lock poll: a poll could run before the round has taken its lane at all
+    real_release, gave_back = direct_intake._Taking.release, threading.Event()
+
+    def release(taking):
+        real_release(taking)
+        gave_back.set()
+
+    monkeypatch.setattr(direct_intake._Taking, "release", release)
     builder = threading.Thread(target=build_round, daemon=True)
     builder.start()
-    deadline = time.monotonic() + 5
-    while not lanes_free() and time.monotonic() < deadline:
-        time.sleep(0.02)
+    assert gave_back.wait(5)
+    time.sleep(0.2)  # the op now waits for the busy slot
     assert lanes_free() and ran == []  # waiting for the slot, its lane already back
     free_slot.set()
     assert done.wait(5) and ran == [1]
