@@ -612,15 +612,17 @@ def _verify_admitted_image(provider, identity):
     the door's own inference accelerator (`gpu_practice.direct_bundle_accelerators`: a CPU image for a CPU door; the
     remote GPU build lane is never involved). Either fault is Carbon's (`RetentionUnavailable`, FAILED_INFRA).
     """
-    from carbon.development_session.gpu_practice import gpu_image_backend
     from carbon.development_session.research_carrier import MINER_GPU
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.accelerators import GPU_PROFILE
     from carbon.reconstruction.worker.docker_runtime import doctor
 
-    backend = gpu_image_backend(identity)
-    accelerator = MINER_GPU if backend == "jax" else None
-    if backend == "pytorch" or accelerator != getattr(
-        provider, "inference_accelerator", None
-    ):
+    # the backend test of `gpu_practice.gpu_image_backend`, from the two grading-path profiles it reads (no new import)
+    lock = getattr(identity, "lock_digest", None)
+    jax_gpu = lock == GPU_PROFILE.environment_lock_digest
+    torch_gpu = lock == torch_profile.GPU_LOCK_DIGEST
+    accelerator = MINER_GPU if jax_gpu else None
+    if torch_gpu or accelerator != getattr(provider, "inference_accelerator", None):
         raise RetentionUnavailable(MIGRATED_ACCELERATOR_DIFFERS)
     try:
         eligible = doctor(image_id=identity.image_id, image_identity=identity).eligible
