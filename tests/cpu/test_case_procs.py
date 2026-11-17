@@ -1068,18 +1068,17 @@ def test_a_pass_slow_on_unsampled_rows_is_carbons_once_then_one_process(
         return runner
 
     ledger, seen = FixtureLedger(tmp_path / "cond"), []
+    run = runner_for(ledger, seen)  # one runner: its operation names never repeat
     try:
         with pytest.raises(Exception) as failed:
-            _graded(motor18, ledger, runner_for(ledger, seen), "cond-1", rows)
+            _graded(motor18, ledger, run, "cond-1", rows)
         assert seen[-1]["code"] == 3, seen[-1]["stderr"][-4000:]
         assert "past its deadline; its rows in one process" in seen[-1]["stderr"]
         assert "past the wall margin after a fallback" in seen[-1]["stderr"]
         assert research_carrier._case_procs_fell_back(_procs(), failed.value.__cause__)
         assert len(list(ledger.root.glob("case-procs-fallback-*.json"))) == 1
         first = len(seen)
-        primary, repeat = _graded(
-            motor18, ledger, runner_for(ledger, seen), "cond-2", rows
-        )
+        primary, repeat = _graded(motor18, ledger, run, "cond-2", rows)
     finally:
         ledger.connection.close()
     retry = seen[first:]
