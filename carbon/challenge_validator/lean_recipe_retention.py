@@ -414,10 +414,14 @@ GRAPH_LANE_NOTES = frozenset(
 )
 
 
-def _graph_lane_evidence_ok(provider, evidence) -> bool:
+def _graph_lane_evidence_ok(provider, evidence, earlier_gpu_images=None) -> bool:
     """The graph lane's evidence fields, when present, are exactly what this receiver's lane
     writes: a GPU build names the receiver's own GPU worker and no note; a CPU build names a
-    registered reason. No lane fields: a receiver without a lane."""
+    registered reason. No lane fields: a receiver without a lane.
+
+    ``earlier_gpu_images`` (a task built under an EARLIER door of the declared migration chain,
+    `_migrated_gpu_images`): a GPU build names that earlier door's graph GPU worker instead.
+    """
     if type(evidence) is not dict or "build_device" not in evidence:
         return (
             "build_image_id" not in evidence
@@ -436,6 +440,11 @@ def _graph_lane_evidence_ok(provider, evidence) -> bool:
     ):
         return False
     if evidence["build_device"] == "GPU":
+        if earlier_gpu_images is not None:
+            return (
+                evidence.get("build_image_id") in earlier_gpu_images
+                and "gpu_lane_note" not in evidence
+            )
         gpu_image = getattr(provider, "graph_gpu_image", None)
         return (
             gpu_image is not None
@@ -449,27 +458,177 @@ def _graph_lane_evidence_ok(provider, evidence) -> bool:
     )
 
 
-#: The retention code of a graph task built under an EARLIER door of the declared migration chain: held (a pending code
-#: of `auto_grade`), never graded until it can be graded with its admitted image.
-MIGRATED_BUILD_HELD = "migrated_build_held"
+#: A graph task built under an EARLIER door of the declared migration chain is graded with its ADMITTED image (Lead's
+#: pick B + Validator-2, 17 Nov: the JAX stacks differ, so the current image would not run the graded program). That image
+#: absent or ineligible on the grading host: Carbon's failure (FAILED_INFRA, the slot given back), never the candidate's.
+MIGRATED_IMAGE_UNAVAILABLE = "migrated_admitted_image_unavailable"
+#: The admitted image infers on another accelerator than the door's current inference image: this head grades it on
+#: none (Carbon's failure, FAILED_INFRA).
+MIGRATED_ACCELERATOR_DIFFERS = "migrated_admitted_accelerator_differs"
 
 
-def _migrated_admitted_image_id(provider, admitted_binding):
-    """The image id of ``admitted_binding`` when it is a graph image of an EARLIER door of the provider's declared
-    migration chain (`research_tasks.DirectDevelopmentTasksV3.migrated_image_bindings`), else None.
-    """
+def _migrated_admitted_image(provider, admitted_binding):
+    """The full `WorkerImageIdentity` of ``admitted_binding`` when it is EXACTLY a graph image of an EARLIER door of
+    the provider's declared, checked migration chain (`research_tasks.DirectDevelopmentTasksV3.migrated_image_bindings`,
+    from `state_binding.migrated_graph_image_bindings`: ``["GRAPH_PARENT", <the door's image identity>]``), else None.
+
+    The binding IS that door's image identity (``asdict``), so the identity is rebuilt from it and must bind back to
+    exactly the same string: anything that does not (a partial or malformed identity) is None, and the ordinary check
+    then refuses it (``admitted_image_changed``)."""
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
     if admitted_binding not in getattr(
         provider, "migrated_image_bindings", frozenset()
     ):
         return None
     try:
         kind, image = json.loads(admitted_binding)
+        if kind != "GRAPH_PARENT" or type(image) is not dict:
+            return None
+        identity = WorkerImageIdentity(**image)
+    except Exception:  # noqa: BLE001 - malformed: not an earlier door's exact image
+        return None
+    rebound = json.dumps(
+        ["GRAPH_PARENT", asdict(identity)], sort_keys=True, separators=(",", ":")
+    )
+    return identity if rebound == admitted_binding else None
+
+
+def _migrated_bundle_images(provider, parent_image_id):
+    """``(parent, inference image)`` of the EARLIER door of the checked migration chain whose construction parent is
+    ``parent_image_id`` (`state_binding.migrated_bundle_images`, threaded by the receiver; never an image the current
+    door still binds), rebuilt as full `WorkerImageIdentity` values, else None (absent, ambiguous or malformed: the
+    task refuses as before)."""
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    found = getattr(provider, "migrated_bundle_images", None)
+    entry = found.get(parent_image_id) if type(found) is dict else None
+    if type(entry) is not dict:
+        return None
+    try:
+        parent = WorkerImageIdentity(**entry["parent"])
+        inference = WorkerImageIdentity(**entry["inference_image"])
+    except Exception:  # noqa: BLE001 - malformed: no admitted images
+        return None
+    return (parent, inference) if parent.image_id == parent_image_id else None
+
+
+def _bundle_overlay_images(provider, parent, binding):
+    """``(parent, inference image)`` an overlay bundle task is checked and graded with: the door's current ``parent``
+    for the bundle's runtime and its inference image; for a task BUILT under an EARLIER door of the declared migration
+    chain (its overlay binding names that door's construction parent, one the current door no longer binds) that door's
+    parent and inference image (Lead's pick B + Validator-2, 17 Nov), exactly as a graph task. Anything else keeps the
+    current ones, so the overlay identity check refuses it as before."""
+    if (
+        type(binding) is list
+        and len(binding) == 2
+        and binding[0] == "BUNDLE_OVERLAY"
+        and type(binding[1]) is dict
+        and binding[1].get("parent_image_id") != parent.image_id
+    ):
+        migrated = _migrated_bundle_images(provider, binding[1].get("parent_image_id"))
+        if migrated is not None:
+            return migrated
+    return parent, provider.inference_image
+
+
+def _task_admitted_images(provider, submission_id):
+    """``(parent, inference image)`` a task BUILT under an EARLIER door of the declared migration chain is graded with:
+    a graph task's admitted graph image (`_migrated_admitted_image`, both), a bundle overlay task's earlier door's
+    construction parent and inference image (`_migrated_bundle_images`). None for every other task (graded with the
+    provider's current images, as before), including any image the current door still binds.
+    """
+    bindings = getattr(provider, "_task_image_bindings", None)
+    if type(bindings) is not dict or type(submission_id) is not str:
+        return None
+    admitted = bindings.get(submission_id)
+    try:
+        kind, image = json.loads(admitted)
     except (TypeError, ValueError):
         return None
-    if kind != "GRAPH_PARENT" or type(image) is not dict:
+    if type(image) is not dict:
         return None
-    image_id = image.get("image_id")
-    return image_id if type(image_id) is str else None
+    if kind == "GRAPH_PARENT":
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        current = getattr(provider, "inference_image", None)
+        if type(current) is WorkerImageIdentity and admitted == provider._image_binding(
+            current
+        ):
+            return None
+        identity = _migrated_admitted_image(provider, admitted)
+        return None if identity is None else (identity, identity)
+    if kind == "BUNDLE_OVERLAY":
+        return _migrated_bundle_images(provider, image.get("parent_image_id"))
+    return None
+
+
+def _retained_admitted_images(kind, files, provider):
+    """``(parent, inference image)`` a RETAINED model built under an EARLIER door of the declared migration chain is
+    regraded with, read from its own sha-checked retained ``image.json`` (never from the task's provider row, which a
+    task admitted under an earlier contract does not have): a graph's record is that door's exact graph image identity
+    (`_migrated_admitted_image` of its binding, never one the current door binds); a bundle's names that door's
+    construction parent (`_migrated_bundle_images`). None for every other model, and for an unreadable record.
+    """
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    try:
+        record = json.loads(files["image.json"])
+        if type(record) is not dict:
+            return None
+        if kind == "bundle":
+            return _migrated_bundle_images(provider, record.get("parent_image_id"))
+        if kind != "graph":
+            return None
+        identity = WorkerImageIdentity(**record)
+    except Exception:  # noqa: BLE001 - unreadable: not an earlier door's exact image
+        return None
+    binding = json.dumps(
+        ["GRAPH_PARENT", asdict(identity)], sort_keys=True, separators=(",", ":")
+    )
+    current = getattr(provider, "inference_image", None)
+    if type(current) is WorkerImageIdentity and asdict(current) == record:
+        return None
+    return (
+        (identity, identity)
+        if _migrated_admitted_image(provider, binding) == identity
+        else None
+    )
+
+
+def _migrated_gpu_images(provider, admitted_binding):
+    """The graph GPU worker image ids of the EARLIER doors of the checked migration chain that bound
+    ``admitted_binding`` (`state_binding.migrated_graph_gpu_images`, threaded by the receiver): what a task GPU-built
+    under such a door names as its ``build_image_id``. Empty: none of those doors had a graph GPU lane.
+    """
+    found = getattr(provider, "migrated_graph_gpu_images", None)
+    images = found.get(admitted_binding) if type(found) is dict else None
+    return images if type(images) is frozenset else frozenset()
+
+
+def _verify_admitted_image(provider, identity):
+    """The admitted image is checked on this host as the receiver checks its current worker image (the read-only
+    `docker_runtime.doctor` with the full identity: the store's ``.Id``, user, labels, entrypoint), and must infer on
+    the door's own inference accelerator (`gpu_practice.direct_bundle_accelerators`: a CPU image for a CPU door; the
+    remote GPU build lane is never involved). Either fault is Carbon's (`RetentionUnavailable`, FAILED_INFRA).
+    """
+    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.development_session.research_carrier import MINER_GPU
+    from carbon.reconstruction.worker.docker_runtime import doctor
+
+    backend = gpu_image_backend(identity)
+    accelerator = MINER_GPU if backend == "jax" else None
+    if backend == "pytorch" or accelerator != getattr(
+        provider, "inference_accelerator", None
+    ):
+        raise RetentionUnavailable(MIGRATED_ACCELERATOR_DIFFERS)
+    try:
+        eligible = doctor(image_id=identity.image_id, image_identity=identity).eligible
+    except Exception as exc:  # an unreadable host: Carbon's
+        raise RetentionUnavailable(MIGRATED_IMAGE_UNAVAILABLE) from exc
+    if eligible is not True:
+        raise RetentionUnavailable(MIGRATED_IMAGE_UNAVAILABLE)
+    return identity
 
 
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
@@ -512,10 +671,43 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
             lane_fields.add("gpu_lane_note")
         if "gpu_lane_ops" in evidence:
             lane_fields.add("gpu_lane_ops")
+    # The migrated-task decision comes FIRST (it needs only the admitted binding and the current image; a graph source
+    # resolves to the provider's inference image), so its lane evidence is read against the EARLIER door's GPU lane.
+    # A task BUILT under an EARLIER door of this state's declared migration chain (its admitted binding is exactly that
+    # door's image, and not one the CURRENT door still binds: TE3 + Validator-2, 1764a6f1) is graded with that ADMITTED
+    # image (Lead's pick B + Validator-2, 17 Nov), checked on this host first; its retained image.json names it, and
+    # every inference of its grade runs on it (`_inference_image_of`, `_regrade_inference_image`). Every other task:
+    # the provider's current inference image, as before.
+    # (read without raising here: a malformed evidence record still refuses first, exactly as before)
+    requests = getattr(provider, "_requests", None)
+    request = requests.get(submission_id) if type(requests) is dict else None
+    image = unresolved = None
+    if request is not None:
+        try:
+            image = provider._resolved_image(request)
+        except (FileNotFoundError, ValueError) as exc:
+            unresolved = exc
+    bindings = getattr(provider, "_task_image_bindings", None)
+    admitted_binding = bindings.get(submission_id) if type(bindings) is dict else None
+    admitted = (
+        _migrated_admitted_image(provider, admitted_binding)
+        if type(image) is WorkerImageIdentity
+        and admitted_binding is not None
+        and admitted_binding != provider._image_binding(image)
+        else None
+    )
     if (
         type(evidence) is not dict
         or set(evidence) != worker_fields | timed_fields | lane_fields | {"predictions"}
-        or not _graph_lane_evidence_ok(provider, evidence)
+        or not _graph_lane_evidence_ok(
+            provider,
+            evidence,
+            (
+                None
+                if admitted is None
+                else _migrated_gpu_images(provider, admitted_binding)
+            ),
+        )
         or type(evidence["build_receipt"]) is not dict
         or type(evidence["inference_receipt"]) is not dict
         or any(
@@ -525,34 +717,30 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         )
     ):
         raise RetentionUnavailable("graph_worker_evidence_unavailable")
-    request = provider._requests[submission_id]
-    try:
-        image = provider._resolved_image(request)
-    except (FileNotFoundError, ValueError) as exc:
-        raise RetentionUnavailable("source_image_unavailable") from exc
+    if request is None:
+        request = provider._requests[
+            submission_id
+        ]  # an unknown task fails here, as before
+    if image is None:
+        raise RetentionUnavailable("source_image_unavailable") from unresolved
     admitted_binding = provider._task_image_bindings.get(submission_id)
     if admitted_binding is None:
         raise RetentionUnavailable("admitted_image_binding_unavailable")
-    # A graph task BUILT under an EARLIER door of this state's declared migration chain (its admitted binding is exactly
-    # that door's image): HELD, never graded on a state built by another image (Lead + V2, 17 Nov: graded with its
-    # admitted image in a later head). A pending code: nothing reserved, nothing charged, the task kept in its place.
-    if (
-        _migrated_admitted_image_id(provider, admitted_binding) is not None
-        and type(image) is WorkerImageIdentity
-        and admitted_binding != provider._image_binding(image)
-    ):
-        raise RetentionUnavailable(MIGRATED_BUILD_HELD)
+    graded = image if admitted is None else admitted
     if (
         type(image) is not WorkerImageIdentity
-        or provider._image_binding(image) != admitted_binding
         or image != provider.inference_image
+        or provider._image_binding(graded) != admitted_binding
         or evidence.get("schema") != "carbon.direct-private-attempt.graph.v1"
         or any(
-            evidence.get(field) != image.image_id
+            evidence.get(field) != graded.image_id
             for field in ("image_id", "parent_image_id", "inference_image_id")
         )
     ):
         raise RetentionUnavailable("admitted_image_changed")
+    if admitted is not None:
+        _verify_admitted_image(provider, admitted)
+    image = graded
     source_digest = recipe.to_dict()["source"]["submission_digest"]
     if evidence.get("submission_digest") != source_digest:
         raise RetentionUnavailable("admitted_graph_source_changed")
@@ -1103,7 +1291,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
             + "-"
             + submission_id
             + suffix,
-            inference_image=_inference_image_of(provider, regrade),
+            inference_image=_inference_image_of(provider, regrade, submission_id),
             recipe=(
                 ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
                 if regrade is None
@@ -1380,7 +1568,7 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
         queried, _where = vmap64_rerun_rows(positions, len(inputs), lanes)
     rows = np.ascontiguousarray(inputs[queried])
     rows_shape = (len(queried), *tuple(output_shape)[1:])
-    image = _inference_image_of(provider, regrade)
+    image = _inference_image_of(provider, regrade, submission_id)
 
     def attempt(retry):
         return infer_frozen_once(
@@ -1707,7 +1895,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     if type(accuracy) is not dict:
         raise RetentionUnavailable("inference_pair_procedure_unreadable")
     procedure = accuracy.get("paired_repeat_procedure", "batched_measured")
-    image = _inference_image_of(provider, regrade)
+    image = _inference_image_of(provider, regrade, submission_id)
 
     def attempt(suffix):
         return infer_frozen_pair(
@@ -1890,7 +2078,7 @@ def _single_call_raw(
                 provider.ledger,
                 owner=owner,
                 identity=identity,
-                inference_image=_inference_image_of(provider, regrade),
+                inference_image=_inference_image_of(provider, regrade, submission_id),
                 recipe=(
                     ConstructionRecipe.from_dict(
                         provider._requests[submission_id].recipe
@@ -3865,9 +4053,12 @@ def _retain_served_artifacts(
             selected = LibraryBundleRef.from_dict(
                 recipe.to_dict()["source"]["bundle_ref"]
             )
-            # Each bundle's parent is its pinned runtime's (two CPU parents).
-            parent = _construction_parent(provider, selected)
+            # Each bundle's parent is its pinned runtime's (two CPU parents); the door still serves it. A task built
+            # under an EARLIER door: that door's parent and inference image (`_bundle_overlay_images`).
             binding = json.loads(admitted_binding)
+            parent, inference = _bundle_overlay_images(
+                provider, _construction_parent(provider, selected), binding
+            )
             receipt = evidence["prep_receipt"]
             if (
                 type(binding) is not list
@@ -3887,8 +4078,7 @@ def _retain_served_artifacts(
                 or receipt.get("archive_sha256") != evidence["overlay_archive_digest"]
                 or evidence.get("image_id") != parent.image_id
                 or evidence.get("parent_image_id") != parent.image_id
-                or evidence.get("inference_image_id")
-                != provider.inference_image.image_id
+                or evidence.get("inference_image_id") != inference.image_id
                 or any(
                     type(evidence.get(name)) is not str
                     or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence[name]) is None
@@ -3934,6 +4124,9 @@ def _retain_served_artifacts(
             }
         except (OSError, ValueError, KeyError, TypeError) as exc:
             raise RetentionUnavailable("source_overlay_unavailable") from exc
+        if inference != provider.inference_image:
+            # the migrated bundle task's admitted inference image, checked on this host before any grade
+            _verify_admitted_image(provider, inference)
     else:
         try:
             image = provider._resolved_image(provider._requests[submission_id])
@@ -4318,9 +4511,15 @@ def _vmap64_served(material):
         return False
 
 
-def _inference_image_of(provider, regrade):
-    """The image an evaluation step infers on: the regrade's chosen image, else the provider's."""
+def _inference_image_of(provider, regrade, submission_id=None):
+    """The image an evaluation step infers on: the regrade's chosen image, else (a grade with no regrade, of the task
+    ``submission_id``) the ADMITTED inference image of a task built under an earlier door of the declared migration
+    chain (`_task_admitted_images`, checked on the host at retention), else the provider's.
+    """
     chosen = None if regrade is None else getattr(regrade, "inference_image", None)
+    if chosen is None and regrade is None and submission_id is not None:
+        admitted = _task_admitted_images(provider, submission_id)
+        chosen = None if admitted is None else admitted[1]
     return provider.inference_image if chosen is None else chosen
 
 
@@ -4455,14 +4654,19 @@ def king_parent_moved(
         adapter, base, entries, entry_id, incumbent=_regrade_incumbent(pool_store)
     )
     kind = recipe.to_dict()["source"]["kind"]
+    host = adapter._provider(HOST_OWNER)
     try:
         retained, current = _parents(
-            kind, files, adapter._provider(HOST_OWNER), recipe, unserved=PARENT_UNSERVED
+            kind, files, host, recipe, unserved=PARENT_UNSERVED
         )
     except RetentionUnavailable as unavailable:
         if unavailable.code == PARENT_UNSERVED:
             return True
         raise
+    if retained != current and _retained_admitted_images(kind, files, host) is not None:
+        # a king BUILT under an EARLIER door of the declared migration chain is regraded with his admitted images
+        # (`_regrade_inference_image`: the same program as before the switch), never rebuilt on the current one
+        return False
     return retained != current
 
 
@@ -4744,6 +4948,12 @@ def _regrade_inference_image(kind, files, provider, recipe, origin, incumbent):
         return configured
     if retained_parent == current_parent:
         return provider.inference_image
+    # A model BUILT under an EARLIER door of the declared migration chain (Lead's pick B + Validator-2, 17 Nov), read
+    # from its own sha-checked retained image record (every caller: the counted grade, the operator and uncounted
+    # regrades, the king's upkeep, crown repeats, rebuild evidence): its admitted images, checked on this host.
+    admitted = _retained_admitted_images(kind, files, provider)
+    if admitted is not None and admitted[0].image_id == retained_parent:
+        return _verify_admitted_image(provider, admitted[1])
     if incumbent is None or origin != incumbent:
         raise RetentionUnavailable("regrade_construction_parent_differs")
     from carbon.challenge_validator import koth_journal

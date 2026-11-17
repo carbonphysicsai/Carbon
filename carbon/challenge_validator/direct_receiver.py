@@ -1648,6 +1648,8 @@ class OwnerProviders:
         images_migrated=False,
         binding_migrated=False,
         migrated_image_bindings=frozenset(),
+        migrated_graph_gpu_images=None,
+        migrated_bundle_images=None,
     ):
         from carbon.development_session.gpu_practice import DirectParents
 
@@ -1669,6 +1671,11 @@ class OwnerProviders:
         self.binding_migrated = binding_migrated
         #: graph image bindings of the earlier doors of the checked migration chain (`state_binding`)
         self.migrated_image_bindings = migrated_image_bindings
+        #: the earlier doors' graph GPU worker image ids per graph binding, and their bundle images per construction
+        #: parent id (`state_binding.migrated_graph_gpu_images`, `state_binding.migrated_bundle_images`): a task built
+        #: under an earlier door is graded with its admitted images (`lean_recipe_retention`)
+        self.migrated_graph_gpu_images = dict(migrated_graph_gpu_images or {})
+        self.migrated_bundle_images = dict(migrated_bundle_images or {})
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -1945,6 +1952,10 @@ class OwnerProviders:
                     migrated_image_bindings=getattr(
                         self, "migrated_image_bindings", frozenset()
                     ),
+                    migrated_graph_gpu_images=getattr(
+                        self, "migrated_graph_gpu_images", {}
+                    ),
+                    migrated_bundle_images=getattr(self, "migrated_bundle_images", {}),
                     **(
                         {}
                         if self.graph_gpu_image is None
@@ -2449,6 +2460,8 @@ def serve(
         # later release (or a rollback to an earlier one) starts on the same state (`state_binding`).
         from carbon.challenge_validator.state_binding import bind as bind_state
         from carbon.challenge_validator.state_binding import (
+            migrated_bundle_images,
+            migrated_graph_gpu_images,
             migrated_graph_image_bindings,
             migrated_images,
             migrated_keys,
@@ -2476,6 +2489,8 @@ def serve(
             images_migrated=migrated_images(root),
             binding_migrated=bool(migrated_keys(root)),
             migrated_image_bindings=migrated_graph_image_bindings(root),
+            migrated_graph_gpu_images=migrated_graph_gpu_images(root),
+            migrated_bundle_images=migrated_bundle_images(root),
         )
         # A service (no lifetime) runs until it is stopped.
         timer = (

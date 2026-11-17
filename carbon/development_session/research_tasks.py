@@ -331,6 +331,8 @@ class DirectDevelopmentTasksV3:
         graph_gpu_ops=None,
         binding_migrated=False,
         migrated_image_bindings=frozenset(),
+        migrated_graph_gpu_images=None,
+        migrated_bundle_images=None,
     ) -> None:
         from .gpu_practice import DirectParents, gpu_image_backend
 
@@ -396,6 +398,11 @@ class DirectDevelopmentTasksV3:
         #: Graph task image bindings of the EARLIER doors of this state's declared migration chain
         #: (`state_binding.migrated_graph_image_bindings`): a task admitted under one of them takes the current images.
         self.migrated_image_bindings = frozenset(migrated_image_bindings)
+        #: The earlier doors' graph GPU worker image ids per graph binding, and their images per bundle construction
+        #: parent id (`state_binding.migrated_graph_gpu_images`, `state_binding.migrated_bundle_images`): read only by
+        #: the grade of a task BUILT under an earlier door (`lean_recipe_retention`), never by a build or admission.
+        self.migrated_graph_gpu_images = dict(migrated_graph_gpu_images or {})
+        self.migrated_bundle_images = dict(migrated_bundle_images or {})
         self.discovery = discovery
         self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image

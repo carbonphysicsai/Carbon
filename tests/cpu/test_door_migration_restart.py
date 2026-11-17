@@ -311,21 +311,37 @@ def test_only_an_earlier_doors_exact_graph_image_moves_to_the_current_one():
     assert not moves(migrated, old_binding, json.dumps(["BUNDLE_OVERLAY", {}]))
 
 
+def _full(image_id):
+    from dataclasses import asdict
+
+    return asdict(
+        WorkerImageIdentity(image_id, image_id, *("sha256:" + c * 64 for c in "345678"))
+    )
+
+
 def test_a_built_task_of_an_earlier_door_names_its_earlier_image():
+    """(B): the admitted image is the earlier door's FULL identity, rebuilt exactly from the binding."""
     from types import SimpleNamespace
 
     from carbon.challenge_validator.lean_recipe_retention import (
-        _migrated_admitted_image_id,
+        _migrated_admitted_image,
     )
 
+    full = _full(OLD["image_id"])
     old_binding = json.dumps(
-        ["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":")
+        ["GRAPH_PARENT", full], sort_keys=True, separators=(",", ":")
     )
-    provider = SimpleNamespace(migrated_image_bindings=frozenset({old_binding}))
-    assert _migrated_admitted_image_id(provider, old_binding) == OLD["image_id"]
-    assert _migrated_admitted_image_id(provider, "not json") is None
+    partial = json.dumps(["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":"))
+    provider = SimpleNamespace(
+        migrated_image_bindings=frozenset({old_binding, partial})
+    )
+    assert _migrated_admitted_image(provider, old_binding) == WorkerImageIdentity(
+        **full
+    )
+    assert _migrated_admitted_image(provider, partial) is None  # not a whole identity
+    assert _migrated_admitted_image(provider, "not json") is None
     assert (
-        _migrated_admitted_image_id(SimpleNamespace(), old_binding) is None
+        _migrated_admitted_image(SimpleNamespace(), old_binding) is None
     )  # no chain on this provider
 
 
@@ -336,9 +352,13 @@ def test_an_image_the_current_door_still_binds_is_never_an_earlier_doors(carried
     from types import SimpleNamespace
 
     from carbon.challenge_validator.lean_recipe_retention import (
-        _migrated_admitted_image_id,
+        _migrated_admitted_image,
     )
-    from carbon.challenge_validator.state_binding import migrated_graph_image_bindings
+    from carbon.challenge_validator.state_binding import (
+        migrated_bundle_images,
+        migrated_graph_gpu_images,
+        migrated_graph_image_bindings,
+    )
 
     root, old = carried
     lane_only = _binding("2" * 40, **GPU)  # parent stays OLD
@@ -349,4 +369,48 @@ def test_an_image_the_current_door_still_binds_is_never_an_earlier_doors(carried
     provider = SimpleNamespace(
         migrated_image_bindings=migrated_graph_image_bindings(root)
     )
-    assert _migrated_admitted_image_id(provider, kept) is None
+    assert _migrated_admitted_image(provider, kept) is None
+    # nor among the earlier doors' bundle images or GPU lanes
+    assert migrated_bundle_images(root) == {}
+    assert migrated_graph_gpu_images(root) == {}
+
+
+def test_the_earlier_doors_bundle_images_are_named_from_the_checked_chain(carried):
+    """(B), bundle path: a construction parent of an earlier door (never one the current door binds), paired with
+    that door's inference image (its parent when it records none)."""
+    from carbon.challenge_validator.state_binding import migrated_bundle_images
+
+    root, old = carried
+    assert migrated_bundle_images(root) == {}
+    new = _migrated("2" * 40)
+    _migrate(root, old, new)
+    bind(root, new)
+    assert migrated_bundle_images(root) == {
+        OLD["image_id"]: {"parent": OLD, "inference_image": OLD}
+    }
+
+
+def test_the_earlier_doors_graph_gpu_lane_is_named_per_binding(tmp_path):
+    """(B), TE3: a task GPU-built under an earlier door names THAT door's graph GPU image."""
+    from carbon.challenge_validator.state_binding import migrated_graph_gpu_images
+
+    root = tmp_path / "state"
+    root.mkdir(mode=0o700)
+    os.chmod(root, 0o700)
+    old = _binding("1" * 40, **GPU)
+    bind(root, old)
+    (root / LEGACY_NAME).unlink()
+    new = _binding(
+        "2" * 40,
+        parent=NEW,
+        construction_parents=[NEW],
+        **{**GPU, "graph_gpu_image": {"image_id": "sha256:" + "7" * 64}},
+    )
+    _migrate(root, old, new)
+    bind(root, new)
+    old_binding = json.dumps(
+        ["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":")
+    )
+    assert migrated_graph_gpu_images(root) == {
+        old_binding: frozenset({GPU["graph_gpu_image"]["image_id"]})
+    }

@@ -658,7 +658,7 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
     monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)
     monkeypatch.setattr(lrr, "_graded_query", lambda m, a: (inputs, (rows_total, 1)))
     monkeypatch.setattr(lrr, "_private_evaluation_directory", lambda r, s: tmp_path)
-    monkeypatch.setattr(lrr, "_inference_image_of", lambda p, r: "image")
+    monkeypatch.setattr(lrr, "_inference_image_of", lambda *a: "image")
     seen = {}
 
     calls = []

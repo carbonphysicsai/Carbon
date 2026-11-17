@@ -36,9 +36,7 @@ from pathlib import Path
 
 SCHEMA = "carbon.challenge-validator.auto-grade-marker.v1"
 _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
-#: ``migrated_build_held``: a task built under the images of an EARLIER door of a declared migration, held until it can
-#: be graded with its admitted image (`lean_recipe_retention.MIGRATED_BUILD_HELD`): nothing reserved, nothing charged.
-_PENDING = frozenset({"task_not_succeeded", "migrated_build_held"})
+_PENDING = frozenset({"task_not_succeeded"})
 #: Retention codes that mean "not gradable now" without having consumed anything.
 _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
 #: A provider that could not read the owner's registration from a fresh snapshot. While the door's chain is degraded

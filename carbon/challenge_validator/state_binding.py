@@ -347,6 +347,85 @@ def migrated_graph_image_bindings(root: Path) -> frozenset:
     return frozenset(found - bindings(_folded(Path(root).absolute(), original)))
 
 
+def migrated_graph_gpu_images(root: Path) -> dict:
+    """``{graph image binding: frozenset of graph GPU worker image ids}``: for each binding of
+    `migrated_graph_image_bindings`, the ``graph_gpu_image`` of every EARLIER door of the checked chain that bound it
+    (what a task GPU-built under such a door names as its ``build_image_id``). A binding whose doors had no graph GPU
+    lane maps to an empty set. Empty for a state never migrated."""
+    found = {binding: set() for binding in migrated_graph_image_bindings(root)}
+    for door in previous_doors(root):
+        gpu = door.get("graph_gpu_image") if type(door) is dict else None
+        if type(gpu) is not dict or type(gpu.get("image_id")) is not str:
+            continue
+        for key in ("parent", "inference_image"):
+            image = door.get(key)
+            if type(image) is not dict:
+                continue
+            binding = json.dumps(
+                ["GRAPH_PARENT", image], sort_keys=True, separators=(",", ":")
+            )
+            if binding in found:
+                found[binding].add(gpu["image_id"])
+    return {binding: frozenset(ids) for binding, ids in found.items()}
+
+
+def _door_inference(door):
+    """A door's inference image identity: its ``inference_image``, else its ``parent`` (the receiver records the
+    inference image only when it differs from the parent)."""
+    image = door.get("inference_image", door.get("parent"))
+    return image if type(image) is dict else None
+
+
+def _door_parents(door):
+    """A door's construction parent identities: ``parent`` and every ``construction_parents`` runtime's."""
+    parents = [door.get("parent")]
+    runtimes = door.get("construction_parents")
+    if type(runtimes) is dict:
+        parents.extend(runtimes[runtime] for runtime in sorted(runtimes))
+    elif type(runtimes) is list:
+        parents.extend(runtimes)
+    return [image for image in parents if type(image) is dict]
+
+
+def migrated_bundle_images(root: Path) -> dict:
+    """``{parent image id: {"parent": identity, "inference_image": identity}}``: each construction parent of an
+    EARLIER door of this state's checked migration chain (a bundle task admitted under it names that id as its
+    overlay's ``parent_image_id``), with that door's inference image. Never an image the CURRENT door still binds (as
+    a parent, a construction parent or its inference image), and never an id two earlier doors pair with different
+    identities (ambiguous: left out, so such a task refuses as before). Empty for a state never migrated.
+    """
+    root = Path(root).absolute()
+    original = _read(root / DOOR_NAME)
+    if original is None:
+        return {}
+    current = _folded(root, original)
+    current_ids = {
+        image.get("image_id")
+        for image in _door_parents(current) + [_door_inference(current)]
+        if type(image) is dict
+    }
+    found, ambiguous = {}, set()
+    for door in previous_doors(root):
+        if type(door) is not dict:
+            continue
+        inference = _door_inference(door)
+        if inference is None:
+            continue
+        for parent in _door_parents(door):
+            image_id = parent.get("image_id")
+            if type(image_id) is not str or image_id in current_ids:
+                continue
+            entry = {"parent": parent, "inference_image": inference}
+            if image_id in found and canonical(found[image_id]) != canonical(entry):
+                ambiguous.add(image_id)
+            found[image_id] = entry
+    return {
+        image_id: entry
+        for image_id, entry in found.items()
+        if image_id not in ambiguous
+    }
+
+
 def migrated_keys(root: Path) -> frozenset:
     """The door keys this state's declared migration links moved (the original door vs the current, folded one):
     empty for a state never migrated. Owners' provider bindings that freeze those keys may then re-freeze to the
