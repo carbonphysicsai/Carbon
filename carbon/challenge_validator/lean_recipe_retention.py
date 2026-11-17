@@ -3142,7 +3142,14 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
             store, kind, submission_id, outcome, filed=entry_id is not None
         )
         return
-    paused = outcome.get("reason") in (bp.CROWNS_PAUSED, bp.CROWN_QUEUED, bp.CROWN_HELD)
+    from carbon.challenge_validator.crown_official import CROWN_MARGIN_UNSET
+
+    paused = outcome.get("reason") in (
+        bp.CROWNS_PAUSED,
+        bp.CROWN_QUEUED,
+        bp.CROWN_HELD,
+        CROWN_MARGIN_UNSET,
+    )
     # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
     # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.
     retry = outcome.get("reason") in (

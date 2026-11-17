@@ -736,6 +736,16 @@ class BankPromotion:
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
 
+            if official is not None and crown_official.margin_unset():
+                # The served version has no margin row yet (V2 17 Nov 2026): the grade stays filed and counted; this crown
+                # decision waits, filed like a queued one, and the sweep decides it in admission order once the row lands.
+                return {
+                    "outcome": UNAVAILABLE,
+                    "reason": crown_official.CROWN_MARGIN_UNSET,
+                    "evaluation_key": evaluation_key,
+                    "candidate": submission_id,
+                    "incumbent": (self.store.incumbent() or {}).get("model_id"),
+                }
             if official is not None:
                 # OFFICIAL SCORE: the decision IS the official grades' comparison (oldest-first, after the pause, the hold
                 # and the queue checks above): applied now, with no repeat grade and no rebuild of either model.

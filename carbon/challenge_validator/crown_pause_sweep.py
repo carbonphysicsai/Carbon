@@ -47,6 +47,7 @@ from .bank_promotion import (
     UNAVAILABLE,
 )
 from .crown_average import REBUILD_IN_PROGRESS
+from .crown_official import CROWN_MARGIN_UNSET
 
 ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
@@ -185,7 +186,12 @@ def sweep(store, reconsider, *, kind, current_exam):
             )
             if type(outcome) is not dict or "outcome" not in outcome:
                 break  # a refusal ({"error": ...}) is not a decision
-            if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED, CROWN_HELD):
+            if outcome.get("reason") in (
+                CROWNS_PAUSED,
+                CROWN_QUEUED,
+                CROWN_HELD,
+                CROWN_MARGIN_UNSET,
+            ):
                 break  # paused again, or an earlier record is still undecided (cannot happen to the oldest)
             if outcome.get("reason") == REBUILD_IN_PROGRESS:
                 # a stepwise decision ran ONE new rebuild (kept) and stopped: not a failure, so no attempt is counted, no spacing

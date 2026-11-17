@@ -1,7 +1,12 @@
 """Crowns decided on the OFFICIAL grades, with no crown rebuild (owner 14 Nov, verbatim via the Lead: crown rebuilds dropped;
 "No protection. New kings win. I don't need a queue of contenders building"; the margin ".0129").
 
-The rule, for a version that registers it (`REGISTRY`, outside ``carbon/``): a contender whose OFFICIAL total is greater than
+THE DEFAULT FOR EVERY VERSION (owner rule of 14 Nov, every exam; Lead 17 Nov 2026): a receiver always installs it
+(`install`). The margin is the version's owner-set row in `REGISTRY` (V2 ruling 17 Nov: never derived). A version with no
+row yet still grades and counts exactly as before; only its crown decisions wait (`margin_unset`: `CROWN_MARGIN_UNSET`,
+filed like a queued crown and decided by the sweep, in admission order, once the row lands with the next start).
+
+The rule: a contender whose OFFICIAL total is greater than
 the sitting king's OFFICIAL total plus the registered margin becomes king at once; a tie (within the margin) keeps the king.
 Contenders are decided in queue order by the existing sweep (`crown_pause_sweep`, oldest-first; an undecided earlier one
 holds later ones back), each against the king of its moment. That is exactly `bank_promotion.compare_private_pair` on the two
@@ -12,8 +17,8 @@ official grades with the margin in the comparator's noise slot; this module only
 - the repeat gate (a second grade of every state the decision read): `bank_promotion.consider_private` applies the crown
   change directly in this mode.
 
-The operator's crown pause, the crown hold and the queue order are unchanged. A version without an entry: `ACTIVE` is None
-and every crown decision is exactly as before.
+The operator's crown pause, the crown hold and the queue order are unchanged. Only a process that never installs the rule
+(a tool, a test) has `ACTIVE` None and the old repeat-gate decision.
 """
 
 from __future__ import annotations
@@ -41,8 +46,14 @@ class CrownOfficialInvalid(ValueError):
         super().__init__(code)
 
 
-#: ``{"challenge", "version", "margin", "digest"}`` for the version this receiver serves, or None (off).
+#: ``{"challenge", "version", "margin", "digest"}`` for the version this receiver serves (``margin`` and ``digest`` None
+#: while the version has no row: `margin_unset`), or None in a process that never installed it.
 ACTIVE = None
+#: The reason of a crown decision that waits for its version's margin row (filed and swept like a queued crown).
+CROWN_MARGIN_UNSET = "crown_margin_unset"
+#: The noise slot's digest while no margin is registered: the comparison then only screens (margin 0) which contenders
+#: would change the crown, and every such decision waits (`margin_unset`).
+UNSET_DIGEST = "sha256:" + hashlib.sha256(b"carbon.crown-official.margin-unset").hexdigest()
 
 
 def _entry_digest(key, entry):
@@ -85,27 +96,31 @@ def registered(challenge_id, version, *, path=REGISTRY):
 
 
 def install(challenge_id, version, *, path=REGISTRY, log=None):
-    """At receiver start, for the version it ACTUALLY serves: turn the official-score rule on (and the crown average OFF)
-    when the version registers it, else off. Logs ``crown_official_score=<bool> margin=<value|none>``.
+    """At receiver start, for the version it ACTUALLY serves: turn the official-score rule ON (and the crown average OFF),
+    for every version: with its registered margin, or, with no row yet, margin None (`margin_unset`: its crowns wait).
+    Logs ``crown_official_score=true margin=<value|unset>``.
     """
     global ACTIVE
     from carbon.challenge_validator import crown_average
 
-    rule = registered(challenge_id, version, path=path)
-    ACTIVE = (
-        None
-        if rule is None
-        else {"challenge": challenge_id, "version": version, **rule}
-    )
-    if ACTIVE is not None:
-        # no crown rebuild of any kind in this mode: no screening vs a rebuild mean, no N-rebuild decision, no re-measure
-        crown_average.ACTIVE = None
+    rule = registered(challenge_id, version, path=path) or {
+        "margin": None,
+        "digest": None,
+    }
+    ACTIVE = {"challenge": challenge_id, "version": version, **rule}
+    # no crown rebuild of any kind: no screening vs a rebuild mean, no N-rebuild decision, no re-measure
+    crown_average.ACTIVE = None
     say = log or (lambda line: print(line, flush=True))
     say(
-        f"crown_official_score={str(ACTIVE is not None).lower()}"
-        f" margin={'none' if ACTIVE is None else ACTIVE['margin']}"
+        "crown_official_score=true"
+        f" margin={'unset' if ACTIVE['margin'] is None else ACTIVE['margin']}"
     )
     return ACTIVE
+
+
+def margin_unset():
+    """Whether the rule is installed and the served version has no margin row yet: its crown decisions wait."""
+    return ACTIVE is not None and ACTIVE["margin"] is None
 
 
 def comparator(registered_comparator):
@@ -115,22 +130,24 @@ def comparator(registered_comparator):
     evaluation's.)"""
     if ACTIVE is None or type(registered_comparator) is not dict:
         return None
-    return {
-        **registered_comparator,
-        "rebuild_noise": {
-            "value": ACTIVE["margin"],
-            "measurement_digest": ACTIVE["digest"],
-        },
-    }
+    if ACTIVE["margin"] is None:
+        # no row yet: margin 0 only SCREENS which contenders would change the crown; each such decision waits
+        noise = {"value": 0.0, "measurement_digest": UNSET_DIGEST}
+    else:
+        noise = {"value": ACTIVE["margin"], "measurement_digest": ACTIVE["digest"]}
+    return {**registered_comparator, "rebuild_noise": noise}
 
 
 __all__ = [
     "ACTIVE",
+    "CROWN_MARGIN_UNSET",
+    "UNSET_DIGEST",
     "RECORD_RULE",
     "REGISTRY",
     "SCHEMA",
     "CrownOfficialInvalid",
     "comparator",
     "install",
+    "margin_unset",
     "registered",
 ]

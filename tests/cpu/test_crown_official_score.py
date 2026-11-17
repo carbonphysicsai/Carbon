@@ -1,13 +1,17 @@
 """Crowns decided on the OFFICIAL grades with no crown rebuild (owner 14 Nov via the Lead; `crown_official`).
 
 Claims:
-- the rule is registered outside ``carbon/`` per version, with no default; a malformed entry refuses; an unlisted version is
-  off; installing it ON turns the crown average OFF (no screening, no N rebuilds, no king re-measure);
+- the rule is ON for EVERY version a receiver serves (owner rule of 14 Nov, every exam; Lead 17 Nov): the margin is the
+  version's owner-set row outside ``carbon/`` (never derived, V2 17 Nov); a malformed entry refuses; installing it turns the
+  crown average OFF (no screening, no N rebuilds, no king re-measure);
+- a version with NO row takes the official path too: its grade counts as before, and a crown-changing decision waits
+  (`crown_official.CROWN_MARGIN_UNSET`), filed like a queued crown, never a repeat grade or a rebuild; once its row lands
+  (the next start) the sweep decides it in admission order;
 - a contender's official total GREATER than the king's official total + the registered margin crowns it at once; within the
   margin (a tie) the king keeps the crown; neither a repeat grade nor any rebuild is run (both would raise here);
 - queue order is the existing one: with crowns paused, contenders are filed in admission order; once lifted, the sweep decides
   them oldest-first, each against the king of its moment; a later one never jumps an undecided earlier one;
-- off (no entry): `consider_private` is exactly as before.
+- a process that never installs the rule (a tool, a test): `consider_private` is exactly as before.
 
 Every grade, digest and model here is a SYNTHETIC fixture.
 """
@@ -191,16 +195,59 @@ def test_install_on_turns_the_crown_average_off_and_says_so(official):
     assert official == [f"crown_official_score=true margin={MARGIN}"]
 
 
-def test_install_off_leaves_the_crown_average_as_it_was(tmp_path, monkeypatch):
+def test_an_unlisted_version_installs_the_rule_with_its_margin_unset(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(crown_official, "ACTIVE", crown_official.ACTIVE)
-    sentinel = object()
-    monkeypatch.setattr(ca, "ACTIVE", sentinel)
+    monkeypatch.setattr(ca, "ACTIVE", object())
     lines = []
     crown_official.install(
         CHALLENGE, "1.7", path=_registry(tmp_path, {}), log=lines.append
     )
-    assert crown_official.ACTIVE is None and ca.ACTIVE is sentinel
-    assert lines == ["crown_official_score=false margin=none"]
+    assert crown_official.ACTIVE == {
+        "challenge": CHALLENGE,
+        "version": "1.7",
+        "margin": None,
+        "digest": None,
+    }
+    assert crown_official.margin_unset() and ca.ACTIVE is None
+    assert lines == ["crown_official_score=true margin=unset"]
+    noise = crown_official.comparator(_comparator())["rebuild_noise"]
+    assert noise == {"value": 0.0, "measurement_digest": crown_official.UNSET_DIGEST}
+
+
+def test_an_unlisted_versions_crown_waits_for_its_row_then_the_sweep_decides_it(
+    tmp_path, monkeypatch, rig
+):
+    """The official path for a version with no row: no repeat grade, no rebuild (NoRebuild would raise); a crown-changing
+    contender is filed and waits; a non-changing one is decided as usual; once the row lands the sweep decides in order."""
+    store, clock, bodies, _paused, consider, live, reconsider, king = rig
+    crown_official.install(CHALLENGE, VERSION, path=_registry(tmp_path, {}), log=[].append)
+    outcome = live("a")  # 0.75 > 0.70: would change the crown
+    assert (outcome["outcome"], outcome["reason"]) == (
+        bp.UNAVAILABLE,
+        crown_official.CROWN_MARGIN_UNSET,
+    )
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a"]
+    assert consider("b")["reason"] == bp.CROWN_QUEUED  # never ahead of the earlier one
+    bodies["c"] = _body("c", 0.65)
+    assert consider("c")["outcome"] == bp.INCUMBENT_KEEPS  # nothing to wait for
+    clock[0] += sweeper.RETRY_SECONDS + 1
+    assert sweeper.sweep(store, reconsider, kind="pack", current_exam=EXAM) == []
+    assert king() == "k"  # still waiting, nothing counted against it
+    # the owner's row lands (the next start installs it): the sweep decides it at once, with that margin
+    crown_official.install(
+        CHALLENGE,
+        VERSION,
+        path=_registry(tmp_path, {f"{CHALLENGE} {VERSION}": {"margin": MARGIN}}),
+        log=[].append,
+    )
+    clock[0] += sweeper.RETRY_SECONDS + 1
+    done = sweeper.sweep(store, reconsider, kind="pack", current_exam=EXAM)
+    assert [sid for sid, _ in done][:1] == ["a"] and done[0][1].startswith(
+        bp.CHALLENGER
+    )
+    assert king() == "a"
 
 
 # ----------------------------------------------------------------------------------------- the rule
@@ -266,7 +313,7 @@ def test_paused_contenders_are_decided_oldest_first_each_against_the_king_of_its
 # ----------------------------------------------------------------------------------------- off
 
 
-def test_off_the_decision_is_exactly_as_before(tmp_path, monkeypatch):
+def test_never_installed_the_decision_is_exactly_as_before(tmp_path, monkeypatch):
     monkeypatch.setattr(crown_official, "ACTIVE", None)
     assert crown_official.comparator(_comparator()) is None
     store = PoolStore(tmp_path / "pool.sqlite3", clock=lambda: T0)
@@ -395,7 +442,7 @@ def test_the_king_page_shows_the_official_margin_and_a_bar_never_below_the_real_
     assert koth_public.TO_BEAT_RULE == "floor_plus_step_plus_margin"
 
 
-def test_off_the_king_page_is_as_before(monkeypatch):
+def test_never_installed_or_unset_the_king_page_is_as_before(monkeypatch):
     import types
 
     from carbon.challenge_validator import crown_average, direct_receiver, koth_registry
@@ -408,3 +455,10 @@ def test_off_the_king_page_is_as_before(monkeypatch):
     challenge = types.SimpleNamespace(challenge_id=CHALLENGE, version=VERSION)
     assert direct_receiver._page_noise(challenge) == {"value": 0.0079}
     assert direct_receiver._crown_bar("store", CHALLENGE) is None
+    # installed with no row: the page keeps the registered noise, never a margin of 0 it does not decide with
+    monkeypatch.setattr(
+        crown_official,
+        "ACTIVE",
+        {"challenge": CHALLENGE, "version": VERSION, "margin": None, "digest": None},
+    )
+    assert direct_receiver._page_noise(challenge) == {"value": 0.0079}

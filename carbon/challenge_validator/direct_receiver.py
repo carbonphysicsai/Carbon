@@ -974,6 +974,9 @@ GRADING_PATHS = (
     "carbon/challenge_validator/crown_average.py",
     # a menu-D version's coded crown hold (Validator-2B 7 Nov): it decides whether a crown may change
     "carbon/challenge_validator/crown_hold.py",
+    # the crown rule (owner 14 Nov, the default for every version since 17 Nov): official totals + the version's margin row
+    "carbon/challenge_validator/crown_official.py",
+    "scripts/validator_host_classes/crown_official_score.json",
     # a vmap-64 version's speed-match tolerance (CV-Motor-B S2, 15 Nov): it decides whether a timed stage matches or is
     # Carbon's FAILED_INFRA
     "carbon/challenge_validator/speed_match.py",
@@ -3027,7 +3030,7 @@ def _page_noise(challenge):
     margin), else the registered rebuild noise, as before."""
     from carbon.challenge_validator import crown_official, koth_registry
 
-    if crown_official.ACTIVE is not None:
+    if crown_official.ACTIVE is not None and not crown_official.margin_unset():
         return {
             "value": crown_official.ACTIVE["margin"],
             "measurement_digest": crown_official.ACTIVE["digest"],
