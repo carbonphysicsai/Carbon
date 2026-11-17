@@ -307,6 +307,35 @@ def migrated_images(root: Path) -> bool:
     )
 
 
+def previous_doors(root: Path) -> list:
+    """The doors this state held before its current one, oldest first: the original door, then each migration link's
+    door but the last (every link re-checked by `_folded` first). Empty for a state never migrated (or never bound).
+    """
+    root = Path(root).absolute()
+    original = _read(root / DOOR_NAME)
+    if original is None:
+        return []
+    _folded(root, original)
+    return ([original] + [link["door"] for link in _links(root)])[:-1]
+
+
+def migrated_graph_image_bindings(root: Path) -> frozenset:
+    """The per-task image bindings (``research_tasks.DirectDevelopmentTasksV3._image_binding`` of a graph task:
+    ``["GRAPH_PARENT", <image identity>]``) a task admitted under an EARLIER door of this state's checked migration
+    chain carries: its parent and inference images. Empty for a state never migrated."""
+    found = set()
+    for door in previous_doors(root):
+        for key in ("parent", "inference_image"):
+            image = door.get(key) if type(door) is dict else None
+            if type(image) is dict:
+                found.add(
+                    json.dumps(
+                        ["GRAPH_PARENT", image], sort_keys=True, separators=(",", ":")
+                    )
+                )
+    return frozenset(found)
+
+
 def migrated_keys(root: Path) -> frozenset:
     """The door keys this state's declared migration links moved (the original door vs the current, folded one):
     empty for a state never migrated. Owners' provider bindings that freeze those keys may then re-freeze to the

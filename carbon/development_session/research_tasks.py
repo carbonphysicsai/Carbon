@@ -306,6 +306,7 @@ class DirectDevelopmentTasksV3:
         graph_gpu_image=None,
         graph_gpu_ops=None,
         binding_migrated=False,
+        migrated_image_bindings=frozenset(),
     ) -> None:
         from .gpu_practice import DirectParents, gpu_image_backend
 
@@ -368,6 +369,9 @@ class DirectDevelopmentTasksV3:
             raise ValueError("direct research supervisor already active") from None
         self._lock = threading.RLock()
         self.ledger, self.owner = ledger, owner
+        #: Graph task image bindings of the EARLIER doors of this state's declared migration chain
+        #: (`state_binding.migrated_graph_image_bindings`): a task admitted under one of them takes the current images.
+        self.migrated_image_bindings = frozenset(migrated_image_bindings)
         self.discovery = discovery
         self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image
@@ -758,6 +762,21 @@ class DirectDevelopmentTasksV3:
         self._check_image_identity()
         if self.image_resolver is None:
             verify_library_worker_image(self.image)
+
+    def _migrated_graph_binding(self, admitted, current):
+        """Whether ``admitted`` (a task's image binding) is EXACTLY a graph image of an earlier door of this state's
+        declared migration chain and ``current`` is a graph binding of the current door (both ``GRAPH_PARENT``).
+        """
+        try:
+            now = json.loads(current)
+        except (TypeError, ValueError):
+            return False
+        return (
+            admitted in self.migrated_image_bindings
+            and type(now) is list
+            and len(now) == 2
+            and now[0] == "GRAPH_PARENT"
+        )
 
     def _resolved_image(self, request):
         """Resolve only a recipe ref; runtime verifies the selected child anew."""
@@ -2109,7 +2128,22 @@ class DirectDevelopmentTasksV3:
                 if task_id.value in self._task_image_bindings and (
                     expected_binding != self._task_image_bindings[task_id.value]
                 ):
-                    raise ValueError("admitted direct library image changed")
+                    admitted = self._task_image_bindings[task_id.value]
+                    if not self._migrated_graph_binding(admitted, expected_binding):
+                        raise ValueError("admitted direct library image changed")
+                    # a graph task queued under an EARLIER door of the declared migration chain: it builds on the
+                    # door's CURRENT images (nothing was built under the old ones); the custody row moves once
+                    with self._lock:
+                        with self._db() as db:
+                            moved = db.execute(
+                                "UPDATE direct_task_images SET identity=? WHERE id=? AND identity=?",
+                                (expected_binding, task_id.value, admitted),
+                            )
+                            if moved.rowcount != 1:
+                                raise ValueError(
+                                    "admitted direct library image changed"
+                                )
+                        self._task_image_bindings[task_id.value] = expected_binding
             except (FileNotFoundError, ValueError, OSError, WorkerFailure):
                 receipt = self._receipt(
                     view,

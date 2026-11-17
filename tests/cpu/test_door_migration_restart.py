@@ -261,3 +261,69 @@ def test_an_owner_re_freezes_to_the_migrated_images_only_on_a_migrated_door(
     # another requester never re-freezes, migration or not
     with pytest.raises(ValueError, match="direct requester or image binding changed"):
         _reopen(tmp_path, fixed, moved, binding_migrated=True, requester="other")
+
+
+# -- tasks admitted under the EARLIER door (A100 flip, 17 Nov: 'admitted_image_changed') -------------------------------
+
+
+def test_the_earlier_doors_graph_images_are_named_from_the_checked_chain(carried):
+    from carbon.challenge_validator.state_binding import migrated_graph_image_bindings
+
+    root, old = carried
+    assert migrated_graph_image_bindings(root) == frozenset()
+    new = _migrated("2" * 40)
+    _migrate(root, old, new)
+    bind(root, new)
+    old_binding = json.dumps(
+        ["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":")
+    )
+    new_binding = json.dumps(
+        ["GRAPH_PARENT", NEW], sort_keys=True, separators=(",", ":")
+    )
+    assert migrated_graph_image_bindings(root) == {old_binding}
+    assert new_binding not in migrated_graph_image_bindings(root)
+
+
+def test_only_an_earlier_doors_exact_graph_image_moves_to_the_current_one():
+    from types import SimpleNamespace
+
+    from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
+
+    old_binding = json.dumps(
+        ["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":")
+    )
+    new_binding = json.dumps(
+        ["GRAPH_PARENT", NEW], sort_keys=True, separators=(",", ":")
+    )
+    other = json.dumps(
+        ["GRAPH_PARENT", {"image_id": "sha256:" + "9" * 64}],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    migrated = SimpleNamespace(migrated_image_bindings=frozenset({old_binding}))
+    never = SimpleNamespace(migrated_image_bindings=frozenset())
+    moves = DirectDevelopmentTasksV3._migrated_graph_binding
+    assert moves(migrated, old_binding, new_binding)
+    assert not moves(
+        never, old_binding, new_binding
+    )  # a door never migrated: refused as before
+    assert not moves(migrated, other, new_binding)  # an image of no earlier door
+    assert not moves(migrated, old_binding, json.dumps(["BUNDLE_OVERLAY", {}]))
+
+
+def test_a_built_task_of_an_earlier_door_is_graded_with_the_current_image():
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator.lean_recipe_retention import (
+        _migrated_admitted_image_id,
+    )
+
+    old_binding = json.dumps(
+        ["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":")
+    )
+    provider = SimpleNamespace(migrated_image_bindings=frozenset({old_binding}))
+    assert _migrated_admitted_image_id(provider, old_binding) == OLD["image_id"]
+    assert _migrated_admitted_image_id(provider, "not json") is None
+    assert (
+        _migrated_admitted_image_id(SimpleNamespace(), old_binding) is None
+    )  # no chain on this provider

@@ -449,6 +449,24 @@ def _graph_lane_evidence_ok(provider, evidence) -> bool:
     )
 
 
+def _migrated_admitted_image_id(provider, admitted_binding):
+    """The image id of ``admitted_binding`` when it is a graph image of an EARLIER door of the provider's declared
+    migration chain (`research_tasks.DirectDevelopmentTasksV3.migrated_image_bindings`), else None.
+    """
+    if admitted_binding not in getattr(
+        provider, "migrated_image_bindings", frozenset()
+    ):
+        return None
+    try:
+        kind, image = json.loads(admitted_binding)
+    except (TypeError, ValueError):
+        return None
+    if kind != "GRAPH_PARENT" or type(image) is not dict:
+        return None
+    image_id = image.get("image_id")
+    return image_id if type(image_id) is str else None
+
+
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
     """Gather only the graph task's original, verified DEVELOPMENT bytes."""
     from carbon.development_session.bundle_construction_worker import _tensors
@@ -510,13 +528,20 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     admitted_binding = provider._task_image_bindings.get(submission_id)
     if admitted_binding is None:
         raise RetentionUnavailable("admitted_image_binding_unavailable")
+    # A graph task BUILT under an EARLIER door of this state's declared migration chain (its admitted binding is exactly
+    # that door's image, and its build evidence names that image): graded with the door's CURRENT inference image.
+    admitted_image_id = _migrated_admitted_image_id(provider, admitted_binding)
+    built_with = image.image_id if admitted_image_id is None else admitted_image_id
     if (
         type(image) is not WorkerImageIdentity
-        or provider._image_binding(image) != admitted_binding
+        or (
+            admitted_image_id is None
+            and provider._image_binding(image) != admitted_binding
+        )
         or image != provider.inference_image
         or evidence.get("schema") != "carbon.direct-private-attempt.graph.v1"
         or any(
-            evidence.get(field) != image.image_id
+            evidence.get(field) != built_with
             for field in ("image_id", "parent_image_id", "inference_image_id")
         )
     ):

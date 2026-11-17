@@ -1620,6 +1620,7 @@ class OwnerProviders:
         graph_gpu_ops=None,
         images_migrated=False,
         binding_migrated=False,
+        migrated_image_bindings=frozenset(),
     ):
         from carbon.development_session.gpu_practice import DirectParents
 
@@ -1639,6 +1640,8 @@ class OwnerProviders:
         self.images_migrated = images_migrated
         #: a declared migration moved a door key an owner's provider binding freezes (images, graph GPU lane)
         self.binding_migrated = binding_migrated
+        #: graph image bindings of the earlier doors of the checked migration chain (`state_binding`)
+        self.migrated_image_bindings = migrated_image_bindings
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -1912,6 +1915,9 @@ class OwnerProviders:
                     ),
                     evaluation_pack_digest=self.evaluation_pack_digest,
                     binding_migrated=getattr(self, "binding_migrated", False),
+                    migrated_image_bindings=getattr(
+                        self, "migrated_image_bindings", frozenset()
+                    ),
                     **(
                         {}
                         if self.graph_gpu_image is None
@@ -2415,6 +2421,7 @@ def serve(
         # later release (or a rollback to an earlier one) starts on the same state (`state_binding`).
         from carbon.challenge_validator.state_binding import bind as bind_state
         from carbon.challenge_validator.state_binding import (
+            migrated_graph_image_bindings,
             migrated_images,
             migrated_keys,
         )
@@ -2440,6 +2447,7 @@ def serve(
             graph_gpu_ops=graph_gpu_ops,
             images_migrated=migrated_images(root),
             binding_migrated=bool(migrated_keys(root)),
+            migrated_image_bindings=migrated_graph_image_bindings(root),
         )
         # A service (no lifetime) runs until it is stopped.
         timer = (
