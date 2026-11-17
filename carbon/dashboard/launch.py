@@ -96,6 +96,8 @@ SECTION_META = {
         "sense": "higher_is_better",
     }
 }
+#: A v6 board shows each total as the exact official total to 3 decimals, half up (not the Ladder step).
+UNIT_V6 = "0 to 1, to 3 decimals"
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")
 NETWORK_LABELS = {"testnet": ["DEVELOPMENT", "TESTNET"], "mainnet": ["DEVELOPMENT"]}
 MAX_LADDER = 512
@@ -474,7 +476,12 @@ def project(document, trust):
             "display_threshold": None,
             "registered": "launch board: the Ladder's own rounding",
         },
-        "section_meta": {TOTAL: dict(SECTION_META[TOTAL])},
+        "section_meta": {
+            TOTAL: {
+                **SECTION_META[TOTAL],
+                **({"unit": UNIT_V6} if document["schema"] == SCHEMA_V6 else {}),
+            }
+        },
         "release": None,
         "as_of_block": None,
         "king": None,

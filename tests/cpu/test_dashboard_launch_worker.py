@@ -428,6 +428,14 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
     assert codes["v6_exact_rule"] is None and codes["v6_averaged_rule"] is None
     six = dict(expected_v2)["v6_exact_rule"]["board"]["launch"]
     assert six["to_beat"] == 0.794 and six["crowned_utc"] == "2026-11-15T03:48:35Z"
+    # the unit text says what the totals are: a v6 board shows them to 3 decimals, older boards the Ladder step
+    for name, unit in (
+        ("v6_exact_rule", "0 to 1, to 3 decimals"),
+        ("v5_timed_out", "0 to 1, rounded down to the Ladder step"),
+        ("graded", "0 to 1, rounded down to the Ladder step"),
+    ):
+        meta = dict(expected)[name]["board"]["section_meta"]["total"]
+        assert meta["unit"] == unit, name
     page = dict(expected_v2)["v4_in_progress"]["board"]["launch"]
     assert page["king_measure"] == {"state": "IN_PROGRESS", "kept": 3, "n": 10}
     assert [c["state"] for c in page["crown_checks"]] == ["DECIDED", "PENDING"]

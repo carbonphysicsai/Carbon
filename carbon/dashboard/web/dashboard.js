@@ -558,7 +558,7 @@
     const sealed = coldkeys && !isNum(lb.grain_pct) && (lb.coldkeys.some(r => r.status === "SEALED_UNTIL_GRAIN")
       || lb.reasons && lb.reasons.grain_pct === "grain_human_input");
     const notes = coldkeys ? [] : [board.launch && Array.isArray(board.launch.crown_changes)
-      ? "Ranked by the board's order: the king first, then by exact score. Scores are shown rounded down to the Ladder step, so equal shown scores can hold different ranks."
+      ? "Ranked by the board's order: the king first, then by exact score. Scores are shown " + totalsRounding(board) + ", so equal shown scores can hold different ranks."
       : "Ranked by " + label + "."];
     if (rulesOk(board) && lb.release_lag && isNum(lb.release_lag.hours)) notes.push("Scores publish about " + Math.round(lb.release_lag.hours) + " h after a window.");
     if (rulesOk(board) && isNum(lb.grain_pct)) notes.push("Grain " + fmt(lb.grain_pct) + "%.");
@@ -730,12 +730,14 @@
   // One page per Challenge: the leader first, then the ladder, then the showcase.
   const LAUNCH_COUNTS = [["graded", "Hotkeys"], ["scored", "Scored"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
   const GATE_WORDS = "A failed gate is named, never scored.";
+  // A v6 board shows the exact official total to 3 decimals (half up); older boards show it rounded down to the Ladder step.
+  const totalsRounding = board => board && board.source_schema === "carbon.validator.launch-board.v6" ? "to 3 decimals" : "rounded down to the Ladder step";
   function launchHero(board) {
     const l = board.launch;
     return h("section", {class: "hero launch-hero", "aria-labelledby": "hero-title"},
       eyebrow("First grade"),
       h("h2", {id: "hero-title"}, "No hotkey has a graded result yet"),
-      h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are rounded down to the Ladder step.",
+      h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are shown " + totalsRounding(board) + ".",
         isNum(l.baseline_total) ? " Carbon's baseline to beat: " + total(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : "",
         // The Validator's ruling: before the margin is registered, say so; never a placeholder number.
         isNum(l.margin) ? "" : " The margin a challenger must clear is not yet registered, so no crown is possible yet."),
@@ -888,7 +890,7 @@
   }
   function examLine(board) {
     const l = board.launch;
-    return h("p", {class: "hint exam-line"}, examName(board) + " · totals rounded down to the Ladder step · " + GATE_WORDS);
+    return h("p", {class: "hint exam-line"}, examName(board) + " · totals " + totalsRounding(board) + " · " + GATE_WORDS);
   }
 
   function boardPage(board, ctx) {

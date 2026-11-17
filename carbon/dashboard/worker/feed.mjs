@@ -778,7 +778,7 @@ async function projectLaunch(document, pinned) {
     released_through_block: null,
     generated_at: document.generated_at,
     values: {precision: 10 ** -digits, digits, display_threshold: null, registered: "launch board: the Ladder's own rounding"},
-    section_meta: {total: {display: "Total score", unit: "0 to 1, rounded down to the Ladder step", sense: "higher_is_better"}},
+    section_meta: {total: {display: "Total score", unit: v6 ? "0 to 1, to 3 decimals" : "0 to 1, rounded down to the Ladder step", sense: "higher_is_better"}},
     release: null,
     as_of_block: null,
     king: null,
