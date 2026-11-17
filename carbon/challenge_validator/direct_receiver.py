@@ -3114,6 +3114,16 @@ def _exam_cap_startup(ledger, discovery, restore):
     exam_cap.ExamCap(ledger, grading_deadline_seconds=deadline)
 
 
+def register_stack_dump():
+    """Ops diagnosis (Live ops, 17 Nov 2026: two grades parked for 90 min and their stacks were lost at the restart; no
+    py-spy, ptrace_scope 1, no root): ``kill -USR1 <door pid>`` writes every thread's stack to stderr (the journal).
+    Code locations only, never a value; the door goes on. A platform without SIGUSR1: nothing."""
+    import faulthandler
+
+    if hasattr(signal, "SIGUSR1"):
+        faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="python -m carbon.challenge_validator.direct_receiver"
@@ -3304,6 +3314,7 @@ def main(argv=None):
     stop = threading.Event()
     for number in (signal.SIGTERM, signal.SIGINT):
         signal.signal(number, lambda *_: stop.set())
+    register_stack_dump()
     try:
         result = serve(
             args.config,
