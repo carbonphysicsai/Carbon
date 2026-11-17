@@ -822,3 +822,51 @@ def test_custody_reads_the_lane_fields_exactly_as_retention_does():
     # and the fields custody binds for the live case are exactly the ones present
     live = {**cpu_ops, "gpu_lane_ops": ["dot_general", "fft"]}
     assert custody._graph_worker_lane_fields(live) == set(live)
+
+
+# ---- OWNER (17 Nov 2026): one GPU build per task, no per-task repeat check -----------------------------------------
+
+
+def test_the_served_task_no_longer_runs_the_gpu_repeat_check():
+    """The served path calls `_graph_gpu_repeats` nowhere: one GPU build per task on the lane."""
+    import inspect
+
+    source = inspect.getsource(DirectDevelopmentTasksV3._run_queued_task)
+    assert "_graph_gpu_repeats(" not in source
+    assert "_gpu_build_failure_is_carbons(exc)" in source
+
+
+def _miner_failure(observation, code="RUNTIME"):
+    from carbon.development_session.research_carrier import (
+        MINER_FAILURE_SCHEMA,
+        MinerProgramFailure,
+    )
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    return MinerProgramFailure(
+        {
+            "schema": MINER_FAILURE_SCHEMA,
+            "failure_code": WorkerCode[code].value,
+            "observation": observation,
+        }
+    )
+
+
+def test_a_gpu_build_failure_is_carbons_unless_it_is_device_independent():
+    from carbon.development_session.build_refusal import CandidateBuildRefused
+    from carbon.development_session.research_carrier import (
+        CANDIDATE_MEMORY_LIMIT,
+        CANDIDATE_WALL_LIMIT,
+    )
+    from carbon.development_session.research_tasks import _gpu_build_failure_is_carbons
+
+    # the GPU may have caused these: Carbon's (FAILED_INFRA, never charged)
+    assert _gpu_build_failure_is_carbons(RuntimeError("xla compile failed"))
+    assert _gpu_build_failure_is_carbons(_miner_failure("CONTAINER_EXITED_NONZERO"))
+    assert _gpu_build_failure_is_carbons(ValueError("non-finite"))
+    # device-independent outcomes stay the candidate's
+    assert not _gpu_build_failure_is_carbons(CandidateBuildRefused("x", None))
+    assert not _gpu_build_failure_is_carbons(
+        _miner_failure(CANDIDATE_WALL_LIMIT, "DEADLINE")
+    )
+    assert not _gpu_build_failure_is_carbons(_miner_failure(CANDIDATE_MEMORY_LIMIT))

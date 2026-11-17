@@ -264,6 +264,30 @@ def _same_principal(old, new):
     )
 
 
+def _gpu_build_failure_is_carbons(exc) -> bool:
+    """Whether a failed GPU-lane graph build is Carbon's (FAILED_INFRA, never charged) rather than the candidate's.
+
+    With no per-task GPU repeat check (OWNER, 17 Nov 2026: one GPU build per task) nothing rebuilds a GPU failure on the
+    CPU, so a failure the GPU may have caused is Carbon's. Only the outcomes that do not depend on the device stay the
+    candidate's: a refused build (`CandidateBuildRefused`: the graph's own validation) and the carrier's OBSERVED
+    candidate wall or memory stop (`MinerProgramFailure` with that observation; the remote lane's own wall rules decide
+    whether a wall stop counts). Campaign limits, cancellation and graph decisions are decided before this is asked.
+    """
+    from .bundle_construction_worker import CandidateBuildRefused
+    from .research_carrier import (
+        CANDIDATE_MEMORY_LIMIT,
+        CANDIDATE_WALL_LIMIT,
+        MinerProgramFailure,
+    )
+
+    if isinstance(exc, CandidateBuildRefused):
+        return False
+    if isinstance(exc, MinerProgramFailure):
+        observation = getattr(exc, "result", {}).get("observation")
+        return observation not in (CANDIDATE_WALL_LIMIT, CANDIDATE_MEMORY_LIMIT)
+    return True
+
+
 class DirectDevelopmentTasksV3:
     """Durable public-development direct tasks beside the historical v2 store.
 
@@ -2174,6 +2198,7 @@ class DirectDevelopmentTasksV3:
                 )
             view = self._transition(view, DirectTaskStateV3.RUNNING)
         provisioning = False
+        graph_gpu = None
         try:
             total_deadline_started = None
             overlay_prep = None
@@ -2265,17 +2290,9 @@ class DirectDevelopmentTasksV3:
                         )
                         if graph_cpu_ops is not None:
                             graph_note = OPS_NOTE
-                    if graph_gpu is not None:
-                        repeats, graph_note = self._graph_gpu_repeats(
-                            task_id,
-                            request,
-                            recipe,
-                            binding,
-                            source_envelope,
-                            graph_gpu,
-                        )
-                        if not repeats:
-                            graph_gpu, graph_lane = None, {"image": image}
+                    # OWNER (17 Nov 2026, to TE3): one GPU build per task on the lane - no per-task repeat check
+                    # (`_graph_gpu_repeats` is no longer called). A GPU build that errors is Carbon's (FAILED_INFRA,
+                    # `_gpu_build_failure_is_carbons`), never the candidate's.
                     result = reconstruct_and_infer_graph_public(
                         self.ledger,
                         owner=self.owner,
@@ -2603,7 +2620,12 @@ class DirectDevelopmentTasksV3:
                         if graph_decision is not None
                         else (
                             DirectTaskStateV3.FAILED_INFRA
-                            if provisioning or "FAILED_INFRA" in child_states
+                            if provisioning
+                            or "FAILED_INFRA" in child_states
+                            or (
+                                graph_gpu is not None
+                                and _gpu_build_failure_is_carbons(exc)
+                            )
                             else (
                                 DirectTaskStateV3.REFUSED
                                 if isinstance(

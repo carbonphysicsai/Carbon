@@ -35,7 +35,18 @@ A100 built nothing.
 Code-only. It needs no door migration and no worker image: `graph_gpu_lane.py` is not a worker-image build input, and
 no door key changes. It is a grading path (`direct_receiver.GRADING_PATHS`), so the deploy declares the exam change.
 
-## Open for the owner / Lead
+## Addendum: the per-task GPU repeat check is dropped too (owner, in the TE3 session)
 
-The per-task GPU repeat check (rule 1) is kept: the order names the per-op gate. Dropping it too would make each GPU
-task one GPU build instead of three. That needs the owner's word.
+The owner typed this in the TE3 session on 2026-11-17: "TE3: also drop the per-task GPU repeat check on the A100 lane (one
+GPU build per task); same head path."
+
+- `research_tasks._run_queued_task` no longer calls `_graph_gpu_repeats`. A graph on the lane is built ONCE, on the GPU.
+  Before, it took two more GPU rebuilds, which had to be bit-identical or the graph was rebuilt on the CPU
+  (GPU_REBUILD_RULINGS rule 1, superseded here for the GPU build lane).
+- With no CPU rebuild of a GPU failure, a failed GPU-lane graph build is Carbon's (FAILED_INFRA, never charged)
+  (`_gpu_build_failure_is_carbons`). The exceptions are the outcomes that do not depend on the device: the graph's own
+  build refusal (`CandidateBuildRefused`), and the carrier's observed candidate wall or memory stop. The remote lane's
+  L12624 rules still decide whether a wall counts. Campaign limits, cancellation and graph decisions are unchanged.
+- `_graph_gpu_repeats` and the probe identities (`~gpu1`/`~gpu2`) stay in the code. They are no longer called, and stay
+  only so probes left by an earlier run are still reconciled. Retained evidence notes are still read.
+- Still code-only: no door key and no worker-image input changes.
