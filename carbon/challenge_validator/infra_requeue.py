@@ -365,6 +365,13 @@ def _requeue_refusal(root, db, door, task, *, auto=False):
     evaluation = _evaluation_refusal(paths)
     if evaluation is not None:
         return evaluation
+    return _door_refusal(root, db, door, task)
+
+
+def _door_refusal(root, db, door, task):
+    """None when the door may grade the task again (never released, no counted / reserved / graded row, its row in
+    its owner's store on the served contract and pack, no same-recipe rerun or delivered grade), else the code.
+    """
     if _released(root, task):
         # its charged-but-undelivered slot was given back by `release`: never re-graded to replace the record
         return "released_not_regraded"
@@ -1175,6 +1182,122 @@ def return_slots(
     return out
 
 
+#: ``restore-platform`` (Lead 17 Nov, 116 after the img21 migration): every grade met ``leg_minimum_platform_mismatch``
+#: (the pack's leg minimums bound to the pre-migration judge image, `physical_dual_pack.leg_minimum_platform`): a Carbon
+#: gap, never the candidate's, nothing charged. Once the gap is closed (the pack, or a ruled image binding), such a task
+#: is handed back ONCE more whatever attempt it reached (the one-automatic-retry and ``requeue`` limits do not apply to
+#: a version-wide gap they could never fix), with every ``requeue`` door check, under a recorded ruling id.
+PLATFORM_CAUSE = "leg_minimum_platform_mismatch"
+RESTORES = "restores.jsonl"
+#: The last attempt a restore may hand back (a bound on the kept-file scan, not a policy number).
+_RESTORE_LAST_ATTEMPT = 8
+
+
+def _restore_attempt(root, task):
+    """The attempt the task's current marker records (1 + the attempts already kept), or None."""
+    for attempt in range(1, _RESTORE_LAST_ATTEMPT + 1):
+        kept = _paths(root, task, attempt)["kept_marker"]
+        if kept.is_symlink():
+            return None
+        if not kept.exists():
+            return attempt
+    return None
+
+
+def _restore_paths(root, task, attempt):
+    paths = _paths(root, task, attempt)
+    paths["kept_evaluation"] = (
+        paths["kept_marker"].parent / f"{task}.attempt-{attempt}.evaluation"
+    )
+    return paths
+
+
+def _platform_cause(paths):
+    """Whether the current FAILED attempt failed on the leg-minimum platform binding (its marker code, else its private
+    failure evidence)."""
+    _state, code = _marker_body(paths["marker"])
+    if type(code) is str and PLATFORM_CAUSE in code:
+        return True
+    try:
+        text = paths["failure"].read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return PLATFORM_CAUSE in text
+
+
+def _restore_refusal(root, db, door, task):
+    """``(attempt, None)`` when ``restore_platform`` accepts the task, else ``(None, code)`` (read-only)."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return None, "not_a_task_id"
+    if _log_lines(root, RESTORES, task):
+        return None, "already_restored"
+    attempt = _restore_attempt(root, task)
+    if attempt is None:
+        return None, "attempts_unreadable_or_exhausted"
+    paths = _restore_paths(root, task, attempt)
+    state = _marker(paths["marker"])
+    if state is None:
+        return None, "no_marker"
+    if state != "FAILED":
+        return None, "marker_" + state.lower()
+    if not _platform_cause(paths):
+        return None, "cause_not_platform"
+    code = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
+    return (attempt, None) if code is None else (None, code)
+
+
+def restore_platform(root, tasks, *, ruling, apply=False, clock=time.time_ns):
+    """``{"restored": [...], "refused": {task: code}}``: each task that failed on ``leg_minimum_platform_mismatch``
+    is handed back to the grader once (see ``PLATFORM_CAUSE``): its next grade spends nothing of the miner's round or
+    day and stays on its original arrival epoch (`ExamCap.mark_requeued`, the same reuse of its own row as
+    ``requeue``). Dry run unless ``apply``. Run it only after the gap is closed on this door, else it fails again.
+    """
+    out = {
+        "schema": SCHEMA,
+        "action": "restore-platform",
+        "apply": apply,
+        "ruling": ruling,
+        "restored": [],
+        "refused": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    ledger, cap = _ledger(root)
+    door = _Door(root)
+    for task in tasks:
+        with ledger._db() as db:
+            attempt, code = _restore_refusal(root, db, door, task)
+        if code is not None:
+            out["refused"][task] = code
+            continue
+        if apply:
+            paths = _restore_paths(root, task, attempt)
+            paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
+            # the one bypass of the round/day limits is on record before the grader can see the task
+            cap.mark_requeued(task, attempt=attempt + 1)
+            if paths["failure"].exists():
+                os.replace(paths["failure"], paths["kept_failure"])
+            kept_evaluation = _keep_evaluation(paths)
+            # the commit point: with no marker, the grader's next tick takes the task
+            os.replace(paths["marker"], paths["kept_marker"])
+            line = {
+                "task": task,
+                "attempt": attempt + 1,
+                "kind": "restore",
+                "cause": PLATFORM_CAUSE,
+                "ruling": ruling,
+                "evaluation_kept": kept_evaluation,
+                "at_ns": int(clock()),
+            }
+            for name in ("requeues.jsonl", RESTORES):
+                with open(
+                    paths["kept_marker"].parent / name, "a", encoding="utf-8"
+                ) as log:
+                    log.write(json.dumps(line, sort_keys=True) + "\n")
+        out["restored"].append(task)
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -1219,6 +1342,17 @@ def main(argv=None):
         "--ruling", required=True, help="the Validator ruling id (a closed id)"
     )
     five.add_argument("--apply", action="store_true")
+    six = sub.add_parser("restore-platform")
+    six.add_argument("--root", type=Path, required=True)
+    six.add_argument(
+        "--ids",
+        type=Path,
+        help="the task ids; omitted: a dry run over every FAILED marker",
+    )
+    six.add_argument(
+        "--ruling", required=True, help="the receipt / ruling id (a closed id)"
+    )
+    six.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -1254,6 +1388,23 @@ def main(argv=None):
             window_end=args.window_end,
             apply=args.apply,
         )
+    elif args.cmd == "restore-platform":
+        if args.ids is None:
+            if args.apply:
+                parser.error("restore-platform --apply needs --ids")
+            markers = args.root / "auto-grade" / "markers"
+            tasks = sorted(
+                path.stem
+                for path in markers.glob("rtsk_*.json")
+                if _TASK.fullmatch(path.stem) and _marker(path) == "FAILED"
+            )
+        else:
+            tasks = [
+                line.strip()
+                for line in args.ids.read_text().splitlines()
+                if line.strip()
+            ]
+        out = restore_platform(args.root, tasks, ruling=args.ruling, apply=args.apply)
     elif args.cmd == "reclass":
         out = reclass(args.root, args.id, ruling=args.ruling, apply=args.apply)
     else:
