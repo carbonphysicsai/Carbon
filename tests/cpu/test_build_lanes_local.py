@@ -109,7 +109,8 @@ def test_a_third_build_waits_for_a_local_lane_while_grades_keep_the_remote_lanes
 def test_grades_never_take_a_local_lane_while_the_door_has_remote_grade_lanes(host):
     """Live 116 (7aeaa273, 17 Nov 22:2xZ): with every remote lane grading, grades fell back to the local lanes and held
     them for minutes, so the A100's builds found no local lane to start or re-take (A100 idle, 69 builds queued). Now a
-    grade waits for a REMOTE lane, without a round slot, and a build takes a local lane at once."""
+    grade waits for a REMOTE lane, without a round slot, and a build takes a local lane at once.
+    """
     work, _ = _door(host)
     grades = [_Round(work, "grade") for _ in range(3)]
     entered = [g for g in grades if g.entered.wait(1)]

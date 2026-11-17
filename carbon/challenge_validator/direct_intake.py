@@ -1943,7 +1943,8 @@ class _WorkLock:
     def _grades_remote_only(self):
         """Whether this door's grade rounds take its REMOTE lanes only: `builds_local` with at least one usable remote
         lane (live 116, 17 Nov: grades on the local lanes starved the A100's builds of the lane each needs to start and
-        re-take). A door with no remote grade lane grades on its local lanes, as before."""
+        re-take). A door with no remote grade lane grades on its local lanes, as before.
+        """
         return self.builds_local and any(
             type(self._lanes[index]) is not str for index in self._usable
         )
@@ -1954,10 +1955,13 @@ class _WorkLock:
         (`_grades_remote_only`) never sits on a round slot while no remote lane is free, as a build never does while no
         local lane is.
         """
-        if kind != "advance" and self._grades_remote_only():
-            if not self._lane_free(local=False):
-                time.sleep(self._poll)
-                return False
+        if (
+            kind != "advance"
+            and self._grades_remote_only()
+            and not self._lane_free(local=False)
+        ):
+            time.sleep(self._poll)
+            return False
         if self._build_slots is not None and kind == "advance":
             if not self._lane_free(local=True):
                 # a build only ever takes a LOCAL lane: it never sits on a round slot a grade could use on a free
