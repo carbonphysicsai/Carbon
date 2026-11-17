@@ -174,6 +174,11 @@ def _evaluation_refusal(paths):
 #: Where an interrupted attempt's private evaluation files go (`set_aside_interrupted`), and its log.
 INTERRUPTED = "interrupted.jsonl"
 _INTERRUPTED_LIMIT = 64
+#: Seconds a directory must predate this grader process to be an earlier process's (an interrupted attempt). The kernel
+#: stamps files from a coarse clock that can lag `time.time()` by milliseconds, so a file this process wrote just after
+#: it started may read as a hair older than the start (Runner g8730, 17 Nov). A real interruption predates the restart
+#: by at least the restart itself.
+_OWN_PROCESS_MARGIN = 2.0
 
 
 def set_aside_interrupted(root, task, *, started, clock=time.time_ns):
@@ -204,7 +209,7 @@ def set_aside_interrupted(root, task, *, started, clock=time.time_ns):
         [evaluation.stat().st_mtime]
         + [path.stat().st_mtime for path in evaluation.rglob("*")]
     )
-    if newest >= started:
+    if newest >= started - _OWN_PROCESS_MARGIN:
         return None
     kept = paths["kept_marker"].parent
     kept.mkdir(mode=0o700, parents=True, exist_ok=True)

@@ -187,6 +187,17 @@ def test_a_directory_this_grader_process_wrote_is_left_alone(tmp_path):
         infra_requeue.set_aside_interrupted(tmp_path / "x", TASK, started=started)
         is None
     )
+    # the kernel's coarse file clock can stamp a file this process wrote a hair BEFORE `time.time()` read the start
+    # (Runner g8730): still this process's
+    lagging = _interrupted(tmp_path / "z", age=600)
+    late = lagging / "late.json"
+    late.write_text("{}")
+    os.utime(late, (started - 0.01, started - 0.01))
+    os.utime(lagging, (started - 0.01, started - 0.01))
+    assert (
+        infra_requeue.set_aside_interrupted(tmp_path / "z", TASK, started=started)
+        is None
+    )
     # no start known: never moved
     _interrupted(tmp_path / "y", age=600)
     assert (
