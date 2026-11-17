@@ -367,8 +367,9 @@ def before_give_back(callback):
 def given_back():
     """(a) (Lead 17 Nov 2026): around a GRADE round's commit-turn wait (`grade_sequencer._Task.turn`) the round gives its
     lane (local OR remote) and round slot back, so the door grades on it meanwhile (a finished grade used to sit on its
-    lane behind every earlier grade's long run), and holds a lane again before the wait returns (`retake`: any lane
-    this door may take; never on without one, V2 B1). The grade's own work on its lane has ended before this: its
+    lane behind every earlier grade's long run), and holds a lane again before the wait returns (`retake`: the same
+    lane, else one of the same machine, never another class, so a crown repeat after the turn runs where the grade
+    ran; never on without one, V2 B1). The grade's own work on its lane has ended before this: its
     session container is removed first (the caller), and each `before_give_back` callback (the grade sampler's stop
     sample) runs first. Nothing changes outside a round that offers a releaser able to take any lane, or when a
     callback fails (the round then keeps its lane: never a lane given back mid-observation).

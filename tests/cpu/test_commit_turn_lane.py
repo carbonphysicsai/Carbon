@@ -194,21 +194,40 @@ def test_a_grade_rounds_lane_serves_another_round_while_it_waits(tmp_path):
     assert lanes["busy"].index != lanes["first"].index
 
 
-def test_a_grade_retakes_any_lane_a_remote_one_first(tmp_path):
-    spec = remote_lane.RemoteSpec("ssh://carbon-grade@box.example", "0-3", "/srv/gb")
-    work = _door(tmp_path, ("0-3", "4-7", spec))
-    fd, _fds, lane = work._take_local_lane(any_lane=True)
-    try:
-        assert lane.docker_host == spec.docker_host and lane.index == 2
-    finally:
-        work._unlock(fd)
-    fd, _fds, lane = work._take_local_lane()
-    try:
-        assert (
-            lane.docker_host is None
-        )  # a build round re-takes a LOCAL lane only, as before
-    finally:
-        work._unlock(fd)
+def test_a_grade_retakes_its_own_lane_else_one_of_the_same_machine_never_another_class(
+    tmp_path,
+):
+    """V2 (17 Nov 2026): a crown repeat after the commit turn runs where the grade ran: the lane given back first, else
+    another lane of the same machine; never a local lane for a box's grade, nor a box lane for a local one.
+    """
+    box = "ssh://carbon-grade@box.example"
+    a = remote_lane.RemoteSpec(box, "0-3", "/srv/gb")
+    b = remote_lane.RemoteSpec(box, "4-7", "/srv/gb")
+    other = remote_lane.RemoteSpec("ssh://carbon-grade@other.example", "0-3", "/srv/gb")
+    work = _door(tmp_path, ("0-3", "4-7", a, b, other))
+
+    def lane(index, spec):
+        if type(spec) is str:
+            return grade_lanes.Lane(index, spec, str(work._dir))
+        return grade_lanes.Lane(
+            index, spec.cpuset, str(work._dir), spec.docker_host, spec.stage_root
+        )
+
+    def take(like):
+        held = work._take_local_lane(like=like)
+        return held
+
+    first = take(lane(3, b))
+    assert first[2].index == 3  # the lane it gave back
+    second = take(lane(3, b))
+    assert second[2].index == 2 and second[2].docker_host == box  # same box
+    assert take(lane(3, b)) is None  # its box is full: never the other box, never local
+    local = take(lane(1, "4-7"))
+    assert local[2].index == 1 and local[2].docker_host is None
+    build = work._take_local_lane()  # a build round: a LOCAL lane only, as before
+    assert build[2].index == 0 and build[2].docker_host is None
+    for held in (first, second, local, build):
+        work._unlock(held[0])
 
 
 def test_a_waiting_grade_retaker_goes_before_new_grade_rounds(tmp_path):

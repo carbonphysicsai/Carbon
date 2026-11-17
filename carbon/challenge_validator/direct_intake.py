@@ -1972,22 +1972,27 @@ class _WorkLock:
         self._build_slots = threading.BoundedSemaphore(len(local))
         return len(local) + max(0, extra_rounds)
 
-    def _take_local_lane(self, *, any_lane=False):
-        """The first free LOCAL lane this door may use (``any_lane``: its REMOTE lanes first, then its local ones, as a
-        grade round takes them), as a round's own ``(fd, fds, lane)``, or None. Called by a round re-taking a lane
+    def _take_local_lane(self, *, like=None):
+        """The first free LOCAL lane this door may use, as a round's own ``(fd, fds, lane)``, or None. ``like`` (a grade
+        round's lane given back for its commit turn): that same lane first, else another lane of the SAME machine only
+        (this host's local lanes, or the same box's), never another class (V2 17 Nov 2026: a crown repeat after the
+        commit turn runs where the grade ran). Called by a round re-taking a lane
         (`_Taking.retake`), WITHOUT ``_lock`` (a new round holds that while it waits among doors;
         this touches none of the fields it guards, and the lane locks themselves decide): it continues in-flight work,
         so it neither queues in the host's waiting list nor stands back; a lane other than 0 still needs lane 0 to share
         (`_lane_zero_shares`). A failure after a lock is taken lets that lock go."""
         from carbon.reconstruction import grade_lanes
 
+        def machine(spec):
+            return None if type(spec) is str else spec.docker_host
+
         order = list(enumerate(self._lanes))
-        if any_lane:
-            order = [pair for pair in order if type(pair[1]) is not str] + [
-                pair for pair in order if type(pair[1]) is str
-            ]
+        wanted = None if like is None else like.docker_host
+        if like is not None:
+            # the lane given back first, then the rest of its machine, in index order
+            order = sorted(order, key=lambda pair: pair[0] != like.index)
         for index, spec in order:
-            if index not in self._usable or (type(spec) is not str and not any_lane):
+            if index not in self._usable or machine(spec) != wanted:
                 continue
             fd = self._take(grade_lanes.lane_lock_name(index))
             if fd is None:
@@ -2081,8 +2086,10 @@ class _Taking:
         #: Option A: the `grade_lanes.offer_releaser` token offering this round to its ops, and whether its lane is out (`release`).
         self._releasing = None
         self._released = False
-        #: (a): a GRADE round re-takes ANY lane after its commit-turn wait (`grade_lanes.given_back`); a build round
-        #: re-takes a LOCAL lane only (Option A).
+        #: The lane this round gave back (`release`): a GRADE round re-takes it, or one of its machine (`retake`).
+        self._gave_back = None
+        #: (a): a GRADE round re-takes the lane it gave back for its commit-turn wait, or another of the same machine
+        #: (`grade_lanes.given_back`, V2 17 Nov 2026); a build round re-takes a LOCAL lane only (Option A).
         self.any_lane = kind == "grade"
 
     def _place(self):
@@ -2296,6 +2303,7 @@ class _Taking:
         if self._released or not self._parallel:
             return
         held, self._held = self._held, (None, [], None)
+        self._gave_back = held[2]
         try:
             work._release_round(*held)
         finally:
@@ -2346,8 +2354,8 @@ class _Taking:
                 while True:
                     try:
                         held = (
-                            work._take_local_lane(any_lane=True)
-                            if self.any_lane
+                            work._take_local_lane(like=self._gave_back)
+                            if self.any_lane and self._gave_back is not None
                             else work._take_local_lane()
                         )
                     except Exception as failure:  # noqa: BLE001
