@@ -23,7 +23,8 @@ CLASS, ``slots``, ``memory``) names the class. The boxes are the box files ``gpu
 ``<HOST_ROOT>/remote-gpu-build-boxes.d/<name>.json`` (`BOXES_DIR`), read again at EVERY op (no restart). A box is
 eligible only when (`read_box`): the directory is a 0700 directory of the door user; the file is a regular 0600 file
 of the door user (never followed through a link); it is the box schema, its device kind is the class kind, its
-``slot_cpusets`` are exactly 4 x 4 cores (`BOX_SLOT_CPUSETS`), its ``host_key`` parses (an ed25519 known_hosts line for
+``slot_cpusets`` are exactly 7 x 4 cores (`BOX_SLOT_CPUSETS`; a box set up before 17 Nov keeps its 4 x 4,
+`LEGACY_BOX_SLOT_CPUSETS`, until `gpu_box_up.py` runs on it again), its ``host_key`` parses (an ed25519 known_hosts line for
 its address) and its device record is well formed with its digest; and it is not DOWN (`mark_down`). A box file renamed
 ``<name>.json.refused`` (`refuse`) or removed is not read: removing it DRAINS the box (no new op starts there; a running
 op keeps its binding to the end). The receiver binds the CLASS (`GpuClass`: ``{"kind", "class": true}``), never a box.
@@ -100,8 +101,12 @@ BOX_DIR = "remote-gpu-build/box-{name}"
 #: Under HOST_ROOT: the box files `gpu_box_up.py door` writes (``--boxes-dir``), read at every op.
 BOXES_DIR = "remote-gpu-build-boxes.d"
 BOX_SCHEMA = "carbon.remote-gpu-build-box.v1"
-#: Every box has the same shape (`gpu_box_up.SLOT_CPUSETS`): 4 slots of 4 cores.
-BOX_SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15")
+#: Every box has the same shape (`gpu_box_up.SLOT_CPUSETS`): 7 slots of 4 cores (owner, 17 Nov 2026: "More build
+#: spots per A100"; the Lambda A100 40GB box has 30 vCPUs, so 28 for the slots and 2 for the host; bench on the box,
+#: commit 423c2bce: bit-identical at N=1/2/4/7, 2.5x throughput at 7, 524 MiB per build).
+BOX_SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15", "16-19", "20-23", "24-27")
+#: The shape of a box set up before 17 Nov 2026 (4 slots): still read, its lane offers at most 4 slots.
+LEGACY_BOX_SLOT_CPUSETS = BOX_SLOT_CPUSETS[:4]
 #: A refused box file's suffix (`refuse`): the loader reads ``*.json`` only, so it drops out of the pool.
 REFUSED_SUFFIX = ".refused"
 #: In a box's directory: down since (`mark_down`), proven (`mark_proven`), its first build's claim, a copy of its file.
@@ -644,8 +649,10 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         raise ValueError("remote_gpu_build_box_schema")
     if document.get("name") != name:
         raise ValueError("remote_gpu_build_box_name")
-    if document.get("slot_cpusets") != list(BOX_SLOT_CPUSETS):
+    cpusets = document.get("slot_cpusets")
+    if cpusets not in (list(BOX_SLOT_CPUSETS), list(LEGACY_BOX_SLOT_CPUSETS)):
         raise ValueError("remote_gpu_build_box_shape")
+    cpusets = tuple(cpusets)
     docker_host = document.get("docker_host")
     remote_lane.parse_docker_host(docker_host)
     stage_root = remote_lane._checked_root(document.get("stage_root"))
@@ -667,7 +674,7 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         0,
         docker_host,
         stage_root,
-        BOX_SLOT_CPUSETS,
+        cpusets,
         name,
         host_key,
         tuple(images),
@@ -675,7 +682,14 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         digest(text.encode("utf-8")),
         text,
     )
-    return DoorLane(spec, slots, device, str(root / BOX_DIR.format(name=name)), memory)
+    # a legacy 4-slot box offers at most its own 4 slots, whatever the values row asks
+    return DoorLane(
+        spec,
+        min(slots, len(cpusets)),
+        device,
+        str(root / BOX_DIR.format(name=name)),
+        memory,
+    )
 
 
 def _box_device(document, device_digest):

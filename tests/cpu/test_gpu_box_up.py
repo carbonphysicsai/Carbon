@@ -672,17 +672,18 @@ def test_too_few_cpus_refuses(tmp_path):
 
 def test_too_little_memory_refuses(tmp_path):
     cfg = _admin_config(tmp_path)
-    for mem in (64 * 1024 * 1024, 72 * 1024 * 1024 - 1):
+    for mem in (64 * 1024 * 1024, 120 * 1024 * 1024 - 1):
         _admin_refused(_admin(cfg, FakeBox(cfg, mem_kib=mem)), "slot_shape_memory")
 
 
 def test_exactly_the_minimum_shape_passes(tmp_path):
     cfg = _admin_config(tmp_path)
-    box = FakeBox(cfg, nproc=16, online="0-15", mem_kib=72 * 1024 * 1024)
+    # 7 slots x 4 vCPUs x 16 GiB + 8 GiB for the host (owner, 17 Nov 2026)
+    box = FakeBox(cfg, nproc=28, online="0-27", mem_kib=120 * 1024 * 1024)
     assert _admin(cfg, box)["admin"] == "PASS"
 
 
-def test_the_shape_counts_all_cpus_and_needs_0_to_15_online(tmp_path):
+def test_the_shape_counts_all_cpus_and_needs_0_to_27_online(tmp_path):
     assert box_up.CMD_SHAPE.startswith("nproc --all;")
     assert "/sys/devices/system/cpu/online" in box_up.CMD_SHAPE
     cfg = _admin_config(tmp_path)
@@ -894,7 +895,15 @@ def test_a_passing_box_gets_exactly_the_box_file(tmp_path):
     assert document["name"] == "a100-1"
     assert document["docker_host"] == f"ssh://carbon-grade@{IP}"
     assert document["stage_root"] == "/home/carbon"
-    assert document["slot_cpusets"] == ["0-3", "4-7", "8-11", "12-15"]
+    assert document["slot_cpusets"] == [
+        "0-3",
+        "4-7",
+        "8-11",
+        "12-15",
+        "16-19",
+        "20-23",
+        "24-27",
+    ]
     assert document["device"] == device
     canonical = json.dumps(device, sort_keys=True, separators=(",", ":")).encode()
     assert document["device_digest"] == _sha(canonical)

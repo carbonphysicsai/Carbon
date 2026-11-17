@@ -11,8 +11,8 @@ typed reason, each idempotent:
 THEIR OWN key. It changes the box and writes nothing on the door side (no box file, no door records needed):
 
   host_key     the box's ed25519 host key equals ``--host-key-fingerprint``; every later ssh pins it
-  shape        >= 16 CPUs (``nproc --all``) with CPUs 0-15 online, and >= 4 x 16 GiB + 8 GiB MemTotal (every box
-               has the same shape: 4 slots x 4 cores x 16 GiB, cpusets 0-3, 4-7, 8-11, 12-15)
+  shape        >= 28 CPUs (``nproc --all``) with CPUs 0-27 online, and >= 7 x 16 GiB + 8 GiB MemTotal (every box
+               has the same shape: 7 slots x 4 cores x 16 GiB, cpusets 0-3 ... 24-27; the Lambda A100 40GB has 30)
   driver       exactly one GPU named ``--device-kind``, driver >= ``--driver-floor`` (an older one is upgraded from the
                provider's apt repo and the run stops: ``driver_upgrade_needs_reboot``)
   docker       Docker Engine ``--docker-version`` and containerd ``--containerd-version`` from Docker's apt repo, the
@@ -140,11 +140,12 @@ ACCEPTED_PROVIDERS = ("lambda",)
 #: (carbon/reconstruction/remote_gpu_build.py:469) and `remote_gpu_build.op` yields None - the door's own daemon - for
 #: anything not eligible (:617). These fields are therefore not compared with the class record.
 CPU_FIELDS = frozenset({"cpu_state_digest", "parity_vs_cpu", "cpu_error"})
-#: Every box has the same shape: 4 slots x 4 cores, 16 GiB RAM per slot, plus headroom for the host. "Cores" are
+#: Every box has the same shape: 7 slots x 4 cores (owner, 17 Nov 2026), 16 GiB RAM per slot, plus headroom for the
+#: host (the Lambda A100 40GB: 30 vCPUs, so 2 left for it). "Cores" are
 #: LOGICAL CPUs (cpuset ids as `nproc --all` and /sys/devices/system/cpu/online count them; on a cloud VM, vCPUs,
 #: which may be hyperthreads of fewer physical cores).
-SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15")
-MIN_CPUS = 16
+SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15", "16-19", "20-23", "24-27")
+MIN_CPUS = 28
 MIN_MEM_KIB = (len(SLOT_CPUSETS) * 16 + 8) * 1024 * 1024
 WORKER_UID = "65532"
 WORKER_USER = f"{WORKER_UID}:{WORKER_UID}"

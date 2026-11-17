@@ -226,10 +226,13 @@ def test_the_checked_in_values_file_names_only_motor_1_8_on_the_a100():
     assert set(document["rows"]) == {"electric-motor-magnetics 1.8"}
     assert remote_gpu_build.values_row("electric-motor-magnetics", "1.8") == {
         "device_kind": "NVIDIA A100-SXM4-40GB",
-        "slots": 4,
+        "slots": 7,
         "memory": "shared",
     }
     assert remote_gpu_build.values_row("electric-motor-magnetics", "1.4") is None
+    # owner, 17 Nov 2026: 7 slots of 4 vCPUs on the 30-vCPU Lambda A100 box
+    assert len(remote_gpu_build.BOX_SLOT_CPUSETS) == 7
+    assert remote_gpu_build.BOX_SLOT_CPUSETS[-1] == "24-27"
 
 
 def test_a_well_formed_install_is_a_door_lane(host):
@@ -2778,3 +2781,27 @@ def test_the_watchdog_watches_a_box_container_through_the_box_wrapper(
     )
     assert watchdog.main(["carbon-d4-" + "a" * 24, "sha256:" + "b" * 64, "1.0"]) == 0
     assert removed == [str(Path(binding.lane.lane_dir) / "docker")]
+
+
+def test_a_box_set_up_before_the_seven_slots_is_still_read_with_its_own_four(host):
+    """A box file written by `gpu_box_up.py` before 17 Nov (4 x 4-core cpusets) stays in the pool until the script runs
+    on it again: its lane offers its own 4 slots, never the values row's 7 (no build on cores the box never set up)."""
+    path = write_box(
+        host,
+        {
+            **box_document(),
+            "slot_cpusets": list(remote_gpu_build.LEGACY_BOX_SLOT_CPUSETS),
+        },
+        name=BOX,
+    )
+    lane = remote_gpu_build.read_box(
+        path, kind=KIND, slots=7, memory="shared", root=host
+    )
+    assert lane.spec.slot_cpusets == remote_gpu_build.LEGACY_BOX_SLOT_CPUSETS
+    assert lane.slots == 4
+    current = write_box(host, box_document(), name=BOX)
+    lane = remote_gpu_build.read_box(
+        current, kind=KIND, slots=7, memory="shared", root=host
+    )
+    assert lane.spec.slot_cpusets == remote_gpu_build.BOX_SLOT_CPUSETS
+    assert lane.slots == 7
