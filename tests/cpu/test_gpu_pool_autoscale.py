@@ -421,3 +421,42 @@ def test_a_dry_tick_changes_nothing(tmp_path, monkeypatch, capsys):
     assert (Path(config.state_dir) / "state.json").read_text() == before
     assert (Path(config.state_dir) / "log.jsonl").read_text() == log_before
     assert printed[-1]["dry"] and printed[-1]["waiting_to_build"] == 99
+
+
+def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
+    tmp_path, monkeypatch
+):
+    """Owner C8 (no overpay): a long queue with a box up and all its slots free means the door, not the box count,
+    holds the queue (the rs116c lane starvation, 17 Nov 2026 22:38Z): no rent. After that box is released idle, the
+    next rent waits one more idle period of backlog."""
+    config = _config(tmp_path)
+    client = _Client([A100])
+    idle = {"carbon-a100": {"file": True, "busy": False, "last": T0, "admitted": 0.0}}
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (80, idle),
+        now=T0,
+    )
+    monkeypatch.setattr(
+        scale, "_door", lambda c, argv, **k: type("R", (), {"returncode": 0})()
+    )
+    _ticks(config, client, 80, boxes=idle, start=T0 + 300, count=12)
+    assert client.launched == []  # 55 min of backlog, but the one box is idle
+    _ticks(config, client, 80, boxes=idle, start=T0 + 3900, count=1)  # drained
+    gone = {"carbon-a100": dict(idle["carbon-a100"], file=False)}
+    _ticks(config, client, 80, boxes=gone, start=T0 + 4200, count=1)
+    assert client.terminated == ["i-a100"]
+    _ticks(config, client, 80, boxes=gone, start=T0 + 4500, count=10)
+    assert client.launched == []  # within the idle period after the release
+    _ticks(config, client, 80, boxes=gone, start=T0 + 4200 + 3600, count=1)
+    assert len(client.launched) == 1
+    # and a busy box up does not block a rent
+    (tmp_path / "b").mkdir()
+    config2 = _config(tmp_path / "b")
+    busy = {"carbon-a100": {"file": True, "busy": True, "last": T0, "admitted": 0.0}}
+    client2 = _Client([A100])
+    _ticks(config2, client2, 80, boxes=busy, count=4)
+    assert len(client2.launched) == 1

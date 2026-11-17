@@ -13,7 +13,8 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    Lambda account's instances and the instance type's live price.
 2. **Scale up.** When ``waiting_to_build > N`` in every sample of the last `UP_WINDOW_S` (15 min, at least 3
    samples), N = `BUILDS_PER_BOX_HOUR` x max(1, boxes up) (the measured hourly builds of one box: the queue is more
-   than the boxes up can clear in an hour), nothing is being brought up, the account holds fewer than ``max_boxes``
+   than the boxes up can clear in an hour), no box up has all its slots free (then the door, not the box count, holds
+   the queue), no box was released idle in the last ``idle_release_s``, nothing is being brought up, the account holds fewer than ``max_boxes``
    instances and one more keeps the hourly total within ``max_usd_per_hour``: launch ONE instance, then bring it up
    (`bring_up`, detached): pin its host key, ``gpu_box_up.py admin`` here with the admin key, ``gpu_box_up.py door``
    on the door with the lane key. A failed bring-up terminates the instance at once (never paid for idle).
@@ -376,6 +377,12 @@ def _released(config, state, name, record, client, now, why):
         cost_usd=round(hours * record["price_usd_h"], 2),
     )
     state["boxes"].pop(name, None)
+    if why == "idle":
+        # a box just sat idle a whole idle period with builds waiting: boxes were not what held the queue (owner C8,
+        # no overpay), so the next rent waits one more idle period of backlog
+        state["backoff_until"] = max(
+            state.get("backoff_until", 0), now + config.idle_release_s
+        )
 
 
 # -- one tick ---------------------------------------------------------------------------------------------------------
@@ -478,9 +485,12 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
         1 for name, e in (boxes or {}).items() if e.get("file") and name not in ours
     )
     bringing = any(r["phase"] == "UP" for r in ours.values())
+    # a box up with every slot free: more boxes would sit free too (the door, not box count, holds the queue)
+    idle_box = any(e.get("file") and not e.get("busy") for e in (boxes or {}).values())
     if (
         boxes is not None
         and not bringing
+        and not idle_box
         and now >= state.get("backoff_until", 0)
         and want_box(state["samples"], now, up)
     ):
@@ -542,6 +552,8 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                     "n": threshold(up),
                     "boxes_up": up,
                     "want_box": want_box(state["samples"], now, up),
+                    "idle_box_up": idle_box,
+                    "backoff_until": state.get("backoff_until", 0),
                     "samples_in_window": len(
                         [
                             x
