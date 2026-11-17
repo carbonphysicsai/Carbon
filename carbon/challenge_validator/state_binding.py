@@ -307,6 +307,35 @@ def migrated_images(root: Path) -> bool:
     )
 
 
+def migrated_keys(root: Path) -> frozenset:
+    """The door keys this state's declared migration links moved (the original door vs the current, folded one):
+    empty for a state never migrated. Owners' provider bindings that freeze those keys may then re-freeze to the
+    CURRENT door's values (`research_tasks.DirectDevelopmentTasksV3`, ``binding_migrated``).
+    """
+    root = Path(root).absolute()
+    original = _read(root / DOOR_NAME)
+    if original is None:
+        return frozenset()
+    current = _folded(root, original)
+    return frozenset(
+        key
+        for key in set(original) | set(current)
+        if (key in original) != (key in current)
+        or canonical(original[key]) != canonical(current[key])
+    )
+
+
+def _legacy_agrees(root: Path, legacy, retained_door) -> bool:
+    """Whether the legacy file's door is the state's ORIGINAL door, or (written by a start after a declared migration,
+    16 Nov mg21) its CURRENT door folded through the links."""
+    if legacy is None or retained_door is None:
+        return True
+    door = door_of(legacy)
+    return door == retained_door or door_digest(door) == door_digest(
+        _folded(root, retained_door)
+    )
+
+
 def release_name(binding: dict) -> str:
     return hashlib.sha256(canonical(binding)).hexdigest() + ".json"
 
@@ -323,7 +352,7 @@ def read_door(root: Path) -> dict:
     legacy = _read(root / LEGACY_NAME)
     if door is None and legacy is None:
         raise StateBindingRefused("receiver binding missing")
-    if door is not None and legacy is not None and door_of(legacy) != door:
+    if not _legacy_agrees(root, legacy, door):
         raise StateBindingRefused("retained door binding differs")
     return _folded(root, door if door is not None else door_of(legacy))
 
@@ -362,11 +391,7 @@ def bind(root: Path, binding: dict) -> dict:
     door_path = root / DOOR_NAME
     legacy = _read(legacy_path)
     retained_door = _read(door_path)
-    if (
-        retained_door is not None
-        and legacy is not None
-        and door_of(legacy) != retained_door
-    ):
+    if not _legacy_agrees(root, legacy, retained_door):
         raise StateBindingRefused("retained door binding differs")
     original = (
         retained_door
@@ -388,7 +413,9 @@ def bind(root: Path, binding: dict) -> dict:
         _write_link(root, migrated, current)
     write_once(releases / name, payload)
     write_once(door_path, canonical(original))
-    legacy_written = legacy is None
+    # the legacy file names a release of the ORIGINAL door: a migrated door (a carried state has none) never writes it,
+    # so a later start compares nothing it cannot match (mg21, 16 Nov)
+    legacy_written = legacy is None and door_digest(door) == door_digest(original)
     if legacy_written:
         write_once(legacy_path, payload)
     return {

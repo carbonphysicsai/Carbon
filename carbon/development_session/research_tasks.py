@@ -217,6 +217,29 @@ def _campaign_limit_code(exc):
     )
 
 
+def _same_principal(old, new):
+    """Whether two provider binding rows name the same requester, owner and evaluation pack (only the worker images
+    and the graph GPU lane may differ: a declared door migration)."""
+    import json as _json
+
+    try:
+        a, b = _json.loads(old), _json.loads(new)
+    except (TypeError, ValueError):
+        return False
+    if type(a) is not list or type(b) is not list or len(a) < 2 or len(b) < 2:
+        return False
+
+    def pack(items):
+        found = [
+            items[i + 1]
+            for i, item in enumerate(items[:-1])
+            if item == "EVALUATION_PACK"
+        ]
+        return found
+
+    return a[:2] == b[:2] and pack(a) == pack(b)
+
+
 class DirectDevelopmentTasksV3:
     """Durable public-development direct tasks beside the historical v2 store.
 
@@ -258,6 +281,7 @@ class DirectDevelopmentTasksV3:
         evaluation_pack_digest=None,
         graph_gpu_image=None,
         graph_gpu_ops=None,
+        binding_migrated=False,
     ) -> None:
         from .gpu_practice import DirectParents, gpu_image_backend
 
@@ -440,7 +464,25 @@ class DirectDevelopmentTasksV3:
                     row = (binding, os.urandom(32))
                     db.execute("INSERT INTO direct_binding VALUES(1,?,?)", row)
                 if row[0] != binding:
-                    raise ValueError("direct requester or image binding changed")
+                    if not (
+                        binding_migrated is True and _same_principal(row[0], binding)
+                    ):
+                        raise ValueError("direct requester or image binding changed")
+                    # The door's DECLARED migration (`state_binding`, M1) moved its worker images / graph GPU lane:
+                    # this owner's provider re-freezes to the door's current ones. The requester, owner and pack
+                    # never move; the old row is kept (write-once history) and the entropy stays.
+                    db.execute(
+                        "CREATE TABLE IF NOT EXISTS direct_binding_history("
+                        "seq INTEGER PRIMARY KEY, identity TEXT NOT NULL, replaced_ns INTEGER NOT NULL)"
+                    )
+                    db.execute(
+                        "INSERT INTO direct_binding_history(identity, replaced_ns) VALUES(?,?)",
+                        (row[0], time.time_ns()),
+                    )
+                    db.execute(
+                        "UPDATE direct_binding SET identity=? WHERE id=1", (binding,)
+                    )
+                    row = (binding, row[1])
                 self._entropy = row[1]
                 retained = db.execute(
                     "SELECT id,request,view,cancellation FROM direct_tasks ORDER BY id"

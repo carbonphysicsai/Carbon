@@ -1619,6 +1619,7 @@ class OwnerProviders:
         graph_gpu_image=None,
         graph_gpu_ops=None,
         images_migrated=False,
+        binding_migrated=False,
     ):
         from carbon.development_session.gpu_practice import DirectParents
 
@@ -1636,6 +1637,8 @@ class OwnerProviders:
         self.evaluation_pack_digest = evaluation_pack_digest
         #: the door of this state was moved to new worker images by a declared migration (`state_binding`)
         self.images_migrated = images_migrated
+        #: a declared migration moved a door key an owner's provider binding freezes (images, graph GPU lane)
+        self.binding_migrated = binding_migrated
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -1908,6 +1911,7 @@ class OwnerProviders:
                         else {"construction_parents": self.parents}
                     ),
                     evaluation_pack_digest=self.evaluation_pack_digest,
+                    binding_migrated=getattr(self, "binding_migrated", False),
                     **(
                         {}
                         if self.graph_gpu_image is None
@@ -2410,7 +2414,10 @@ def serve(
         # The door part is write-once for the state's life; each release's whole binding is added beside it, so a
         # later release (or a rollback to an earlier one) starts on the same state (`state_binding`).
         from carbon.challenge_validator.state_binding import bind as bind_state
-        from carbon.challenge_validator.state_binding import migrated_images
+        from carbon.challenge_validator.state_binding import (
+            migrated_images,
+            migrated_keys,
+        )
 
         # a door moved by the operator's DECLARED migration (state_binding, M1-M5) is accepted here; nothing else moves
         bind_state(root, immutable)
@@ -2432,6 +2439,7 @@ def serve(
             graph_gpu_image=graph_gpu_image,
             graph_gpu_ops=graph_gpu_ops,
             images_migrated=migrated_images(root),
+            binding_migrated=bool(migrated_keys(root)),
         )
         # A service (no lifetime) runs until it is stopped.
         timer = (
