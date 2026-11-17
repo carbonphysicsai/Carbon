@@ -944,3 +944,57 @@ def test_graph_per_call_figures_are_bounded_by_the_covered_rows():
     assert custody._graph_per_call_ok([0.1, 0.2, 0.3], 3)
     for bad in ([0.1] * 4, [0.0], [-1.0], [float("nan")], ["x"], (0.1,), 0.1):
         assert not custody._graph_per_call_ok(bad, 3)
+
+
+@pytest.mark.parametrize(
+    "lane, accepted",
+    [
+        # the A100 lane's CPU fallback as research_tasks writes it (116, 17 Nov: every grade refused here)
+        (
+            {
+                "build_device": "CPU",
+                "gpu_lane_note": "graph_op_not_gpu_repeatable",
+                "gpu_lane_ops": ["dot_general", "fft"],
+            },
+            True,
+        ),
+        ({"build_device": "CPU", "gpu_lane_note": "graph_gpu_attempt_failed"}, True),
+        # the ops note without its ops, or a stray ops list: refused as retention refuses them
+        (
+            {"build_device": "CPU", "gpu_lane_note": "graph_op_not_gpu_repeatable"},
+            False,
+        ),
+        (
+            {
+                "build_device": "CPU",
+                "gpu_lane_note": "graph_gpu_attempt_failed",
+                "gpu_lane_ops": ["fft"],
+            },
+            False,
+        ),
+    ],
+)
+def test_graph_custody_binds_the_cpu_fallback_lane_fields_retention_accepts(
+    tmp_path, lane, accepted
+):
+    """End to end through the bank custody (prepare_custody_v5) on a real graph fixture: a worker record carrying the
+    graph GPU lane's CPU-fallback fields is accepted exactly when retention accepts it.
+    """
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    root, manifest_path, originals = _graph_fixture(tmp_path)
+    worker = json.loads(originals["stage/worker-evidence.json"])
+    _graph_retain_mutation(
+        root, manifest_path, "worker_evidence", _json({**worker, **lane})
+    )
+    assert (
+        retention._graph_lane_evidence_ok(SimpleNamespace(graph_gpu_image=None), lane)
+        is accepted
+    )
+    if accepted:
+        custody.prepare_custody_v5(root, manifest_path)
+    else:
+        with pytest.raises(custody.CustodyRefused, match="graph_worker_lineage"):
+            custody.prepare_custody_v5(root, manifest_path)
