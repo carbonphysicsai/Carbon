@@ -318,3 +318,106 @@ def test_the_door_probe_reads_slots_without_writing(tmp_path):
     finally:
         os.close(fd)
     assert sorted(str(p) for p in root.rglob("*")) == before
+
+
+A100 = {
+    "id": "i-a100",
+    "name": "carbon-a100",
+    "status": "active",
+    "ip": "203.0.113.21",
+    "type": "gpu_1x_a100_sxm4",
+    "price_usd_h": PRICE,
+}
+
+
+def test_an_adopted_box_is_drained_and_released_after_an_idle_hour(
+    tmp_path, monkeypatch
+):
+    """Owner 17 Nov 2026 ("I don't think we need an always on one"): carbon-a100, brought up by hand, is adopted and
+    then released like a box this tool launched; hours and cost count from the adoption.
+    """
+    config = _config(tmp_path)
+    client = _Client([A100])
+    busy = {"carbon-a100": {"file": True, "busy": True, "last": T0, "admitted": 0.0}}
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, busy),
+        now=T0,
+    )
+    record = scale.load_state(config)["boxes"]["carbon-a100"]
+    assert (
+        record["phase"] == "ACTIVE" and record["adopted"] and record["id"] == "i-a100"
+    )
+    moved = []
+    monkeypatch.setattr(
+        scale,
+        "_door",
+        lambda c, argv, **k: moved.append(argv) or type("R", (), {"returncode": 0})(),
+    )
+    _ticks(config, client, 0, boxes=busy, start=T0 + 300, count=1)
+    assert moved == [] and client.terminated == []
+    idle = {"carbon-a100": {"file": True, "busy": False, "last": T0, "admitted": 0.0}}
+    _ticks(config, client, 0, boxes=idle, start=T0 + 3900, count=1)
+    assert moved[0][-1].endswith("carbon-a100.json.drained")
+    gone = {"carbon-a100": {"file": False, "busy": False, "last": T0, "admitted": 0.0}}
+    _ticks(config, client, 0, boxes=gone, start=T0 + 4200, count=1)
+    assert client.terminated == ["i-a100"]
+    release = next(e for e in _log(config) if e["action"] == "release")
+    assert release["hours"] == pytest.approx(4200 / 3600, abs=1e-3)
+
+
+@pytest.mark.parametrize(
+    "instances, boxes, ip",
+    [
+        ([A100], {}, A100["ip"]),  # no box file on the door
+        ([A100], None, A100["ip"]),  # door unreadable
+        ([], {"carbon-a100": {"file": True}}, A100["ip"]),  # no instance there
+        ([dict(A100, status="booting")], {"carbon-a100": {"file": True}}, A100["ip"]),
+        ([A100], {"carbon-a100": {"file": True}}, "203.0.113.99"),  # wrong address
+    ],
+)
+def test_adopt_refuses_without_one_active_instance_and_its_box_file(
+    tmp_path, instances, boxes, ip
+):
+    config = _config(tmp_path)
+    with pytest.raises(SystemExit):
+        scale.adopt(
+            config,
+            "carbon-a100",
+            ip,
+            client=_Client(instances),
+            door=lambda c: (0, boxes),
+            now=T0,
+        )
+    assert scale.load_state(config)["boxes"] == {}
+
+
+def test_a_dry_tick_changes_nothing(tmp_path, monkeypatch, capsys):
+    """``tick --dry-run``: the would-be drain and rent are printed; no door write, no Lambda call that changes
+    anything, no state or log file."""
+    config = _config(tmp_path)
+    client = _Client([A100])
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, {"carbon-a100": {"file": True}}),
+        now=T0,
+    )
+    before = (Path(config.state_dir) / "state.json").read_text()
+    log_before = (Path(config.state_dir) / "log.jsonl").read_text()
+    monkeypatch.setattr(scale, "_door", lambda *a, **k: pytest.fail("door write"))
+    monkeypatch.setattr(scale, "DRY", [True])
+    idle = {"carbon-a100": {"file": True, "busy": False, "last": T0, "admitted": 0.0}}
+    capsys.readouterr()
+    _ticks(config, client, 99, boxes=idle, start=T0 + 3900, count=4)
+    printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert {"would_drain"} <= {p.get("action") for p in printed}
+    assert client.launched == [] and client.terminated == []
+    assert (Path(config.state_dir) / "state.json").read_text() == before
+    assert (Path(config.state_dir) / "log.jsonl").read_text() == log_before
+    assert printed[-1]["dry"] and printed[-1]["waiting_to_build"] == 99

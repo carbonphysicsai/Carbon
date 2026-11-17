@@ -21,8 +21,11 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    is drained first (its box file renamed ``<name>.json.drained``); once no slot is busy it is terminated.
 
 Every launch, failure and release is a line in ``<state_dir>/log.jsonl`` with its price, hours and cost. Instances
-this tool did not launch (``name_prefix``) count toward the box and dollar caps but are never touched. It decides
-nothing scientific and reads no hidden value: the queue counts are public, and the box files are the door's own.
+this tool did not launch (``name_prefix``) count toward the box and dollar caps but are never touched, unless ADOPTED
+(``adopt <box> --ip <ip>``: a box already up on the door, e.g. carbon-a100, put under the same idle release; owner
+17 Nov 2026, "I don't think we need an always on one"). ``tick --dry-run`` reads everything and changes nothing
+(no rent, drain, release, state or log line): it prints what a tick would do. It decides nothing scientific and reads
+no hidden value: the queue counts are public, and the box files are the door's own.
 """
 
 from __future__ import annotations
@@ -43,7 +46,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 #: One A100 box's measured builds per hour (HEALTH 17 Nov 2026 13:38Z: 12 in the last 60 min, all on the one A100,
-#: 4 slots). An operational value: re-measure it as the per-box rate changes.
+#: 4 slots). An operational value: re-measure it as the per-box rate changes. That hour was starved (builds waited on
+#: 2 grade lanes), so 12 is a floor: to be replaced from the door journal's build rate after switch 3 (owner C8).
 BUILDS_PER_BOX_HOUR = 12
 #: How long the queue must stay above N before a box is rented (the brief: 15 min).
 UP_WINDOW_S = 900
@@ -56,6 +60,8 @@ BRING_UP_LIMIT_S = 45 * 60
 FAIL_BACKOFF_S = 30 * 60
 LAMBDA_API = "https://cloud.lambdalabs.com/api/v1"
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+#: ``tick --dry-run``: no rent, drain, release, state write or log-file line (printed only, marked ``dry``).
+DRY = [False]
 
 #: Run on the door as the door user (`python3 -I -`, stdin): read-only. Prints one JSON line: each box file's name and
 #: admitted time, and per box directory whether a slot is busy now and the newest slot activity (directory mtimes: a
@@ -231,6 +237,7 @@ class Lambda:
                     "name": item.get("name") or "",
                     "status": item["status"],
                     "ip": item.get("ip"),
+                    "region": (item.get("region") or {}).get("name"),
                     "type": item["instance_type"]["name"],
                     "price_usd_h": item["instance_type"]["price_cents_per_hour"] / 100,
                 }
@@ -320,6 +327,8 @@ def load_state(config):
 
 
 def save_state(config, state):
+    if DRY[0]:
+        return
     path = _state_path(config)
     temporary = path.with_name(f".state.{os.getpid()}")
     temporary.write_text(json.dumps(state, sort_keys=True, indent=1) + "\n")
@@ -328,6 +337,9 @@ def save_state(config, state):
 
 def log(config, **fields):
     fields = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **fields}
+    if DRY[0]:
+        print(json.dumps({**fields, "dry": True}, sort_keys=True))
+        return
     with open(Path(config.state_dir) / "log.jsonl", "a") as handle:
         handle.write(json.dumps(fields, sort_keys=True) + "\n")
     print(json.dumps(fields, sort_keys=True))
@@ -338,6 +350,9 @@ def _hours(record, now):
 
 
 def _released(config, state, name, record, client, now, why):
+    if DRY[0]:
+        log(config, action="would_release", box=name, id=record["id"], why=why)
+        return
     try:
         client.terminate(record["id"])
     except Exception as error:  # noqa: BLE001 - logged; the next tick retries
@@ -425,7 +440,15 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
         for name, record in list(ours.items()):
             entry = boxes.get(name)
             if record["phase"] == "ACTIVE" and entry is not None and entry.get("file"):
-                if idle_for(entry, now) > config.idle_release_s:
+                if idle_for(entry, now) > config.idle_release_s and DRY[0]:
+                    log(
+                        config,
+                        action="would_drain",
+                        box=name,
+                        id=record["id"],
+                        idle_min=round(idle_for(entry, now) / 60, 1),
+                    )
+                elif idle_for(entry, now) > config.idle_release_s:
                     moved = _door(
                         config,
                         [
@@ -472,6 +495,15 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 n=threshold(up),
                 instances=len(instances),
             )
+        elif DRY[0]:
+            log(
+                config,
+                action="would_rent",
+                price_usd_h=offer[0],
+                region=offer[1],
+                waiting=waiting,
+                n=threshold(up),
+            )
         else:
             price, region = offer
             name = f"{config.name_prefix}{time.strftime('%m%d%H%M', time.gmtime(now))}"
@@ -500,6 +532,72 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
             )
             save_state(config, state)
             (spawn or _spawn_bring_up)(config, name)
+    save_state(config, state)
+    if DRY[0]:
+        print(
+            json.dumps(
+                {
+                    "dry": True,
+                    "waiting_to_build": waiting,
+                    "n": threshold(up),
+                    "boxes_up": up,
+                    "want_box": want_box(state["samples"], now, up),
+                    "samples_in_window": len(
+                        [
+                            x
+                            for x in state["samples"]
+                            if now - x["t"] <= UP_WINDOW_S + 60
+                        ]
+                    ),
+                    "door_boxes": boxes,
+                    "ours": ours,
+                    "account_instances": [
+                        {k: i[k] for k in ("name", "status", "type", "price_usd_h")}
+                        for i in instances
+                    ],
+                },
+                sort_keys=True,
+            )
+        )
+    return state
+
+
+def adopt(config, name, ip, *, client=None, door=None, now=None):
+    """Put a box already up on the door under this tool's idle release: the account's active instance at ``ip`` whose
+    box file ``name`` is on the door is recorded ACTIVE (hours and cost count from now). Refused if the name is taken,
+    the box file is absent, or no single active instance has that address."""
+    now = time.time() if now is None else now
+    client = client or Lambda(config.lambda_key_file)
+    if not _NAME.fullmatch(name):
+        raise SystemExit("adopt: bad box name")
+    state = load_state(config)
+    if name in state["boxes"]:
+        raise SystemExit(f"adopt: {name} is already this tool's")
+    _, boxes = (door or read_door)(config)
+    if boxes is None or not boxes.get(name, {}).get("file"):
+        raise SystemExit(f"adopt: no box file {name}.json on the door")
+    found = [i for i in client.instances() if i["ip"] == ip and i["status"] == "active"]
+    if len(found) != 1:
+        raise SystemExit(f"adopt: {len(found)} active instances at {ip}")
+    instance = found[0]
+    state["boxes"][name] = {
+        "id": instance["id"],
+        "launched": now,
+        "price_usd_h": instance["price_usd_h"],
+        "region": instance.get("region"),
+        "ip": ip,
+        "phase": "ACTIVE",
+        "adopted": True,
+    }
+    log(
+        config,
+        action="adopt",
+        box=name,
+        id=instance["id"],
+        ip=ip,
+        price_usd_h=instance["price_usd_h"],
+        idle_min=round(idle_for(boxes[name], now) / 60, 1),
+    )
     save_state(config, state)
     return state
 
@@ -667,10 +765,15 @@ def _reason(output):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("command", choices=("tick", "bring-up", "status"))
+    parser.add_argument("command", choices=("tick", "bring-up", "status", "adopt"))
     parser.add_argument("name", nargs="?")
     parser.add_argument("--config", required=True)
+    parser.add_argument("--ip", help="adopt: the box's address")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="tick/adopt: print, change nothing"
+    )
     args = parser.parse_args(argv)
+    DRY[0] = args.dry_run
     CONFIG_PATH[0] = os.path.abspath(args.config)
     config = load_config(args.config)
     Path(config.state_dir).mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -681,6 +784,12 @@ def main(argv=None):
         print(json.dumps(load_state(config), indent=1, sort_keys=True))
         return 0
     with open(Path(config.state_dir) / "lock", "a") as lock:
+        if args.command == "adopt":
+            if not args.name or not args.ip:
+                raise SystemExit("adopt <box> --ip <ip>")
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            adopt(config, args.name, args.ip)
+            return 0
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
