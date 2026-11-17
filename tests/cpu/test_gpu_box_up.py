@@ -343,7 +343,7 @@ class FakeBox:
         ):
             self.authorized_keys = _printed_text(cmd)
             return 0, "", ""
-        if cmd == g.CMD_AUTHORIZED_KEYS_READ:
+        if cmd in (g.CMD_AUTHORIZED_KEYS_READ, g.CMD_AUTHORIZED_KEYS_BEFORE):
             return 0, self.authorized_keys, ""
         if cmd == g.CMD_STAGE_ROOT:
             return 0, "", ""
@@ -1110,6 +1110,96 @@ def test_the_admin_phase_installs_a_python_the_device_record_can_run_on(tmp_path
     # a path that is not an absolute python3.1x is never run
     odd = FakeBox(door, python="python3.11; rm -rf /")
     _refused(_run(door, odd), "admin_incomplete:python")
+
+
+#: carbon-door's own lane key on the same box (Lead 17 Nov 2026: a box may serve two doors)
+OTHER_DOOR_LINE = (
+    'restrict,from="198.51.100.9" ssh-ed25519 ' + "B" * 68 + " carbon-door-lane"
+)
+
+
+def test_the_admin_phase_keeps_another_doors_lane_key_and_drops_anything_else(tmp_path):
+    """authorized_keys is merged, never replaced: this door's line first, another door's restricted lane-key line
+    kept, any other line (an unrestricted key above all) dropped; the door phase passes with both doors' lines.
+    """
+    cfg = _admin_config(tmp_path, "--other-door-ip", "198.51.100.9")
+    loose = "ssh-ed25519 " + "C" * 68 + " someone"
+    box = FakeBox(
+        cfg,
+        prepared=True,
+        authorized_keys=f"{OTHER_DOOR_LINE}\n{loose}\n{OTHER_DOOR_LINE}\n",
+    )
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.authorized_keys == f"{LANE_LINE}\n{OTHER_DOOR_LINE}\n"
+    # run again: unchanged
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.authorized_keys == f"{LANE_LINE}\n{OTHER_DOOR_LINE}\n"
+    door = _config(tmp_path, "--other-door-ip", "198.51.100.9")
+    both = FakeBox(door, authorized_keys=f"{LANE_LINE}\n{OTHER_DOOR_LINE}\n")
+    assert _run(door, both)["status"] == "ADMITTED"
+    # a door that names no other door accepts only its own line
+    alone = _config(tmp_path)
+    _refused(
+        _run(
+            alone, FakeBox(alone, authorized_keys=f"{LANE_LINE}\n{OTHER_DOOR_LINE}\n")
+        ),
+        "admin_incomplete:lane_user",
+    )
+
+
+def test_a_restricted_line_of_an_unknown_door_is_dropped(tmp_path):
+    """V2 (17 Nov 2026): only the configured other doors' lines stay; a well-formed restrict,from= line of any other
+    address (planted by anyone who once could write the file) is dropped by the admin phase and refused by the door.
+    """
+    planted = 'restrict,from="203.0.113.66" ssh-ed25519 ' + "D" * 68 + " planted"
+    cfg = _admin_config(tmp_path, "--other-door-ip", "198.51.100.9")
+    box = FakeBox(cfg, prepared=True, authorized_keys=f"{planted}\n{OTHER_DOOR_LINE}\n")
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.authorized_keys == f"{LANE_LINE}\n{OTHER_DOOR_LINE}\n"
+    door = _config(tmp_path, "--other-door-ip", "198.51.100.9")
+    _refused(
+        _run(door, FakeBox(door, authorized_keys=f"{LANE_LINE}\n{planted}\n")),
+        "admin_incomplete:lane_user",
+    )
+    assert box_up.merged_authorized_keys(
+        f"{planted}\n", LANE_LINE, ("198.51.100.9",)
+    ) == (
+        f"{LANE_LINE}\n",
+        1,
+    )
+
+
+def test_this_doors_own_line_need_not_be_a_plain_ed25519_line():
+    """The door's own key may carry any comment its configuration accepted (review MED-1): only OTHER doors' lines
+    must be the strict lane-key form."""
+    own = 'restrict,from="203.0.113.5" ssh-ed25519 ' + "A" * 68 + " ryan laptop: lane"
+    other = 'restrict,from="198.51.100.9" ssh-ed25519 ' + "B" * 68 + " carbon-door-lane"
+    doors = ("198.51.100.9",)
+    merged, dropped = box_up.merged_authorized_keys(f"{other}\n", own, doors)
+    assert merged == f"{own}\n{other}\n" and dropped == 0
+    assert box_up.authorized_keys_ok(merged, own, doors)
+    # IPv6 / other forms of another door's line are dropped, never kept
+    v6 = 'restrict,from="2001:db8::1" ssh-ed25519 ' + "B" * 68
+    assert box_up.merged_authorized_keys(f"{v6}\n", own, doors) == (f"{own}\n", 1)
+
+
+@pytest.mark.parametrize(
+    "keys",
+    [
+        lambda: f"{LANE_LINE}\nssh-ed25519 " + "C" * 68 + "\n",
+        lambda: f"{LANE_LINE}\n" + 'from="198.51.100.9" ssh-ed25519 ' + "B" * 68 + "\n",
+        lambda: f"{LANE_LINE}\n{LANE_LINE}\n",
+        lambda: f"{LANE_LINE}",
+        lambda: f"{OTHER_DOOR_LINE}\n",
+        lambda: f"{OTHER_DOOR_LINE}\n{LANE_LINE}\n",
+        lambda: f"{LANE_LINE}\r\n",
+    ],
+)
+def test_the_door_refuses_any_line_but_door_lane_keys(tmp_path, keys):
+    door = _config(tmp_path)
+    box = FakeBox(door, authorized_keys=keys())
+    # (without this door's own line it cannot even log in: the same refusal)
+    _refused(_run(door, box), "admin_incomplete:lane_user")
 
 
 def test_the_class_check_runs_like_the_receipted_runner(tmp_path):

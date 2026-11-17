@@ -17,8 +17,9 @@ THEIR OWN key. It changes the box and writes nothing on the door side (no box fi
                provider's apt repo and the run stops: ``driver_upgrade_needs_reboot``)
   docker       Docker Engine ``--docker-version`` and containerd ``--containerd-version`` from Docker's apt repo, the
                containerd image store and the nvidia runtime merged into daemon.json, all shown by ``docker info``
-  lane_user    ``carbon-grade`` (home /home/carbon-grade, not root, in the docker group), authorized_keys exactly
-               ``restrict,from="<door ip>" <lane public key>``
+  lane_user    ``carbon-grade`` (home /home/carbon-grade, not root, in the docker group), authorized_keys merged:
+               ``restrict,from="<door ip>" <lane public key>`` first, then each ``--other-door-ip`` door's line of
+               that same form already there (a box may serve two doors); any other line is dropped and counted
   stage_root   ``/home/carbon`` owned carbon-grade:carbon-grade, mode 0755
   python       a Python >= 3.11 for the device record (`PYTHONS`; Ubuntu 22.04 ships 3.10 only: ``python3.11`` is
                installed from the distribution's own repository when none is present)
@@ -235,6 +236,9 @@ class Config:
     door_ip: str
     lane_pubkey: str
     host_key_fingerprint: str
+    #: the OTHER doors whose lane-key line may stay on this box (``--other-door-ip``; V2, 17 Nov 2026: a configured list,
+    #: never "any restrict line already there")
+    other_door_ips: tuple = ()
     name: str = ""
     provider: str = ""
     images: tuple[str, ...] = ()
@@ -276,6 +280,51 @@ def authorized_keys_line(door_ip: str, pubkey: str) -> str:
     ``docker system dial-stdio`` and the input mirror's tar stream are plain non-pty commands.
     """
     return f'restrict,from="{door_ip}" {pubkey}'
+
+
+#: A door's lane-key line: ``restrict``, ONE IPv4 door address, an ed25519 key and an optional plain comment. A box may
+#: serve more than one door (the 116 door and carbon-door, Lead 17 Nov 2026): each door's line stays; nothing else may.
+_DOOR_KEY_LINE = re.compile(
+    r'restrict,from="(\d{1,3}(?:\.\d{1,3}){3})" ssh-ed25519 [A-Za-z0-9+/]{68}(?: [A-Za-z0-9._@-]{1,64})?'
+)
+
+
+def _other_door_line(raw: str, other_door_ips) -> bool:
+    """Whether ``raw`` is a lane-key line of one of the CONFIGURED other doors (`_DOOR_KEY_LINE`, its from= address in
+    ``other_door_ips``)."""
+    match = _DOOR_KEY_LINE.fullmatch(raw)
+    return match is not None and match.group(1) in other_door_ips
+
+
+def merged_authorized_keys(current: str, line: str, other_door_ips=()) -> tuple:
+    """``(text, dropped)``: the lane user's authorized_keys after the admin phase, this door's ``line`` first, then the
+    lane-key line of each CONFIGURED other door already there (`_other_door_line`), each once, in order; and how many
+    other lines were dropped (any key not restricted to one configured door address, V2 17 Nov 2026).
+    """
+    lines, dropped = [line], 0
+    for raw in current.splitlines():
+        raw = raw.strip()
+        if not raw or raw in lines:
+            continue
+        if _other_door_line(raw, other_door_ips):
+            lines.append(raw)
+        else:
+            dropped += 1
+    return "\n".join(lines) + "\n", dropped
+
+
+def authorized_keys_ok(text: str, line: str, other_door_ips=()) -> bool:
+    """Whether the lane user's authorized_keys is exactly what the admin phase writes (`merged_authorized_keys`): this
+    door's ``line`` first (whatever key type and comment its configuration accepted), then only other doors' lane-key
+    lines (`_DOOR_KEY_LINE`), each once."""
+    if not text.endswith("\n"):
+        return False
+    lines = text[:-1].split("\n")
+    return (
+        lines[0] == line
+        and len(set(lines)) == len(lines)
+        and all(_other_door_line(each, other_door_ips) for each in lines[1:])
+    )
 
 
 def _version(text: str) -> tuple[int, ...]:
@@ -369,6 +418,17 @@ def _common(args, *, user: str) -> dict:
         raise Refused("bad_argument", "--driver-package")
     if not _FINGERPRINT.fullmatch(args.host_key_fingerprint):
         raise Refused("bad_argument", "--host-key-fingerprint must be SHA256:<43>")
+    others = []
+    for raw in getattr(args, "other_door_ip", None) or ():
+        try:
+            other = ipaddress.ip_address(raw)
+        except ValueError:
+            raise Refused(
+                "bad_argument", "--other-door-ip needs an IPv4 address"
+            ) from None
+        if other.version != 4 or str(other) == door or str(other) in others:
+            raise Refused("bad_argument", f"--other-door-ip {raw}")
+        others.append(str(other))
     try:
         pubkey = public_key_line(Path(args.lane_pubkey).read_text(encoding="utf-8"))
     except OSError:
@@ -386,6 +446,7 @@ def _common(args, *, user: str) -> dict:
         "docker_version": args.docker_version,
         "containerd_version": args.containerd_version,
         "door_ip": door,
+        "other_door_ips": tuple(others),
         "lane_pubkey": pubkey,
         "host_key_fingerprint": args.host_key_fingerprint,
     }
@@ -612,6 +673,10 @@ def cmd_authorized_keys_write(line: str) -> str:
 
 
 CMD_AUTHORIZED_KEYS_READ = sudo_sh(f"cat {_LANE_HOME}/.ssh/authorized_keys")
+#: Before the write: the lines already there (none on a fresh box), so another door's lane key is kept.
+CMD_AUTHORIZED_KEYS_BEFORE = sudo_sh(
+    f'f={_LANE_HOME}/.ssh/authorized_keys; if [ -e "$f" ]; then cat "$f"; fi'
+)
 CMD_STAGE_ROOT = (
     f"sudo -n install -d -o {LANE_USER} -g {LANE_USER} -m 0755 {STAGE_ROOT}"
 )
@@ -1424,13 +1489,24 @@ class Session:
         if len(lines) < 3 or lines[2].strip() != LANE_HOME:
             raise Refused("lane_home_mismatch", lines[2] if len(lines) > 2 else "")
         line = authorized_keys_line(self.cfg.door_ip, self.cfg.lane_pubkey)
-        self.remote(cmd_authorized_keys_write(line), reason="lane_user_failed")
-        if (
-            self.remote(CMD_AUTHORIZED_KEYS_READ, reason="lane_user_failed")
-            != line + "\n"
-        ):
+        before = self.remote(CMD_AUTHORIZED_KEYS_BEFORE, reason="lane_user_failed")
+        wanted, dropped = merged_authorized_keys(before, line, self.cfg.other_door_ips)
+        if dropped:
+            self.log(
+                json.dumps(
+                    {
+                        "phase": "admin",
+                        "step": "lane_user",
+                        "dropped_authorized_keys_lines": dropped,
+                    }
+                )
+            )
+        # merged, never a plain replace: a configured other door's lane key on this box stays
+        self.remote(cmd_authorized_keys_write(wanted[:-1]), reason="lane_user_failed")
+        if self.remote(CMD_AUTHORIZED_KEYS_READ, reason="lane_user_failed") != wanted:
             raise Refused(
-                "authorized_keys_mismatch", "authorized_keys is not the one line"
+                "authorized_keys_mismatch",
+                "authorized_keys is not this door's line plus other doors' lane keys",
             )
 
     def stage_root(self):
@@ -1470,12 +1546,14 @@ class Session:
         if home != LANE_HOME:
             raise Refused("lane_home_mismatch", home)
         line = authorized_keys_line(self.cfg.door_ip, self.cfg.lane_pubkey)
-        if (
-            self.remote(DOOR_AUTHORIZED_KEYS_READ, reason="lane_user_failed")
-            != line + "\n"
+        if not authorized_keys_ok(
+            self.remote(DOOR_AUTHORIZED_KEYS_READ, reason="lane_user_failed"),
+            line,
+            self.cfg.other_door_ips,
         ):
             raise Refused(
-                "authorized_keys_mismatch", "authorized_keys is not the one line"
+                "authorized_keys_mismatch",
+                "authorized_keys is not this door's line plus other doors' lane keys",
             )
 
     def door_driver(self):
@@ -1838,7 +1916,11 @@ def plan_admin(cfg: Config) -> list[tuple[str, str]]:
     for command in (
         CMD_LANE_GROUP,
         CMD_LANE_ID,
-        cmd_authorized_keys_write(authorized_keys_line(cfg.door_ip, cfg.lane_pubkey)),
+        CMD_AUTHORIZED_KEYS_BEFORE,
+        cmd_authorized_keys_write(
+            authorized_keys_line(cfg.door_ip, cfg.lane_pubkey)
+            + "\n<the --other-door-ip doors' restrict,from= lane-key lines already there>"
+        ),
         CMD_AUTHORIZED_KEYS_READ,
     ):
         steps.append(remote("lane_user", command))
@@ -1905,6 +1987,12 @@ def _box_arguments(parser):
     )
     parser.add_argument(
         "--lane-pubkey", required=True, help="the lane user's PUBLIC key file (.pub)"
+    )
+    parser.add_argument(
+        "--other-door-ip",
+        action="append",
+        default=[],
+        help="another door that uses this box (repeat): its restrict,from= lane-key line is kept; any other is dropped",
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="print every command; run none"
