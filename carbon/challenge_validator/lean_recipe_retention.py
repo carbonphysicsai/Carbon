@@ -4698,7 +4698,12 @@ def _regrade_inference_image(kind, files, provider, recipe, origin, incumbent):
     if configured is not None and kind != "graph":
         raise RetentionUnavailable("graded_inference_image_graph_only")
     retained_parent, current_parent = _parents(kind, files, provider, recipe)
-    if configured is not None:
+    # only a model built on this receiver's image or on the configured one itself (a sitting king retained before the
+    # migration): any other retained image keeps the rules below unchanged
+    if configured is not None and retained_parent in (
+        current_parent,
+        configured.image_id,
+    ):
         from carbon.challenge_validator import koth_journal
 
         if _docker_image_id(configured.image_id) != configured.image_id:

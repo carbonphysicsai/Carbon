@@ -159,6 +159,34 @@ def test_a_bundle_regrade_refuses_while_a_graded_image_is_configured():
         retention.install_graded_inference_image(None)
 
 
+def test_a_model_retained_on_a_third_image_keeps_the_old_refusal(monkeypatch):
+    """Only a model built on this receiver's image or on the configured one is graded on it."""
+    from types import SimpleNamespace
+
+    third = _sha(b"synthetic-third-image")
+    monkeypatch.setattr(retention, "_parents", lambda *args, **kwargs: (third, BUILD))
+    monkeypatch.setattr(retention, "_docker_image_id", lambda image_id: image_id)
+    provider = SimpleNamespace(inference_image=_identity(BUILD))
+    retention.install_graded_inference_image(_identity(PACK_IMAGE))
+    try:
+        with pytest.raises(
+            retention.RetentionUnavailable, match="regrade_construction_parent_differs"
+        ):
+            retention._regrade_inference_image(
+                "graph", {}, provider, object(), TASK, None
+            )
+        for retained in (BUILD, PACK_IMAGE):
+            monkeypatch.setattr(
+                retention, "_parents", lambda *a, r=retained, **k: (r, BUILD)
+            )
+            chosen = retention._regrade_inference_image(
+                "graph", {}, provider, object(), TASK, None
+            )
+            assert chosen.image_id == PACK_IMAGE
+    finally:
+        retention.install_graded_inference_image(None)
+
+
 def test_the_regrade_worker_evidence_names_the_image_it_inferred_on():
     origin = {"image_id": BUILD, "parent_image_id": BUILD, "inference_image_id": BUILD}
     graded = type(
