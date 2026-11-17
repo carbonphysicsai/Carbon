@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 
@@ -140,22 +141,67 @@ def test_a_fresh_state_still_writes_its_legacy_file(tmp_path):
 
 
 def test_same_principal_lets_only_images_and_the_gpu_lane_move():
-    old = '["miner","miner","sha256:1","EVALUATION_PACK","sha256:p"]'
-    assert _same_principal(
-        old,
-        '["miner","miner","sha256:2","EVALUATION_PACK","sha256:p","GRAPH_GPU_LANE","x","y"]',
+    one, two = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+    pack, other_pack = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    lane = ["GRAPH_GPU_LANE", "sha256:" + "d" * 64, "sha256:" + "e" * 64]
+    old = ["miner", "miner", "PER_RECIPE_LIBRARY_IMAGE", one, "EVALUATION_PACK", pack]
+
+    def ok(new, base=old):
+        return _same_principal(json.dumps(base), json.dumps(new))
+
+    assert ok(
+        ["miner", "miner", "PER_RECIPE_LIBRARY_IMAGE", two, "EVALUATION_PACK", pack]
     )
-    assert not _same_principal(
-        old, '["other","miner","sha256:1","EVALUATION_PACK","sha256:p"]'
+    assert ok(
+        [
+            "miner",
+            "miner",
+            "PER_RECIPE_LIBRARY_IMAGE",
+            two,
+            "EVALUATION_PACK",
+            pack,
+            *lane,
+        ]
     )
-    assert not _same_principal(
-        old, '["miner","other","sha256:1","EVALUATION_PACK","sha256:p"]'
+    # never: another requester or owner, another pack, another form or marker, a malformed lane tail
+    assert not ok(
+        ["other", "miner", "PER_RECIPE_LIBRARY_IMAGE", one, "EVALUATION_PACK", pack]
     )
-    assert not _same_principal(
-        old, '["miner","miner","sha256:1","EVALUATION_PACK","sha256:q"]'
+    assert not ok(
+        ["miner", "other", "PER_RECIPE_LIBRARY_IMAGE", one, "EVALUATION_PACK", pack]
     )
-    assert not _same_principal(old, '["miner","miner","sha256:1"]')
-    assert not _same_principal("not json", old)
+    assert not ok(
+        [
+            "miner",
+            "miner",
+            "PER_RECIPE_LIBRARY_IMAGE",
+            one,
+            "EVALUATION_PACK",
+            other_pack,
+        ]
+    )
+    assert not ok(
+        ["miner", "miner", one, one, one, {"bundle": "x"}, "EVALUATION_PACK", pack]
+    )
+    assert not ok(
+        [
+            "miner",
+            "miner",
+            "PER_RECIPE_LIBRARY_IMAGE",
+            one,
+            "CONSTRUCTION_PARENT",
+            "torch",
+            two,
+            "EVALUATION_PACK",
+            pack,
+        ]
+    )
+    assert not ok([*old, "GRAPH_GPU_LANE", "sha256:" + "d" * 64])
+    # a fixed image's bundle reference never moves
+    fixed = ["miner", "miner", one, one, one, {"bundle": "x"}]
+    assert ok(["miner", "miner", two, two, two, {"bundle": "x"}], fixed)
+    assert not ok(["miner", "miner", two, two, two, {"bundle": "y"}], fixed)
+    assert not _same_principal("not json", json.dumps(old))
 
 
 def _reopen(tmp_path, fixed, inference_image, *, requester="miner", **extra):

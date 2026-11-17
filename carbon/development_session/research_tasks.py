@@ -217,9 +217,15 @@ def _campaign_limit_code(exc):
     )
 
 
+#: An image id in a provider binding row: the only values a declared door migration may move (with the graph GPU lane).
+_IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
+
+
 def _same_principal(old, new):
-    """Whether two provider binding rows name the same requester, owner and evaluation pack (only the worker images
-    and the graph GPU lane may differ: a declared door migration)."""
+    """Whether two provider binding rows differ ONLY in what a declared door migration moves: worker image ids and the
+    graph GPU lane (its ``GRAPH_GPU_LANE`` tail, added or changed). Everything else must be equal: requester, owner,
+    the row's form and markers (``PER_RECIPE_LIBRARY_IMAGE``, ``CONSTRUCTION_PARENT`` and its runtimes), a fixed
+    image's bundle reference, and the evaluation pack."""
     import json as _json
 
     try:
@@ -229,15 +235,31 @@ def _same_principal(old, new):
     if type(a) is not list or type(b) is not list or len(a) < 2 or len(b) < 2:
         return False
 
-    def pack(items):
-        found = [
+    def shape(items):
+        if "GRAPH_GPU_LANE" in items:
+            at = items.index("GRAPH_GPU_LANE")
+            if len(items) != at + 3:
+                return None
+            items = items[:at]
+        pack = [
             items[i + 1]
             for i, item in enumerate(items[:-1])
             if item == "EVALUATION_PACK"
         ]
-        return found
+        masked = [
+            "<image>" if type(item) is str and _IMAGE_ID.fullmatch(item) else item
+            for item in items
+        ]
+        return masked, pack
 
-    return a[:2] == b[:2] and pack(a) == pack(b)
+    left, right = shape(a), shape(b)
+    return (
+        left is not None
+        and right is not None
+        and a[:2] == b[:2]
+        and left[1] == right[1]
+        and left[0] == right[0]
+    )
 
 
 class DirectDevelopmentTasksV3:
