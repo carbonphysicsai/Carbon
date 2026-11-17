@@ -264,9 +264,11 @@ def test_a_bound_lane_decides_the_cores_and_never_falls_back(tmp_path):
     assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=4) == "0-3"
     with grade_lanes.bound(grade_lanes.Lane(1, "4-7", str(tmp_path))):
         assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=4) == "4-7"
-        # a lane of the wrong size, or cores this host does not have: refused, never trimmed or replaced
+        # today's (unsized) count runs on the lane's cores whatever their number (V2, 17 Nov 2026), as on a remote slot
+        assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=2) == "4-7"
+        # a sized worker of another count than the lane's, or cores this host does not have: refused, never trimmed
         with pytest.raises(WorkerFailure):
-            resolve_cpuset(logical_cpus=8, root=tmp_path, count=2)
+            resolve_cpuset(logical_cpus=8, root=tmp_path, count=3)
         with pytest.raises(WorkerFailure):
             resolve_cpuset(logical_cpus=6, root=tmp_path, count=4)
     assert grade_lanes.current() is None

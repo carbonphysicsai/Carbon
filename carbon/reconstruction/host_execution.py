@@ -170,8 +170,10 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
     cpuset's size, so a record naming another count refuses here, not at launch.
 
     Inside a lane-bound grading round (`carbon.reconstruction.grade_lanes`, two-lane mode only) the round's lane wins:
-    exactly that lane's cores, which must be exactly ``count`` of this host's cores, or it refuses. It never falls back to
-    the record's or the derived cores, which may be the other lane's.
+    exactly that lane's cores (this host's, or it refuses). A worker of other than today's CPU count needs exactly that
+    many cores; today's count (an unsized caller: a doctor check, an image verify) runs on the lane's cores whatever their
+    number, as on a remote GPU build slot (V2, 17 Nov 2026: an unsized doctor refused every migrated task on a 4-core
+    lane, switch 2). It never falls back to the record's or the derived cores, which may be the other lane's.
 
     A build bound to a remote GPU build slot (`carbon.reconstruction.remote_gpu_build`) runs on the lane machine: exactly
     its slot's cores there (``logical_cpus`` is that machine's, from its own daemon), whatever round it is part of.
@@ -194,7 +196,7 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
     lane = grade_lanes.take_lane_if_laneless()
     if lane is not None:
         cores = parse_cpuset(lane.cpuset)
-        if len(cores) != count or (
+        if (count != CPU_COUNT and len(cores) != count) or (
             type(logical_cpus) is int and max(cores) >= logical_cpus
         ):
             raise WorkerFailure(WorkerCode.POLICY)

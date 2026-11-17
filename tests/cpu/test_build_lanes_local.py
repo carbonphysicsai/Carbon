@@ -331,3 +331,17 @@ def test_outside_a_laneless_build_round_the_cores_are_chosen_as_before(host):
     with work.taking("grade", has_work=lambda: True):
         lane = grade_lanes.current()
         assert host_execution.resolve_cpuset(logical_cpus=16, count=4) == lane.cpuset
+
+
+def test_a_laneless_builds_unsized_doctor_gets_the_reserved_lane_never_policy(host):
+    """V2's blocker (17 Nov 2026): an UNSIZED caller (today's CPU count: a doctor in the library-environment or image
+    verify path of a build) in a laneless build round binds the 4-core reserved lane and is served its cores, never a
+    WorkerCode.POLICY refusal (the bug class that failed 14 of 14 migrated grades in switch 2).
+    """
+    from carbon.reconstruction import host_execution
+    from carbon.reconstruction.worker.model import CPU_COUNT
+
+    work, _ = _door(host, extra=4)
+    with work.taking("advance"):
+        assert host_execution.resolve_cpuset(logical_cpus=16, count=CPU_COUNT) == "0-3"
+        assert grade_lanes.current().index == 0
