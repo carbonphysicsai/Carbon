@@ -164,6 +164,7 @@ class FakeBox:
         self.smi = (0, f"{KIND}, {UUID}, 40960 MiB, {DRIVER}\n")
         self.driver_installs = 0
         self.docker = ""
+        self.containerd = "v2.4.2"
         self.ctk = False
         self.daemon = '{\n  "log-driver": "json-file"\n}\n'
         self.daemon_live = None
@@ -211,9 +212,11 @@ class FakeBox:
             self.driver_installs += 1
             return 0, "", ""
         if cmd == g.CMD_DOCKER_VERSION:
-            return 0, self.docker + ("\n" if self.docker else ""), ""
-        if cmd == g.cmd_docker_install(cfg.docker_version):
+            out = f"{self.docker} {self.containerd}\n" if self.docker else ""
+            return 0, out, ""
+        if cmd == g.cmd_docker_install(cfg.docker_version, cfg.containerd_version):
             self.docker = cfg.docker_version
+            self.containerd = "v" + cfg.containerd_version
             return 0, "", ""
         if cmd == g.CMD_CTK_PRESENT:
             return 0, "/usr/bin/nvidia-ctk\n" if self.ctk else "", ""
@@ -487,7 +490,7 @@ def test_a_second_run_on_a_ready_box_changes_nothing(tmp_path):
     box.calls.clear()
     assert _run(cfg, box)["status"] == "ADMITTED"
     commands = box.remote_commands()
-    assert box_up.cmd_docker_install("29.1.3") not in commands
+    assert box_up.cmd_docker_install("29.1.3", "2.4.2") not in commands
     assert box_up.CMD_TOOLKIT_INSTALL not in commands
     assert box_up.CMD_LANE_CREATE not in commands
     assert box_up.CMD_DOCKER_LOAD not in commands
@@ -886,14 +889,12 @@ def test_a_daemon_without_the_snapshotter_after_restart_refuses(tmp_path):
 
 def test_the_authorized_keys_line_is_exact(tmp_path):
     assert box_up.authorized_keys_line(DOOR, LANE_PUBKEY) == (
-        f'from="{DOOR}",no-agent-forwarding,no-port-forwarding,no-X11-forwarding {LANE_PUBKEY}'
+        f'restrict,from="{DOOR}" {LANE_PUBKEY}'
     )
     cfg = _config(tmp_path)
     box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.authorized_keys == (
-        f'from="{DOOR}",no-agent-forwarding,no-port-forwarding,no-X11-forwarding {LANE_PUBKEY}\n'
-    )
+    assert box.authorized_keys == (f'restrict,from="{DOOR}" {LANE_PUBKEY}\n')
 
 
 def test_authorized_keys_that_read_back_differently_refuse(tmp_path):
@@ -1013,6 +1014,50 @@ def test_a_reference_class_record_that_did_not_repeat_is_refused(tmp_path):
     with pytest.raises(box_up.Refused) as refused:
         box_up.config_from_args(box_up.build_parser().parse_args(argv))
     assert refused.value.reason == "class_record_not_gpu_repeats"
+
+
+def _incomplete(mutate):
+    reference = _class_record(DIGESTS)
+    mutate(reference)
+    return reference
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda r: r["cases"][0].pop("state_digest"),
+        lambda r: r["cases"][0].update(state_digest=None),
+        lambda r: r["cases"][1].update(rebuilds=[]),
+        lambda r: r["cases"][1]["rebuilds"][0].pop("predictions_digest"),
+        lambda r: r["cases"][2]["rebuilds"][1].update(state_digest=""),
+        lambda r: r["cases"][2].update(ran_on_gpu=None),
+        lambda r: r["cases"][0].update(bit_identical="yes"),
+        lambda r: r.update(all_on_gpu=None),
+        lambda r: r.pop("all_bit_identical"),
+    ],
+    ids=[
+        "no-state-digest",
+        "null-state-digest",
+        "no-rebuilds",
+        "rebuild-without-predictions",
+        "empty-rebuild-state",
+        "ran-on-gpu-missing",
+        "bit-identical-not-true",
+        "all-on-gpu-missing",
+        "all-bit-identical-missing",
+    ],
+)
+def test_an_incomplete_reference_class_record_is_refused(tmp_path, mutate):
+    """Validator-2: the digest compare is symmetric, so a field missing from BOTH the reference and the box's record
+    would match; an incomplete reference is refused before any box is touched."""
+    argv = _argv(tmp_path, record=_incomplete(mutate))
+    with pytest.raises(box_up.Refused) as refused:
+        box_up.config_from_args(box_up.build_parser().parse_args(argv))
+    assert refused.value.reason == "class_record_incomplete"
+
+
+def test_the_complete_reference_fixture_is_accepted(tmp_path):
+    box_up.require_complete_reference(_class_record(DIGESTS))
 
 
 # -- V2: the receiver's image and the class check's own files --------------------------------------------------------
@@ -1236,3 +1281,75 @@ def test_limit_a_box_replaying_another_boxs_output_is_admitted_pass_is_not_secur
     )
     assert _run(cfg, replay)["status"] == "ADMITTED"
     assert "replays another box's output can" in box_up.__doc__
+
+
+# -- V2 (17 Nov): containerd pinned, authorized_keys restrict, exclusive side records --------------------------------
+
+
+def test_a_box_with_another_containerd_is_reinstalled_to_the_pinned_one(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, docker="29.1.3", containerd="v2.1.0")
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert box.containerd == "v2.4.2"
+    install = box_up.cmd_docker_install("29.1.3", "2.4.2")
+    assert (
+        '"containerd.io=$c"' in install
+        and "apt-mark hold docker-ce docker-ce-cli containerd.io" in install
+    )
+
+
+def test_a_containerd_that_stays_wrong_is_refused(tmp_path):
+    cfg = _config(tmp_path)
+
+    class Stuck(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.cmd_docker_install(
+                cfg.docker_version, cfg.containerd_version
+            ):
+                self.docker = cfg.docker_version
+                return 0, "", ""
+            return super().remote(cmd, pipe_from)
+
+    box = Stuck(cfg, containerd="v2.1.0")
+    _refused(_run(cfg, box), "containerd_version_mismatch")
+
+
+def test_engine_versions_reads_docker_and_containerd():
+    assert box_up.engine_versions("29.1.3 v2.4.2\n") == "29.1.3 2.4.2"
+    assert box_up.engine_versions("29.1.3\n") == ""
+    assert box_up.engine_versions("") == ""
+
+
+def test_a_box_file_that_appears_during_the_run_is_never_replaced(
+    tmp_path, monkeypatch
+):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    real = box_up.write_box_files
+
+    def racing(cfg_, document, raw_output, raw_ops):
+        box_up.box_path(cfg_).write_text("another run")
+        os.chmod(box_up.box_path(cfg_), 0o600)
+        return real(cfg_, document, raw_output, raw_ops)
+
+    monkeypatch.setattr(box_up, "write_box_files", racing)
+    _refused(_run(cfg, box), "box_file_exists")
+    assert not any(os.path.lexists(p) for p in box_up.box_files(cfg))
+
+
+def test_an_unexpected_error_writing_the_box_file_leaves_no_files(
+    tmp_path, monkeypatch
+):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    real = box_up.write_private
+
+    def failing(directory, path, body):
+        if path == box_up.box_path(cfg):
+            raise OSError("disk full")
+        return real(directory, path, body)
+
+    monkeypatch.setattr(box_up, "write_private", failing)
+    with pytest.raises(OSError):
+        _run(cfg, box)
+    assert not any(os.path.lexists(p) for p in box_up.box_files(cfg))

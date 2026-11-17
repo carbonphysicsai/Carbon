@@ -108,7 +108,9 @@ ACCEPTED_PROVIDERS = ("lambda",)
 #: (carbon/reconstruction/remote_gpu_build.py:469) and `remote_gpu_build.op` yields None - the door's own daemon - for
 #: anything not eligible (:617). These fields are therefore not compared with the class record.
 CPU_FIELDS = frozenset({"cpu_state_digest", "parity_vs_cpu", "cpu_error"})
-#: Every box has the same shape: 4 slots x 4 cores, 16 GiB RAM per slot, plus headroom for the host.
+#: Every box has the same shape: 4 slots x 4 cores, 16 GiB RAM per slot, plus headroom for the host. "Cores" are
+#: LOGICAL CPUs (cpuset ids as `nproc --all` and /sys/devices/system/cpu/online count them; on a cloud VM, vCPUs,
+#: which may be hyperthreads of fewer physical cores).
 SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15")
 MIN_CPUS = 16
 MIN_MEM_KIB = (len(SLOT_CPUSETS) * 16 + 8) * 1024 * 1024
@@ -118,6 +120,8 @@ CLASS_CHECK_STEPS = 512
 DEFAULT_DRIVER_FLOOR = "580.65.06"
 DEFAULT_DRIVER_PACKAGE = "nvidia-driver-580-server"
 DEFAULT_DOCKER_VERSION = "29.1.3"
+#: GPUYard's containerd (containerd.io 2.4.2): image ids on the containerd store must match the door's.
+DEFAULT_CONTAINERD_VERSION = "2.4.2"
 
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 _ADMIN = re.compile(r"[a-z_][a-z0-9_-]{0,31}")
@@ -193,6 +197,7 @@ class Config:
     driver_floor: str
     driver_package: str
     docker_version: str
+    containerd_version: str
     door_ip: str
     lane_pubkey: str
     host_key_fingerprint: str
@@ -228,11 +233,11 @@ def public_key_line(text: str) -> str:
 
 
 def authorized_keys_line(door_ip: str, pubkey: str) -> str:
-    """The lane user's only authorized_keys line: the door's address, no forwarding of any kind."""
-    return (
-        f'from="{door_ip}",no-agent-forwarding,no-port-forwarding,no-X11-forwarding '
-        f"{pubkey}"
-    )
+    """The lane user's only authorized_keys line: the door's address only, and ``restrict`` (OpenSSH >= 7.2: no
+    forwarding of any kind, no pty, no ~/.ssh/rc, and any future restriction by default). The lane needs none of them:
+    ``docker system dial-stdio`` and the input mirror's tar stream are plain non-pty commands.
+    """
+    return f'restrict,from="{door_ip}" {pubkey}'
 
 
 def _version(text: str) -> tuple[int, ...]:
@@ -295,6 +300,8 @@ def config_from_args(args) -> Config:
     _version(args.driver_floor)
     if not _VERSION.fullmatch(args.docker_version):
         raise Refused("bad_argument", "--docker-version")
+    if not _VERSION.fullmatch(args.containerd_version):
+        raise Refused("bad_argument", "--containerd-version")
     if not _PACKAGE.fullmatch(args.driver_package):
         raise Refused("bad_argument", "--driver-package")
     if not _FINGERPRINT.fullmatch(args.host_key_fingerprint):
@@ -315,6 +322,7 @@ def config_from_args(args) -> Config:
         raise Refused("class_record_invalid", "not a class-check record")
     if record.get("verdict") != "GPU_REPEATS":
         raise Refused("class_record_not_gpu_repeats", str(record.get("verdict")))
+    require_complete_reference(record)
     reference = record_digests(record, "class_record_invalid")
     if ops.get("schema") != OPS_SCHEMA:
         raise Refused("class_ops_record_invalid", "not a graph GPU ops record")
@@ -334,6 +342,7 @@ def config_from_args(args) -> Config:
         driver_floor=args.driver_floor,
         driver_package=args.driver_package,
         docker_version=args.docker_version,
+        containerd_version=args.containerd_version,
         door_ip=door,
         lane_pubkey=pubkey,
         host_key_fingerprint=args.host_key_fingerprint,
@@ -416,13 +425,24 @@ def cmd_driver_install(package: str) -> str:
     )
 
 
+#: The daemon's version and its containerd's, as the daemon reports them: "<docker> <containerd>".
 CMD_DOCKER_VERSION = (
-    "sudo -n docker version --format '{{.Server.Version}}' 2>/dev/null || true"
+    "sudo -n docker version --format '{{.Server.Version}} {{range .Server.Components}}"
+    '{{if eq .Name "containerd"}}{{.Version}}{{end}}{{end}}\' 2>/dev/null || true'
 )
 
 
-def cmd_docker_install(version: str) -> str:
+def engine_versions(text: str) -> str:
+    """``"<docker> <containerd>"`` from `CMD_DOCKER_VERSION`'s output (a leading ``v`` dropped), or "" if unreadable."""
+    parts = text.split()
+    if len(parts) != 2:
+        return ""
+    return f"{parts[0]} {parts[1].removeprefix('v')}"
+
+
+def cmd_docker_install(version: str, containerd: str) -> str:
     pattern = "^5:" + version.replace(".", r"\.") + "-"
+    containerd_pattern = "^" + containerd.replace(".", r"\.") + "-"
     return sudo_sh(
         "set -eu; export DEBIAN_FRONTEND=noninteractive; "
         "for p in docker.io docker-doc docker-compose docker-compose-v2 podman-docker; do "
@@ -435,9 +455,11 @@ def cmd_docker_install(version: str) -> str:
         'https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" '
         "> /etc/apt/sources.list.d/docker.list; apt-get update; "
         f"v=$(apt-cache madison docker-ce | awk '{{print $3}}' | grep -E '{pattern}' | head -n1); "
-        'test -n "$v"; apt-mark unhold docker-ce docker-ce-cli >/dev/null 2>&1 || true; '
-        'apt-get install -y --allow-downgrades "docker-ce=$v" "docker-ce-cli=$v" containerd.io; '
-        "apt-mark hold docker-ce docker-ce-cli; systemctl enable --now docker"
+        f"c=$(apt-cache madison containerd.io | awk '{{print $3}}' | grep -E '{containerd_pattern}' | head -n1); "
+        'test -n "$v"; test -n "$c"; '
+        "apt-mark unhold docker-ce docker-ce-cli containerd.io >/dev/null 2>&1 || true; "
+        'apt-get install -y --allow-downgrades "docker-ce=$v" "docker-ce-cli=$v" "containerd.io=$c"; '
+        "apt-mark hold docker-ce docker-ce-cli containerd.io; systemctl enable --now docker"
     )
 
 
@@ -697,6 +719,41 @@ def record_digests(record: dict, reason: str) -> dict:
     return digests
 
 
+def require_complete_reference(record: dict) -> None:
+    """Validator-2 (17 Nov): the reference class record must be COMPLETE, since `record_digests` compares symmetrically
+    and an empty field on both sides would match. Every case is bit-identical and on the GPU with a sha256
+    ``state_digest``, and has at least one rebuild, every rebuild carrying sha256 ``state_digest`` and
+    ``predictions_digest``; the record's ``all_on_gpu`` and ``all_bit_identical`` are true.
+    """
+    reason = "class_record_incomplete"
+    if (
+        record.get("all_on_gpu") is not True
+        or record.get("all_bit_identical") is not True
+    ):
+        raise Refused(reason, "all_on_gpu / all_bit_identical")
+    cases = record.get("cases")
+    if type(cases) is not list or not cases:
+        raise Refused(reason, "no cases")
+    for case in cases:
+        if type(case) is not dict:
+            raise Refused(reason, "a case is not an object")
+        name = case_id(case)
+        if case.get("bit_identical") is not True or case.get("ran_on_gpu") is not True:
+            raise Refused(reason, f"{name}: bit_identical / ran_on_gpu")
+        if type(case.get("state_digest")) is not str or not _IMAGE_ID.fullmatch(
+            case["state_digest"]
+        ):
+            raise Refused(reason, f"{name}: state_digest")
+        rebuilds = case.get("rebuilds")
+        if type(rebuilds) is not list or not rebuilds:
+            raise Refused(reason, f"{name}: no rebuilds")
+        for index, rebuild in enumerate(rebuilds):
+            for key in ("state_digest", "predictions_digest"):
+                value = rebuild.get(key) if type(rebuild) is dict else None
+                if type(value) is not str or not _IMAGE_ID.fullmatch(value):
+                    raise Refused(reason, f"{name}: rebuilds[{index}].{key}")
+
+
 def _gpu_name(row) -> str | None:
     """The first field of an ``nvidia-smi --format=csv,noheader`` row: the device name, exactly."""
     return row.split(",")[0].strip() if type(row) is str else None
@@ -847,7 +904,9 @@ def remove_box_files(cfg: Config) -> None:
 
 
 def write_private(directory: Path, path: Path, body: bytes) -> Path:
-    """Atomic: a 0600 temp file in the same directory, fsynced, renamed over the name."""
+    """Atomic and EXCLUSIVE: a 0600 temp file in the same directory, fsynced, then hard-linked to the name, which fails
+    if the name exists (another run's file is never replaced; this run removed its own at the start).
+    """
     fd, part = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".part", dir=directory)
     try:
         with os.fdopen(fd, "wb") as handle:
@@ -855,11 +914,15 @@ def write_private(directory: Path, path: Path, body: bytes) -> Path:
             handle.flush()
             os.fsync(handle.fileno())
         os.chmod(part, 0o600)
-        os.replace(part, path)
-    except BaseException:
+        try:
+            os.link(part, path)
+        except FileExistsError:
+            raise Refused(
+                "box_file_exists", f"{path.name} appeared during the run"
+            ) from None
+    finally:
         if os.path.lexists(part):
             os.unlink(part)
-        raise
     handle = os.open(directory, os.O_RDONLY)
     try:
         os.fsync(handle)
@@ -1036,11 +1099,12 @@ class Session:
     def docker(self):
         cfg = self.cfg
         if (
-            self.remote(CMD_DOCKER_VERSION, reason="docker_unreadable").strip()
-            != cfg.docker_version
+            engine_versions(self.remote(CMD_DOCKER_VERSION, reason="docker_unreadable"))
+            != self._engine()
         ):
             self.remote(
-                cmd_docker_install(cfg.docker_version), reason="docker_install_failed"
+                cmd_docker_install(cfg.docker_version, cfg.containerd_version),
+                reason="docker_install_failed",
             )
         if not self.remote(CMD_CTK_PRESENT, reason="docker_unreadable").strip():
             self.remote(CMD_TOOLKIT_INSTALL, reason="toolkit_install_failed")
@@ -1067,6 +1131,9 @@ class Session:
         if problem:
             raise Refused(*problem)
 
+    def _engine(self) -> str:
+        return f"{self.cfg.docker_version} {self.cfg.containerd_version}"
+
     def _docker_problem(self):
         """``(reason, detail)`` when ``docker info`` does not show the version, the snapshotter and the nvidia
         runtime; None when it does."""
@@ -1077,6 +1144,11 @@ class Session:
         )
         if info.get("ServerVersion") != self.cfg.docker_version:
             return "docker_version_mismatch", str(info.get("ServerVersion"))
+        engine = engine_versions(
+            self.remote(CMD_DOCKER_VERSION, reason="docker_unreadable")
+        )
+        if engine != self._engine():
+            return "containerd_version_mismatch", engine or "unreadable"
         if "io.containerd.snapshotter.v1" not in json.dumps(info.get("DriverStatus")):
             return "docker_snapshotter_missing", json.dumps(info.get("DriverStatus"))
         runtimes = info.get("Runtimes")
@@ -1283,6 +1355,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     session = Session(cfg, runner, log=log)
     scratch = tempfile.mkdtemp(prefix="gpu-box-up-")
     session.known_hosts = os.path.join(scratch, "known_hosts")
+    admitted = False
     try:
         host_key = session.run_step("host_key", session.host_key)
         session.run_step("shape", session.shape)
@@ -1310,10 +1383,13 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         )
         session.step = "box_file"
         path = write_box_files(cfg, document, raw_output, raw_ops)
+        admitted = True
     except Refused as refusal:
-        remove_box_files(cfg)
         return refused(session.step, refusal)
     finally:
+        # any end but a full PASS (a refusal, an OSError, an interrupt) leaves none of the three files
+        if not admitted:
+            remove_box_files(cfg)
         shutil.rmtree(scratch, ignore_errors=True)
     return {
         "status": "ADMITTED",
@@ -1342,7 +1418,8 @@ def plan(cfg: Config) -> list[tuple[str, str]]:
     steps.append(remote("docker", CMD_DOCKER_VERSION))
     steps.append(
         remote(
-            "docker (only when another version)", cmd_docker_install(cfg.docker_version)
+            "docker (only when another version)",
+            cmd_docker_install(cfg.docker_version, cfg.containerd_version),
         )
     )
     steps.append(remote("docker", CMD_CTK_PRESENT))
@@ -1420,6 +1497,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--driver-floor", default=DEFAULT_DRIVER_FLOOR)
     parser.add_argument("--driver-package", default=DEFAULT_DRIVER_PACKAGE)
     parser.add_argument("--docker-version", default=DEFAULT_DOCKER_VERSION)
+    parser.add_argument("--containerd-version", default=DEFAULT_CONTAINERD_VERSION)
     parser.add_argument(
         "--door-ip", required=True, help="the only address the lane key may log in from"
     )
