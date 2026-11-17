@@ -151,3 +151,236 @@ def test_a_read_only_directory_is_snapshotted_with_its_mode(state, tmp_path):
     finally:
         os.chmod(state / "logs", 0o700)
         os.chmod(tmp_path / "snap/logs", 0o700)
+
+
+# --- the LIVE (zero-drain) snapshot, for a never-live copy -------------------------------------------------------
+
+
+def test_a_live_snapshot_of_an_idle_door_keeps_everything_and_is_marked_never_live(
+    state, tmp_path
+):
+    out = tmp_path / "snap"
+    result = state_snapshot.take_live(state, out)
+    assert result["state"] == "SNAPSHOT_TAKEN_LIVE"
+    assert result["mode"] == "live" and result["never_live"] is True
+    assert result["in_flight"] == {"work_inflight": None, "rows": {}}
+    assert result["moving"] == [] and result["vanished"] == []
+    records = _manifest(out)
+    assert records["owners/abc/ledger/campaign.sqlite3"]["method"] == "sqlite_backup"
+    assert records["door-binding.json"]["method"] == "hardlink"
+    assert records["manifest-migrations.jsonl"]["method"] == "copy"
+    db = sqlite3.connect(out / "owners/abc/ledger/campaign.sqlite3")
+    assert db.execute("SELECT COUNT(*) FROM t").fetchone() == (50,)
+    db.close()
+
+
+def test_a_database_written_during_a_live_snapshot_is_kept_at_one_consistent_point(
+    state, tmp_path, monkeypatch
+):
+    """The idle snapshot refuses `sqlite_moved_during_snapshot`; the live one keeps the backup's own state."""
+    path = state / "owners/abc/ledger/campaign.sqlite3"
+    real = state_snapshot._sqlite_backup
+
+    def backup_then_live_writes(source, target):
+        real(source, target)
+        db = sqlite3.connect(path)
+        db.execute("INSERT INTO t VALUES (999)")
+        db.commit()
+        db.close()
+
+    monkeypatch.setattr(state_snapshot, "_sqlite_backup", backup_then_live_writes)
+    with pytest.raises(SnapshotRefused, match="sqlite_moved_during_snapshot"):
+        take(state, tmp_path / "idle")
+    out = tmp_path / "snap"
+    state_snapshot.take_live(state, out)
+    db = sqlite3.connect(out / "owners/abc/ledger/campaign.sqlite3")
+    assert db.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+    assert db.execute("SELECT COUNT(*) FROM t").fetchone()[0] in (50, 51)
+    db.close()
+
+
+def test_a_log_still_growing_keeps_its_complete_line_prefix(
+    state, tmp_path, monkeypatch
+):
+    log = state / "manifest-migrations.jsonl"
+    real = state_snapshot.shutil.copy2
+
+    def copy_then_append(source, target, **kwargs):
+        out = real(source, target, **kwargs)
+        if str(source) == str(log):
+            with open(log, "a") as f:
+                f.write('{"n": "partial')  # a writer mid-line
+        return out
+
+    monkeypatch.setattr(state_snapshot.shutil, "copy2", copy_then_append)
+    out = tmp_path / "snap"
+    result = state_snapshot.take_live(state, out)
+    kept = (out / "manifest-migrations.jsonl").read_bytes()
+    assert kept.endswith(b"\n") and log.read_bytes().startswith(kept)
+    assert _manifest(out)["manifest-migrations.jsonl"]["method"] == "copy_prefix"
+    assert result["moving"] == []
+
+
+def test_a_file_that_keeps_changing_is_listed_moving_and_a_vanished_one_is_listed_not_kept(
+    state, tmp_path, monkeypatch
+):
+    workspace = state / "owners/abc/workspace.json"
+    marker = state / "auto-grade/markers/rtsk_1.json"
+    real = state_snapshot.shutil.copy2
+    edits = iter(range(100))
+
+    def copy(source, target, **kwargs):
+        if str(source) == str(marker):
+            raise FileNotFoundError(2, "gone", str(source))
+        out = real(source, target, **kwargs)
+        if str(source) == str(workspace):
+            workspace.write_text(f'{{"doc": {next(edits)}}}')
+        return out
+
+    monkeypatch.setattr(state_snapshot.shutil, "copy2", copy)
+    out = tmp_path / "snap"
+    result = state_snapshot.take_live(state, out)
+    assert result["moving"] == ["owners/abc/workspace.json"]
+    assert result["vanished"] == ["auto-grade/markers/rtsk_1.json"]
+    assert not (out / "auto-grade/markers/rtsk_1.json").exists()
+    assert "auto-grade/markers/rtsk_1.json" not in _manifest(out)
+
+
+def test_work_in_flight_is_listed_for_the_copy_to_settle(state, tmp_path):
+    (state / "work-inflight.json").write_text('{"kind": "grade", "pid": 7}')
+    db = sqlite3.connect(state / "owners/abc/ledger/ops.sqlite3")
+    db.execute("CREATE TABLE operations (identity TEXT, state TEXT)")
+    db.executemany(
+        "INSERT INTO operations VALUES (?, ?)",
+        [("a", "RESERVED"), ("b", "SUCCEEDED"), ("c", "RESERVED"), ("d", "RUNNING")],
+    )
+    db.commit()
+    db.close()
+    result = state_snapshot.take_live(state, tmp_path / "snap")
+    assert result["in_flight"] == {
+        "work_inflight": {"kind": "grade", "pid": 7},
+        "rows": {
+            "owners/abc/ledger/ops.sqlite3": {
+                "operations": {"RESERVED": 2, "RUNNING": 1}
+            }
+        },
+    }
+
+
+def test_a_live_snapshot_writes_no_content_file_of_the_state(state, tmp_path):
+    def listing():
+        return {
+            p.relative_to(state).as_posix(): p.read_bytes()
+            for p in state.rglob("*")
+            if p.is_file() and not p.name.endswith(("-shm", "-wal"))
+        }
+
+    before = listing()
+    state_snapshot.take_live(state, tmp_path / "snap")
+    assert listing() == before
+
+
+def test_the_live_cli_says_live(state, tmp_path, capsys):
+    assert (
+        state_snapshot.main(["take", "--live", str(state), str(tmp_path / "snap")]) == 0
+    )
+    assert json.loads(capsys.readouterr().out)["state"] == "SNAPSHOT_TAKEN_LIVE"
+
+
+def _live_door_with_work_in_flight(root):
+    """A door state with one owner whose ledger holds a RESERVED worker op (live's grade in flight) and a settled one."""
+    from carbon.development_session.research_ledger import CampaignLedger
+
+    hotkey = "5F" + "a" * 46
+    owner_dir = root / "receiver" / ("b" * 64)
+    owner_dir.mkdir(parents=True, mode=0o700)
+    (owner_dir / "owner.json").write_text(json.dumps({"hotkey": hotkey}))
+    ledger = CampaignLedger(owner_dir / "ledger")
+    reservation = json.dumps({"numerical_milliseconds": 648000, "provider_attempts": 1})
+    with ledger.db() as db:
+        db.executemany(
+            "INSERT INTO operations VALUES (?,?,?,?,?,?,?,?,?)",
+            [
+                (
+                    "op-live",
+                    hotkey,
+                    "evaluation",
+                    "d1",
+                    "RESERVED",
+                    reservation,
+                    None,
+                    None,
+                    1.0,
+                ),
+                (
+                    "op-done",
+                    hotkey,
+                    "evaluation",
+                    "d2",
+                    "SUCCEEDED",
+                    reservation,
+                    reservation,
+                    "{}",
+                    1.0,
+                ),
+            ],
+        )
+    (root / "work-inflight.json").write_text('{"kind": "grade", "pid": 7}')
+    return hotkey, owner_dir
+
+
+@pytest.mark.skipif(os.name != "posix", reason="the ledger lease uses fcntl.flock")
+def test_a_copy_settles_live_in_flight_work_offline_and_never_touches_a_worker(
+    state, tmp_path, monkeypatch
+):
+    """The copy's first start must not reconcile live's worker (its container is live's, on live's lanes)."""
+    from carbon.development_session import research_carrier
+    from carbon.development_session.research_ledger import CampaignLedger
+
+    hotkey, owner_dir = _live_door_with_work_in_flight(state)
+    out = tmp_path / "snap"
+    taken = state_snapshot.take_live(state, out)
+    rel = owner_dir.relative_to(state).as_posix() + "/ledger/campaign.sqlite3"
+    assert taken["in_flight"]["rows"][rel] == {"operations": {"RESERVED": 1}}
+    assert taken["in_flight"]["work_inflight"] == {"kind": "grade", "pid": 7}
+
+    with pytest.raises(SnapshotRefused, match="not_a_live_snapshot"):
+        state_snapshot.settle_copy(state)  # the live state itself: no live manifest
+    result = state_snapshot.settle_copy(out)
+    assert result["state"] == "COPY_SETTLED" and result["work_inflight_removed"]
+    assert [s["operation"] for s in result["settled"]] == ["op-live"]
+    assert not (out / "work-inflight.json").exists()
+
+    copy = CampaignLedger(out / owner_dir.relative_to(state) / "ledger")
+    assert copy.operation_state("op-live", owner=hotkey) == "FAILED_INFRA"
+    assert copy.operation_state("op-done", owner=hotkey) == "SUCCEEDED"
+    with copy.db() as db:
+        actual, body = db.execute(
+            "SELECT actual, result FROM operations WHERE id='op-live'"
+        ).fetchone()
+    assert json.loads(actual) == {
+        "numerical_milliseconds": 648000,
+        "provider_attempts": 1,
+    }
+    assert json.loads(body)["cleanup_observed"] is False
+    # the door's restore path on the copy now never reaches a container or a lane
+    monkeypatch.setattr(
+        research_carrier,
+        "remove_exact_container",
+        lambda **_: pytest.fail("the copy touched a worker"),
+    )
+    research_carrier.reconcile_worker(copy, owner=hotkey, identity="op-live")
+    # live is untouched: its op is still RESERVED and its in-flight record still there
+    live = CampaignLedger(owner_dir / "ledger")
+    assert live.operation_state("op-live", owner=hotkey) == "RESERVED"
+    assert (state / "work-inflight.json").exists()
+    # again: nothing more to do
+    again = state_snapshot.settle_copy(out)
+    assert again["settled"] == [] and not again["work_inflight_removed"]
+
+
+def test_settle_refuses_an_idle_snapshot(state, tmp_path):
+    out = tmp_path / "snap"
+    take(state, out)
+    with pytest.raises(SnapshotRefused, match="not_a_live_snapshot"):
+        state_snapshot.settle_copy(out)
