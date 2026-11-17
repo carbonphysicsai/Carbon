@@ -67,6 +67,9 @@ SIF_ADDED = (
     "  Variable 4 = Temperature",
     "  Operator 4 = boundary max",
     "  Mask Name 4 = String Underside Max",
+    "  Variable 5 = Temperature",
+    "  Operator 5 = boundary min",
+    "  Mask Name 5 = String Underside Max",
 )
 
 
@@ -899,9 +902,10 @@ _C_US = "boundary max: temperature over bc underside max"
 _C_MIN = "boundary min: temperature over bc underside max"
 
 
-def _k_case(tmp_path, rows, cols=(_C_MAX, _C_US, _C_MIN)):
+def _k_case(tmp_path, rows, cols=(_C_MAX, _C_US, _C_MIN), case=None):
     d = tmp_path / "kcase"
     d.mkdir()
+    (d / "deck.json").write_text(json.dumps({"case": case or {"pulses": 1}}))
     names = ["   1: time"] + [f"   {i + 2}: {c}" for i, c in enumerate(cols)]
     (d / "scalars.dat").write_text(
         "\n".join(" ".join(repr(v) for v in r) for r in rows) + "\n"
@@ -939,7 +943,8 @@ def test_public_scalars_v32_matches_runner_formula_golden(tmp_path):
     d = _k_case(tmp_path, rows)
     obs = _k_obs()
     got = v32.public_scalars_v32(d, obs)
-    assert set(got) == set(v32.SCALAR_KEYS_V32)
+    assert set(got) == set(v32.SCALAR_KEYS_V32) | set(v32.PULSE_MAXIMA_KEYS_V32)
+    assert not set(v32.PULSE_MAXIMA_KEYS_V32) & set(v32.SCALAR_KEYS_V32)
     assert {k: got[k] for k in v3.SCALAR_KEYS} == v32.public_scalars(obs)
     # Literal copy of codex-queue/reports/BT32_TRAIN_PAYLOAD_20261108/bt32_train_run.py lines ~170-180.
     _cols, rows2 = v3.read_scalars(d)
@@ -973,3 +978,177 @@ def test_public_scalars_v32_tie_in_peak_picks_first_row(tmp_path):
     assert got["t_peak_s"] == 0.5
     assert got["underside_max_at_peak_c"] == 320.0 - 273.15
     assert got["underside_min_at_peak_c"] == 306.0 - 273.15
+
+
+# --- the 2-pulse argmax band input (CV-BT 16 Nov 19:50, step 1b) -------------------------------------------------------
+
+_TWO = {
+    "pulses": 2,
+    "on_time_s": 6.0,
+    "gap_s": 10.0,
+}  # pulse 2 starts at 20 + 3 + 10 = 33 s
+
+
+def test_one_pulse_maxima_are_the_peak_and_none(tmp_path):
+    rows = [
+        [0.0, 300.0, 310.0, 305.0],
+        [30.0, 360.0, 320.0, 306.0],
+        [60.0, 340.0, 1.0, 1.0],
+    ]
+    got = v32.public_scalars_v32(_k_case(tmp_path, rows), _k_obs())
+    assert got["peak_pulse1_c"] == 360.0 - 273.15 and got["peak_pulse2_c"] is None
+
+
+def test_two_pulse_maxima_split_at_the_second_pulse_start(tmp_path):
+    assert v3.second_pulse_window(_TWO)[0] == 33.0
+    rows = [
+        [0.0, 300.0, 310.0, 305.0],
+        [25.0, 350.0, 320.0, 306.0],
+        [32.5, 349.0, 320.0, 306.0],
+        # the start row belongs to pulse 2 (window [start, end], as v3.second_pulse_peak_c)
+        [33.0, 345.0, 321.0, 307.0],
+        [40.0, 340.0, 322.0, 308.0],
+        [120.0, 320.0, 323.0, 309.0],
+    ]
+    got = v32.public_scalars_v32(_k_case(tmp_path, rows, case=_TWO), _k_obs())
+    assert got["peak_pulse1_c"] == 350.0 - 273.15
+    assert got["peak_pulse2_c"] == 345.0 - 273.15
+
+
+def test_two_pulse_maxima_equal_within_float_are_both_reported(tmp_path):
+    rows = [
+        [0.0, 300.0, 1.0, 1.0],
+        [25.0, 360.0, 320.0, 306.0],
+        [40.0, 360.0, 399.0, 398.0],
+    ]
+    got = v32.public_scalars_v32(_k_case(tmp_path, rows, case=_TWO), _k_obs())
+    assert got["peak_pulse1_c"] == got["peak_pulse2_c"] == 360.0 - 273.15
+    # the argmax still takes the first row on ties; the scoring band (spec) handles the ambiguity
+    assert got["t_peak_s"] == 25.0
+
+
+@pytest.mark.parametrize(
+    "deck, rows, why",
+    [
+        ({}, [[0.0, 300.0, 1.0, 1.0]], "pulse_count_absent"),
+        ({"case": {}}, [[0.0, 300.0, 1.0, 1.0]], "pulse_count_absent"),
+        ({"case": {"pulses": 3}}, [[0.0, 300.0, 1.0, 1.0]], "pulse_count_absent"),
+        (
+            {"case": _TWO},
+            [[0.0, 300.0, 1.0, 1.0], [10.0, 301.0, 1.0, 1.0]],
+            "pulse_window_empty",
+        ),
+        ({"case": _TWO}, [[40.0, 300.0, 1.0, 1.0]], "pulse_window_empty"),
+    ],
+)
+def test_pulse_maxima_refuse_missing_or_empty_inputs(tmp_path, deck, rows, why):
+    d = _k_case(tmp_path, rows)
+    (d / "deck.json").write_text(json.dumps(deck))
+    with pytest.raises(v3.DeckRefused, match=why):
+        v32.public_scalars_v32(d, _k_obs())
+
+
+# --- add_min folded into the 3.2 SIF writer (CV-BT 16 Nov 06:18) --------------------------------------------------------
+
+
+# fmt: off
+def _runner_add_min(text):
+    """t3min.py f41b72a5's add_min, VERBATIM (codex-queue/reports/BT32_T3EXACT_B1T3_20261108/t3min.py; the same function is
+    in the receipted runners bt32_train_run 7f431dc5 and bt32_probe_run aad3d2af)."""
+    ADD = ["  Variable 5 = Temperature", "  Operator 5 = boundary min", "  Mask Name 5 = String Underside Max"]
+    lines = text.split("\n")
+    i = [k for k, l in enumerate(lines) if l.strip() == 'Procedure = "SaveData" "SaveScalars"']
+    assert len(i) == 1, "SaveScalars block not unique"
+    e = next(k for k in range(i[0], len(lines)) if lines[k].strip() == "End")
+    blk = lines[i[0]:e]
+    assert not any(l.strip().startswith("Variable 5") for l in blk), "Variable 5 already present"
+    assert any(l.strip() == "Mask Name 4 = String Underside Max" for l in blk), "unexpected SaveScalars block"
+    j = next(k for k in range(i[0], e) if lines[k].strip() == "Mask Name 4 = String Underside Max")
+    return "\n".join(lines[: j + 1] + ADD + lines[j + 1:])
+# fmt: on
+
+
+def _write32(tmp_path, name, case=CASE):
+    curve, curve_sha = _curve(tmp_path)
+    return v32.write_case_v32_test(
+        case,
+        tmp_path / name,
+        curve_path=curve,
+        curve_sha256=curve_sha,
+        leakage=_test_leak(tmp_path),
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    [CASE, {**CASE, "pulses": 2, "gap_s": 10.0}, {**CASE, "ramp_fraction": 1.0}],
+)
+def test_folded_sif_is_byte_equal_to_old_writer_plus_runner_add_min(
+    tmp_path, monkeypatch, case
+):
+    _write32(tmp_path, "new", case)
+    monkeypatch.setattr(
+        v32, "_fold_underside_min", lambda text: text
+    )  # the pre-fold writer
+    _write32(tmp_path, "old", case)
+    monkeypatch.undo()
+    old = tmp_path / "old" / "case.sif"
+    assert "Variable 5" not in old.read_text()
+    old.write_text(_runner_add_min(old.read_text()))  # exactly the runners' step
+    assert (tmp_path / "new" / "case.sif").read_bytes() == old.read_bytes()
+    assert (tmp_path / "new" / "deck.json").read_bytes() == (
+        tmp_path / "old" / "deck.json"
+    ).read_bytes()
+
+
+def test_the_runner_refuses_a_second_operator_on_a_folded_deck(tmp_path):
+    _write32(tmp_path, "d")
+    text = (tmp_path / "d" / "case.sif").read_text()
+    with pytest.raises(AssertionError, match="Variable 5 already present"):
+        _runner_add_min(text)
+    with pytest.raises(v3.DeckRefused, match="underside_min_operator_already_present"):
+        v32._fold_underside_min(text)
+
+
+def test_patch_refuses_a_sif_that_already_has_a_variable_5(tmp_path):
+    curve, curve_sha = _curve(tmp_path)
+    table = v32.h_eff_table(
+        v3.resolve_case(CASE),
+        v32.load_curve(curve, expect_sha256=curve_sha, test_mode=True),
+    )
+    v3.write_case(CASE, tmp_path / "e", test_mode=True, leakage=_test_leak(tmp_path))
+    sif = tmp_path / "e" / "case.sif"
+    sif.write_text(sif.read_text() + "\n  Variable 5 = Temperature\n")
+    with pytest.raises(v3.DeckRefused, match="sif_edit_points_not_found_exactly_once"):
+        v32._patch(tmp_path / "e", v3.resolve_case(CASE), table)
+
+
+_SAVER = 'Procedure = "SaveData" "SaveScalars"'
+
+
+@pytest.mark.parametrize(
+    "mutate, why",
+    [
+        (
+            lambda s: s.replace(_SAVER, "Procedure = x", 1),
+            "savescalars_block_not_unique",
+        ),
+        (
+            lambda s: s + "\nSolver 9\n  " + _SAVER + "\nEnd\n",
+            "savescalars_block_not_unique",
+        ),
+        (
+            lambda s: s.replace("  Mask Name 4 = String Underside Max\n", ""),
+            "savescalars_block_unexpected",
+        ),
+    ],
+)
+def test_the_fold_refuses_an_unexpected_savescalars_block(
+    tmp_path, monkeypatch, mutate, why
+):
+    monkeypatch.setattr(v32, "_fold_underside_min", lambda text: text)
+    _write32(tmp_path, "d")
+    monkeypatch.undo()
+    old = (tmp_path / "d" / "case.sif").read_text()
+    with pytest.raises(v3.DeckRefused, match=why):
+        v32._fold_underside_min(mutate(old))

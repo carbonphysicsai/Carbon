@@ -286,8 +286,8 @@ def _table_digest(table):
 
 
 def _patch(out, case, table):
-    """The underside's constant coefficient -> the h_eff(T) table; + the underside-max SaveScalars operator. Each edit must apply
-    exactly once (else refuse)."""
+    """The underside's constant coefficient -> the h_eff(T) table; + the underside-max and underside-min SaveScalars operators.
+    Each edit must apply exactly once (else refuse)."""
     sif_path = Path(out, "case.sif")
     text = sif_path.read_text()
     block = (
@@ -297,7 +297,12 @@ def _patch(out, case, table):
         f"  Heat Transfer Coefficient = {case['h_w_m2_k']!r}\n"
     )
     saver = "  Variable 3 = Temperature\n  Operator 3 = boundary int\n"
-    if text.count(block) != 1 or text.count(saver) != 1 or "Variable 4 =" in text:
+    if (
+        text.count(block) != 1
+        or text.count(saver) != 1
+        or "Variable 4 =" in text
+        or "Variable 5 =" in text
+    ):
         raise DeckRefused("sif_edit_points_not_found_exactly_once")
     rows = "\n".join(f"      {t!r} {h!r}" for t, h in table)
     patched = (
@@ -312,9 +317,44 @@ def _patch(out, case, table):
         saver
         + f"  Variable 4 = Temperature\n  Operator 4 = boundary max\n  Mask Name 4 = String {UNDERSIDE_MASK}\n",
     )
+    text = _fold_underside_min(text)
     tmp = sif_path.with_name("case.sif.tmp")
     tmp.write_text(text)
     tmp.replace(sif_path)
+
+
+#: The underside-MIN operator every 3.2 reference solve already carried as the custody runners' ``add_min`` (t3min f41b72a5,
+#: receipted BIT_EQUAL_OBSERVATION_ONLY). Folded into the deck (CV-BT 16 Nov 06:18), so the scored outputs' definition lives here.
+_UNDERSIDE_MIN_LINES = (
+    "  Variable 5 = Temperature",
+    "  Operator 5 = boundary min",
+    f"  Mask Name 5 = String {UNDERSIDE_MASK}",
+)
+
+
+def _fold_underside_min(text):
+    """t3min f41b72a5's ``add_min`` as a deck step, byte-for-byte the same composition: the three lines go right after
+    ``Mask Name 4`` in the unique SaveScalars block. Refuses (never a second operator) when the block is not unique, is not the
+    expected one, or already carries a ``Variable 5``."""
+    lines = text.split("\n")
+    i = [
+        k
+        for k, line in enumerate(lines)
+        if line.strip() == 'Procedure = "SaveData" "SaveScalars"'
+    ]
+    if len(i) != 1:
+        raise DeckRefused("savescalars_block_not_unique")
+    e = next((k for k in range(i[0], len(lines)) if lines[k].strip() == "End"), None)
+    if e is None:
+        raise DeckRefused("savescalars_block_not_closed")
+    blk = lines[i[0] : e]
+    if any(line.strip().startswith("Variable 5") for line in blk):
+        raise DeckRefused("underside_min_operator_already_present")
+    mask4 = f"Mask Name 4 = String {UNDERSIDE_MASK}"
+    j = [k for k in range(i[0], e) if lines[k].strip() == mask4]
+    if len(j) != 1:
+        raise DeckRefused("savescalars_block_unexpected")
+    return "\n".join(lines[: j[0] + 1] + list(_UNDERSIDE_MIN_LINES) + lines[j[0] + 1 :])
 
 
 @contextmanager
@@ -571,7 +611,12 @@ _COL_MIN = "boundary min: temperature over bc underside max"
 
 def public_scalars_v32(case_dir, obs, *, read_scalars=None):
     """The 3.0 scalars plus the four 3.2 outputs, computed as the BT32 custody runner does. Refuses (never guesses)
-    when a needed scalars column or row is absent; it does not add the underside-min operator to any deck.
+    when a needed scalars column or row is absent (the 3.2 deck writes the underside-min operator itself).
+
+    Also returns, NOT scored, the two per-pulse maxima of the save-scalars max column (deg C), the input of the 2-pulse
+    argmax band (CV-BT 16 Nov 06:18 / 19:50): ``peak_pulse1_c`` = max over t in [0, pulse-2 start) and ``peak_pulse2_c`` = max
+    over [pulse-2 start, end] (``v3.second_pulse_window``); for a 1-pulse case ``peak_pulse1_c`` = the peak and
+    ``peak_pulse2_c`` = None. Refuses when a 2-pulse window holds no row.
     """
     base = public_scalars(obs)
     cols, rows = (read_scalars or v3.read_scalars)(case_dir)
@@ -589,10 +634,33 @@ def public_scalars_v32(case_dir, obs, *, read_scalars=None):
         raise v3.DeckRefused("underside_max_trace_absent")
     im, ius, imin = cols.index(_COL_MAX), cols.index(_COL_US), cols.index(_COL_MIN)
     k = max(range(len(rows)), key=lambda r: rows[r][im])
+    p1, p2 = _pulse_maxima(case_dir, rows, im)
     return {
         **base,
         "t_peak_s": rows[k][0],
         "underside_max_c": max(v for _t, v in trace),
         "underside_max_at_peak_c": rows[k][ius] - 273.15,
         "underside_min_at_peak_c": rows[k][imin] - 273.15,
+        "peak_pulse1_c": p1,
+        "peak_pulse2_c": p2,
     }
+
+
+#: Returned by ``public_scalars_v32`` for the 2-pulse argmax band; never scored outputs.
+PULSE_MAXIMA_KEYS_V32 = ("peak_pulse1_c", "peak_pulse2_c")
+
+
+def _pulse_maxima(case_dir, rows, im):
+    meta = json.loads(Path(case_dir, "deck.json").read_text())
+    case = meta.get("case")
+    if not isinstance(case, dict) or case.get("pulses") not in (1, 2):
+        raise v3.DeckRefused("pulse_count_absent")
+    window = v3.second_pulse_window(case)
+    if window is None:
+        return max(r[im] for r in rows) - 273.15, None
+    start, end = window
+    first = [r[im] for r in rows if r[0] < start]
+    second = [r[im] for r in rows if start <= r[0] <= end]
+    if not first or not second:
+        raise v3.DeckRefused("pulse_window_empty")
+    return max(first) - 273.15, max(second) - 273.15
