@@ -100,13 +100,21 @@ def test_a_graph_whose_every_op_repeats_rebuilds_on_the_gpu():
     )
 
 
-def test_one_op_that_does_not_repeat_sends_the_graph_to_the_cpu():
+def test_a_graph_s_own_ops_no_longer_gate_the_gpu():
+    """OWNER-GPU-LANE-NO-OP-GATE-01 (17 Nov 2026): on a lane with a JAX GPU worker and its class's record, every
+    readable graph rebuilds on the GPU, whatever ops it uses (was: one op missing from the record sent it to the CPU).
+    """
     envelope = _envelope()
     ops = lane.submission_ops(envelope)
     for left_out in sorted(ops):
         assert (
-            lane.device_for(envelope, gpu_image=JAX, gpu_ops=ops - {left_out}) is None
+            lane.device_for(envelope, gpu_image=JAX, gpu_ops=ops - {left_out})
+            == MINER_GPU
         )
+    assert (
+        lane.device_for(envelope, gpu_image=JAX, gpu_ops=frozenset({"unrelated"}))
+        == MINER_GPU
+    )
 
 
 @pytest.mark.parametrize(
@@ -158,14 +166,16 @@ def test_the_build_takes_the_gpu_worker_and_the_grade_stays_on_the_cpu_image():
 
 def test_a_deployment_without_a_lane_calls_as_before():
     cpu = _image()
-    for provider in (
-        _provider(graph_gpu_image=None, graph_gpu_ops=None),
-        _provider(graph_gpu_ops=frozenset({"tanh"})),
-    ):
-        assert DirectDevelopmentTasksV3._graph_lane(provider, _envelope(), cpu) == (
-            None,
-            {"image": cpu},
-        )
+    provider = _provider(graph_gpu_image=None, graph_gpu_ops=None)
+    assert DirectDevelopmentTasksV3._graph_lane(provider, _envelope(), cpu) == (
+        None,
+        {"image": cpu},
+    )
+    # a lane whose record lists none of the graph's ops: the GPU all the same (OWNER-GPU-LANE-NO-OP-GATE-01)
+    device, _arguments = DirectDevelopmentTasksV3._graph_lane(
+        _provider(graph_gpu_ops=frozenset({"tanh"})), _envelope(), cpu
+    )
+    assert device == MINER_GPU
 
 
 def test_the_binding_names_the_lane_only_when_there_is_one():

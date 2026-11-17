@@ -1,11 +1,11 @@
 """Which device the validator's graph-route rebuild runs on (OWNER-GPU-REBUILD-RENTED-4090-01; GPU_REBUILD_RULINGS_20261026).
 
-The graph route is JAX. A validator that holds a JAX GPU worker rebuilds a graph on it only when
-EVERY op of the graph (forward, and so its gradient) is one the hardware class has shown to repeat
-bit for bit under the pinned determinism flags (`scripts/dev/graph_ops_gpu_rerun.py`, ruling 1:
-"an op that fails is admitted CPU-only"). The list of such ops is a record the class check writes
-(`carbon.graph-gpu-ops.v1`); with no record, nothing is eligible and every graph rebuilds on the CPU
-exactly as before. Fail closed: a graph this module cannot read is a CPU rebuild, never a GPU one.
+The graph route is JAX. A validator that holds a JAX GPU worker and its hardware class's passing class check (the
+record it writes, `carbon.graph-gpu-ops.v1`) rebuilds EVERY graph on that GPU (OWNER-GPU-LANE-NO-OP-GATE-01, 17 Nov
+2026: the per-op eligibility gate is dropped; builds on one GPU class are identical). With no record, every graph
+rebuilds on the CPU exactly as before. Each GPU build is still checked to repeat (two more GPU rebuilds,
+`research_tasks._graph_gpu_repeats`); one that fails or does not repeat is rebuilt on the CPU. `cpu_forced_ops` and
+`OPS_NOTE` remain only to read evidence retained before the gate was dropped.
 
 This module chooses a device; it grades nothing, reads no private data and does not change what a
 rebuild computes. The pinned flags themselves are applied by the carrier
@@ -79,10 +79,13 @@ def submission_ops(source_envelope: bytes):
 
 
 def device_for(source_envelope: bytes, *, gpu_image, gpu_ops):
-    """`MINER_GPU` when this rebuild may run on the GPU, else None (the CPU).
+    """`MINER_GPU` when this rebuild runs on the GPU, else None (the CPU).
 
-    The GPU needs a JAX GPU worker, a record of GPU-repeatable ops, and a graph whose every op is
-    in it."""
+    OWNER-GPU-LANE-NO-OP-GATE-01 (17 Nov 2026): every graph rebuilds on a configured lane's GPU. The lane needs a JAX
+    GPU worker and the class's own passing class check (its ops record, which the receiver loads and the door binds);
+    a graph's own ops no longer gate it. A GPU build that fails or does not repeat is still rebuilt on the CPU
+    (`research_tasks._graph_gpu_repeats`), and a lost link or GPU is Carbon's (FAILED_INFRA).
+    """
     if gpu_image is None or not gpu_ops:
         return None
     from .gpu_practice import gpu_image_backend
@@ -90,8 +93,8 @@ def device_for(source_envelope: bytes, *, gpu_image, gpu_ops):
 
     if gpu_image_backend(gpu_image) != "jax":
         return None
-    ops = submission_ops(source_envelope)
-    if not ops or not ops <= gpu_ops:
+    # a graph this module cannot read stays a CPU rebuild (fail closed); its own ops never gate it
+    if not submission_ops(source_envelope):
         return None
     return MINER_GPU
 
