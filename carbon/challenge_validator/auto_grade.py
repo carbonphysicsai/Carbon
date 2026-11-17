@@ -722,6 +722,7 @@ class AutoGrader:
         from .lean_recipe_retention import RetentionUnavailable
 
         lane = remote_lane.current()
+        own = None
         if lane is not None:
             # a REMOTE round: the box's own containers and GPU, sampled there (CV-Motor L12624 (b)); each answered
             # sample is a heartbeat of the link, an unanswered one (None) never quiet ((c))
@@ -730,9 +731,26 @@ class AutoGrader:
             containers, gpu = host_quiet.box_counters(lane)
             sampler = _Sampler(containers, self.sample_seconds, gpu)
         else:
-            sampler = _Sampler(
-                self.containers, self.sample_seconds, getattr(self, "gpu", None)
-            )
+            from carbon.reconstruction import grade_lanes
+
+            own = grade_lanes.current()
+            if own is not None:
+                # V2's ruling (17 Nov 2026, the registered 2-lane regime): a LOCAL lane's wall stop is judged on ITS OWN
+                # cores: the Carbon containers there (a neighbour on other cores is accepted), its lane held for the whole
+                # run (`_wall_counted`), the program's full wall (the carrier's setup budget, gate waits credited) and no
+                # foreign GPU, as before. A sample that cannot be read is never quiet.
+                count = getattr(self, "lane_containers", count_lane_containers)
+                cpuset = own.cpuset
+                sampler = _Sampler(
+                    lambda: count(cpuset),
+                    self.sample_seconds,
+                    getattr(self, "gpu", None),
+                )
+            else:
+                sampler = _Sampler(
+                    self.containers, self.sample_seconds, getattr(self, "gpu", None)
+                )
+        sampler.lane = own
         started_ns = time.time_ns()
         try:
             self.activity = "grade"
@@ -1141,6 +1159,13 @@ class AutoGrader:
         from . import host_quiet
 
         samples, stop = sampler.samples, sampler.stop_sample
+        own = getattr(sampler, "lane", None)
+        if own is not None:
+            from carbon.reconstruction import grade_lanes
+
+            # (b) the lane it started on is the lane it still holds: else the run was never on its own cores alone
+            if grade_lanes.current() != own:
+                samples, stop = [*samples, None], None
         known = [s for s in samples if s is not None]
         gpu_known = [g for g in sampler.gpu_samples if g is not None]
         # + the GPU condition (Validator-2 5 Nov 21:28): no foreign GPU compute process during the run or at the stop
@@ -1170,6 +1195,13 @@ class AutoGrader:
                             "task": submission_id,
                             "counted": counted,
                             "uncontended": uncontended,
+                            # which rule read the containers: one lane's own cores (V2, 17 Nov), else the whole host
+                            "scope": "host" if own is None else "lane",
+                            **(
+                                {}
+                                if own is None
+                                else {"lane": own.index, "cpuset": own.cpuset}
+                            ),
                             "host_lock": self.host_lock,
                             "samples": len(samples),
                             "unknown_samples": len(samples) - len(known),
@@ -1268,6 +1300,48 @@ def count_worker_containers():
         for name in done.stdout.decode("utf-8", "replace").split()
         if name.startswith(_WORKER_PREFIX)
     )
+
+
+def count_lane_containers(cpuset):
+    """How many Carbon worker containers run on this host now with a core of ``cpuset`` (one lane's cores), or None
+    when the daemon cannot say. A container with no cpuset of its own may run on any core: it counts.
+    """
+    import subprocess
+
+    from carbon.reconstruction.host_execution import parse_cpuset
+
+    def run(argv):
+        try:
+            done = subprocess.run(argv, capture_output=True, timeout=10, check=False)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return None if done.returncode != 0 else done.stdout.decode("utf-8", "replace")
+
+    listed = run(
+        ["docker", "ps", "--filter", "name=" + _WORKER_PREFIX, "--format", "{{.Names}}"]
+    )
+    if listed is None:
+        return None
+    names = [name for name in listed.split() if name.startswith(_WORKER_PREFIX)]
+    if not names:
+        return 0
+    found = run(["docker", "inspect", "--format", "{{.HostConfig.CpusetCpus}}", *names])
+    if found is None:
+        return None  # one ended between the two reads (or the daemon failed): not readable, never quiet
+    try:
+        mine = set(parse_cpuset(cpuset))
+    except Exception:  # noqa: BLE001 - unreadable: never quiet
+        return None
+    count = 0
+    for line in found.splitlines():
+        value = line.strip()
+        try:
+            cores = set(parse_cpuset(value)) if value else None
+        except Exception:  # noqa: BLE001 - unreadable: never quiet
+            return None
+        if cores is None or cores & mine:
+            count += 1
+    return count
 
 
 class _Sampler:
