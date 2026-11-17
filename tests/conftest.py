@@ -83,6 +83,24 @@ def _no_served_registry_version():
     clear()
 
 
+@pytest.fixture(autouse=True)
+def _no_installed_crown_rule():
+    """The crown rule a receiver installs at start (`crown_official.install`: since 17 Nov ON for every version, its
+    margin unset where the version has no row) is process state: no test leaves it for the next (Runner gate-96: a
+    receiver-start test left ``margin_unset`` and three KOTH tests later in the shard read their crowns as waiting).
+    """
+    import sys
+
+    def clear():
+        loaded = sys.modules.get("carbon.challenge_validator.crown_official")
+        if loaded is not None:
+            loaded.ACTIVE = None
+
+    clear()
+    yield
+    clear()
+
+
 #: Tools a canonical run must have. A test that skips because one is missing is a
 #: FAILURE there (a gate that skipped the browser-page tests silently proved nothing);
 #: elsewhere the skip stands. `CARBON_CANONICAL_DEV_ENV` is set only by the canonical
