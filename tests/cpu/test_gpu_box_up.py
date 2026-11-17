@@ -210,6 +210,9 @@ class FakeBox:
         self.groups = ["carbon-grade"]
         self.authorized_keys = ""
         self.stage = "carbon-grade:carbon-grade 755 directory"
+        # Lambda's Ubuntu 22.04: python3 is 3.10, no newer interpreter until the admin phase installs python3.11
+        self.python = ""
+        self.python_installs = 0
         self.loaded = {}
         self.load_as = {}
         self.tree = False
@@ -229,6 +232,7 @@ class FakeBox:
             self.lane_home = "/home/carbon-grade"
             self.groups = ["carbon-grade", "docker"]
             self.authorized_keys = LANE_LINE + "\n"
+            self.python = "/usr/bin/python3.11"
         self.__dict__.update(state)
 
     def __call__(self, argv, pipe_from=None):
@@ -281,6 +285,12 @@ class FakeBox:
             return 0, self._info(), ""
         if cmd == g.CMD_STAGE_ROOT_STAT:
             return 0, self.stage + "\n", ""
+        if cmd == g.CMD_PYTHON_FIND:
+            return 0, (self.python + "\n") if self.python else "", ""
+        if cmd == g.CMD_PYTHON_INSTALL:
+            self.python_installs += 1
+            self.python = "/usr/bin/python3.11"
+            return 0, "", ""
         # admin phase
         if cmd == g.cmd_driver_install(cfg.driver_package):
             self.driver_installs += 1
@@ -364,7 +374,7 @@ class FakeBox:
             self.tree = True
             self.extracts += 1
             return 0, "", ""
-        if cmd == g.cmd_prepare(cfg, HEAD):
+        if cmd == g.cmd_prepare(cfg, HEAD, self.python):
             return 0, "{}", ""
         if cmd == g.CMD_DEVICE_READ:
             return 0, self.device, ""
@@ -963,6 +973,7 @@ ADMIN_ITEMS = [
     ("docker", {"daemon_live": {"features": {"containerd-snapshotter": True}}}),
     ("stage_root", {"stage": "root:root 755 directory"}),
     ("stage_root", {"stage": "carbon-grade:carbon-grade 777 directory"}),
+    ("python", {"python": ""}),
 ]
 
 
@@ -1062,15 +1073,43 @@ def test_the_device_record_digest_is_the_one_the_door_reads():
 
 def test_the_device_record_is_prepared_as_carbon_grade_in_its_own_directory(tmp_path):
     cfg = _config(tmp_path)
-    words = shlex.split(box_up.cmd_prepare(cfg, HEAD))
+    words = shlex.split(box_up.cmd_prepare(cfg, HEAD, "/usr/bin/python3.11"))
     assert words[:3] == [
-        "python3",
+        "/usr/bin/python3.11",
         "-I",
         f"/home/carbon-grade/carbon-box-up/tree-{HEAD}/scripts/dev/carbon_accelerator.py",
     ]
     assert ("--host-root", "/home/carbon-grade/carbon-box-up/host-root") in set(
         itertools.pairwise(words)
     )
+
+
+def test_the_admin_phase_installs_a_python_the_device_record_can_run_on(tmp_path):
+    """Lambda's Ubuntu 22.04 has only Python 3.10 as python3; Carbon needs >= 3.11 (TE3, 17 Nov 2026: the first live
+    door phase refused at ``device``). The admin phase installs python3.11 when no newer one is present, once; the
+    door phase runs the device record with it, and refuses (admin_incomplete:python) when there is none.
+    """
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    summary = box_up.run_admin(cfg, box, log=lambda line: None)
+    assert summary["admin"] == "PASS", summary
+    assert box.python_installs == 1 and box.python == "/usr/bin/python3.11"
+    again = box_up.run_admin(cfg, box, log=lambda line: None)
+    assert again["admin"] == "PASS" and box.python_installs == 1
+    newer = FakeBox(cfg, python="/usr/bin/python3.12")
+    assert box_up.run_admin(cfg, newer, log=lambda line: None)["admin"] == "PASS"
+    assert newer.python_installs == 0
+    words = shlex.split(box_up.cmd_prepare(cfg, HEAD, "/usr/bin/python3.12"))
+    assert words[:2] == ["/usr/bin/python3.12", "-I"]
+    door = _config(tmp_path)
+    ran = FakeBox(door, python="/usr/bin/python3.12")
+    assert _run(door, ran)["status"] == "ADMITTED"
+    assert (
+        box_up.cmd_prepare(door, HEAD, "/usr/bin/python3.12") in ran.remote_commands()
+    )
+    # a path that is not an absolute python3.1x is never run
+    odd = FakeBox(door, python="python3.11; rm -rf /")
+    _refused(_run(door, odd), "admin_incomplete:python")
 
 
 def test_the_class_check_runs_like_the_receipted_runner(tmp_path):

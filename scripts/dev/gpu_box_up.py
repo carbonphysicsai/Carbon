@@ -20,6 +20,8 @@ THEIR OWN key. It changes the box and writes nothing on the door side (no box fi
   lane_user    ``carbon-grade`` (home /home/carbon-grade, not root, in the docker group), authorized_keys exactly
                ``restrict,from="<door ip>" <lane public key>``
   stage_root   ``/home/carbon`` owned carbon-grade:carbon-grade, mode 0755
+  python       a Python >= 3.11 for the device record (`PYTHONS`; Ubuntu 22.04 ships 3.10 only: ``python3.11`` is
+               installed from the distribution's own repository when none is present)
 
 It prints a JSON summary (``carbon.gpu-box-admin.v1``, ``"admin": "PASS"``) the operator may copy to the door.
 
@@ -613,6 +615,17 @@ CMD_AUTHORIZED_KEYS_READ = sudo_sh(f"cat {_LANE_HOME}/.ssh/authorized_keys")
 CMD_STAGE_ROOT = (
     f"sudo -n install -d -o {LANE_USER} -g {LANE_USER} -m 0755 {STAGE_ROOT}"
 )
+#: The interpreters the device record may run with, newest first: Carbon needs Python >= 3.11, and a Lambda Ubuntu
+#: 22.04 box has only 3.10 as ``python3`` (TE3, 17 Nov 2026: the first live door phase refused at ``device``).
+PYTHONS = ("python3.13", "python3.12", "python3.11")
+CMD_PYTHON_FIND = (
+    "for p in " + " ".join(PYTHONS) + '; do command -v "$p" && exit 0; done; true'
+)
+CMD_PYTHON_INSTALL = (
+    "sudo -n sh -c 'set -eu; export DEBIAN_FRONTEND=noninteractive; apt-get update; "
+    "apt-get install -y python3.11'"
+)
+_PYTHON_PATH = re.compile(r"/[A-Za-z0-9._/-]{0,200}/python3\.1[1-9]")
 
 # -- door phase: as carbon-grade, never sudo ---------------------------------------------------------------------------
 
@@ -674,10 +687,10 @@ def cmd_tree_extract(commit: str) -> str:
     )
 
 
-def cmd_prepare(cfg: Config, commit: str) -> str:
+def cmd_prepare(cfg: Config, commit: str, python: str) -> str:
     return shlex.join(
         [
-            "python3",
+            python,
             "-I",
             f"{tree_dir(commit)}/scripts/dev/carbon_accelerator.py",
             "--host-root",
@@ -1161,6 +1174,8 @@ class Session:
         self.runner = runner
         self.log = log or (lambda line: print(line, file=sys.stderr, flush=True))
         self.step = "start"
+        #: the box's Python >= 3.11 (`_python_seen`), found by the python step before the device record needs it
+        self.python = None
         self.known_hosts: str | None = None
 
     def _guard(self, argv, pipe_from):
@@ -1422,6 +1437,22 @@ class Session:
         self.remote(CMD_STAGE_ROOT, reason="stage_root_failed")
         self._stage_root_seen()
 
+    def _python_seen(self):
+        """The newest Python >= 3.11 on the box (`PYTHONS`), by its absolute path, or Refused."""
+        lines = self.remote(CMD_PYTHON_FIND, reason="python_failed").split()
+        found = lines[0] if lines else ""
+        if not _PYTHON_PATH.fullmatch(found):
+            raise Refused("python_missing", f"no {' / '.join(PYTHONS)} on the box")
+        self.python = found
+        return found
+
+    def python_ready(self):
+        try:
+            return self._python_seen()
+        except Refused:
+            self.remote(CMD_PYTHON_INSTALL, reason="python_install_failed")
+            return self._python_seen()
+
     # -- door phase (as carbon-grade, read-only re-checks first) -------------------------------------------------------
 
     def door_lane_user(self):
@@ -1464,6 +1495,9 @@ class Session:
 
     def door_stage_root(self):
         self._stage_root_seen()
+
+    def door_python(self):
+        return self._python_seen()
 
     def door_admin_summary(self, host_key, uuid, driver, shape):
         """The admin phase's own summary, when the operator brought it: EVERY field it states must describe the box the
@@ -1526,7 +1560,9 @@ class Session:
         return commit
 
     def device(self, commit, uuid, driver):
-        self.remote(cmd_prepare(self.cfg, commit), reason="device_record_failed")
+        self.remote(
+            cmd_prepare(self.cfg, commit, self.python), reason="device_record_failed"
+        )
         document = _json_object(
             self.remote(CMD_DEVICE_READ, reason="device_record_failed"),
             "device_record_invalid",
@@ -1598,6 +1634,7 @@ def run_admin(cfg: Config, runner, *, log=None) -> dict:
         docker, containerd = session.run_step("docker", session.docker)
         session.run_step("lane_user", session.lane_user)
         session.run_step("stage_root", session.stage_root)
+        session.run_step("python", session.python_ready)
     except Refused as refusal:
         return {
             "schema": ADMIN_SCHEMA,
@@ -1702,6 +1739,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         uuid, driver = session.verify("driver", session.door_driver)
         session.verify("docker", session.door_docker)
         session.verify("stage_root", session.door_stage_root)
+        session.verify("python", session.door_python)
         if cfg.admin_summary is not None:
             session.run_step(
                 "admin_summary",
@@ -1806,6 +1844,9 @@ def plan_admin(cfg: Config) -> list[tuple[str, str]]:
         steps.append(remote("lane_user", command))
     steps.append(remote("stage_root", CMD_STAGE_ROOT))
     steps.append(remote("stage_root", CMD_STAGE_ROOT_STAT))
+    steps.append(remote("python", CMD_PYTHON_FIND))
+    steps.append(remote("python (only when none is present)", CMD_PYTHON_INSTALL))
+    steps.append(remote("python (only when none is present)", CMD_PYTHON_FIND))
     return steps
 
 
@@ -1821,6 +1862,7 @@ def plan_door(cfg: Config) -> list[tuple[str, str]]:
     steps.append(remote("docker (verify)", DOOR_DOCKER_INFO))
     steps.append(remote("docker (verify)", DOOR_DOCKER_VERSION))
     steps.append(remote("stage_root (verify)", CMD_STAGE_ROOT_STAT))
+    steps.append(remote("python (verify)", CMD_PYTHON_FIND))
     for image in cfg.images:
         steps.append(remote("images", door_image_id(image)))
         steps.append(
@@ -1833,7 +1875,7 @@ def plan_door(cfg: Config) -> list[tuple[str, str]]:
     steps.append(("tree", shlex.join(cmd_git_on_main(commit))))
     steps.append(remote("tree", DOOR_WORK_DIR))
     steps.append(remote("tree", cmd_tree_extract(commit), cmd_git_archive(commit)))
-    steps.append(remote("device", cmd_prepare(cfg, commit)))
+    steps.append(remote("device", cmd_prepare(cfg, commit, "<python>")))
     steps.append(remote("device", CMD_DEVICE_READ))
     steps.append(remote("class_check", cmd_class_out(cfg)))
     steps.append(remote("class_check", cmd_class_check(cfg, commit, uuid)))
