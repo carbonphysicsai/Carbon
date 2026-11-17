@@ -14,7 +14,7 @@ import re
 import shutil
 import stat as stat_module
 import time
-from contextlib import ExitStack, contextmanager, suppress
+from contextlib import ExitStack, contextmanager, nullcontext, suppress
 from contextvars import ContextVar
 from functools import partial
 
@@ -358,7 +358,25 @@ def _run(ledger, **kwargs):
         and callable(getattr(ledger, "operation_state", None))
         and ledger.operation_state(identity, owner=owner) not in (None, "RESERVED")
     )
+    # Option A (Lead 17 Nov 2026): an op bound for a REMOTE GPU build box runs on none of this host's cores, so a build
+    # round gives its LOCAL lane back for the op, its slot wait included, and holds a lane again once the op has ended,
+    # before the op's error leaves here (`grade_lanes.released`): the door's other rounds grade on that lane meanwhile.
+    offer = remote_gpu_build.offered_lane()
+    off_host = (
+        not settled
+        and offer is not None
+        and not offer.spec.local
+        and remote_gpu_build.eligible(
+            identity,
+            accelerator=kwargs.get("accelerator"),
+            provenance=kwargs.get("provenance"),
+            timed=timed,
+        )
+    )
+    from carbon.reconstruction import grade_lanes
+
     with (
+        grade_lanes.released() if off_host else nullcontext(),
         remote_lane.local_for(identity, timed=timed),
         remote_gpu_build.op(
             identity,

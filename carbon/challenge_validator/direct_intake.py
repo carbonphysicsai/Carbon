@@ -1468,6 +1468,9 @@ class _WorkLock:
         #: How many rounds of each kind wait for the other kind to finish: a waiting kind stops NEW rounds of the other
         #: kind from starting, so a build round is never starved by back-to-back grade rounds (or the reverse).
         self._kind_waiters = {}
+        #: Option A (Lead 17 Nov 2026): how many of this door's build rounds wait to hold a lane AGAIN after their op on a
+        #: remote GPU build box (`_Taking.retake`): they finish in-flight work, so no NEW round takes a slot before them.
+        self._retakers = 0
         if network is None:
             from carbon.chain import models
 
@@ -1776,7 +1779,7 @@ class _WorkLock:
         """Take one of this door's round slots, then wait until no live round of another kind runs (a door whose rounds
         take no owners, `grade_sequencer.OwnerClaims`: an owner's ledger lease is non-blocking). Polls, and gives up
         the round (`WorkDeclined`) as soon as the door stops or drains."""
-        while not self._slots.acquire(timeout=self._poll):
+        while not self._acquire_slot():
             reason = self._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
@@ -1824,7 +1827,7 @@ class _WorkLock:
                         count and other != kind and other not in live
                         for other, count in self._kind_waiters.items()
                     )
-                if not yield_to_other and self._slots.acquire(timeout=self._poll):
+                if not yield_to_other and self._acquire_slot():
                     break
                 if yield_to_other:
                     with self._kinds:
@@ -1843,6 +1846,41 @@ class _WorkLock:
                 self._kind_waiters[kind] -= 1
                 self._kinds.notify_all()
 
+    def _acquire_slot(self):
+        """One round slot for a NEW round, within one poll: never while a build round of this door waits to re-take a
+        lane (`_Taking.retake`)."""
+        with self._kinds:
+            retaking = self._retakers > 0
+        if retaking:
+            time.sleep(self._poll)
+            return False
+        return self._slots.acquire(timeout=self._poll)
+
+    def _take_local_lane(self):
+        """The first free LOCAL lane this door may use, as a round's own ``(fd, fds, lane)``, or None. Called by a build
+        round re-taking a lane (`_Taking.retake`), WITHOUT ``_lock`` (a new round holds that while it waits among doors;
+        this touches none of the fields it guards, and the lane locks themselves decide): it continues in-flight work,
+        so it neither queues in the host's waiting list nor stands back; a lane other than 0 still needs lane 0 to share
+        (`_lane_zero_shares`). A failure after a lock is taken lets that lock go."""
+        from carbon.reconstruction import grade_lanes
+
+        for index, spec in enumerate(self._lanes):
+            if index not in self._usable or type(spec) is not str:
+                continue
+            fd = self._take(grade_lanes.lane_lock_name(index))
+            if fd is None:
+                continue
+            try:
+                if index > 0 and not self._lane_zero_shares():
+                    self._unlock(fd)
+                    return None
+                grade_lanes.write_holder(self._dir, index, grade_lanes.TWO_LANE_MODE)
+            except BaseException:
+                self._unlock(fd)
+                raise
+            return fd, [fd], grade_lanes.Lane(index, spec, str(self._dir))
+        return None
+
     def _record_live(self, record):
         """This round's in-flight record; the door's file names the OLDEST live round (a drain sees busy until all end)."""
         with self._kinds:
@@ -1851,11 +1889,14 @@ class _WorkLock:
             self._write_oldest()
 
     def _leave_parallel(self):
+        self._leave_live()
+        self._slots.release()
+
+    def _leave_live(self):
         with self._kinds:
             self._live.pop(threading.get_ident(), None)
             self._write_oldest()
             self._kinds.notify_all()
-        self._slots.release()
 
     def _write_oldest(self):
         if self._state is None:
@@ -1900,6 +1941,9 @@ class _Taking:
         #: PARALLEL rounds only: this round's own host lanes (moved off the shared lock object once held).
         self._parallel = False
         self._held = (None, [], None)
+        #: Option A: the `grade_lanes.offer_releaser` token offering this round to its ops, and whether its lane is out (`release`).
+        self._releasing = None
+        self._released = False
 
     def _place(self):
         """The round's place from ``since`` (a non-negative int of ns), or None: a failing or odd reader never
@@ -2008,6 +2052,15 @@ class _Taking:
                 from carbon.reconstruction import grade_lanes
 
                 self._lane_token = grade_lanes.bind(lane)
+                if (
+                    self._parallel
+                    and self.kind == "advance"
+                    and getattr(work, "overlap_kinds", False)
+                    and lane.docker_host is None
+                ):
+                    # Option A (Lead 17 Nov 2026): a build op on a REMOTE GPU build box gives this LOCAL lane back for
+                    # its run and holds one again after (`grade_lanes.released`)
+                    self._releasing = grade_lanes.offer_releaser(self)
         except BaseException:
             try:
                 if waiting:
@@ -2034,11 +2087,21 @@ class _Taking:
         work = self.work
         if self.place is not None:
             work._served[self.kind] = self.place  # this round held the host with it
+        releasing, self._releasing = self._releasing, None
+        if releasing is not None:
+            from carbon.reconstruction import grade_lanes
+
+            grade_lanes.withdraw_releaser(releasing)
         token, self._lane_token = self._lane_token, None
         if token is not None:
             from carbon.reconstruction import grade_lanes
 
             grade_lanes.unbind(token)
+        if self._parallel and self._released:
+            # a round whose lane is out holds no slot either: both went back together (`release`)
+            self._released = False
+            work._leave_live()
+            return False
         if self._parallel:
             held, self._held = self._held, (None, [], None)
             try:
@@ -2055,6 +2118,98 @@ class _Taking:
             finally:
                 work._lock.release()
         return False
+
+    # -- Option A (Lead 17 Nov 2026): a build round's lane while its op runs on a remote GPU build box ------------------
+
+    def release(self):
+        """Give this round's LOCAL lane and its round slot back (`grade_lanes.released`), so the door's other rounds
+        may use them. The round stays live (its in-flight record, without a lane), so a drain still sees it busy.
+        """
+        work = self.work
+        if self._released or not self._parallel:
+            return
+        held, self._held = self._held, (None, [], None)
+        try:
+            work._release_round(*held)
+        finally:
+            self._released = True
+            work._slots.release()
+            try:
+                with work._kinds:
+                    kind, record = work._live[threading.get_ident()]
+                    if record is not None:
+                        record = {
+                            key: value
+                            for key, value in record.items()
+                            if key not in ("lane", "cpuset")
+                        }
+                    work._live[threading.get_ident()] = (kind, record)
+                    work._write_oldest()
+                    work._kinds.notify_all()
+            except Exception as failure:  # noqa: BLE001
+                # the record keeps naming this round (busy) with its old lane until it re-takes one: never a stop
+                log("direct_work_lane_record_failed", type=type(failure).__name__)
+        log(
+            "direct_work_lane_released",
+            kind=self.kind,
+            lane=None if held[2] is None else held[2].index,
+        )
+
+    def retake(self):
+        """Hold a round slot and a LOCAL lane again, before any NEW round of this door takes one; returns the lane.
+        In-flight work is finished whatever happens meanwhile: it never declines on drain or stop, nor queues among
+        doors; it waits only for a lane to be free. It never returns without a lane held (V2 B1: its caller must never go
+        on bound to the lane it gave back): a failure taking one is logged (``direct_work_lane_retake_retry``) and tried
+        again, so a broken host shows as a round that stays busy, never as a container on another round's cores.
+        """
+        work = self.work
+        if not self._released:
+            return self._held[2]
+        began = time.monotonic()
+        with work._kinds:
+            work._retakers += 1
+        try:
+            while not work._slots.acquire(timeout=work._poll):
+                pass
+            try:
+                while True:
+                    try:
+                        held = work._take_local_lane()
+                    except Exception as failure:  # noqa: BLE001
+                        # never on without a lane (the caller cannot fail the op here): logged, tried again
+                        log(
+                            "direct_work_lane_retake_retry", type=type(failure).__name__
+                        )
+                        held = None
+                    if held is not None:
+                        break
+                    time.sleep(work._poll)
+            except BaseException:
+                work._slots.release()
+                raise
+        finally:
+            with work._kinds:
+                work._retakers -= 1
+                work._kinds.notify_all()
+        self._held, self._released = held, False
+        lane = held[2]
+        try:
+            with work._kinds:
+                kind, record = work._live[threading.get_ident()]
+                if record is not None:
+                    record = {**record, "lane": lane.index, "cpuset": lane.cpuset}
+                work._live[threading.get_ident()] = (kind, record)
+                work._write_oldest()
+        except Exception as failure:  # noqa: BLE001
+            # the lane is held: the record keeps naming this round (busy), without its lane, until the round ends
+            log("direct_work_lane_record_failed", type=type(failure).__name__)
+        log(
+            "direct_work_lane_retaken",
+            kind=self.kind,
+            lane=lane.index,
+            waited_s=round(time.monotonic() - began, 1),
+        )
+        return lane
 
 
 def _round(work, kind, has_work=None, since=None):

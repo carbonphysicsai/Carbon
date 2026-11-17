@@ -1773,3 +1773,149 @@ def test_no_content_key_is_computed_without_a_multi_slot_lane(host, monkeypatch)
             None, identity=BUILD, accelerator="VALIDATOR_OWN_GPU", provenance="X"
         )
     assert computed == []
+
+
+@pytest.mark.parametrize("local", [False, True])
+def test_a_build_round_gives_its_local_lane_back_only_for_an_op_on_the_remote_box(
+    host, monkeypatch, tmp_path, local
+):
+    """Option A (Lead 17 Nov 2026), through the carrier: an op on a REMOTE GPU build box runs, and waits for its slot,
+    with the round's local lane given back, and the next op holds a lane again; inference and a local slot lane's
+    build keep the lane. A remote build that fails while its link is down stays Carbon's (`RemoteLaneDown`), with a
+    lane held again before the error leaves the carrier."""
+    pytest.importorskip("fcntl")
+    import fcntl
+    import os
+
+    from carbon.challenge_validator.direct_intake import _WorkLock
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction import grade_lanes
+
+    lock_dir = tmp_path / "locks"
+    lock_dir.mkdir(mode=0o700)
+    work = _WorkLock(lock_dir, poll_s=0.02, lanes=("0-3", "4-7"))
+    work.overlap_kinds = True
+
+    def lanes_free():
+        free = []
+        for index in (0, 1):
+            fd = os.open(
+                lock_dir / grade_lanes.lane_lock_name(index),
+                os.O_RDWR | os.O_CREAT,
+                0o600,
+            )
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                free.append(True)
+            except BlockingIOError:
+                free.append(False)
+            finally:
+                os.close(fd)
+        return all(free)
+
+    seen = []
+
+    def supervised(ledger, **kwargs):
+        seen.append(lanes_free())
+        if kwargs.get("fail"):
+            raise WorkerFailure(WorkerCode.RUNTIME)
+        return "ok"
+
+    monkeypatch.setattr(research_carrier, "_run_supervised", supervised)
+    inference = "direct-" + "a" * 64 + "-inference"
+    lane = _lane(host, local=local)
+    with work.taking("advance"), remote_gpu_build.offered(lane):
+        research_carrier._run(
+            None, identity=BUILD, accelerator="VALIDATOR_OWN_GPU", provenance="X"
+        )
+        assert not lanes_free()
+        research_carrier._run(None, identity=inference, provenance="X")
+        monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: False)
+        with pytest.raises((RemoteLaneDown, WorkerFailure)) as raised:
+            research_carrier._run(
+                None,
+                identity=BUILD,
+                accelerator="VALIDATOR_OWN_GPU",
+                provenance="X",
+                fail=True,
+            )
+        assert not lanes_free() and grade_lanes.current() is not None
+    if local:
+        # this host's own GPU: the build keeps its lane (its container runs here)
+        assert seen == [False, False, False]
+    else:
+        assert type(raised.value) is RemoteLaneDown
+        assert seen == [True, False, True]
+
+
+def test_a_build_round_waits_for_a_busy_remote_slot_without_its_local_lane(
+    host, monkeypatch, tmp_path
+):
+    """Option A: the round's local lane goes back BEFORE the op waits for a slot on the remote box, and a lane is held
+    again only after the op (and its slot) has ended."""
+    pytest.importorskip("fcntl")
+    import fcntl
+    import os
+    import time
+
+    from carbon.challenge_validator.direct_intake import _WorkLock
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction import grade_lanes
+
+    monkeypatch.setattr(remote_gpu_build, "POLL_S", 0.02)
+    lock_dir = tmp_path / "locks"
+    lock_dir.mkdir(mode=0o700)
+    work = _WorkLock(lock_dir, poll_s=0.02, lanes=("0-3", "4-7"))
+    work.overlap_kinds = True
+
+    def lanes_free():
+        for index in (0, 1):
+            fd = os.open(
+                lock_dir / grade_lanes.lane_lock_name(index),
+                os.O_RDWR | os.O_CREAT,
+                0o600,
+            )
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            except BlockingIOError:
+                return False
+            finally:
+                os.close(fd)
+        return True
+
+    lane = _lane(host, slots=1, cpusets=("0-3",))
+    occupied, free_slot = threading.Event(), threading.Event()
+
+    def neighbour():
+        with remote_gpu_build.offered(lane), _op():
+            occupied.set()
+            assert free_slot.wait(10)
+
+    ran, done = [], threading.Event()
+    monkeypatch.setattr(
+        research_carrier, "_run_supervised", lambda ledger, **k: ran.append(1) or "ok"
+    )
+
+    def build_round():
+        with work.taking("advance"), remote_gpu_build.offered(lane):
+            research_carrier._run(
+                None, identity=BUILD, accelerator="VALIDATOR_OWN_GPU", provenance="X"
+            )
+            done.set()
+
+    other = threading.Thread(target=neighbour, daemon=True)
+    other.start()
+    assert occupied.wait(5)
+    builder = threading.Thread(target=build_round, daemon=True)
+    builder.start()
+    deadline = time.monotonic() + 5
+    while not lanes_free() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    assert lanes_free() and ran == []  # waiting for the slot, its lane already back
+    free_slot.set()
+    assert done.wait(5) and ran == [1]
+    builder.join(5)
+    other.join(5)
+    assert lanes_free()

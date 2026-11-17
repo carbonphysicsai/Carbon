@@ -455,6 +455,20 @@ class AutoGrader:
             self._prelude_after = now + self.PRELUDE_MIN_SECONDS
         return due
 
+    def _run_prelude(self):
+        """The incumbent's own steps of a parallel round (`_run_once_parallel`), in the serial round's order."""
+        self._settle_queue_places()
+        self.activity = "king"
+        try:
+            if self._upkeep_deferred():
+                self._file_stranded()
+            else:
+                self._king_upkeep()
+        finally:
+            self.activity = None
+        self._resume_paused_crowns()
+        self._apply_due_retries(idle=not self.pending())
+
     def _run_once_parallel(self, sequencer):
         """One grade round of a door that grades one round per lane at once (owner's order 16 Nov; `grade_sequencer`).
 
@@ -468,19 +482,17 @@ class AutoGrader:
 
         claims = getattr(self, "owner_claims", None)
         if self._prelude_due(self.pending()):
-            # the incumbent's steps run in the king's owner's ledger: no owner is in any round meanwhile (A19)
-            with owner_exclusive(claims), sequencer.exclusive():
-                self._settle_queue_places()
-                self.activity = "king"
+            # the incumbent's steps run in the king's owner's ledger: no owner is in any round meanwhile (A19). A round
+            # that finds them already running or waiting in another round goes on instead of waiting behind them on its
+            # lane (Option A: a build round that gave its lane back for its remote GPU op needs a lane again before it
+            # releases its owner, so two grade rounds waiting here would hold both lanes against it)
+            prelude = self.__dict__.setdefault("_prelude_lock", threading.Lock())
+            if prelude.acquire(blocking=False):
                 try:
-                    if self._upkeep_deferred():
-                        self._file_stranded()
-                    else:
-                        self._king_upkeep()
+                    with owner_exclusive(claims), sequencer.exclusive():
+                        self._run_prelude()
                 finally:
-                    self.activity = None
-                self._resume_paused_crowns()
-                self._apply_due_retries(idle=not self.pending())
+                    prelude.release()
         skipped = set()
         while True:
             with sequencer.task() as task:

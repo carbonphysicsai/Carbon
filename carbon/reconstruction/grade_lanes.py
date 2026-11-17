@@ -336,6 +336,45 @@ def bound(lane):
         unbind(token)
 
 
+#: The running round's lane releaser (`direct_intake._Taking`), or None: offered only by a BUILD round of a door whose
+#: rounds of both kinds overlap, while it holds a LOCAL lane (`released`).
+_RELEASER: ContextVar = ContextVar("carbon_grade_lane_releaser", default=None)
+
+
+def offer_releaser(releaser):
+    """Offer ``releaser`` (``release()``: give the round's lane and round slot back; ``retake()``: hold a local lane
+    again, never returning without one, and return it) to the calling context's ops; returns the token for
+    `withdraw_releaser`."""
+    return _RELEASER.set(releaser)
+
+
+def withdraw_releaser(token):
+    _RELEASER.reset(token)
+
+
+@contextmanager
+def released():
+    """Option A (Lead 17 Nov 2026): around one op that runs on a REMOTE GPU build box (its slot wait included), the
+    round gives its LOCAL lane back so the door's other rounds grade on it, and holds a local lane again once the op
+    has ended, on every exit path (a failed build included), before the op's error leaves and before the round's next
+    op: its local inference and timing containers stay laned and gated. Meanwhile the round's binding is KEPT: the op's
+    containers run on its slot's machine and cores (`remote_gpu_build.cpuset` comes first), and its local holds (the
+    stage upload, `container_hold`) still take this host's timing gate SHARED, as before. Nothing changes outside a
+    round that offers a releaser, or on a REMOTE grade lane."""
+    releaser = _RELEASER.get()
+    lane = _BOUND.get()
+    if releaser is None or lane is None or lane.docker_host is not None:
+        yield
+        return
+    try:
+        # inside the try: a release that fails part way still ends with a lane held again (`retake` takes both states)
+        releaser.release()
+        yield
+    finally:
+        # `retake` never returns without a lane held (V2 B1): the round never goes on bound to the lane it gave back
+        _BOUND.set(releaser.retake())
+
+
 def timing_requested():
     """Whether the calling context is inside `timing_exclusive`."""
     return _EXCLUSIVE.get()
