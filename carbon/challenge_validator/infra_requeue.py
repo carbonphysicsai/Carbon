@@ -1346,6 +1346,13 @@ REARMS = "rearms.jsonl"
 #: the one kind of it written FAILED that is Carbon's: a wall stop the grader did not count (a contended pass).
 MINER_PROGRAM_FAILURE = "MinerProgramFailure"
 CONTENDED_WALL_STOP = "WORKER_WALL_LIMIT_REACHED"
+#: The traceback's last line for it (the exception's qualified class) and the worker code line the grader writes after
+#: it (`WorkerCode.DEADLINE`), then the header before the candidate's own output (`AutoGrader._keep`).
+MINER_PROGRAM_FAILURE_CLASS = (
+    "carbon.development_session.research_carrier." + MINER_PROGRAM_FAILURE
+)
+DEADLINE_CODE = "reconstruction.worker.deadline.exceeded"
+DIAGNOSTIC_HEADER = "private diagnostic (worker output, truncated):"
 
 
 def _carbons_failure(code, failure_path):
@@ -1358,7 +1365,20 @@ def _carbons_failure(code, failure_path):
         text = Path(failure_path).read_text(encoding="utf-8", errors="replace")
     except OSError:
         return False
-    return MINER_PROGRAM_FAILURE + ": " + CONTENDED_WALL_STOP in text
+    # Validator-2 (17 Nov, must-fix): `AutoGrader._keep` writes the traceback, then ONE closed ``code:`` line, then
+    # (optionally) a header and up to 16 KiB of the CANDIDATE's own output. Only the grader's part before the first
+    # header is read, and it must END exactly with the wall-stop exception line and the deadline code line as `_keep`
+    # joins them (the traceback's own newline, then "\n", then "code: ..."): a program that prints those words is never
+    # read as Carbon's.
+    grader = text.split("\n" + DIAGNOSTIC_HEADER + "\n", 1)[0]
+    return ("\n" + grader.rstrip("\n")).endswith(
+        "\n"
+        + MINER_PROGRAM_FAILURE_CLASS
+        + ": "
+        + CONTENDED_WALL_STOP
+        + "\n\ncode: "
+        + DEADLINE_CODE
+    )
 
 
 def _rearm_causes(root, task, attempt):

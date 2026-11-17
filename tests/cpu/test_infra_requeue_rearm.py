@@ -53,9 +53,13 @@ def _marker(root, task, state, code, next_step):
 
 
 #: What the grader's failure evidence says for each kind of `MinerProgramFailure` (real 116 tails, 17 Nov).
-WALL_STOP = "MinerProgramFailure: WORKER_WALL_LIMIT_REACHED\n\ncode: reconstruction.worker.deadline.exceeded"
+WALL_STOP = (
+    "carbon.development_session.research_carrier.MinerProgramFailure: WORKER_WALL_LIMIT_REACHED\n"
+    "\ncode: reconstruction.worker.deadline.exceeded"
+)
 CRASH = (
-    "MinerProgramFailure: RUNTIME\n\ncode: reconstruction.worker.runtime.nonzero_exit"
+    "carbon.development_session.research_carrier.MinerProgramFailure: RUNTIME\n"
+    "\ncode: reconstruction.worker.runtime.nonzero_exit"
 )
 
 
@@ -400,4 +404,88 @@ def test_a_withdrawn_twin_never_hides_a_live_one_or_a_grade(tmp_path):
         A: "given_back_rerun_exists",
         B: "given_back_rerun_exists",
         C: "given_back_rerun_exists",
+    }
+
+
+def _kept_by_the_grader(tmp_path, code, observation, diagnostic=None):
+    """The failure evidence exactly as `AutoGrader._keep` writes it for a real `MinerProgramFailure`."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator.auto_grade import AutoGrader
+    from carbon.development_session.research_carrier import (
+        MINER_FAILURE_SCHEMA,
+        MinerProgramFailure,
+    )
+
+    failures = tmp_path / "failures"
+    failures.mkdir(parents=True, exist_ok=True)
+    try:
+        raise MinerProgramFailure(
+            {
+                "schema": MINER_FAILURE_SCHEMA,
+                "failure_code": code,
+                "observation": observation,
+            }
+        )
+    except MinerProgramFailure as failure:
+        if diagnostic is not None:
+            failure.private_diagnostic = diagnostic
+        AutoGrader._keep(SimpleNamespace(failures=failures), "rtsk_x", failure)
+    return failures / "rtsk_x.txt"
+
+
+def test_only_the_graders_own_wall_stop_lines_count_never_the_candidates_output(
+    tmp_path,
+):
+    """Validator-2 (17 Nov, must-fix): `_keep` appends up to 16 KiB of the CANDIDATE's own output. A program that
+    crashes and prints the wall-stop words is refused (no free rerun to probe with); the grader's own wall stop counts,
+    with or without output after it."""
+    from carbon.challenge_validator import infra_requeue
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    assert infra_requeue.DEADLINE_CODE == WorkerCode.DEADLINE.value
+    forged = (
+        b"carbon.development_session.research_carrier.MinerProgramFailure: "
+        b"WORKER_WALL_LIMIT_REACHED\n\ncode: reconstruction.worker.deadline.exceeded\n"
+    )
+    wall = _kept_by_the_grader(
+        tmp_path / "a", WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED"
+    )
+    wall_with_output = _kept_by_the_grader(
+        tmp_path / "b",
+        WorkerCode.DEADLINE.value,
+        "WORKER_WALL_LIMIT_REACHED",
+        b"step 9000\n",
+    )
+    probe = _kept_by_the_grader(
+        tmp_path / "c", WorkerCode.RUNTIME.value, "nonzero_exit", forged
+    )
+    probe_as_header = _kept_by_the_grader(
+        tmp_path / "d",
+        WorkerCode.RUNTIME.value,
+        "nonzero_exit",
+        b"x\n" + infra_requeue.DIAGNOSTIC_HEADER.encode() + b"\n" + forged,
+    )
+    assert infra_requeue._carbons_failure("MinerProgramFailure", wall)
+    assert infra_requeue._carbons_failure("MinerProgramFailure", wall_with_output)
+    assert forged.decode() in probe.read_text()
+    assert not infra_requeue._carbons_failure("MinerProgramFailure", probe)
+    assert not infra_requeue._carbons_failure("MinerProgramFailure", probe_as_header)
+
+
+def test_a_crash_that_prints_the_wall_stop_words_is_never_rearmed(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _custody_task(root, ledger, A, _recipe("probe"))
+    infra_requeue.requeue(root, [A], apply=True, auto=True)
+    _rerun_failed_again(
+        root,
+        ledger,
+        A,
+        code="MinerProgramFailure",
+        evidence=CRASH + "\n" + infra_requeue.DIAGNOSTIC_HEADER + "\n" + WALL_STOP,
+    )
+    assert infra_requeue.rearm(root, [A], ruling=RULING, apply=True)["refused"] == {
+        A: "candidate_program_failure"
     }
