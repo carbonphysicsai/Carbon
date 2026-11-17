@@ -11,6 +11,62 @@ from carbon.transport.store import ReceiptJournal
 from .models import hash256, uint
 from .publication import PublicationFailure
 
+#: The publication DOCUMENT (intent + plan + the observed metagraph snapshot + capabilities) is LOCAL journal storage,
+#: not one transport message. The transport meter (`transport.models.canonical`: 4096 JSON nodes, 65536 bytes, sized for a
+#: network message) refused it once the snapshot's registered participants grew past the byte cap (116, 17 Nov:
+#: TRANSPORT_MALFORMED at prepare, 64,426 bytes and +~470 per epoch, no dispatch written). The journal keeps the SAME
+#: canonical bytes (sorted keys, compact, ASCII, no NaN) and every other check of the meter, under bounds sized for a full
+#: metagraph (`MetagraphSnapshot` admits at most 65536 participants). Operational storage bounds; they change nothing
+#: about the targets, weights or who is paid (the plan is computed and validated exactly as before).
+JOURNAL_MAX_NODES = 2_000_000
+JOURNAL_MAX_BYTES = 64 * 1024 * 1024
+_JOURNAL_MAX_DEPTH = 16
+
+
+def _journal_meter(value, depth, budget):
+    import math
+
+    budget[0] -= 1
+    if budget[0] < 0 or depth > _JOURNAL_MAX_DEPTH:
+        raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED")
+    if type(value) is dict:
+        for key, child in value.items():
+            if type(key) is not str:
+                raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED")
+            _journal_meter(key, depth + 1, budget)
+            _journal_meter(child, depth + 1, budget)
+    elif type(value) is list:
+        for child in value:
+            _journal_meter(child, depth + 1, budget)
+    elif type(value) is str:
+        if any(0xD800 <= ord(c) <= 0xDFFF for c in value):
+            raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED")
+    elif type(value) is int:
+        if value.bit_length() > 64:
+            raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED")
+    elif type(value) is float:
+        if not math.isfinite(value):
+            raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED")
+    elif value is not None and type(value) is not bool:
+        raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED")
+
+
+def journal_encode(value):
+    """`rewards.ledger.encode`'s exact canonical bytes for a publication document, under the journal's own bounds
+    (identical bytes wherever `encode` accepts the document)."""
+    try:
+        plain = json.loads(json.dumps(value, allow_nan=False))
+    except ValueError:
+        raise PublicationFailure("JOURNAL_DOCUMENT_MALFORMED") from None
+    _journal_meter(plain, 0, [JOURNAL_MAX_NODES])
+    encoded = json.dumps(
+        plain, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
+    )
+    if len(encoded) > JOURNAL_MAX_BYTES:
+        raise PublicationFailure("JOURNAL_DOCUMENT_OVERSIZED")
+    return encoded
+
+
 TERMINAL = (
     "ROW_VERIFIED",
     "CHAIN_REJECTED",
@@ -99,7 +155,7 @@ class DispatchJournal:
     def prepare(self, ref, plan, snapshot, capabilities):
         if type(ref) is not self.intent_type or plan.intent_digest != ref.digest:
             raise PublicationFailure("RESOLVED_INTENT_REQUIRED")
-        document = encode(
+        document = journal_encode(
             {
                 "intent": asdict(ref),
                 "plan": asdict(plan),
