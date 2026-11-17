@@ -3030,7 +3030,9 @@ def _page_noise(challenge):
     margin), else the registered rebuild noise, as before."""
     from carbon.challenge_validator import crown_official, koth_registry
 
-    if crown_official.ACTIVE is not None and not crown_official.margin_unset():
+    if crown_official.ACTIVE is not None:
+        if crown_official.margin_unset():
+            return None  # no margin in force yet (V2 17 Nov): the page shows none, never a value it does not decide with
         return {
             "value": crown_official.ACTIVE["margin"],
             "measurement_digest": crown_official.ACTIVE["digest"],

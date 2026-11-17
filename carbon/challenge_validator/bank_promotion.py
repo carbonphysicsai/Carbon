@@ -736,7 +736,12 @@ class BankPromotion:
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
 
-            if official is not None and crown_official.margin_unset():
+            if (
+                official is not None
+                and crown_official.margin_unset()
+                # only a decision the margin can change waits: a dethrone (a gate-failed king) never reads it
+                and outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER)
+            ):
                 # The served version has no margin row yet (V2 17 Nov 2026): the grade stays filed and counted; this crown
                 # decision waits, filed like a queued one, and the sweep decides it in admission order once the row lands.
                 return {

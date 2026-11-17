@@ -216,13 +216,28 @@ def test_an_unlisted_version_installs_the_rule_with_its_margin_unset(
     assert noise == {"value": 0.0, "measurement_digest": crown_official.UNSET_DIGEST}
 
 
+def test_with_no_row_a_gate_failed_king_is_still_dethroned_now(tmp_path, rig):
+    """A dethrone never reads the margin: decided at once, as with a row (V2 should-fix 17 Nov)."""
+    _store, _clock, bodies, _paused, consider, _live, _reconsider, king = rig
+    crown_official.install(
+        CHALLENGE, VERSION, path=_registry(tmp_path, {}), log=[].append
+    )
+    bodies["k"] = _body("k", None, status="MANDATORY_GATE_FAILED")
+    bodies["a"] = _body("a", None, status="MANDATORY_GATE_FAILED")
+    assert consider("a")["outcome"] == bp.DETHRONED
+    assert king() is None
+
+
 def test_an_unlisted_versions_crown_waits_for_its_row_then_the_sweep_decides_it(
     tmp_path, monkeypatch, rig
 ):
     """The official path for a version with no row: no repeat grade, no rebuild (NoRebuild would raise); a crown-changing
-    contender is filed and waits; a non-changing one is decided as usual; once the row lands the sweep decides in order."""
+    contender is filed and waits; a non-changing one is decided as usual; once the row lands the sweep decides in order.
+    """
     store, clock, bodies, _paused, consider, live, reconsider, king = rig
-    crown_official.install(CHALLENGE, VERSION, path=_registry(tmp_path, {}), log=[].append)
+    crown_official.install(
+        CHALLENGE, VERSION, path=_registry(tmp_path, {}), log=[].append
+    )
     outcome = live("a")  # 0.75 > 0.70: would change the crown
     assert (outcome["outcome"], outcome["reason"]) == (
         bp.UNAVAILABLE,
@@ -442,7 +457,9 @@ def test_the_king_page_shows_the_official_margin_and_a_bar_never_below_the_real_
     assert koth_public.TO_BEAT_RULE == "floor_plus_step_plus_margin"
 
 
-def test_never_installed_or_unset_the_king_page_is_as_before(monkeypatch):
+def test_never_installed_the_king_page_is_as_before_and_unset_shows_no_margin(
+    monkeypatch,
+):
     import types
 
     from carbon.challenge_validator import crown_average, direct_receiver, koth_registry
@@ -455,10 +472,10 @@ def test_never_installed_or_unset_the_king_page_is_as_before(monkeypatch):
     challenge = types.SimpleNamespace(challenge_id=CHALLENGE, version=VERSION)
     assert direct_receiver._page_noise(challenge) == {"value": 0.0079}
     assert direct_receiver._crown_bar("store", CHALLENGE) is None
-    # installed with no row: the page keeps the registered noise, never a margin of 0 it does not decide with
+    # installed with no row: the page shows NO margin (none is in force), never the rebuild noise nor a margin of 0
     monkeypatch.setattr(
         crown_official,
         "ACTIVE",
         {"challenge": CHALLENGE, "version": VERSION, "margin": None, "digest": None},
     )
-    assert direct_receiver._page_noise(challenge) == {"value": 0.0079}
+    assert direct_receiver._page_noise(challenge) is None
