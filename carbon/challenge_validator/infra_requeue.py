@@ -11,6 +11,11 @@ reserved or graded. `auto_grade._give_back` then raised as well (fixed in A1), s
     python -m carbon.challenge_validator.infra_requeue release --root RECEIVER_STATE --id rtsk_... [--apply]
     python -m carbon.challenge_validator.infra_requeue keep-evaluation --root RECEIVER_STATE --ids IDS.txt [--apply]
     python -m carbon.challenge_validator.infra_requeue reclass --root RECEIVER_STATE --id rtsk_... --ruling ID [--apply]
+    python -m carbon.challenge_validator.infra_requeue rearm   --root RECEIVER_STATE --ids IDS.txt --ruling ID [--apply]
+
+17 Nov (Lead; owner D11): ``requeue`` also takes ``operator_bank_custody_unavailable`` (Carbon's bank custody write,
+uncharged); a given-back task's same-recipe twin that its miner WITHDREW is not a fresh rerun (it never grades);
+``rearm`` hands back once more a task whose earlier re-run also FAILED on Carbon's side (see ``REARMS``).
 
 ``list`` (read-only) regenerates the task list from the door itself, BY CRITERION, never from a frozen file: every
 FAILED task ``requeue`` would accept (with its arrival time, grouped at ``--split``, 3 Nov 00:00Z by default, for
@@ -112,6 +117,9 @@ from pathlib import Path
 CAUSES = (
     "direct_provider_registration_unavailable",
     "source_overlay_unavailable",
+    # the bank custody write of a graded task's retained files failed (Lead 17 Nov: Carbon's side, uncharged; re-queued
+    # once in its original place, like the two above)
+    "operator_bank_custody_unavailable",
 )
 CAUSE = CAUSES[0]
 SCHEMA = "carbon.challenge-validator.infra-requeue.v2"
@@ -119,6 +127,8 @@ DEFAULT_SPLIT = "2026-11-03T00:00:00Z"
 _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _ATTEMPT = 1  # the attempt that failed; a requeue grades attempt 2, once
 _DELIVERED = ("GRADED", "CANDIDATE_FAILED")
+#: The marker of a task its miner withdrew (`auto_grade`; the withdraw path): it never grades.
+WITHDRAWN = "WITHDRAWN_BY_MINER"
 
 
 def _graded_statuses():
@@ -405,7 +415,11 @@ def _door_refusal(root, db, door, task):
     if pack != door.served["pack"]:
         return "pack_not_served"
     if given_back and any(
-        other != task and recipe == recipes[task] for other, recipe in recipes.items()
+        other != task and recipe == recipes[task]
+        # a task the miner WITHDREW never grades: it is not a fresh rerun (17 Nov: four custody failures refused only
+        # because their withdrawn twin of the same recipe existed)
+        and _marker(_paths(root, other)["marker"]) != WITHDRAWN
+        for other, recipe in recipes.items()
     ):
         # a fresh rerun (or another task) of this same recipe exists: it grades, this one never does twice
         return "given_back_rerun_exists"
@@ -1314,6 +1328,98 @@ def restore_platform(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     return out
 
 
+#: ``rearm`` (owner, 17 Nov, D11: "re-arm again, uncharged, in original order, any task whose earlier re-run also failed
+#: on our side, on Validator-2's receipt"): a task whose CURRENT marker is FAILED (the grader writes FAILED only for a
+#: Carbon code: a candidate outcome is CANDIDATE_FAILED, a grade GRADED) and which was already handed back at least once
+#: (a kept ``attempt-N.marker.json``: its earlier re-run happened and failed too), handed back ONCE more by this mode,
+#: under a recorded receipt id, with every ``requeue`` door check. Its next grade spends nothing of the miner's round or
+#: day and stays on its original arrival epoch (`ExamCap.mark_requeued`, reusing its own row), like every hand-back.
+REARMS = "rearms.jsonl"
+
+
+def _rearm_refusal(root, db, door, task):
+    """``(attempt, code, None)`` when ``rearm`` accepts the task, else ``(None, None, refusal)`` (read-only)."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return None, None, "not_a_task_id"
+    if _log_lines(root, REARMS, task):
+        return None, None, "already_rearmed"
+    attempt = _restore_attempt(root, task)
+    if attempt is None:
+        return None, None, "attempts_unreadable_or_exhausted"
+    if attempt == _ATTEMPT:
+        # never handed back: the one automatic retry or ``requeue`` is its path, not a second re-arm
+        return None, None, "not_rearmed_before"
+    paths = _restore_paths(root, task, attempt)
+    state, code = _marker_body(paths["marker"])
+    if state is None:
+        return None, None, "no_marker"
+    if state != "FAILED":
+        # a delivered grade or a candidate outcome is never re-armed (a contested wall stop is ``reclass``'s)
+        return None, None, "marker_" + str(state).lower()
+    for earlier in range(1, attempt):
+        kept_state, _code = _marker_body(_paths(root, task, earlier)["kept_marker"])
+        if kept_state not in ("FAILED", "GRADED"):
+            # an earlier attempt that was the candidate's own outcome: not "failed on our side"
+            return None, None, "earlier_attempt_not_carbons"
+    refusal = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
+    if refusal is not None:
+        return None, None, refusal
+    return attempt, code if type(code) is str else None, None
+
+
+def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
+    """``{"rearmed": [...], "refused": {task: code}}``: each task whose earlier re-run also FAILED on Carbon's side is
+    handed back to the grader once more (see ``REARMS``). Dry run unless ``apply``; ``ruling`` is Validator-2's receipt
+    id. Run it after the cause is fixed on this door, else the task fails again."""
+    out = {
+        "schema": SCHEMA,
+        "action": "rearm",
+        "apply": apply,
+        "ruling": ruling,
+        "rearmed": [],
+        "refused": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    ledger, cap = _ledger(root)
+    door = _Door(root)
+    for task in tasks:
+        with ledger._db() as db:
+            attempt, code, refusal = _rearm_refusal(root, db, door, task)
+        if refusal is not None:
+            out["refused"][task] = refusal
+            continue
+        if apply:
+            paths = _restore_paths(root, task, attempt)
+            paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
+            line = {
+                "task": task,
+                "attempt": attempt + 1,
+                "kind": "rearm",
+                "cause": code,
+                "ruling": ruling,
+                "evaluation_kept": paths["evaluation"].is_dir(),
+                "at_ns": int(clock()),
+            }
+            # once per task, fail closed: on record before anything moves (a crash below leaves it ``already_rearmed``)
+            with open(
+                paths["kept_marker"].parent / REARMS, "a", encoding="utf-8"
+            ) as log:
+                log.write(json.dumps(line, sort_keys=True) + "\n")
+            cap.mark_requeued(task, attempt=attempt + 1)
+            if paths["failure"].exists():
+                os.replace(paths["failure"], paths["kept_failure"])
+            _keep_evaluation(paths)
+            # the commit point: with no marker, the grader's next tick takes the task
+            os.replace(paths["marker"], paths["kept_marker"])
+            with open(
+                paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
+            ) as log:
+                log.write(json.dumps(line, sort_keys=True) + "\n")
+        out["rearmed"].append(task)
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -1369,6 +1475,13 @@ def main(argv=None):
         "--ruling", required=True, help="the receipt / ruling id (a closed id)"
     )
     six.add_argument("--apply", action="store_true")
+    seven = sub.add_parser("rearm")
+    seven.add_argument("--root", type=Path, required=True)
+    seven.add_argument("--ids", type=Path, required=True, help="the task ids")
+    seven.add_argument(
+        "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
+    )
+    seven.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -1428,6 +1541,11 @@ def main(argv=None):
                 if line.strip()
             ]
         out = restore_platform(args.root, tasks, ruling=args.ruling, apply=args.apply)
+    elif args.cmd == "rearm":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = rearm(args.root, tasks, ruling=args.ruling, apply=args.apply)
     elif args.cmd == "reclass":
         out = reclass(args.root, args.id, ruling=args.ruling, apply=args.apply)
     else:
