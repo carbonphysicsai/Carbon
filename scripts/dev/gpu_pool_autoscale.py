@@ -442,7 +442,9 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 )
                 _released(config, state, name, record, client, now, "bring_up_failed")
 
-    if boxes is not None:
+    if boxes is not None and waiting is not None:
+        # an unreadable queue (a door switch, the door down or moved) changes nothing: no drain, no release (V2,
+        # 17 Nov 2026); a failed bring-up above is still released (never paid for idle)
         # scale down: idle > idle_release_s -> drain (rename the box file), then release once no slot is busy
         for name, record in list(ours.items()):
             entry = boxes.get(name)

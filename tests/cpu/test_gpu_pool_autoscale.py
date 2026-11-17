@@ -460,3 +460,25 @@ def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
     client2 = _Client([A100])
     _ticks(config2, client2, 80, boxes=busy, count=4)
     assert len(client2.launched) == 1
+
+
+def test_an_unreadable_queue_drains_and_releases_nothing(tmp_path, monkeypatch):
+    """V2 (17 Nov 2026): a tick that cannot read the door's queue (a switch window, a moved port) does nothing to the
+    boxes: no rent, no drain, no release, even of a box idle for hours."""
+    config = _config(tmp_path)
+    client = _Client([A100])
+    idle = {"carbon-a100": {"file": True, "busy": False, "last": 0.0, "admitted": 0.0}}
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, idle),
+        now=T0,
+    )
+    monkeypatch.setattr(scale, "_door", lambda *a, **k: pytest.fail("door write"))
+    _ticks(config, client, None, boxes=idle, start=T0 + 7200, count=4)
+    gone = {"carbon-a100": dict(idle["carbon-a100"], file=False)}
+    assert scale.load_state(config)["boxes"]["carbon-a100"]["phase"] == "ACTIVE"
+    _ticks(config, client, None, boxes=gone, start=T0 + 9000, count=2)
+    assert client.launched == [] and client.terminated == []
