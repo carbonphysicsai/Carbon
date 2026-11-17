@@ -327,3 +327,51 @@ def test_a_second_prelude_never_waits_behind_the_first_on_its_lane():
     claims.release("builder")
     first.join(5)
     assert ran == ["places", "king"]
+
+
+def test_a_remote_box_container_holds_the_timing_gate_only_for_its_transfers(host):
+    """V2 ruling (17 Nov 2026): a container on a REMOTE GPU build box uses no local cores, so it does not hold this
+    host's timing gate for its run; its export (and its stage upload) still hold it SHARED, so a timing stage waits for
+    the transfer, never for the remote run."""
+    import inspect
+
+    from carbon.development_session import research_carrier
+
+    source = inspect.getsource(research_carrier._run_locked)
+    assert "on_remote_box = remote_gpu_build.remote_box() is not None" in source
+    assert (
+        "if not on_remote_box:\n"
+        "                    lease.enter_context(grade_lanes.container_hold(identity=identity))"
+    ) in source
+    assert "_remote_box_transfer(on_remote_box, identity)" in source
+    lane = grade_lanes.Lane(0, "0-3", str(host))
+    transfer, released, timing_done = (threading.Event() for _ in range(3))
+
+    def export():
+        with (
+            grade_lanes.bound(lane),
+            research_carrier._remote_box_transfer(True, "direct-x-build"),
+        ):
+            transfer.set()
+            assert released.wait(5)
+
+    def timing():
+        with (
+            grade_lanes.bound(grade_lanes.Lane(1, "4-7", str(host))),
+            grade_lanes.container_hold(identity="single-call-z", poll_s=POLL),
+        ):
+            timing_done.set()
+
+    threading.Thread(target=export, daemon=True).start()
+    assert transfer.wait(5)
+    threading.Thread(target=timing, daemon=True).start()
+    assert not timing_done.wait(0.3)  # the export holds the gate
+    released.set()
+    assert timing_done.wait(5)
+    # not a remote box: the helper holds nothing (the container's own lifelong hold does)
+    with (
+        grade_lanes.bound(lane),
+        research_carrier._remote_box_transfer(False, "x"),
+        grade_lanes.container_hold(identity="single-call-w", poll_s=POLL),
+    ):
+        pass

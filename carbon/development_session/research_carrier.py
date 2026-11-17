@@ -1593,6 +1593,21 @@ def _timing_stage(identity):
     )
 
 
+@contextmanager
+def _remote_box_transfer(on_remote_box, identity):
+    """A container on a REMOTE GPU build box holds this host's timing gate SHARED only while its local transfers run
+    (V2 ruling, 17 Nov 2026: here its output export; its stage upload holds it where the stage is mirrored), never for
+    its run. Any other container: nothing here (it holds the gate for its whole life, `grade_lanes.container_hold`).
+    """
+    if not on_remote_box:
+        yield
+        return
+    from carbon.reconstruction import grade_lanes
+
+    with grade_lanes.container_hold(identity=identity):
+        yield
+
+
 def _timing_wanted():
     """Whether another lane's timing stage is waiting for the host timing gate (`grade_lanes`). A live session then
     yields before its next op, so that stage waits for at most one op, as it waits for one container today.
@@ -2435,6 +2450,9 @@ def _run_locked(
     session_op_ok = False
     candidate_stop = None
     output = operation / "export.stream"
+    # V2 ruling (17 Nov 2026): a container on a REMOTE GPU build box uses none of this host's cores, so it holds this
+    # host's timing gate only for its local transfers (the stage upload, its output export), never for its run
+    on_remote_box = remote_gpu_build.remote_box() is not None
     lease = ExitStack()
     slot = ExitStack()
     try:
@@ -2478,7 +2496,8 @@ def _run_locked(
                 # stage on the other lane never runs beside it.
                 from carbon.reconstruction import grade_lanes
 
-                lease.enter_context(grade_lanes.container_hold(identity=identity))
+                if not on_remote_box:
+                    lease.enter_context(grade_lanes.container_hold(identity=identity))
             with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
                 _check_cancel(ledger, owner, identity)
             with _fixed_practice_stage(operation, provenance, "CREATE"):
@@ -2721,7 +2740,10 @@ def _run_locked(
                 raise
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)
-        with _fixed_practice_stage(operation, provenance, "EXPORT"):
+        with (
+            _fixed_practice_stage(operation, provenance, "EXPORT"),
+            _remote_box_transfer(on_remote_box, identity),
+        ):
             export_started = time.monotonic()
             export_timeout = max(1, seconds - 35 - (export_started - started))
             try:
