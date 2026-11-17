@@ -453,11 +453,13 @@ def is_procs_program(program) -> bool:
 def fell_back(program, diagnostic) -> bool:
     """Whether a FAILED run of ``program`` fell back (Validator-2 F2): a per-case processes program whose private
     diagnostic carries a fallback line. Only then is the failure Carbon's; a one-process program's diagnostic is never
-    read for the mark (its stops are classified as before, whatever its stderr says)."""
+    read for the mark (its stops are classified as before, whatever its stderr says). The mark counts only at the start
+    of a line, as the program prints it: text echoed inside a traceback or an error message never starts one.
+    """
     return (
         is_procs_program(program)
         and type(diagnostic) is bytes
-        and FALLBACK_MARK in diagnostic
+        and any(line.startswith(FALLBACK_MARK) for line in diagnostic.split(b"\n"))
     )
 
 

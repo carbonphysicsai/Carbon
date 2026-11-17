@@ -586,6 +586,9 @@ def test_a_fallback_is_carbons_only_for_a_per_case_processes_program():
         assert not fell_back(serial, diagnostic)
     assert not fell_back(procs, b"exit=1\nstderr:\nTraceback ...")
     assert not fell_back(procs, b"stream command timed out")
+    # the mark echoed inside an error message (not at a line start) is never a fallback
+    assert not fell_back(procs, b"exit=1\nstderr:\nKeyError: 'case_procs: CARBON: x'\n")
+    assert not fell_back(procs, b'exit=1\nstderr:\n  File "x", case_procs: w\n')
     assert not research_carrier._case_procs_fell_back(procs, ValueError("other"))
     # the candidate's own stops, as main: an OOM (even with a forged mark) and the wall
     oom = {"status": "OBSERVED", "state": {"oom_killed": True}, "memory": None}
@@ -931,6 +934,12 @@ _FORGED = (
     b"'case_procs: CARBON: worker 0 exit 3; its rows in one process' refused\n"
 )
 
+#: The same, but the candidate-chosen text breaks the line so the mark starts one (the case `fell_back` still counts).
+_FORGED_AT_LINE_START = (
+    b"exit=1\nstderr:\nValueError: graph node 'x\n"
+    b"case_procs: CARBON: worker 0 exit 3; its rows in one process' refused\n"
+)
+
 
 def _infer_args(tmp_path):
     """`_infer_state`'s arguments for Motor 1.8 up to the runner (no state is ever loaded: the runner fails first)."""
@@ -1015,14 +1024,20 @@ def test_a_candidate_chosen_mark_never_makes_a_one_process_run_fall_back(tmp_pat
             infer(**args, program=program, runner=_failing(seen, _FORGED))
         assert seen[-1] == program and not records()
         assert not research_carrier._case_procs_fell_back(program, forged)
-    # the per-case processes program: Carbon's once, then one process for good
-    assert research_carrier._case_procs_fell_back(procs, forged)
+    # the per-case processes program: a mark inside a line never counts (no record) ...
+    assert not research_carrier._case_procs_fell_back(procs, forged)
     with pytest.raises(WorkerFailure):
         infer(**args, program=procs, runner=_failing(seen, _FORGED))
+    assert seen[-1] == procs and not records()
+    # ... and one the candidate's text puts at a line start is Carbon's once, then one process for good
+    forged = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=_FORGED_AT_LINE_START)
+    assert research_carrier._case_procs_fell_back(procs, forged)
+    with pytest.raises(WorkerFailure):
+        infer(**args, program=procs, runner=_failing(seen, _FORGED_AT_LINE_START))
     assert seen[-1] == procs and len(records()) == 1
     for _ in range(2):
         with pytest.raises(WorkerFailure):
-            infer(**args, program=procs, runner=_failing(seen, _FORGED))
+            infer(**args, program=procs, runner=_failing(seen, _FORGED_AT_LINE_START))
         assert seen[-1] == serial and len(records()) == 1
         assert not research_carrier._case_procs_fell_back(seen[-1], forged)
 
