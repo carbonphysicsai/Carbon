@@ -193,13 +193,16 @@ class _Build:
 def test_with_remote_build_slots_a_build_starts_with_no_lane(host):
     """Owner, 17 Nov 2026 ("make them independent of each other"): with remote GPU build slots and remote grade lanes,
     a build round STARTS holding no lane and no slot, whatever the grades hold: every lane it could take is busy here
-    (two remote grades, a grade on the unreserved local lane, a build's local part on the reserved one)."""
+    (two remote grades, a grade on the unreserved local lane, a build's local part on the reserved one).
+    """
     work, _ = _door(host, extra=4)
     assert work.builds_laneless and work._reserved_local == (0,)
     first = _Build(work)
     assert first.remote.wait(5)
     first.finish.set()
-    assert first.local.wait(5) and first.lane.index == 0  # its local part: the reserved lane
+    assert (
+        first.local.wait(5) and first.lane.index == 0
+    )  # its local part: the reserved lane
     grades = [_Round(work, "grade") for _ in range(3)]
     for grade in grades:
         assert grade.entered.wait(5)
@@ -273,9 +276,12 @@ def test_a_build_away_on_the_remote_box_never_lets_grades_starve_a_new_build(tmp
         assert waiting_grade.entered.is_set()
 
 
-def test_a_build_back_from_the_remote_box_takes_the_reserved_lane_while_grades_wait(host):
+def test_a_build_back_from_the_remote_box_takes_the_reserved_lane_while_grades_wait(
+    host,
+):
     """Grades fill the remote lanes and the unreserved local lane, never the builds' reserved one: the A100's build
-    holds a local lane for its local part at once, and a fourth grade waits for a lane of its own."""
+    holds a local lane for its local part at once, and a fourth grade waits for a lane of its own.
+    """
     work, _ = _door(host, extra=4)
     away = _Build(work)
     assert away.remote.wait(5)
@@ -290,7 +296,8 @@ def test_a_build_back_from_the_remote_box_takes_the_reserved_lane_while_grades_w
 
 def test_a_laneless_builds_local_op_holds_a_local_lane_first(host):
     """An op on this host (`grade_lanes.laned`): the laneless build round holds a LOCAL lane first, the reserved one,
-    keeps it for the rest of the round, and the binding ends with the round (never a container unpinned)."""
+    keeps it for the rest of the round, and the binding ends with the round (never a container unpinned).
+    """
     work, _ = _door(host, extra=4)
     with work.taking("advance"):
         assert grade_lanes.current() is None

@@ -1947,7 +1947,8 @@ class _WorkLock:
 
     def _grade_local(self, local):
         """The ``(index, spec)`` local lanes a grade round may take: every one on a door with no remote grade lane; on a
-        door whose builds start laneless (`builds_laneless`), every one but the builds' reserved lane; else none."""
+        door whose builds start laneless (`builds_laneless`), every one but the builds' reserved lane; else none.
+        """
         if not self._grades_remote_only():
             return local
         reserved = getattr(self, "_reserved_local", ())
@@ -2318,7 +2319,8 @@ class _Taking:
         no lane and no round slot, only its place among the door's live rounds (a drain still sees it busy) and its
         releaser, in the state of a round whose lane is out (`release`). Its remote GPU op needs nothing more; an op that
         runs on this host first holds a LOCAL lane (`grade_lanes.laned`, `grade_lanes.released`: `retake`, the builds'
-        reserved lane first), so no container ever runs unpinned. Grades never wait for it, nor it for them."""
+        reserved lane first), so no container ever runs unpinned. Grades never wait for it, nor it for them.
+        """
         from carbon.reconstruction import grade_lanes
 
         work = self.work
