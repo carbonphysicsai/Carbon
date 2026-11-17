@@ -47,7 +47,9 @@ def _d(char):
     return "sha256:" + char * 64
 
 
-def _evidence(version, total, *, pin, queries="1"):
+def _evidence(
+    version, total, *, pin, queries="1", status="SCORED_DEVELOPMENT_CANDIDATE"
+):
     """A paired dual binding of one exam: the measured content is the same for
     every version unless ``queries`` changes; the version-named fields differ."""
     named = "c" if version == "1.4" else "d"
@@ -83,13 +85,23 @@ def _evidence(version, total, *, pin, queries="1"):
         "official_score": False,
         "official_eligible": False,
         "model_p": {
-            "score_status": "SCORED_DEVELOPMENT_CANDIDATE",
+            "score_status": status,
             "total_score": total,
         },
     }
 
 
-def _file(store, submission_id, hotkey, version, total, *, pin, queries="1"):
+def _file(
+    store,
+    submission_id,
+    hotkey,
+    version,
+    total,
+    *,
+    pin,
+    queries="1",
+    status="SCORED_DEVELOPMENT_CANDIDATE",
+):
     """Admit, retain and file one evaluation; returns its evaluation key."""
     state = ("state-" + submission_id).encode()
     import hashlib
@@ -115,7 +127,7 @@ def _file(store, submission_id, hotkey, version, total, *, pin, queries="1"):
     )
     store.mark(submission_id, "RECONSTRUCTED")
     evidence = {
-        **_evidence(version, total, pin=pin, queries=queries),
+        **_evidence(version, total, pin=pin, queries=queries, status=status),
         "state_digest": state_digest,
     }
     key = private_evaluation_key(evidence)
@@ -571,3 +583,95 @@ def test_the_operator_command_carries_and_refuses_a_missing_pool(tmp_path, capsy
     assert json.loads(capsys.readouterr().out) == {
         "refused": "koth_carry_pool_unavailable"
     }
+
+
+# -- the path production takes: the official-score rule installed (every receiver installs it at start) ---------------
+
+
+def _installed(tmp_path, margin):
+    """`crown_official.install` for F08 1.5 as a receiver does at start: with the owner's row, or (``margin`` None)
+    none. The autouse conftest fixture resets it after the test."""
+    from carbon.challenge_validator import crown_official
+
+    path = tmp_path / "crown_official_score.json"
+    rows = {} if margin is None else {f"{F08} 1.5": {"margin": margin}}
+    path.write_text(
+        json.dumps({"schema": crown_official.SCHEMA, "versions": rows}),
+        encoding="utf-8",
+    )
+    crown_official.install(F08, "1.5", path=path, log=[].append)
+    return crown_official
+
+
+def test_installed_with_a_row_the_carried_king_meets_the_official_margin(tmp_path):
+    _installed(tmp_path, NOISE)
+    old, new = _old_deployment(tmp_path), _new_deployment(tmp_path)
+    _carry(old, new)
+    within = _challenge(new, "within", 0.80 + NOISE / 2)
+    assert within["outcome"] == INCUMBENT_KEEPS
+    assert _challenge(new, "tie", 0.80)["outcome"] == INCUMBENT_KEEPS
+    beyond = _challenge(new, "beyond", 0.80 + 2 * NOISE)
+    assert (beyond["outcome"], beyond["incumbent"]) == (CHALLENGER, "king")
+    assert new.incumbent()["model_id"] == "beyond"
+
+
+def test_installed_with_no_row_a_contender_above_the_carried_king_waits(tmp_path):
+    crown_official = _installed(tmp_path, None)
+    old, new = _old_deployment(tmp_path), _new_deployment(tmp_path)
+    _carry(old, new)
+    # above the king (even inside the old rebuild noise): no margin is in force, so the decision waits for the row
+    above = _challenge(new, "above", 0.80 + NOISE / 2)
+    assert (above["outcome"], above["reason"]) == (
+        UNAVAILABLE,
+        crown_official.CROWN_MARGIN_UNSET,
+    )
+    # a tie or a lower total cannot win at any margin: decided now
+    assert _challenge(new, "tie", 0.80)["outcome"] == INCUMBENT_KEEPS
+    assert _challenge(new, "below", 0.70)["outcome"] == INCUMBENT_KEEPS
+    assert new.incumbent()["model_id"] == "king"
+
+
+def test_installed_with_no_row_a_gate_failed_carried_king_is_still_dethroned(
+    tmp_path,
+):
+    from carbon.challenge_validator.bank_promotion import DETHRONED
+
+    _installed(tmp_path, None)
+    old = PoolStore(tmp_path / "f08-1.4.sqlite", clock=lambda: 100.0)
+    old.king_key = _file(
+        old,
+        "king",
+        "king-hotkey",
+        "1.4",
+        None,
+        pin=OLD_PIN,
+        status="MANDATORY_GATE_FAILED",
+    )
+    old.set_incumbent("king", SEALED_TESTNET_PROMOTION)
+    graded = old.private_evaluation_body(
+        "king", old.king_key, registered_source_receipt_sha256=OLD_PIN
+    )
+    old.record_repeat_verified("king", old.king_key, grade_fingerprint(graded))
+    new = _new_deployment(tmp_path)
+    _carry(old, new)
+    # a dethrone never reads the margin: decided now, with no row (only a crown WIN waits)
+    key = _file(
+        new,
+        "failed",
+        "failed-hotkey",
+        "1.5",
+        None,
+        pin=NEW_PIN,
+        status="MANDATORY_GATE_FAILED",
+    )
+    outcome = BankPromotion(
+        new, registered_source_receipt_sha256=NEW_PIN
+    ).consider_private(
+        "failed",
+        key,
+        _comparator(),
+        sealed=True,
+        repeat=identical_repeat(new, key, NEW_PIN),
+    )
+    assert outcome["outcome"] == DETHRONED
+    assert new.incumbent() is None
