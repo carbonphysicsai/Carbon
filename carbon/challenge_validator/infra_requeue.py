@@ -1705,6 +1705,79 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     return out
 
 
+def rebuild(root, tasks, *, ruling, apply=False, clock=time.time_ns):
+    """``{"requested": [...], "refused": {task: code}}``: the operator's BUILD re-arm (Lead 17 Nov, on Validator-2's
+    receipt) for builds that never reached a grade: a FAILED_INFRA build, or one refused only for the CPU worker wall of
+    its build-pipeline inference. The live door applies each request ONCE on its next advance round
+    (`LeanRecipeAdapter._apply_rebuild_requests`): the build's next generation (fresh task id, fresh ops; no settled op
+    is cleared) at the failed task's original place and epoch, uncharged, even when it was itself the door's requeue.
+    The door re-checks the task's state there and logs the outcome in ``requeued/rebuild-applied.jsonl``. Dry run
+    unless ``apply``."""
+    from .lean_recipe import REBUILD_APPLIED, REBUILD_REQUESTS
+
+    out = {
+        "schema": SCHEMA,
+        "action": "rebuild",
+        "apply": apply,
+        "ruling": ruling,
+        "requested": [],
+        "refused": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    ledger, _cap = _ledger(root)
+    asked = {line["task"] for line in _log_lines_all(root, REBUILD_REQUESTS)}
+    asked |= {line["task"] for line in _log_lines_all(root, REBUILD_APPLIED)}
+    for task in tasks:
+        if type(task) is not str or not _TASK.fullmatch(task):
+            out["refused"][task] = "not_a_task_id"
+            continue
+        if task in asked:
+            out["refused"][task] = "already_requested"
+            continue
+        with ledger._db() as db:
+            if _arrival(db, task) is None:
+                out["refused"][task] = "not_submitted_at_this_door"
+                continue
+            if any(row[1] in ("COUNTED", "RESERVED") for row in _rows(db, task)):
+                out["refused"][task] = "exam_row_counted_or_reserved"
+                continue
+        if _marker(_paths(root, task)["marker"]) in _DELIVERED:
+            out["refused"][task] = "graded"
+            continue
+        if apply:
+            directory = Path(root) / "auto-grade" / "requeued"
+            directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with open(directory / REBUILD_REQUESTS, "a", encoding="utf-8") as log:
+                log.write(
+                    json.dumps(
+                        {"task": task, "ruling": ruling, "at_ns": int(clock())},
+                        sort_keys=True,
+                    )
+                    + "\n"
+                )
+        asked.add(task)
+        out["requested"].append(task)
+    return out
+
+
+def _log_lines_all(root, name):
+    """Every line of ``requeued/<name>`` with a task id (parsed objects)."""
+    log = Path(root) / "auto-grade" / "requeued" / name
+    found = []
+    try:
+        for line in log.read_text().splitlines():
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            if type(record) is dict and type(record.get("task")) is str:
+                found.append(record)
+    except OSError:
+        pass
+    return found
+
+
 #: ``return-slot`` (owner D14, 17 Nov, via Validator-2: "approved: return the exam slot for the 18 counted wall-stop tasks
 #: and the 4 build failures in V2_RULING.md; their resubmits run uncharged"): the record of each slot returned.
 SLOT_RETURNS = "slot-returns.jsonl"
@@ -1897,6 +1970,15 @@ def main(argv=None):
         "--ruling", required=True, help="Validator-2's ruling id (a closed id)"
     )
     eight.add_argument("--apply", action="store_true")
+    rebuild_parser = sub.add_parser("rebuild")
+    rebuild_parser.add_argument("--root", type=Path, required=True)
+    rebuild_parser.add_argument(
+        "--ids", type=Path, required=True, help="the build task ids"
+    )
+    rebuild_parser.add_argument(
+        "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
+    )
+    rebuild_parser.add_argument("--apply", action="store_true")
     nine = sub.add_parser("return-slot")
     nine.add_argument("--root", type=Path, required=True)
     nine.add_argument("--ids", type=Path, required=True, help="the task ids")
@@ -1989,6 +2071,11 @@ def main(argv=None):
             apply=args.apply,
             resubmits_of=args.resubmits_of,
         )
+    elif args.cmd == "rebuild":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = rebuild(args.root, tasks, ruling=args.ruling, apply=args.apply)
     elif args.cmd == "reclass":
         out = reclass(args.root, args.id, ruling=args.ruling, apply=args.apply)
     else:

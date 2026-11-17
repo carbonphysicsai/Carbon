@@ -515,7 +515,14 @@ class AttemptLedger:
     BUILD_REQUEUED = "build_requeued"
 
     def requeue_failed_build(
-        self, contract_digest, *, from_task, new_task, hotkey, apply=True
+        self,
+        contract_digest,
+        *,
+        from_task,
+        new_task,
+        hotkey,
+        apply=True,
+        operator=False,
     ):
         """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): ``new_task`` (the next generation of ``from_task``'s recipe, a
         build that ended on Carbon's infrastructure) is queued ONCE at ``from_task``'s ORIGINAL place, as if its miner had
@@ -527,6 +534,8 @@ class AttemptLedger:
         was already given), ``"new_task_holds_a_place"`` or ``"new_task_known"`` (the miner already resubmitted it).
         The place is ``from_task``'s own, or the one IT holds (a stop-cancel resubmission's): never a later one.
         ``apply=False``: the same answer, ``"requeuable"`` instead of ``"requeued"``, nothing written.
+        ``operator`` (the operator's build re-arm on Validator-2's receipt, 17 Nov): the one refusal it lifts is
+        ``"from_task_is_a_requeue"``; every other check stands (a place is still given once per task).
         """
         values = (contract_digest, from_task, new_task, hotkey)
         if not all(type(value) is str and value for value in values):
@@ -548,7 +557,7 @@ class AttemptLedger:
                 "ORDER BY seq LIMIT 1",
                 (contract_digest, from_task),
             ).fetchone()[0]
-            if first_code == self.BUILD_REQUEUED:
+            if first_code == self.BUILD_REQUEUED and not operator:
                 return "from_task_is_a_requeue"
             prior = db.execute(
                 "SELECT new_task FROM queue_place_grants WHERE contract_digest=? AND from_task=?",

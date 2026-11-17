@@ -13,6 +13,7 @@ import contextlib
 import hashlib
 import json
 import re
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -40,6 +41,54 @@ MAX_INFRA_RERUNS = 16
 WITHDRAW_PREFIX = "miner-withdraw-"
 #: The public failure code a withdrawn task projects with (never ``direct_task_cancelled``, which the kit resubmits).
 WITHDRAWN_CODE = "withdrawn_by_miner"
+
+
+#: The operator's build re-arm requests and their applied outcomes (`infra_requeue rebuild`), in the receiver's
+#: ``auto-grade/requeued`` beside the grade requeues.
+REBUILD_REQUESTS = "rebuild-requests.jsonl"
+REBUILD_APPLIED = "rebuild-applied.jsonl"
+
+
+def _jsonl(path):
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    out = []
+    for raw in text.splitlines():
+        try:
+            line = json.loads(raw)
+        except ValueError:
+            continue
+        if type(line) is dict:
+            out.append(line)
+    return out
+
+
+def _cpu_wall_refusal(provider, owner, task_id):
+    """Whether ``task_id``'s build-pipeline INFERENCE child settled FAILED_MINER on the worker wall (the deadline code):
+    a model too slow for the door's one-process CPU inference, which per-case processes now runs in workers (Live ops /
+    case-procs, 17 Nov: 603 s of 648 on GPUYard's CPU worker after an A100 build). Read-only; anything unreadable is no.
+    """
+    try:
+        from carbon.development_session.bundle_construction_worker import (
+            direct_child_identity,
+        )
+        from carbon.reconstruction.worker.model import WorkerCode
+
+        child = direct_child_identity(task_id, "inference")
+        with provider.ledger.db() as db:
+            row = db.execute(
+                "SELECT state, result FROM operations WHERE id=? AND owner=?",
+                (child, owner),
+            ).fetchone()
+        if row is None or row[0] != "FAILED_MINER":
+            return False
+        return json.loads(row[1]).get("failure_code") == WorkerCode.DEADLINE.value
+    except Exception:  # noqa: BLE001 - unreadable: never a re-run
+        return False
+
+
 #: `LeanRecipeAdapter.withdraw`'s closed answers.
 WITHDRAWN = "WITHDRAWN"
 ALREADY_WITHDRAWN = "ALREADY_WITHDRAWN"
@@ -1031,6 +1080,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             return None
 
     def advance(self):
+        self._apply_rebuild_requests()
         moved = 0
         # A19 (Lead, 16 Nov 2026): a door with N lanes runs N advance rounds at once; each takes the first queued task
         # whose owner no other round holds (`grade_sequencer.OwnerClaims`: one owner's ledger lease is non-blocking).
@@ -1176,7 +1226,58 @@ class LeanRecipeAdapter(ChallengeAdapter):
             return 1
         return None
 
-    def _requeue_failed_build(self, owner, task_id, provider):
+    def _apply_rebuild_requests(self):
+        """The operator's build re-arm (`infra_requeue rebuild`, on Validator-2's receipt): each request line not yet
+        applied is applied ONCE through `_requeue_failed_build` in operator mode (a FAILED_INFRA build, or one refused
+        only for the CPU worker wall, re-run as its next generation even when it was itself the door's requeue). Fresh
+        task id, fresh ops: no settled op is ever cleared. The outcome (the new task, or None) is logged beside the request.
+        Never raises: the advance round goes on."""
+        try:
+            directory = Path(self.ledger.path).parent / "auto-grade" / "requeued"
+            requests = _jsonl(directory / REBUILD_REQUESTS)
+            if not requests:
+                return
+            done = {line.get("task") for line in _jsonl(directory / REBUILD_APPLIED)}
+            from carbon.research import ResearchTaskId
+
+            for line in requests:
+                task, ruling = line.get("task"), line.get("ruling")
+                if task in done or type(task) is not str or type(ruling) is not str:
+                    continue
+                done.add(task)
+                new_task, code = None, None
+                try:
+                    owner = self._active_owner(task)
+                    if owner is None:
+                        code = "owner_unavailable"
+                    else:
+                        new_task = self._requeue_failed_build(
+                            owner,
+                            ResearchTaskId(task),
+                            self._provider(owner),
+                            operator=ruling,
+                        )
+                        code = None if new_task else "not_rebuilt"
+                except Exception as failure:  # noqa: BLE001 - one request only
+                    code = type(failure).__name__
+                with open(directory / REBUILD_APPLIED, "a", encoding="utf-8") as log:
+                    log.write(
+                        json.dumps(
+                            {
+                                "task": task,
+                                "ruling": ruling,
+                                "new_task": new_task,
+                                "code": code,
+                                "at_ns": time.time_ns(),
+                            },
+                            sort_keys=True,
+                        )
+                        + "\n"
+                    )
+        except Exception:  # noqa: BLE001, S110 - never fails the round
+            pass
+
+    def _requeue_failed_build(self, owner, task_id, provider, *, operator=None):
         """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): a build whose task ended FAILED_INFRA (Carbon's, never charged)
         is started again ONCE, as its next generation (`_request` ``rerun`` + 1: the same task its miner's resubmit would
         make), at the failed task's ORIGINAL queue place and epoch (`AttemptLedger.requeue_failed_build`), and its grade
@@ -1192,7 +1293,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
             task = provider.get_research_result(
                 DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
             ).task
-            if task.state is not DirectTaskStateV3.FAILED_INFRA:
+            if task.state is not DirectTaskStateV3.FAILED_INFRA and not (
+                task.state is DirectTaskStateV3.REFUSED
+                and _cpu_wall_refusal(provider, owner, task_id.value)
+            ):
+                # 17 Nov (Lead; owner: "miners re-run automatically"): a build refused ONLY because its build-pipeline
+                # inference hit the worker wall on the door's CPU worker is re-run like a FAILED_INFRA one
                 return None
             if not hasattr(self.ledger, "requeue_failed_build"):
                 return None
@@ -1224,7 +1330,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
             new_task = provider._task_id(request).value
             ask = {"from_task": task_id.value, "new_task": new_task, "hotkey": owner}
             result = self.ledger.requeue_failed_build(
-                self.contract_digest, apply=False, **ask
+                self.contract_digest,
+                apply=False,
+                operator=operator is not None,
+                **ask,
             )
             if result != "requeuable":
                 note("build_requeue_refused", task=task_id.value, code=result)
@@ -1248,7 +1357,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     self.contract_digest, new_task, catalog
                 )
             provider.start_research_task(request, measure_query=self._measure_query)
-            result = self.ledger.requeue_failed_build(self.contract_digest, **ask)
+            result = self.ledger.requeue_failed_build(
+                self.contract_digest, operator=operator is not None, **ask
+            )
             if result != "requeued":
                 # the miner resubmitted it meanwhile: it runs as their resubmit, at the back, as today
                 note("build_requeue_refused", task=task_id.value, code=result)
@@ -1256,7 +1367,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
             from carbon.challenge_validator.exam_cap import ExamCap
 
             ExamCap(self.ledger).mark_requeued(new_task)
-            note("build_requeued", task=task_id.value, new_task=new_task)
+            note(
+                "build_requeued",
+                task=task_id.value,
+                new_task=new_task,
+                **({} if operator is None else {"ruling": operator}),
+            )
             return new_task
         except Exception as failure:  # noqa: BLE001 - never fails the build round
             note(
