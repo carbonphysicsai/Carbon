@@ -326,6 +326,9 @@ def _live_door_with_work_in_flight(root):
             ],
         )
     (root / "work-inflight.json").write_text('{"kind": "grade", "pid": 7}')
+    # live's open grade session (its reaper and container are live's)
+    (owner_dir / "ledger/session-live").mkdir(mode=0o700)
+    (owner_dir / "ledger/session-live/intent.json").write_text("{}")
     return hotkey, owner_dir
 
 
@@ -374,13 +377,59 @@ def test_a_copy_settles_live_in_flight_work_offline_and_never_touches_a_worker(
     live = CampaignLedger(owner_dir / "ledger")
     assert live.operation_state("op-live", owner=hotkey) == "RESERVED"
     assert (state / "work-inflight.json").exists()
-    # again: nothing more to do
-    again = state_snapshot.settle_copy(out)
-    assert again["settled"] == [] and not again["work_inflight_removed"]
+    # once only: by now the copy's own door may hold RESERVED operations of its own
+    with pytest.raises(SnapshotRefused, match="already_settled"):
+        state_snapshot.settle_copy(out)
+    assert json.loads(body)["schema"] == "carbon.autoresearch.worker-reconciliation.v1"
+    assert result["sessions_removed"] == [
+        owner_dir.relative_to(state).as_posix() + "/ledger/session-live"
+    ]
+    assert not (out / owner_dir.relative_to(state) / "ledger/session-live").exists()
+    assert (owner_dir / "ledger/session-live/intent.json").exists()
 
 
 def test_settle_refuses_an_idle_snapshot(state, tmp_path):
     out = tmp_path / "snap"
     take(state, out)
     with pytest.raises(SnapshotRefused, match="not_a_live_snapshot"):
+        state_snapshot.settle_copy(out)
+
+
+def test_owner_ledgers_are_backed_up_after_every_other_database(
+    state, tmp_path, monkeypatch
+):
+    """A task store is never newer than the operations it names (review should-fix 3)."""
+    tasks = state / "owners/abc/tasks"
+    tasks.mkdir(mode=0o700)
+    db = sqlite3.connect(tasks / "direct-tasks.sqlite3")
+    db.execute("CREATE TABLE v (x)")
+    db.commit()
+    db.close()
+    order = []
+    real = state_snapshot._sqlite_backup
+    monkeypatch.setattr(
+        state_snapshot,
+        "_sqlite_backup",
+        lambda s, t: (order.append(s.name), real(s, t)),
+    )
+    state_snapshot.take_live(state, tmp_path / "snap")
+    assert order[-1] == "campaign.sqlite3" and "direct-tasks.sqlite3" in order[:-1]
+
+
+def test_a_copy_at_lives_own_path_name_on_another_host_is_not_refused_as_live(
+    state, tmp_path
+):
+    """The guard compares the directory itself, not the path string (review should-fix 4)."""
+    out = tmp_path / "snap"
+    state_snapshot.take_live(state, out)
+    manifest = json.loads((out / "snapshot.json").read_text())
+    manifest["state_dir"] = str(
+        tmp_path / "elsewhere" / "state"
+    )  # live's path, absent on this host
+    (out / "snapshot.json").write_text(json.dumps(manifest))
+    assert state_snapshot.settle_copy(out)["state"] == "COPY_SETTLED"
+    manifest["state_dir"] = str(out)
+    (out / "snapshot.json").write_text(json.dumps(manifest))
+    (out / "copy-settled.json").unlink()
+    with pytest.raises(SnapshotRefused, match="copy_is_the_live_state"):
         state_snapshot.settle_copy(out)

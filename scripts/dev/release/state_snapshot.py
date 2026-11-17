@@ -234,6 +234,8 @@ LIVE_RETRIES = 3
 #: Row states that mean work in flight, reported per database table (any table with a ``state`` column).
 IN_FLIGHT_STATES = ("RESERVED", "RUNNING", "CANCEL_REQUESTED")
 INFLIGHT_NAME = "work-inflight.json"
+#: An owner's operation ledger (`CampaignLedger`): backed up after every other database (`take_live`).
+LEDGER_NAME = "campaign.sqlite3"
 
 
 def _walk(state_dir: Path):
@@ -333,19 +335,27 @@ def take_live(state_dir: Path, out_dir: Path) -> dict:
             return True
         return False
 
-    # 1. every database, each at one consistent point
-    for path, info in first:
+    # 1. every database, each at one consistent point. The owners' operation ledgers LAST: a task store or the exam
+    # ledger is then never newer than the operations it names (an op may be settled where its task still runs, which
+    # the copy's restore reconciles; never the reverse, a finished task over a still-RESERVED op).
+    for path, info in sorted(
+        first, key=lambda e: (e[0].name == LEDGER_NAME, str(e[0]))
+    ):
         relative = path.relative_to(state_dir).as_posix()
         if stat.S_ISDIR(info.st_mode) or skipped(relative, path.name):
             continue
+        target = out_dir / relative
         try:
             if not _is_sqlite(path):
                 continue
-            target = out_dir / relative
             target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             _sqlite_backup(path, target)
-        except FileNotFoundError:
+        except (OSError, sqlite3.Error):
+            if path.exists():
+                raise
+            # gone between the walk and its backup (sqlite says "unable to open" for a vanished file)
             vanished.append(relative)
+            target.unlink(missing_ok=True)
             continue
         os.chmod(target, stat.S_IMODE(info.st_mode))
         rows = _in_flight_rows(target)
@@ -444,6 +454,12 @@ def take_live(state_dir: Path, out_dir: Path) -> dict:
 
 
 SETTLE_SCHEMA = "carbon.release.copy-settlement.v1"
+#: The result an offline-settled operation carries: the door's own worker-reconciliation record (the miner view counts
+#: it as uncertain usage, like `research_carrier.reconcile_worker`'s), with cleanup NOT observed.
+RECONCILIATION_SCHEMA = "carbon.autoresearch.worker-reconciliation.v1"
+#: Written beside snapshot.json once the copy is settled: a second run refuses (the copy's own door may hold RESERVED
+#: operations of its own by then, which must never be failed).
+SETTLED_NAME = "copy-settled.json"
 
 
 def settle_copy(copy_dir: Path) -> dict:
@@ -457,8 +473,9 @@ def settle_copy(copy_dir: Path) -> dict:
     NOT observed, no retry dispatched), with no container, lane or network call. The door's start then ends each
     interrupted task FAILED_INFRA through its normal restore (no worker call: the operation is no longer RESERVED) and
     its own infrastructure retry requeues it on the copy, exactly as after a crash. ``work-inflight.json`` (live's
-    process) is removed from the copy. Only a directory whose ``snapshot.json`` is a LIVE snapshot is touched; running
-    it again changes nothing more.
+    process) and every ledger's ``session-*`` directory (live's grade sessions: the copy's first grade op would sweep
+    them against live's lane, `research_carrier._sweep_stale_sessions`) are removed from the copy. Only a directory
+    whose ``snapshot.json`` is a LIVE snapshot is touched, and only ONCE (``copy-settled.json``; a second run refuses).
     """
     copy_dir = Path(copy_dir)
     if not copy_dir.is_absolute() or copy_dir.is_symlink() or not copy_dir.is_dir():
@@ -473,14 +490,18 @@ def settle_copy(copy_dir: Path) -> dict:
         or manifest.get("never_live") is not True
     ):
         raise SnapshotRefused("not_a_live_snapshot")
-    if Path(manifest.get("state_dir", "")).resolve() == copy_dir.resolve():
+    live = Path(manifest.get("state_dir", ""))
+    if live.is_dir() and os.path.samefile(live, copy_dir):
+        # the same directory (not just the same path name: a copy usually sits at live's path on its own host)
         raise SnapshotRefused("copy_is_the_live_state")
+    if (copy_dir / SETTLED_NAME).exists():
+        raise SnapshotRefused("already_settled")
     repository = str(Path(__file__).resolve().parents[3])
     if repository not in sys.path:
         sys.path.insert(0, repository)
     from carbon.development_session.research_ledger import CampaignLedger
 
-    settled, deferred = [], []
+    settled, deferred, sessions = [], [], []
     for owner_file in sorted(copy_dir.rglob("owner.json")):
         database = owner_file.parent / "ledger" / "campaign.sqlite3"
         if not database.is_file():
@@ -511,7 +532,9 @@ def settle_copy(copy_dir: Path) -> dict:
                 state="FAILED_INFRA",
                 actual=json.loads(reservation),
                 result={
-                    "schema": SETTLE_SCHEMA,
+                    "schema": RECONCILIATION_SCHEMA,
+                    "operation": _operation_folder(ledger.root, op_owner, identity),
+                    "settled_by": SETTLE_SCHEMA,
                     "state": "FAILED_INFRA",
                     "cleanup_observed": False,
                     "accounting": "full original reservation retained as conservative consumption",
@@ -539,18 +562,46 @@ def settle_copy(copy_dir: Path) -> dict:
             }
             for row in held
         )
+        for session in sorted(owner_file.parent.glob("ledger/session-*")):
+            if session.is_dir() and not session.is_symlink():
+                shutil.rmtree(session)
+                sessions.append(f"{where}/ledger/{session.name}")
     inflight = copy_dir / INFLIGHT_NAME
     removed_inflight = inflight.is_file()
     if removed_inflight:
         inflight.unlink()
-    return {
+    result = {
         "schema": SETTLE_SCHEMA,
         "state": "COPY_SETTLED",
         "copy_dir": str(copy_dir),
         "settled": settled,
         "deferred": deferred,
+        "sessions_removed": sessions,
         "work_inflight_removed": removed_inflight,
     }
+    fd = os.open(copy_dir / SETTLED_NAME, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(result, f, sort_keys=True, indent=1)
+        f.write("\n")
+    return result
+
+
+def _operation_folder(root: Path, owner: str, identity: str) -> str:
+    """The operation's folder name (``operation-<launch>``) from its durable intent, else the identity (read-only)."""
+    for path in root.glob("operation-*/intent.json"):
+        try:
+            if path.is_symlink() or path.stat().st_size > 65536:
+                continue
+            value = json.loads(path.read_bytes())
+        except (OSError, ValueError):
+            continue
+        if (
+            type(value) is dict
+            and value.get("owner") == owner
+            and value.get("identity") == identity
+        ):
+            return path.parent.name
+    return identity
 
 
 def main(argv=None) -> int:
