@@ -449,6 +449,11 @@ def _graph_lane_evidence_ok(provider, evidence) -> bool:
     )
 
 
+#: The retention code of a graph task built under an EARLIER door of the declared migration chain: held (a pending code
+#: of `auto_grade`), never graded until it can be graded with its admitted image.
+MIGRATED_BUILD_HELD = "migrated_build_held"
+
+
 def _migrated_admitted_image_id(provider, admitted_binding):
     """The image id of ``admitted_binding`` when it is a graph image of an EARLIER door of the provider's declared
     migration chain (`research_tasks.DirectDevelopmentTasksV3.migrated_image_bindings`), else None.
@@ -529,19 +534,17 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     if admitted_binding is None:
         raise RetentionUnavailable("admitted_image_binding_unavailable")
     # A graph task BUILT under an EARLIER door of this state's declared migration chain (its admitted binding is exactly
-    # that door's image, and its build evidence names that image): graded with the door's CURRENT inference image.
-    admitted_image_id = _migrated_admitted_image_id(provider, admitted_binding)
-    built_with = image.image_id if admitted_image_id is None else admitted_image_id
+    # that door's image): HELD, never graded on a state built by another image (Lead + V2, 17 Nov: graded with its
+    # admitted image in a later head). A pending code: nothing reserved, nothing charged, the task kept in its place.
+    if _migrated_admitted_image_id(provider, admitted_binding) is not None:
+        raise RetentionUnavailable(MIGRATED_BUILD_HELD)
     if (
         type(image) is not WorkerImageIdentity
-        or (
-            admitted_image_id is None
-            and provider._image_binding(image) != admitted_binding
-        )
+        or provider._image_binding(image) != admitted_binding
         or image != provider.inference_image
         or evidence.get("schema") != "carbon.direct-private-attempt.graph.v1"
         or any(
-            evidence.get(field) != built_with
+            evidence.get(field) != image.image_id
             for field in ("image_id", "parent_image_id", "inference_image_id")
         )
     ):

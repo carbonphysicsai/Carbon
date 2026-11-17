@@ -311,7 +311,7 @@ def test_only_an_earlier_doors_exact_graph_image_moves_to_the_current_one():
     assert not moves(migrated, old_binding, json.dumps(["BUNDLE_OVERLAY", {}]))
 
 
-def test_a_built_task_of_an_earlier_door_is_graded_with_the_current_image():
+def test_a_built_task_of_an_earlier_door_names_its_earlier_image():
     from types import SimpleNamespace
 
     from carbon.challenge_validator.lean_recipe_retention import (
