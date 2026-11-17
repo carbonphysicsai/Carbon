@@ -348,7 +348,7 @@ def _run(ledger, **kwargs):
     # (`remote_lane.local_for`, which moved a remote round's timing ops onto this host, is no longer called; it stays in
     # that module only because the module is a worker-image build input, whose bytes must not move with this change.)
     # Every op of a REMOTE grade lane's round, its speed stage included, sends its docker calls to the lane's daemon (owner
-    # D6: timed on the box, under the box's timing gate); ``timed`` (a control that asks for a timing measurement) only
+    # D6: timed on the box, on the lane's pinned cores); ``timed`` (a control that asks for a timing measurement) only
     # keeps such an op off a remote GPU build slot.
     timed = _timed_control(kwargs.get("files"))
     # A GPU BUILD of a build offered a remote GPU build lane takes one of its slots for its whole life and runs on that
@@ -502,11 +502,7 @@ def _run_supervised(ledger, **kwargs):
         )
         watcher.start()
         try:
-            from carbon.reconstruction import grade_lanes
-
-            # the op's own clock never pays for a wait on a timing gate (`_credit_gate_waits`)
-            with grade_lanes.gate_wait_meter():
-                result = _run_locked(ledger, before_finish=settle, **kwargs)
+            result = _run_locked(ledger, before_finish=settle, **kwargs)
             if errors:
                 raise ValueError(errors[0])
             return result
@@ -1644,101 +1640,14 @@ def _intent_container(intent, launch):
 
 
 def _timing_stage(identity):
-    """An op that holds the host timing gate EXCLUSIVE (`grade_lanes.container_hold`): it must never wait on its own
-    grade's session, so the session is closed first."""
+    """A timing op (`grade_lanes.is_timing_identity`, or inside `grade_lanes.timing_exclusive`): it runs in its own
+    container on its lane's pinned cores, never in its grade's session, which is closed first. No gate is taken.
+    """
     from carbon.reconstruction import grade_lanes
 
     return grade_lanes.is_timing_identity(identity) or bool(
         grade_lanes._EXCLUSIVE.get()
     )
-
-
-def _credit_gate_waits(started, started_unix, credited, *, ends_by_unix=None):
-    """The op's clock moved on by the seconds its holds have waited for a timing gate since the last credit (Ryzen
-    rehearsal, 17 Nov 2026: lanes waited 474-532 s for a gate while their op's budget ran, so a stream timed out and two
-    walls stopped). The budget of an op counts its own work only: its wall, its watchdog and its streams start from the
-    moved clock, never from a neighbour's timing stage. ``ends_by_unix``: the latest the moved ``started_unix`` may be
-    (a session op: its budget still ends inside the session's life); a credit beyond it is cut there. Returns
-    ``(started, started_unix, credited)``.
-    """
-    from carbon.reconstruction import grade_lanes
-
-    credit = grade_lanes.gate_waits() - credited
-    if ends_by_unix is not None:
-        credit = min(credit, ends_by_unix - started_unix)
-    if credit <= 0:
-        return started, started_unix, credited
-    return started + credit, started_unix + credit, credited + credit
-
-
-@contextmanager
-def _transfer_gates(identity, *, box):
-    """Around an UPLOAD to another machine (owner D6, 17 Nov 2026): this host's timing gate SHARED (the upload runs on
-    its CPU and link), and, with ``box``, the round's REMOTE lane's box gate SHARED too (never beside that box's timing
-    stage). Both by `grade_lanes.hold_gate`: never EXCLUSIVE (a transfer is never a timing stage), never a hold a speed
-    probe watches, never a change of the round's lane binding (the upload still goes to its own machine). Outside a
-    lane-bound round: nothing."""
-    from carbon.reconstruction import grade_lanes
-
-    lane = grade_lanes.current()
-    if lane is None:
-        yield
-        return
-    with ExitStack() as stack:
-        if box and lane.docker_host is not None:
-            stack.enter_context(grade_lanes.hold_gate(lane, identity=identity))
-        stack.enter_context(
-            grade_lanes.hold_gate(grade_lanes.host_twin(lane), identity=identity)
-        )
-        yield
-
-
-@contextmanager
-def _remote_box_transfer(
-    on_another_machine,
-    identity,
-    deadline=None,
-    busy=b"remote_gpu_build_export_timing_gate_busy",
-):
-    """The EXPORT of a container on another machine (a REMOTE GPU build box, V2 ruling 17 Nov 2026; or a REMOTE grade
-    lane's box, owner D6) streams over this host's CPU and link, so it holds THIS host's timing gate SHARED while it runs
-    (`grade_lanes.hold_gate`), never the round's lane binding (its stream still reads the box's daemon). A container of
-    this host: nothing here (it holds the gate for its whole life, `grade_lanes.container_hold`).
-
-    The export waits for the gate (a local timing stage) at most until ``deadline`` (`time.monotonic`: what is left of
-    the op's own budget for its export); past it the op is Carbon's (`RemoteLaneDown`, FAILED_INFRA, never charged),
-    typed: never an export beside a timing stage, never one cut short by its watchdog.
-    """
-    if not on_another_machine:
-        yield
-        return
-    from carbon.reconstruction import grade_lanes
-
-    lane = grade_lanes.current()
-    if lane is None:
-        yield
-        return
-    with ExitStack() as stack:
-        try:
-            stack.enter_context(
-                grade_lanes.hold_gate(
-                    grade_lanes.host_twin(lane), identity=identity, deadline=deadline
-                )
-            )
-        except grade_lanes.TimingGateBusy:
-            raise remote_lane.RemoteLaneDown(busy) from None
-        yield
-
-
-def _timing_wanted():
-    """Whether another timing stage waits for the timing gate of this round's machine (`grade_lanes.timing_wanted`: the
-    host's, or a remote lane's box's). A live session then
-    yields before its next op, so that stage waits for at most one op, as it waits for one container today.
-    """
-    from carbon.reconstruction import grade_lanes
-
-    lane = grade_lanes.current()
-    return lane is not None and grade_lanes.timing_wanted(lane)
 
 
 def _timed_control(files):
@@ -1816,7 +1725,6 @@ class _GradeSession:
         self.deadline_unix = None
         #: The REMOTE grade lane (`remote_lane`) the container runs on, set when it is opened; None: this host.
         self.remote = None
-        self.hold = ExitStack()
         self.sequence = 0
         #: How many session containers this grade opened (evidence for the timing run; never read by a decision).
         self.opened = 0
@@ -1862,11 +1770,8 @@ class _GradeSession:
         would outlive; then name the container the op will run in, so its intent can name it.
         """
         self.ledger_root, self.owner = ledger.root, owner
-        # Retire a session this op could outlive (its wall plus the 30 s reset and the reservation), or one another
-        # lane's timing stage is waiting behind.
-        if self.live and (
-            time.time() + seconds + 60 > self.deadline_unix or _timing_wanted()
-        ):
+        # Retire a session this op could outlive (its wall plus the 30 s reset and the reservation).
+        if self.live and time.time() + seconds + 60 > self.deadline_unix:
             self.close(cli)
         if self.live:
             try:
@@ -1920,19 +1825,14 @@ class _GradeSession:
                 target.chmod(stat_module.S_IMODE(path.stat().st_mode))
 
     def open(self, *, cli, image, cpuset, worker):
-        """The session's ONE create + start, under today's `create_arguments`, holding the host timing gate (shared)
-        once for the container's whole life (`grade_lanes.container_hold`). A failure removes what was made.
+        """The session's ONE create + start, under today's `create_arguments`, on the round's lane cores. A failure
+        removes what was made.
         """
-        from carbon.reconstruction import grade_lanes
-
         guard = liveness_reaper.controller_guard()
         deadline = time.time() + SESSION_LIFETIME_SECONDS
         #: The REMOTE grade lane the container runs on (`remote_lane`), or None: its inputs live there too.
         self.remote = remote_lane.current()
         try:
-            self.hold.enter_context(
-                grade_lanes.container_hold(identity="grade-session-" + self.launch[7:])
-            )
             write_once(
                 self.directory / "intent.json",
                 canonical(
@@ -2007,34 +1907,30 @@ class _GradeSession:
             self.close(cli)
 
     def close(self, cli=None):
-        """Remove the exact session container (confirmed absent), release the timing hold, delete the session folder.
+        """Remove the exact session container (confirmed absent), delete the session folder.
         Removal that cannot be confirmed raises and keeps the folder (its intent names the container).
         """
-        try:
-            if self.created:
-                remote = self.remote
-                if cli is None and remote is not None:
-                    # the container is on the remote lane's daemon, whatever context closes it
-                    from carbon.reconstruction import grade_lanes
+        if self.created:
+            remote = self.remote
+            if cli is None and remote is not None:
+                # the container is on the remote lane's daemon, whatever context closes it
+                from carbon.reconstruction import grade_lanes
 
-                    with grade_lanes.bound(remote):
-                        cli = DockerCLI()
-                cli = cli or DockerCLI()
-                remove_exact_container(
-                    cli=cli, container_name=self.name, launch_digest=self.launch
-                )
-                if cli.run(
-                    ["ps", "-aq", "--filter", "name=^" + self.name + "$"], timeout=10
-                ).stdout.strip():
-                    raise ValueError("grade session cleanup uncertain")
-            if self.remote is not None and self.input is not None:
-                with suppress(remote_lane.RemoteLaneDown):
-                    remote_lane.discard(self.input, self.remote)
-            if self.directory is not None:
-                shutil.rmtree(self.directory, ignore_errors=True)
-        finally:
-            self.hold.close()
-            self.hold = ExitStack()
+                with grade_lanes.bound(remote):
+                    cli = DockerCLI()
+            cli = cli or DockerCLI()
+            remove_exact_container(
+                cli=cli, container_name=self.name, launch_digest=self.launch
+            )
+            if cli.run(
+                ["ps", "-aq", "--filter", "name=^" + self.name + "$"], timeout=10
+            ).stdout.strip():
+                raise ValueError("grade session cleanup uncertain")
+        if self.remote is not None and self.input is not None:
+            with suppress(remote_lane.RemoteLaneDown):
+                remote_lane.discard(self.input, self.remote)
+        if self.directory is not None:
+            shutil.rmtree(self.directory, ignore_errors=True)
         self.live = self.created = False
         self.launch = self.name = self.directory = self.input = None
         self.image_id = self.worker = self.cpuset = self.deadline_unix = None
@@ -2042,15 +1938,15 @@ class _GradeSession:
 
 def yield_grade_session():
     """Remove this grade's live session container now (the grade goes on; its next member op opens a new one). Called by
-    a grade waiting for its commit turn (`carbon.challenge_validator.grade_sequencer`): the container holds the host
-    timing gate shared, and an earlier grade's speed stage waits for it exclusive. No-op without a live session.
+    a grade waiting for its commit turn (`carbon.challenge_validator.grade_sequencer`), so the idle container never sits
+    on the lane's cores meanwhile. No-op without a live session.
     """
     session = _GRADE_SESSION.get()
     if session is not None and session.live:
         try:
             session.close()
         except Exception as failure:  # noqa: BLE001 - best effort, retried at exit
-            # Its timing hold is already released (close's finally). The container is NOT confirmed gone: no later op
+            # The container is NOT confirmed gone: no later op
             # joins it (`broken`), and the grade session's own exit removes it, confirmed, or reports it.
             session.live = False
             session.broken = True
@@ -2309,8 +2205,8 @@ def _run_locked(
         canonical({"owner": owner, "identity": identity, "request": request})
     )
     # Item 4: inside a counted grade's `grade_session()`, a member op runs as an exec in the grade's session container
-    # (reset for it here, before its reservation); any other op (a timing op above all) closes the session first,
-    # so its own hold never waits behind its own grade's. Outside a session nothing here changes.
+    # (reset for it here, before its reservation); any other op (a timing op above all) closes the session first.
+    # Outside a session nothing here changes.
     session = _GRADE_SESSION.get()
     if session is not None:
         if _timing_stage(identity):
@@ -2338,8 +2234,7 @@ def _run_locked(
         ):
             session.prepare(ledger, owner=owner, seconds=seconds, cli=DockerCLI())
         else:
-            # Any other op takes its own container and its own timing hold: the session is closed first, so no op
-            # of this grade holds a second hold behind the session's (two lanes would otherwise wait on each other).
+            # Any other op takes its own container: the session is closed first.
             session.close()
             session = None
     operation = ledger.root / ("operation-" + launch[7:])
@@ -2380,7 +2275,6 @@ def _run_locked(
         return admission["result"]
     started = time.monotonic()
     started_unix = time.time()
-    credited = 0.0  # seconds of timing-gate waits already added back to the op's clock
     name = "carbon-d4-" + launch[7:31] if session is None else session.name
     # The label of the container the op runs in: its own launch, or its grade session's.
     clabel = launch if session is None else session.launch
@@ -2462,25 +2356,14 @@ def _run_locked(
             if session is not None:
                 session.link(stage)
             # an upload to another machine (a REMOTE grade lane's box, or a remote GPU build slot's): the container's
-            # /input at the same path there. It runs on THIS host's CPU and link, so it holds this host's timing gate
-            # SHARED (`_transfer_gates`), never beside a local lane's EXCLUSIVE timing stage, and, onto a box, that box's
-            # gate SHARED too (a session's own life hold covers it once open), never beside the box's timing stage
+            # /input at the same path there. No timing gate (owner, 17 Nov 2026: lane core pinning is the protection)
             if session is not None:
-                # only a REAL transfer (a remote round) takes a gate: a local session's own lifelong hold is this host's
-                # gate already, and a second hold of it could wait behind a timing stage that waits for the first
-                with (
-                    _transfer_gates(identity, box=not session.live)
-                    if remote_lane.current() is not None
-                    else nullcontext()
-                ):
-                    remote_lane.mirror(session.input)
+                remote_lane.mirror(session.input)
             elif remote_gpu_build.docker_host() is not None:
                 # a remote GPU build slot: the build's public stage at the same path on the lane machine
-                with _transfer_gates(identity, box=False):
-                    remote_gpu_build.mirror(stage)
+                remote_gpu_build.mirror(stage)
             elif remote_lane.current() is not None:
-                with _transfer_gates(identity, box=True):
-                    remote_lane.mirror(stage)
+                remote_lane.mirror(stage)
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
             if provenance == LIBRARY_BUILD_PROVENANCE:
                 from .research_image import verify_library_worker_image
@@ -2578,9 +2461,6 @@ def _run_locked(
     session_op_ok = False
     candidate_stop = None
     output = operation / "export.stream"
-    # V2 ruling (17 Nov 2026): a container on a REMOTE GPU build box uses none of this host's cores, so it holds this
-    # host's timing gate only for its local transfers (the stage upload, its output export), never for its run
-    on_remote_box = remote_gpu_build.remote_box() is not None
     lease = ExitStack()
     slot = ExitStack()
     try:
@@ -2619,13 +2499,6 @@ def _run_locked(
                     reject_existing_device_containers(
                         cli=cli, device_uuid=device.device_uuid
                     )
-                # Two grade lanes only (`grade_lanes.container_hold`; nothing outside a lane-bound round): this container
-                # holds the host timing gate for its whole life, released with the lease after it is removed, so a timing
-                # stage on the other lane never runs beside it.
-                from carbon.reconstruction import grade_lanes
-
-                if not on_remote_box:
-                    lease.enter_context(grade_lanes.container_hold(identity=identity))
             with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
                 _check_cancel(ledger, owner, identity)
             with _fixed_practice_stage(operation, provenance, "CREATE"):
@@ -2662,9 +2535,6 @@ def _run_locked(
                     slot.close()
             with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
                 _check_cancel(ledger, owner, identity)
-            started, started_unix, credited = _credit_gate_waits(
-                started, started_unix, credited
-            )
             with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
                 # a remote GPU build slot: the watchdog watches the lane's daemon, where the container runs
                 (
@@ -2688,7 +2558,7 @@ def _run_locked(
             with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
                 _check_cancel(ledger, owner, identity)
             # The grade session's ONE create + start (its first member op, or the first after a removal); its
-            # timing hold, watchdog and liveness reaper are the session's own.
+            # watchdog and liveness reaper are the session's own.
             with _fixed_practice_stage(operation, provenance, "CREATE"):
                 session.open(cli=cli, image=image, cpuset=checked.cpuset, worker=worker)
         with _fixed_practice_stage(operation, provenance, "CONTROLS"):
@@ -2736,17 +2606,6 @@ def _run_locked(
                 )
             except Exception:  # noqa: BLE001, S110 - diagnostics never gate work
                 pass
-        started, started_unix, credited = _credit_gate_waits(
-            started,
-            started_unix,
-            credited,
-            # a session op never runs past its session's own life (its watchdog removes the container then)
-            ends_by_unix=(
-                None
-                if session is None or session.deadline_unix is None
-                else session.deadline_unix - 60 - seconds
-            ),
-        )
         with _fixed_practice_stage(operation, provenance, "PROGRAM"):
             program_started = time.monotonic()
             program_timeout = max(1, seconds - 45 - (program_started - started))
@@ -2882,20 +2741,7 @@ def _run_locked(
                 raise
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)
-        with (
-            _fixed_practice_stage(operation, provenance, "EXPORT"),
-            # the gate wait comes out of the export's own budget: at most until 5 s of it are left
-            _remote_box_transfer(
-                on_remote_box or remote_lane.current() is not None,
-                identity,
-                started + seconds - 40,
-                (
-                    b"remote_gpu_build_export_timing_gate_busy"
-                    if on_remote_box
-                    else b"remote_lane_export_timing_gate_busy"
-                ),
-            ),
-        ):
+        with _fixed_practice_stage(operation, provenance, "EXPORT"):
             export_started = time.monotonic()
             export_timeout = max(1, seconds - 35 - (export_started - started))
             try:

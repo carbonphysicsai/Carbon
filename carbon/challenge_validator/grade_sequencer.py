@@ -8,8 +8,8 @@ grades is committed by one writer, in claim order (= the door's pending order = 
   including its exam-cap reservation (allowance counts read in order); `claimed` then lets the next grade claim.
 - **Commit turn** (`turn`): before the order-dependent writes (the exam-cap settle, which feeds every later allowance;
   the crown compare-and-set; the Ladder; the marker), a grade waits until every EARLIER claimed grade has finished.
-  Before waiting it gives up its grade-session container (`research_carrier.yield_grade_session`): that container
-  holds the host timing gate SHARED, and an earlier grade's speed stage waits for it EXCLUSIVE.
+  Before waiting it gives up its grade-session container (`research_carrier.yield_grade_session`), so the idle
+  container never sits on its lane's cores meanwhile.
 - **Exclusive** (`exclusive`): the king's upkeep, the crown sweep and due retries move the incumbent; they run only
   with no grade claimed and none in flight.
 
@@ -112,8 +112,8 @@ class _Task:
                 yield_grade_session,
             )
 
-            # best effort itself: a removal that cannot be confirmed still releases the session's timing hold, no
-            # later op joins it, and the grade session's own exit removes (and reports) it again
+            # best effort itself: a removal that cannot be confirmed means no later op joins it, and the grade
+            # session's own exit removes (and reports) it again
             yield_grade_session()
         with order:
             while any(other < self.ticket for other in self.sequencer._open):

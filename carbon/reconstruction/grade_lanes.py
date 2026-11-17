@@ -19,18 +19,14 @@ EVERY lane for each round, which is today's single host lock, so it never runs n
 `host_execution.resolve_cpuset`), so every container the round starts is pinned to that lane's cores and its controls
 check compares against them. The lane and its cpuset go into the door's in-flight record.
 
-**The speed stage runs alone (F3).** Every container a lane-bound round starts holds the timing gate of the machine it
-runs on (`timing_gate`: the host's `TIMING_LOCK`, or a REMOTE lane's box's own, owner D6 17 Nov 2026) SHARED for its
-whole life (`container_hold`, entered by the carrier before create and released after the
-container is removed). A TIMING stage takes it EXCLUSIVE instead: the single-design speed calls, recognised by their
-carrier identity (`TIMING_IDENTITY_PREFIXES`), or anything run inside `timing_exclusive`. It announces itself first
-(`TIMING_WANTED_DIR`), so no lane starts a new container once it waits: it starts when the neighbour's current
-container has ended. Nothing is frozen or preempted, so no neighbour's own walls are stretched.
+**Lane core pinning is the timing protection (owner, 17 Nov 2026).** Each lane times its candidate on its own pinned
+cores only. There is no host-wide or box-wide timing gate: no lane waits for another lane's container, a speed stage
+included, and none is re-run alone. The carrier
+identities of the single-design speed calls (`TIMING_IDENTITY_PREFIXES`) and `timing_exclusive` only mark an op as a
+timing stage (its grade's session is closed first); they take no gate.
 
-**Not ruled here.** Whether a wall stop next to a running neighbour counts as the model's result is `host_quiet`'s rule
-(Validator-2, 5 Nov), unchanged by this module: until Validator-Motor / Validator-2 rule otherwise, another container on
-the host still makes the host not quiet. Two lanes go live only with the owner's values row and Deploy-B's measured
-contention inside one lane's run-to-run spread (F2); this module sets no threshold.
+**Not ruled here.** Whether a wall stop counts as the model's result is the grader's rule (`auto_grade._wall_counted`:
+judged on the lane's own cores). Two lanes go live only with the owner's values row; this module sets no threshold.
 """
 
 from __future__ import annotations
@@ -38,7 +34,6 @@ from __future__ import annotations
 import json
 import os
 import threading
-import time
 from contextlib import contextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -63,20 +58,9 @@ ALL_LANES = MAX_LANES + MAX_REMOTE_LANES
 LANE_LOCK = "official-grading.lane-{index}.lock"
 #: Who holds a lane, and in which mode (one file per held lane, written after the lock is taken).
 LANE_HOLDER = "official-grading.lane-{index}.holder"
-#: The host timing gate: SHARED for every lane container, EXCLUSIVE for a timing stage.
-TIMING_LOCK = "official-grading.timing.lock"
-#: One file per live timing stage waiting for, or holding, the gate exclusively.
-TIMING_WANTED_DIR = "official-grading.timing.wanted"
-#: A REMOTE lane's machine has its own timing gate (owner D6, 17 Nov 2026: a Ryzen round's speed stage runs ON its box):
-#: the same two files, named per box (`timing_gate`), in the same lock directory.
-BOX_TIMING_LOCK = "official-grading.timing.box-{box}.lock"
-BOX_TIMING_WANTED_DIR = "official-grading.timing.box-{box}.wanted"
 #: The carrier identities of TIMING stages: the single-design speed calls (`lean_recipe_retention._single_call_raw`
-#: names its operation ``single-call-<digest>``). A container with one of these identities takes the timing gate
-#: EXCLUSIVE, as inside `timing_exclusive`, so no grading file outside the carrier needs a lane line.
+#: names its operation ``single-call-<digest>``). They mark the op as a timing stage (`is_timing_identity`); no gate.
 TIMING_IDENTITY_PREFIXES = ("single-call-",)
-#: How often a waiting container retries the timing gate (an operational poll, not a scientific value).
-POLL_S = 0.2
 #: Where the kernel reports CPU topology.
 SYS_CPU = Path("/sys/devices/system/cpu")
 #: The mode a holder records: a lane-aware door in two-lane mode.
@@ -294,47 +278,6 @@ _BOUND: ContextVar[Lane | None] = ContextVar("carbon_grade_lane", default=None)
 _EXCLUSIVE: ContextVar[bool] = ContextVar(
     "carbon_grade_lane_timing_exclusive", default=False
 )
-#: A watcher of the calling context's container holds (`watch_holds`): told ``("held", identity)`` once the hold is
-#: taken (after any wait for the timing gate) and ``("release", identity)`` before it is let go.
-_HOLD_WATCH: ContextVar = ContextVar("carbon_grade_lane_hold_watch", default=None)
-
-
-#: The calling op's record of the seconds its container holds spent WAITING for a timing gate (`gate_wait_meter`).
-_WAIT_METER: ContextVar = ContextVar("carbon_grade_lane_wait_meter", default=None)
-
-
-@contextmanager
-def gate_wait_meter():
-    """Record, for the calling op, how long each of its holds waited for a timing gate (`container_hold`), so the op's own
-    clock never pays for a neighbour's timing stage (`gate_waits`)."""
-    token = _WAIT_METER.set([])
-    try:
-        yield _WAIT_METER.get()
-    finally:
-        _WAIT_METER.reset(token)
-
-
-def gate_waits():
-    """The seconds the calling op's holds have waited for a timing gate so far (`gate_wait_meter`): 0 outside one."""
-    meter = _WAIT_METER.get()
-    return 0.0 if meter is None else float(sum(meter))
-
-
-@contextmanager
-def watch_holds(callback):
-    """Tell ``callback(event, identity)`` about every container hold taken in this context (A19 speed stage: its host
-    probe covers the hold's own window only, never the wait for the exclusive gate)."""
-    token = _HOLD_WATCH.set(callback)
-    try:
-        yield
-    finally:
-        _HOLD_WATCH.reset(token)
-
-
-def _tell(event, identity):
-    watch = _HOLD_WATCH.get()
-    if watch is not None:
-        watch(event, identity)
 
 
 def current():
@@ -383,9 +326,8 @@ def released():
     """Option A (Lead 17 Nov 2026): around one op that runs on a REMOTE GPU build box (its slot wait included), the
     round gives its LOCAL lane back so the door's other rounds grade on it, and holds a local lane again once the op
     has ended, on every exit path (a failed build included), before the op's error leaves and before the round's next
-    op: its local inference and timing containers stay laned and gated. Meanwhile the round's binding is KEPT: the op's
-    containers run on its slot's machine and cores (`remote_gpu_build.cpuset` comes first), and its local transfers
-    (the stage upload, its output export: `research_carrier._remote_box_transfer`) take the timing gate SHARED. Nothing changes outside a
+    op: its local inference and timing containers stay laned. Meanwhile the round's binding is KEPT: the op's
+    containers run on its slot's machine and cores (`remote_gpu_build.cpuset` comes first). Nothing changes outside a
     round that offers a releaser, or on a REMOTE grade lane."""
     releaser = _RELEASER.get()
     lane = _BOUND.get()
@@ -408,9 +350,8 @@ def timing_requested():
 
 @contextmanager
 def timing_exclusive():
-    """Mark the containers started inside as a TIMING stage: each one waits until no other lane container runs, and
-    no lane starts one while it waits or runs (F3). Outside two-lane mode it changes nothing.
-    """
+    """Mark the ops started inside as a TIMING stage (`timing_requested`). It takes no gate: each lane times on its own
+    pinned cores (owner, 17 Nov 2026)."""
     token = _EXCLUSIVE.set(True)
     try:
         yield
@@ -428,166 +369,16 @@ def process_start(pid):
 
 
 def _live(name):
-    """Whether a ``<pid>-<start>[-...]`` entry names a live process."""
+    """Whether a ``<pid>-<start>[-...]`` entry names a live process (`remote_gpu_build`'s ALONE wish list)."""
     parts = name.split("-")
     if len(parts) < 2 or not (parts[0].isdigit() and parts[1].isdigit()):
         return False
     return process_start(int(parts[0])) == int(parts[1])
 
 
-def timing_gate(lane):
-    """``(lock file, wanted directory)`` of the timing gate of the machine ``lane``'s containers run on: the host's
-    (`TIMING_LOCK`) for a local lane, the box's own for a REMOTE lane (one per ``docker_host``: every lane of one box
-    shares it, and no box waits on another's or on the host's)."""
-    directory = Path(lane.lock_dir)
-    if getattr(lane, "docker_host", None) is None:
-        return directory / TIMING_LOCK, directory / TIMING_WANTED_DIR
-    import hashlib
-
-    from carbon.reconstruction import remote_lane
-
-    try:
-        # one box, however its address is spelled (user, an implicit port): its host and port
-        _user, name, port = remote_lane.parse_docker_host(lane.docker_host)
-        machine = f"{name.lower()}:{port}"
-    except ValueError:
-        machine = lane.docker_host
-    box = hashlib.sha256(machine.encode()).hexdigest()[:16]
-    return (
-        directory / BOX_TIMING_LOCK.format(box=box),
-        directory / BOX_TIMING_WANTED_DIR.format(box=box),
-    )
-
-
-def timing_wanted(lane):
-    """Whether another timing stage waits for, or holds, the timing gate of ``lane``'s machine."""
-    return _wanted_in(timing_gate(lane)[1])
-
-
-def _wanted_by_others(lock_dir, mine=None):
-    return _wanted_in(Path(lock_dir) / TIMING_WANTED_DIR, mine)
-
-
-def _wanted_in(wanted_dir, mine=None):
-    try:
-        entries = list(Path(wanted_dir).iterdir())
-    except OSError:
-        return False
-    return any(entry.name != mine and _live(entry.name) for entry in entries)
-
-
 def is_timing_identity(identity):
     """Whether a carrier operation ``identity`` is a timing stage (`TIMING_IDENTITY_PREFIXES`)."""
     return type(identity) is str and identity.startswith(TIMING_IDENTITY_PREFIXES)
-
-
-class TimingGateBusy(RuntimeError):
-    """A SHARED hold with a ``deadline`` (`container_hold`) did not get the host timing gate in time."""
-
-
-@contextmanager
-def container_hold(
-    *, identity=None, poll_s=None, sleep=None, deadline=None, lane=None, watched=True
-):
-    """Held by the carrier for one container's whole life (before create, until it is removed). Outside a lane-bound
-    round: nothing. Inside one: the timing gate of the machine the container runs on (`timing_gate`: the host's, or a
-    REMOTE lane's box's) SHARED, or EXCLUSIVE for a timing stage (inside `timing_exclusive`, or an operation ``identity``
-    that `is_timing_identity`). ``deadline`` (`time.monotonic`, a SHARED hold only): past it without the gate,
-    `TimingGateBusy` (the caller's own typed outcome), never a hold. ``lane``: that lane's machine's gate instead of the
-    bound lane's (`hold_gate`); ``watched`` False: never told to a hold watcher (`watch_holds`).
-    """
-    lane = current() if lane is None else lane
-    if lane is None:
-        _tell("held", identity)
-        try:
-            yield None
-        finally:
-            _tell("release", identity)
-        return
-    import fcntl
-
-    poll = POLL_S if poll_s is None else poll_s
-    pause = time.sleep if sleep is None else sleep
-    exclusive = _EXCLUSIVE.get() or is_timing_identity(identity)
-    # the gate of the machine the container runs on: the host's, or a REMOTE lane's box's own (`timing_gate`)
-    lock_path, wanted_dir = timing_gate(lane)
-    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
-    wanted = None
-    began = time.monotonic()
-    held = False
-    try:
-        if exclusive:
-            name = f"{os.getpid()}-{process_start(os.getpid())}-{threading.get_ident()}"
-            wanted_dir.mkdir(mode=0o700, exist_ok=True)
-            wanted = wanted_dir / name
-            wanted.touch(mode=0o600)
-            while True:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except BlockingIOError:
-                    pause(poll)
-        else:
-            while True:
-                if not _wanted_in(wanted_dir):
-                    try:
-                        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
-                        break
-                    except BlockingIOError:
-                        pass
-                if deadline is not None and time.monotonic() >= deadline:
-                    raise TimingGateBusy(identity)
-                pause(poll)
-        waited = time.monotonic() - began
-        meter = _WAIT_METER.get()
-        if meter is not None:
-            meter.append(waited)
-        if exclusive or waited >= 1.0:
-            _log(
-                "grade_lane_timing_gate",
-                lane=lane.index,
-                exclusive=exclusive,
-                waited_s=round(waited, 1),
-            )
-        held = True
-        if watched:
-            _tell("held", identity)
-        yield lane
-    finally:
-        try:
-            if held and watched:
-                _tell(
-                    "release", identity
-                )  # before the gate is let go: no waiting lane has started yet
-            fcntl.flock(fd, fcntl.LOCK_UN)
-        finally:
-            os.close(fd)
-            if wanted is not None:
-                wanted.unlink(missing_ok=True)
-
-
-def host_twin(lane):
-    """The grading host's own lane of the same place as ``lane`` (no daemon): its gate is this host's (`timing_gate`)."""
-    return Lane(lane.index, lane.cpuset, lane.lock_dir)
-
-
-@contextmanager
-def hold_gate(lane, *, identity, deadline=None):
-    """A TRANSFER's hold (an upload to, or an export from, another machine): ``lane``'s machine's timing gate, SHARED
-    whatever the ``identity`` (a transfer is never a timing stage), never told to a speed probe, and never a change of the
-    bound lane (every docker call inside still goes to the round's own daemon). ``deadline``: as `container_hold`.
-    """
-    token = _EXCLUSIVE.set(False)  # never EXCLUSIVE, even inside `timing_exclusive`
-    try:
-        with container_hold(
-            identity="transfer:" + str(identity),
-            deadline=deadline,
-            lane=lane,
-            watched=False,
-        ):
-            yield
-    finally:
-        _EXCLUSIVE.reset(token)
 
 
 def write_holder(lock_dir, index, mode):

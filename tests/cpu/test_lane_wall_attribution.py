@@ -1,12 +1,14 @@
-"""V2's ruling (17 Nov 2026): a LOCAL lane's wall stop is judged on its OWN cores (the registered 2-lane regime).
+"""V2's ruling (17 Nov 2026): a LOCAL lane's wall stop is judged on its OWN cores (the registered 2-lane regime); the
+owner's order (17 Nov 2026: lane core pinning is the timing protection, no box gate) extends it to a REMOTE lane's own
+cores on its box.
 
 Live 116 (3326c78b): 3 of 4 grades settled since the flip were FAILED_INFRA wall stops, because the quiet check counted
 every Carbon worker container on the host (`count_worker_containers`), and with two lanes the other lane's container is
 nearly always there. A local lane's wall stop is now the candidate's when (a) every in-run and stop sample saw no Carbon
 container on ITS OWN cpuset but its own (`count_lane_containers`); (b) it still holds the lane it started on; (c) its
-program got the full wall (the carrier's own setup budget: only then is the stop the candidate's observation, gate
-waits credited since 53437133); (d) no foreign GPU. A neighbour on OTHER cores is accepted (V2: the owner's 2-lane
-regime; the per-call speed gate stays EXCLUSIVE). Any failed condition or unreadable sample: ours (FAILED_INFRA).
+program got the full wall (the carrier's own setup budget: only then is the stop the candidate's observation); (d) no
+foreign GPU. A neighbour on OTHER cores is accepted (V2: the owner's 2-lane regime; owner 17 Nov 2026: no timing gate at
+all). Any failed condition or unreadable sample: ours (FAILED_INFRA).
 """
 
 from __future__ import annotations
@@ -49,12 +51,12 @@ def _logged(tmp_path):
 def test_a_wall_stop_alone_on_its_own_cores_is_the_candidates(tmp_path):
     asked = []
 
-    def own(cpuset):
+    def own(cpuset, lane=None):
         asked.append(cpuset)
         return 1  # its own container only (0 at the stop: it was removed)
 
     grader, _cap, _ident, _ledger = _lane_grader(
-        tmp_path, own=lambda c: 0 if len(asked) > 3 else own(c)
+        tmp_path, own=lambda c, lane=None: 0 if len(asked) > 3 else own(c, lane)
     )
     with grade_lanes.bound(LANE):
         assert grader.run_once() == (A, "CANDIDATE_FAILED")
@@ -65,8 +67,8 @@ def test_a_wall_stop_alone_on_its_own_cores_is_the_candidates(tmp_path):
 @pytest.mark.parametrize(
     ("own", "why"),
     [
-        (lambda cpuset: 2, "(a) another Carbon container on ITS OWN cores"),
-        (lambda cpuset: None, "(a) its cores could not be read"),
+        (lambda cpuset, lane=None: 2, "(a) another Carbon container on ITS OWN cores"),
+        (lambda cpuset, lane=None: None, "(a) its cores could not be read"),
     ],
 )
 def test_a_wall_stop_beside_a_container_on_its_own_cores_is_ours(tmp_path, own, why):
@@ -81,7 +83,8 @@ def test_a_wall_stop_whose_lane_changed_under_it_is_ours(tmp_path):
     """(b) it must still hold the lane it started on."""
     calls = []
     grader, _cap, _ident, ledger = _lane_grader(
-        tmp_path, own=lambda c: calls.append(1) or (1 if len(calls) < 4 else 0)
+        tmp_path,
+        own=lambda c, lane=None: calls.append(1) or (1 if len(calls) < 4 else 0),
     )
     real = grader.intake.retain_result
 
@@ -102,7 +105,9 @@ def test_a_stop_that_was_not_the_programs_full_wall_is_ours(tmp_path):
     from carbon.reconstruction.worker.model import WorkerCode
 
     late = _miner_failure(WorkerCode.DEADLINE.value, "RUNTIME_DEADLINE_HOST")
-    grader, _cap, _ident, ledger = _lane_grader(tmp_path, own=lambda c: 0, failure=late)
+    grader, _cap, _ident, ledger = _lane_grader(
+        tmp_path, own=lambda c, lane=None: 0, failure=late
+    )
     with grade_lanes.bound(LANE):
         assert grader.run_once() == (A, "FAILED")
     assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
@@ -111,7 +116,7 @@ def test_a_stop_that_was_not_the_programs_full_wall_is_ours(tmp_path):
 def test_a_wall_stop_beside_foreign_gpu_work_is_ours(tmp_path):
     """(d) no foreign GPU compute, as before."""
     grader, _cap, _ident, ledger = _lane_grader(
-        tmp_path, own=lambda c: 0, gpu=lambda: 1
+        tmp_path, own=lambda c, lane=None: 0, gpu=lambda: 1
     )
     with grade_lanes.bound(LANE):
         assert grader.run_once() == (A, "FAILED")
@@ -120,7 +125,8 @@ def test_a_wall_stop_beside_foreign_gpu_work_is_ours(tmp_path):
 
 def test_a_one_lane_door_still_reads_the_whole_host(tmp_path):
     grader, _cap, _ident, _ledger = _lane_grader(
-        tmp_path, own=lambda c: pytest.fail("a one-lane door has no lane cores")
+        tmp_path,
+        own=lambda c, lane=None: pytest.fail("a one-lane door has no lane cores"),
     )
     assert grader.run_once() == (
         A,
@@ -159,7 +165,7 @@ def test_a_container_still_on_its_cores_at_the_stop_is_ours_and_the_log_names_th
     """
     calls = []
     grader, _cap, _ident, ledger = _lane_grader(
-        tmp_path, own=lambda c: calls.append(1) or 1
+        tmp_path, own=lambda c, lane=None: calls.append(1) or 1
     )
     with grade_lanes.bound(LANE):
         assert grader.run_once() == (A, "FAILED")
@@ -170,7 +176,70 @@ def test_a_container_still_on_its_cores_at_the_stop_is_ours_and_the_log_names_th
 
 
 def test_the_host_rule_is_named_on_a_one_lane_door(tmp_path):
-    grader, _cap, _ident, _ledger = _lane_grader(tmp_path, own=lambda c: 0)
+    grader, _cap, _ident, _ledger = _lane_grader(tmp_path, own=lambda c, lane=None: 0)
     grader.run_once()
     logged = _logged(tmp_path)
     assert logged["scope"] == "host" and "lane" not in logged
+
+
+BOX = "ssh://carbon-grade@fsn1.example"
+REMOTE = grade_lanes.Lane(2, "4-7", "/var/lib/carbon/locks", BOX, "/home/carbon")
+
+
+def test_a_remote_lanes_wall_stop_is_judged_on_its_own_cores_of_its_box(
+    tmp_path, monkeypatch
+):
+    """Owner, 17 Nov 2026: no box gate, so the box's other lanes run beside it on their own cores (the whole box is
+    never quiet); the stop is the candidate's when its OWN cores there held nothing but its own container.
+    """
+    from carbon.challenge_validator import host_quiet
+
+    asked = []
+
+    def own(cpuset, lane=None):
+        asked.append((cpuset, lane))
+        return 1 if len(asked) < 4 else 0
+
+    monkeypatch.setattr(
+        host_quiet, "box_counters", lambda lane: ((lambda: 5), (lambda: 0))
+    )
+    grader, _cap, _ident, _ledger = _lane_grader(tmp_path, own=own)
+    with grade_lanes.bound(REMOTE):
+        assert grader.run_once() == (A, "CANDIDATE_FAILED")
+    assert {(cpuset, lane.docker_host) for cpuset, lane in asked} == {("4-7", BOX)}
+    logged = _logged(tmp_path)
+    assert (logged["scope"], logged["lane"], logged["cpuset"]) == ("lane", 2, "4-7")
+
+
+def test_a_remote_lanes_wall_stop_beside_a_container_on_its_own_cores_is_ours(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import host_quiet
+
+    monkeypatch.setattr(
+        host_quiet, "box_counters", lambda lane: ((lambda: 1), (lambda: 0))
+    )
+    grader, _cap, _ident, ledger = _lane_grader(tmp_path, own=lambda c, lane=None: 2)
+    with grade_lanes.bound(REMOTE):
+        assert grader.run_once() == (A, "FAILED")
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+
+
+def test_the_remote_lane_count_reads_its_box_daemon(monkeypatch):
+    from carbon.challenge_validator import host_quiet
+
+    seen = []
+    fake = _Docker(["carbon-d4-a", "carbon-d4-b"], ["4-7", "0-3"])
+
+    def box_docker(lane, argv):
+        seen.append(lane.docker_host)
+        return fake(["docker", *argv])
+
+    monkeypatch.setattr(host_quiet, "_box_docker", box_docker)
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *a, **k: pytest.fail("a remote lane never reads this host"),
+    )
+    assert auto_grade.count_lane_containers("4-7", REMOTE) == 1
+    assert seen == [BOX, BOX]

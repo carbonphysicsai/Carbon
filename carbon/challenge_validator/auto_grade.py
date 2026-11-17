@@ -724,12 +724,19 @@ class AutoGrader:
         lane = remote_lane.current()
         own = None
         if lane is not None:
-            # a REMOTE round: the box's own containers and GPU, sampled there (CV-Motor L12624 (b)); each answered
-            # sample is a heartbeat of the link, an unanswered one (None) never quiet ((c))
+            # a REMOTE round: the containers on ITS OWN cores of its box and the box's GPU, sampled there (CV-Motor
+            # L12624 (b)); each answered sample is a heartbeat of the link, an unanswered one (None) never quiet ((c)).
+            # Owner, 17 Nov 2026: lane core pinning is the timing protection, so a neighbour lane of the same box (on
+            # other cores, no box gate any more) is accepted, as on a local lane.
+            from carbon.reconstruction import grade_lanes
+
             from . import host_quiet
 
-            containers, gpu = host_quiet.box_counters(lane)
-            sampler = _Sampler(containers, self.sample_seconds, gpu)
+            own = grade_lanes.current()
+            _containers, gpu = host_quiet.box_counters(lane)
+            count = getattr(self, "lane_containers", count_lane_containers)
+            cpuset = own.cpuset
+            sampler = _Sampler(lambda: count(cpuset, lane), self.sample_seconds, gpu)
         else:
             from carbon.reconstruction import grade_lanes
 
@@ -737,12 +744,12 @@ class AutoGrader:
             if own is not None:
                 # V2's ruling (17 Nov 2026, the registered 2-lane regime): a LOCAL lane's wall stop is judged on ITS OWN
                 # cores: the Carbon containers there (a neighbour on other cores is accepted), its lane held for the whole
-                # run (`_wall_counted`), the program's full wall (the carrier's setup budget, gate waits credited) and no
+                # run (`_wall_counted`), the program's full wall (the carrier's setup budget) and no
                 # foreign GPU, as before. A sample that cannot be read is never quiet.
                 count = getattr(self, "lane_containers", count_lane_containers)
                 cpuset = own.cpuset
                 sampler = _Sampler(
-                    lambda: count(cpuset),
+                    lambda: count(cpuset, None),
                     self.sample_seconds,
                     getattr(self, "gpu", None),
                 )
@@ -1302,9 +1309,10 @@ def count_worker_containers():
     )
 
 
-def count_lane_containers(cpuset):
-    """How many Carbon worker containers run on this host now with a core of ``cpuset`` (one lane's cores), or None
-    when the daemon cannot say. A container with no cpuset of its own may run on any core: it counts.
+def count_lane_containers(cpuset, lane=None):
+    """How many Carbon worker containers run now with a core of ``cpuset`` (one lane's cores), or None when the daemon
+    cannot say: on this host, or, for a REMOTE ``lane``, on its box (read through its daemon). A container with no cpuset
+    of its own may run on any core: it counts.
     """
     import subprocess
 
@@ -1312,8 +1320,15 @@ def count_lane_containers(cpuset):
 
     def run(argv):
         try:
-            done = subprocess.run(argv, capture_output=True, timeout=10, check=False)
-        except (OSError, subprocess.SubprocessError):
+            if lane is not None and getattr(lane, "docker_host", None) is not None:
+                from . import host_quiet
+
+                done = host_quiet._box_docker(lane, argv[1:])
+            else:
+                done = subprocess.run(
+                    argv, capture_output=True, timeout=10, check=False
+                )
+        except (OSError, ValueError, subprocess.SubprocessError):
             return None
         return None if done.returncode != 0 else done.stdout.decode("utf-8", "replace")
 

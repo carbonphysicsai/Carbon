@@ -542,91 +542,30 @@ def test_a_stale_holder_record_of_a_dead_process_is_not_two_lane_mode(host):
     assert grade_lanes.held_in_two_lane_mode(host, 0) is False
 
 
-# -- the timing gate (F3) -----------------------------------------------------------------------------------------------
+# -- no timing gate (owner, 17 Nov 2026: lane core pinning is the timing protection) ----------------------------------
 
 
-def test_outside_a_lane_bound_round_a_container_takes_no_gate(host):
-    with grade_lanes.container_hold() as lane:
-        assert lane is None
-    assert not (host / grade_lanes.TIMING_LOCK).exists()
+def test_there_is_no_host_or_box_timing_gate():
+    """Each lane times its candidate on its own pinned cores: no lock, no wish list, no hold any lane waits on."""
+    for gone in (
+        "TIMING_LOCK",
+        "TIMING_WANTED_DIR",
+        "BOX_TIMING_LOCK",
+        "BOX_TIMING_WANTED_DIR",
+        "timing_gate",
+        "timing_wanted",
+        "container_hold",
+        "hold_gate",
+        "TimingGateBusy",
+        "gate_wait_meter",
+        "watch_holds",
+    ):
+        assert not hasattr(grade_lanes, gone), gone
 
 
-def _container(lane, *, exclusive, started, leave, log):
-    def run():
-        with grade_lanes.bound(lane):
-            if exclusive:
-                with (
-                    grade_lanes.timing_exclusive(),
-                    grade_lanes.container_hold(poll_s=POLL),
-                ):
-                    log.append(("start", lane.index, "timing", time.monotonic()))
-                    started.set()
-                    leave.wait(10)
-            else:
-                with grade_lanes.container_hold(poll_s=POLL):
-                    log.append(("start", lane.index, "shared", time.monotonic()))
-                    started.set()
-                    leave.wait(10)
-        log.append(("end", lane.index, exclusive, time.monotonic()))
-
-    thread = threading.Thread(target=run, daemon=True)
-    thread.start()
-    return thread
-
-
-def test_lane_containers_share_and_a_timing_stage_waits_for_the_neighbour_to_end(host):
-    lane0, lane1 = (
-        grade_lanes.Lane(i, cpus, str(host)) for i, cpus in enumerate(LANES)
-    )
-    log = []
-    a_started, a_leave = threading.Event(), threading.Event()
-    b_started, b_leave = threading.Event(), threading.Event()
-    a = _container(lane0, exclusive=False, started=a_started, leave=a_leave, log=log)
-    assert a_started.wait(5)
-    b = _container(lane1, exclusive=False, started=b_started, leave=b_leave, log=log)
-    assert b_started.wait(5)  # two ordinary containers run at once
-    b_leave.set()
-    b.join(5)
-    # lane 1's speed stage: waits while lane 0's container runs
-    t_started, t_leave = threading.Event(), threading.Event()
-    t = _container(lane1, exclusive=True, started=t_started, leave=t_leave, log=log)
-    assert not t_started.wait(0.3)
-    assert any(p.is_file() for p in (host / grade_lanes.TIMING_WANTED_DIR).iterdir())
-    # while it waits, lane 0's NEXT container does not start
-    a_leave.set()
-    a.join(5)
-    n_started, n_leave = threading.Event(), threading.Event()
-    n = _container(lane0, exclusive=False, started=n_started, leave=n_leave, log=log)
-    assert t_started.wait(5)
-    assert not n_started.wait(0.3)
-    t_leave.set()
-    t.join(5)
-    assert n_started.wait(5)  # it starts once the timing stage is done
-    n_leave.set()
-    n.join(5)
-    assert list((host / grade_lanes.TIMING_WANTED_DIR).iterdir()) == []
-    timing_start = next(e[3] for e in log if e[:3] == ("start", 1, "timing"))
-    lane0_first_end = next(e[3] for e in log if e[:2] == ("end", 0))
-    assert timing_start >= lane0_first_end
-
-
-def test_a_timing_wish_of_a_dead_process_holds_nobody_back(host):
-    wanted = host / grade_lanes.TIMING_WANTED_DIR
-    wanted.mkdir()
-    (wanted / "999999999-1-1").touch()
-    lane = grade_lanes.Lane(0, "0-3", str(host))
-    started, leave, log = threading.Event(), threading.Event(), []
-    thread = _container(lane, exclusive=False, started=started, leave=leave, log=log)
-    assert started.wait(5)
-    leave.set()
-    thread.join(5)
-
-
-def test_the_speed_stage_is_a_timing_stage_by_its_carrier_identity(host):
-    """No grading file outside the carrier carries a lane line: the single-design speed calls are recognised by the
-    identity `lean_recipe_retention._speed_stage` gives its operation: the SOLO run (and a version with no registered
-    ceiling) is a timing identity (exclusive gate); the in-lane run (A19, CV-Motor L12433) is not. Renaming either
-    there must fail here.
+def test_a_timing_stage_is_only_marked_by_its_carrier_identity():
+    """The single-design speed calls without a registered ceiling keep their timing identity (their grade's session is
+    closed first); the in-lane run is not one. Neither takes a gate. Renaming either in `_speed_stage` must fail here.
     """
     from pathlib import Path
 
@@ -637,37 +576,16 @@ def test_the_speed_stage_is_a_timing_stage_by_its_carrier_identity(host):
     body = body[: body.index("\ndef ", 1)]
     flat = body.replace("\n", "").replace(" ", "")
     assert 'timed("single-call-"+name)' in flat
-    assert 'f"single-call-{name}-alone{k}"' in flat
     assert 'f"{SPEED_LANE_PREFIX}{name}-r{k}"' in flat
+    assert "alone" not in flat  # no solo rerun
     assert not grade_lanes.is_timing_identity(retention.SPEED_LANE_PREFIX + "x-r0")
     assert grade_lanes.is_timing_identity("single-call-" + "0" * 64)
     assert not grade_lanes.is_timing_identity("graded-" + "0" * 64)
     assert not grade_lanes.is_timing_identity(None)
-    # an exclusive hold by identity waits for the neighbour's container like `timing_exclusive`
-    lane0, lane1 = (
-        grade_lanes.Lane(i, cpus, str(host)) for i, cpus in enumerate(LANES)
-    )
-    started, leave, log = threading.Event(), threading.Event(), []
-    neighbour = _container(
-        lane0, exclusive=False, started=started, leave=leave, log=log
-    )
-    assert started.wait(5)
-    done = threading.Event()
-
-    def speed():
-        with (
-            grade_lanes.bound(lane1),
-            grade_lanes.container_hold(identity="single-call-x", poll_s=POLL),
-        ):
-            done.set()
-
-    thread = threading.Thread(target=speed, daemon=True)
-    thread.start()
-    assert not done.wait(0.3)
-    leave.set()
-    neighbour.join(5)
-    assert done.wait(5)
-    thread.join(5)
+    assert not grade_lanes.timing_requested()
+    with grade_lanes.timing_exclusive():
+        assert grade_lanes.timing_requested()
+    assert not grade_lanes.timing_requested()
 
 
 def test_a_remote_only_door_takes_only_its_remote_lanes_at_their_usual_places(host):

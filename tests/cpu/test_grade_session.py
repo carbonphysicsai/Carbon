@@ -9,7 +9,7 @@ controls of a real daemon, bit-equal outputs) is the scratch-door run's evidence
 import json
 import os
 import re
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -57,9 +57,6 @@ def door(tmp_path, monkeypatch):
         resets=[],
         programs=[],  # (container, exec argv, files seen at /input)
         controls=[],
-        holds=[],
-        active_holds=0,
-        max_holds=0,
         fail_program=set(),  # op identities whose program raises
         fail_reset=0,  # how many next resets refuse
         watchdogs=[],
@@ -118,16 +115,6 @@ def door(tmp_path, monkeypatch):
         state.controls.append(kwargs)
         return "sha256:" + "1" * 64, {"input": str(kwargs["input_directory"])}
 
-    @contextmanager
-    def hold(*, identity=None, **kwargs):
-        state.holds.append(identity)
-        state.active_holds += 1
-        state.max_holds = max(state.max_holds, state.active_holds)
-        try:
-            yield None
-        finally:
-            state.active_holds -= 1
-
     def decode(source, target, **kwargs):
         target.mkdir()
         (target / "out.json").write_bytes(b"{}")
@@ -163,7 +150,6 @@ def door(tmp_path, monkeypatch):
     monkeypatch.setattr(carrier, "observe_effective_resources", lambda **kw: {})
     monkeypatch.setattr(carrier, "remove_exact_container", remove)
     monkeypatch.setattr(carrier, "decode_output_stream", decode)
-    monkeypatch.setattr(grade_lanes, "container_hold", hold)
     # The ledger lease is a POSIX flock (not this test's subject); reconcile takes it.
     monkeypatch.setattr(carrier, "_numerical_lease", lambda ledger: nullcontext())
 
@@ -207,7 +193,6 @@ def test_no_session_is_todays_path(door):
         assert name == recorded["container"] == "carbon-d4-" + recorded["launch"][7:31]
         assert source == door.ledger.root / result["operation"] / "input"
         assert (name, launch) in door.removed
-    assert door.holds == [door_identity for door_identity in ("graded", "pair-primary")]
     assert door.live == {}
     assert not list(door.ledger.root.glob("session-*"))
 
@@ -217,12 +202,11 @@ def test_one_session_runs_every_member_op_in_one_container(door):
         results = [door.run(i) for i in ("graded", "pair-primary", "pair-repeat")]
         assert len(door.live) == 1
         assert session.opened == 1
-    # ONE create / start / hold for three ops; a reset before every op after the first.
+    # ONE create / start for three ops; a reset before every op after the first.
     assert len(door.created) == 1 and len(door.started) == 1
     name, launch, source = door.created[0]
     assert name == carrier.SESSION_CONTAINER_PREFIX + launch[7:31]
     assert source.name == "input" and source.parent.name == "session-" + launch[7:]
-    assert door.holds == ["grade-session-" + launch[7:]]
     assert door.resets == [name, name]
     # Its own deadline watchdog and controller-liveness reaper.
     assert [w["container_name"] for w in door.watchdogs] == [name]
@@ -252,7 +236,6 @@ def test_one_session_runs_every_member_op_in_one_container(door):
     # Grade end: the container is removed (confirmed) and the session folder is gone.
     assert door.removed == [(name, launch)]
     assert door.live == {} and not source.parent.exists()
-    assert door.active_holds == 0
 
 
 def test_each_op_sees_only_its_own_inputs_and_todays_command(door):
@@ -285,7 +268,6 @@ def test_a_failed_op_removes_the_session_and_the_next_op_gets_a_new_one(door):
             door.run("pair-primary")
         # Removed in that op's own cleanup, before its outcome: nothing of it is left for the next op.
         assert door.live == {}
-        assert door.active_holds == 0
         # As today, the failed op is reconciled (the ledger runs one numerical worker at a time).
         carrier.reconcile_worker(door.ledger, owner="alice", identity="pair-primary")
         door.run("pair-repeat")
@@ -294,7 +276,7 @@ def test_a_failed_op_removes_the_session_and_the_next_op_gets_a_new_one(door):
     assert first != second and first_launch != second_launch
     assert door.removed[0] == (first, first_launch)
     assert door.removed[-1] == (second, second_launch)
-    assert len(door.holds) == 2 and door.active_holds == 0
+    assert len(door.created) == 2 and door.live == {}
     # A new container needs no reset: it is a fresh container, as today.
     assert door.resets == [first]
 
@@ -314,7 +296,7 @@ def test_a_refused_reset_removes_the_container_and_the_op_runs_in_a_new_one(door
 def test_the_speed_stage_closes_the_session_and_keeps_its_own_container(door):
     with carrier.grade_session() as session:
         door.run("graded")
-        assert door.active_holds == 1
+        assert len(door.live) == 1
         timed = door.run("single-call-abc")
         door.run("menu-rowcheck")
         assert session.opened == 2
@@ -324,10 +306,9 @@ def test_the_speed_stage_closes_the_session_and_keeps_its_own_container(door):
     assert names[1] == "carbon-d4-" + door.created[1][1][7:31]
     assert "session" not in intent(door, timed)
     assert names[2].startswith(carrier.SESSION_CONTAINER_PREFIX)
-    # The session was removed, and its hold released, before the timing op asked for its own.
+    # The session was removed before the timing op made its own container.
     first_removal = door.removed.index((names[0], door.created[0][1]))
     assert first_removal < door.removed.index((names[1], door.created[1][1]))
-    assert door.holds[1] == "single-call-abc"
 
 
 def test_the_exclusive_timing_context_also_closes_the_session(door):
@@ -345,11 +326,10 @@ def test_ops_that_are_not_members_keep_their_own_container(door):
         other = door.run("practice", provenance="BATTERY_PUBLIC_PRACTICE")
         door.run("pair-primary")
     assert "session" not in intent(door, other)
-    # The practice op closed the session first (it takes its own hold), then pair-primary opened a new one.
+    # The practice op closed the session first (it takes its own container), then pair-primary opened a new one.
     assert len(door.created) == 3
     assert door.created[1][0] == intent(door, other)["container"]
     assert door.created[0][0] in [name for name, _ in door.removed[:1]]
-    assert door.active_holds == 0
 
 
 @pytest.mark.parametrize("raised", [RuntimeError("grade failed"), KeyboardInterrupt()])
@@ -360,7 +340,6 @@ def test_grade_end_removes_everything_on_any_exit(door, raised):
     name, launch, source = door.created[0]
     assert door.removed == [(name, launch)]
     assert door.live == {} and not source.parent.exists()
-    assert door.active_holds == 0
     assert carrier._GRADE_SESSION.get() is None
 
 
@@ -464,28 +443,6 @@ def test_the_reset_rebuilds_exactly_what_the_image_entrypoint_makes():
         "wipe('/scratch')" in carrier.SESSION_RESET
         and "wipe('/dev/shm')" in carrier.SESSION_RESET
     )
-
-
-def test_no_op_of_the_grade_ever_holds_a_second_hold_behind_the_session(door):
-    """Review F1: a live session holds the timing gate SHARED; any op that would take its own hold closes it first."""
-    with carrier.grade_session():
-        door.run("graded")
-        door.run("practice", provenance="BATTERY_PUBLIC_PRACTICE")
-        door.run("single-call-x")
-    # At most one hold at a time: the session's was released before each other op asked.
-    assert door.max_holds == 1
-
-
-def test_a_waiting_timing_stage_on_the_other_lane_makes_the_session_yield(
-    door, monkeypatch
-):
-    """Review F1: another lane's timing stage waits for at most one op, as it waits for one container today."""
-    with carrier.grade_session() as session:
-        door.run("graded")
-        monkeypatch.setattr(carrier, "_timing_wanted", lambda: True)
-        door.run("pair-primary")
-        assert session.opened == 2
-    assert door.removed[0] == door.created[0][:2]
 
 
 def test_a_timing_measurement_never_joins(door):

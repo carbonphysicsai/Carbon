@@ -1631,8 +1631,8 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
 
 def _unblock_timing():
     """A door grading in parallel (`grade_sequencer`): give up this grade's session container BEFORE taking the
-    process-wide pair-read lock (`pair_read_bound`). Another grade may hold that lock while its speed stage waits for the
-    host timing gate EXCLUSIVE, and this container holds the gate SHARED. No-op for an unsequenced grade.
+    process-wide pair-read lock (`pair_read_bound`), so the idle container never sits on the lane's cores while this
+    grade waits. No-op for an unsequenced grade.
     """
     from . import grade_sequencer
 
@@ -2116,10 +2116,8 @@ def _single_call_raw(
                 **{**graph_query, "program": derived},
             )
 
-        # SPEED IN-LANE (CV-Motor L12433, Lead's A19): the timed calls run in the grade's own lane beside other rounds
-        # (contention can only slow them, so a PASS there is final); a FAIL while the host was contended runs ONCE
-        # more alone (the host's exclusive timing gate: `single-call-` identities) and that verdict is final; a
-        # failure on a quiet host is final. Without a registered ceiling the stage runs alone from the start, as before.
+        # SPEED IN-LANE (owner, 17 Nov 2026): the timed calls run ONCE in the grade's own lane, on its pinned cores,
+        # beside the other lanes; that verdict is final (no timing gate, no solo rerun).
         def outputs_match(stage):
             """The timed answers against the graded run on the same rows: False is the candidate's; a vmap-64
             disagreement beyond the tolerance is CARBON's (two programs of ours), typed unavailable, FAILED_INFRA.
@@ -2160,13 +2158,11 @@ def _single_call_raw(
     return raw
 
 
-#: The in-lane speed stage's identity prefix: NOT a timing identity (`grade_lanes.TIMING_IDENTITY_PREFIXES`), so its
-#: container holds the host timing gate SHARED, in the grade's own lane (CV-Motor L12433).
+#: The in-lane speed stage's identity prefix (a run on the grade's own lane cores, owner 17 Nov 2026).
 SPEED_LANE_PREFIX = "speed-lane-"
-#: A speed stage that failed under contention and whose solo rerun could not get a quiet host: Carbon's (FAILED_INFRA).
+#: HISTORICAL (no solo rerun since 17 Nov 2026, never raised now): a speed stage that failed under contention and whose
+#: solo rerun could not get a quiet host, Carbon's (FAILED_INFRA). Kept so earlier records read the same.
 SPEED_ALONE_NOT_QUIET = "single_call_alone_host_not_quiet"
-#: OPERATIONAL, not science: how often the speed stage's contention probe samples the host (seconds).
-SPEED_PROBE_SECONDS = 1.0
 
 
 def _speed_ceiling(adapter):
@@ -2179,106 +2175,26 @@ def _speed_ceiling(adapter):
         return None
 
 
-def _speed_probe():
-    """A host probe for one speed run: Carbon worker containers and foreign GPU compute, sampled during and at the end
-    (`host_quiet.Probe`; the stage's own container is one). On a REMOTE grade lane the speed run is timed on its box
-    (owner D6), so its quiet is read ON the box (`host_quiet.box_counters`, in-run samples required: each one a heartbeat
-    of the link), never this host's."""
-    from carbon.reconstruction import remote_lane
+def _speed_stage(timed, name, ceiling, *, outputs_match, runs_dir):
+    """The speed stage. ``timed(identity)`` runs the 20 timed calls; ``outputs_match(stage)`` is the timed-vs-graded
+    answers check. Returns ``(stage, outputs match)``.
 
-    from . import host_quiet
-
-    lane = remote_lane.current()
-    if lane is not None:
-        containers, gpu = host_quiet.box_counters(lane)
-        return host_quiet.Probe(
-            lock_held=True,
-            containers=containers,
-            gpu=gpu,
-            seconds=SPEED_PROBE_SECONDS,
-            require_samples=True,
-        ).start()
-
-    def count():
-        ids = host_quiet.worker_containers()
-        return None if ids is None else len(ids)
-
-    return host_quiet.Probe(
-        lock_held=True,
-        containers=count,
-        gpu=host_quiet.foreign_gpu_compute,
-        seconds=SPEED_PROBE_SECONDS,
-    ).start()
-
-
-def _speed_stage(timed, name, ceiling, *, outputs_match, runs_dir, probe=None):
-    """The speed stage under CV-Motor L12433. ``timed(identity)`` runs the 20 timed calls; ``outputs_match(stage)`` is
-    the timed-vs-graded answers check. Returns ``(stage whose calls are final, outputs match)``.
-
-    In-lane first (the host timing gate shared). A PASS is final (contention only slows). A FAIL on a quiet host is
-    final. A FAIL while the host was contended runs ONCE more alone (the exclusive gate) and that verdict is final; a
-    solo run without a quiet host is Carbon's (`SPEED_ALONE_NOT_QUIET`). An outputs mismatch in EITHER run is the
-    candidate's (not a timing verdict, so no rerun for it). Each run has a FRESH identity (numbered from the runs this
-    grade already recorded) and is recorded write-once in ``runs_dir`` the moment it ends, so a retry never replays an
-    earlier run under a new quiet verdict. The host probe covers each run's own hold window only (`grade_lanes`'
-    `watch_holds`), never the wait for the exclusive gate; a run whose hold was never seen is not quiet. Without a
-    registered ceiling (None) the stage runs alone from the start, as before.
+    Owner, 17 Nov 2026: ONE run, in the grade's own lane on its pinned cores (the timing protection), beside the other
+    lanes. No timing gate and no solo rerun: its verdict against the registered ceiling is final, either way. An outputs
+    mismatch is the candidate's. The run has a FRESH identity (numbered from the runs this grade already recorded) and is
+    recorded write-once in ``runs_dir`` the moment it ends, so a retry never replays it. Without a registered ceiling
+    (None) the stage runs once under its timing identity, unrecorded, as before.
     """
     if ceiling is None:
         stage = timed("single-call-" + name)
         return stage, outputs_match(stage)
-    probe = _speed_probe if probe is None else probe
-    done = _recorded_runs(runs_dir)
-
-    def one(kind, identity):
-        window = _HoldWindow(probe)
-        from carbon.reconstruction import grade_lanes
-
-        try:
-            with grade_lanes.watch_holds(window):
-                stage = timed(identity)
-        finally:
-            contention = window.verdict()
-        run = _speed_run(kind, stage, ceiling, contention, identity)
-        run["outputs_match"] = outputs_match(stage)
-        _write_run(runs_dir, len(done) + len(runs), run)
-        runs.append(run)
-        return stage, run
-
-    runs = []
-    k = len(done)
-    stage, first = one("in_lane", f"{SPEED_LANE_PREFIX}{name}-r{k}")
-    if not first["outputs_match"]:
-        return stage, False
-    if first["passed"] or first["host_quiet"]:
-        return stage, True
-    stage, alone = one("alone", f"single-call-{name}-alone{k}")
-    if not alone["host_quiet"]:
-        # the solo rerun could not get a quiet host: Carbon's, never a pass and never a fail
-        raise RetentionUnavailable(SPEED_ALONE_NOT_QUIET)
-    return stage, alone["outputs_match"]
-
-
-class _HoldWindow:
-    """A probe over the LAST container hold seen in its context (`grade_lanes.watch_holds`): started once the hold is
-    taken, its verdict taken just before the hold is let go (the stage's own container already removed).
-    """
-
-    def __init__(self, probe):
-        self.probe, self.running, self.verdicts = probe, None, []
-
-    def __call__(self, event, _identity):
-        if event == "held" and self.running is None:
-            self.running = self.probe()
-        elif event == "release" and self.running is not None:
-            self.verdicts.append(self.running.verdict())
-            self.running = None
-
-    def verdict(self):
-        if self.running is not None:
-            self.verdicts.append(self.running.verdict())
-            self.running = None
-        return self.verdicts[-1] if self.verdicts else None
+    k = len(_recorded_runs(runs_dir))
+    identity = f"{SPEED_LANE_PREFIX}{name}-r{k}"
+    stage = timed(identity)
+    run = _speed_run("in_lane", stage, ceiling, identity)
+    run["outputs_match"] = outputs_match(stage)
+    _write_run(runs_dir, k, run)
+    return stage, run["outputs_match"]
 
 
 def _recorded_runs(runs_dir):
@@ -2299,13 +2215,12 @@ def _write_run(runs_dir, index, run):
     runs_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     write_once(
         runs_dir / f"{index:02d}.json",
-        _json({"schema": "carbon.lean-recipe.speed-run.v1", **run}),
+        _json({"schema": "carbon.lean-recipe.speed-run.v2", **run}),
     )
 
 
-def _speed_run(kind, stage, ceiling, contention, identity):
-    """One speed run's record: its median against the registered ceiling and the host it ran on (no hold seen: not
-    quiet)."""
+def _speed_run(kind, stage, ceiling, identity):
+    """One speed run's record: its median against the registered ceiling."""
     from carbon.scoring import pool_exam
 
     call_s = stage.receipt["single_call"]["call_s"]
@@ -2317,11 +2232,6 @@ def _speed_run(kind, stage, ceiling, contention, identity):
         "median_seconds": verdict["median_seconds"],
         "ceiling_seconds": ceiling,
         "passed": verdict["passed"],
-        "host_quiet": contention is not None and contention.quiet,
-        "max_worker_containers": (
-            None if contention is None else contention.max_worker_containers
-        ),
-        "samples": 0 if contention is None else contention.samples,
     }
 
 

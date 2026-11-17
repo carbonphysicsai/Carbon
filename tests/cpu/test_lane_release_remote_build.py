@@ -3,9 +3,9 @@
 Builds and grades share one work lock over the door's local lanes (`direct_intake._WorkLock`). A build round whose GPU
 op runs on the A100 used to hold a local lane for that whole op, so every remote build cost grading a lane. Now the
 carrier gives the round's lane and round slot back around that op, its slot wait included (`grade_lanes.released`).
-The round stays live (a drain still sees it) and keeps its binding meanwhile, so the op's local holds still take the
-host timing gate SHARED as before. Once the op has ended it holds a local lane again (`_Taking.retake`), before any
-NEW round of the door and before its next op, so its local inference and timing containers stay laned and gated.
+The round stays live (a drain still sees it) and keeps its binding meanwhile. Once the op has ended it holds a local
+lane again (`_Taking.retake`), before any NEW round of the door and before its next op, so its local inference and
+timing containers stay laned (on that lane's pinned cores: no timing gate, owner 17 Nov 2026).
 `retake` never returns without a lane. A failed remote build keeps its own error (Carbon's, FAILED_INFRA). A second
 king's-upkeep prelude never waits behind the first on its lane (`auto_grade`).
 """
@@ -85,10 +85,8 @@ class _Build:
                             raise self.fail
                 finally:
                     self.lanes["after"] = grade_lanes.current()
-                with grade_lanes.container_hold(
-                    identity="single-call-x", poll_s=POLL
-                ) as held:
-                    self.lanes["timing"] = held
+                # its timing container runs on the lane it holds now
+                self.lanes["timing"] = grade_lanes.current()
                 self.local.set()
                 assert self.leave.wait(10)
         except BaseException as error:  # noqa: BLE001
@@ -169,51 +167,12 @@ def test_both_local_lanes_grade_while_builds_run_on_the_remote_box(host):
     assert all(build.error is None for build in builds)
 
 
-def test_the_remote_ops_local_holds_still_take_the_timing_gate(host):
-    """A remote op's local holds (its stage upload, `container_hold`) keep the host timing gate SHARED while its lane is
-    out: a timing stage of the round now grading on that lane waits for them, as before.
-    """
-    work = _door(host)
-    build = _Build(work)
-    assert build.remote.wait(5)
-    grade = _Grade(work)
-    assert grade.entered.wait(5)
-    upload, upload_done, timing_done = (threading.Event() for _ in range(3))
-
-    def remote_upload():
-        # the build's kept binding, as its op's own context has it
-        with (
-            grade_lanes.bound(build.lanes["during"]),
-            grade_lanes.container_hold(identity="upload", poll_s=POLL),
-        ):
-            upload.set()
-            assert upload_done.wait(5)
-
-    def timing():
-        with (
-            grade_lanes.bound(grade.lane),
-            grade_lanes.container_hold(identity="single-call-y", poll_s=POLL),
-        ):
-            timing_done.set()
-
-    threading.Thread(target=remote_upload, daemon=True).start()
-    assert upload.wait(5)
-    threading.Thread(target=timing, daemon=True).start()
-    assert not timing_done.wait(0.3)
-    upload_done.set()
-    assert timing_done.wait(5)
-    grade.end()
-    build.end()
-
-
-def test_local_inference_after_the_remote_op_runs_under_a_lane_and_the_timing_gate(
-    host,
-):
+def test_local_inference_after_the_remote_op_runs_under_a_lane(host):
     work = _door(host)
     build = _Build(work)
     build.finish_remote.set()
     assert build.local.wait(5)
-    # the timing container was laned: `container_hold` took the host timing gate on the re-taken lane
+    # the timing container was laned, on the re-taken lane
     assert build.lanes["timing"] is not None
     assert build.lanes["timing"] == build.lanes["after"]
     build.end()
@@ -327,88 +286,3 @@ def test_a_second_prelude_never_waits_behind_the_first_on_its_lane():
     claims.release("builder")
     first.join(5)
     assert ran == ["places", "king"]
-
-
-def test_a_remote_box_container_holds_the_timing_gate_only_for_its_transfers(host):
-    """V2 ruling (17 Nov 2026): a container on a REMOTE GPU build box uses no local cores, so it does not hold this
-    host's timing gate for its run; its export (and its stage upload) still hold it SHARED, so a timing stage waits for
-    the transfer, never for the remote run."""
-    import inspect
-
-    from carbon.development_session import research_carrier
-
-    source = inspect.getsource(research_carrier._run_locked)
-    # the lifelong hold is skipped for a remote-box container; its export holds the gate (below)
-    assert "if not on_remote_box:" in source
-    assert "_remote_box_transfer(" in source and "on_remote_box or" in source
-    lane = grade_lanes.Lane(0, "0-3", str(host))
-    transfer, released, timing_done = (threading.Event() for _ in range(3))
-
-    def export():
-        with (
-            grade_lanes.bound(lane),
-            research_carrier._remote_box_transfer(True, "direct-x-build"),
-        ):
-            transfer.set()
-            assert released.wait(5)
-
-    def timing():
-        with (
-            grade_lanes.bound(grade_lanes.Lane(1, "4-7", str(host))),
-            grade_lanes.container_hold(identity="single-call-z", poll_s=POLL),
-        ):
-            timing_done.set()
-
-    threading.Thread(target=export, daemon=True).start()
-    assert transfer.wait(5)
-    threading.Thread(target=timing, daemon=True).start()
-    assert not timing_done.wait(0.3)  # the export holds the gate
-    released.set()
-    assert timing_done.wait(5)
-    # not a remote box: the helper holds nothing (the container's own lifelong hold does)
-    with (
-        grade_lanes.bound(lane),
-        research_carrier._remote_box_transfer(False, "x"),
-        grade_lanes.container_hold(identity="single-call-w", poll_s=POLL),
-    ):
-        pass
-
-
-def test_a_remote_export_that_cannot_get_the_timing_gate_in_time_is_carbons(host):
-    """The export waits for a running timing stage at most until its deadline; past it the op is Carbon's
-    (`RemoteLaneDown`, FAILED_INFRA, never charged), never an export beside the timing stage.
-    """
-    import time
-
-    from carbon.development_session import research_carrier
-
-    timing, leave = threading.Event(), threading.Event()
-
-    def timing_stage():
-        with (
-            grade_lanes.bound(grade_lanes.Lane(1, "4-7", str(host))),
-            grade_lanes.container_hold(identity="single-call-q", poll_s=POLL),
-        ):
-            timing.set()
-            assert leave.wait(5)
-
-    threading.Thread(target=timing_stage, daemon=True).start()
-    assert timing.wait(5)
-    with grade_lanes.bound(grade_lanes.Lane(0, "0-3", str(host))):
-        with (
-            pytest.raises(RemoteLaneDown) as raised,
-            research_carrier._remote_box_transfer(
-                True, "direct-x-build", time.monotonic() + 0.2
-            ),
-        ):
-            raise AssertionError("exported beside a timing stage")
-        assert (
-            raised.value.private_diagnostic
-            == b"remote_gpu_build_export_timing_gate_busy"
-        )
-        leave.set()
-        # the gate free again: the export holds it, within its deadline
-        with research_carrier._remote_box_transfer(
-            True, "direct-x-build", time.monotonic() + 5
-        ):
-            pass

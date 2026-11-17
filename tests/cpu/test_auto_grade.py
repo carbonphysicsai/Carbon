@@ -725,7 +725,7 @@ def _remote_wall_setup(tmp_path):
             0,
             "CANDIDATE_FAILED",
         ),  # a quiet box: counted (the busy LOCAL host is not this round's)
-        (1, 0, "FAILED"),  # another Carbon container on the box (any of its lanes)
+        (1, 0, "FAILED"),  # another Carbon container on the lane's own cores of the box
         (0, 1, "FAILED"),  # foreign GPU compute on the box
         (None, 0, "FAILED"),  # a sample the link could not deliver: no heartbeat
     ],
@@ -733,8 +733,12 @@ def _remote_wall_setup(tmp_path):
 def test_a_remote_grades_wall_is_counted_only_on_a_quiet_box(
     tmp_path, monkeypatch, containers, gpu, state
 ):
-    _remote_boxes(monkeypatch, containers, gpu)
+    _remote_boxes(
+        monkeypatch, 5, gpu
+    )  # the box's other lanes: the whole box is never quiet
     grader, ledger = _remote_wall_setup(tmp_path)
+    # owner, 17 Nov 2026: the lane's OWN cores on its box (`count_lane_containers`, read there)
+    grader.lane_containers = lambda cpuset, lane: containers
     from carbon.reconstruction import grade_lanes
 
     with grade_lanes.bound(_remote_lane()):
