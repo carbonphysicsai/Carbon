@@ -118,6 +118,9 @@ def test_a_legacy_file_already_written_for_the_migrated_door_still_restarts(carr
     bind(root, new)
     # what the old code wrote at the mg21 copy's start 2: the legacy file = the NEW release
     (root / LEGACY_NAME).write_bytes(canonical(new))
+    os.chmod(
+        root / LEGACY_NAME, 0o600
+    )  # an operator record is private (private_json), as bind writes it
     assert bind(root, new)["migrated"] is None
     assert read_door(root) == door_of(new)
 
@@ -126,6 +129,9 @@ def test_a_legacy_file_of_any_other_door_still_refuses(carried):
     root, old = carried
     other = _binding("9" * 40, receiver_hotkey="5Other")
     (root / LEGACY_NAME).write_bytes(canonical(other))
+    os.chmod(
+        root / LEGACY_NAME, 0o600
+    )  # an operator record is private (private_json), as bind writes it
     with pytest.raises(StateBindingRefused, match="retained door binding differs"):
         bind(root, old)
     with pytest.raises(StateBindingRefused, match="retained door binding differs"):
