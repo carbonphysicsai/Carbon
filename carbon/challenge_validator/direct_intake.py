@@ -1501,6 +1501,9 @@ class _WorkLock:
         #: Option A (Lead 17 Nov 2026): how many of this door's build rounds wait to hold a lane AGAIN after their op on a
         #: remote GPU build box (`_Taking.retake`): they finish in-flight work, so no NEW round takes a slot before them.
         self._retakers = 0
+        #: The live build rounds whose lane is out for an op on a remote GPU build box (`_Taking.release`): live (a drain
+        #: sees them), but holding no lane, so the kind fairness never counts them (`_enter_parallel_both_kinds`).
+        self._away = set()
         #: BUILD LANES (Lead 17 Nov 2026, `local_builds`): builds take the door's LOCAL lanes only, each build round
         #: holding one of `_build_slots` (one per local lane) beside its round slot; None: builds take any lane.
         self.builds_local = False
@@ -1867,11 +1870,21 @@ class _WorkLock:
         try:
             while True:
                 with self._kinds:
-                    live = [other for other, _ in self._live.values()]
+                    # a round whose lane is out (on the remote GPU build box) holds no lane: not live for fairness, so
+                    # a build waiting to START (it needs a local lane) is never starved by back-to-back grade rounds
+                    live = [
+                        other
+                        for ident, (other, _) in self._live.items()
+                        if ident not in self._away
+                    ]
                     yield_to_other = live.count(kind) >= 1 and any(
                         count and other != kind and other not in live
                         for other, count in self._kind_waiters.items()
                     )
+                if yield_to_other and kind != "advance" and self.builds_local:
+                    # builds take LOCAL lanes only: a grade stands back for a waiting build only when it would take a
+                    # local lane itself, never while a remote lane it could grade on is free
+                    yield_to_other = not self._remote_lane_free()
                 if not yield_to_other and self._acquire_slot(kind):
                     break
                 if yield_to_other:
@@ -1890,6 +1903,23 @@ class _WorkLock:
             with self._kinds:
                 self._kind_waiters[kind] -= 1
                 self._kinds.notify_all()
+
+    def _remote_lane_free(self):
+        return self._lane_free(local=False)
+
+    def _lane_free(self, *, local):
+        """Whether one of this door's LOCAL (or REMOTE) lanes is free now (a probe of its lock, let go at once: a hint,
+        never a hold)."""
+        from carbon.reconstruction import grade_lanes
+
+        for index in self._usable:
+            if (type(self._lanes[index]) is str) is not local:
+                continue
+            fd = self._take(grade_lanes.lane_lock_name(index))
+            if fd is not None:
+                self._unlock(fd)
+                return True
+        return False
 
     def _acquire_slot(self, kind=None):
         """One round slot for a NEW round of ``kind``, within one poll: never while a build round of this door waits to
@@ -1910,6 +1940,11 @@ class _WorkLock:
         local lane holds a round slot, and a grade round always finds a free lane), within one poll each.
         """
         if self._build_slots is not None and kind == "advance":
+            if not self._lane_free(local=True):
+                # a build only ever takes a LOCAL lane: it never sits on a round slot a grade could use on a free
+                # remote lane while it waits for one
+                time.sleep(self._poll)
+                return False
             if not self._build_slots.acquire(timeout=self._poll):
                 return False
             if not self._slots.acquire(timeout=self._poll):
@@ -1974,6 +2009,7 @@ class _WorkLock:
     def _leave_live(self):
         """Remove this round from the live rounds; returns its kind (None: it was not live)."""
         with self._kinds:
+            self._away.discard(threading.get_ident())
             kind, _ = self._live.pop(threading.get_ident(), (None, None))
             self._write_oldest()
             self._kinds.notify_all()
@@ -2237,6 +2273,9 @@ class _Taking:
             work._release_round(*held)
         finally:
             self._released = True
+            with work._kinds:
+                work._away.add(threading.get_ident())
+                work._kinds.notify_all()
             work._release_slot(self.kind)
             try:
                 with work._kinds:
@@ -2296,6 +2335,8 @@ class _Taking:
                 work._retakers -= 1
                 work._kinds.notify_all()
         self._held, self._released = held, False
+        with work._kinds:
+            work._away.discard(threading.get_ident())
         lane = held[2]
         try:
             with work._kinds:

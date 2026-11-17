@@ -236,3 +236,56 @@ def test_a_draining_door_gives_up_a_build_waiting_for_a_local_lane(host, tmp_pat
     assert late.entered.wait(5)
     for round_ in (*grades[1:], late):
         round_.end()
+
+
+def test_a_build_away_on_the_remote_box_never_lets_grades_starve_a_new_build(tmp_path):
+    """Live 116 (3326c78b, 17 Nov): 4 A100 slots, but building_now stayed at 2. A build away on the A100 (its lane given
+    back) counted as a LIVE build for the kind fairness, so back-to-back grade rounds never stood back for a build waiting
+    to START (it needs a local lane first). A round whose lane is out is no longer live for the fairness: the next free
+    lane goes to the waiting build, not to a new grade round. Five rounds: the old race lost to the grade half the time.
+    """
+    for attempt in range(5):
+        host = tmp_path / f"host{attempt}"
+        host.mkdir(mode=0o700)
+        work = _WorkLock(host, poll_s=POLL, lanes=LOCAL)
+        work.overlap_kinds = True
+        assert work.local_builds(4) == 6
+        away = _Build(work)
+        assert away.remote.wait(5)  # on the A100: no lane, no slot
+        grades = [_Round(work, "grade") for _ in range(2)]
+        for grade in grades:
+            assert grade.entered.wait(5)
+        waiting_build = _Round(work, "advance")
+        waiting_grade = _Round(work, "grade")
+        assert not waiting_build.entered.wait(0.2)
+        assert not waiting_grade.entered.wait(0.1)
+        grades[0].end()
+        assert waiting_build.entered.wait(5)  # the freed lane goes to the build
+        assert not waiting_grade.entered.wait(0.2)
+        for round_ in (grades[1], waiting_build, away, waiting_grade):
+            round_.end()
+        assert waiting_grade.entered.is_set()
+
+
+def test_a_grade_never_stands_back_while_a_remote_lane_it_can_grade_on_is_free(host):
+    """Review: builds use LOCAL lanes only, so a grade stands back for a waiting build only when it would take a local
+    lane itself. A free remote lane is graded on at once; the waiting build gets the next free LOCAL lane.
+    """
+    work, _ = _door(host, extra=4)
+    away = _Build(work)
+    assert away.remote.wait(5)
+    grades = [_Round(work, "grade") for _ in range(4)]
+    for grade in grades:
+        assert grade.entered.wait(5)
+    remote = [g for g in grades if g.lane.docker_host is not None]
+    local = [g for g in grades if g.lane.docker_host is None]
+    waiting_build = _Round(work, "advance")
+    assert not waiting_build.entered.wait(0.2)
+    remote[0].end()
+    late = _Round(work, "grade")
+    assert late.entered.wait(5) and late.lane.docker_host is not None
+    assert not waiting_build.entered.wait(0.2)
+    local[0].end()
+    assert waiting_build.entered.wait(5) and waiting_build.lane.docker_host is None
+    for round_ in (remote[1], local[1], late, waiting_build, away):
+        round_.end()
