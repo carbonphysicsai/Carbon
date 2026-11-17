@@ -990,6 +990,40 @@ def _first_attempt_binding(root, task, entry="sha256:" + "1" * 64):
     return task_root
 
 
+def _grader_that_wrote_them(intake, root):
+    """A grader whose OWN process wrote the files these tests leave in place (no interruption between): the set-aside
+    of an interrupted attempt (`infra_requeue.set_aside_interrupted`, only files older than the process) leaves them,
+    so the 517b binding conflict these tests build on still reproduces. A later process sets them aside instead
+    (`test_a_517b_leftover_is_set_aside_by_a_later_grader_process_and_the_rerun_binds`).
+    """
+    from carbon.challenge_validator import auto_grade
+
+    grader = auto_grade.AutoGrader(intake, root)
+    grader.process_started = 0.0
+    return grader
+
+
+def test_a_517b_leftover_is_set_aside_by_a_later_grader_process_and_the_rerun_binds(
+    tmp_path,
+):
+    """17 Nov (switch-2 copy): a re-queued task whose attempt-1 evaluation was left in place, picked up by a grader
+    process started AFTER those files were written, has them moved aside (kept, never deleted) and binds its own.
+    """
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
+    _first_attempt_binding(root, A)  # as a 517b requeue left it: still in place
+    intake = _BindingIntake(root, [A], "sha256:" + "2" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
+    kept = root / "auto-grade" / "requeued" / f"{A}.interrupted-1.evaluation"
+    assert json.loads((kept / BINDING).read_text())["entry_id"] == "sha256:" + "1" * 64
+    assert json.loads((_evaluation(root, A) / BINDING).read_text())["entry_id"] == (
+        "sha256:" + "2" * 64
+    )
+
+
 class _BindingIntake:
     """The real auto-grader's intake, retaining as the receiver does as far as the pack binding: create-only, bound
     to THIS attempt's entry (a re-run rebuilds a new state, so its entry differs from attempt 1's).
@@ -1051,14 +1085,14 @@ def test_a_requeue_keeps_attempt_ones_evaluation_files_so_attempt_two_binds_its_
 
 def test_without_the_kept_directory_a_rerun_fails_on_attempt_ones_binding(tmp_path):
     """The 517b door's failure, reproduced: the re-queued re-run meets attempt 1's create-only binding."""
-    from carbon.challenge_validator import auto_grade, infra_requeue
+    from carbon.challenge_validator import infra_requeue
 
     root, ledger = _root(tmp_path)
     _failed(root, ledger, A)
     infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
     _first_attempt_binding(root, A)  # as a 517b requeue left it: still in place
     intake = _BindingIntake(root, [A], "sha256:" + "2" * 64)
-    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "FAILED")
+    assert _grader_that_wrote_them(intake, root).run_once() == (A, "FAILED")
     failure = (root / "auto-grade" / "failures" / (A + ".txt")).read_text()
     assert "evaluation_pack_binding_unavailable" in failure
 
@@ -1091,7 +1125,7 @@ def test_keep_evaluation_completes_a_517b_requeue_once_and_the_grader_then_binds
 
 
 def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path):
-    from carbon.challenge_validator import auto_grade, infra_requeue
+    from carbon.challenge_validator import infra_requeue
 
     root, ledger = _root(tmp_path)
     later = time.time_ns() + 10**12
@@ -1104,7 +1138,7 @@ def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path):
         _first_attempt_binding(root, task)
     # C's attempt 2 already failed on attempt 1's binding: `requeue` hands it back, not this step
     intake = _BindingIntake(root, [C], "sha256:" + "2" * 64)
-    assert auto_grade.AutoGrader(intake, root).run_once() == (C, "FAILED")
+    assert _grader_that_wrote_them(intake, root).run_once() == (C, "FAILED")
     _row(ledger, F, "RESERVED")  # F's attempt 2 is grading now
     out = infra_requeue.keep_evaluation(root, [A, B, C, D, E, F, "rtsk_x"], apply=True)
     assert out["kept"] == []
@@ -1194,7 +1228,7 @@ def _rs18_failed_rerun(root, ledger, task):
     """A task as rs18 left it: re-queued by the 517b tool (attempt 1's evaluation directory left in place), then its
     attempt 2 FAILED on attempt 1's binding and was given back. Returns the attempt-2 intake.
     """
-    from carbon.challenge_validator import auto_grade, infra_requeue
+    from carbon.challenge_validator import infra_requeue
 
     _failed(root, ledger, task)
     infra_requeue.requeue(
@@ -1202,7 +1236,7 @@ def _rs18_failed_rerun(root, ledger, task):
     )
     _first_attempt_binding(root, task)
     intake = _DoorIntake(root, ledger, "sha256:" + "2" * 64)
-    assert auto_grade.AutoGrader(intake, root).run_once() == (task, "FAILED")
+    assert _grader_that_wrote_them(intake, root).run_once() == (task, "FAILED")
     assert _rows(ledger, task) == [("RELEASED", "FAILED_INFRA")]
     return intake
 
@@ -1253,7 +1287,7 @@ def test_a_rerun_that_failed_on_attempt_ones_binding_is_requeued_once_more_and_g
 def test_a_second_requeue_takes_only_attempt_twos_binding_conflict_on_attempt_ones_files(
     tmp_path,
 ):
-    from carbon.challenge_validator import auto_grade, infra_requeue
+    from carbon.challenge_validator import infra_requeue
 
     root, ledger = _root(tmp_path)
     for task in (A, B, C):
@@ -1273,7 +1307,7 @@ def test_a_second_requeue_takes_only_attempt_twos_binding_conflict_on_attempt_on
     e_intake.retain_result = lambda submission_id, **kwargs: (_ for _ in ()).throw(
         RuntimeError("worker down")
     )
-    assert auto_grade.AutoGrader(e_intake, root).run_once() == (E, "FAILED")
+    assert _grader_that_wrote_them(e_intake, root).run_once() == (E, "FAILED")
     out = infra_requeue.requeue(root, [A, B, C, D, E])
     assert out["requeued"] == [A, D]
     assert out["refused"] == {
@@ -1292,9 +1326,8 @@ def test_a_rerun_of_the_same_recipe_stops_the_second_requeue(tmp_path):
     _failed(root, ledger, A, recipe=recipe)
     infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
     _first_attempt_binding(root, A)
-    from carbon.challenge_validator import auto_grade
 
-    assert auto_grade.AutoGrader(
+    assert _grader_that_wrote_them(
         _DoorIntake(root, ledger, "sha256:" + "2" * 64), root
     ).run_once() == (A, "FAILED")
     _store(root, B, recipe)  # the fresh resubmit

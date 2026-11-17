@@ -728,12 +728,16 @@ class AutoGrader:
         # with no marker: they are set aside (moved, never deleted, logged) before this grade, else its pack binding
         # conflicts and the grade fails on Carbon's side, burning the one automatic retry (switch-2 copy, 17 Nov). The
         # task is this round's own here: claimed by it (in flight in this process, never taken by another round).
-        try:
-            infra_requeue.set_aside_interrupted(
-                self.root, submission_id, started=getattr(self, "process_started", None)
-            )
-        except (OSError, ValueError):
-            pass  # left in place: the grade meets its conflict as before (FAILED, Carbon's)
+        # A grader with no root or no recorded start (a partial test double) sets nothing aside.
+        root = getattr(self, "root", None)
+        process_started = getattr(self, "process_started", None)
+        if root is not None and process_started is not None:
+            try:
+                infra_requeue.set_aside_interrupted(
+                    root, submission_id, started=process_started
+                )
+            except (OSError, ValueError):
+                pass  # left in place: the grade meets its conflict as before (FAILED, Carbon's)
         started, started_ns, outcome = grade_lanes.current(), time.time_ns(), None
         try:
             outcome = self._grade_on_lane(submission_id, turn)
