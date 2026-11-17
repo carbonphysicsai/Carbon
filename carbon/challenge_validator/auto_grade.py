@@ -25,6 +25,7 @@ DEVELOPMENT receiver only; mainnet policy is not decided here.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -429,6 +430,9 @@ class AutoGrader:
     #: (an operational bound, not a scientific value): a check that keeps answering "due" without anything to apply
     #: must not hold every lane back each round.
     PRELUDE_MIN_SECONDS = 60.0
+    #: How soon the incumbent's steps are asked again after one of their owners was busy in another round (an
+    #: operational poll, not a scientific value).
+    PRELUDE_REASK_SECONDS = 10.0
 
     def _prelude_due(self, pending):
         """Whether the incumbent's own steps (stranded challengers, due retries, the crown sweep, the king's upkeep)
@@ -455,6 +459,104 @@ class AutoGrader:
             self._prelude_after = now + self.PRELUDE_MIN_SECONDS
         return due
 
+    def _prelude_owners(self):
+        """The owners whose ledgers the incumbent's steps may run in (V2's ruling B, 17 Nov 2026), read before any is
+        taken: the king's (his regrade, his crown re-measure), the crown average's own host owner (its derived
+        rebuilds), each paused crown's (its decision) and each due retry's (handed back to the grader). None when any
+        cannot be read or resolved: then every owner is taken, as before (doubt never narrows it).
+        """
+        from . import auto_retry
+        from .crown_average import HOST_OWNER
+
+        try:
+            adapter = self.intake.adapter
+            tasks = set()
+            pool = self._pool()
+            if pool is not None:
+                king = (pool.incumbent() or {}).get("model_id")
+                if king is not None:
+                    tasks.add(king)
+                if hasattr(pool, "paused_crowns"):
+                    # the kind the sweep decides (`_resume_paused_crowns`)
+                    tasks.update(
+                        record["submission_id"] for record in pool.paused_crowns("pack")
+                    )
+            tasks.update(auto_retry.due(self.root, idle=True))
+            owners = {HOST_OWNER}
+            for task in tasks:
+                owner = self._task_owner(adapter, task)
+                if owner is None:
+                    return None
+                owners.add(owner)
+            return owners
+        except Exception:  # noqa: BLE001 - doubt takes every owner, as before
+            return None
+
+    @staticmethod
+    def _task_owner(adapter, task):
+        """The owner whose ledger the steps open for ``task``, as the retention paths resolve it
+        (`lean_recipe_retention.regrade_retained_entry`, `remeasure_incumbent_pack`): the adapter's own (the current
+        contract), else the owner of its admission under this contract, else under an EARLIER contract (a king or a
+        paused contender admitted before the pack changed). None: not resolvable."""
+        owner = adapter.owner(task)
+        if owner is not None:
+            return owner
+        ledger = adapter.ledger
+        owner = ledger.owned_outcome(adapter.contract_digest, task)
+        if owner is not None:
+            return owner
+        admitted = ledger.admitted_owner(task)
+        return None if admitted is None else admitted[1]
+
+    @contextlib.contextmanager
+    def _prelude_owners_held(self, claims):
+        """Hold what the incumbent's steps need; yields whether they may run now. One-lane doors (no claims), or owners
+        that cannot be read (`_prelude_owners`): every owner, exactly as before. Else ONLY those owners, each taken
+        without waiting (`OwnerClaims.try_claim`): while any is in another round (that miner's own build or grade), the
+        steps are skipped this round and asked again on the next, the door building and grading meanwhile; after
+        `UPKEEP_DEFER_MAX_SECONDS` of skips in a row every owner is taken, as before, so the steps are never starved.
+        """
+        from .grade_sequencer import owner_exclusive
+
+        # the start-up filing of stranded challengers comes before the first grade (`_file_stranded`): until it is made,
+        # every owner, as before (once per start)
+        owners = (
+            None if claims is None or self._stranded_due() else self._prelude_owners()
+        )
+        now = time.monotonic()
+        since = getattr(self, "_prelude_waiting_since", None)
+        overdue = since is not None and now - since >= UPKEEP_DEFER_MAX_SECONDS
+        if owners is None or overdue:
+            if overdue:
+                from carbon.battery.intake import log
+
+                log("prelude_owners_overdue", seconds=round(now - since))
+            self._prelude_waiting_since = None
+            with owner_exclusive(claims):
+                yield True
+            return
+        taken = []
+        for owner in sorted(owners):
+            if not claims.try_claim(owner):
+                break
+            taken.append(owner)
+        try:
+            if len(taken) != len(owners):
+                if since is None:
+                    from carbon.battery.intake import log
+
+                    self._prelude_waiting_since = now
+                    log("prelude_deferred", reason="owner_in_flight")
+                # still due: asked again soon (`PRELUDE_REASK_SECONDS`), never on every round
+                self._prelude_after = now + self.PRELUDE_REASK_SECONDS
+                yield False
+                return
+            self._prelude_waiting_since = None
+            yield True
+        finally:
+            for owner in taken:
+                claims.release(owner)
+
     def _run_prelude(self):
         """The incumbent's own steps of a parallel round (`_run_once_parallel`), in the serial round's order."""
         self._settle_queue_places()
@@ -478,19 +580,28 @@ class AutoGrader:
         Same steps as `_run_once`, in the same order for each task."""
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
-        from .grade_sequencer import owner_exclusive
-
         claims = getattr(self, "owner_claims", None)
-        if self._prelude_due(self.pending()):
-            # the incumbent's steps run in the king's owner's ledger: no owner is in any round meanwhile (A19). A round
-            # that finds them already running or waiting in another round goes on instead of waiting behind them on its
-            # lane (Option A: a build round that gave its lane back for its remote GPU op needs a lane again before it
+        # only throttled (asked again shortly): the steps are still due, and their deferral clock keeps running
+        throttled = time.monotonic() < getattr(self, "_prelude_after", 0.0)
+        if not self._prelude_due(self.pending()):
+            if not throttled:
+                # really nothing due: a later wait for the steps' owners starts its deferral afresh
+                self._prelude_waiting_since = None
+        else:
+            # the incumbent's steps run in the ledgers of the owners they touch: those owners are in no other round
+            # meanwhile (A19; V2 ruling B, 17 Nov: only those, `_prelude_owners_held`). A round that finds the steps
+            # already running or waiting in another round goes on instead of waiting behind them on its lane (Option A: a build round that gave its lane back for its remote GPU op needs a lane again before it
             # releases its owner, so two grade rounds waiting here would hold both lanes against it)
             prelude = self.__dict__.setdefault("_prelude_lock", threading.Lock())
             if prelude.acquire(blocking=False):
                 try:
-                    with owner_exclusive(claims), sequencer.exclusive():
-                        self._run_prelude()
+                    # V2's ruling B (17 Nov 2026): only the owners whose ledgers the steps touch, never every owner, so
+                    # every other miner's builds keep running (live 116: building_now 1 while they waited); no grade is
+                    # in flight meanwhile (`sequencer.exclusive`, the integrity guard), as before
+                    with self._prelude_owners_held(claims) as held:
+                        if held:
+                            with sequencer.exclusive():
+                                self._run_prelude()
                 finally:
                     prelude.release()
         skipped = set()
