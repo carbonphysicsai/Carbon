@@ -940,18 +940,17 @@ def test_zone_b_failed_workers_are_carbons_once_then_the_one_process_program(
         return runner
 
     ledger, seen = FixtureLedger(tmp_path / "zone-b-fail"), []
+    run = runner_for(ledger, seen)  # one runner: its operation names never repeat
     try:
         with pytest.raises(Exception) as failed:
-            _graded(motor18, ledger, runner_for(ledger, seen), "zone-b-1", rows)
+            _graded(motor18, ledger, run, "zone-b-1", rows)
         assert seen[-1]["code"] == 3, seen[-1]["stderr"][-4000:]
         assert "exit 3, no part; its rows in one process" in seen[-1]["stderr"]
         assert "rows left cannot finish inside the inference wall" in seen[-1]["stderr"]
         assert research_carrier._case_procs_fell_back(_procs(), failed.value.__cause__)
         assert len(list(ledger.root.glob("case-procs-fallback-*.json"))) == 1
         first = len(seen)
-        primary, repeat = _graded(
-            motor18, ledger, runner_for(ledger, seen), "zone-b-2", rows
-        )
+        primary, repeat = _graded(motor18, ledger, run, "zone-b-2", rows)
     finally:
         ledger.connection.close()
     one_process = case_procs.serial_program(_procs())
