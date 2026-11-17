@@ -22,6 +22,7 @@ import json
 import os
 import shlex
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -367,7 +368,7 @@ class FakeBox:
             return 0, "{}", ""
         if cmd == g.CMD_DEVICE_READ:
             return 0, self.device, ""
-        if cmd == g.CMD_CLASS_OUT:
+        if cmd == g.cmd_class_out(cfg):
             return 0, "", ""
         if cmd == g.cmd_class_check(cfg, HEAD, UUID):
             return self.class_rc, "", ""
@@ -375,7 +376,7 @@ class FakeBox:
             return 0, self.class_output, ""
         if cmd == g.CMD_CLASS_OPS_READ:
             return 0, self.class_ops, ""
-        if cmd == g.CMD_CLASS_CLEAN:
+        if cmd == g.cmd_class_clean(cfg):
             self.cleans += 1
             return 0, "", ""
         raise AssertionError(f"unexpected remote command: {cmd}")
@@ -965,15 +966,30 @@ def test_the_door_refuses_when_an_admin_item_is_missing(tmp_path, step, missing)
     assert _no_box_file(tmp_path)
 
 
-def test_a_matching_admin_summary_is_recorded(tmp_path):
+def _admin_summary(**changes):
+    """The admin phase's PASS summary of the FakeBox (its exact fields)."""
     summary = {
         "schema": "carbon.gpu-box-admin.v1",
         "admin": "PASS",
         "box_ip": IP,
+        "port": 22,
         "host_key": f"{IP} ssh-ed25519 {HOST_KEY}",
+        "device_kind": KIND,
         "device_uuid": UUID,
         "driver_version": DRIVER,
+        "docker_version": "29.1.3",
+        "containerd_version": "2.4.2",
+        "shape": {"cpus": 30, "online": "0-29", "mem_total_kib": 216 * 1024 * 1024},
+        "lane_user": "carbon-grade",
+        "stage_root": "/home/carbon",
+        "seconds": 300.0,
     }
+    summary.update(changes)
+    return summary
+
+
+def test_a_matching_admin_summary_is_recorded(tmp_path):
+    summary = _admin_summary()
     (tmp_path / "admin.json").write_text(json.dumps(summary))
     cfg = _config(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
     assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
@@ -990,20 +1006,19 @@ def test_a_matching_admin_summary_is_recorded(tmp_path):
         ("device_uuid", "GPU-ffffffff-4567-89ab-cdef-0123456789ab"),
         ("driver_version", "580.65.06"),
         ("box_ip", "203.0.113.8"),
+        ("port", 2222),
+        ("device_kind", "NVIDIA A100-SXM4-80GB"),
+        ("docker_version", "28.0.0"),
+        ("containerd_version", "2.1.0"),
+        ("shape", {"cpus": 16, "online": "0-15", "mem_total_kib": 80 * 1024 * 1024}),
+        ("lane_user", "ubuntu"),
+        ("stage_root", "/srv/carbon"),
     ],
 )
 def test_an_admin_summary_that_disagrees_with_the_box_is_refused(
     tmp_path, field, value
 ):
-    summary = {
-        "schema": "carbon.gpu-box-admin.v1",
-        "admin": "PASS",
-        "box_ip": IP,
-        "host_key": f"{IP} ssh-ed25519 {HOST_KEY}",
-        "device_uuid": UUID,
-        "driver_version": DRIVER,
-        field: value,
-    }
+    summary = _admin_summary(**{field: value})
     (tmp_path / "admin.json").write_text(json.dumps(summary))
     cfg = _config(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
     box = FakeBox(cfg)
@@ -1084,14 +1099,16 @@ def test_the_class_check_runs_like_the_receipted_runner(tmp_path):
 def test_the_class_check_output_dir_needs_no_root(tmp_path):
     """A fresh 0703 directory in carbon-grade's 0700 work dir: the container (uid 65532) creates its files, carbon-grade
     reads them only when that uid owns them, and removes the directory afterwards."""
-    assert box_up.CMD_CLASS_OUT == (
-        "set -eu; rm -rf /home/carbon-grade/carbon-box-up/class-check; "
+    cfg = _config(tmp_path)
+    out = box_up.cmd_class_out(cfg)
+    assert out.endswith(
+        "rm -rf /home/carbon-grade/carbon-box-up/class-check; "
         "mkdir -m 0703 /home/carbon-grade/carbon-box-up/class-check"
     )
     assert box_up.DOOR_WORK_DIR.endswith("chmod 0700 /home/carbon-grade/carbon-box-up")
     for read in (box_up.CMD_CLASS_OUTPUT_READ, box_up.CMD_CLASS_OPS_READ):
-        assert 'test "$(stat -c %u ' in read and ')" = 65532;' in read
-    cfg = _config(tmp_path)
+        assert "-maxdepth 0 -type f -user 65532 -size -16777216c" in read
+        assert "timeout 30 head -c 16777216 --" in read
     box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
     assert box.cleans == 1
@@ -1652,3 +1669,107 @@ def test_limit_a_box_replaying_another_boxs_output_is_admitted_pass_is_not_secur
     )
     assert _run(cfg, replay)["status"] == "ADMITTED"
     assert "replays another box's output can" in box_up.__doc__
+
+
+# -- review of the phase split: the class-check output and the admin summary ------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda s: s.pop("shape"),
+        lambda s: s.update(extra=1),
+        lambda s: s.update(port="22"),
+        lambda s: s.update(port=True),
+        lambda s: s.update(seconds="300"),
+        lambda s: s.update(shape=[30]),
+    ],
+    ids=["missing", "extra", "port-str", "port-bool", "seconds-str", "shape-list"],
+)
+def test_an_admin_summary_not_exactly_the_admin_phase_document_is_refused(
+    tmp_path, mutate
+):
+    summary = _admin_summary()
+    mutate(summary)
+    (tmp_path / "admin.json").write_text(json.dumps(summary))
+    argv = _door_argv(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
+    assert _config_refusal(argv) == "admin_summary_invalid"
+
+
+def test_an_empty_admin_summary_path_is_refused_not_ignored(tmp_path):
+    assert (
+        _config_refusal(_door_argv(tmp_path, "--admin-summary", ""))
+        == "admin_summary_invalid"
+    )
+
+
+def _sh(script, cwd):
+    return subprocess.run(
+        ["sh", "-c", script], cwd=cwd, capture_output=True, text=True, check=False
+    )
+
+
+def _local_read(tmp_path, name, uid):
+    """`_read_worker_file`'s script with the box paths and the worker uid replaced by local ones."""
+    out = tmp_path / "out"
+    script = box_up._read_worker_file(name).replace(box_up.CLASS_OUT, str(out))
+    return _sh(script.replace(f"-user {box_up.WORKER_UID}", f"-user {uid}"), tmp_path)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="GNU find/head/timeout")
+def test_the_worker_file_read_refuses_a_symlink_a_fifo_and_a_directory(tmp_path):
+    uid = os.getuid()
+    out = tmp_path / "out"
+    out.mkdir()
+    secret = tmp_path / "secret"
+    secret.write_text("authorized_keys line")
+    (out / "class-check.json").symlink_to(secret)
+    done = _local_read(tmp_path, "class-check.json", uid)
+    assert done.returncode != 0 and "authorized_keys" not in done.stdout
+    (out / "class-check.json").unlink()
+    os.mkfifo(out / "class-check.json")
+    done = _local_read(
+        tmp_path, "class-check.json", uid
+    )  # returns at once: never opens the FIFO
+    assert done.returncode != 0 and done.stdout == ""
+    (out / "class-check.json").unlink()
+    (out / "class-check.json").mkdir()
+    assert _local_read(tmp_path, "class-check.json", uid).returncode != 0
+    (out / "class-check.json").rmdir()
+    (out / "class-check.json").write_text('{"ok": 1}')
+    done = _local_read(tmp_path, "class-check.json", uid)
+    assert done.returncode == 0 and done.stdout == '{"ok": 1}'
+    # a regular file of another owner: refused
+    assert _local_read(tmp_path, "class-check.json", uid + 1).returncode != 0
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="python in a subprocess")
+def test_the_purge_program_removes_what_the_container_left_even_a_0000_dir(tmp_path):
+    out = tmp_path / "out"
+    (out / "sub" / "deep").mkdir(parents=True)
+    (out / "sub" / "deep" / "x").write_text("x")
+    (out / "f").write_text("f")
+    os.symlink("/etc/hostname", out / "link")
+    os.chmod(out / "sub" / "deep", 0)
+    os.chmod(out / "sub", 0)
+    program = box_up._PURGE_PROGRAM.replace("'/out'", repr(str(out)))
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", program],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    assert list(out.iterdir()) == []
+    assert os.path.exists("/etc/hostname")
+
+
+def test_the_class_check_dir_is_purged_as_the_container_uid_before_and_after(tmp_path):
+    cfg = _config(tmp_path)
+    purge = box_up.cmd_class_purge(cfg)
+    assert purge.startswith(
+        "docker run --rm --user 65532:65532 --network none --read-only -v "
+    )
+    assert cfg.jax_image in purge and "sudo" not in purge
+    assert purge in box_up.cmd_class_out(cfg) and "|| true" in box_up.cmd_class_out(cfg)
+    assert box_up.cmd_class_clean(cfg).startswith(purge)

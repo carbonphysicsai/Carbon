@@ -286,6 +286,38 @@ def _load_json_file(path: str, reason: str) -> tuple[dict, str]:
     return _json_object(raw, reason, path), _sha256(raw)
 
 
+#: A passing admin summary carries exactly these fields (`run_admin`), each of this type.
+ADMIN_SUMMARY_FIELDS = {
+    "schema": str,
+    "admin": str,
+    "box_ip": str,
+    "port": int,
+    "host_key": str,
+    "device_kind": str,
+    "device_uuid": str,
+    "driver_version": str,
+    "docker_version": str,
+    "containerd_version": str,
+    "shape": dict,
+    "lane_user": str,
+    "stage_root": str,
+    "seconds": (int, float),
+}
+
+
+def check_admin_summary(summary: dict) -> None:
+    """A passing admin summary of exactly `ADMIN_SUMMARY_FIELDS` (no field missing, none extra, every type right); what
+    each field says is compared with the box in the door phase (`Session.door_admin_summary`).
+    """
+    if set(summary) != set(ADMIN_SUMMARY_FIELDS):
+        raise Refused("admin_summary_invalid", "not exactly the admin summary's fields")
+    for field, kind in ADMIN_SUMMARY_FIELDS.items():
+        if type(summary[field]) is bool or not isinstance(summary[field], kind):
+            raise Refused("admin_summary_invalid", f"{field}: wrong type")
+    if summary["schema"] != ADMIN_SCHEMA or summary["admin"] != "PASS":
+        raise Refused("admin_summary_invalid", "not a passing admin summary")
+
+
 def _graph_gpu_image(path: str) -> str:
     """The image id the door's receiver serves the graph GPU lane from: read with the receiver's own reader
     (`docker_runtime.load_image_identity`, as `direct_receiver` does), and a JAX GPU worker.
@@ -391,12 +423,11 @@ def config_from_args(args) -> Config:
             "--jax-image is not the image --graph-gpu-image-manifest names",
         )
     summary, summary_sha = None, None
-    if args.admin_summary:
+    if args.admin_summary is not None:
         summary, summary_sha = _load_json_file(
             args.admin_summary, "admin_summary_invalid"
         )
-        if summary.get("schema") != ADMIN_SCHEMA or summary.get("admin") != "PASS":
-            raise Refused("admin_summary_invalid", "not a passing admin summary")
+        check_admin_summary(summary)
     return Config(
         phase="door",
         **common,
@@ -663,14 +694,74 @@ def cmd_prepare(cfg: Config, commit: str) -> str:
 CMD_DEVICE_READ = f"cat {HOST_ROOT}/host-device.json"
 #: Fresh each run, mode 0703: carbon-grade (owner) reads and removes; the uid-65532 container creates its files; its
 #: parent `BOX_WORK` is 0700, so no other local user reaches it.
-CMD_CLASS_OUT = f"set -eu; rm -rf {CLASS_OUT}; mkdir -m 0703 {CLASS_OUT}"
-CMD_CLASS_CLEAN = f"rm -rf {CLASS_OUT}"
+#: What the container may have left in ``/out`` is removed AS the container's uid (a subdirectory it made, even one it
+#: chmod'ed 0000, is not carbon-grade's to remove): every directory made traversable first, then everything unlinked.
+_PURGE_PROGRAM = (
+    "import os,shutil\n"
+    "for d,ds,fs in os.walk('/out'):\n"
+    "    for x in ds:\n"
+    "        p=os.path.join(d,x)\n"
+    "        if not os.path.islink(p): os.chmod(p,0o700)\n"
+    "for n in os.listdir('/out'):\n"
+    "    p=os.path.join('/out',n)\n"
+    "    shutil.rmtree(p) if os.path.isdir(p) and not os.path.islink(p) else os.unlink(p)\n"
+)
+#: The largest class-check file read back (the receipted records are a few hundred KiB).
+CLASS_FILE_MAX_BYTES = 16 * 1024 * 1024
+
+
+def cmd_class_purge(cfg: Config) -> str:
+    """Empty the class-check output dir as the container's uid, in the JAX image, with no network and no GPU."""
+    return shlex.join(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--user",
+            WORKER_USER,
+            "--network",
+            "none",
+            "--read-only",
+            "-v",
+            f"{CLASS_OUT}:/out",
+            "--entrypoint",
+            WORKER_PYTHON,
+            cfg.jax_image,
+            "-I",
+            "-c",
+            _PURGE_PROGRAM,
+        ]
+    )
+
+
+def cmd_class_out(cfg: Config) -> str:
+    """Fresh each run, mode 0703: carbon-grade (owner) reads and removes; the uid-65532 container creates its files; its
+    parent `BOX_WORK` is 0700, so no other local user reaches it. An earlier run's leftovers are purged as the
+    container's uid first, so a container-made subdirectory can never wedge later runs.
+    """
+    return (
+        f"set -eu; if [ -d {CLASS_OUT} ] && [ ! -L {CLASS_OUT} ]; then "
+        f"{cmd_class_purge(cfg)} >/dev/null 2>&1 || true; fi; "
+        f"rm -rf {CLASS_OUT}; mkdir -m 0703 {CLASS_OUT}"
+    )
+
+
+def cmd_class_clean(cfg: Config) -> str:
+    """Best effort after every class check: purge as the container's uid, then remove the directory."""
+    return f"{cmd_class_purge(cfg)} >/dev/null 2>&1; rm -rf {CLASS_OUT}"
 
 
 def _read_worker_file(name: str) -> str:
-    """Read a class-check file only when the container's uid wrote it (nothing planted before the run)."""
+    """Read a class-check file only when it is a REGULAR file (never a symlink, FIFO or device: ``find`` without ``-L``
+    tests the path itself) owned by the container's uid (nothing planted before the run), at most
+    `CLASS_FILE_MAX_BYTES`, with a time limit. The container has exited (``docker run`` returned) before this runs.
+    """
     path = f"{CLASS_OUT}/{name}"
-    return f'set -eu; test "$(stat -c %u {path})" = {WORKER_UID}; cat {path}'
+    return (
+        f"set -eu; p={path}; "
+        f'test -n "$(find "$p" -maxdepth 0 -type f -user {WORKER_UID} -size -{CLASS_FILE_MAX_BYTES}c)"; '
+        f'timeout 30 head -c {CLASS_FILE_MAX_BYTES} -- "$p"'
+    )
 
 
 CMD_CLASS_OUTPUT_READ = _read_worker_file("class-check.json")
@@ -1370,14 +1461,22 @@ class Session:
     def door_stage_root(self):
         self._stage_root_seen()
 
-    def door_admin_summary(self, host_key, uuid, driver):
-        """The admin phase's own summary, when the operator brought it: it must describe the box the door reads."""
-        summary = self.cfg.admin_summary
+    def door_admin_summary(self, host_key, uuid, driver, shape):
+        """The admin phase's own summary, when the operator brought it: EVERY field it states must describe the box the
+        door reads (or the versions and names the door requires)."""
+        summary, cfg = self.cfg.admin_summary, self.cfg
         for field, want in (
-            ("box_ip", self.cfg.ip),
+            ("box_ip", cfg.ip),
+            ("port", cfg.port),
             ("host_key", host_key),
+            ("device_kind", cfg.device_kind),
             ("device_uuid", uuid),
             ("driver_version", driver),
+            ("docker_version", cfg.docker_version),
+            ("containerd_version", cfg.containerd_version),
+            ("shape", shape),
+            ("lane_user", LANE_USER),
+            ("stage_root", STAGE_ROOT),
         ):
             if summary.get(field) != want:
                 raise Refused(
@@ -1441,7 +1540,7 @@ class Session:
         return document, _device_record(document)
 
     def class_check(self, commit, uuid):
-        self.remote(CMD_CLASS_OUT, reason="class_check_failed")
+        self.remote(cmd_class_out(self.cfg), reason="class_check_failed")
         try:
             rc, out, err = self.call(
                 ssh(
@@ -1458,7 +1557,7 @@ class Session:
             )
         finally:
             # best effort: the next run recreates it from nothing anyway
-            self.call(ssh(self.cfg, self.known_hosts, CMD_CLASS_CLEAN))
+            self.call(ssh(self.cfg, self.known_hosts, cmd_class_clean(self.cfg)))
         if r_out != 0 or not raw_output.strip():
             raise Refused(
                 "class_check_failed", f"rc={rc}: {(err or out).strip()[-400:]}"
@@ -1595,13 +1694,18 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     try:
         host_key = session.run_step("host_key", session.host_key)
         session.verify("lane_user", session.door_lane_user)
-        session.verify("shape", session.shape)
+        shape = session.verify("shape", session.shape)
         uuid, driver = session.verify("driver", session.door_driver)
         session.verify("docker", session.door_docker)
         session.verify("stage_root", session.door_stage_root)
         if cfg.admin_summary is not None:
             session.run_step(
-                "admin_summary", session.door_admin_summary, host_key, uuid, driver
+                "admin_summary",
+                session.door_admin_summary,
+                host_key,
+                uuid,
+                driver,
+                shape,
             )
         session.run_step("images", session.images)
         commit = session.run_step("tree", session.tree)
@@ -1727,11 +1831,11 @@ def plan_door(cfg: Config) -> list[tuple[str, str]]:
     steps.append(remote("tree", cmd_tree_extract(commit), cmd_git_archive(commit)))
     steps.append(remote("device", cmd_prepare(cfg, commit)))
     steps.append(remote("device", CMD_DEVICE_READ))
-    steps.append(remote("class_check", CMD_CLASS_OUT))
+    steps.append(remote("class_check", cmd_class_out(cfg)))
     steps.append(remote("class_check", cmd_class_check(cfg, commit, uuid)))
     steps.append(remote("class_check", CMD_CLASS_OUTPUT_READ))
     steps.append(remote("class_check", CMD_CLASS_OPS_READ))
-    steps.append(remote("class_check", CMD_CLASS_CLEAN))
+    steps.append(remote("class_check", cmd_class_clean(cfg)))
     return steps
 
 
