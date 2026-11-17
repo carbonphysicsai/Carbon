@@ -94,6 +94,9 @@ class AutoGrader:
         self.gpu = host_quiet.foreign_gpu_compute if gpu is None else gpu
         self.sample_seconds = sample_seconds
         self.root = Path(root)
+        #: when this grader process started: an evaluation directory older than this is an interrupted attempt's
+        #: (`infra_requeue.set_aside_interrupted`)
+        self.process_started = time.time()
         base = self.root / "auto-grade"
         self.artifacts = base / "artifacts"
         self.entries = base / "entries"
@@ -726,7 +729,9 @@ class AutoGrader:
         # conflicts and the grade fails on Carbon's side, burning the one automatic retry (switch-2 copy, 17 Nov). The
         # task is this round's own here: claimed by it (in flight in this process, never taken by another round).
         try:
-            infra_requeue.set_aside_interrupted(self.root, submission_id)
+            infra_requeue.set_aside_interrupted(
+                self.root, submission_id, started=getattr(self, "process_started", None)
+            )
         except (OSError, ValueError):
             pass  # left in place: the grade meets its conflict as before (FAILED, Carbon's)
         started, started_ns, outcome = grade_lanes.current(), time.time_ns(), None

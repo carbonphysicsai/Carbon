@@ -176,7 +176,7 @@ INTERRUPTED = "interrupted.jsonl"
 _INTERRUPTED_LIMIT = 64
 
 
-def set_aside_interrupted(root, task, *, clock=time.time_ns):
+def set_aside_interrupted(root, task, *, started, clock=time.time_ns):
     """Before the grader takes a PENDING task (no marker): an ``artifacts/<task>.evaluation`` directory there can only be
     an attempt that was stopped mid-grade (a crash, a kill, an unplanned restart). Every hand-back (``requeue``,
     ``restore-platform``, ``rearm``, the automatic retry) moves the directory aside before the grader can see the task,
@@ -184,7 +184,12 @@ def set_aside_interrupted(root, task, *, clock=time.time_ns):
     ``evaluation_pack_binding_unavailable`` on Carbon's side and burn the one automatic retry (switch-2 copy, 17 Nov:
     rtsk_34ff589c, c276992f, ca1df3a8). They are moved, never deleted, to ``requeued/<task>.interrupted-<k>.evaluation``
     and one line goes to ``requeued/interrupted.jsonl``. Returns the kept name, or None when there was nothing to set
-    aside (a task with a marker is never touched)."""
+    aside (a task with a marker is never touched).
+
+    ``started`` (door-code review): the unix time this grader PROCESS started. Only a directory whose every entry is
+    older than that is an interrupted attempt (a crash or a kill always means a new process). One this process wrote
+    itself (a tick that ended `_NEXT` or None after the binding, before a marker) is left alone, so the generation
+    never climbs tick by tick."""
     if type(task) is not str or not _TASK.fullmatch(task):
         return None
     paths = _paths(root, task)
@@ -192,6 +197,14 @@ def set_aside_interrupted(root, task, *, clock=time.time_ns):
         return None
     evaluation = paths["evaluation"]
     if evaluation.is_symlink() or not evaluation.is_dir():
+        return None
+    if type(started) not in (int, float):
+        return None
+    newest = max(
+        [evaluation.stat().st_mtime]
+        + [path.stat().st_mtime for path in evaluation.rglob("*")]
+    )
+    if newest >= started:
         return None
     kept = paths["kept_marker"].parent
     kept.mkdir(mode=0o700, parents=True, exist_ok=True)

@@ -11,6 +11,8 @@ Switch-2 copy, 17 Nov 2026 (codex-queue/reports/SWITCH2_COPY_READS_20261117.md),
 from __future__ import annotations
 
 import json
+import os
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -25,11 +27,20 @@ TASK = "rtsk_" + "a" * 64
 OTHER = "rtsk_" + "b" * 64
 
 
-def _interrupted(root, task=TASK, binding=b'{"entry_id": "e1"}'):
-    """What a grade stopped after its pack binding leaves: the evaluation directory and no marker."""
+#: when "this" grader process started in these tests: after every directory `_interrupted` writes
+LATER = time.time() + 3600
+
+
+def _interrupted(root, task=TASK, binding=b'{"entry_id": "e1"}', *, age=600):
+    """What a grade stopped after its pack binding leaves (in an EARLIER process): the evaluation directory and no
+    marker, written ``age`` seconds before now."""
     evaluation = root / "auto-grade" / "artifacts" / (task + ".evaluation")
-    evaluation.mkdir(parents=True)
-    (evaluation / "evaluation-pack-binding.json").write_bytes(binding)
+    evaluation.mkdir(parents=True, exist_ok=True)
+    sidecar = evaluation / "evaluation-pack-binding.json"
+    sidecar.write_bytes(binding)
+    then = time.time() - age
+    for path in (sidecar, evaluation):
+        os.utime(path, (then, then))
     return evaluation
 
 
@@ -44,7 +55,9 @@ def _marker(root, task, state="GRADED"):
 
 def test_a_stopped_attempts_evaluation_is_moved_aside_never_deleted(tmp_path):
     evaluation = _interrupted(tmp_path)
-    kept = infra_requeue.set_aside_interrupted(tmp_path, TASK, clock=lambda: 7)
+    kept = infra_requeue.set_aside_interrupted(
+        tmp_path, TASK, started=LATER, clock=lambda: 7
+    )
     assert kept == f"{TASK}.interrupted-1.evaluation"
     assert not evaluation.exists()
     moved = tmp_path / "auto-grade" / "requeued" / kept
@@ -57,7 +70,7 @@ def test_a_stopped_attempts_evaluation_is_moved_aside_never_deleted(tmp_path):
     ]
     # a second stop of the same task: its own name, nothing overwritten
     _interrupted(tmp_path, binding=b'{"entry_id": "e2"}')
-    assert infra_requeue.set_aside_interrupted(tmp_path, TASK) == (
+    assert infra_requeue.set_aside_interrupted(tmp_path, TASK, started=LATER) == (
         f"{TASK}.interrupted-2.evaluation"
     )
     assert (
@@ -68,10 +81,13 @@ def test_a_stopped_attempts_evaluation_is_moved_aside_never_deleted(tmp_path):
 def test_a_task_with_a_marker_or_no_evaluation_is_never_touched(tmp_path):
     evaluation = _interrupted(tmp_path)
     _marker(tmp_path, TASK)
-    assert infra_requeue.set_aside_interrupted(tmp_path, TASK) is None
+    assert infra_requeue.set_aside_interrupted(tmp_path, TASK, started=LATER) is None
     assert evaluation.is_dir()  # a finished grade's record stays where it is
-    assert infra_requeue.set_aside_interrupted(tmp_path, OTHER) is None
-    assert infra_requeue.set_aside_interrupted(tmp_path, "not-a-task") is None
+    assert infra_requeue.set_aside_interrupted(tmp_path, OTHER, started=LATER) is None
+    assert (
+        infra_requeue.set_aside_interrupted(tmp_path, "not-a-task", started=LATER)
+        is None
+    )
     assert not (tmp_path / "auto-grade/requeued/interrupted.jsonl").exists()
 
 
@@ -89,7 +105,9 @@ def test_the_grader_sets_it_aside_before_it_grades_the_task(tmp_path):
         )
         return auto_grade._NEXT
 
-    grader = SimpleNamespace(root=tmp_path, _grade_on_lane=grade_on_lane)
+    grader = SimpleNamespace(
+        root=tmp_path, process_started=LATER, _grade_on_lane=grade_on_lane
+    )
     assert auto_grade.AutoGrader._grade_one(grader, TASK) is auto_grade._NEXT
     assert seen == [False]
     assert (
@@ -151,3 +169,27 @@ def test_a_settled_infrastructure_failure_is_never_returned_as_a_worker_result(
         harness.run(provenance="BATTERY_PUBLIC_PRACTICE")
     assert again.value.code is WorkerCode.UNAVAILABLE
     assert again.value.replayed is True
+
+
+def test_a_directory_this_grader_process_wrote_is_left_alone(tmp_path):
+    """door-code review: a tick that ended (not gradable now, a degraded chain) after the binding and before a marker
+    leaves THIS process's directory; the next tick must not move it and bump the generation tick by tick. Only a
+    directory older than the process (a crash or kill always means a new process) is an interrupted attempt.
+    """
+    started = time.time()
+    evaluation = _interrupted(tmp_path, age=-5)  # written after this process started
+    assert infra_requeue.set_aside_interrupted(tmp_path, TASK, started=started) is None
+    assert evaluation.is_dir()
+    # one file written since, in an otherwise old directory: still this process's
+    old = _interrupted(tmp_path / "x", age=600)
+    (old / "late.json").write_text("{}")
+    assert (
+        infra_requeue.set_aside_interrupted(tmp_path / "x", TASK, started=started)
+        is None
+    )
+    # no start known: never moved
+    _interrupted(tmp_path / "y", age=600)
+    assert (
+        infra_requeue.set_aside_interrupted(tmp_path / "y", TASK, started=None) is None
+    )
+    assert infra_requeue.set_aside_interrupted(tmp_path / "y", TASK, started=started)
