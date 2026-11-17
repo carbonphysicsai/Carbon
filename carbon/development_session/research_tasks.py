@@ -257,6 +257,8 @@ def _same_principal(old, new):
         left is not None
         and right is not None
         and a[:2] == b[:2]
+        # a FIXED-image row's own bundle image (position 2) is no door key: only its parent and inference ids move
+        and (a[2] == "PER_RECIPE_LIBRARY_IMAGE" or a[2] == b[2])
         and left[1] == right[1]
         and left[0] == right[0]
     )

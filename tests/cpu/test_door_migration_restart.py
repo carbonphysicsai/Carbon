@@ -199,8 +199,9 @@ def test_same_principal_lets_only_images_and_the_gpu_lane_move():
     assert not ok([*old, "GRAPH_GPU_LANE", "sha256:" + "d" * 64])
     # a fixed image's bundle reference never moves
     fixed = ["miner", "miner", one, one, one, {"bundle": "x"}]
-    assert ok(["miner", "miner", two, two, two, {"bundle": "x"}], fixed)
     assert not ok(["miner", "miner", two, two, two, {"bundle": "y"}], fixed)
+    assert ok(["miner", "miner", one, two, two, {"bundle": "x"}], fixed)
+    assert not ok(["miner", "miner", two, one, one, {"bundle": "x"}], fixed)
     assert not _same_principal("not json", json.dumps(old))
 
 
