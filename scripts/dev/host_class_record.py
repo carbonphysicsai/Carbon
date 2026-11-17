@@ -14,8 +14,10 @@ grade user on one box. The record is modelled on ``scripts/validator_host_classe
 ``install_validator.sh`` reads (model, ISA flags, nproc, memory floor, virtualization) are taken from the reads exactly as
 that installer reads them on a host (lscpu ``Model name`` and ``Flags``, ``amx`` = any ``amx_*`` flag, ``nproc``,
 ``MemTotal`` floored to GiB, ``systemd-detect-virt``). With two or more boxes the record is ONE class: it refuses, and
-prints every difference, when the boxes differ in any class field or in microcode, kernel, OS or Docker. The memory floor
-is the lowest box's. Per-box facts (each identity.json's sha256, MemTotal) are kept per box under ``recorded``.
+prints every difference, when the boxes differ in any class field or in kernel, OS or Docker. CPU microcode and stepping
+are RECORDED per box, never required equal (owner, 16 Nov: one 5950X class across FSN1 stepping 2 and HEL1 stepping 0, a
+hardware difference). The memory floor is the lowest box's. Per-box facts (each identity.json's sha256, MemTotal,
+microcode, stepping when the kit read it) are kept per box under ``recorded``.
 
 ``--template`` writes the same record with every field that must be read on the box left as an explicit
 ``HUMAN_INPUT`` placeholder: such a file is deliberately NOT a well-formed class (the installer ignores it).
@@ -43,7 +45,6 @@ SAME_ACROSS_BOXES = (
     "isa_flags_present",
     "nproc",
     "virtualization",
-    "microcode",
     "kernel",
     "os",
     "docker",
@@ -133,12 +134,31 @@ def read_identity(name, path):
         "nproc": document["nproc"],
         "virtualization": document["virtualization"],
         "microcode": microcode[0],
+        "stepping": _stepping(name, document),
         "kernel": document["kernel"],
         "os": document["os"],
         "docker": document["docker_server_version"],
         "mem_total_kb": document["mem_total_kb"],
     }
     return facts, hashlib.sha256(data).hexdigest()
+
+
+def _stepping(name, document):
+    """The box's CPU stepping (one value across its CPUs), or None when the identity predates kit rev 2."""
+    if "stepping" not in document:
+        return None
+    stepping = document["stepping"]
+    if (
+        type(stepping) is not list
+        or not stepping
+        or any(type(item) is not str or not item.isdigit() for item in stepping)
+    ):
+        raise ClassError(f"{name}: identity stepping is not a list of decimal values")
+    if len(set(stepping)) != 1:
+        raise ClassError(
+            f"{name}: CPUs report different steppings {sorted(set(stepping))}"
+        )
+    return stepping[0]
 
 
 def differences(boxes):
@@ -177,7 +197,9 @@ def build(boxes, *, class_id, scope, owner_decision, read_by, procedure, stage_2
             "mem_total_kb": {
                 name: facts["mem_total_kb"] for name, (facts, _) in boxes.items()
             },
-            "microcode": first["microcode"],
+            "microcode": {
+                name: facts["microcode"] for name, (facts, _) in boxes.items()
+            },
             "os": first["os"],
             "owner_decision": owner_decision,
             "procedure": procedure,
@@ -189,6 +211,13 @@ def build(boxes, *, class_id, scope, owner_decision, read_by, procedure, stage_2
         "stage": 1,
         "virtualization": first["virtualization"],
     }
+    steppings = {
+        name: facts["stepping"]
+        for name, (facts, _) in boxes.items()
+        if facts.get("stepping") is not None
+    }
+    if steppings:
+        record["recorded"]["stepping"] = steppings
     if not wellformed(record):
         raise ClassError("the filled record is not a well-formed host class")
     return record

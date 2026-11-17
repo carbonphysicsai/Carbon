@@ -101,9 +101,10 @@ def test_two_agreeing_boxes_fill_one_wellformed_class_modelled_on_the_epyc_recor
         record["recorded"]["identity_json_sha256"]["hel1"]
         == hashlib.sha256(b.read_bytes()).hexdigest()
     )
-    assert record["recorded"]["microcode"] == "0xfixture" and record["recorded"][
-        "boxes"
-    ] == ["fsn1", "hel1"]
+    assert record["recorded"]["microcode"] == {
+        "fsn1": "0xfixture",
+        "hel1": "0xfixture",
+    } and record["recorded"]["boxes"] == ["fsn1", "hel1"]
     # the same top-level fields as the registered EPYC class
     epyc = json.loads(
         (
@@ -119,7 +120,6 @@ def test_two_agreeing_boxes_fill_one_wellformed_class_modelled_on_the_epyc_recor
     [
         ("cpu_model_name", "Other 16-Core Processor"),
         ("lscpu_flags", FLAGS + ["avx512f"]),
-        ("microcode", ["0xother"] * 32),
         ("kernel", "6.8.0-2-fixture"),
         ("nproc", 16),
         ("virtualization", "kvm"),
@@ -226,3 +226,39 @@ def test_the_filler_agrees_with_the_installer_on_wellformed():
     installer = (ROOT / "scripts" / "install_validator.sh").read_text()
     assert 'FLAGS = ("avx2", "fma", "avx512f", "avx512_bf16", "amx")' in installer
     assert tuple(filler.FLAGS) == ("avx2", "fma", "avx512f", "avx512_bf16", "amx")
+
+
+# -- one class across CPU revisions: microcode and stepping RECORDED per box, never required equal (owner, 16 Nov) ----
+
+
+def test_microcode_and_stepping_are_recorded_per_box_not_required_equal(tmp_path):
+    a = _write(
+        tmp_path, _identity("fsn1", microcode=["0xa201211"] * 32, stepping=["2"] * 32)
+    )
+    b = _write(
+        tmp_path, _identity("hel1", microcode=["0xa20102e"] * 32, stepping=["0"] * 32)
+    )
+    out = tmp_path / "class.json"
+    assert filler.main(_argv(tmp_path, out, a, b)) == 0
+    record = json.loads(out.read_bytes())
+    assert filler.wellformed(record)
+    assert record["recorded"]["microcode"] == {"fsn1": "0xa201211", "hel1": "0xa20102e"}
+    assert record["recorded"]["stepping"] == {"fsn1": "2", "hel1": "0"}
+
+
+def test_identities_without_stepping_record_no_stepping(tmp_path):
+    a = _write(tmp_path, _identity("fsn1", microcode=["0xa201211"] * 32))
+    b = _write(tmp_path, _identity("hel1", microcode=["0xa20102e"] * 32))
+    out = tmp_path / "class.json"
+    assert filler.main(_argv(tmp_path, out, a, b)) == 0
+    assert "stepping" not in json.loads(out.read_bytes())["recorded"]
+
+
+@pytest.mark.parametrize(
+    "stepping, message",
+    [(["0"] * 31 + ["2"], "different steppings"), (["x"] * 32, "decimal")],
+)
+def test_one_box_must_report_one_stepping(tmp_path, capsys, stepping, message):
+    path = _write(tmp_path, _identity("fsn1", stepping=stepping))
+    assert filler.main(_argv(tmp_path, tmp_path / "c.json", path)) == 2
+    assert message in capsys.readouterr().err
