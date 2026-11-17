@@ -713,6 +713,21 @@ class AutoGrader:
             return False
 
     def _grade_one(self, submission_id, turn=lambda: None):
+        """`_grade_on_lane`, with one ``grade_lane`` log line when a grade ran (V2, 17 Nov 2026: a grade is tied to its
+        lane from records; a task not gradable now writes none): the task, its start time, and the lane it started on
+        and the one it ended on (index, cores, daemon: ``local`` for this host's; they differ when the round gave its
+        lane back for its commit turn), never a value."""
+        from carbon.reconstruction import grade_lanes
+
+        started, started_ns, outcome = grade_lanes.current(), time.time_ns(), None
+        try:
+            outcome = self._grade_on_lane(submission_id, turn)
+            return outcome
+        finally:
+            if outcome is not _NEXT:
+                _log_grade_lane(submission_id, started_ns, started)
+
+    def _grade_on_lane(self, submission_id, turn):
         """Grade ONE pending task; returns ``(submission_id, state)``, None (stop the round), or `_NEXT` (try the next
         pending task). ``turn`` is called before every order-dependent write after the grade's compute (a door grading
         in parallel commits in claim order, `grade_sequencer`); a door with one lane passes a no-op.
@@ -1170,8 +1185,9 @@ class AutoGrader:
         if own is not None:
             from carbon.reconstruction import grade_lanes
 
-            # (b) the lane it started on is the lane it still holds: else the run was never on its own cores alone
-            if grade_lanes.current() != own:
+            # (b) the lane it started on is the lane it held when the run ended (`_Sampler.lane_at_end`: before any
+            # commit-turn give-back): else the run was never on its own cores alone
+            if getattr(sampler, "lane_at_end", grade_lanes.current()) != own:
                 samples, stop = [*samples, None], None
         known = [s for s in samples if s is not None]
         gpu_known = [g for g in sampler.gpu_samples if g is not None]
@@ -1310,53 +1326,40 @@ def count_worker_containers():
 
 
 def count_lane_containers(cpuset, lane=None):
-    """How many Carbon worker containers run now with a core of ``cpuset`` (one lane's cores), or None when the daemon
-    cannot say: on this host, or, for a REMOTE ``lane``, on its box (read through its daemon). A container with no cpuset
-    of its own may run on any core: it counts.
-    """
-    import subprocess
+    """`host_quiet.count_lane_containers` (kept here: the grader's default lane counter)."""
+    from . import host_quiet
 
-    from carbon.reconstruction.host_execution import parse_cpuset
+    return host_quiet.count_lane_containers(cpuset, lane)
 
-    def run(argv):
-        try:
-            if lane is not None and getattr(lane, "docker_host", None) is not None:
-                from . import host_quiet
 
-                done = host_quiet._box_docker(lane, argv[1:])
-            else:
-                done = subprocess.run(
-                    argv, capture_output=True, timeout=10, check=False
-                )
-        except (OSError, ValueError, subprocess.SubprocessError):
-            return None
-        return None if done.returncode != 0 else done.stdout.decode("utf-8", "replace")
-
-    listed = run(
-        ["docker", "ps", "--filter", "name=" + _WORKER_PREFIX, "--format", "{{.Names}}"]
-    )
-    if listed is None:
-        return None
-    names = [name for name in listed.split() if name.startswith(_WORKER_PREFIX)]
-    if not names:
-        return 0
-    found = run(["docker", "inspect", "--format", "{{.HostConfig.CpusetCpus}}", *names])
-    if found is None:
-        return None  # one ended between the two reads (or the daemon failed): not readable, never quiet
+def _log_grade_lane(submission_id, started_ns, started):
+    """One ``grade_lane`` log line (`AutoGrader._grade_one`); a log line never stops a grade."""
     try:
-        mine = set(parse_cpuset(cpuset))
-    except Exception:  # noqa: BLE001 - unreadable: never quiet
-        return None
-    count = 0
-    for line in found.splitlines():
-        value = line.strip()
-        try:
-            cores = set(parse_cpuset(value)) if value else None
-        except Exception:  # noqa: BLE001 - unreadable: never quiet
-            return None
-        if cores is None or cores & mine:
-            count += 1
-    return count
+        from carbon.battery.intake import log
+        from carbon.reconstruction import grade_lanes
+
+        ended = grade_lanes.current()
+        if started is None and ended is None:
+            return
+
+        def named(lane, prefix):
+            if lane is None:
+                return {prefix + "lane": None}
+            return {
+                prefix + "lane": lane.index,
+                prefix + "cpuset": lane.cpuset,
+                prefix + "docker_host": lane.docker_host or "local",
+            }
+
+        log(
+            "grade_lane",
+            task=submission_id,
+            started_ns=started_ns,
+            **named(started, ""),
+            **named(ended, "end_"),
+        )
+    except Exception:  # noqa: BLE001, S110 - evidence only
+        pass
 
 
 class _Sampler:
@@ -1371,24 +1374,48 @@ class _Sampler:
         self.gpu = (lambda: 0) if gpu is None else gpu
         self.gpu_samples, self.gpu_stop = [], None
         self.stop_sample = None
+        #: The lane bound when the run ended (`_wall_counted` (b)): read at the exit, or just before the grade gives its
+        #: lane back for its commit-turn wait (`grade_lanes.given_back`), whichever comes first.
+        self.lane_at_end = None
+        self._ended = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
+        self._hook = None
 
     def _run(self):
         while not self._stop.wait(self.seconds):
             self.samples.append(self.count())
             self.gpu_samples.append(self.gpu())
 
+    def _end(self, *, sample=True):
+        """Stop sampling and read the lane, once (the run on this lane is over), and with ``sample`` the stop sample."""
+        from carbon.reconstruction import grade_lanes
+
+        if not self._stop.is_set():
+            self._stop.set()
+            self._thread.join(self.seconds + 15)
+            self.lane_at_end = grade_lanes.current()
+        if sample and self._ended is None:
+            self._ended = (self.count(), self.gpu())
+
     def __enter__(self):
+        from carbon.reconstruction import grade_lanes
+
         self._thread.start()
+        # (a): a commit-turn wait inside the grade gives the lane back; the stop sample is read on it first
+        self._hook = grade_lanes.before_give_back(self._end)
+        self._hook.__enter__()
         return self
 
     def __exit__(self, kind, value, _trace):
-        self._stop.set()
-        self._thread.join(self.seconds + 15)
-        if kind is not None and _candidate_wall_stop(value):
-            self.stop_sample = self.count()
-            self.gpu_stop = self.gpu()
+        hook, self._hook = self._hook, None
+        if hook is not None:
+            hook.__exit__(None, None, None)
+        wall = kind is not None and _candidate_wall_stop(value)
+        # a stop sample only for a wall stop (a not-ready task costs nothing), unless the give-back already read it
+        self._end(sample=wall)
+        if wall:
+            self.stop_sample, self.gpu_stop = self._ended
         return False
 
 

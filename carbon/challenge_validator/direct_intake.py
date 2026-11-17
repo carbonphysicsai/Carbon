@@ -1499,6 +1499,9 @@ class _WorkLock:
         #: Option A (Lead 17 Nov 2026): how many of this door's build rounds wait to hold a lane AGAIN after their op on a
         #: remote GPU build box (`_Taking.retake`): they finish in-flight work, so no NEW round takes a slot before them.
         self._retakers = 0
+        #: GRADE rounds waiting to hold a lane again after their commit-turn wait (`grade_lanes.given_back`): a NEW grade
+        #: round stands back for them (`_acquire_slot`)
+        self._grade_retakers = 0
         #: The live build rounds whose lane is out for an op on a remote GPU build box (`_Taking.release`): live (a drain
         #: sees them), but holding no lane, so the kind fairness never counts them (`_enter_parallel_both_kinds`).
         self._away = set()
@@ -1925,9 +1928,9 @@ class _WorkLock:
         needs a build slot, which grade rounds never hold): grade rounds keep starting on the remote lanes meanwhile.
         """
         with self._kinds:
-            retaking = self._retakers > 0 and (
-                kind == "advance" or self._build_slots is None
-            )
+            retaking = (
+                self._retakers > 0 and (kind == "advance" or self._build_slots is None)
+            ) or (self._grade_retakers > 0 and kind != "advance")
         if retaking:
             time.sleep(self._poll)
             return False
@@ -1969,16 +1972,22 @@ class _WorkLock:
         self._build_slots = threading.BoundedSemaphore(len(local))
         return len(local) + max(0, extra_rounds)
 
-    def _take_local_lane(self):
-        """The first free LOCAL lane this door may use, as a round's own ``(fd, fds, lane)``, or None. Called by a build
-        round re-taking a lane (`_Taking.retake`), WITHOUT ``_lock`` (a new round holds that while it waits among doors;
+    def _take_local_lane(self, *, any_lane=False):
+        """The first free LOCAL lane this door may use (``any_lane``: its REMOTE lanes first, then its local ones, as a
+        grade round takes them), as a round's own ``(fd, fds, lane)``, or None. Called by a round re-taking a lane
+        (`_Taking.retake`), WITHOUT ``_lock`` (a new round holds that while it waits among doors;
         this touches none of the fields it guards, and the lane locks themselves decide): it continues in-flight work,
         so it neither queues in the host's waiting list nor stands back; a lane other than 0 still needs lane 0 to share
         (`_lane_zero_shares`). A failure after a lock is taken lets that lock go."""
         from carbon.reconstruction import grade_lanes
 
-        for index, spec in enumerate(self._lanes):
-            if index not in self._usable or type(spec) is not str:
+        order = list(enumerate(self._lanes))
+        if any_lane:
+            order = [pair for pair in order if type(pair[1]) is not str] + [
+                pair for pair in order if type(pair[1]) is str
+            ]
+        for index, spec in order:
+            if index not in self._usable or (type(spec) is not str and not any_lane):
                 continue
             fd = self._take(grade_lanes.lane_lock_name(index))
             if fd is None:
@@ -1991,7 +2000,20 @@ class _WorkLock:
             except BaseException:
                 self._unlock(fd)
                 raise
-            return fd, [fd], grade_lanes.Lane(index, spec, str(self._dir))
+            if type(spec) is str:
+                return fd, [fd], grade_lanes.Lane(index, spec, str(self._dir))
+            # a remote lane (`remote_lane.RemoteSpec`): its daemon, its cores, its mirror root
+            return (
+                fd,
+                [fd],
+                grade_lanes.Lane(
+                    index,
+                    spec.cpuset,
+                    str(self._dir),
+                    spec.docker_host,
+                    spec.stage_root,
+                ),
+            )
         return None
 
     def _record_live(self, record):
@@ -2059,6 +2081,9 @@ class _Taking:
         #: Option A: the `grade_lanes.offer_releaser` token offering this round to its ops, and whether its lane is out (`release`).
         self._releasing = None
         self._released = False
+        #: (a): a GRADE round re-takes ANY lane after its commit-turn wait (`grade_lanes.given_back`); a build round
+        #: re-takes a LOCAL lane only (Option A).
+        self.any_lane = kind == "grade"
 
     def _place(self):
         """The round's place from ``since`` (a non-negative int of ns), or None: a failing or odd reader never
@@ -2199,6 +2224,10 @@ class _Taking:
                     # Option A (Lead 17 Nov 2026): a build op on a REMOTE GPU build box gives this LOCAL lane back for
                     # its run and holds one again after (`grade_lanes.released`)
                     self._releasing = grade_lanes.offer_releaser(self)
+                elif self._parallel and self.kind == "grade":
+                    # (a) (Lead 17 Nov 2026): a grade gives its lane back while it waits for its commit turn and holds
+                    # one again after (`grade_lanes.given_back`)
+                    self._releasing = grade_lanes.offer_releaser(self)
         except BaseException:
             try:
                 if waiting:
@@ -2307,15 +2336,20 @@ class _Taking:
         if not self._released:
             return self._held[2]
         began = time.monotonic()
+        counter = "_grade_retakers" if self.any_lane else "_retakers"
         with work._kinds:
-            work._retakers += 1
+            setattr(work, counter, getattr(work, counter) + 1)
         try:
             while not work._take_slots(self.kind):
                 pass
             try:
                 while True:
                     try:
-                        held = work._take_local_lane()
+                        held = (
+                            work._take_local_lane(any_lane=True)
+                            if self.any_lane
+                            else work._take_local_lane()
+                        )
                     except Exception as failure:  # noqa: BLE001
                         # never on without a lane (the caller cannot fail the op here): logged, tried again
                         log(
@@ -2330,7 +2364,7 @@ class _Taking:
                 raise
         finally:
             with work._kinds:
-                work._retakers -= 1
+                setattr(work, counter, getattr(work, counter) - 1)
                 work._kinds.notify_all()
         self._held, self._released = held, False
         with work._kinds:

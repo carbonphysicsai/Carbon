@@ -305,9 +305,13 @@ def bound(lane):
         unbind(token)
 
 
-#: The running round's lane releaser (`direct_intake._Taking`), or None: offered only by a BUILD round of a door whose
-#: rounds of both kinds overlap, while it holds a LOCAL lane (`released`).
+#: The running round's lane releaser (`direct_intake._Taking`), or None: offered by a BUILD round of a door whose
+#: rounds of both kinds overlap, while it holds a LOCAL lane (`released`), and by every GRADE round of a parallel door
+#: (`given_back`: its commit-turn wait).
 _RELEASER: ContextVar = ContextVar("carbon_grade_lane_releaser", default=None)
+#: What must happen just before a round gives its lane back for its commit-turn wait (`before_give_back`): the grade's
+#: own sampler takes its stop sample on the lane it ran on.
+_GIVE_BACK: ContextVar = ContextVar("carbon_grade_lane_give_back", default=())
 
 
 def offer_releaser(releaser):
@@ -331,7 +335,13 @@ def released():
     round that offers a releaser, or on a REMOTE grade lane."""
     releaser = _RELEASER.get()
     lane = _BOUND.get()
-    if releaser is None or lane is None or lane.docker_host is not None:
+    if (
+        releaser is None
+        or lane is None
+        or lane.docker_host is not None
+        # a GRADE round's releaser serves its commit-turn wait only (`given_back`), never an op
+        or getattr(releaser, "any_lane", False)
+    ):
         yield
         return
     try:
@@ -340,6 +350,45 @@ def released():
         yield
     finally:
         # `retake` never returns without a lane held (V2 B1): the round never goes on bound to the lane it gave back
+        _BOUND.set(releaser.retake())
+
+
+@contextmanager
+def before_give_back(callback):
+    """Call ``callback()`` just before the calling context gives its lane back for a commit-turn wait (`given_back`)."""
+    token = _GIVE_BACK.set((*_GIVE_BACK.get(), callback))
+    try:
+        yield
+    finally:
+        _GIVE_BACK.reset(token)
+
+
+@contextmanager
+def given_back():
+    """(a) (Lead 17 Nov 2026): around a GRADE round's commit-turn wait (`grade_sequencer._Task.turn`) the round gives its
+    lane (local OR remote) and round slot back, so the door grades on it meanwhile (a finished grade used to sit on its
+    lane behind every earlier grade's long run), and holds a lane again before the wait returns (`retake`: any lane
+    this door may take; never on without one, V2 B1). The grade's own work on its lane has ended before this: its
+    session container is removed first (the caller), and each `before_give_back` callback (the grade sampler's stop
+    sample) runs first. Nothing changes outside a round that offers a releaser able to take any lane, or when a
+    callback fails (the round then keeps its lane: never a lane given back mid-observation).
+    """
+    releaser = _RELEASER.get()
+    lane = _BOUND.get()
+    if releaser is None or lane is None or not getattr(releaser, "any_lane", False):
+        yield
+        return
+    try:
+        for callback in _GIVE_BACK.get():
+            callback()
+    except Exception as failure:  # noqa: BLE001 - keep the lane, never a stop
+        _log("grade_lane_give_back_skipped", type=type(failure).__name__)
+        yield
+        return
+    try:
+        releaser.release()
+        yield
+    finally:
         _BOUND.set(releaser.retake())
 
 

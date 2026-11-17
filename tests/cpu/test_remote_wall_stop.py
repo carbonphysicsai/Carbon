@@ -304,6 +304,12 @@ def _boxes(monkeypatch, containers, gpu=0):
     monkeypatch.setattr(
         host_quiet, "box_counters", lambda lane: (lambda: containers, lambda: gpu)
     )
+    # a build round on a lane counts its OWN cores there (owner/Lead 17 Nov 2026), read on the box
+    monkeypatch.setattr(
+        host_quiet,
+        "count_lane_containers",
+        lambda cpuset, lane=None: containers if lane is not None else 9,
+    )
 
 
 def test_a_crown_rebuild_on_a_box_is_probed_on_the_box_and_needs_samples(monkeypatch):

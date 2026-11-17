@@ -222,6 +222,52 @@ def box_foreign_gpu(lane):
     return len(gpu - own)
 
 
+def count_lane_containers(cpuset, lane=None):
+    """How many Carbon worker containers run now with a core of ``cpuset`` (one lane's cores), or None when the daemon
+    cannot say: on this host, or, for a REMOTE ``lane``, on its box (read through its daemon). A container with no cpuset
+    of its own may run on any core: it counts.
+    """
+    from carbon.reconstruction.host_execution import parse_cpuset
+
+    def run(argv):
+        try:
+            if lane is not None and getattr(lane, "docker_host", None) is not None:
+                done = _box_docker(lane, argv[1:])
+            else:
+                done = subprocess.run(
+                    argv, capture_output=True, timeout=10, check=False
+                )
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return None
+        return None if done.returncode != 0 else done.stdout.decode("utf-8", "replace")
+
+    listed = run(
+        ["docker", "ps", "--filter", "name=" + WORKER_PREFIX, "--format", "{{.Names}}"]
+    )
+    if listed is None:
+        return None
+    names = [name for name in listed.split() if name.startswith(WORKER_PREFIX)]
+    if not names:
+        return 0
+    found = run(["docker", "inspect", "--format", "{{.HostConfig.CpusetCpus}}", *names])
+    if found is None:
+        return None  # one ended between the two reads (or the daemon failed): not readable, never quiet
+    try:
+        mine = set(parse_cpuset(cpuset))
+    except Exception:  # noqa: BLE001 - unreadable: never quiet
+        return None
+    count = 0
+    for line in found.splitlines():
+        value = line.strip()
+        try:
+            cores = set(parse_cpuset(value)) if value else None
+        except Exception:  # noqa: BLE001 - unreadable: never quiet
+            return None
+        if cores is None or cores & mine:
+            count += 1
+    return count
+
+
 def box_counters(lane):
     """``(containers, gpu)`` sampling callables for REMOTE ``lane``'s box (a `Probe`'s or a grade sampler's), read on the
     box itself through its daemon and ssh. Every answered sample is also a heartbeat of the link (CV-Motor L12624 (c)):

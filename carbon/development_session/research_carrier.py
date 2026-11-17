@@ -1939,21 +1939,28 @@ class _GradeSession:
 def yield_grade_session():
     """Remove this grade's live session container now (the grade goes on; its next member op opens a new one). Called by
     a grade waiting for its commit turn (`carbon.challenge_validator.grade_sequencer`), so the idle container never sits
-    on the lane's cores meanwhile. No-op without a live session.
+    on the lane's cores meanwhile. No-op without a live session. Returns whether no container of the session is left
+    (none, or removed and confirmed): only then may the grade give its lane back (`grade_lanes.given_back`).
     """
     session = _GRADE_SESSION.get()
-    if session is not None and session.live:
+    if session is None:
+        return True
+    if getattr(session, "broken", False):
+        return False
+    if session.live:
         try:
             session.close()
         except Exception as failure:  # noqa: BLE001 - best effort, retried at exit
-            # The container is NOT confirmed gone: no later op
-            # joins it (`broken`), and the grade session's own exit removes it, confirmed, or reports it.
+            # The container is NOT confirmed gone: no later op joins it (`broken`), and the grade session's own exit
+            # removes it, confirmed, or reports it.
             session.live = False
             session.broken = True
             with suppress(Exception):
                 from carbon.battery.intake import log
 
                 log("grade_session_yield_uncertain", type=type(failure).__name__)
+            return False
+    return True
 
 
 @contextmanager

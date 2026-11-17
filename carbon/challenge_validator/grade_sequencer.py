@@ -20,7 +20,7 @@ This module decides no order of its own and sets no value: the order is the door
 from __future__ import annotations
 
 import threading
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 
 _CURRENT: ContextVar = ContextVar("carbon_grade_sequencer_task", default=None)
@@ -107,15 +107,18 @@ class _Task:
         order = self.sequencer._order
         with order:
             earlier = any(other < self.ticket for other in self.sequencer._open)
-        if earlier:
-            from carbon.development_session.research_carrier import (
-                yield_grade_session,
-            )
+        if not earlier:
+            self._turned = True
+            return
+        from carbon.development_session.research_carrier import yield_grade_session
+        from carbon.reconstruction import grade_lanes
 
-            # best effort itself: a removal that cannot be confirmed means no later op joins it, and the grade
-            # session's own exit removes (and reports) it again
-            yield_grade_session()
-        with order:
+        # best effort itself: a removal that cannot be confirmed means no later op joins it, and the grade session's
+        # own exit removes (and reports) it again
+        gone = yield_grade_session()
+        # (a) (Lead 17 Nov 2026): the lane goes back to the door while this grade waits, unless its session container
+        # is not confirmed gone (no round runs beside it)
+        with grade_lanes.given_back() if gone else nullcontext(), order:
             while any(other < self.ticket for other in self.sequencer._open):
                 order.wait(1.0)
         self._turned = True

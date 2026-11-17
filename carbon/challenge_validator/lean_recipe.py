@@ -182,18 +182,32 @@ def _remote_gpu_build_guard(binding):
 
 @contextlib.contextmanager
 def _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
-    """The A19 guard over this host (or a remote GRADE lane's box) for a build round with claims; see
-    `_build_wall_guard`."""
+    """The A19 guard for a build round with claims: the Carbon containers on its lane's own cores (on its box for a remote
+    GRADE lane), or this whole host when the round holds no lane; see `_build_wall_guard`.
+    """
+
+    from carbon.reconstruction import grade_lanes
 
     def count():
         ids = host_quiet.worker_containers()
         return None if ids is None else len(ids)
 
     watched = remote_lane.current()
+    own = grade_lanes.current()
     if watched is not None:
-        count, gpu = host_quiet.box_counters(watched)
+        _box, gpu = host_quiet.box_counters(watched)
     else:
         gpu = host_quiet.foreign_gpu_compute
+    if own is not None:
+        # owner, 17 Nov 2026 (lane core pinning is the timing protection; Lead: builds too): a build round on a lane
+        # counts the Carbon containers on ITS OWN cores only (on its box for a remote lane), as a grade does
+        cpuset = own.cpuset
+
+        def count():
+            return host_quiet.count_lane_containers(cpuset, watched)
+
+    elif watched is not None:
+        count = _box
     probe = host_quiet.Probe(
         lock_held=True,
         containers=count,
@@ -202,7 +216,8 @@ def _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
     ).start()
 
     def quiet():
-        if remote_lane.current() != watched:
+        # the round still on the lane (and box) its probe watched: else the samples read other cores
+        if remote_lane.current() != watched or grade_lanes.current() != own:
             return False
         samples, gpu = list(probe.samples), list(probe.gpu_samples)
         return bool(
