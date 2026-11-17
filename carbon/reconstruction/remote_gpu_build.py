@@ -154,6 +154,10 @@ class OpBinding:
 
     lane: DoorLane
     slot: int
+    #: the build's content key (`alone_key`): where an uncounted wall stop marks the build for an ALONE retry
+    key: str | None = None
+    #: whether this op holds every slot of its lane (an alone retry)
+    alone: bool = False
 
     @property
     def docker_host(self):
@@ -475,6 +479,118 @@ def current_op():
     return _current()
 
 
+# -- the alone retry (Validator-2, 16 Nov: a wall stop beside a neighbour is never counted, so its retry runs ALONE) ----
+
+
+#: Where builds marked for an alone retry are recorded, under the lane directory: one file per build content key.
+ALONE_DIR = "alone"
+#: Live alone retries waiting for the lane: while one waits, no new op starts on that lane.
+ALONE_WANTED_DIR = "alone.wanted"
+#: Every op of a lane with more than one slot holds this SHARED for its life; an alone retry holds it EXCLUSIVE.
+GATE_LOCK = "gate.lock"
+_KEY = re.compile(r"[0-9a-f]{64}")
+
+
+def alone_key(*, source, files, image_id):
+    """A build's content key: its program, its staged files and its worker image. A retry of the same build (same
+    recipe, TRAIN, seed and image) has the same key whatever its task or operation identity.
+    """
+    import hashlib
+
+    if type(source) is not str or type(files) is not dict or type(image_id) is not str:
+        return None
+    entries = []
+    for name in sorted(files):
+        body = files[name]
+        if type(name) is not str or type(body) not in (bytes, str):
+            return None
+        data = body.encode() if type(body) is str else body
+        entries.append([name, hashlib.sha256(data).hexdigest()])
+    document = json.dumps(
+        {
+            "source": hashlib.sha256(source.encode()).hexdigest(),
+            "files": entries,
+            "image": image_id,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(document).hexdigest()
+
+
+def _marker(lane, key):
+    if type(key) is not str or not _KEY.fullmatch(key):
+        return None
+    return Path(lane.lane_dir) / ALONE_DIR / key
+
+
+#: How long a mark stands: a build not retried within this is not waiting for its retry any more (an operational
+#: bound, so a mark nothing cleared, e.g. a repeat probe's or a withdrawn build's, never costs a lane for good).
+ALONE_MARK_SECONDS = 24 * 3600
+
+
+def needs_alone(lane, key):
+    """Whether the build of ``key`` is marked for an alone retry on ``lane`` (a mark younger than
+    `ALONE_MARK_SECONDS`; an older one is removed)."""
+    marker = None if lane is None or lane is _WITHHELD else _marker(lane, key)
+    if marker is None:
+        return False
+    try:
+        age = time.time() - marker.stat().st_mtime
+    except OSError:
+        return False
+    if age > ALONE_MARK_SECONDS:
+        marker.unlink(missing_ok=True)
+        return False
+    return True
+
+
+def note_uncounted_wall(binding=None):
+    """Mark the running op's build for an ALONE retry: its wall stop was not counted on a lane shared by more than one
+    slot (a busy box is never quiet, so only a retry with the GPU to itself can give a decisive verdict). Best effort:
+    a marker that cannot be written leaves the build to an ordinary retry."""
+    binding = _current() if binding is None else binding
+    if binding is None or binding.lane.slots == 1:
+        return False
+    marker = _marker(binding.lane, binding.key)
+    if marker is None:
+        return False
+    if binding.alone:
+        # the alone retry itself was not counted (a foreign process or the link, not a neighbour): it is not retried
+        # alone again, so a box that cannot be read never holds the whole lane over and over; its retry is ordinary
+        marker.unlink(missing_ok=True)
+        return False
+    try:
+        marker.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        marker.write_text(json.dumps({"key": binding.key, "unix": time.time()}) + "\n")
+        marker.chmod(0o600)
+    except OSError:
+        return False
+    return True
+
+
+def clear_alone(binding=None):
+    """The running alone retry reached a verdict: its build's mark is removed."""
+    binding = _current() if binding is None else binding
+    if binding is None or not binding.alone:
+        return
+    marker = _marker(binding.lane, binding.key)
+    if marker is not None:
+        marker.unlink(missing_ok=True)
+
+
+def _wanted_by_others(directory, own):
+    """Whether a live alone retry other than ``own`` waits for the lane."""
+    from carbon.reconstruction import grade_lanes
+
+    folder = directory / ALONE_WANTED_DIR
+    try:
+        names = [entry.name for entry in folder.iterdir()]
+    except OSError:
+        return False
+    return any(name != own and grade_lanes._live(name) for name in names)
+
+
 @contextmanager
 def op(
     identity,
@@ -486,11 +602,17 @@ def op(
     sleep=None,
     check=None,
     settled=False,
+    key=None,
 ):
     """Bind an eligible op (`eligible`) of a build that was offered a lane to one free slot for its whole life; anything
     else: unchanged (yields None). No free slot within `SLOT_WAIT_SECONDS` is Carbon's (`RemoteLaneDown`). ``check``
     is called while waiting (the op's cancellation), and may raise. A slot whose allocation record a lost controller
-    left behind is passed over until recovery clears it."""
+    left behind is passed over until recovery clears it.
+
+    On a lane with more than one slot every op holds the lane gate (`GATE_LOCK`) SHARED. A build whose ``key`` is
+    marked for an ALONE retry (`needs_alone`) announces itself (`ALONE_WANTED_DIR`), so no new op starts on the lane;
+    takes the gate EXCLUSIVE once the running ops have ended; and holds EVERY slot for its life, so its box is quiet and
+    its wall can count (CV-Motor L12624)."""
     lane = _OFFERED.get()
     if lane is None or not eligible(
         identity, accelerator=accelerator, provenance=provenance, timed=timed
@@ -502,7 +624,7 @@ def op(
     if settled:
         # an op the ledger has settled replays its recorded result: bound to the lane (its request, its device, its
         # program are the lane's, so the replay matches what was reserved), but it runs nothing and takes no slot
-        token = _OP.set(OpBinding(lane, 0))
+        token = _OP.set(OpBinding(lane, 0, key))
         try:
             yield _OP.get()
         finally:
@@ -513,6 +635,128 @@ def op(
     if not lane.spec.local:
         wrapper(lane)
     deadline = time.monotonic() + SLOT_WAIT_SECONDS
+    if lane.slots > 1:
+        with _gate(
+            lane,
+            alone=needs_alone(lane, key),
+            check=check,
+            pause=pause,
+            poll=poll,
+            deadline=deadline,
+        ) as alone:
+            if alone:
+                with _all_slots(
+                    lane, check=check, pause=pause, poll=poll, deadline=deadline
+                ):
+                    token = _OP.set(OpBinding(lane, 0, key, alone=True))
+                    try:
+                        yield _OP.get()
+                    finally:
+                        _OP.reset(token)
+                return
+            with _one_slot(
+                lane, key, check=check, pause=pause, poll=poll, deadline=deadline
+            ) as binding:
+                yield binding
+        return
+    with _one_slot(
+        lane, key, check=check, pause=pause, poll=poll, deadline=deadline
+    ) as binding:
+        yield binding
+
+
+def _open(path):
+    try:
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    except OSError as error:
+        raise RemoteLaneDown(repr(error).encode()[:512]) from None
+
+
+def _wait(check, deadline, pause, poll, reason):
+    if check is not None:
+        check()
+    if time.monotonic() >= deadline:
+        raise RemoteLaneDown(reason)
+    pause(poll)
+
+
+@contextmanager
+def _gate(lane, *, alone, check, pause, poll, deadline):
+    """The lane gate for one op: SHARED (an ordinary op, which waits while an alone retry is announced) or EXCLUSIVE (an
+    alone retry, announced in `ALONE_WANTED_DIR` while it waits). Yields whether the op runs alone.
+    """
+    from carbon.reconstruction import grade_lanes
+
+    directory = Path(lane.lane_dir)
+    fd = _open(directory / GATE_LOCK)
+    wanted = None
+    own = f"{os.getpid()}-{grade_lanes.process_start(os.getpid())}-{id(fd)}"
+    try:
+        if alone:
+            try:
+                (directory / ALONE_WANTED_DIR).mkdir(mode=0o700, exist_ok=True)
+                wanted = directory / ALONE_WANTED_DIR / own
+                wanted.touch(mode=0o600)
+            except OSError as error:
+                raise RemoteLaneDown(repr(error).encode()[:512]) from None
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
+        else:
+            while True:
+                if not _wanted_by_others(directory, own):
+                    try:
+                        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+                        break
+                    except BlockingIOError:
+                        pass
+                _wait(check, deadline, pause, poll, b"remote_gpu_build_slots_busy")
+        yield alone
+    finally:
+        if wanted is not None:
+            wanted.unlink(missing_ok=True)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
+@contextmanager
+def _all_slots(lane, *, check, pause, poll, deadline):
+    """Every slot of ``lane`` (an alone retry, holding the gate EXCLUSIVE, so none is being taken meanwhile)."""
+    held = []
+    try:
+        for slot in range(lane.slots):
+            fd = _open(Path(lane.lane_dir) / f"slot-{slot}" / "slot.lock")
+            held.append(fd)
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
+                    continue
+                if not (
+                    Path(lane.lane_dir) / f"slot-{slot}" / "active-allocation.json"
+                ).exists():
+                    break
+                # a lost controller's record: its container may still run, so the lane is not this op's alone yet
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
+        yield
+    finally:
+        for fd in held:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            finally:
+                os.close(fd)
+
+
+@contextmanager
+def _one_slot(lane, key, *, check, pause, poll, deadline):
     held = None
     while held is None:
         for slot in range(lane.slots):
@@ -535,13 +779,9 @@ def op(
             held = (slot, fd)
             break
         if held is None:
-            if check is not None:
-                check()
-            if time.monotonic() >= deadline:
-                raise RemoteLaneDown(b"remote_gpu_build_slots_busy")
-            pause(poll)
+            _wait(check, deadline, pause, poll, b"remote_gpu_build_slots_busy")
     slot, fd = held
-    token = _OP.set(OpBinding(lane, slot))
+    token = _OP.set(OpBinding(lane, slot, key))
     try:
         yield _OP.get()
     finally:
@@ -983,7 +1223,9 @@ def reject_crowded(cli_, binding=None):
         ],
         timeout=10,
     ).stdout
-    if len([line for line in raw.splitlines() if line.strip()]) >= binding.lane.slots:
+    running = len([line for line in raw.splitlines() if line.strip()])
+    # an alone retry needs the device to itself: no other Carbon container on it at all
+    if running >= (1 if binding.alone else binding.lane.slots):
         raise WorkerFailure(WorkerCode.CONFLICT)
 
 
@@ -1046,7 +1288,8 @@ def wall_counts(binding=None):
     binding = _current() if binding is None else binding
     if binding is None or not binding.lane.spec.local:
         return True
-    return binding.lane.slots == 1
+    # an alone retry holds every slot: its lane is, for this op, a one-slot lane
+    return binding.lane.slots == 1 or binding.alone
 
 
 def shared_memory_exhausted(error, markers, binding=None):
@@ -1055,7 +1298,12 @@ def shared_memory_exhausted(error, markers, binding=None):
     beside a neighbour is never turned into a CPU rebuild that could run into the CPU's wall as the miner's.
     """
     binding = _current() if binding is None else binding
-    if binding is None or binding.lane.slots == 1 or isinstance(error, RemoteLaneDown):
+    if (
+        binding is None
+        or binding.lane.slots == 1
+        or binding.alone
+        or isinstance(error, RemoteLaneDown)
+    ):
         return False
     diagnostic = getattr(error, "private_diagnostic", b"")
     return type(diagnostic) is bytes and any(marker in diagnostic for marker in markers)
@@ -1075,7 +1323,10 @@ def retyped(error, binding=None):
 
 
 __all__ = [
+    "ALONE_DIR",
+    "ALONE_MARK_SECONDS",
     "DEFAULT_SLOTS",
+    "GATE_LOCK",
     "MAX_LANES",
     "MAX_SLOTS",
     "RECORD",
@@ -1087,8 +1338,10 @@ __all__ = [
     "GpuBuildSpec",
     "OpBinding",
     "allocation_root",
+    "alone_key",
     "bound",
     "check_host",
+    "clear_alone",
     "cli",
     "cpuset",
     "current_op",
@@ -1103,6 +1356,8 @@ __all__ = [
     "intent_fields",
     "load",
     "mirror",
+    "needs_alone",
+    "note_uncounted_wall",
     "offered",
     "offered_for",
     "offered_lane",
