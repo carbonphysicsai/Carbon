@@ -1,25 +1,30 @@
-"""The remote GPU build lane (`carbon.reconstruction.remote_gpu_build`; owner's order Mon 16 Nov 2026 via the Lead, TE3):
-a door's GPU BUILD ops run on a rented GPU's ssh docker daemon in one of N slots, inputs mirrored there, the door keeps the
-ledger and computes the state digest, and a link or GPU fault is Carbon's (FAILED_INFRA), never the miner's. No ssh, no
-docker, no GPU: every process boundary is faked, and every device UUID is synthetic.
+"""The remote GPU build lane (`carbon.reconstruction.remote_gpu_build`; owner's order Mon 16 Nov 2026 via the Lead, TE3;
+part 2, 17 Nov: on-demand boxes): a door's GPU BUILD ops run on a POOL of rented GPU boxes' ssh docker daemons in one of
+N slots, inputs mirrored there, the door keeps the ledger and computes the state digest, and a link or GPU fault is
+Carbon's (FAILED_INFRA), never the miner's. Boxes are box files read at every op: added, drained, refused, down or proven
+without a restart. No ssh, no docker, no GPU: every process boundary is faked, and every device UUID is synthetic.
 """
 
 from __future__ import annotations
 
 import ast
+import base64
 import json
+import os
 import threading
 from pathlib import Path
 
 import accelerator_host
 import pytest
 
+from carbon.development_session.profile import canonical
 from carbon.reconstruction import (
     accelerators,
     host_execution,
     remote_gpu_build,
     remote_lane,
 )
+from carbon.reconstruction.host_inventory import tagged_sha256
 from carbon.reconstruction.remote_lane import RemoteLaneDown
 from carbon.reconstruction.worker import accelerator_runtime
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
@@ -29,50 +34,75 @@ STAGE = "/var/lib/carbon/doors"
 KIND = "NVIDIA A100-SXM4-80GB"
 UUID = "GPU-a1a1a1a1-0000-1111-2222-333333333333"
 BUILD = "direct-" + "a" * 64 + "-build"
+IMAGE = "sha256:" + "c" * 64
+BOX = "a100-1"
 
 
-def _install(
-    root,
-    *,
-    memory=None,
-    slots=2,
-    cpusets=("0-3", "4-7"),
-    kind=KIND,
-    row=True,
-    values=None,
-    local=False,
-):
-    """A synthetic operator install: the lane record, the lane machine's device record and a values row. ``local``: a
-    local slot lane (this host's GPU, its record in the host root)."""
-    root.mkdir(
-        mode=0o700, parents=True, exist_ok=True
-    )  # the host root is private, as installed
-    (root / remote_gpu_build.RECORD).write_text(
-        json.dumps(
-            {
-                "schema": remote_gpu_build.SCHEMA,
-                "lanes": [
-                    {
-                        "docker_host": None if local else HOST,
-                        "stage_root": None if local else STAGE,
-                        "slot_cpusets": list(cpusets),
-                    }
-                ],
-            }
-        )
+def _host_key(docker_host=HOST, seed=0):
+    """A well-formed ed25519 known_hosts line for ``docker_host`` (a synthetic key)."""
+    _, name, port = remote_lane.parse_docker_host(docker_host)
+    blob = b"\x00\x00\x00\x0bssh-ed25519\x00\x00\x00\x20" + bytes(
+        (seed + i) % 256 for i in range(32)
     )
-    lane_dir = root / remote_gpu_build.LANE_DIR.format(index=0)
-    accelerator_host.install(
-        root if local else lane_dir,
-        accelerator_host.document(
-            "hosted_instance",
-            device_uuid=UUID,
-            device_kind=kind,
-            device_memory_mib=81920,
-            compute_capability="8.0",
-        ),
+    where = name if port == 22 else f"[{name}]:{port}"
+    return f"{where} ssh-ed25519 " + base64.b64encode(blob).decode()
+
+
+def _device(kind=KIND, uuid=UUID):
+    return accelerator_host.document(
+        "hosted_instance",
+        device_uuid=uuid,
+        device_kind=kind,
+        device_memory_mib=81920,
+        compute_capability="8.0",
     )
-    values = root / "values.json" if values is None else values
+
+
+def box_document(name=BOX, *, kind=KIND, uuid=UUID, docker_host=HOST, images=(IMAGE,)):
+    """A box file as `gpu_box_up.py door` writes it on PASS (`gpu_box_up.box_document`)."""
+    device = _device(kind, uuid)
+    return {
+        "schema": remote_gpu_build.BOX_SCHEMA,
+        "name": name,
+        "docker_host": docker_host,
+        "stage_root": STAGE,
+        "slot_cpusets": list(remote_gpu_build.BOX_SLOT_CPUSETS),
+        "device": device,
+        "device_digest": tagged_sha256(canonical(device)),
+        "driver_version": "580.65.06",
+        "host_key": _host_key(docker_host),
+        "images": list(images),
+        "tree_commit": "0" * 40,
+        "class_check_image_id": IMAGE,
+        "class_check": {
+            "case_digests": {},
+            "class_record_sha256": "sha256:" + "1" * 64,
+            "class_ops_record_sha256": "sha256:" + "2" * 64,
+        },
+        "check_output_sha256": "sha256:" + "3" * 64,
+        "check_ops_record_sha256": "sha256:" + "4" * 64,
+        "admitted_unix": 1763300000,
+    }
+
+
+def write_box(root, document=None, *, name=None, mode=0o600, **kwargs):
+    """Install one box file in the door's boxes directory (0700), as the door phase does on PASS."""
+    document = box_document(**kwargs) if document is None else document
+    name = document["name"] if name is None else name
+    directory = root / remote_gpu_build.BOXES_DIR
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    directory.chmod(0o700)
+    path = directory / f"{name}.json"
+    if path.exists():
+        path.chmod(0o600)
+    path.write_text(json.dumps(document, indent=1, sort_keys=True))
+    path.chmod(mode)
+    return path
+
+
+def _values(root, *, slots=2, memory=None, row=True, kind=KIND):
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    values = root / "values.json"
     values.write_text(
         json.dumps(
             {
@@ -80,7 +110,7 @@ def _install(
                 "rows": (
                     {
                         "electric-motor-magnetics 1.8": {
-                            "device_kind": KIND,
+                            "device_kind": kind,
                             "slots": slots,
                             **({} if memory is None else {"memory": memory}),
                         }
@@ -94,11 +124,52 @@ def _install(
     return values
 
 
+def _install(
+    root,
+    *,
+    memory=None,
+    slots=2,
+    cpusets=("0-3", "4-7"),
+    kind=KIND,
+    row=True,
+    values=None,
+    local=False,
+):
+    """A synthetic operator install: one box file (or, ``local``, the old record's local slot lane with this host's own
+    device record) and a values row naming the class. ``cpusets`` are a local lane's (a box's are always 4 x 4).
+    """
+    root.mkdir(
+        mode=0o700, parents=True, exist_ok=True
+    )  # the host root is private, as installed
+    if local:
+        (root / remote_gpu_build.RECORD).write_text(
+            json.dumps(
+                {
+                    "schema": remote_gpu_build.SCHEMA,
+                    "lanes": [
+                        {
+                            "docker_host": None,
+                            "stage_root": None,
+                            "slot_cpusets": list(cpusets),
+                        }
+                    ],
+                }
+            )
+        )
+        accelerator_host.install(root, _device(kind))
+    else:
+        write_box(root, kind=kind)
+    if values is not None:
+        return values
+    return _values(root, slots=slots, memory=memory, row=row)
+
+
 @pytest.fixture
 def host(tmp_path, monkeypatch):
     root = tmp_path / "accelerators"
     monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", root)
     monkeypatch.setattr(remote_gpu_build, "_docker_binary", lambda: "/usr/bin/docker")
+    monkeypatch.setattr(remote_gpu_build, "_ssh_binary", lambda: "/usr/bin/ssh")
     # the slot machinery under test; the shipped value (False) refuses N > 1: test_n_slots_wait_for_a_jax_memory_cap
     monkeypatch.setattr(remote_gpu_build, "SLOT_PRELUDE_RULED", True)
     monkeypatch.setattr(remote_gpu_build, "_ENVIRONMENT_BINDING", [])
@@ -106,9 +177,23 @@ def host(tmp_path, monkeypatch):
     return root
 
 
+def _pool(host, values):
+    return remote_gpu_build.door_pool("electric-motor-magnetics", "1.8", values=values)
+
+
 def _lane(host, **kwargs):
+    """The one machine an install describes (its box, or its local lane), offered as a FIXED machine."""
     values = _install(host, **kwargs)
-    return remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
+    pool = _pool(host, values)
+    if pool.local is not None:
+        return pool.local
+    return remote_gpu_build.read_box(
+        host / remote_gpu_build.BOXES_DIR / f"{BOX}.json",
+        kind=pool.kind,
+        slots=pool.slots,
+        memory=pool.memory,
+        root=host,
+    )
 
 
 def _op(identity=BUILD, **kwargs):
@@ -126,16 +211,16 @@ def _op(identity=BUILD, **kwargs):
 
 def test_no_record_and_no_row_is_no_lane(host):
     assert remote_gpu_build.load(host) == ()
+    host.mkdir(parents=True)
+    # a row with neither a boxes directory nor a local lane: today's path (this host's own GPU)
+    assert _pool(host, _values(host)) is None
     values = _install(host, row=False)
-    assert (
-        remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
-        is None
-    )
+    assert _pool(host, values) is None
 
 
 def test_the_checked_in_values_file_names_only_motor_1_8_on_the_a100():
     """Lead, 16 Nov (for V2's read): Motor 1.8 builds on the Lambda A100 40GB, 4 shared slots to start. A door uses it
-    only with the operator's lane record and the box's device record installed."""
+    only with the operator's boxes directory (or a local slot lane) installed."""
     document = json.loads(remote_gpu_build.VALUES.read_bytes())
     assert document["schema"] == remote_gpu_build.VALUES_SCHEMA
     assert set(document["rows"]) == {"electric-motor-magnetics 1.8"}
@@ -154,13 +239,17 @@ def test_a_well_formed_install_is_a_door_lane(host):
         and lane.device.device_uuid == UUID
         and lane.device.device_kind == KIND
     )
-    assert lane.spec.slot_cpusets == ("0-3", "4-7") and lane.spec.docker_host == HOST
+    assert lane.spec.slot_cpusets == remote_gpu_build.BOX_SLOT_CPUSETS
+    assert lane.spec.docker_host == HOST and lane.spec.name == BOX
+    assert lane.spec.host_key == _host_key() and lane.spec.images == (IMAGE,)
+    assert Path(lane.lane_dir) == host / remote_gpu_build.BOX_DIR.format(name=BOX)
 
 
 @pytest.mark.parametrize(
     "change",
     [
         {"docker_host": "tcp://10.0.0.2:2375"},
+        {"docker_host": HOST, "stage_root": STAGE},  # a rented box is a box file now
         {"stage_root": "/"},
         {"slot_cpusets": []},
         {"slot_cpusets": ["0-3", "3-6"]},  # overlapping
@@ -170,7 +259,7 @@ def test_a_well_formed_install_is_a_door_lane(host):
     ],
 )
 def test_a_malformed_record_refuses(host, change):
-    _install(host)
+    _install(host, local=True)
     document = json.loads((host / remote_gpu_build.RECORD).read_text())
     document["lanes"][0].update(change)
     (host / remote_gpu_build.RECORD).write_text(json.dumps(document))
@@ -214,26 +303,29 @@ def test_the_values_row_defaults_to_one_slot_and_refuses_anything_else(
     assert remote_gpu_build.values_row("c", "1", path=tmp_path / "missing.json") is None
 
 
-def test_a_device_of_another_kind_refuses(host):
+@pytest.mark.parametrize("local", [False, True])
+def test_a_device_of_another_kind_refuses(host, local):
     with pytest.raises(ValueError, match="device_kind"):
-        _lane(host, kind="NVIDIA GeForce RTX 4090")
+        _lane(host, kind="NVIDIA GeForce RTX 4090", local=local)
 
 
 def test_more_slots_than_cpusets_refuses(host):
     with pytest.raises(ValueError, match="slots_exceed"):
-        _lane(host, slots=3)
+        _lane(host, slots=3, local=True)
+    with pytest.raises(ValueError, match="slots_exceed"):
+        _lane(host, slots=5)  # a box has 4 slots of 4 cores
 
 
 def test_a_missing_device_record_refuses(host):
-    values = _install(host)
-    (host / remote_gpu_build.LANE_DIR.format(index=0) / "host-device.json").unlink()
+    values = _install(host, local=True)
+    (host / "host-device.json").unlink()
     with pytest.raises(ValueError, match="device_record"):
-        remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
+        _pool(host, values)
 
 
 def test_a_lane_that_broke_since_start_is_carbons_at_the_build(host):
-    values = _install(host)
-    (host / remote_gpu_build.LANE_DIR.format(index=0) / "host-device.json").unlink()
+    values = _install(host, local=True)
+    (host / "host-device.json").unlink()
     with (
         pytest.raises(RemoteLaneDown) as raised,
         remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
@@ -251,6 +343,7 @@ def test_a_lane_that_broke_since_start_is_carbons_at_the_build(host):
         (BUILD, "VALIDATOR_OWN_GPU", "X", False, True),
         ("task-1~gpu1", "MINER_OWN_GPU", "X", False, True),
         ("task-1~gpu2", "MINER_OWN_GPU", "X", False, True),
+        ("task-1~shadow", "MINER_OWN_GPU", "X", False, True),
         (BUILD, None, "X", False, False),  # a CPU build
         (
             BUILD,
@@ -264,6 +357,7 @@ def test_a_lane_that_broke_since_start_is_carbons_at_the_build(host):
         ("direct-" + "a" * 64 + "-timed", "VALIDATOR_OWN_GPU", "X", False, False),
         ("single-call-abc", "VALIDATOR_OWN_GPU", "X", False, False),
         ("task-1~gpu3", "VALIDATOR_OWN_GPU", "X", False, False),
+        ("task-1~shadow2", "VALIDATOR_OWN_GPU", "X", False, False),
     ],
 )
 def test_only_gpu_builds_are_eligible(
@@ -552,8 +646,11 @@ def test_n_slots_need_validator_2s_ruling(host, monkeypatch):
 
 def test_the_wrapper_is_the_docker_cli_with_the_lanes_daemon(host):
     lane = _lane(host)
-    text = remote_gpu_build.wrapper_text(HOST, "/home/carbon", "/usr/bin/docker")
+    text = remote_gpu_build.wrapper_text(
+        HOST, "/home/carbon", "/usr/bin/docker", "/x/box-a/bin"
+    )
     assert "DOCKER_HOST=ssh://carbon-build@a100-1.example:2222\n" in text
+    assert "PATH=/x/box-a/bin:/usr/local/bin:/usr/bin:/bin\n" in text
     assert text.endswith('exec /usr/bin/docker "$@"\n')
     with pytest.raises(ValueError):
         remote_gpu_build.wrapper_text(
@@ -574,14 +671,9 @@ def test_inputs_mirror_to_the_lane_machine_only_inside_a_bound_op(host, monkeypa
     lane = _lane(host)
     calls = []
     monkeypatch.setattr(
-        remote_lane,
-        "mirror",
-        lambda stage, binding: calls.append(("mirror", stage, binding)),
-    )
-    monkeypatch.setattr(
-        remote_lane,
-        "discard",
-        lambda stage, binding: calls.append(("discard", stage, binding)),
+        remote_gpu_build,
+        "_box_run",
+        lambda binding, script, **kwargs: calls.append((script, binding, kwargs)),
     )
     remote_gpu_build.mirror(Path(STAGE) / "x" / "input")
     remote_gpu_build.discard(Path(STAGE) / "x" / "input")
@@ -589,12 +681,17 @@ def test_inputs_mirror_to_the_lane_machine_only_inside_a_bound_op(host, monkeypa
     with remote_gpu_build.offered(lane), _op() as binding:
         remote_gpu_build.mirror(Path(STAGE) / "x" / "input")
         remote_gpu_build.discard(Path(STAGE) / "x" / "input")
-    assert [call[0] for call in calls] == ["mirror", "discard"] and calls[0][
-        2
-    ] is binding
-    # remote_lane's own guards apply: only paths under the lane's stage root
+    assert len(calls) == 2 and calls[0][1] is binding and calls[1][1] is binding
+    assert "tar -x" in calls[0][0] and "feed" in calls[0][2]
+    assert "find" in calls[1][0] and "/var/lib/carbon/doors/x/input" in calls[1][0]
+    # only paths under the box's stage root
     with pytest.raises(RemoteLaneDown):
         remote_lane._remote_path(Path("/etc/passwd"), binding)
+    # a gone box (its file removed) is never contacted
+    remote_gpu_build.discard(
+        Path(STAGE) / "x" / "input", remote_gpu_build.OpBinding(lane, 0, gone=True)
+    )
+    assert len(calls) == 2
 
 
 def test_the_gpu_probe_names_the_recorded_device(host, monkeypatch):
@@ -655,13 +752,13 @@ def test_a_failure_with_the_link_or_gpu_down_is_carbons(host, monkeypatch):
     lane = _lane(host)
     binding = remote_gpu_build.OpBinding(lane, 0)
     error = WorkerFailure(WorkerCode.RUNTIME)
-    monkeypatch.setattr(remote_lane, "link_up", lambda b: True)
+    monkeypatch.setattr(remote_gpu_build, "link_up", lambda b: True)
     monkeypatch.setattr(remote_gpu_build, "gpu_present", lambda b: True)
     assert remote_gpu_build.retyped(error, binding) is None
     monkeypatch.setattr(remote_gpu_build, "gpu_present", lambda b: False)
     down = remote_gpu_build.retyped(error, binding)
     assert isinstance(down, RemoteLaneDown) and down.code is WorkerCode.UNAVAILABLE
-    monkeypatch.setattr(remote_lane, "link_up", lambda b: False)
+    monkeypatch.setattr(remote_gpu_build, "link_up", lambda b: False)
     assert isinstance(remote_gpu_build.retyped(error, binding), RemoteLaneDown)
     assert remote_gpu_build.retyped(RemoteLaneDown(b"x"), binding) is None
     assert (
@@ -766,38 +863,46 @@ def test_an_intent_records_the_slot_and_recovery_rebinds_it(host):
             "stage_root": STAGE,
             "lane": 0,
             "slot": binding.slot,
+            "box": BOX,  # the box name, for the audit and for recovery
         }
     }
     recovered = remote_gpu_build.recorded(fields)
     assert (
         recovered.slot == binding.slot
         and recovered.lane.device.digest == lane.device.digest
+        and not recovered.gone
     )
     with remote_gpu_build.bound(recovered):
         assert accelerator_runtime.host_device().digest == lane.device.digest
     assert remote_gpu_build.recorded({}) is None
     for broken in (
         {"remote_gpu_build": {"docker_host": HOST}},
+        {"remote_gpu_build": {**fields["remote_gpu_build"], "slot": 9}},
+        {"remote_gpu_build": {**fields["remote_gpu_build"], "box": "../x"}},
+        {"remote_gpu_build": {**fields["remote_gpu_build"], "docker_host": "tcp://x"}},
+    ):
+        with pytest.raises(ValueError):
+            remote_gpu_build.recorded(broken)
+    # another daemon than the box copy names: never contacted (gone), never guessed
+    other = remote_gpu_build.recorded(
         {
             "remote_gpu_build": {
                 **fields["remote_gpu_build"],
                 "docker_host": "ssh://x@other",
             }
-        },
-        {"remote_gpu_build": {**fields["remote_gpu_build"], "slot": 9}},
-    ):
-        with pytest.raises(ValueError):
-            remote_gpu_build.recorded(broken)
+        }
+    )
+    assert other.gone and other.lane.device is None
 
 
 # -- a local slot lane (the GPUYard 4090: one design for both) --------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    "change", [{"docker_host": None}, {"stage_root": None}]  # one without the other
+    "change", [{"docker_host": HOST}, {"stage_root": STAGE}]  # one without the other
 )
 def test_a_half_local_record_refuses(host, change):
-    _install(host)
+    _install(host, local=True)
     document = json.loads((host / remote_gpu_build.RECORD).read_text())
     document["lanes"][0].update(change)
     (host / remote_gpu_build.RECORD).write_text(json.dumps(document))
@@ -875,7 +980,7 @@ def test_a_local_gpu_fault_after_a_failed_build_is_carbons_without_ssh(
 
     monkeypatch.setattr(remote_gpu_build.subprocess, "run", run)
     monkeypatch.setattr(
-        remote_lane, "link_up", lambda b: pytest.fail("a local lane has no link")
+        remote_gpu_build, "link_up", lambda b: pytest.fail("a local lane has no link")
     )
     assert isinstance(
         remote_gpu_build.retyped(WorkerFailure(WorkerCode.RUNTIME), binding),
@@ -1027,23 +1132,23 @@ def test_a_host_private_build_is_withheld_from_a_configured_lane(host):
         assert binding is None
 
 
-def test_a_lane_that_differs_from_the_one_bound_at_start_refuses(host, monkeypatch):
+def test_a_class_that_differs_from_the_one_bound_at_start_refuses(host, monkeypatch):
     monkeypatch.setattr(remote_gpu_build, "_PINNED", {})
     values = _install(host)
     remote_gpu_build.pin(
         "electric-motor-magnetics", "1.8", None
-    )  # started without a lane
+    )  # started without a pool
     with (
         pytest.raises(RemoteLaneDown),
         remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
     ):
         pass
-    lane = remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
-    remote_gpu_build.pin("electric-motor-magnetics", "1.8", lane)
+    pool = _pool(host, values)
+    remote_gpu_build.pin("electric-motor-magnetics", "1.8", pool)
     with remote_gpu_build.offered_for(
         "electric-motor-magnetics", "1.8", values=values
     ) as offered:
-        assert offered.device.digest == lane.device.digest
+        assert offered == pool and offered.kind == KIND
     no_row = _install(host, row=False)  # the row removed after start
     with (
         pytest.raises(RemoteLaneDown),
@@ -1081,55 +1186,6 @@ def test_the_watchdog_is_handed_the_slot_and_finishes_its_record(host, monkeypat
     monkeypatch.setenv(remote_gpu_build.ENVIRONMENT, "{not json")
     # unreadable: binds nothing, so the watchdog still removes the container (the record is left to recovery)
     assert remote_gpu_build.current_op() is None
-
-
-def test_a_probe_that_loses_the_lane_is_carbons_not_a_cpu_rebuild(monkeypatch):
-    """`_graph_gpu_repeats`: a RemoteLaneDown re-raises (FAILED_INFRA) after settling the probes; any other device
-    failure keeps the ruling's CPU rebuild."""
-    from types import SimpleNamespace
-
-    from carbon.development_session import direct_graph_construction_worker as graph
-    from carbon.development_session import research_tasks
-
-    reconciled = []
-    provider = SimpleNamespace(
-        discovery=SimpleNamespace(
-            _material={
-                "construction_limits_document": {
-                    "reconstruction_resource_policy": {"build_wall_seconds_max": 60}
-                },
-                "train": None,
-                "allowlist_bytes": b"",
-            },
-            graph_adapter_for=lambda key: None,
-        ),
-        ledger=None,
-        owner="o",
-        graph_gpu_image=object(),
-        _seed_for=lambda value: 0,
-        _probe_children=lambda task_id: ("t~gpu1", "t~gpu2"),
-        _reconcile_probes=lambda task_id: reconciled.append(task_id),
-    )
-    request = SimpleNamespace(challenge_key=None)
-    task = SimpleNamespace(value="t")
-
-    def lost(*a, **k):
-        raise RemoteLaneDown(b"link")
-
-    monkeypatch.setattr(graph, "reconstruct_public_graph", lost)
-    with pytest.raises(RemoteLaneDown):
-        research_tasks.DirectDevelopmentTasksV3._graph_gpu_repeats(
-            provider, task, request, None, None, b"", "VALIDATOR_OWN_GPU"
-        )
-    assert reconciled == [task]
-
-    def device(*a, **k):
-        raise WorkerFailure(WorkerCode.RUNTIME)
-
-    monkeypatch.setattr(graph, "reconstruct_public_graph", device)
-    assert research_tasks.DirectDevelopmentTasksV3._graph_gpu_repeats(
-        provider, task, request, None, None, b"", "VALIDATOR_OWN_GPU"
-    ) == (False, "graph_gpu_attempt_failed")
 
 
 def test_a_settled_replay_takes_no_slot_even_when_every_slot_is_held(host):
@@ -1171,8 +1227,8 @@ def test_the_watchdog_handoff_needs_no_operator_record(host):
     binding = remote_gpu_build.OpBinding(lane, 1)
     raw = remote_gpu_build._handoff(binding)
     (
-        host / remote_gpu_build.RECORD
-    ).unlink()  # the operator's record changed after the op began
+        host / remote_gpu_build.BOXES_DIR / f"{BOX}.json"
+    ).unlink()  # the box was drained after the op began
     back = remote_gpu_build._from_handoff(raw)
     assert back.slot == 1 and back.slot_dir == binding.slot_dir
     assert back.lane.device.digest == lane.device.digest and back.docker_host == HOST
@@ -1185,11 +1241,21 @@ def test_the_watchdog_handoff_needs_no_operator_record(host):
     )
 
 
-def test_a_lane_edited_after_start_with_the_same_device_refuses(host):
+def test_a_class_edited_after_start_refuses_and_a_box_edit_needs_no_restart(host):
     values = _install(host)
-    lane = remote_gpu_build.door_lane("electric-motor-magnetics", "1.8", values=values)
-    remote_gpu_build.pin("electric-motor-magnetics", "1.8", lane)
-    _install(host, cpusets=("0-3", "8-11"))  # same device record, other cores
+    remote_gpu_build.pin("electric-motor-magnetics", "1.8", _pool(host, values))
+    # a box swapped for another (other address, other GPU): the class is the same, the door goes on
+    write_box(
+        host,
+        docker_host="ssh://carbon-build@a100-2.example",
+        uuid="GPU-b2b2b2b2-0000-1111-2222-333333333333",
+    )
+    with (
+        remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
+        _op() as binding,
+    ):
+        assert binding.docker_host == "ssh://carbon-build@a100-2.example"
+    _values(host, slots=3)  # the class's slots edited after start
     with (
         pytest.raises(RemoteLaneDown),
         remote_gpu_build.offered_for("electric-motor-magnetics", "1.8", values=values),
@@ -1222,7 +1288,9 @@ def _remote_wall(age, *, quiet, link=True, monkeypatch, host, binding_seen=None)
     lane = _lane(host, slots=1, cpusets=("0-3",))
     links = []
     monkeypatch.setattr(
-        remote_lane, "link_up", lambda lane=None, **k: links.append(lane) or link
+        remote_gpu_build,
+        "link_up",
+        lambda lane=None, **k: links.append(lane) or link,
     )
     started = time.monotonic() - 100
     error = WorkerFailure(
@@ -1432,11 +1500,16 @@ def test_inside_a_remote_grade_round_a_gpu_slot_op_sees_only_its_own_machine(
                 assert remote_lane.intent_fields() == {}
                 links = []
                 monkeypatch.setattr(
-                    remote_lane,
+                    remote_gpu_build,
                     "link_up",
                     lambda lane=None, _seen=links, **k: _seen.append(lane) or True,
                 )
-                remote_lane.wall_stop_observable(
+                monkeypatch.setattr(
+                    remote_lane,
+                    "link_up",
+                    lambda *a, **k: pytest.fail("the grade box's link is not read"),
+                )
+                remote_gpu_build.wall_stop_observable(
                     {"status": "OBSERVED"}, box_seconds=lambda: 100.0, needed=10
                 )
                 assert links == ([] if local else [remote_gpu_build.current_op()])
@@ -1496,8 +1569,9 @@ def test_shared_slots_need_no_ruling_and_change_nothing_in_the_program_or_env(
         assert handed.lane.memory == "shared"
     import dataclasses
 
-    capped = dataclasses.replace(lane, memory="capped")
-    assert remote_gpu_build.fingerprint(lane) != remote_gpu_build.fingerprint(capped)
+    pool = _pool(host, _values(host, slots=4, memory="shared"))
+    capped = dataclasses.replace(pool, memory="capped")
+    assert remote_gpu_build.fingerprint(pool) != remote_gpu_build.fingerprint(capped)
 
 
 def test_a_device_oom_on_a_shared_gpu_is_carbons_not_a_cpu_rebuild(host, monkeypatch):
@@ -1631,7 +1705,7 @@ def test_the_carrier_clears_an_alone_mark_on_a_verdict_and_keeps_it_on_infra(
     key = remote_gpu_build.alone_key(
         source="print(1)", files=files, image_id=image.image_id
     )
-    marker = Path(shared.lane_dir) / remote_gpu_build.ALONE_DIR / key
+    marker = shared.pool_dir / remote_gpu_build.ALONE_DIR / key
     marker.parent.mkdir(parents=True)
     marker.write_text("{}")
     calls = {"n": 0}
@@ -1749,7 +1823,7 @@ def test_an_old_mark_lapses(host, monkeypatch):
     import time as clock
 
     lane = _marked(host)
-    marker = Path(lane.lane_dir) / remote_gpu_build.ALONE_DIR / _key()
+    marker = lane.pool_dir / remote_gpu_build.ALONE_DIR / _key()
     old = clock.time() - remote_gpu_build.ALONE_MARK_SECONDS - 10
     os.utime(marker, (old, old))
     assert not remote_gpu_build.needs_alone(lane, _key())
@@ -1928,3 +2002,779 @@ def test_a_build_round_waits_for_a_busy_remote_slot_without_its_local_lane(
     builder.join(5)
     other.join(5)
     assert lanes_free()
+
+
+# -- on-demand boxes (owner, 17 Nov: add, swap or drop a box with no migration, no restart, no per-box door record) ------
+
+
+def _offer(host, values=None):
+    values = _values(host) if values is None else values
+    return remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values
+    )
+
+
+def _boxes_dir(host):
+    return host / remote_gpu_build.BOXES_DIR
+
+
+def test_the_pool_is_read_at_every_op_with_no_restart(host):
+    host.mkdir(parents=True)
+    _boxes_dir(host).mkdir(mode=0o700)
+    values = _values(host)
+    remote_gpu_build.pin("electric-motor-magnetics", "1.8", _pool(host, values))
+    with _offer(host, values), pytest.raises(RemoteLaneDown) as raised, _op():
+        pass
+    # no eligible box: Carbon's at once (FAILED_INFRA, never charged), never a wait
+    assert raised.value.code is WorkerCode.UNAVAILABLE
+    assert raised.value.private_diagnostic == b"remote_gpu_build_no_box"
+    write_box(host)  # gpu_box_up's door phase passed: the file appears
+    with _offer(host, values), _op() as binding:
+        assert binding.lane.spec.name == BOX and binding.docker_host == HOST
+    write_box(
+        host, box_document("a100-2", docker_host="ssh://carbon-build@a100-2.example")
+    )
+    names = {box.spec.name for box in remote_gpu_build.boxes(_pool(host, values))}
+    assert names == {BOX, "a100-2"}
+    # the class-check output files beside a box file are not boxes
+    (_boxes_dir(host) / f"{BOX}.class-check.json").write_text("{}")
+    (_boxes_dir(host) / f"{BOX}.class-check.json").chmod(0o600)
+    assert len(remote_gpu_build.boxes(_pool(host, values))) == 2
+
+
+def test_a_pool_with_no_box_up_builds_on_the_cpu(host):
+    """Zero boxes (Lead + owner, 17 Nov): the graph builds on the CPU (`no_machine`), so every box may be released."""
+    host.mkdir(parents=True)
+    _boxes_dir(host).mkdir(mode=0o700)
+    values = _values(host)
+    # nothing offered: never "no machine" (a door with no pool calls as before)
+    assert remote_gpu_build.no_machine() is False
+    with _offer(host, values):
+        assert remote_gpu_build.no_machine() is True
+    write_box(host)
+    with _offer(host, values):
+        assert remote_gpu_build.no_machine() is False
+        lane = _lane_named(host, values, BOX)
+        remote_gpu_build.mark_down(lane, b"lost")
+        # the only box is down: no machine up now
+        assert remote_gpu_build.no_machine() is True
+        remote_gpu_build.clear_down(lane)
+        assert remote_gpu_build.no_machine() is False
+    (_boxes_dir(host) / f"{BOX}.json").unlink()  # drained
+    with _offer(host, values):
+        assert remote_gpu_build.no_machine() is True
+    # a withheld build keeps its own refusal (`op`): never sent to the CPU from here
+    with remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values, withhold=True
+    ):
+        assert remote_gpu_build.no_machine() is False
+
+
+def test_the_door_sizes_its_build_rounds_for_the_most_boxes(host):
+    host.mkdir(parents=True)
+    values = _values(host, slots=4, memory="shared")
+    assert (
+        remote_gpu_build.door_build_slots(
+            "electric-motor-magnetics", "1.8", values=values
+        )
+        == 0
+    )
+    _boxes_dir(host).mkdir(mode=0o700)
+    # no box up yet: still sized for the most boxes (they come without a restart)
+    assert (
+        remote_gpu_build.door_build_slots(
+            "electric-motor-magnetics", "1.8", values=values
+        )
+        == 4 * remote_gpu_build.MAX_BOXES
+    )
+    assert remote_gpu_build.door_build_slots("other", "1.0", values=values) == 0
+
+
+def test_a_local_slot_lane_adds_no_build_rounds(host):
+    values = _install(host, local=True)
+    assert (
+        remote_gpu_build.door_build_slots(
+            "electric-motor-magnetics", "1.8", values=values
+        )
+        == 0
+    )
+
+
+def test_an_op_offered_a_box_pool_runs_off_this_host(host):
+    """Option A's lane release reads the offer: a pool of boxes only is off this host; a pool that also holds this
+    host's GPU lane, or nothing offered, is not."""
+    assert remote_gpu_build.offered_off_host() is False
+    host.mkdir(parents=True)
+    _boxes_dir(host).mkdir(mode=0o700)
+    values = _values(host)
+    with _offer(host, values):
+        assert remote_gpu_build.offered_off_host() is True
+    with remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values, withhold=True
+    ):
+        assert remote_gpu_build.offered_off_host() is False
+
+
+def test_a_pool_with_this_host_s_lane_keeps_the_round_s_lane(host):
+    values = _install(host, local=True)
+    _boxes_dir(host).mkdir(mode=0o700)
+    with _offer(host, values):
+        assert remote_gpu_build.offered_off_host() is False
+
+
+def test_a_box_admitted_with_another_image_is_skipped_never_refused(host):
+    """After a door switches its graph GPU image, a box admitted with the earlier one takes none of its ops (no
+    refusal), so with no box admitted with the new image the graph builds on the CPU (`no_machine`).
+    """
+    values = _install(host)
+    admitted = _lane_named(host, values, BOX).spec.images
+    with remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values, image_id=admitted[0]
+    ):
+        assert remote_gpu_build.no_machine() is False
+        with _op() as binding:
+            assert binding.lane.spec.name == BOX
+    with remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values, image_id="sha256:" + "e" * 64
+    ):
+        assert remote_gpu_build.no_machine() is True
+        with pytest.raises(RemoteLaneDown) as raised, _op():
+            pass
+        assert raised.value.private_diagnostic == b"remote_gpu_build_no_box"
+    assert (_boxes_dir(host) / f"{BOX}.json").exists()
+
+
+class _Stop(Exception):
+    pass
+
+
+def _waits(limit):
+    seen = []
+
+    def check():
+        seen.append(1)
+        if len(seen) > limit:
+            raise _Stop
+
+    return seen, check
+
+
+@pytest.mark.parametrize("live", [True, False])
+def test_a_pool_op_waits_behind_live_builds_past_the_slot_bound(
+    host, monkeypatch, live
+):
+    """Build rounds are sized for the pool's most boxes: an op behind live builds on the boxes up waits (progress), and
+    only slots no live op holds keep the wall-clock bound (`SLOT_WAIT_SECONDS`)."""
+    host.mkdir(parents=True)
+    values = _values(host, slots=1)
+    write_box(host)
+    import time
+
+    monkeypatch.setattr(remote_gpu_build, "SLOT_WAIT_SECONDS", 0.05)
+    monkeypatch.setattr(remote_gpu_build, "_live_ops", lambda lane: live)
+    seen, check = _waits(3)
+    pause = lambda s: time.sleep(0.06)  # each wait outlasts the bound
+    with _offer(host, values), _op():
+        if live:
+            with pytest.raises(_Stop), _op(check=check, sleep=pause):
+                pass
+            assert len(seen) == 4
+        else:
+            with pytest.raises(RemoteLaneDown) as raised, _op(check=check, sleep=pause):
+                pass
+            assert raised.value.private_diagnostic == b"remote_gpu_build_slots_busy"
+            assert len(seen) == 2
+
+
+def test_a_settled_build_on_an_unproven_box_is_still_its_first_build(host):
+    values, proven = _two_boxes(host)
+    new = _lane_named(host, values, "a100-0")
+    assert not remote_gpu_build.is_proven(new)
+    with _offer(host, values):
+        with _op(settled=True, recorded=remote_gpu_build.OpBinding(new, 1)) as replay:
+            assert replay.lane.spec.name == "a100-0" and replay.slot == 1
+        # the replay took no claim file, yet the task shadows the box again
+        assert remote_gpu_build.first_build_box().spec.name == "a100-0"
+        assert not (Path(new.lane_dir) / remote_gpu_build.FIRST_BUILD).exists()
+        with _op(settled=True, recorded=remote_gpu_build.OpBinding(proven, 0)):
+            pass
+        # a settled op whose box is unknown is never bound to a guessed box
+        with pytest.raises(RemoteLaneDown) as raised, _op(settled=True, recorded=None):
+            pass
+        assert (
+            raised.value.private_diagnostic == b"remote_gpu_build_settled_box_unknown"
+        )
+
+
+def test_a_local_slot_lane_is_always_a_machine(host):
+    values = _install(host, local=True)
+    with _offer(host, values):
+        assert remote_gpu_build.no_machine() is False
+
+
+def test_removing_a_box_file_drains_the_box(host):
+    values = _install(host)
+    with _offer(host, values), _op() as running:
+        (_boxes_dir(host) / f"{BOX}.json").unlink()  # the operator drops the box
+        # the running op keeps its binding to the end
+        assert remote_gpu_build.current_op() is running
+        assert remote_gpu_build.cli().docker_host == HOST
+        assert remote_gpu_build.device().digest == running.lane.device.digest
+        # no new op starts there
+        with pytest.raises(RemoteLaneDown) as raised, _op():
+            pass
+        assert raised.value.private_diagnostic == b"remote_gpu_build_no_box"
+
+
+def _refusal(path, **kwargs):
+    with pytest.raises(ValueError) as raised:
+        remote_gpu_build.read_box(path, kind=KIND, **kwargs)
+    return str(raised.value)
+
+
+def test_the_loader_refuses_a_wrong_mode_owner_or_shape(host, monkeypatch):
+    host.mkdir(parents=True)
+    path = write_box(host, mode=0o644)
+    assert _refusal(path) == "remote_gpu_build_box_mode"
+    path.chmod(0o600)
+    assert remote_gpu_build.read_box(path, kind=KIND).spec.name == BOX
+    real = os.geteuid()
+    monkeypatch.setattr(remote_gpu_build.os, "geteuid", lambda: real + 1)
+    assert _refusal(path) == "remote_gpu_build_box_owner"
+    monkeypatch.setattr(remote_gpu_build.os, "geteuid", lambda: real)
+    link = _boxes_dir(host) / "linked.json"
+    link.symlink_to(path)
+    assert _refusal(link) == "remote_gpu_build_box_unreadable"  # never followed
+    elsewhere = _host_key("ssh://carbon-build@elsewhere.example:2222")
+    for change, reason in (
+        ({"slot_cpusets": ["0-3", "4-7"]}, "remote_gpu_build_box_shape"),
+        ({"slot_cpusets": ["0-1", "2-3", "4-5", "6-7"]}, "remote_gpu_build_box_shape"),
+        (
+            {"host_key": "a100-1.example ssh-ed25519 AAAA"},
+            "remote_gpu_build_box_host_key",
+        ),
+        ({"host_key": elsewhere}, "remote_gpu_build_box_host_key"),
+        (
+            {"host_key": _host_key().replace("ssh-ed25519", "ssh-rsa")},
+            "remote_gpu_build_box_host_key",
+        ),
+        ({"name": "a100-9"}, "remote_gpu_build_box_name"),
+        ({"schema": "other"}, "remote_gpu_build_box_schema"),
+        ({"images": []}, "remote_gpu_build_box_images"),
+        ({"device_digest": "sha256:" + "0" * 64}, "remote_gpu_build_box_device"),
+        ({"docker_host": "tcp://10.0.0.2:2375"}, "remote_lane_docker_host"),
+    ):
+        write_box(host, {**box_document(), **change}, name=BOX)
+        assert _refusal(path) == reason, change
+    write_box(host, kind="NVIDIA GeForce RTX 4090")
+    assert _refusal(path) == "remote_gpu_build_box_device_kind"
+    # a refused box is simply not in the pool
+    pool = _pool(host, _values(host))
+    assert remote_gpu_build.boxes(pool) == ()
+    write_box(host)
+    assert len(remote_gpu_build.boxes(pool)) == 1
+    # a boxes directory that is not the door user's 0700 directory holds no box
+    _boxes_dir(host).chmod(0o755)
+    assert remote_gpu_build.boxes(pool) == ()
+    _boxes_dir(host).chmod(0o700)
+
+
+def test_each_box_pins_its_own_host_key_strictly_in_its_wrapper_and_ssh(
+    host, monkeypatch
+):
+    values = _install(host)
+    seen = []
+
+    class Popen:
+        def __init__(self, argv, **kwargs):
+            seen.append((argv, kwargs["env"]))
+            raise OSError("no ssh in tests")
+
+    monkeypatch.setattr(remote_gpu_build.subprocess, "Popen", Popen)
+    with _offer(host, values), _op() as binding:
+        directory = Path(binding.lane.lane_dir)
+        known = directory / "known_hosts"
+        assert known.read_text() == _host_key() + "\n"
+        assert known.stat().st_mode & 0o777 == 0o600
+        shim = (directory / "bin" / "ssh").read_text()
+        assert "StrictHostKeyChecking=yes" in shim
+        assert f"UserKnownHostsFile={known}" in shim
+        assert "GlobalKnownHostsFile=/dev/null" in shim
+        assert shim.rstrip().endswith('"$@"')
+        wrapper = Path(remote_gpu_build.cli().executable).read_text()
+        # Docker's ssh:// helper runs `ssh` from PATH: the box's shim comes first
+        assert f"PATH={directory / 'bin'}:/usr/local/bin:/usr/bin:/bin\n" in wrapper
+        assert f"DOCKER_HOST={HOST}\n" in wrapper
+        # every direct ssh to the box (mirror, discard, probes) carries the same pinned options
+        argv = remote_gpu_build._box_ssh(binding)
+        assert argv[0] == "/usr/bin/ssh"
+        for option in (
+            "StrictHostKeyChecking=yes",
+            f"UserKnownHostsFile={known}",
+            "GlobalKnownHostsFile=/dev/null",
+            "BatchMode=yes",
+        ):
+            assert argv[argv.index(option) - 1] == "-o"
+        assert argv[-3:] == ["2222", "carbon-build@a100-1.example", "--"]
+        with pytest.raises(RemoteLaneDown):
+            remote_gpu_build.discard(Path(STAGE) / "x" / "input")
+        assert seen[0][0][: len(argv)] == argv
+        # ~/.ssh/config is never edited: the environment names nothing but PATH and HOME
+        assert set(seen[0][1]) <= {"PATH", "HOME"}
+    # a second box has its own known_hosts with exactly its own key
+    other = "ssh://carbon-build@a100-2.example"
+    write_box(host, box_document("a100-2", docker_host=other))
+    (_boxes_dir(host) / f"{BOX}.json").unlink()
+    with _offer(host, values), _op() as binding:
+        assert binding.lane.spec.name == "a100-2"
+        assert (Path(binding.lane.lane_dir) / "known_hosts").read_text() == (
+            _host_key(other) + "\n"
+        )
+
+
+def test_each_op_takes_the_box_with_the_most_free_slots_then_the_name(host):
+    values = _values(host, slots=2, memory="shared")
+    for name in ("a100-b", "a100-a", "a100-c"):
+        write_box(
+            host, box_document(name, docker_host=f"ssh://carbon-build@{name}.example")
+        )
+    with _offer(host, values):
+        with _op() as first:
+            assert first.lane.spec.name == "a100-a"  # all free: the name
+            with _op() as second:
+                # a100-a has one slot left, the others two
+                assert second.lane.spec.name == "a100-b"
+                with _op() as third:
+                    assert third.lane.spec.name == "a100-c"
+                    with _op() as fourth:
+                        assert fourth.lane.spec.name == "a100-a"
+        with _op() as again:
+            assert again.lane.spec.name == "a100-a"
+
+
+def test_a_lost_box_is_marked_down_skipped_and_back_after_a_healthy_probe(
+    host, monkeypatch
+):
+    values = _values(host)
+    for name in ("a100-a", "a100-b"):
+        write_box(
+            host, box_document(name, docker_host=f"ssh://carbon-build@{name}.example")
+        )
+    monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: False)
+    with _offer(host, values):
+        with pytest.raises(RemoteLaneDown), _op() as binding:
+            assert binding.lane.spec.name == "a100-a"
+            raise RemoteLaneDown(b"exit=255\nConnection reset")  # the link is lost
+        lost = binding.lane
+        mark = json.loads(
+            (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).read_text()
+        )
+        assert type(mark["unix"]) is float and remote_gpu_build.is_down(lost)
+        # the FAILED_INFRA task's retry lands on another box
+        with _op() as retry:
+            assert retry.lane.spec.name == "a100-b"
+    # a failure that is not a loss (the box answers) marks nothing
+    monkeypatch.setattr(remote_gpu_build, "healthy", lambda binding=None: True)
+    with _offer(host, values):
+        with pytest.raises(RemoteLaneDown), _op() as other:
+            raise RemoteLaneDown(b"remote_gpu_build_shared_device_memory")
+        assert not remote_gpu_build.is_down(other.lane)
+    # after DOWN_SECONDS it is offered again ...
+    old = {"unix": remote_gpu_build.time.time() - remote_gpu_build.DOWN_SECONDS - 1}
+    (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).write_text(json.dumps(old))
+    assert not remote_gpu_build.is_down(lost)
+    # ... and its next successful health probe clears the mark at once
+    remote_gpu_build.mark_down(lost)
+    monkeypatch.undo()
+    monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", host)
+    monkeypatch.setattr(remote_gpu_build, "link_up", lambda binding=None, **k: True)
+    monkeypatch.setattr(remote_gpu_build, "gpu_present", lambda binding=None: True)
+    assert remote_gpu_build.healthy(remote_gpu_build.OpBinding(lost, 0))
+    assert not (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).exists()
+
+
+def _image(image_id=IMAGE):
+    return type("Image", (), {"image_id": image_id})()
+
+
+def test_a_per_build_re_read_that_differs_from_the_box_file_refuses_the_box(
+    host, monkeypatch
+):
+    from carbon.reconstruction.worker import accelerator_runtime as runtime
+
+    values = _install(host)
+    path = _boxes_dir(host) / f"{BOX}.json"
+    verified = []
+    monkeypatch.setattr(
+        runtime, "verify_image_and_toolkit", lambda **kw: verified.append(kw["image"])
+    )
+    monkeypatch.setattr(remote_gpu_build, "link_up", lambda binding=None, **k: True)
+    rows = {"value": f"{UUID}, {KIND}\n".encode()}
+    monkeypatch.setattr(remote_gpu_build, "_ssh_capture", lambda *a, **k: rows["value"])
+    with _offer(host, values), _op() as binding:
+        record = binding.lane.device
+        remote_gpu_build.mark_down(binding.lane)
+        remote_gpu_build.check_host(_FakeCLI(), _image(), record)  # the box as admitted
+        assert verified and not remote_gpu_build.is_down(binding.lane)  # a health probe
+        # another GPU on the box now
+        rows["value"] = b"GPU-other, NVIDIA A100-SXM4-80GB\n"
+        with pytest.raises(RemoteLaneDown) as raised:
+            remote_gpu_build.check_host(_FakeCLI(), _image(), record)
+        assert raised.value.code is WorkerCode.UNAVAILABLE
+        assert raised.value.private_diagnostic == b"remote_gpu_build_box_gpu_mismatch"
+        assert not path.exists() and Path(str(path) + ".refused").exists()
+
+    calls = []
+
+    def missing(**kw):
+        calls.append(kw["image"])
+        raise WorkerFailure(WorkerCode.POLICY)
+
+    # an image the box file never admitted (a door switched its image since): Carbon's, the box is NOT refused
+    write_box(host)
+    rows["value"] = f"{UUID}, {KIND}\n".encode()
+    with (
+        _offer(host, values),
+        _op() as binding,
+        pytest.raises(RemoteLaneDown) as raised,
+    ):
+        remote_gpu_build.check_host(
+            _FakeCLI(), _image("sha256:" + "f" * 64), binding.lane.device
+        )
+    assert raised.value.private_diagnostic == b"remote_gpu_build_box_image_not_admitted"
+    assert path.exists()
+    # one the box's daemon no longer has as it was, read twice: the box is refused
+    monkeypatch.setattr(runtime, "verify_image_and_toolkit", missing)
+    with (
+        _offer(host, values),
+        _op() as binding,
+        pytest.raises(RemoteLaneDown) as raised,
+    ):
+        remote_gpu_build.check_host(_FakeCLI(), _image(), binding.lane.device)
+    assert raised.value.private_diagnostic.endswith(b"mismatch") and len(calls) == 2
+    assert not path.exists()
+    # a link that is down is the box DOWN, never refused
+    write_box(host)
+    monkeypatch.setattr(remote_gpu_build, "link_up", lambda binding=None, **k: False)
+    with (
+        _offer(host, values),
+        _op() as binding,
+        pytest.raises(RemoteLaneDown) as raised,
+    ):
+        remote_gpu_build.check_host(_FakeCLI(), _image(), binding.lane.device)
+    assert raised.value.private_diagnostic == b"remote_gpu_build_link_down"
+    assert path.exists()
+
+
+def _ledger(root, owner, identity, intent):
+    from carbon.development_session.profile import digest
+
+    request = {"identity": identity}
+    launch = digest(
+        canonical({"owner": owner, "identity": identity, "request": request})
+    )
+    operation = root / ("operation-" + launch[7:])
+    operation.mkdir(parents=True)
+    (operation / "intent.json").write_bytes(
+        canonical(
+            {
+                "launch": launch,
+                "container": "carbon-d4-" + launch[7:31],
+                "request": request,
+                "owner": owner,
+                "identity": identity,
+                "deadline_unix": None,
+                **intent,
+            }
+        )
+    )
+    finished = []
+
+    class Ledger:
+        def status(self, owner):
+            operation = {"id": identity, "state": "RESERVED", "reservation": {}}
+            return {"operations": [{**operation, "result": None}]}
+
+        def finish(self, identity, **kwargs):
+            finished.append(kwargs)
+
+    ledger = Ledger()
+    ledger.root = root
+    return ledger, finished
+
+
+def test_recovery_finds_a_drained_box_by_its_name_and_settles_the_op_as_carbons(
+    host, monkeypatch, tmp_path
+):
+    from carbon.development_session import research_carrier
+
+    values = _install(host)
+    with _offer(host, values), _op() as binding:
+        intent = remote_gpu_build.intent_fields()
+        record = binding.slot_dir / "active-allocation.json"
+        record.write_text("{}")  # the lost controller's slot record
+    assert intent["remote_gpu_build"]["box"] == BOX
+    (_boxes_dir(host) / f"{BOX}.json").unlink()  # drained since
+    recovered = remote_gpu_build.recorded(intent)
+    assert recovered.gone and recovered.lane.spec.name == BOX
+    assert recovered.slot_dir == binding.slot_dir
+    # the box copy the op ran with still names its device (a settled replay's request)
+    assert recovered.lane.device.digest == binding.lane.device.digest
+    removed = []
+
+    def unreachable(**k):
+        removed.append(k["cli"].docker_host)
+        raise RemoteLaneDown(b"remote_gpu_build_link_down")
+
+    # a drained box that no longer answers: the op is Carbon's, its slot record stays (its container may still run)
+    monkeypatch.setattr(research_carrier, "remove_exact_container", unreachable)
+    ledger, finished = _ledger(tmp_path / "ledger", "o", BUILD, intent)
+    result = research_carrier.reconcile_worker(ledger, owner="o", identity=BUILD)
+    assert result["state"] == "FAILED_INFRA" and result["cleanup_observed"] is False
+    assert finished[0]["state"] == "FAILED_INFRA"
+    assert removed == [HOST] and record.exists()
+    # one that still answers: its container is removed through the box copy's pinned wrapper, then the record cleared
+    monkeypatch.setattr(
+        research_carrier,
+        "remove_exact_container",
+        lambda **k: removed.append(k["cli"].docker_host),
+    )
+    assert research_carrier._clear_gone_box(recovered, "c", "l") is True
+    assert removed == [HOST, HOST] and not record.exists()
+    # the box comes back (same name, same admission): its op is recovered on it as before
+    write_box(host)
+    assert not remote_gpu_build.recorded(intent).gone
+    # an intent of the old single remote lane: that lane is not installed any more
+    old = {
+        "remote_gpu_build": {
+            "docker_host": HOST,
+            "stage_root": STAGE,
+            "lane": 0,
+            "slot": 1,
+        }
+    }
+    assert remote_gpu_build.recorded(old).gone
+
+
+def test_a_settled_replay_binds_the_box_its_intent_recorded(
+    host, monkeypatch, tmp_path
+):
+    from carbon.development_session import research_carrier
+
+    values = _values(host)
+    write_box(
+        host, box_document("a100-a", docker_host="ssh://carbon-build@a100-a.example")
+    )
+    with _offer(host, values), _op() as ran:
+        intent = remote_gpu_build.intent_fields()
+    write_box(
+        host,
+        box_document(
+            "a100-0",
+            docker_host="ssh://carbon-build@a100-0.example",
+            uuid="GPU-b2b2b2b2-0000-1111-2222-333333333333",
+        ),
+    )
+    ledger, _ = _ledger(tmp_path / "ledger", "o", BUILD, intent)
+    ledger.operation_state = lambda identity, *, owner: "SUCCEEDED"
+    seen = []
+    monkeypatch.setattr(
+        research_carrier,
+        "_run_supervised",
+        lambda ledger, **k: seen.append(remote_gpu_build.current_op()) or "recorded",
+    )
+    with _offer(host, values):
+        research_carrier._run(
+            ledger,
+            owner="o",
+            identity=BUILD,
+            accelerator="VALIDATOR_OWN_GPU",
+            provenance="X",
+        )
+    # "a100-0" sorts first, but the replay's request names the box the op ran on
+    assert seen[0].lane.spec.name == "a100-a"
+    assert seen[0].lane.device.digest == ran.lane.device.digest
+
+
+# -- proven boxes and the first-build shadow (Validator-2 (e)) -----------------------------------------------------------------
+
+
+def test_the_first_box_is_proven_at_once_by_its_own_class_check(host):
+    values = _install(host)
+    lane = _lane(host)
+    assert not remote_gpu_build.is_proven(lane)
+    with _offer(host, values), _op():
+        assert remote_gpu_build.first_build_box() is None  # no shadow
+    assert remote_gpu_build.is_proven(lane)
+    mark = json.loads(
+        (Path(lane.lane_dir) / remote_gpu_build.PROVEN_MARKER).read_text()
+    )
+    assert mark["how"] == "first_box" and mark["box_digest"] == lane.spec.box_digest
+    # a re-admitted box (a new box file under the same name) is not the box that was proven
+    write_box(host, uuid="GPU-b2b2b2b2-0000-1111-2222-333333333333")
+    assert not remote_gpu_build.is_proven(_lane_named(host, values, BOX))
+
+
+def _two_boxes(host):
+    values = _values(host)
+    write_box(
+        host, box_document("a100-a", docker_host="ssh://carbon-build@a100-a.example")
+    )
+    with _offer(host, values), _op() as first:
+        pass
+    assert remote_gpu_build.is_proven(first.lane)
+    # a new box, first by name
+    write_box(
+        host, box_document("a100-0", docker_host="ssh://carbon-build@a100-0.example")
+    )
+    return values, first.lane
+
+
+def _lane_named(host, values, name):
+    pool = _pool(host, values)
+    return next(box for box in remote_gpu_build.boxes(pool) if box.spec.name == name)
+
+
+def test_a_new_box_s_first_build_is_claimed_and_shadowed_on_a_proven_box(host):
+    values, proven = _two_boxes(host)
+    with _offer(host, values):
+        with _op() as first:
+            new = first.lane
+            assert new.spec.name == "a100-0" and not remote_gpu_build.is_proven(new)
+            # while its first build runs, no other op starts on the new box
+            with _op() as other:
+                assert other.lane.spec.name == "a100-a"
+        assert remote_gpu_build.first_build_box() == new
+        assert remote_gpu_build.proven_elsewhere(new)
+        # the shadow runs only on a proven box other than the new one
+        with remote_gpu_build.shadowing(new), _op("t~shadow") as shadow:
+            assert shadow.lane.spec.name == proven.spec.name
+        with (
+            remote_gpu_build.shadowing(proven),
+            pytest.raises(RemoteLaneDown) as raised,
+            _op("t~shadow"),
+        ):
+            pass
+        assert raised.value.private_diagnostic == b"remote_gpu_build_no_proven_box"
+    # the offer's end releases the claim: the next build may be the new box's first again
+    assert not (Path(new.lane_dir) / remote_gpu_build.FIRST_BUILD).exists()
+
+
+def _settle(shadow_digest, host, values):
+    from types import SimpleNamespace
+
+    from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
+
+    shadows = []
+
+    def shadow(task_id, request, recipe, binding, envelope, device, new_box):
+        shadows.append(new_box.spec.name)
+        if isinstance(shadow_digest, BaseException):
+            raise shadow_digest
+        return shadow_digest
+
+    provider = SimpleNamespace(_graph_gpu_shadow=shadow)
+    with _offer(host, values):
+        with _op() as built:
+            pass
+        DirectDevelopmentTasksV3._settle_first_build(
+            provider, "task", None, None, None, b"", "VALIDATOR_OWN_GPU", "sha256:built"
+        )
+    return built.lane, shadows
+
+
+def test_an_equal_shadow_proves_the_new_box(host):
+    values, _ = _two_boxes(host)
+    new, shadows = _settle("sha256:built", host, values)
+    assert shadows == ["a100-0"] and remote_gpu_build.is_proven(new)
+    mark = json.loads((Path(new.lane_dir) / remote_gpu_build.PROVEN_MARKER).read_text())
+    assert mark["how"] == "shadow"
+    # proven: its next build is not shadowed again
+    _, again = _settle("sha256:other", host, values)
+    assert again == []
+
+
+def test_an_unequal_shadow_refuses_the_new_box_and_the_task_is_carbons(host):
+    values, _ = _two_boxes(host)
+    with pytest.raises(RemoteLaneDown) as raised:
+        _settle("sha256:different", host, values)
+    assert raised.value.code is WorkerCode.UNAVAILABLE  # FAILED_INFRA, never charged
+    assert (
+        raised.value.private_diagnostic
+        == b"remote_gpu_build_shadow_state_digest_differs"
+    )
+    assert not (_boxes_dir(host) / "a100-0.json").exists()
+    assert (_boxes_dir(host) / "a100-0.json.refused").exists()
+    pool = _pool(host, values)
+    assert [box.spec.name for box in remote_gpu_build.boxes(pool)] == ["a100-a"]
+
+
+def test_a_shadow_that_cannot_run_leaves_the_new_box_unproven(host):
+    values, _ = _two_boxes(host)
+    with pytest.raises(RemoteLaneDown):
+        _settle(RemoteLaneDown(b"remote_gpu_build_no_proven_box"), host, values)
+    assert not remote_gpu_build.is_proven(_lane_named(host, values, "a100-0"))
+    assert (_boxes_dir(host) / "a100-0.json").exists()
+
+
+def test_with_no_other_proven_box_a_new_box_is_proven_at_once(host):
+    values, proven = _two_boxes(host)
+    (_boxes_dir(host) / f"{proven.spec.name}.json").unlink()  # the proven box dropped
+    new, shadows = _settle("sha256:never-read", host, values)
+    assert shadows == [] and remote_gpu_build.is_proven(new)
+
+
+# -- every other reach of a box goes through its pinned ssh ---------------------------------------------------------------
+
+
+def test_the_box_quiet_probe_reads_a_box_through_its_pinned_wrapper_and_ssh(
+    host, monkeypatch
+):
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import host_quiet
+
+    values = _install(host)
+    runs = []
+
+    def run(argv, **kwargs):
+        runs.append((argv, kwargs["env"]))
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(host_quiet.subprocess, "run", run)
+    monkeypatch.setattr(
+        remote_lane, "box_output", lambda *a, **k: pytest.fail("the system ssh")
+    )
+    outputs = []
+    monkeypatch.setattr(
+        remote_gpu_build,
+        "box_output",
+        lambda binding, script, **k: outputs.append(binding) or b"",
+    )
+    with _offer(host, values), _op() as binding:
+        assert host_quiet.box_worker_containers(binding) == []
+        assert runs[0][0][0] == str(Path(binding.lane.lane_dir) / "docker")
+        assert "DOCKER_HOST" not in runs[0][1]  # the wrapper names the box's daemon
+        assert host_quiet.box_foreign_gpu(binding) == 0
+        assert outputs == [binding]
+
+
+def test_the_watchdog_watches_a_box_container_through_the_box_wrapper(
+    host, monkeypatch
+):
+    from carbon.reconstruction.worker import watchdog
+
+    values = _install(host)
+    with _offer(host, values), _op() as binding:
+        handed = remote_gpu_build._handoff(binding)
+    monkeypatch.setattr(remote_gpu_build, "_ENVIRONMENT_BINDING", [])
+    monkeypatch.setenv(remote_gpu_build.ENVIRONMENT, handed)
+    monkeypatch.setenv("DOCKER_HOST", HOST)
+    removed = []
+    monkeypatch.setattr(
+        watchdog,
+        "remove_exact_container",
+        lambda *, cli, container_name, launch_digest: removed.append(cli.executable),
+    )
+    assert watchdog.main(["carbon-d4-" + "a" * 24, "sha256:" + "b" * 64, "1.0"]) == 0
+    assert removed == [str(Path(binding.lane.lane_dir) / "docker")]

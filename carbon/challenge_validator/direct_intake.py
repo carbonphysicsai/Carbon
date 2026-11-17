@@ -1365,23 +1365,21 @@ def _door_remote_only(intake, grading_lock_dir, state_dir):
 
 
 def _remote_build_slots(intake):
-    """How many slots this door's REMOTE GPU build box offers (`remote_gpu_build.door_lane`): 0 without one, for a
-    local slot lane (its builds hold their lane), or when the lane cannot be read (logged; the start goes on).
+    """How many build rounds this door's REMOTE GPU build boxes may keep busy (`remote_gpu_build.door_build_slots`: a
+    box pool's slots per box times its most boxes): 0 without a pool, for a local slot lane (its builds hold their
+    lane), or when the pool cannot be read (logged; the start goes on).
     """
     challenge = getattr(intake, "challenge", None)
     try:
         from carbon.reconstruction import remote_gpu_build
 
-        lane = remote_gpu_build.door_lane(
+        return remote_gpu_build.door_build_slots(
             getattr(challenge, "challenge_id", None),
             getattr(challenge, "version", None),
         )
     except Exception as failure:  # noqa: BLE001 - a build-round count, never a failure
         log("direct_build_rounds_lane_unreadable", type=type(failure).__name__)
         return 0
-    if lane is None or lane.spec.local:
-        return 0
-    return lane.slots
 
 
 def _door_lanes(intake, grading_lock_dir, state_dir=None):

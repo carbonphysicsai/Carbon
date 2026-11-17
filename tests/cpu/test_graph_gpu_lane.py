@@ -424,7 +424,7 @@ def test_a_wrong_worker_record_or_host_is_refused(tmp_path, monkeypatch):
         receiver.graph_gpu_lane(cfg, {}, None, "testnet")
 
 
-# ---- the repeat check: two more GPU rebuilds must match before the GPU serves ------------
+# ---- the first-build shadow of a new GPU build box (Validator-2 (e)) ------------------------
 
 
 class _Ledger:
@@ -463,50 +463,55 @@ def _repeat_provider(ledger=None):
     return provider
 
 
+_NEW_BOX = SimpleNamespace(spec=SimpleNamespace(name="a100-new"))
+
+
 def _check(provider, monkeypatch, builds):
     from carbon.development_session.research_carrier import PRECHARGED_TRIAL
+    from carbon.reconstruction import remote_gpu_build
 
     calls = []
 
     def fake(ledger, **kwargs):
         calls.append((kwargs["identity"], kwargs["image"], kwargs["accelerator"]))
         assert PRECHARGED_TRIAL.get() is not None  # not a trial of the miner's
+        # the shadow runs only on a proven box OTHER than the new one
+        assert remote_gpu_build._SHADOW_OF.get() == "a100-new"
         outcome = builds[len(calls) - 1]
-        if isinstance(outcome, Exception):
+        if isinstance(outcome, BaseException):
             raise outcome
         return SimpleNamespace(state_digest=outcome)
 
     monkeypatch.setattr(graph_worker, "reconstruct_public_graph", fake)
     task = SimpleNamespace(value="direct-task")
-    result = DirectDevelopmentTasksV3._graph_gpu_repeats(
-        provider,
-        task,
-        SimpleNamespace(challenge_key="k"),
-        object(),
-        {"challenge_id": "c"},
-        b"envelope",
-        MINER_GPU,
-    )
-    assert PRECHARGED_TRIAL.get() is None
-    return result, calls
+    try:
+        return (
+            DirectDevelopmentTasksV3._graph_gpu_shadow(
+                provider,
+                task,
+                SimpleNamespace(challenge_key="k"),
+                object(),
+                {"challenge_id": "c"},
+                b"envelope",
+                MINER_GPU,
+                _NEW_BOX,
+            ),
+            calls,
+        )
+    finally:
+        assert PRECHARGED_TRIAL.get() is None
+        assert remote_gpu_build._SHADOW_OF.get() is None
 
 
-def test_two_matching_gpu_rebuilds_let_the_gpu_serve(monkeypatch):
-    result, calls = _check(_repeat_provider(), monkeypatch, ["sha256:a", "sha256:a"])
-    assert result == (True, None)
-    assert calls == [
-        ("direct-task~gpu1", JAX, MINER_GPU),
-        ("direct-task~gpu2", JAX, MINER_GPU),
-    ]
+def test_the_first_build_shadow_is_one_more_build_of_the_same_graph(monkeypatch):
+    digest, calls = _check(_repeat_provider(), monkeypatch, ["sha256:a"])
+    assert digest == "sha256:a"
+    assert calls == [("direct-task~shadow", JAX, MINER_GPU)]
 
 
-def test_two_rebuilds_that_differ_send_the_graph_to_the_cpu(monkeypatch):
-    result, _ = _check(_repeat_provider(), monkeypatch, ["sha256:a", "sha256:b"])
-    assert result == (False, "graph_gpu_rebuild_not_repeatable")
-
-
-def test_a_device_failure_is_a_cpu_rebuild_and_settles_what_it_held(monkeypatch):
+def test_a_shadow_that_fails_is_carbons_and_settles_what_it_held(monkeypatch):
     from carbon.development_session import research_carrier
+    from carbon.reconstruction.remote_lane import RemoteLaneDown
 
     settled = []
     monkeypatch.setattr(
@@ -514,12 +519,14 @@ def test_a_device_failure_is_a_cpu_rebuild_and_settles_what_it_held(monkeypatch)
         "reconcile_worker",
         lambda ledger, *, owner, identity: settled.append(identity),
     )
-    ledger = _Ledger({"direct-task~gpu1": "RESERVED"})
-    result, calls = _check(
-        _repeat_provider(ledger), monkeypatch, [RuntimeError("no device")]
-    )
-    assert result == (False, "graph_gpu_attempt_failed")
-    assert len(calls) == 1 and settled == ["direct-task~gpu1"]
+    ledger = _Ledger({"direct-task~shadow": "RESERVED"})
+    with pytest.raises(RemoteLaneDown) as raised:
+        _check(_repeat_provider(ledger), monkeypatch, [RuntimeError("no device")])
+    assert raised.value.private_diagnostic == b"remote_gpu_build_shadow_failed"
+    assert settled == ["direct-task~shadow"]
+    with pytest.raises(RemoteLaneDown) as raised:
+        _check(_repeat_provider(), monkeypatch, [RemoteLaneDown(b"link")])
+    assert raised.value.private_diagnostic == b"link"
 
 
 def test_the_campaigns_own_limits_are_never_swallowed(monkeypatch):
@@ -533,6 +540,12 @@ def test_the_campaigns_own_limits_are_never_swallowed(monkeypatch):
     )
     with pytest.raises(LedgerRefusal):
         _check(_repeat_provider(), monkeypatch, [refusal])
+
+
+def test_the_probe_identities_include_the_shadow():
+    assert DirectDevelopmentTasksV3._probe_children(
+        _repeat_provider(), SimpleNamespace(value="direct-task")
+    ) == ("direct-task~gpu1", "direct-task~gpu2", "direct-task~shadow")
 
 
 def test_there_are_no_probes_without_a_lane():
@@ -561,6 +574,59 @@ def test_a_device_class_without_the_owners_acceptance_never_starts_the_lane(
         receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "mainnet")
     with pytest.raises(DeviceClassNotAccepted):
         receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, None)
+
+
+def test_a_box_pool_binds_its_class_and_the_receiver_starts_with_no_box(
+    tmp_path, monkeypatch
+):
+    """On-demand boxes (owner, 17 Nov): the receiver binds the GPU build CLASS of the values row, needs no box (and no
+    host GPU record) at start, and pins only the class."""
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction import remote_gpu_build
+    from carbon.reconstruction.worker import accelerator_runtime, docker_runtime
+
+    receiver, cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path)
+    root = tmp_path / "host"
+    (root / remote_gpu_build.BOXES_DIR).mkdir(mode=0o700, parents=True)
+    monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", root)
+    monkeypatch.setattr(remote_gpu_build, "_PINNED", {})
+    monkeypatch.setattr(
+        research_carrier, "_gpu_device", lambda: pytest.fail("no box record needed")
+    )
+    monkeypatch.setattr(
+        docker_runtime, "doctor", lambda **_: pytest.fail("no box is needed at start")
+    )
+    challenge = SimpleNamespace(challenge_id="electric-motor-magnetics", version="1.8")
+    image, ops, _digest, device = receiver.graph_gpu_lane(
+        cfg, {}, allowlist_bytes, "finney", challenge
+    )
+    assert image == JAX and ops == {"dot_general", "tanh"}
+    assert device.door_binding() == {"kind": "NVIDIA A100-SXM4-40GB", "class": True}
+    assert remote_gpu_build._PINNED[(challenge.challenge_id, challenge.version)] == (
+        "NVIDIA A100-SXM4-40GB",
+        4,
+        "shared",
+        False,
+    )
+    # the class still needs the owner's hardware acceptance on the chain network
+    from carbon.reconstruction.hardware_acceptance import DeviceClassNotAccepted
+
+    with pytest.raises(DeviceClassNotAccepted):
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "nowhere", challenge)
+    # no boxes directory: the door's own GPU, bound by its record as before
+    (root / remote_gpu_build.BOXES_DIR).rmdir()
+    monkeypatch.setattr(
+        research_carrier,
+        "_gpu_device",
+        lambda: SimpleNamespace(
+            device_kind="NVIDIA A100-SXM4-40GB", digest="sha256:" + "4" * 64
+        ),
+    )
+    monkeypatch.setattr(
+        docker_runtime, "doctor", lambda **_: SimpleNamespace(eligible=True)
+    )
+    *_, device = receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "finney", challenge)
+    assert device.digest == "sha256:" + "4" * 64
 
 
 def test_a_host_without_a_gpu_record_refuses_the_lane(tmp_path, monkeypatch):
@@ -834,6 +900,65 @@ def test_the_served_task_no_longer_runs_the_gpu_repeat_check():
     source = inspect.getsource(DirectDevelopmentTasksV3._run_queued_task)
     assert "_graph_gpu_repeats(" not in source
     assert "_gpu_build_failure_is_carbons(exc)" in source
+
+
+def test_a_pool_with_no_box_up_sends_the_graph_to_the_cpu():
+    """Zero boxes: the served path drops the GPU device before the build (`remote_gpu_build.no_machine`), so the
+    graph builds on the CPU image with no lane fields, exactly as a door with no lane.
+    """
+    import inspect
+
+    source = inspect.getsource(DirectDevelopmentTasksV3._run_queued_task)
+    choose = source.index("self._graph_lane(source_envelope, image)")
+    fallback = source.index("remote_gpu_build.no_machine()")
+    build = source.index("reconstruct_and_infer_graph_public(")
+    assert choose < fallback < build
+    assert 'graph_gpu, graph_lane = None, {"image": image}' in source
+
+
+def test_a_settled_build_replays_on_its_device_and_an_unproven_box_s_failure_is_carbons():
+    """A build the ledger settled keeps the device it ran on (no CPU fallback flip), and a miner-looking failure or a
+    graph decision after a build on a never-proven box is Carbon's (`RemoteLaneDown`), never charged.
+    """
+    import inspect
+
+    source = inspect.getsource(DirectDevelopmentTasksV3._run_queued_task)
+    assert "self._settled_build_on_gpu(task_id)" in source
+    assert "settled_gpu is False or (" in source
+    assert "except (CandidateBuildRefused, MinerProgramFailure) as error:" in source
+    assert b"remote_gpu_build_unproven_box_build_failed".decode() in source
+    assert b"remote_gpu_build_unproven_box_decision".decode() in source
+
+
+def test_the_settled_device_is_read_from_the_build_intent(tmp_path):
+    from types import SimpleNamespace
+
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+
+    build = direct_child_identity("task-1", "build")
+    states = {}
+
+    class _Ledger:
+        root = tmp_path
+
+        def operation_state(self, identity, *, owner):
+            return states.get(identity)
+
+    provider = SimpleNamespace(ledger=_Ledger(), owner="o")
+    task = SimpleNamespace(value="task-1")
+    call = DirectDevelopmentTasksV3._settled_build_on_gpu
+    assert call(provider, task) is None  # not settled
+    states[build] = "SUCCEEDED"
+    assert call(provider, task) is None  # no intent
+    (tmp_path / "operation-a").mkdir()
+    intent = {"owner": "o", "identity": build, "request": {"image": "sha256:x"}}
+    (tmp_path / "operation-a" / "intent.json").write_text(json.dumps(intent))
+    assert call(provider, task) is False
+    intent["request"]["accelerator"] = {"kind": "VALIDATOR_OWN_GPU"}
+    (tmp_path / "operation-a" / "intent.json").write_text(json.dumps(intent))
+    assert call(provider, task) is True
 
 
 def _miner_failure(observation, code="RUNTIME"):

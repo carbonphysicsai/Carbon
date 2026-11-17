@@ -131,28 +131,25 @@ def test_a_build_waiting_for_a_busy_local_lane_never_stops_grades_starting(host)
         round_.end()
 
 
-def test_the_build_round_count_reads_the_remote_build_box_slots(monkeypatch):
+def test_the_build_round_count_reads_the_box_pool_s_most_slots(monkeypatch):
     class _Intake:
         class challenge:
             challenge_id, version = "electric-motor-magnetics", "1.8"
 
-    def lane(local, slots=4):
-        spec = remote_gpu_build.GpuBuildSpec(
-            0, None if local else "ssh://carbon-grade@a100.example", None, ("0-3",)
-        )
-        return remote_gpu_build.DoorLane(spec, slots, object(), "/x")
+    seen = []
 
-    monkeypatch.setattr(remote_gpu_build, "door_lane", lambda *a, **k: lane(False))
-    assert direct_intake._remote_build_slots(_Intake) == 4
-    monkeypatch.setattr(remote_gpu_build, "door_lane", lambda *a, **k: lane(True))
-    assert direct_intake._remote_build_slots(_Intake) == 0
-    monkeypatch.setattr(remote_gpu_build, "door_lane", lambda *a, **k: None)
-    assert direct_intake._remote_build_slots(_Intake) == 0
+    def slots(challenge_id, version, **kwargs):
+        seen.append((challenge_id, version))
+        return 12
+
+    monkeypatch.setattr(remote_gpu_build, "door_build_slots", slots)
+    assert direct_intake._remote_build_slots(_Intake) == 12
+    assert seen == [("electric-motor-magnetics", "1.8")]
 
     def broken(*a, **k):
         raise ValueError("remote_gpu_build_device_kind")
 
-    monkeypatch.setattr(remote_gpu_build, "door_lane", broken)
+    monkeypatch.setattr(remote_gpu_build, "door_build_slots", broken)
     assert direct_intake._remote_build_slots(_Intake) == 0
 
 

@@ -641,12 +641,17 @@ class DirectDevelopmentTasksV3:
         }
 
     def _probe_children(self, task_id):
-        """The GPU repeat check's two rebuild identities for a graph task (none without a lane).
-        Their own names: the served build and inference keep theirs, whichever lane serves.
+        """The GPU build probe identities of a graph task (none without a lane): the old repeat
+        check's two rebuilds and the first-build shadow (`_graph_gpu_shadow`). Their own names: the
+        served build and inference keep theirs, whichever box serves.
         """
         if self.graph_gpu_image is None:
             return ()
-        return tuple(f"{task_id.value}~gpu{n}" for n in (1, 2))
+        # the old repeat probes (a task of an earlier head may hold one) and the first-build shadow
+        return (
+            *(f"{task_id.value}~gpu{n}" for n in (1, 2)),
+            f"{task_id.value}~shadow",
+        )
 
     def _reconcile_probes(self, task_id):
         """Settle a probe a crash or an exception left reserved, so a held reservation never
@@ -657,18 +662,15 @@ class DirectDevelopmentTasksV3:
             if self.ledger.operation_state(child, owner=self.owner) == "RESERVED":
                 reconcile_worker(self.ledger, owner=self.owner, identity=child)
 
-    def _graph_gpu_repeats(
-        self, task_id, request, recipe, binding, source_envelope, device
+    def _graph_gpu_shadow(
+        self, task_id, request, recipe, binding, source_envelope, device, new_box
     ):
-        """Whether two more GPU rebuilds of this graph, each in its own isolated child, give a
-        bit-identical state (GPU_REBUILD_RULINGS rule 1: two independent rebuilds must match or
-        the CPU rebuilds it). Returns ``(repeats, note)``; the note says why not.
-
-        An attempt that fails for a device or infrastructure reason is a CPU rebuild too - the
-        CPU run then reports the graph's own outcome; the campaign's own limits and controls
-        are never swallowed."""
-        import logging
-
+        """The FIRST-BUILD SHADOW of a GPU build box (`remote_gpu_build`; Validator-2's check (e)): this graph built again,
+        with the same recipe, seed and TRAIN, as its own isolated child (``<task>~shadow``) on an already PROVEN box
+        other than ``new_box``. Returns the shadow's state digest. It is not a trial of the miner's, and any failure of
+        it (the proven box's link or GPU above all) is Carbon's (`RemoteLaneDown`, FAILED_INFRA); the campaign's own
+        limits and controls are never swallowed."""
+        from carbon.reconstruction import remote_gpu_build
         from carbon.reconstruction.remote_lane import RemoteLaneDown
 
         from .direct_graph_construction_worker import reconstruct_public_graph
@@ -677,15 +679,14 @@ class DirectDevelopmentTasksV3:
 
         material = self.discovery._material
         limits = material["construction_limits_document"]
-        # The served task charged its one trial; the check is not a trial of the miner's.
-        token = PRECHARGED_TRIAL.set("graph-gpu-repeat")
-        digests = []
+        # The served task charged its one trial; the shadow is not a trial of the miner's.
+        token = PRECHARGED_TRIAL.set("graph-gpu-shadow")
         try:
-            for identity in self._probe_children(task_id):
+            with remote_gpu_build.shadowing(new_box):
                 built = reconstruct_public_graph(
                     self.ledger,
                     owner=self.owner,
-                    identity=identity,
+                    identity=task_id.value + remote_gpu_build.SHADOW_SUFFIX,
                     image=self.graph_gpu_image,
                     recipe=recipe,
                     challenge_binding=binding,
@@ -700,25 +701,76 @@ class DirectDevelopmentTasksV3:
                     adapter_id=self.discovery.graph_adapter_for(request.challenge_key),
                     accelerator=device,
                 )
-                digests.append(built.state_digest)
+            return built.state_digest
         except campaign_limits():
             raise
         except RemoteLaneDown:
-            # the remote GPU build lane's link or GPU (`remote_gpu_build`): Carbon's, FAILED_INFRA, never a CPU
-            # rebuild that could run into the CPU's wall as the miner's
             self._reconcile_probes(task_id)
             raise
-        except Exception:
-            logging.getLogger(__name__).warning(
-                "graph GPU repeat check failed; rebuilding on the CPU", exc_info=True
-            )
+        except Exception as error:
             self._reconcile_probes(task_id)
-            return False, "graph_gpu_attempt_failed"
+            raise RemoteLaneDown(b"remote_gpu_build_shadow_failed") from error
         finally:
             PRECHARGED_TRIAL.reset(token)
-        if len(set(digests)) != 1:
-            return False, "graph_gpu_rebuild_not_repeatable"
-        return True, None
+
+    def _settled_build_on_gpu(self, task_id):
+        """For a graph task whose BUILD op the ledger has settled: whether it built with a GPU accelerator (its durable
+        intent's request names one), else None (not settled, or no single readable intent).
+        """
+        from .bundle_construction_worker import direct_child_identity
+
+        identity = direct_child_identity(task_id.value, "build")
+        state = getattr(self.ledger, "operation_state", None)
+        if not callable(state) or state(identity, owner=self.owner) in (
+            None,
+            "RESERVED",
+        ):
+            return None
+        root = getattr(self.ledger, "root", None)
+        if root is None:
+            return None
+        found = []
+        for path in Path(root).glob("operation-*/intent.json"):
+            try:
+                if path.is_symlink() or path.stat().st_size > 1 << 20:
+                    continue
+                value = json.loads(path.read_bytes())
+            except (OSError, ValueError):
+                continue
+            if (
+                type(value) is dict
+                and value.get("owner") == self.owner
+                and value.get("identity") == identity
+                and type(value.get("request")) is dict
+            ):
+                found.append(value["request"])
+        if len(found) != 1:
+            return None
+        return "accelerator" in found[0]
+
+    def _settle_first_build(
+        self, task_id, request, recipe, binding, source_envelope, device, state_digest
+    ):
+        """After a graph build on a GPU build box: a box's FIRST real build (`remote_gpu_build.first_build_box`) proves
+        it. With no other proven box it is the first box, proven by its own class check at once; else its shadow
+        (`_graph_gpu_shadow`) must give the same state digest: equal marks it PROVEN, unequal refuses the box (its file
+        renamed ``.refused``) and the task is Carbon's (FAILED_INFRA, never charged)."""
+        from carbon.reconstruction import remote_gpu_build
+
+        new_box = remote_gpu_build.first_build_box()
+        if new_box is None:
+            return
+        if not remote_gpu_build.proven_elsewhere(new_box):
+            remote_gpu_build.mark_proven(new_box, "first_box")
+            return
+        shadow = self._graph_gpu_shadow(
+            task_id, request, recipe, binding, source_envelope, device, new_box
+        )
+        if shadow != state_digest:
+            raise remote_gpu_build.refuse(
+                new_box, b"remote_gpu_build_shadow_state_digest_differs"
+            )
+        remote_gpu_build.mark_proven(new_box, "shadow")
 
     def _graph_gpu_binding(self) -> list:
         """The graph GPU lane's part of the provider binding: absent without a lane, so every
@@ -2282,6 +2334,8 @@ class DirectDevelopmentTasksV3:
                         task_id.value in self._task_seeds
                         or task_id.value in self._origin_rebinds
                     ),
+                    # only boxes admitted with the door's graph GPU image take its ops (`_Offer.serves`)
+                    image_id=getattr(self.graph_gpu_image, "image_id", None),
                 )
                 if source_kind == "graph"
                 else nullcontext()
@@ -2289,6 +2343,21 @@ class DirectDevelopmentTasksV3:
                 graph_gpu, graph_note, graph_cpu_ops = None, None, None
                 if source_kind == "graph":
                     graph_gpu, graph_lane = self._graph_lane(source_envelope, image)
+                    # a build the ledger already settled replays on the device it ran on (its request is that
+                    # device's), whatever boxes are up now
+                    settled_gpu = (
+                        self._settled_build_on_gpu(task_id)
+                        if remote_gpu_build.offered_lane() is not None
+                        else None
+                    )
+                    if settled_gpu is False or (
+                        settled_gpu is None
+                        and graph_gpu is not None
+                        and remote_gpu_build.no_machine()
+                    ):
+                        # a box pool with no box up now (all released, drained or down): this graph builds on the
+                        # CPU, as with no lane, and writes no lane fields (Lead + owner, 17 Nov 2026)
+                        graph_gpu, graph_lane = None, {"image": image}
                     if graph_gpu is None and self.graph_gpu_image is not None:
                         from .graph_gpu_lane import OPS_NOTE, cpu_forced_ops
 
@@ -2297,28 +2366,63 @@ class DirectDevelopmentTasksV3:
                         )
                         if graph_cpu_ops is not None:
                             graph_note = OPS_NOTE
-                    # OWNER (17 Nov 2026, to TE3): one GPU build per task on the lane - no per-task repeat check
-                    # (`_graph_gpu_repeats` is no longer called). A GPU build that errors is Carbon's (FAILED_INFRA,
-                    # `_gpu_build_failure_is_carbons`), never the candidate's.
-                    result = reconstruct_and_infer_graph_public(
-                        self.ledger,
-                        owner=self.owner,
-                        identity=task_id.value,
-                        **graph_lane,
-                        recipe=recipe,
-                        challenge_binding=binding,
-                        limits_document=material["construction_limits_document"],
-                        source_envelope=source_envelope,
-                        train=material["train"],
-                        seed=self._seed_for(task_id.value),
-                        inputs=material["practice_inputs"],
-                        expected_output_shape=material["expected_output_shape"],
-                        allowlist_bytes=material["allowlist_bytes"],
-                        measure_query=task_id.value in self._measured_tasks,
-                        adapter_id=self.discovery.graph_adapter_for(
-                            request.challenge_key
-                        ),
-                    )
+                    # OWNER (17 Nov 2026, to TE3): one GPU build per task on the lane - no per-task repeat check; only
+                    # a box's first build is shadowed once (`_settle_first_build`). A GPU build that errors is Carbon's
+                    # (FAILED_INFRA, `_gpu_build_failure_is_carbons`), never the candidate's.
+                    from carbon.reconstruction.remote_lane import RemoteLaneDown
+
+                    try:
+                        result = reconstruct_and_infer_graph_public(
+                            self.ledger,
+                            owner=self.owner,
+                            identity=task_id.value,
+                            **graph_lane,
+                            recipe=recipe,
+                            challenge_binding=binding,
+                            limits_document=material["construction_limits_document"],
+                            source_envelope=source_envelope,
+                            train=material["train"],
+                            seed=self._seed_for(task_id.value),
+                            inputs=material["practice_inputs"],
+                            expected_output_shape=material["expected_output_shape"],
+                            allowlist_bytes=material["allowlist_bytes"],
+                            measure_query=task_id.value in self._measured_tasks,
+                            adapter_id=self.discovery.graph_adapter_for(
+                                request.challenge_key
+                            ),
+                        )
+                    except (CandidateBuildRefused, MinerProgramFailure) as error:
+                        # a device-independent miner outcome is the miner's only on a box already PROVEN: the first
+                        # build on an unproven box is never compared, so its failure is Carbon's (FAILED_INFRA)
+                        if (
+                            graph_gpu is not None
+                            and remote_gpu_build.first_build_box() is not None
+                        ):
+                            raise RemoteLaneDown(
+                                b"remote_gpu_build_unproven_box_build_failed"
+                            ) from error
+                        raise
+                    if (
+                        graph_gpu is not None
+                        and type(result) is not DirectReconstructionResult
+                        and remote_gpu_build.first_build_box() is not None
+                    ):
+                        # a graph decision after a build on an unproven box: the same (never charged)
+                        raise RemoteLaneDown(b"remote_gpu_build_unproven_box_decision")
+                    # a GPU build box's FIRST real build proves the box (shadowed on a proven box, Validator-2 (e))
+                    if (
+                        graph_gpu is not None
+                        and type(result) is DirectReconstructionResult
+                    ):
+                        self._settle_first_build(
+                            task_id,
+                            request,
+                            recipe,
+                            binding,
+                            source_envelope,
+                            graph_lane.get("accelerator"),
+                            result.build.state_digest,
+                        )
                 else:
                     bundle_accelerator = self._build_accelerator_for(
                         LibraryBundleRef.from_dict(

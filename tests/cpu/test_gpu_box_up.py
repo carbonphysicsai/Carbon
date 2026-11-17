@@ -901,6 +901,18 @@ def test_a_passing_box_gets_exactly_the_box_file(tmp_path):
     assert document["check_output_sha256"] == _sha(box.class_output.encode())
     assert document["check_ops_record_sha256"] == _sha(box.class_ops.encode())
     assert document["admitted_unix"] == 1763300000
+    # the door's box pool reads exactly this file at its next build (`remote_gpu_build.read_box`): no restart
+    from carbon.reconstruction import remote_gpu_build
+
+    lane = remote_gpu_build.read_box(path, kind=KIND, slots=4, root=tmp_path / "host")
+    assert (
+        lane.spec.name == "a100-1" and lane.spec.docker_host == document["docker_host"]
+    )
+    assert (
+        lane.spec.host_key == document["host_key"] and lane.device.device_uuid == UUID
+    )
+    assert lane.spec.images == (JAX, TORCH)
+    assert lane.spec.slot_cpusets == remote_gpu_build.BOX_SLOT_CPUSETS
     assert box.loaded == {JAX: JAX, TORCH: TORCH} and box.tree
     # The door changed nothing the admin phase owns.
     assert box.restarts == 0 and box.driver_installs == 0

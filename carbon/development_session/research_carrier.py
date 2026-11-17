@@ -364,11 +364,9 @@ def _run(ledger, **kwargs):
     # Option A (Lead 17 Nov 2026): an op bound for a REMOTE GPU build box runs on none of this host's cores, so a build
     # round gives its LOCAL lane back for the op, its slot wait included, and holds a lane again once the op has ended,
     # before the op's error leaves here (`grade_lanes.released`): the door's other rounds grade on that lane meanwhile.
-    offer = remote_gpu_build.offered_lane()
     off_host = (
         not settled
-        and offer is not None
-        and not offer.spec.local
+        and remote_gpu_build.offered_off_host()
         and remote_gpu_build.eligible(
             identity,
             accelerator=kwargs.get("accelerator"),
@@ -384,6 +382,8 @@ def _run(ledger, **kwargs):
             identity,
             accelerator=kwargs.get("accelerator"),
             settled=settled,
+            # a settled op's replay binds the box its intent recorded (its request names that box's device)
+            recorded=_recorded_build(ledger, owner, identity) if settled else None,
             provenance=kwargs.get("provenance"),
             timed=timed,
             check=(
@@ -430,6 +430,36 @@ def _run(ledger, **kwargs):
             if down is not None:
                 raise down from error
             raise
+
+
+def _recorded_build(ledger, owner, identity):
+    """The GPU build slot binding the op's durable intent recorded (`remote_gpu_build.recorded`), or None (no single
+    readable intent, or none recorded)."""
+    from pathlib import Path
+
+    found = []
+    root = getattr(ledger, "root", None)
+    if root is None:
+        return None
+    for path in Path(root).glob("operation-*/intent.json"):
+        try:
+            if path.is_symlink() or path.stat().st_size > 65536:
+                continue
+            value = json.loads(path.read_bytes())
+        except (OSError, ValueError):
+            continue
+        if (
+            type(value) is dict
+            and value.get("owner") == owner
+            and value.get("identity") == identity
+        ):
+            found.append(value)
+    if len(found) != 1:
+        return None
+    try:
+        return remote_gpu_build.recorded(found[0])
+    except (ValueError, OSError):
+        return None
 
 
 def _run_supervised(ledger, **kwargs):
@@ -525,14 +555,37 @@ def _cancel_active_intent(ledger, *, owner, identity):
                 )
         except Exception:  # noqa: BLE001, S110 - observation never gates cleanup
             pass
-        # a remote GPU build slot's container is removed on its lane's daemon, its slot record finished there
+        # a remote GPU build slot's container is removed on its box's daemon, its slot record finished there; a box
+        # whose file is gone (drained or refused) is still reached through its copy when it can be (`_clear_gone_box`)
         remote_build = remote_gpu_build.recorded(intent)
+        if remote_build is not None and remote_build.gone:
+            _clear_gone_box(remote_build, name, label)
+            continue
         with remote_gpu_build.bound(remote_build):
             remove_exact_container(
                 cli=remote_gpu_build.cli(remote_build) or cli,
                 container_name=name,
                 launch_digest=label,
             )
+
+
+def _clear_gone_box(remote_build, name, label):
+    """A recorded op on a box whose file is gone (`remote_gpu_build.recorded` ``gone``): remove its container through the
+    box COPY's pinned wrapper, best effort, and clear its local slot record only once that worked, so a slot whose
+    container may still run is never offered again. Returns whether it was removed."""
+    if remote_build.lane.device is None:
+        return False
+    try:
+        with remote_gpu_build.bound(remote_build):
+            remove_exact_container(
+                cli=remote_gpu_build.cli(remote_build),
+                container_name=name,
+                launch_digest=label,
+            )
+    except Exception:  # noqa: BLE001 - its own watchdog and sweep remove the container
+        return False
+    remote_gpu_build.forget(remote_build)
+    return True
 
 
 # Fixed public construction phases use the same private, closed diagnostic
@@ -1294,7 +1347,8 @@ def _candidate_resource_stop(
         # a REMOTE grade lane: a stalled link looks exactly like a stalled program, so the stop is the candidate's
         # only by the box's own clock (the program still running there, its whole wall run at its stop), the
         # container observed at the stop and the link up now (CV-Motor L12624; else Carbon's)
-        and remote_lane.wall_stop_observable(
+        # (a REMOTE GPU build box's link is read through its own pinned ssh: `remote_gpu_build.wall_stop_observable`)
+        and remote_gpu_build.wall_stop_observable(
             observation,
             box_seconds=(
                 None
@@ -3942,6 +3996,28 @@ def reconcile_worker(ledger, *, owner, identity):
         # the daemon the intent names: a REMOTE grade lane's, a remote GPU build slot's, or this host's
         remote = remote_lane.recorded(intent)
         remote_build = remote_gpu_build.recorded(intent)
+        if remote_build is not None and remote_build.gone:
+            # its box file is gone (drained or refused): the box is gone for the door and the op is Carbon's. Its
+            # container is removed through the box's copy when the box still answers, and only then is its local slot
+            # record cleared; one that cannot be reached is its watchdog's and the box's own sweep's.
+            _clear_gone_box(remote_build, name, label)
+            result = {
+                "schema": "carbon.autoresearch.worker-reconciliation.v1",
+                "operation": path.parent.name,
+                "state": "FAILED_INFRA",
+                "cleanup_observed": False,
+                "accounting": "full original reservation retained as conservative consumption",
+                "scientific_outcome": "UNRESOLVED",
+                "retry_dispatched": False,
+            }
+            ledger.finish(
+                identity,
+                owner=owner,
+                state="FAILED_INFRA",
+                actual=op["reservation"],
+                result=result,
+            )
+            return result
         cli = remote_gpu_build.cli(remote_build) or _cli_for(remote)
         with remote_gpu_build.bound(remote_build):
             remove_exact_container(cli=cli, container_name=name, launch_digest=label)

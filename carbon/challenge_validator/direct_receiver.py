@@ -1565,8 +1565,9 @@ def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network, challeng
     """The validator's graph GPU lane for an operator that configures one:
     ``(worker image, ops frozenset, ops record digest, host device record)``, else four Nones.
 
-    With a remote GPU build lane for the door's ``challenge`` (`remote_gpu_build.door_lane`), the device is that
-    lane machine's own record and the worker is checked on its daemon: the graph builds run there.
+    With a GPU build box pool for the door's ``challenge`` (`remote_gpu_build.door_pool`), the device is the pool's
+    CLASS (`remote_gpu_build.GpuClass`, bound as ``{"kind", "class": true}``): no box is needed at start, and each
+    build checks its own box's GPU and worker image there (`remote_gpu_build.check_host`).
 
     The worker is the registered JAX GPU worker, verified as the receiver's other workers are;
     the ops are the record the hardware class check wrote, valid for the served graph allowlist
@@ -1593,33 +1594,36 @@ def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network, challeng
     from carbon.reconstruction import remote_gpu_build
     from carbon.reconstruction.hardware_acceptance import require_accepted
 
-    remote = (
+    pool = (
         None
         if challenge is None
-        else remote_gpu_build.door_lane(challenge.challenge_id, challenge.version)
+        else remote_gpu_build.door_pool(challenge.challenge_id, challenge.version)
     )
     if challenge is not None:
-        # every graph build of this door runs on exactly the lane bound here, or refuses as Carbon's
-        remote_gpu_build.pin(challenge.challenge_id, challenge.version, remote)
-    startup = None if remote is None else remote_gpu_build.OpBinding(remote, 0)
-    with remote_gpu_build.bound(startup):
+        # every graph build of this door runs on a box of exactly the CLASS bound here, or refuses as Carbon's; boxes
+        # come and go without a restart (`remote_gpu_build`: read at every build)
+        remote_gpu_build.pin(challenge.challenge_id, challenge.version, pool)
+    if pool is not None:
+        # the CLASS, never a box: no box is needed to start (a build with no eligible box is Carbon's, FAILED_INFRA),
+        # and each build re-reads its box's GPU and image there before its container is created
+        device = remote_gpu_build.GpuClass(pool.kind)
+    else:
         device = research_carrier._gpu_device()
-        require_accepted(
-            device.device_kind, research_carrier._gpu_profile_id(), chain_network
-        )
-        image = load_image_identity(Path(cfg["graph_gpu_image_manifest"]))
-        if gpu_image_backend(image) != "jax":
-            raise ValueError("the graph GPU lane needs the JAX GPU worker")
-        try:
-            verify_current_worker(image, implementation)
-        except ValueError:
-            verify_direct_v13_worker(image, implementation, role="jax_gpu")
-        if not doctor(
-            image_id=image.image_id,
-            image_identity=image,
-            **({} if startup is None else {"cli": remote_gpu_build.cli(startup)}),
-        ).eligible:
-            raise ReceiverUnavailable("installed_graph_gpu_worker_unavailable")
+    require_accepted(
+        device.device_kind, research_carrier._gpu_profile_id(), chain_network
+    )
+    image = load_image_identity(Path(cfg["graph_gpu_image_manifest"]))
+    if gpu_image_backend(image) != "jax":
+        raise ValueError("the graph GPU lane needs the JAX GPU worker")
+    try:
+        verify_current_worker(image, implementation)
+    except ValueError:
+        verify_direct_v13_worker(image, implementation, role="jax_gpu")
+    if (
+        pool is None
+        and not doctor(image_id=image.image_id, image_identity=image).eligible
+    ):
+        raise ReceiverUnavailable("installed_graph_gpu_worker_unavailable")
     raw = canonical(private_json(Path(cfg["graph_gpu_ops"])))
     ops = load_record(raw, allowlist_digest=Allowlist(allowlist_bytes).digest)
     return image, ops, digest(raw), device
@@ -2452,10 +2456,15 @@ def serve(
             # Said only when configured: a CPU receiver's binding is what it was.
             immutable["graph_gpu_image"] = asdict(graph_gpu_image)
             immutable["graph_gpu_ops_digest"] = graph_gpu_ops_digest
-            immutable["graph_gpu_device"] = {
-                "kind": graph_gpu_device.device_kind,
-                "record": graph_gpu_device.digest,
-            }
+            # a box pool binds its CLASS (`remote_gpu_build.GpuClass`); a door building on this host's GPU, its record
+            immutable["graph_gpu_device"] = (
+                graph_gpu_device.door_binding()
+                if hasattr(graph_gpu_device, "door_binding")
+                else {
+                    "kind": graph_gpu_device.device_kind,
+                    "record": graph_gpu_device.digest,
+                }
+            )
         # The door part is write-once for the state's life; each release's whole binding is added beside it, so a
         # later release (or a rollback to an earlier one) starts on the same state (`state_binding`).
         from carbon.challenge_validator.state_binding import bind as bind_state

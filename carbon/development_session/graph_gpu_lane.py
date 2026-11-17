@@ -3,8 +3,9 @@
 The graph route is JAX. A validator that holds a JAX GPU worker and its hardware class's passing class check (the
 record it writes, `carbon.graph-gpu-ops.v1`) rebuilds EVERY graph on that GPU (OWNER-GPU-LANE-NO-OP-GATE-01, 17 Nov
 2026: the per-op eligibility gate is dropped; builds on one GPU class are identical). With no record, every graph
-rebuilds on the CPU exactly as before. Each GPU build is still checked to repeat (two more GPU rebuilds,
-`research_tasks._graph_gpu_repeats`); one that fails or does not repeat is rebuilt on the CPU. `cpu_forced_ops` and
+rebuilds on the CPU exactly as before. One GPU build per task (owner, 17 Nov): a GPU build that fails is Carbon's
+(FAILED_INFRA), and only a rented box's first build is shadowed once on a proven box
+(`research_tasks._settle_first_build`). `cpu_forced_ops` and
 `OPS_NOTE` remain only to read evidence retained before the gate was dropped.
 
 This module chooses a device; it grades nothing, reads no private data and does not change what a
@@ -83,8 +84,7 @@ def device_for(source_envelope: bytes, *, gpu_image, gpu_ops):
 
     OWNER-GPU-LANE-NO-OP-GATE-01 (17 Nov 2026): every graph rebuilds on a configured lane's GPU. The lane needs a JAX
     GPU worker and the class's own passing class check (its ops record, which the receiver loads and the door binds);
-    a graph's own ops no longer gate it. A GPU build that fails or does not repeat is still rebuilt on the CPU
-    (`research_tasks._graph_gpu_repeats`), and a lost link or GPU is Carbon's (FAILED_INFRA).
+    a graph's own ops no longer gate it. A GPU build that fails, and a lost link or GPU, is Carbon's (FAILED_INFRA).
     """
     if gpu_image is None or not gpu_ops:
         return None

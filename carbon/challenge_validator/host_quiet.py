@@ -133,16 +133,34 @@ _BOX_GPU_QUERY = (
 
 
 def _box_docker(lane, argv):
-    from carbon.reconstruction import remote_lane
+    from carbon.reconstruction import remote_gpu_build, remote_lane
 
+    if isinstance(lane, remote_gpu_build.OpBinding):
+        # a GPU build box: through its wrapper, whose ssh carries the box's pinned host key
+        try:
+            prefix, environment = remote_gpu_build.box_docker(lane)
+        except remote_lane.RemoteLaneDown as error:
+            raise OSError("remote_gpu_build_box_wrapper") from error
+    else:
+        prefix, environment = ["docker"], remote_lane.docker_environment(
+            lane.docker_host
+        )
     return subprocess.run(
-        ["docker", *argv],
+        [*prefix, *argv],
         capture_output=True,
         timeout=10,
         check=False,
-        env=remote_lane.docker_environment(lane.docker_host),
+        env=environment,
         cwd=os.sep,
     )
+
+
+def _box_output(lane, script):
+    from carbon.reconstruction import remote_gpu_build, remote_lane
+
+    if isinstance(lane, remote_gpu_build.OpBinding):
+        return remote_gpu_build.box_output(lane, script)
+    return remote_lane.box_output(lane, script)
 
 
 def box_worker_containers(lane):
@@ -174,9 +192,7 @@ def box_worker_containers(lane):
 
 def box_foreign_gpu(lane):
     """`foreign_gpu_compute` on REMOTE ``lane``'s box (read there over ssh), or None when it cannot be read."""
-    from carbon.reconstruction import remote_lane
-
-    raw = remote_lane.box_output(lane, _BOX_GPU_QUERY)
+    raw = _box_output(lane, _BOX_GPU_QUERY)
     if raw is None:
         return None
     text = raw.decode("utf-8", "replace")

@@ -98,7 +98,14 @@ def main(arguments: list[str] | None = None) -> int:
         deadline = float(raw_deadline)
     except ValueError:
         return 2
-    cli = DockerCLI()
+    from carbon.reconstruction import remote_gpu_build
+
+    # A GPU build box's container is watched through the box's wrapper (its ssh pins the box's host key: the op's
+    # handed binding, `remote_gpu_build._handoff`); anything else through this host's docker CLI.
+    try:
+        cli = remote_gpu_build.cli() or DockerCLI()
+    except WorkerFailure:
+        cli = DockerCLI()
     # A remote lane's daemon (`carbon.reconstruction.remote_lane`) is reached over ssh: a failed inspect there is only
     # "gone" when the daemon says so; a link fault keeps the guard alive until the deadline.
     remote = remote_lane.is_remote_environment()

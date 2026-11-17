@@ -48,6 +48,10 @@ PASS leaves none of them, so a box that is being (re)brought up, or that failed,
 ``--admin-summary`` the admin phase's JSON must agree with what the door reads (host key, GPU uuid, driver) and its
 sha256 is recorded. ``--dry-run`` prints every command a phase would run and runs none.
 
+``--boxes-dir`` is the door's box pool, ``<HOST_ROOT>/remote-gpu-build-boxes.d`` (`remote_gpu_build.BOXES_DIR`; HOST_ROOT
+is the door's accelerators root): the door reads it again at every build, so the box joins the pool with no restart.
+Draining a box is removing its box file (running builds finish); then it may be released.
+
 **Every value deciding PASS comes from the box; a box or provider that lies or replays another box's output can
 pass. PASS is an engineering admission check, not security qualification; per-build re-reads in the lane and the
 door's own determinism checks remain the guard.**
@@ -64,7 +68,7 @@ beyond ``docker save``. A PASS is a per-box class check, not scientific or secur
         --box-name a100-1 --provider lambda --device-kind "NVIDIA A100-SXM4-40GB" --door-ip 198.51.100.2 \\
         --lane-pubkey lane.pub --ssh-key ~/.ssh/carbon-lane --jax-image sha256:... --image sha256:... \\
         --graph-gpu-image-manifest jax-gpu-image.json --class-record a100-class-check.json \\
-        --class-ops-record a100-ops-record.json --boxes-dir ~/.carbon/boxes --admin-summary admin.json
+        --class-ops-record a100-ops-record.json --boxes-dir <HOST_ROOT>/remote-gpu-build-boxes.d --admin-summary admin.json
 """
 
 from __future__ import annotations

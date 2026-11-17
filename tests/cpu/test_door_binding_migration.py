@@ -292,6 +292,35 @@ def test_the_migratable_keys_are_exactly_the_images_and_the_gpu_lane():
     assert "evaluation_pack_digest" not in state_binding.MIGRATABLE_KEYS
 
 
+def test_the_move_from_a_box_record_to_the_gpu_class_is_one_declared_migration(
+    root, capsys
+):
+    """On-demand boxes (owner, 17 Nov): the door binds the GPU build CLASS, never a box. The move from the bound box
+    record (``{kind, record}``) to the class form (``{kind, "class": true}``) is ONE declared migration of
+    ``graph_gpu_device``; nothing else moves, and later box swaps need none."""
+    from carbon.reconstruction.remote_gpu_build import GpuClass
+
+    kind = "NVIDIA A100-SXM4-40GB"
+    old = _binding(
+        **{**GPU, "graph_gpu_device": {"kind": kind, "record": "sha256:" + "f" * 64}}
+    )
+    new = _binding(
+        revision="2" * 40,
+        **{**GPU, "graph_gpu_device": GpuClass(kind).door_binding()},
+    )
+    assert new["graph_gpu_device"] == {"kind": kind, "class": True}
+    bind(root, old)
+    with pytest.raises(StateBindingRefused):
+        bind(root, new)
+    event = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert event["keys"] == ["graph_gpu_device"] and event["migratable"] is True
+    _request(root, old, new)
+    assert bind(root, new)["migrated"] == 1
+    assert read_door(root) == door_of(new)
+    # a restart on the class form changes nothing (and needs no box)
+    assert bind(root, new)["migrated"] is None
+
+
 def test_migrated_images_says_whether_a_link_moved_a_worker_image(root):
     old = _binding()
     bind(root, old)
