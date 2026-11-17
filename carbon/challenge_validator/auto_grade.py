@@ -632,8 +632,9 @@ class AutoGrader:
             group = self._allowance_group(submission_id)
             if group is None:
                 if busy or held:
-                    # an unknown group waits until it is the only grade in flight
-                    held.add(None)
+                    # an unknown group waits until it is the only grade in flight; only THIS task waits: holding every
+                    # later task behind it, with any owner busy, stops all grading (an unknown group in flight still
+                    # holds the later ones, below)
                     continue
             elif None in held or group in held:
                 held.add(group)
