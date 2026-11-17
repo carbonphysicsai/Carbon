@@ -134,6 +134,40 @@ def test_configured_the_graph_is_graded_on_the_packs_image_and_binds(migrated, c
     )
 
 
+def test_a_grade_refused_before_the_configuration_grades_fresh_after_it(
+    migrated, tmp_path
+):
+    """Tonight's case: the first attempt inferred on the build image and was refused at the platform check, leaving
+    its retained regrade bytes. Configured, the retry runs under its own regrade id on the pack's image (fresh
+    identities), never reading those bytes back, and binds; the first attempt's files are left as they were.
+    """
+    first = _grade(migrated, counted=True)
+    assert "leg_minimum_platform_mismatch" in first["private_evaluation_reason"]
+    old_root = _regrade_root(migrated)
+    old_worker = (old_root / "worker-evidence.json").read_bytes()
+    migrated.used.clear()
+    # the fixture's stand-in worker names every bank inference by ONE fixed operation id (a real worker's derives
+    # from the identity, which the fresh regrade id changes): set the first one aside so the retry may write its own
+    (fixed,) = tmp_path.rglob("operation-" + "c" * 64)
+    fixed.rename(fixed.with_name(fixed.name + ".first-attempt"))
+    retention.install_graded_inference_image(_identity(PACK_IMAGE))
+    result = _grade(migrated, counted=True)
+    assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY", result
+    assert migrated.used and {image for _, image in migrated.used} == {PACK_IMAGE}
+    roots = [
+        p
+        for p in migrated.base.iterdir()
+        if p.is_dir() and p.name != TASK and not p.name.endswith(".evaluation")
+    ]
+    (new_root,) = [p for p in roots if p != old_root]
+    worker = json.loads((new_root / "worker-evidence.json").read_bytes())
+    assert (worker["image_id"], worker["inference_image_id"]) == (BUILD, PACK_IMAGE)
+    assert (old_root / "worker-evidence.json").read_bytes() == old_worker
+    assert _cap_rows(migrated) == [
+        (TASK, "GRADED", "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE", e2e.OWNER, 7)
+    ]
+
+
 def test_configured_image_absent_from_the_image_store_refuses_typed(migrated):
     retention.install_graded_inference_image(_identity(PACK_IMAGE))
     migrated.image_store.clear()

@@ -5347,6 +5347,19 @@ def regrade_retained_entry(
         adapter.challenge_version,
     ):
         raise RetentionUnavailable("regrade_challenge_changed")
+    material = discovery._material
+    provider = adapter._provider(owner)
+    inference_image = _regrade_inference_image(
+        kind, files, provider, recipe, origin, _regrade_incumbent(promotion)
+    )
+    # A graph graded on the configured image while it was built on another (a migrated build, `GRADED_INFERENCE_IMAGE`):
+    # its own regrade id, so the graded pass runs under fresh identities and an earlier attempt's bytes, inferred on the
+    # build image, are never read back as this grade's. Unconfigured, and for a model built on that image: unchanged.
+    moved = (
+        GRADED_INFERENCE_IMAGE is not None
+        and kind == "graph"
+        and inference_image.image_id != _parents(kind, files, provider, recipe)[0]
+    )
     regrade_id = (
         "rtsk_"
         + hashlib.sha256(
@@ -5355,13 +5368,9 @@ def regrade_retained_entry(
                 + "\0REGRADE\0"
                 + snapshot.manifest_digest
                 + (f"\0REPEAT\0{repeat_index}" if repeat_index else "")
+                + (f"\0IMAGE\0{inference_image.image_id}" if moved else "")
             ).encode()
         ).hexdigest()
-    )
-    material = discovery._material
-    provider = adapter._provider(owner)
-    inference_image = _regrade_inference_image(
-        kind, files, provider, recipe, origin, _regrade_incumbent(promotion)
     )
     try:
         bank_raw = snapshot.read_role(
