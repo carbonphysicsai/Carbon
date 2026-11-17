@@ -327,3 +327,26 @@ def test_a_built_task_of_an_earlier_door_names_its_earlier_image():
     assert (
         _migrated_admitted_image_id(SimpleNamespace(), old_binding) is None
     )  # no chain on this provider
+
+
+def test_an_image_the_current_door_still_binds_is_never_an_earlier_doors(carried):
+    """TE3's review of 5de00da7: a migration that KEEPS the parent (a graph-GPU-lane-only migration, a rollback, a
+    later one that keeps it) must not put the current door's own image among the earlier doors' images, else every task
+    admitted and built under the current door would be held forever."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator.lean_recipe_retention import (
+        _migrated_admitted_image_id,
+    )
+    from carbon.challenge_validator.state_binding import migrated_graph_image_bindings
+
+    root, old = carried
+    lane_only = _binding("2" * 40, **GPU)  # parent stays OLD
+    _migrate(root, old, lane_only)
+    bind(root, lane_only)
+    kept = json.dumps(["GRAPH_PARENT", OLD], sort_keys=True, separators=(",", ":"))
+    assert migrated_graph_image_bindings(root) == frozenset()
+    provider = SimpleNamespace(
+        migrated_image_bindings=migrated_graph_image_bindings(root)
+    )
+    assert _migrated_admitted_image_id(provider, kept) is None

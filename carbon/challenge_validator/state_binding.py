@@ -323,17 +323,28 @@ def migrated_graph_image_bindings(root: Path) -> frozenset:
     """The per-task image bindings (``research_tasks.DirectDevelopmentTasksV3._image_binding`` of a graph task:
     ``["GRAPH_PARENT", <image identity>]``) a task admitted under an EARLIER door of this state's checked migration
     chain carries: its parent and inference images. Empty for a state never migrated."""
-    found = set()
-    for door in previous_doors(root):
+
+    def bindings(door):
+        out = set()
         for key in ("parent", "inference_image"):
             image = door.get(key) if type(door) is dict else None
             if type(image) is dict:
-                found.add(
+                out.add(
                     json.dumps(
                         ["GRAPH_PARENT", image], sort_keys=True, separators=(",", ":")
                     )
                 )
-    return frozenset(found)
+        return out
+
+    found = set()
+    for door in previous_doors(root):
+        found |= bindings(door)
+    original = _read(Path(root).absolute() / DOOR_NAME)
+    if original is None:
+        return frozenset()
+    # an image the CURRENT door still binds is never an earlier door's alone (a graph-lane-only migration, a rollback,
+    # a migration that keeps the parent): tasks admitted under it are the current door's own
+    return frozenset(found - bindings(_folded(Path(root).absolute(), original)))
 
 
 def migrated_keys(root: Path) -> frozenset:

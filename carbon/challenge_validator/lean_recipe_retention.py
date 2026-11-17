@@ -536,7 +536,11 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     # A graph task BUILT under an EARLIER door of this state's declared migration chain (its admitted binding is exactly
     # that door's image): HELD, never graded on a state built by another image (Lead + V2, 17 Nov: graded with its
     # admitted image in a later head). A pending code: nothing reserved, nothing charged, the task kept in its place.
-    if _migrated_admitted_image_id(provider, admitted_binding) is not None:
+    if (
+        _migrated_admitted_image_id(provider, admitted_binding) is not None
+        and type(image) is WorkerImageIdentity
+        and admitted_binding != provider._image_binding(image)
+    ):
         raise RetentionUnavailable(MIGRATED_BUILD_HELD)
     if (
         type(image) is not WorkerImageIdentity
