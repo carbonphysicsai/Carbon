@@ -371,7 +371,7 @@ def test_after_a_rearm_nothing_else_hands_the_task_back(tmp_path):
     assert infra_requeue.requeue(root, [A], apply=True, auto=True)["refused"] == {
         A: "already_requeued"
     }
-    assert auto_retry.used(root, A)
+    assert auto_retry.used(root, A, ledger)  # the door passes its ledger
     assert infra_requeue.rearm(root, [A], ruling=RULING, apply=True)["refused"] == {
         A: "already_rearmed"
     }
