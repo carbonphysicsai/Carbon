@@ -846,6 +846,123 @@ def test_a_near_wall_pass_with_slow_workers_is_graded_in_one_process(motor18, tm
     assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
 
 
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_zone_a_a_worker_slow_on_its_one_core_is_filled_in_by_the_parent_inside_the_wall(
+    motor18, tmp_path
+):
+    """G2 zone A (Validator-2's condition, 17 Nov): the worst case fits, so the deadline lies before the wall margin; a
+    worker that is slow on its one core (a dense row; forced here: it hangs after its first row) misses its deadline,
+    the parent makes its rows, and the pass ends GRADED (exit 0) inside the wall with the one-process answers.
+    """
+    from test_paired_inference import FixtureLedger
+
+    rows = _rows(motor18, 40)
+    serial = _serial(motor18, tmp_path, rows)
+
+    def variant(source):
+        assert source.count(_NO_DEADLINE) == 1 and source.count(_PINNED) == 1
+        return source.replace(
+            _NO_DEADLINE,
+            '        assert deadline is None or deadline < case_wall_end, "not zone A"\n'
+            + _NO_DEADLINE,
+        ).replace(
+            _PINNED, "        if low > 0:\n            time.sleep(10**6)\n" + _PINNED
+        )
+
+    ledger, seen = FixtureLedger(tmp_path / "zone-a"), []
+    try:
+        primary, repeat = _graded(
+            motor18, ledger, _file_runner(ledger, seen, variant), "zone-a", rows
+        )
+    finally:
+        ledger.connection.close()
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+    assert all(call["code"] == 0 for call in seen)
+    assert all(
+        "past its deadline; its rows in one process" in call["stderr"] for call in seen
+    )
+    assert "CARBON" not in "".join(call["stderr"] for call in seen)
+
+
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_zone_b_failed_workers_are_carbons_once_then_the_one_process_program(
+    motor18, tmp_path
+):
+    """G2 zone B (Validator-2's condition, 17 Nov): the one-process pass cannot end by the wall margin (forced: the
+    sampled per-row time), so workers start with the wall margin as their deadline; they fail (forced), the rows left
+    cannot end inside the wall, so the parent stops at once with the CARBON mark (exit 3); the host reads it as Carbon's,
+    `_infer_state` records the fallback, and the retry of the same pass is the ONE-process program, whose failures are
+    never read for the mark (a real overrun there is the candidate's own wall stop, classified as main).
+    """
+    from test_paired_inference import FixtureLedger
+
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    rows = _rows(motor18)
+    serial = _serial(motor18, tmp_path, rows)
+
+    def variant(source):
+        if not case_procs.is_procs_program(source):
+            return source  # the one-process retry runs as it is
+        for anchor in (_PER_ROW, _NO_DEADLINE, _WORKER_START):
+            assert source.count(anchor) == 1, anchor
+        return (
+            source.replace(
+                _PER_ROW,
+                _PER_ROW
+                + "        per_row = (case_wall_end - time.monotonic()) / max(1, rows - len(sample) - 1)\n",
+            )
+            .replace(
+                _NO_DEADLINE,
+                '        assert deadline == case_wall_end, "not zone B"\n'
+                + _NO_DEADLINE,
+            )
+            .replace(_WORKER_START, _WORKER_START + "        os._exit(3)\n")
+        )
+
+    def runner_for(ledger, seen):
+        plain = _file_runner(ledger, seen, variant)
+
+        def runner(current_ledger, *, source, **kwargs):
+            try:
+                return plain(current_ledger, source=source, **kwargs)
+            except AssertionError:
+                raise WorkerFailure(
+                    WorkerCode.RUNTIME,
+                    private_diagnostic=(
+                        f"exit={seen[-1]['code']}\nstderr:\n{seen[-1]['stderr']}"
+                    ).encode(),
+                ) from None
+
+        return runner
+
+    ledger, seen = FixtureLedger(tmp_path / "zone-b-fail"), []
+    try:
+        with pytest.raises(Exception) as failed:
+            _graded(motor18, ledger, runner_for(ledger, seen), "zone-b-1", rows)
+        assert seen[-1]["code"] == 3, seen[-1]["stderr"][-4000:]
+        assert "exit 3, no part; its rows in one process" in seen[-1]["stderr"]
+        assert "rows left cannot finish inside the inference wall" in seen[-1]["stderr"]
+        assert research_carrier._case_procs_fell_back(_procs(), failed.value.__cause__)
+        assert len(list(ledger.root.glob("case-procs-fallback-*.json"))) == 1
+        first = len(seen)
+        primary, repeat = _graded(
+            motor18, ledger, runner_for(ledger, seen), "zone-b-2", rows
+        )
+    finally:
+        ledger.connection.close()
+    one_process = case_procs.serial_program(_procs())
+    assert [call["source"] for call in seen[first:]] == [one_process] * 2
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+    # the retry's own failure, whatever its stderr, is never Carbon's: its wall stop is the candidate's, as main
+    assert not research_carrier._case_procs_fell_back(
+        one_process, failed.value.__cause__
+    )
+
+
 _CASE_BLOCK = "    def case_block(index):\n"
 _PER_ROW = "        per_row = (time.perf_counter() - clock) / max(1, len(sample) - 1)\n"
 _PINNED = "        pinned = set()\n"
