@@ -366,13 +366,22 @@ def _laneless(releaser, lane):
     )
 
 
+def take_lane_if_laneless():
+    """A build round holding no lane now (`_laneless`) holds a LOCAL lane (`retake`: the builds' reserved lane first,
+    never on without one) and keeps it for the rest of the round; returns the bound lane (None outside such a round).
+    Called wherever this host's cores are chosen (`host_execution.resolve_cpuset`, `laned`), so no container of a
+    laneless build round ever lands on cores a grade lane holds."""
+    releaser = _RELEASER.get()
+    if _laneless(releaser, _BOUND.get()):
+        _BOUND.set(releaser.retake())
+    return _BOUND.get()
+
+
 @contextmanager
 def laned():
-    """Around an op that runs on THIS host (owner, 17 Nov 2026): a build round holding no lane (`_laneless`) holds a
-    LOCAL lane first (`retake`: the builds' reserved lane first, never on without one) and keeps it for the rest of the
-    round. Every other round: nothing."""
-    if _laneless(_RELEASER.get(), _BOUND.get()):
-        _BOUND.set(_RELEASER.get().retake())
+    """Around an op that runs on THIS host (owner, 17 Nov 2026): a build round holding no lane holds a LOCAL lane first
+    (`take_lane_if_laneless`). Every other round: nothing."""
+    take_lane_if_laneless()
     yield
 
 

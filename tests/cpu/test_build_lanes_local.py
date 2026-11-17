@@ -299,3 +299,28 @@ def test_a_laneless_builds_local_op_holds_a_local_lane_first(host):
         assert lane is not None and lane.docker_host is None and lane.index == 0
         assert grade_lanes.current() == lane
     assert grade_lanes.current() is None
+
+
+def test_a_laneless_build_container_chosen_outside_the_carrier_gets_a_local_lane(host):
+    """V2's challenge (17 Nov 2026): a container a laneless build round starts outside the carrier's op path (the
+    library/overlay environment build, an image check) has its cores chosen by `host_execution.resolve_cpuset`, which
+    first holds the round a LOCAL lane (the builds' reserved lane): never the host record's or derived cores, which may
+    be a grade lane's."""
+    from carbon.reconstruction import host_execution
+
+    work, _ = _door(host, extra=4)
+    with work.taking("advance"):
+        assert grade_lanes.current() is None
+        cpuset = host_execution.resolve_cpuset(logical_cpus=16, count=4)
+        assert cpuset == "0-3"  # the reserved local lane's own cores
+        assert grade_lanes.current().index == 0
+    assert grade_lanes.current() is None
+
+
+def test_outside_a_laneless_build_round_the_cores_are_chosen_as_before(host):
+    from carbon.reconstruction import host_execution
+
+    work, _ = _door(host, extra=4)
+    with work.taking("grade", has_work=lambda: True):
+        lane = grade_lanes.current()
+        assert host_execution.resolve_cpuset(logical_cpus=16, count=4) == lane.cpuset

@@ -188,7 +188,10 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
         ):
             raise WorkerFailure(WorkerCode.POLICY)
         return remote
-    lane = grade_lanes.current()
+    # A build round that started LANELESS (V2, 17 Nov 2026): wherever a container's cores are chosen outside the
+    # carrier's own op path, the round first holds a local lane (the builds' reserved lane first): never the record's or
+    # the derived cores, which may be a grade lane's
+    lane = grade_lanes.take_lane_if_laneless()
     if lane is not None:
         cores = parse_cpuset(lane.cpuset)
         if len(cores) != count or (
