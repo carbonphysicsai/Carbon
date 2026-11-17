@@ -53,7 +53,9 @@ ACTIVE = None
 CROWN_MARGIN_UNSET = "crown_margin_unset"
 #: The noise slot's digest while no margin is registered: the comparison then only screens (margin 0) which contenders
 #: would change the crown, and every such decision waits (`margin_unset`).
-UNSET_DIGEST = "sha256:" + hashlib.sha256(b"carbon.crown-official.margin-unset").hexdigest()
+UNSET_DIGEST = (
+    "sha256:" + hashlib.sha256(b"carbon.crown-official.margin-unset").hexdigest()
+)
 
 
 def _entry_digest(key, entry):
@@ -141,10 +143,10 @@ def comparator(registered_comparator):
 __all__ = [
     "ACTIVE",
     "CROWN_MARGIN_UNSET",
-    "UNSET_DIGEST",
     "RECORD_RULE",
     "REGISTRY",
     "SCHEMA",
+    "UNSET_DIGEST",
     "CrownOfficialInvalid",
     "comparator",
     "install",
