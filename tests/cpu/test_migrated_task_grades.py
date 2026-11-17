@@ -4,8 +4,9 @@ GPU lane) (16 Nov 2026, 116 drained: "admitted_image_changed"). Reproduces it th
 admitted image binding and its evidence name the OLD images, the provider now serves the NEW ones (TE3's repro).
 
 (B) (Lead + Validator-2, 17 Nov): a task BUILT under an earlier door of the checked chain is GRADED WITH ITS ADMITTED
-image (the earlier door's full identity), checked on the host first; absent there it is Carbon's failure (typed,
-FAILED_INFRA), never the candidate's. Every inference of its grade (the regrade's passes, the pair, the single calls,
+image (the earlier door's full identity). Since switch 2 (V2 ruling, 17 Nov 2026) no separate `doctor` call checks it
+first: called unsized, it refused every migrated task on a 4-core Ryzen lane (WorkerCode.POLICY; TE3's repro); each op
+still meets the carrier's own sized doctor on its lane, as every op does. Every inference of its grade (the regrade's passes, the pair, the single calls,
 the menu re-check) runs on that image. A task GPU-built under the earlier door names that door's graph GPU image. A
 bundle overlay task built on an earlier door's construction parent is graded with that door's parent and inference
 image. Without a declared migration, and for an image that is no earlier door's, the check still refuses.
@@ -75,15 +76,17 @@ def _evidence(image_id, **lane):
 
 @pytest.fixture
 def host(monkeypatch):
-    """The grading host's image store as the read-only doctor sees it: ``present`` holds the eligible image ids."""
+    """The read-only doctor as TE3 reproduced it on a 4-core Ryzen lane: called UNSIZED it refuses (WorkerCode.POLICY,
+    the 2-CPU default cpuset against the lane's 4 cores). The migrated image check must never call it (``seen``).
+    """
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
     present = set()
     seen = []
 
     def doctor(*, image_id=None, image_identity=None, **_):
         seen.append((image_id, image_identity))
-        return SimpleNamespace(
-            eligible=image_id in present and image_identity.image_id == image_id
-        )
+        raise WorkerFailure(WorkerCode.POLICY)
 
     monkeypatch.setattr(
         "carbon.reconstruction.worker.docker_runtime.doctor", doctor, raising=True
@@ -147,23 +150,31 @@ def test_a_task_built_before_a_declared_migration_gets_past_the_image_check_on_i
         assert _code(provider, _evidence(old.image_id)) == (
             "admitted_graph_source_changed"
         )
-        # checked on the host as the ADMITTED identity, exactly
-        assert host.seen == [(old.image_id, old)]
+        # no separate doctor call (switch 2): it refused every migrated task on a Ryzen lane
+        assert host.seen == []
         assert "migrated_build_held" not in auto_grade._PENDING
     finally:
         provider.close()
 
 
 @needs_fcntl
-def test_an_admitted_image_absent_from_the_host_is_carbons_failure(
+def test_the_unsized_doctor_refusal_of_a_ryzen_lane_no_longer_fails_a_migrated_task(
     tmp_path, monkeypatch, host
 ):
+    """TE3's repro (switch-2 copy, 14 of 14 migrated_admitted_image_unavailable): the doctor refuses POLICY on a 4-core
+    lane; the migrated task goes past the image check all the same, as with the image present.
+    """
+    from carbon.reconstruction import grade_lanes
+
     provider, old, _new = _migrated_provider(tmp_path, monkeypatch)
     try:
-        code = _code(provider, _evidence(old.image_id))
-        assert code == MIGRATED_IMAGE_UNAVAILABLE
-        # not a pending code (never held forever) and not a candidate code: the grader's FAILED give-back
-        assert code not in auto_grade._PENDING
+        lane = grade_lanes.Lane(
+            2, "0-3", str(tmp_path), "ssh://carbon-grade@box.example", "/srv/gb"
+        )
+        with grade_lanes.bound(lane):
+            code = _code(provider, _evidence(old.image_id))
+        assert code == "admitted_graph_source_changed" != MIGRATED_IMAGE_UNAVAILABLE
+        assert host.seen == []
     finally:
         provider.close()
 
@@ -302,14 +313,11 @@ def _regrade(provider, origin, files, kind="graph"):
     )
 
 
-def test_the_counted_regrade_infers_on_the_admitted_image_checked_on_the_host(host):
+def test_the_counted_regrade_infers_on_the_admitted_image(host):
     provider = _provider(graph=GRAPH_OLD, other=GRAPH_OTHER)
     files = {"image.json": json.dumps(asdict(OLD)).encode()}
-    with pytest.raises(RetentionUnavailable, match=MIGRATED_IMAGE_UNAVAILABLE):
-        _regrade(provider, "graph", files)
-    host.present.add(OLD_ID)
     assert _regrade(provider, "graph", files) == OLD
-    assert host.seen[-1] == (OLD_ID, OLD)
+    assert host.seen == []  # no unsized doctor (switch 2)
     # a retained record that is not exactly the admitted identity, or a task of no earlier door: refused as before
     changed = {"image.json": json.dumps({**asdict(OLD), "wheel_digest": H}).encode()}
     with pytest.raises(RetentionUnavailable, match="regrade_construction_parent"):
@@ -498,13 +506,15 @@ def test_every_regrade_of_an_old_image_model_infers_on_its_admitted_image(
     assert (
         kwargs["inference_image"] == OLD
     )  # the admitted image, never the door's current one
-    assert regrade_harness.host.seen == [(OLD_ID, OLD)]
+    assert regrade_harness.host.seen == []  # no unsized doctor (switch 2)
 
 
-def test_a_regrade_whose_admitted_image_is_absent_is_carbons_failure(regrade_harness):
+def test_a_regrade_on_a_lane_whose_doctor_refuses_unsized_still_infers(regrade_harness):
+    """Switch 2: the unsized doctor's POLICY refusal (TE3) is never consulted; the regrade infers on the admitted image."""
     regrade_harness.origin(asdict(OLD))
-    assert regrade_harness.grade(counted=True) == MIGRATED_IMAGE_UNAVAILABLE
-    assert regrade_harness.seen == []  # no inference ran
+    assert regrade_harness.grade(counted=True) == "regrade_inference_recorded"
+    (kwargs,) = regrade_harness.seen
+    assert kwargs["inference_image"] == OLD and regrade_harness.host.seen == []
 
 
 def test_a_regrade_of_a_model_of_no_earlier_door_still_refuses(regrade_harness):

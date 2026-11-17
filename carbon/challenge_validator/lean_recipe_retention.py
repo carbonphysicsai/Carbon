@@ -607,14 +607,17 @@ def _migrated_gpu_images(provider, admitted_binding):
 
 
 def _verify_admitted_image(provider, identity):
-    """The admitted image is checked on this host as the receiver checks its current worker image (the read-only
-    `docker_runtime.doctor` with the full identity: the store's ``.Id``, user, labels, entrypoint), and must infer on
-    the door's own inference accelerator (`gpu_practice.direct_bundle_accelerators`: a CPU image for a CPU door; the
-    remote GPU build lane is never involved). Either fault is Carbon's (`RetentionUnavailable`, FAILED_INFRA).
+    """The admitted image must infer on the door's own inference accelerator (`gpu_practice.direct_bundle_accelerators`:
+    a CPU image for a CPU door; the remote GPU build lane is never involved), else Carbon's `MIGRATED_ACCELERATOR_DIFFERS`
+    (FAILED_INFRA).
+
+    No `docker_runtime.doctor` here (V2 ruling, switch 2, 17 Nov 2026: no distinct harm). Called unsized, it resolved the
+    default worker cpuset against the round's lane (2 CPUs on a 4-core Ryzen lane: WorkerCode.POLICY), so every migrated
+    task failed `MIGRATED_IMAGE_UNAVAILABLE` before any image lookup (switch-2 copy: 14 of 14). Each op the grade runs
+    still meets the carrier's own SIZED doctor on its lane's daemon (`research_carrier`, HOST_READINESS), as every op does.
     """
     from carbon.development_session.research_carrier import MINER_GPU, _gpu_pins
     from carbon.reconstruction import torch_profile
-    from carbon.reconstruction.worker.docker_runtime import doctor
 
     # the backend test of `gpu_practice.gpu_image_backend`, from the two grading-path profiles it reads: the JAX GPU
     # worker's lock through the carrier's own pins (no accelerator: the JAX profile), so this module never imports the
@@ -625,12 +628,6 @@ def _verify_admitted_image(provider, identity):
     accelerator = MINER_GPU if jax_gpu else None
     if torch_gpu or accelerator != getattr(provider, "inference_accelerator", None):
         raise RetentionUnavailable(MIGRATED_ACCELERATOR_DIFFERS)
-    try:
-        eligible = doctor(image_id=identity.image_id, image_identity=identity).eligible
-    except Exception as exc:  # an unreadable host: Carbon's
-        raise RetentionUnavailable(MIGRATED_IMAGE_UNAVAILABLE) from exc
-    if eligible is not True:
-        raise RetentionUnavailable(MIGRATED_IMAGE_UNAVAILABLE)
     return identity
 
 
