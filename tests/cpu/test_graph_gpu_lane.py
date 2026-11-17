@@ -631,19 +631,20 @@ def test_an_unknown_evidence_field_still_stops_the_bank():
 # ---- the miner is told which ops forced the CPU --------------------------------------
 
 
-def test_the_ops_that_forced_the_cpu_are_named_sorted_and_nothing_else():
+def test_a_graph_s_ops_never_force_the_cpu_any_more():
+    """OWNER-GPU-LANE-NO-OP-GATE-01: no new evidence names ops that forced the CPU."""
     envelope = _envelope()
     ops = lane.submission_ops(envelope)
     assert len(ops) >= 2
-    assert lane.cpu_forced_ops(envelope, ops) is None  # every op listed: no fallback
-    assert lane.cpu_forced_ops(envelope, ops | {"extra"}) is None
-    forced = lane.cpu_forced_ops(envelope, frozenset({"unrelated"}))
-    assert forced == sorted(ops) and all(type(op) is str for op in forced)
-    one = min(ops)
-    assert lane.cpu_forced_ops(envelope, ops - {one}) == [one]
-    # unreadable graph or no record: no claim is made
+    for gpu_ops in (
+        ops,
+        ops | {"extra"},
+        frozenset({"unrelated"}),
+        ops - {min(ops)},
+        frozenset(),
+    ):
+        assert lane.cpu_forced_ops(envelope, gpu_ops) is None
     assert lane.cpu_forced_ops(b"{}", ops) is None
-    assert lane.cpu_forced_ops(envelope, frozenset()) is None
 
 
 def test_the_public_lane_facts_are_a_closed_allow_list():

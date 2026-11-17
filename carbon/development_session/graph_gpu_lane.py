@@ -100,14 +100,10 @@ def device_for(source_envelope: bytes, *, gpu_image, gpu_ops):
 
 
 def cpu_forced_ops(source_envelope: bytes, gpu_ops):
-    """The sorted names of this graph's ops that are not in the verified GPU list, or None when
-    the graph cannot be read or every op is listed. Names only; nothing else about the graph.
-    """
-    ops = submission_ops(source_envelope)
-    if not ops or not gpu_ops:
-        return None
-    outside = sorted(ops - gpu_ops)
-    return outside or None
+    """Always None: a graph's own ops no longer force the CPU (OWNER-GPU-LANE-NO-OP-GATE-01, 17 Nov 2026), so no new
+    evidence carries `OPS_NOTE`. Kept, with `OPS_NOTE`, so retained evidence written before the gate was dropped still
+    reads."""
+    return
 
 
 def public_lane_facts(gpu_ops, evidence):
