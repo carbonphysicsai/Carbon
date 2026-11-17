@@ -70,7 +70,9 @@ context="${temporary}/context"
 # inputs and stay byte-identical. This script is not a build input, so the snapshot only changes where apt fetches the
 # same signed index and sha256-checked packages, not the image identity. Docker passes the predefined `http_proxy` build
 # argument to RUN steps without recording it in the image or its history. The proxy listens on the host's loopback, so
-# the build uses the host network. CARBON_APT_SNAPSHOT=live builds against the live archive (no proxy), as before.
+# the build uses the host network. That needs a native Linux dockerd (CI, a Linux box, WSL docker). Docker Desktop,
+# rootless or remote builders do not share this loopback, so apt fails at `apt-get update` there (closed: no image).
+# CARBON_APT_SNAPSHOT=live builds against the live archive (no proxy), as before.
 apt_snapshot="${CARBON_APT_SNAPSHOT:-20261116T000000Z}"
 apt_build_args=()
 if [[ "${apt_snapshot}" != "live" ]]; then
