@@ -190,26 +190,24 @@ class _Build:
         self.thread.join(5)
 
 
-def test_a_waiting_retake_holds_back_new_builds_never_new_grades(host):
-    """Both build slots held by builds in a local phase; a third build's remote op ends and it waits to re-take: a new
-    grade still starts on a remote lane, a new build waits behind the re-take."""
+def test_with_remote_build_slots_a_build_starts_with_no_lane(host):
+    """Owner, 17 Nov 2026 ("make them independent of each other"): with remote GPU build slots and remote grade lanes,
+    a build round STARTS holding no lane and no slot, whatever the grades hold: every lane it could take is busy here
+    (two remote grades, a grade on the unreserved local lane, a build's local part on the reserved one)."""
     work, _ = _door(host, extra=4)
-    remote_build = _Build(work)
-    assert remote_build.remote.wait(5)  # its lane and both slots are back
-    local = [_Round(work, "advance") for _ in range(2)]
-    for build in local:
-        assert build.entered.wait(5)
-    remote_build.finish.set()
-    assert not remote_build.local.wait(0.3)  # no build slot free
-    grade = _Round(work, "grade")
-    assert grade.entered.wait(5) and grade.lane.docker_host is not None
-    late = _Round(work, "advance")
-    local[0].end()
-    assert remote_build.local.wait(5)
-    assert not late.entered.wait(0.3)
-    for round_ in (remote_build, local[1], grade, late):
+    assert work.builds_laneless and work._reserved_local == (0,)
+    first = _Build(work)
+    assert first.remote.wait(5)
+    first.finish.set()
+    assert first.local.wait(5) and first.lane.index == 0  # its local part: the reserved lane
+    grades = [_Round(work, "grade") for _ in range(3)]
+    for grade in grades:
+        assert grade.entered.wait(5)
+    assert sorted(g.lane.index for g in grades) == [1, 2, 3]  # never the reserved lane
+    late = _Build(work)
+    assert late.remote.wait(5)  # started: no lane needed
+    for round_ in (*grades, first, late):
         round_.end()
-    assert late.entered.is_set()
 
 
 def test_a_draining_door_gives_up_a_grade_waiting_for_a_remote_lane(host, tmp_path):
@@ -275,15 +273,29 @@ def test_a_build_away_on_the_remote_box_never_lets_grades_starve_a_new_build(tmp
         assert waiting_grade.entered.is_set()
 
 
-def test_a_build_back_from_the_remote_box_finds_its_local_lane_while_grades_wait(host):
-    """The A100's build re-takes a local lane at once: grades hold only the remote lanes, never the local ones."""
+def test_a_build_back_from_the_remote_box_takes_the_reserved_lane_while_grades_wait(host):
+    """Grades fill the remote lanes and the unreserved local lane, never the builds' reserved one: the A100's build
+    holds a local lane for its local part at once, and a fourth grade waits for a lane of its own."""
     work, _ = _door(host, extra=4)
     away = _Build(work)
     assert away.remote.wait(5)
-    grades = [_Round(work, "grade") for _ in range(3)]
+    grades = [_Round(work, "grade") for _ in range(4)]
     entered = [g for g in grades if g.entered.wait(1)]
-    assert len(entered) == 2 and all(g.lane.docker_host is not None for g in entered)
+    assert sorted(g.lane.index for g in entered) == [1, 2, 3]
     away.finish.set()
-    assert away.local.wait(5)  # back on a local lane at once
+    assert away.local.wait(5) and away.lane.index == 0  # the reserved lane, at once
     for round_ in (*grades, away):
         round_.end()
+
+
+def test_a_laneless_builds_local_op_holds_a_local_lane_first(host):
+    """An op on this host (`grade_lanes.laned`): the laneless build round holds a LOCAL lane first, the reserved one,
+    keeps it for the rest of the round, and the binding ends with the round (never a container unpinned)."""
+    work, _ = _door(host, extra=4)
+    with work.taking("advance"):
+        assert grade_lanes.current() is None
+        with grade_lanes.laned():
+            lane = grade_lanes.current()
+        assert lane is not None and lane.docker_host is None and lane.index == 0
+        assert grade_lanes.current() == lane
+    assert grade_lanes.current() is None

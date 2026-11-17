@@ -1715,11 +1715,7 @@ class _WorkLock:
             # live 116 (7aeaa273, 17 Nov 22:2xZ): a grade that fell back to a local lane held it for minutes, so the
             # A100's builds found no local lane to start or re-take and the A100 sat idle with 69 builds queued. With
             # remote grade lanes, grades take ONLY those (`_grades_remote_only`); the local lanes are the builds'.
-            order = (
-                local
-                if kind == "advance"
-                else (remote if self._grades_remote_only() else remote + local)
-            )
+            order = local if kind == "advance" else remote + self._grade_local(local)
         for index, spec in order:
             if index not in self._usable:
                 continue
@@ -1912,13 +1908,13 @@ class _WorkLock:
     def _remote_lane_free(self):
         return self._lane_free(local=False)
 
-    def _lane_free(self, *, local):
-        """Whether one of this door's LOCAL (or REMOTE) lanes is free now (a probe of its lock, let go at once: a hint,
-        never a hold)."""
+    def _lane_free(self, *, local, skip=()):
+        """Whether one of this door's LOCAL (or REMOTE) lanes, but those in ``skip``, is free now (a probe of its lock,
+        let go at once: a hint, never a hold)."""
         from carbon.reconstruction import grade_lanes
 
         for index in self._usable:
-            if (type(self._lanes[index]) is str) is not local:
+            if (type(self._lanes[index]) is str) is not local or index in skip:
                 continue
             fd = self._take(grade_lanes.lane_lock_name(index))
             if fd is not None:
@@ -1941,13 +1937,23 @@ class _WorkLock:
         return self._take_slots(kind)
 
     def _grades_remote_only(self):
-        """Whether this door's grade rounds take its REMOTE lanes only: `builds_local` with at least one usable remote
-        lane (live 116, 17 Nov: grades on the local lanes starved the A100's builds of the lane each needs to start and
-        re-take). A door with no remote grade lane grades on its local lanes, as before.
+        """Whether this door's grade rounds are kept off (some of) its local lanes: `builds_local` with at least one
+        usable remote lane (live 116, 17 Nov: grades on the local lanes starved the A100's builds of the lane each needs
+        to start and re-take). A door with no remote grade lane grades on its local lanes, as before.
         """
         return self.builds_local and any(
             type(self._lanes[index]) is not str for index in self._usable
         )
+
+    def _grade_local(self, local):
+        """The ``(index, spec)`` local lanes a grade round may take: every one on a door with no remote grade lane; on a
+        door whose builds start laneless (`builds_laneless`), every one but the builds' reserved lane; else none."""
+        if not self._grades_remote_only():
+            return local
+        reserved = getattr(self, "_reserved_local", ())
+        if getattr(self, "builds_laneless", False):
+            return [pair for pair in local if pair[0] not in reserved]
+        return []
 
     def _take_slots(self, kind):
         """A round slot, plus a build slot first for a build round under `builds_local` (so at most one build round per
@@ -1958,7 +1964,13 @@ class _WorkLock:
         if (
             kind != "advance"
             and self._grades_remote_only()
-            and not self._lane_free(local=False)
+            and not (
+                self._lane_free(local=False)
+                or (
+                    getattr(self, "builds_laneless", False)
+                    and self._lane_free(local=True, skip=self._reserved_local)
+                )
+            )
         ):
             time.sleep(self._poll)
             return False
@@ -1992,6 +2004,13 @@ class _WorkLock:
             return len(self._usable) if self._parallel else 1
         self.builds_local = True
         self._build_slots = threading.BoundedSemaphore(len(local))
+        # Owner, 17 Nov 2026 ("make them independent of each other"): with remote GPU build slots, a build round STARTS
+        # with no lane (`_Taking._enter_laneless`: it needs only its remote slot), and its local part runs on a local
+        # lane re-taken when it needs one, the first local lane RESERVED for builds (`_reserved_local`): grades never take
+        # it, so a build's local part never waits behind a grade, and grades use every other lane.
+        # (a door with no remote grade lane grades on its local lanes: its builds start on one, as before)
+        self.builds_laneless = extra_rounds > 0 and self._grades_remote_only()
+        self._reserved_local = (min(local),) if self.builds_laneless else ()
         return len(local) + max(0, extra_rounds)
 
     def _take_local_lane(self, *, like=None):
@@ -2159,6 +2178,13 @@ class _Taking:
     def __enter__(self):
         work = self.work
         self._parallel = work._parallel
+        if (
+            self._parallel
+            and self.kind == "advance"
+            and getattr(work, "builds_laneless", False)
+            and getattr(work, "overlap_kinds", False)
+        ):
+            return self._enter_laneless()
         if self._parallel:
             work._enter_parallel(self.kind)
         try:
@@ -2285,6 +2311,40 @@ class _Taking:
         if self._parallel:
             # the shared lock only guards acquiring a lane: the next round of this door may now take another one
             work._lock.release()
+        return work
+
+    def _enter_laneless(self):
+        """A BUILD round of a door whose builds start laneless (`_WorkLock.builds_laneless`; owner, 17 Nov 2026): it holds
+        no lane and no round slot, only its place among the door's live rounds (a drain still sees it busy) and its
+        releaser, in the state of a round whose lane is out (`release`). Its remote GPU op needs nothing more; an op that
+        runs on this host first holds a LOCAL lane (`grade_lanes.laned`, `grade_lanes.released`: `retake`, the builds'
+        reserved lane first), so no container ever runs unpinned. Grades never wait for it, nor it for them."""
+        from carbon.reconstruction import grade_lanes
+
+        work = self.work
+        reason = work._declined()
+        if reason is not None:
+            raise WorkDeclined(reason)
+        if self.has_work is not None and not self.has_work():
+            raise WorkDeclined("idle")
+        ident = threading.get_ident()
+        with work._kinds:
+            work._live[ident] = (self.kind, None)
+            work._away.add(ident)
+            work._kinds.notify_all()
+        self._released, self._held = True, (None, [], None)
+        try:
+            if work._state is not None:
+                work._record_live(self._inflight())
+            reason = work._declined()
+            if reason is not None:
+                raise WorkDeclined(reason)
+        except BaseException:
+            self._released = False
+            work._leave_live()
+            raise
+        self._lane_token = grade_lanes.bind(None)
+        self._releasing = grade_lanes.offer_releaser(self)
         return work
 
     def __exit__(self, *exc):

@@ -335,7 +335,10 @@ def released():
     round that offers a releaser, or on a REMOTE grade lane."""
     releaser = _RELEASER.get()
     lane = _BOUND.get()
-    if (
+    # a build round that started LANELESS (`direct_intake._Taking._enter_laneless`): no lane to give back; it holds a
+    # local lane after the op (its local part), exactly as a round that gave one back
+    laneless = _laneless(releaser, lane)
+    if not laneless and (
         releaser is None
         or lane is None
         or lane.docker_host is not None
@@ -351,6 +354,26 @@ def released():
     finally:
         # `retake` never returns without a lane held (V2 B1): the round never goes on bound to the lane it gave back
         _BOUND.set(releaser.retake())
+
+
+def _laneless(releaser, lane):
+    """Whether the calling round is a BUILD round holding no lane now (started laneless, or its lane out)."""
+    return (
+        releaser is not None
+        and lane is None
+        and getattr(releaser, "_released", False) is True
+        and not getattr(releaser, "any_lane", False)
+    )
+
+
+@contextmanager
+def laned():
+    """Around an op that runs on THIS host (owner, 17 Nov 2026): a build round holding no lane (`_laneless`) holds a
+    LOCAL lane first (`retake`: the builds' reserved lane first, never on without one) and keeps it for the rest of the
+    round. Every other round: nothing."""
+    if _laneless(_RELEASER.get(), _BOUND.get()):
+        _BOUND.set(_RELEASER.get().retake())
+    yield
 
 
 @contextmanager

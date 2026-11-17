@@ -14,7 +14,7 @@ import re
 import shutil
 import stat as stat_module
 import time
-from contextlib import ExitStack, contextmanager, nullcontext, suppress
+from contextlib import ExitStack, contextmanager, suppress
 from contextvars import ContextVar
 from functools import partial
 
@@ -377,7 +377,8 @@ def _run(ledger, **kwargs):
     from carbon.reconstruction import grade_lanes
 
     with (
-        grade_lanes.released() if off_host else nullcontext(),
+        # an op on this host: a build round that started laneless holds a local lane first (`grade_lanes.laned`)
+        grade_lanes.released() if off_host else grade_lanes.laned(),
         remote_gpu_build.op(
             identity,
             accelerator=kwargs.get("accelerator"),
