@@ -4338,6 +4338,19 @@ def install_king_retained_parents(identities):
     )
 
 
+#: The receiver configuration's ``graded_inference_image`` (`install_graded_inference_image`): the WorkerImageIdentity
+#: every regrade / counted GRAPH inference runs on (Lead + Validator 17 Nov), or None: the regrade chooses as before.
+GRADED_INFERENCE_IMAGE = None
+#: The retained file (custody role ``inference_image``) of a graph regrade graded on another image than its build.
+GRADED_INFERENCE_IMAGE_FILE = "inference-image.json"
+
+
+def install_graded_inference_image(identity):
+    """Set `GRADED_INFERENCE_IMAGE` (the receiver does this at start; None when it configures none)."""
+    global GRADED_INFERENCE_IMAGE
+    GRADED_INFERENCE_IMAGE = identity
+
+
 def _docker_image_id(image_id):
     """The local image store's own ``.Id`` for ``image_id`` when it answers to that id DIRECTLY (never through a
     recorded alias), else None. Read-only."""
@@ -4674,8 +4687,37 @@ def _regrade_inference_image(kind, files, provider, recipe, origin, incumbent):
     that id directly with exactly that ``.Id``, and (3) this receiver infers on its construction parent (a separate
     inference image says nothing about the image the king was inferred on). Journal ``king_regrade_on_retained_parent``.
     Anything else, and any other task, refuses ``regrade_construction_parent_differs`` as before (the reason journaled).
+
+    CONFIGURED GRADED INFERENCE IMAGE (Lead + Validator 17 Nov, ``graded_inference_image``): after a declared door
+    migration moved the worker images, builds may stay on the new image but the GRADED inference runs on the image the
+    sealed pack's leg minimums are pinned to. While configured, every graph regrade infers on it, iff the local image
+    store answers to that id directly with exactly that ``.Id`` (else ``graded_inference_image_not_in_the_image_store``);
+    a bundle regrade refuses ``graded_inference_image_graph_only`` (never silently graded elsewhere). Journaled.
     """
+    configured = GRADED_INFERENCE_IMAGE
+    if configured is not None and kind != "graph":
+        raise RetentionUnavailable("graded_inference_image_graph_only")
     retained_parent, current_parent = _parents(kind, files, provider, recipe)
+    if configured is not None:
+        from carbon.challenge_validator import koth_journal
+
+        if _docker_image_id(configured.image_id) != configured.image_id:
+            koth_journal.note(
+                "graded_inference_image_refused",
+                origin=origin,
+                kind=kind,
+                reason="graded_inference_image_not_in_the_image_store",
+            )
+            raise RetentionUnavailable("graded_inference_image_not_in_the_image_store")
+        koth_journal.note(
+            "graded_on_configured_inference_image",
+            origin=origin,
+            kind=kind,
+            retained_image=retained_parent,
+            receiver_image=current_parent,
+            graded_image=configured.image_id,
+        )
+        return configured
     if retained_parent == current_parent:
         return provider.inference_image
     if incumbent is None or origin != incumbent:
@@ -5509,6 +5551,7 @@ def regrade_retained_entry(
                 timed_result=timed_result,
                 timed_raw=timed_raw,
                 timed_identity=infer_identity("timed"),
+                inference_image_id=inference_image.image_id,
             )
             if kind == "graph"
             else None
@@ -5526,6 +5569,11 @@ def regrade_retained_entry(
     artifacts["inference-receipt.json"] = receipt_raw
     if worker_evidence is not None:
         artifacts["worker-evidence.json"] = worker_evidence
+        # A graph graded on another image than its build (a configured ``graded_inference_image``): that image's full
+        # identity is retained as its own custody role, which binds the worker evidence's inference_image_id.
+        artifacts.pop(GRADED_INFERENCE_IMAGE_FILE, None)
+        if inference_image.image_id != json.loads(files["image.json"])["image_id"]:
+            artifacts[GRADED_INFERENCE_IMAGE_FILE] = _json(asdict(inference_image))
     if timed:
         artifacts["timed-query-receipt.json"] = timed_raw
         artifacts["timed-query-predictions.json"] = timed_predictions
@@ -5541,10 +5589,14 @@ def regrade_retained_entry(
         )
         artifacts["lineage.json"] = _json(lineage)
     new_manifest = dict(manifest)
+    roles = dict(manifest["roles"])
+    if GRADED_INFERENCE_IMAGE_FILE in artifacts:
+        roles["inference_image"] = {
+            "file": GRADED_INFERENCE_IMAGE_FILE,
+            "codec": "json",
+        }
     new_manifest["roles"] = {
-        role: spec
-        for role, spec in manifest["roles"].items()
-        if spec["file"] in artifacts
+        role: spec for role, spec in roles.items() if spec["file"] in artifacts
     }
     new_manifest["retained_files"] = {
         name: _sha(raw) for name, raw in sorted(artifacts.items())
@@ -5706,10 +5758,12 @@ def _graph_regrade_worker_evidence(
     timed_result,
     timed_raw,
     timed_identity,
+    inference_image_id,
 ):
     """The regrade's own graph worker evidence: the origin's, with the inference
-    this regrade ran (operation, receipt, predictions and, for a real runner, its
-    effective controls). The build, state and submission are the origin's."""
+    this regrade ran (operation, receipt, predictions, the image it ran on and, for a
+    real runner, its effective controls). The build (image_id / parent_image_id),
+    state and submission are the origin's."""
     import base64
 
     from carbon.development_session import direct_graph_construction_worker as worker
@@ -5720,6 +5774,7 @@ def _graph_regrade_worker_evidence(
     evidence = json.loads(origin_raw)
     evidence.update(
         inference_operation=graded.worker_operation,
+        inference_image_id=inference_image_id,
         inference_receipt=json.loads(receipt_raw),
         predictions_digest=graded.predictions_digest,
         predictions_raw_base64=base64.b64encode(predictions).decode("ascii"),

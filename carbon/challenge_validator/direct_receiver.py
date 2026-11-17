@@ -80,6 +80,11 @@ _OPTIONAL_FIELDS = {
     # receiver's parent moved (Validator 5 Nov, route (a)): his regrade may infer on his own retained parent when the
     # image store holds it with exactly that id (`lean_recipe_retention._regrade_inference_image`). Kings only.
     "king_retained_parents",
+    # Absolute path to ONE carbon.c03.worker-image.v1 manifest: the image every counted/regrade GRAPH inference runs on
+    # (Lead + Validator 17 Nov: builds may stay on a migrated image, the graded inference runs on the image the sealed
+    # pack's leg minimums are pinned to). The local image store must answer to that id directly at grade time
+    # (`lean_recipe_retention._regrade_inference_image`); a bundle regrade refuses while it is set. Absent: as before.
+    "graded_inference_image",
     # R89 (Validator-2 6 Nov 09:16 option b): {guard, group, chunks: {rate_per_s, burst}}, every value the OWNER's
     # (decision #10). Absent: the shared peer bucket as before. Present with any value unset: the receiver refuses.
     "request_buckets",
@@ -343,6 +348,8 @@ def load_config(path: Path) -> dict:
         _check_declared_change(value["declared_exam_change"])
     if "king_retained_parents" in value:
         _king_retained_parents(value["king_retained_parents"])
+    if "graded_inference_image" in value:
+        _graded_inference_image(value["graded_inference_image"])
     if "request_buckets" in value:
         from carbon.challenge_validator import request_buckets
 
@@ -1129,6 +1136,26 @@ def install_king_retained_parents(cfg):
     paths = cfg.get("king_retained_parents")
     lean_recipe_retention.install_king_retained_parents(
         [] if paths is None else _king_retained_parents(paths)
+    )
+
+
+def _graded_inference_image(path):
+    """The identity a ``graded_inference_image`` names: one absolute path of a valid worker-image manifest (loaded
+    exactly like one ``king_retained_parents`` entry)."""
+    try:
+        (identity,) = _king_retained_parents([path])
+    except ValueError:
+        raise ValueError("invalid graded_inference_image") from None
+    return identity
+
+
+def install_graded_inference_image(cfg):
+    """Install the configuration's graded inference image (`lean_recipe_retention.GRADED_INFERENCE_IMAGE`)."""
+    from carbon.challenge_validator import lean_recipe_retention
+
+    path = cfg.get("graded_inference_image")
+    lean_recipe_retention.install_graded_inference_image(
+        None if path is None else _graded_inference_image(path)
     )
 
 
@@ -2155,6 +2182,7 @@ def serve(
     crown_average_host.install(cfg)
     install_declared_change(cfg)
     install_king_retained_parents(cfg)
+    install_graded_inference_image(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg

@@ -65,12 +65,15 @@ _GRAPH_ROLE_CODECS = {
     "seed": "json",
     "task_receipt": "raw_bytes",
     "timed_receipt": "json",
+    # a regrade graded on a receiver's configured graded inference image (custody binds it)
+    "inference_image": "json",
 }
 _GRAPH_REQUIRED_ROLES = frozenset(_GRAPH_ROLE_CODECS) - {
     "fixture",
     "seed",
     "task_receipt",
     "timed_receipt",
+    "inference_image",
 }
 _GRAPH_ENTRY_BINDINGS = (
     "source_kind",

@@ -556,6 +556,7 @@ def test_regrade_controls_name_only_the_new_timed_operation(mode, monkeypatch):
                 None if mode == "pool" else _json({"synthetic": "new timed receipt"})
             ),
             timed_identity="new-timed-identity",
+            inference_image_id=_sha(b"graded inference image"),
         )
     )
     assert evidence["build_image_id"] == origin["build_image_id"]

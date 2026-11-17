@@ -170,6 +170,7 @@ def test_the_regrade_worker_evidence_is_the_origins_with_the_regrades_inference(
         timed_result=timed,
         timed_raw=b'{"timed":1}',
         timed_identity="t",
+        inference_image_id="sha256:" + "c" * 64,
     )
     evidence = json.loads(raw)
     assert evidence["inference_operation"] == graded.worker_operation

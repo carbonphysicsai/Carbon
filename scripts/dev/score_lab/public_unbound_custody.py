@@ -1707,6 +1707,8 @@ _GRAPH_ROLE_CODECS = {
     "worker_evidence": "json",
     "task_receipt": "raw_bytes",
     "timed_receipt": "json",
+    # a regrade graded on a receiver's configured graded inference image: that image's identity
+    "inference_image": "json",
 }
 _GRAPH_CORE_ROLES = frozenset(
     {
@@ -2393,6 +2395,20 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     }
     if set(image) != image_fields or image["image_id"] != image["config_digest"]:
         raise CustodyRefused("graph_image_identity")
+    graded_image = None
+    if "inference_image" in by_role:
+        graded_image = _graph_json(by_role["inference_image"], "graded_inference_image")
+        if (
+            set(graded_image) != image_fields
+            or any(
+                type(graded_image[field]) is not str
+                or re.fullmatch(r"sha256:[0-9a-f]{64}", graded_image[field]) is None
+                for field in image_fields
+            )
+            or graded_image["image_id"] != graded_image["config_digest"]
+            or graded_image["image_id"] == image["image_id"]
+        ):
+            raise CustodyRefused("graph_graded_inference_image")
     for field in image_fields:
         _digest(image[field], f"graph_image_{field}")
     build = _graph_json(by_role["build_receipt"], "build_receipt")
@@ -2578,8 +2594,13 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         or worker["schema"] != "carbon.direct-private-attempt.graph.v1"
         or any(
             worker[field] != image["image_id"]
-            for field in ("image_id", "parent_image_id", "inference_image_id")
+            for field in ("image_id", "parent_image_id")
         )
+        # The build lineage is the image role's. The inference ran on the build's image, or (a regrade on a receiver's
+        # configured `graded_inference_image`, Lead + Validator 17 Nov) on the image the retained ``inference_image``
+        # role names, present only when it differs from the build's.
+        or worker["inference_image_id"]
+        != (image["image_id"] if graded_image is None else graded_image["image_id"])
         or worker["submission_digest"] != submission_digest
         or worker["state_digest"] != _sha(by_role["state"])
         or worker["predictions_digest"] != _sha(by_role["predictions"])
