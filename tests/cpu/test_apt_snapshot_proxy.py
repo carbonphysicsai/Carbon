@@ -76,3 +76,25 @@ def test_the_proxy_is_not_a_worker_build_input():
         ".devcontainer/Dockerfile.reconstruction-worker",
     ):
         assert kept in inputs
+
+
+def test_gateway_mode_answers_only_this_machines_own_clients():
+    local = _proxy().local_client
+    for allowed in (
+        "127.0.0.1",
+        "172.17.0.2",
+        "192.168.65.3",
+        "10.0.2.100",
+        "::1",
+        "::ffff:172.17.0.2",
+        "fe80::1",
+    ):
+        assert local(allowed), allowed
+    for refused in (
+        "8.8.8.8",
+        "1.1.1.1",
+        "2001:4860:4860::8888",
+        "::ffff:8.8.8.8",
+        "not-an-ip",
+    ):
+        assert not local(refused), refused

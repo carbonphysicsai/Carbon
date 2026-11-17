@@ -16,11 +16,12 @@ a grade.
 Only http://archive.ubuntu.com/ubuntu/... and http://security.ubuntu.com/ubuntu/... are served (the base image's
 sources). Any other request is refused with 403, so it cannot hide a different fetch. Standard library only.
 
-    python -I scripts/dev/apt_snapshot_proxy.py SNAPSHOT [PORT]   # prints the bound port on its first stdout line
+    python -I scripts/dev/apt_snapshot_proxy.py SNAPSHOT [PORT] [loopback|gateway]   # prints the bound port on its first stdout line
 """
 
 from __future__ import annotations
 
+import ipaddress
 import re
 import shutil
 import sys
@@ -101,13 +102,41 @@ def handler(snapshot: str):
     return Handler
 
 
+def local_client(address: str) -> bool:
+    """A client this machine's own builds use: loopback, or a private/link-local address (Docker bridges,
+    Docker Desktop's VM network, rootless networking). Anything else is refused before any request is read.
+    """
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return ip.is_loopback or ip.is_private or ip.is_link_local
+
+
+class _LocalServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def verify_request(self, request, client_address) -> bool:
+        return local_client(client_address[0])
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) not in (2, 3) or not SNAPSHOT.match(argv[1]):
-        sys.stderr.write("usage: apt_snapshot_proxy.py YYYYMMDDTHHMMSSZ [PORT]\n")
+    if len(argv) not in (2, 3, 4) or not SNAPSHOT.match(argv[1]):
+        sys.stderr.write(
+            "usage: apt_snapshot_proxy.py YYYYMMDDTHHMMSSZ [PORT] [loopback|gateway]\n"
+        )
         return 2
-    port = int(argv[2]) if len(argv) == 3 else 0
-    server = ThreadingHTTPServer(("127.0.0.1", port), handler(argv[1]))
-    server.daemon_threads = True
+    port = int(argv[2]) if len(argv) >= 3 else 0
+    mode = argv[3] if len(argv) == 4 else "loopback"
+    if mode not in ("loopback", "gateway"):
+        sys.stderr.write("mode must be loopback or gateway\n")
+        return 2
+    # gateway: Docker Desktop / rootless builds reach the host through host-gateway, not its loopback, so listen on
+    # every interface and answer only local clients (`local_client`).
+    bind = "127.0.0.1" if mode == "loopback" else "0.0.0.0"
+    server = _LocalServer((bind, port), handler(argv[1]))
     print(server.server_address[1], flush=True)
     try:
         server.serve_forever()

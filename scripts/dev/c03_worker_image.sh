@@ -69,15 +69,30 @@ context="${temporary}/context"
 # no longer lists it, so the pinned install cannot resolve. The lock, the install script and the Dockerfile are build
 # inputs and stay byte-identical. This script is not a build input, so the snapshot only changes where apt fetches the
 # same signed index and sha256-checked packages, not the image identity. Docker passes the predefined `http_proxy` build
-# argument to RUN steps without recording it in the image or its history. The proxy listens on the host's loopback, so
-# the build uses the host network. That needs a native Linux dockerd (CI, a Linux box, WSL docker). Docker Desktop,
-# rootless or remote builders do not share this loopback, so apt fails at `apt-get update` there (closed: no image).
+# argument to RUN steps without recording it in the image or its history. How the build reaches the proxy:
+#   loopback (native Linux dockerd: CI, a Linux box, WSL docker): the proxy listens on 127.0.0.1 and the build uses the
+#            host network.
+#   gateway  (Docker Desktop on Mac/Windows, rootless dockerd: their "host" network is not this machine's loopback):
+#            the proxy listens on every interface but answers only loopback/private clients, and the build reaches it
+#            as `carbon-apt-proxy` through Docker's host-gateway.
+# The mode is detected from `docker info`; CARBON_APT_PROXY_MODE=loopback|gateway overrides it. A remote DOCKER_HOST
+# cannot reach this machine's proxy either way; apt then fails at `apt-get update` (closed: no image).
 # CARBON_APT_SNAPSHOT=live builds against the live archive (no proxy), as before.
 apt_snapshot="${CARBON_APT_SNAPSHOT:-20261116T000000Z}"
 apt_build_args=()
 if [[ "${apt_snapshot}" != "live" ]]; then
   [[ "${apt_snapshot}" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || fail "CARBON_APT_SNAPSHOT must be YYYYMMDDTHHMMSSZ or live."
-  "${PYTHON}" -I "${script_dir}/apt_snapshot_proxy.py" "${apt_snapshot}" \
+  apt_proxy_mode="${CARBON_APT_PROXY_MODE:-}"
+  if [[ -z "${apt_proxy_mode}" ]]; then
+    docker_engine="$(docker info --format '{{.OperatingSystem}} {{json .SecurityOptions}}' 2>/dev/null || true)"
+    case "${docker_engine}" in
+      *"Docker Desktop"* | *rootless*) apt_proxy_mode="gateway" ;;
+      *) apt_proxy_mode="loopback" ;;
+    esac
+  fi
+  [[ "${apt_proxy_mode}" == "loopback" || "${apt_proxy_mode}" == "gateway" ]] \
+    || fail "CARBON_APT_PROXY_MODE must be loopback or gateway."
+  "${PYTHON}" -I "${script_dir}/apt_snapshot_proxy.py" "${apt_snapshot}" 0 "${apt_proxy_mode}" \
     > "${temporary}/apt-proxy-port" 2> "${temporary}/apt-proxy.log" &
   proxy_pid="$!"
   for _ in $(seq 1 100); do
@@ -88,12 +103,15 @@ if [[ "${apt_snapshot}" != "live" ]]; then
   apt_proxy_port="$(head -n 1 "${temporary}/apt-proxy-port" 2>/dev/null | tr -d '[:space:]')"
   [[ "${apt_proxy_port}" =~ ^[0-9]+$ ]] \
     || fail "the apt snapshot proxy did not start: $(tr '\n' ' ' < "${temporary}/apt-proxy.log")"
-  apt_build_args=(
-    --network host
-    --build-arg "http_proxy=http://127.0.0.1:${apt_proxy_port}"
-    --build-arg "HTTP_PROXY=http://127.0.0.1:${apt_proxy_port}"
-  )
-  echo "Carbon C-03 worker image: apt from snapshot.ubuntu.com ${apt_snapshot}"
+  if [[ "${apt_proxy_mode}" == "loopback" ]]; then
+    apt_proxy="http://127.0.0.1:${apt_proxy_port}"
+    apt_build_args=(--network host)
+  else
+    apt_proxy="http://carbon-apt-proxy:${apt_proxy_port}"
+    apt_build_args=(--add-host "carbon-apt-proxy:host-gateway")
+  fi
+  apt_build_args+=(--build-arg "http_proxy=${apt_proxy}" --build-arg "HTTP_PROXY=${apt_proxy}")
+  echo "Carbon C-03 worker image: apt from snapshot.ubuntu.com ${apt_snapshot} (${apt_proxy_mode})"
 fi
 docker build \
   --platform linux/amd64 \
