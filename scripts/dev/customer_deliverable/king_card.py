@@ -132,6 +132,13 @@ def _label(value, code, *, pattern=_LABEL, optional=False):
     return value
 
 
+def _image(value, code, *, optional=False):
+    """An image is a short label or exactly a ``sha256:`` digest (a digest is public build identity)."""
+    if type(value) is str and _SHA256.fullmatch(value):
+        return value
+    return _label(value, code, optional=optional)
+
+
 def _sig(value):
     """``value`` rounded to `SIGNIFICANT` significant digits (None stays None)."""
     if value is None or value == 0:
@@ -142,12 +149,13 @@ def _sig(value):
 def _number(value, code, *, optional=False, minimum=0.0):
     if value is None and optional:
         return None
-    if (
-        type(value) not in (int, float)
-        or isinstance(value, bool)
-        or not math.isfinite(value)
-        or value < minimum
-    ):
+    if type(value) not in (int, float) or isinstance(value, bool):
+        raise CardRefused(code)
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:  # an int too large for a float
+        finite = False
+    if not finite or value < minimum:
         raise CardRefused(code)
     return value
 
@@ -181,7 +189,7 @@ def _build(raw):
     if type(raw["cpu_fallback"]) is not bool:
         raise CardRefused("card_build")
     return {
-        "image": _label(raw["image"], "card_build"),
+        "image": _image(raw["image"], "card_build"),
         "gpu_class": _label(raw["gpu_class"], "card_build", optional=True),
         "build_seconds": _sig(
             _number(raw["build_seconds"], "card_build", optional=True)
@@ -195,7 +203,7 @@ def _judge(raw):
         return None
     raw = _closed(raw, JUDGE_FIELDS, "card_judge")
     return {
-        "image": _label(raw["image"], "card_judge"),
+        "image": _image(raw["image"], "card_judge"),
         "receiver_commit": _label(
             raw["receiver_commit"], "card_judge", pattern=_COMMIT
         ),
@@ -522,12 +530,16 @@ def write_card(card, out_dir):
         f"{digest}  card.json\n".encode(),
     )
     out.mkdir(parents=True, exist_ok=True)
-    for path, data in zip(paths, contents, strict=True):
-        try:
+    written = []
+    try:
+        for path, data in zip(paths, contents, strict=True):
             with path.open("xb") as handle:
+                written.append(path)
                 handle.write(data)
-        except FileExistsError:
-            raise CardRefused("card_output_exists") from None
+    except FileExistsError:
+        for path in written:  # never leave a partial card set behind
+            path.unlink()
+        raise CardRefused("card_output_exists") from None
     return digest
 
 

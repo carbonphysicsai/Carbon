@@ -465,3 +465,39 @@ def test_no_carbon_module_imports_the_card():
         if "king_card" in path.read_text(encoding="utf-8", errors="replace")
     ]
     assert hits == []
+
+
+def test_huge_integers_refuse_not_crash():
+    build = {
+        "image": "i",
+        "gpu_class": None,
+        "build_seconds": 10**400,
+        "cpu_fallback": False,
+    }
+    _refused(_board(), _facts(build=build), "card_build")
+
+
+def test_image_may_be_a_sha256_digest():
+    build = {
+        "image": "sha256:" + "b" * 64,
+        "gpu_class": None,
+        "build_seconds": None,
+        "cpu_fallback": False,
+    }
+    card = kc.build_card(_board(), SIGNER.public_key, _facts(build=build))
+    assert card["build"]["image"] == "sha256:" + "b" * 64
+
+
+def test_a_race_leaves_no_partial_card(tmp_path, monkeypatch):
+    card = kc.build_card(_board(), SIGNER.public_key, _facts())
+    real_open = Path.open
+
+    def racing_open(self, mode="r", *args, **kwargs):
+        if self.name == "card.md":
+            raise FileExistsError(self)
+        return real_open(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", racing_open)
+    with pytest.raises(kc.CardRefused):
+        kc.write_card(card, tmp_path)
+    assert list(tmp_path.iterdir()) == []
