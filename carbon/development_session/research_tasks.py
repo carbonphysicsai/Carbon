@@ -2143,6 +2143,17 @@ class DirectDevelopmentTasksV3:
                                 raise ValueError(
                                     "admitted direct library image changed"
                                 )
+                            # the admission binding is kept as history (write-once, one transaction with the move)
+                            db.execute(
+                                "CREATE TABLE IF NOT EXISTS direct_task_images_history("
+                                "seq INTEGER PRIMARY KEY, id TEXT NOT NULL, identity TEXT NOT NULL, "
+                                "replaced_ns INTEGER NOT NULL)"
+                            )
+                            db.execute(
+                                "INSERT INTO direct_task_images_history(id, identity, replaced_ns) "
+                                "VALUES(?,?,?)",
+                                (task_id.value, admitted, time.time_ns()),
+                            )
                         self._task_image_bindings[task_id.value] = expected_binding
             except (FileNotFoundError, ValueError, OSError, WorkerFailure):
                 receipt = self._receipt(
