@@ -1205,6 +1205,16 @@ def serve_loopback(
         lanes_rounds if getattr(adapter, "PARALLEL_ADVANCE", False) is True else 1
     )
     if advance_rounds > 1:
+        # BUILD LANES (Lead 17 Nov 2026): builds take the LOCAL lanes only, one build round per local lane plus one per
+        # remote GPU build slot (those wait on the remote box with their lane given back); the remote lanes grade
+        advance_rounds = work.local_builds(_remote_build_slots(intake))
+        log(
+            "direct_build_rounds",
+            rounds=advance_rounds,
+            local_only=work.builds_local,
+            lanes=len(work._usable),
+        )
+    if advance_rounds > 1:
         from .grade_sequencer import OwnerClaims
 
         claims = OwnerClaims()
@@ -1354,6 +1364,26 @@ def _door_remote_only(intake, grading_lock_dir, state_dir):
     return grade_lanes.door_remote_only(state_dir)
 
 
+def _remote_build_slots(intake):
+    """How many slots this door's REMOTE GPU build box offers (`remote_gpu_build.door_lane`): 0 without one, for a
+    local slot lane (its builds hold their lane), or when the lane cannot be read (logged; the start goes on).
+    """
+    challenge = getattr(intake, "challenge", None)
+    try:
+        from carbon.reconstruction import remote_gpu_build
+
+        lane = remote_gpu_build.door_lane(
+            getattr(challenge, "challenge_id", None),
+            getattr(challenge, "version", None),
+        )
+    except Exception as failure:  # noqa: BLE001 - a build-round count, never a failure
+        log("direct_build_rounds_lane_unreadable", type=type(failure).__name__)
+        return 0
+    if lane is None or lane.spec.local:
+        return 0
+    return lane.slots
+
+
 def _door_lanes(intake, grading_lock_dir, state_dir=None):
     """This door's grade lanes (`grade_lanes.door_lanes`): ``()`` = one lane, today's single host lock. Only a door
     that holds the host lock at all can have lanes. In two-lane mode, a REMOTE lane the values row asks for and the
@@ -1471,6 +1501,10 @@ class _WorkLock:
         #: Option A (Lead 17 Nov 2026): how many of this door's build rounds wait to hold a lane AGAIN after their op on a
         #: remote GPU build box (`_Taking.retake`): they finish in-flight work, so no NEW round takes a slot before them.
         self._retakers = 0
+        #: BUILD LANES (Lead 17 Nov 2026, `local_builds`): builds take the door's LOCAL lanes only, each build round
+        #: holding one of `_build_slots` (one per local lane) beside its round slot; None: builds take any lane.
+        self.builds_local = False
+        self._build_slots = None
         if network is None:
             from carbon.chain import models
 
@@ -1639,12 +1673,15 @@ class _WorkLock:
             rank.unlink(missing_ok=True)
             self._wait_since = None
 
-    def _try_host(self):
+    def _try_host(self, kind=None):
         """Take the host's official-grading lock without blocking; True when held. A door that has just released it
         while another door waits stands back for 2 polls first, so a busy door's back-to-back rounds never shut
         a polling door out (fairness without a queue: the waiter's next poll falls inside the gap).
 
         One lane: the host lock AND every other lane lock, all or none (`_take`). Two lanes: the first free lane.
+        With `builds_local` (Lead 17 Nov 2026): a BUILD round (``kind`` ``advance``) takes a LOCAL lane only, and any
+        other round tries the REMOTE lanes first, so the remote grade lanes always grade and the local lanes stay free
+        for builds while a remote lane is.
         """
         from carbon.backbone_catalog.receipt_job import GRADING_LOCK
 
@@ -1667,7 +1704,15 @@ class _WorkLock:
             self._hold(None, grade_lanes.ONE_LANE_MODE)
             return True
         # two lanes: the first free lane, in index order
-        for index, spec in enumerate(self._lanes):
+        order = list(enumerate(self._lanes))
+        if self.builds_local:
+            local = [(index, spec) for index, spec in order if type(spec) is str]
+            order = (
+                local
+                if kind == "advance"
+                else [pair for pair in order if type(pair[1]) is not str] + local
+            )
+        for index, spec in order:
             if index not in self._usable:
                 continue
             fd = self._take(grade_lanes.lane_lock_name(index))
@@ -1779,7 +1824,7 @@ class _WorkLock:
         """Take one of this door's round slots, then wait until no live round of another kind runs (a door whose rounds
         take no owners, `grade_sequencer.OwnerClaims`: an owner's ledger lease is non-blocking). Polls, and gives up
         the round (`WorkDeclined`) as soon as the door stops or drains."""
-        while not self._acquire_slot():
+        while not self._acquire_slot(kind):
             reason = self._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
@@ -1808,7 +1853,7 @@ class _WorkLock:
                         self._kinds.notify_all()
                 self._live[threading.get_ident()] = (kind, None)
         except BaseException:
-            self._slots.release()
+            self._release_slot(kind)
             raise
 
     def _enter_parallel_both_kinds(self, kind):
@@ -1827,7 +1872,7 @@ class _WorkLock:
                         count and other != kind and other not in live
                         for other, count in self._kind_waiters.items()
                     )
-                if not yield_to_other and self._acquire_slot():
+                if not yield_to_other and self._acquire_slot(kind):
                     break
                 if yield_to_other:
                     with self._kinds:
@@ -1839,22 +1884,57 @@ class _WorkLock:
                 with self._kinds:
                     self._live[threading.get_ident()] = (kind, None)
             except BaseException:
-                self._slots.release()
+                self._release_slot(kind)
                 raise
         finally:
             with self._kinds:
                 self._kind_waiters[kind] -= 1
                 self._kinds.notify_all()
 
-    def _acquire_slot(self):
-        """One round slot for a NEW round, within one poll: never while a build round of this door waits to re-take a
-        lane (`_Taking.retake`)."""
+    def _acquire_slot(self, kind=None):
+        """One round slot for a NEW round of ``kind``, within one poll: never while a build round of this door waits to
+        re-take a lane (`_Taking.retake`). Under `builds_local` only a NEW BUILD round stands back for it (a re-take
+        needs a build slot, which grade rounds never hold): grade rounds keep starting on the remote lanes meanwhile.
+        """
         with self._kinds:
-            retaking = self._retakers > 0
+            retaking = self._retakers > 0 and (
+                kind == "advance" or self._build_slots is None
+            )
         if retaking:
             time.sleep(self._poll)
             return False
+        return self._take_slots(kind)
+
+    def _take_slots(self, kind):
+        """A round slot, plus a build slot first for a build round under `builds_local` (so at most one build round per
+        local lane holds a round slot, and a grade round always finds a free lane), within one poll each.
+        """
+        if self._build_slots is not None and kind == "advance":
+            if not self._build_slots.acquire(timeout=self._poll):
+                return False
+            if not self._slots.acquire(timeout=self._poll):
+                self._build_slots.release()
+                return False
+            return True
         return self._slots.acquire(timeout=self._poll)
+
+    def _release_slot(self, kind):
+        self._slots.release()
+        if self._build_slots is not None and kind == "advance":
+            self._build_slots.release()
+
+    def local_builds(self, extra_rounds):
+        """BUILD LANES (Lead 17 Nov 2026): this door's build rounds take its LOCAL lanes only (the remote grade lanes
+        always grade), at most one build round per local lane holding a round slot; returns how many build rounds the
+        door runs: one per local lane plus ``extra_rounds`` (its remote GPU build slots: those rounds wait on the remote
+        box with their lane given back, `grade_lanes.released`). A door with fewer than two local lanes it may use (one
+        lane, or a remote-only door): unchanged, one build round per usable lane."""
+        local = [index for index in self._usable if type(self._lanes[index]) is str]
+        if not self._parallel or len(local) < 2:
+            return len(self._usable) if self._parallel else 1
+        self.builds_local = True
+        self._build_slots = threading.BoundedSemaphore(len(local))
+        return len(local) + max(0, extra_rounds)
 
     def _take_local_lane(self):
         """The first free LOCAL lane this door may use, as a round's own ``(fd, fds, lane)``, or None. Called by a build
@@ -1889,14 +1969,15 @@ class _WorkLock:
             self._write_oldest()
 
     def _leave_parallel(self):
-        self._leave_live()
-        self._slots.release()
+        self._release_slot(self._leave_live())
 
     def _leave_live(self):
+        """Remove this round from the live rounds; returns its kind (None: it was not live)."""
         with self._kinds:
-            self._live.pop(threading.get_ident(), None)
+            kind, _ = self._live.pop(threading.get_ident(), (None, None))
             self._write_oldest()
             self._kinds.notify_all()
+        return kind
 
     def _write_oldest(self):
         if self._state is None:
@@ -1958,6 +2039,23 @@ class _Taking:
             return None
         return place if type(place) is int and place >= 0 else None
 
+    @staticmethod
+    def _poll_without_lock(work):
+        """One poll of a BUILD round waiting for a local lane (`builds_local`), with ``_lock`` let go meanwhile, so the
+        door's other rounds keep taking lanes; this round's queue fields are put back once it holds ``_lock`` again.
+        Gives up the round (`WorkDeclined`) as soon as the door stops or drains."""
+        saved = (work._grade_round, work._wait_since, work._held_since, work._promoted)
+        work._lock.release()
+        try:
+            work._stop.wait(work._poll)
+        finally:
+            work._lock.acquire()
+            work._grade_round, work._wait_since = saved[0], saved[1]
+            work._held_since, work._promoted = saved[2], saved[3]
+        reason = work._declined()
+        if reason is not None:
+            raise WorkDeclined(reason)
+
     def _inflight(self):
         lane = self.work._lane if not self._parallel else self._held[2]
         return {
@@ -2009,7 +2107,13 @@ class _Taking:
                 work._grade_round = True
                 work._wait_since = place
             queued = work._grade_round
-            while work._dir is not None and not work._try_host():
+            # BUILD LANES: a build round waits for one of the LOCAL lanes only, which grade rounds may hold for a whole
+            # grade; it never sleeps holding ``_lock``, so the door's grade rounds keep starting on the remote lanes
+            lets_go = self._parallel and work.builds_local and self.kind == "advance"
+            while work._dir is not None and not work._try_host(self.kind):
+                if lets_go:
+                    self._poll_without_lock(work)
+                    continue
                 if queued and not waiting:
                     if visible and work._state is not None:
                         _write_record(
@@ -2133,7 +2237,7 @@ class _Taking:
             work._release_round(*held)
         finally:
             self._released = True
-            work._slots.release()
+            work._release_slot(self.kind)
             try:
                 with work._kinds:
                     kind, record = work._live[threading.get_ident()]
@@ -2169,7 +2273,7 @@ class _Taking:
         with work._kinds:
             work._retakers += 1
         try:
-            while not work._slots.acquire(timeout=work._poll):
+            while not work._take_slots(self.kind):
                 pass
             try:
                 while True:
@@ -2185,7 +2289,7 @@ class _Taking:
                         break
                     time.sleep(work._poll)
             except BaseException:
-                work._slots.release()
+                work._release_slot(self.kind)
                 raise
         finally:
             with work._kinds:
