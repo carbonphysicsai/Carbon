@@ -109,20 +109,35 @@ def test_a_third_build_waits_for_a_local_lane_while_grades_keep_the_remote_lanes
 def test_grades_never_take_a_local_lane_while_the_door_has_remote_grade_lanes(host):
     """Live 116 (7aeaa273, 17 Nov 22:2xZ): with every remote lane grading, grades fell back to the local lanes and held
     them for minutes, so the A100's builds found no local lane to start or re-take (A100 idle, 69 builds queued). Now a
-    grade waits for a REMOTE lane, without a round slot, and a build takes a local lane at once.
+    grade never takes a local lane: it waits for a REMOTE lane without a round slot, or gives its round up (never
+    holding the door's lock or a slot), and builds take the local lanes at once.
     """
     work, _ = _door(host)
-    grades = [_Round(work, "grade") for _ in range(3)]
-    entered = [g for g in grades if g.entered.wait(1)]
-    assert len(entered) == 2 and all(g.lane.docker_host is not None for g in entered)
-    waiting = next(g for g in grades if g not in entered)
-    assert not waiting.entered.wait(0.3)  # never a local lane
+    grades = [_Round(work, "grade") for _ in range(2)]
+    for grade in grades:
+        assert grade.entered.wait(5) and grade.lane.docker_host is not None
+    outcome = []
+
+    def third():
+        try:
+            with work.taking("grade", has_work=lambda: True):
+                outcome.append(grade_lanes.current())
+        except direct_intake.WorkDeclined as declined:
+            outcome.append(declined.reason)
+
+    thread = threading.Thread(target=third, daemon=True)
+    thread.start()
     builds = [_Round(work, "advance") for _ in range(2)]
     for build in builds:
         assert build.entered.wait(5) and build.lane.docker_host is None
-    entered[0].end()
-    assert waiting.entered.wait(5) and waiting.lane.docker_host is not None
-    for round_ in (entered[1], waiting, *builds):
+    grades[0].end()
+    thread.join(5)
+    # it got the freed REMOTE lane, or gave its round up: never a local lane
+    assert outcome and (
+        outcome[0] == "no_grade_lane"
+        or (outcome[0] is not None and outcome[0].docker_host is not None)
+    )
+    for round_ in (grades[1], *builds):
         round_.end()
 
 
@@ -219,13 +234,13 @@ def test_a_draining_door_gives_up_a_grade_waiting_for_a_remote_lane(host, tmp_pa
     thread = threading.Thread(target=grade, daemon=True)
     thread.start()
     thread.join(0.3)
-    assert thread.is_alive()  # waits for a remote lane
     builds = [_Round(work, "advance") for _ in range(2)]
     for build in builds:
         assert build.entered.wait(5)  # its wait never held the slots the builds need
     (state / direct_intake.DRAIN_NAME).touch()
     thread.join(5)
-    assert declined == ["draining"]
+    # it waited for a remote lane without a slot and the drain ended it, or it gave its round up at once
+    assert declined in (["draining"], ["no_grade_lane"])
     (state / direct_intake.DRAIN_NAME).unlink()
     for round_ in (*grades, *builds):
         round_.end()

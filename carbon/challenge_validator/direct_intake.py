@@ -2198,7 +2198,15 @@ class _Taking:
             # BUILD LANES: a build round waits for one of the LOCAL lanes only, which grade rounds may hold for a whole
             # grade; it never sleeps holding ``_lock``, so the door's grade rounds keep starting on the remote lanes
             lets_go = self._parallel and work.builds_local and self.kind == "advance"
+            # a GRADE of a door whose grades keep off the builds' local lanes never waits here holding ``_lock`` and a
+            # round slot (its slot check is a hint: another round may take the lane first): it gives the round up and
+            # the grade loop tries again, so a build never waits behind it (Runner, 17 Nov 2026)
+            gives_up = (
+                self._parallel and self.kind != "advance" and work._grades_remote_only()
+            )
             while work._dir is not None and not work._try_host(self.kind):
+                if gives_up:
+                    raise WorkDeclined("no_grade_lane")
                 if lets_go:
                     self._poll_without_lock(work)
                     continue
