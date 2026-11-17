@@ -17,10 +17,11 @@ those rows must equal them bit for bit (dtype, shape and bytes). Any difference 
 runs as one process's per-case calls; a worker that fails, cannot start or passes its deadline has its slice computed by
 the parent.
 
-Workers only when the WORST case fits (Validator-2 F1, 16 Nov): every worker stopped at its deadline and then every
-row made by the parent alone (`CASE_PROCS_FALLBACK_SLACK` x the sampled per-row time x the rows) must still end by the
-wall margin, else the pass is the one-process pass from the start (`case_procs_deadline`). A pass that fits in one
-process but sits near the wall is therefore graded exactly as before.
+Workers when the WORST case fits (Validator-2 F1, 16 Nov): every worker stopped at its deadline and then every row
+made by the parent alone (`CASE_PROCS_FALLBACK_SLACK` x the sampled per-row time x the rows) must still end by the wall
+margin. G2 (Lead, 17 Nov): ALSO when the one-process pass cannot end by the wall margin anyway (the slow loop-bound
+graphs this is for) but a worker's own need fits; their failure is then Carbon's once (F2) and the retry is one process.
+Else the pass is the one-process pass from the start (`case_procs_deadline`), graded exactly as before.
 
 A fallback is Carbon's ONCE (Validator-2 F2, 16 Nov): every fallback leaves a ``case_procs:`` line on stderr; a failed
 pass of a per-case processes program that carries it is Carbon's (`research_carrier._case_procs_fell_back`), and a
@@ -49,9 +50,9 @@ CASE_PROCS_MEMORY_SHARE = 0.5
 #: RESOURCE CONTAINMENT, not science: what one more Python + JAX process is planned to hold beyond its model, its state
 #: bytes and one per-case call (runtime, compiled executable, buffers).
 CASE_PROCS_PROCESS_BYTES = 1024**3
-#: OPERATIONAL, not science: a worker's deadline is this many times its planned time (the parent's first call, then its
-#: rows at the parent's per-row time times the cpuset's cores), and never later than the wall margin below; past it the
-#: worker is stopped and its slice computed in the parent.
+#: OPERATIONAL, not science: a worker's deadline is this many times its planned time (the parent's start and first
+#: call, then its rows at the parent's per-row time), and never later than the wall margin below; past it the worker is
+#: stopped and its slice computed in the parent.
 CASE_PROCS_DEADLINE_SLACK = 4.0
 #: The host's own program reserve: `research_carrier._run_locked` ends the program stage ``seconds - 45`` after the op
 #: started (its `program_timeout`). Held equal by a test.
@@ -106,7 +107,6 @@ def case_procs_deadline(
     startup,
     first,
     per_row,
-    cores,
     longest,
     rows,
     sampled,
@@ -114,21 +114,29 @@ def case_procs_deadline(
     slack,
     fallback_slack,
 ):
-    """The workers' deadline (monotonic seconds), or None: no workers, the one-process pass (Validator-2 F1).
+    """The workers' deadline (monotonic seconds), or None: no workers, the one-process pass (Validator-2 F1, widened
+    by G2 on the Lead's ruling, 17 Nov: F1's x cores factor gave workers only to passes of <= ~90 s, never to the slow
+    loop-bound graphs they are for).
 
-    A worker repeats the parent's start and first call, then runs on one core, so a row may take up to ``cores`` times
-    the parent's per-row time: its allowance is ``slack`` x (startup + first + per_row x cores x the longest slice).
-    WORST CASE: every worker stopped at that deadline and then all ``rows`` made by the parent alone (``fallback_slack``
-    x per_row x rows) must still end by ``wall_end``, else None; the deadline is capped there. None too when the sample
-    already made every row. Self-contained: the program carries its source.
+    A worker repeats the parent's start and first call, then makes its slice on one core at about the parent's per-row
+    time (a loop-bound row; a dense row may be slower there and then misses its deadline): it needs ``startup + first +
+    per_row x the longest slice``, and its allowance is ``slack`` x that.
+    ZONE A, the WORST CASE fits: every worker stopped at its deadline and then all ``rows`` made by the parent alone
+    (``fallback_slack`` x per_row x rows) still end by ``wall_end``: the deadline is the allowance, capped there.
+    ZONE B, the one-process pass CANNOT end by ``wall_end`` anyway (the rows left, at per_row, pass it), but one worker's
+    need does fit: workers until ``wall_end``. If they fail, the parent cannot finish either and stops with the mark
+    (Carbon's once, Validator-2 F2: the retry is the one-process program, the candidate's own wall stop as before).
+    Else None, and None when the sample already made every row. Self-contained: the program carries its source.
     """
     if sampled >= rows:
         return None
+    need = startup + first + per_row * longest
     latest = wall_end - fallback_slack * per_row * rows
-    deadline = now + slack * (startup + first + per_row * cores * longest)
-    if deadline > latest:
-        return None
-    return min(deadline, latest)
+    if latest - now >= need:
+        return min(now + slack * need, latest)
+    if now + per_row * (rows - sampled) > wall_end and wall_end - now >= need:
+        return wall_end
+    return None
 
 
 #: The one-process per-case loop of `PHYSICAL_V2_COMPILED_INFER_PROGRAM` (= `direct_graph_construction_worker.
@@ -256,9 +264,10 @@ __DEADLINE_SOURCE__
                 if index not in sample:
                     sample[index] = case_block(index)
         per_row = (time.perf_counter() - clock) / max(1, len(sample) - 1)
-        # Workers only when the WORST case fits: every worker stopped at its deadline and every row then made here
-        # still ends by the wall margin (operational, not science). Else the one-process pass, exactly as before.
-        deadline = case_procs_deadline(time.monotonic(), startup, first, per_row, len(cores),
+        # Workers only when the WORST case fits (every worker stopped at its deadline and every row then made here
+        # still ends by the wall margin), or when one process cannot end by the wall margin anyway (G2); else the
+        # one-process pass, exactly as before (operational, not science).
+        deadline = case_procs_deadline(time.monotonic(), startup, first, per_row,
                                        max(high - low for low, high in slices), rows, len(sample), case_wall_end,
                                        __SLACK__, __FALLBACK_SLACK__)
         if deadline is None:

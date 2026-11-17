@@ -170,7 +170,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
 #: sha256 of Motor 1.8's per-case processes program at this head: any edit of the GRADED program (the count
 #: function's source included) must change this pin on purpose.
 PROCS_PROGRAM_SHA256 = (
-    "8bd92bf5fda70bf58d128877930acbe07cfd7d9a6e02c4afcbfb0cc0fb4099a0"
+    "c033da7b1441e7e2c51c2f22f06b04f45567741dac1d438b1f45b588d89f03ca"
 )
 
 
@@ -621,11 +621,11 @@ def test_the_wall_margin_lies_before_the_hosts_own_program_wall():
     assert case_procs.CASE_PROCS_WALL_MARGIN_SECONDS == 45 + 60 + 30
 
 
-def test_workers_only_when_the_worst_case_fits():
-    """Validator-2 F1, `case_procs_deadline` (the program carries its source): workers only when every worker stopped
-    at its deadline and then every row made by the parent alone still ends by the wall margin; the deadline is capped
-    there. Runner-B's shape (4 cores, workers ~2x the one-process time): a pass whose ONE-process time fits but sits
-    near the wall gets no workers (the one-process pass, graded as before); a short pass gets them.
+def test_workers_when_the_worst_case_fits_or_one_process_cannot_end_in_the_wall():
+    """`case_procs_deadline` (the program carries its source). Validator-2 F1: workers when every worker stopped at its
+    deadline and then every row made by the parent alone still ends by the wall margin; the deadline is capped there.
+    G2 (Lead, 17 Nov): also when the one-process pass cannot end by the wall margin anyway but one worker's own need
+    (start + first call + its slice at the parent's per-row time) fits: workers until the wall margin. Else no workers.
     """
     deadline = case_procs.case_procs_deadline
     end = MOTOR_18_WALL - case_procs.CASE_PROCS_WALL_MARGIN_SECONDS
@@ -636,7 +636,6 @@ def test_workers_only_when_the_worst_case_fits():
             startup,
             first,
             per_row,
-            cores,
             -(-rows // cores),
             rows,
             2 * cores,
@@ -645,19 +644,34 @@ def test_workers_only_when_the_worst_case_fits():
             case_procs.CASE_PROCS_FALLBACK_SLACK,
         )
 
-    # one process: 400 s of rows, fits the 513 s end, but the worst case (deadline + 1.25 x 400 s) does not
+    # 10 s of rows: zone A, deadline = now + 4 x (5 + 2 + 0.01 x 250)
+    assert plan(0.01) == pytest.approx(10.0 + 4.0 * (5 + 2 + 0.01 * 250))
+    # 200 s of rows on 4 cores: zone A (F1 gave none), deadline = now + 4 x (5 + 2 + 0.2 x 250)
+    assert plan(0.2) == pytest.approx(10.0 + 4.0 * (5 + 2 + 0.2 * 250))
+    # 260 s of rows: zone A, the allowance capped at the latest worst-case deadline
+    assert plan(0.26) == pytest.approx(end - 1.25 * 0.26 * 1000)
+    # 400 s of rows: fits one process but not the worst case, and one process can end in the wall: no workers
     assert 10.0 + 0.4 * 1000 < end and plan(0.4) is None
-    # 10 s of rows: workers, deadline = now + 4 x (5 + 2 + 0.01 x 4 x 250) = 78 s
-    assert plan(0.01) == pytest.approx(10.0 + 4.0 * (5 + 2 + 0.01 * 4 * 250))
-    # the worst case always fits whenever workers start
-    for per_row in (0.001, 0.01, 0.05, 0.1, 0.2, 0.23, 0.4):
+    # rtsk_90112009-class (0.23 s x 2564 rows ~ 590 s) and MGN-class (~528 s): one process cannot end in the wall,
+    # a worker's quarter (~148 s / ~132 s) can: zone B, workers until the wall margin
+    assert plan(0.23, rows=2564) == end
+    assert plan(528 / 2564, rows=2564) == end
+    # zone B needs one worker's own need to fit: a pass far past the wall gets none (its wall stop as before)
+    assert plan(4.0, rows=2564) is None
+    for per_row in (0.001, 0.01, 0.05, 0.1, 0.2, 0.23, 0.4, 1.0, 4.0):
         for rows in (10, 100, 1000, 2564):
             for now in (1.0, 50.0, 300.0):
                 got = plan(per_row, rows=rows, now=now)
-                if got is not None:
+                if got is None:
+                    continue
+                if now + per_row * (rows - 8) <= end:
+                    # the one-process pass can end in the wall: the worst case always fits when workers start
                     assert got + 1.25 * per_row * rows <= end + 1e-9
+                else:
+                    assert got == end
+                assert got > now
     # the sample already made every row: no workers
-    assert deadline(0.0, 1.0, 1.0, 0.01, 4, 2, 8, 8, end, 4.0, 1.25) is None
+    assert deadline(0.0, 1.0, 1.0, 0.01, 2, 8, 8, end, 4.0, 1.25) is None
 
 
 def _ledger(root):
@@ -835,6 +849,48 @@ def test_a_near_wall_pass_with_slow_workers_is_graded_in_one_process(motor18, tm
 _CASE_BLOCK = "    def case_block(index):\n"
 _PER_ROW = "        per_row = (time.perf_counter() - clock) / max(1, len(sample) - 1)\n"
 _PINNED = "        pinned = set()\n"
+
+
+_NO_DEADLINE = "        if deadline is None:\n            slices = []\n"
+
+
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_a_pass_one_process_cannot_end_in_the_wall_gets_workers(motor18, tmp_path):
+    """G2 (Lead, 17 Nov): the slow loop-bound graphs per-case processes are for (rtsk_90112009-class): the one-process
+    pass cannot end by the wall margin (forced here: the sampled per-row time is set so the rows left pass it), but one
+    worker's slice fits, so the workers start with the wall margin as their deadline, every worker's answers are used,
+    no fallback line is written and the answers are the one-process answers bit for bit.
+    """
+    from test_paired_inference import FixtureLedger
+
+    rows = _rows(motor18)
+    serial = _serial(motor18, tmp_path, rows)
+
+    def variant(source):
+        assert source.count(_PER_ROW) == 1 and source.count(_NO_DEADLINE) == 1
+        return _workers_used(
+            source.replace(
+                _PER_ROW,
+                _PER_ROW
+                + "        per_row = (case_wall_end - time.monotonic()) / max(1, rows - len(sample) - 1)\n",
+            ).replace(
+                _NO_DEADLINE,
+                '        assert deadline == case_wall_end, "not zone B"\n'
+                + _NO_DEADLINE,
+            )
+        )
+
+    ledger, seen = FixtureLedger(tmp_path / "zone-b"), []
+    try:
+        primary, repeat = _graded(
+            motor18, ledger, _file_runner(ledger, seen, variant), "zone-b", rows
+        )
+    finally:
+        ledger.connection.close()
+    assert len(seen) == 2 and all(call["code"] == 0 for call in seen)
+    assert all("case_procs:" not in call["stderr"] for call in seen)
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
 
 
 @posix
