@@ -719,6 +719,16 @@ class AutoGrader:
         lane back for its commit turn), never a value."""
         from carbon.reconstruction import grade_lanes
 
+        from . import infra_requeue
+
+        # An attempt stopped mid-grade (a crash, a kill, an unplanned restart) left its create-only evaluation files
+        # with no marker: they are set aside (moved, never deleted, logged) before this grade, else its pack binding
+        # conflicts and the grade fails on Carbon's side, burning the one automatic retry (switch-2 copy, 17 Nov). The
+        # task is this round's own here: claimed by it (in flight in this process, never taken by another round).
+        try:
+            infra_requeue.set_aside_interrupted(self.root, submission_id)
+        except (OSError, ValueError):
+            pass  # left in place: the grade meets its conflict as before (FAILED, Carbon's)
         started, started_ns, outcome = grade_lanes.current(), time.time_ns(), None
         try:
             outcome = self._grade_on_lane(submission_id, turn)

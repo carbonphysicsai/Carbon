@@ -171,6 +171,54 @@ def _evaluation_refusal(paths):
     return None
 
 
+#: Where an interrupted attempt's private evaluation files go (`set_aside_interrupted`), and its log.
+INTERRUPTED = "interrupted.jsonl"
+_INTERRUPTED_LIMIT = 64
+
+
+def set_aside_interrupted(root, task, *, clock=time.time_ns):
+    """Before the grader takes a PENDING task (no marker): an ``artifacts/<task>.evaluation`` directory there can only be
+    an attempt that was stopped mid-grade (a crash, a kill, an unplanned restart). Every hand-back (``requeue``,
+    ``restore-platform``, ``rearm``, the automatic retry) moves the directory aside before the grader can see the task,
+    and a finished grade writes a marker. Its create-only files (the pack binding first) would make this grade fail
+    ``evaluation_pack_binding_unavailable`` on Carbon's side and burn the one automatic retry (switch-2 copy, 17 Nov:
+    rtsk_34ff589c, c276992f, ca1df3a8). They are moved, never deleted, to ``requeued/<task>.interrupted-<k>.evaluation``
+    and one line goes to ``requeued/interrupted.jsonl``. Returns the kept name, or None when there was nothing to set
+    aside (a task with a marker is never touched)."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return None
+    paths = _paths(root, task)
+    if paths["marker"].exists() or paths["marker"].is_symlink():
+        return None
+    evaluation = paths["evaluation"]
+    if evaluation.is_symlink() or not evaluation.is_dir():
+        return None
+    kept = paths["kept_marker"].parent
+    kept.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for k in range(1, _INTERRUPTED_LIMIT + 1):
+        target = kept / f"{task}.interrupted-{k}.evaluation"
+        if not target.exists() and not target.is_symlink():
+            break
+    else:
+        raise ValueError("interrupted evaluations exhausted")
+    files = sum(1 for path in evaluation.rglob("*") if path.is_file())
+    os.replace(evaluation, target)
+    with open(kept / INTERRUPTED, "a", encoding="utf-8") as log:
+        log.write(
+            json.dumps(
+                {
+                    "task": task,
+                    "kept": target.name,
+                    "files": files,
+                    "at_ns": int(clock()),
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+    return target.name
+
+
 def _keep_evaluation(paths):
     """Move attempt 1's private evaluation files aside (one rename, same filesystem); True when there were any."""
     if not paths["evaluation"].is_dir():
