@@ -1986,8 +1986,23 @@ def _speed_ceiling(adapter):
 
 def _speed_probe():
     """A host probe for one speed run: Carbon worker containers and foreign GPU compute, sampled during and at the end
-    (`host_quiet.Probe`; the stage's own container is one)."""
+    (`host_quiet.Probe`; the stage's own container is one). On a REMOTE grade lane the speed run is timed on its box
+    (owner D6), so its quiet is read ON the box (`host_quiet.box_counters`, in-run samples required: each one a heartbeat
+    of the link), never this host's."""
+    from carbon.reconstruction import remote_lane
+
     from . import host_quiet
+
+    lane = remote_lane.current()
+    if lane is not None:
+        containers, gpu = host_quiet.box_counters(lane)
+        return host_quiet.Probe(
+            lock_held=True,
+            containers=containers,
+            gpu=gpu,
+            seconds=SPEED_PROBE_SECONDS,
+            require_samples=True,
+        ).start()
 
     def count():
         ids = host_quiet.worker_containers()

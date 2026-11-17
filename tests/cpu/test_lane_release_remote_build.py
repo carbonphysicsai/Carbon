@@ -340,7 +340,7 @@ def test_a_remote_box_container_holds_the_timing_gate_only_for_its_transfers(hos
     source = inspect.getsource(research_carrier._run_locked)
     # the lifelong hold is skipped for a remote-box container; its export holds the gate (below)
     assert "if not on_remote_box:" in source
-    assert "_remote_box_transfer(on_remote_box, identity," in source
+    assert "_remote_box_transfer(" in source and "on_remote_box or" in source
     lane = grade_lanes.Lane(0, "0-3", str(host))
     transfer, released, timing_done = (threading.Event() for _ in range(3))
 
