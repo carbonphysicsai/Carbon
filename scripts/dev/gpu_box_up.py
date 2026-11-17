@@ -571,8 +571,7 @@ CMD_SHAPE = (
     "nproc --all; cat /sys/devices/system/cpu/online; grep '^MemTotal:' /proc/meminfo"
 )
 CMD_DRIVER_QUERY = (
-    "nvidia-smi --query-gpu=name,uuid,memory.total,driver_version "
-    "--format=csv,noheader"
+    "nvidia-smi --query-gpu=name,uuid,memory.total,driver_version --format=csv,noheader"
 )
 CMD_STAGE_ROOT_STAT = f"stat -c '%U:%G %a %F' {STAGE_ROOT}"
 _DOCKER_VERSION_FORMAT = (
@@ -941,7 +940,7 @@ def cpu_list(text: str) -> set:
 
 
 def case_id(case: dict) -> str:
-    return f'{case.get("kind")}:{case.get("key")}/{case.get("arch")}'
+    return f"{case.get('kind')}:{case.get('key')}/{case.get('arch')}"
 
 
 def record_digests(record: dict, reason: str) -> dict:

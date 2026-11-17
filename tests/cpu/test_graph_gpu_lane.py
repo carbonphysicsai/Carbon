@@ -604,7 +604,7 @@ def test_a_box_pool_binds_its_class_and_the_receiver_starts_with_no_box(
     assert device.door_binding() == {"kind": "NVIDIA A100-SXM4-40GB", "class": True}
     assert remote_gpu_build._PINNED[(challenge.challenge_id, challenge.version)] == (
         "NVIDIA A100-SXM4-40GB",
-        4,
+        7,
         "shared",
         False,
     )

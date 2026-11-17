@@ -902,7 +902,8 @@ def test_an_intent_records_the_slot_and_recovery_rebinds_it(host):
 
 
 @pytest.mark.parametrize(
-    "change", [{"docker_host": HOST}, {"stage_root": STAGE}]  # one without the other
+    "change",
+    [{"docker_host": HOST}, {"stage_root": STAGE}],  # one without the other
 )
 def test_a_half_local_record_refuses(host, change):
     _install(host, local=True)
@@ -2785,7 +2786,8 @@ def test_the_watchdog_watches_a_box_container_through_the_box_wrapper(
 
 def test_a_box_set_up_before_the_seven_slots_is_still_read_with_its_own_four(host):
     """A box file written by `gpu_box_up.py` before 17 Nov (4 x 4-core cpusets) stays in the pool until the script runs
-    on it again: its lane offers its own 4 slots, never the values row's 7 (no build on cores the box never set up)."""
+    on it again: its lane offers its own 4 slots, never the values row's 7 (no build on cores the box never set up).
+    """
     path = write_box(
         host,
         {
