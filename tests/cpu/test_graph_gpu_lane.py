@@ -739,3 +739,75 @@ def test_a_graph_practice_result_names_the_ops_that_forced_the_cpu(monkeypatch):
 def test_a_result_without_a_lane_or_lane_evidence_is_what_it_was(monkeypatch):
     for image, evidence in ((None, {"build_device": "CPU"}), (JAX, {})):
         assert "gpu_lane" not in _public_result(monkeypatch, image, evidence)
+
+
+def test_custody_reads_the_lane_fields_exactly_as_retention_does():
+    """116, 17 Nov: every grade failed because custody (public_unbound_custody) refused the CPU note
+    'graph_op_not_gpu_repeatable' and its gpu_lane_ops, which research_tasks writes and retention accepts. Custody now
+    accepts and refuses exactly what retention does."""
+    import importlib.util
+    from pathlib import Path
+
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "scripts"
+        / "dev"
+        / "score_lab"
+        / "public_unbound_custody.py"
+    )
+    spec = importlib.util.spec_from_file_location("public_unbound_custody_t", path)
+    custody = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(custody)
+
+    def custody_ok(worker):
+        try:
+            custody._graph_worker_lane_fields(worker)
+        except custody.CustodyRefused:
+            return False
+        return True
+
+    provider = SimpleNamespace(graph_gpu_image=JAX)
+    cpu_ops = {"build_device": "CPU", "gpu_lane_note": lane.OPS_NOTE}
+    cases = [
+        {},
+        {"build_device": "GPU", "build_image_id": JAX.image_id},
+        {"build_device": "CPU", "gpu_lane_note": "graph_gpu_rebuild_not_repeatable"},
+        {"build_device": "CPU", "gpu_lane_note": "graph_gpu_attempt_failed"},
+        {
+            **cpu_ops,
+            "gpu_lane_ops": ["dot_general", "fft"],
+        },  # what research_tasks writes (the live failure)
+        cpu_ops,  # the ops note without its ops
+        {**cpu_ops, "gpu_lane_ops": []},
+        {**cpu_ops, "gpu_lane_ops": ["fft", "dot_general"]},
+        {**cpu_ops, "gpu_lane_ops": ["fft", "fft"]},
+        {**cpu_ops, "gpu_lane_ops": [1]},
+        {
+            "build_device": "CPU",
+            "gpu_lane_note": "graph_gpu_attempt_failed",
+            "gpu_lane_ops": ["fft"],
+        },  # a stray gpu_lane_ops
+        {"gpu_lane_ops": ["fft"]},
+        {"build_device": "CPU"},
+        {"build_device": "CPU", "gpu_lane_note": "anything"},
+        {"build_device": "TPU", "gpu_lane_note": "graph_gpu_attempt_failed"},
+        {
+            "build_device": "GPU",
+            "build_image_id": JAX.image_id,
+            "gpu_lane_note": "graph_gpu_attempt_failed",
+        },
+        {
+            "build_device": "CPU",
+            "build_image_id": JAX.image_id,
+            "gpu_lane_note": "graph_gpu_attempt_failed",
+        },
+    ]
+    for case in cases:
+        assert custody_ok(case) == retention._graph_lane_evidence_ok(
+            provider, case
+        ), case
+    # and the fields custody binds for the live case are exactly the ones present
+    live = {**cpu_ops, "gpu_lane_ops": ["dot_general", "fft"]}
+    assert custody._graph_worker_lane_fields(live) == set(live)

@@ -1969,16 +1969,39 @@ def _graph_worker_lane_fields(worker):
     lane. Custody binds that original declaration without claiming admission.
     The image role continues to name the separate CPU inference image.
     """
+    # exactly retention's rule (`lean_recipe_retention._graph_lane_evidence_ok`, GRAPH_LANE_NOTES): the CPU note
+    # 'graph_op_not_gpu_repeatable' comes with its sorted, non-empty op names, and only then (116, 17 Nov)
+    from carbon.development_session.graph_gpu_lane import OPS_NOTE
+
     if "build_device" not in worker:
+        if any(
+            key in worker for key in ("build_image_id", "gpu_lane_note", "gpu_lane_ops")
+        ):
+            raise CustodyRefused("graph_worker_lineage")
         return set()
-    if worker["build_device"] == "GPU":
+    ops = worker.get("gpu_lane_ops")
+    if (worker.get("gpu_lane_note") == OPS_NOTE) != ("gpu_lane_ops" in worker) or (
+        ops is not None
+        and (
+            type(ops) is not list
+            or not ops
+            or any(type(op) is not str for op in ops)
+            or ops != sorted(set(ops))
+        )
+    ):
+        raise CustodyRefused("graph_worker_lineage")
+    if worker["build_device"] == "GPU" and "gpu_lane_note" not in worker:
         _digest(worker.get("build_image_id"), "graph_build_image")
         return {"build_device", "build_image_id"}
-    if worker["build_device"] == "CPU" and worker.get("gpu_lane_note") in (
-        "graph_gpu_rebuild_not_repeatable",
-        "graph_gpu_attempt_failed",
+    if (
+        worker["build_device"] == "CPU"
+        and "build_image_id" not in worker
+        and worker.get("gpu_lane_note")
+        in ("graph_gpu_rebuild_not_repeatable", "graph_gpu_attempt_failed", OPS_NOTE)
     ):
-        return {"build_device", "gpu_lane_note"}
+        return {"build_device", "gpu_lane_note"} | (
+            {"gpu_lane_ops"} if "gpu_lane_ops" in worker else set()
+        )
     raise CustodyRefused("graph_worker_lineage")
 
 
