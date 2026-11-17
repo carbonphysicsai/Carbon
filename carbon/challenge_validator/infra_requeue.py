@@ -1186,7 +1186,9 @@ def return_slots(
 #: (the pack's leg minimums bound to the pre-migration judge image, `physical_dual_pack.leg_minimum_platform`): a Carbon
 #: gap, never the candidate's, nothing charged. Once the gap is closed (the pack, or a ruled image binding), such a task
 #: is handed back ONCE more whatever attempt it reached (the one-automatic-retry and ``requeue`` limits do not apply to
-#: a version-wide gap they could never fix), with every ``requeue`` door check, under a recorded ruling id.
+#: a version-wide gap they could never fix), with every ``requeue`` door check, under a recorded ruling id. The grader
+#: records such a grade as a GRADED marker keeping the code (its exam row RELEASED / UNAVAILABLE), a FAILED one when
+#: given back on infrastructure: both are taken, only on the platform code.
 PLATFORM_CAUSE = "leg_minimum_platform_mismatch"
 RESTORES = "restores.jsonl"
 #: The last attempt a restore may hand back (a bound on the kept-file scan, not a policy number).
@@ -1241,9 +1243,15 @@ def _restore_refusal(root, db, door, task):
     state = _marker(paths["marker"])
     if state is None:
         return None, "no_marker"
-    if state != "FAILED":
+    if state == "GRADED":
+        # the grader's record of a grade that could not be computed (`auto_grade`: a GRADED marker keeping its typed
+        # reason, the exam row RELEASED / UNAVAILABLE): only one whose OWN marker code names the platform cause
+        _state, reason = _marker_body(paths["marker"])
+        if type(reason) is not str or PLATFORM_CAUSE not in reason:
+            return None, "cause_not_platform"
+    elif state != "FAILED":
         return None, "marker_" + state.lower()
-    if not _platform_cause(paths):
+    elif not _platform_cause(paths):
         return None, "cause_not_platform"
     code = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
     return (attempt, None) if code is None else (None, code)
@@ -1404,7 +1412,14 @@ def main(argv=None):
             tasks = sorted(
                 path.stem
                 for path in markers.glob("rtsk_*.json")
-                if _TASK.fullmatch(path.stem) and _marker(path) == "FAILED"
+                if _TASK.fullmatch(path.stem)
+                and (
+                    _marker(path) == "FAILED"
+                    or (
+                        _marker_body(path)[0] == "GRADED"
+                        and PLATFORM_CAUSE in str(_marker_body(path)[1])
+                    )
+                )
             )
         else:
             tasks = [

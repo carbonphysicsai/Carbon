@@ -118,7 +118,7 @@ def test_a_restore_takes_only_the_platform_cause_and_never_a_charged_or_graded_t
     assert out["restored"] == []
     assert out["refused"] == {
         A: "cause_not_platform",
-        B: "marker_graded",
+        B: "cause_not_platform",  # a GRADED marker: only its own code counts
         C: "exam_row_counted_or_reserved",
         "nope": "not_a_task_id",
     }
@@ -196,3 +196,79 @@ def test_the_command_refuses_apply_without_ids(tmp_path):
     args = ["restore-platform", "--root", str(root), "--ruling", RULING, "--apply"]
     with pytest.raises(SystemExit):
         infra_requeue.main(args)
+
+
+class _UnavailableIntake(_DoorIntake):
+    """The door's grade as 116 met it: the pack evaluation could not be computed (the platform check refused), so the
+    retention returns UNAVAILABLE with that reason and its slot goes back (RELEASED / UNAVAILABLE).
+    """
+
+    def retain_result(self, submission_id, **kwargs):
+        from carbon.challenge_validator.exam_cap import ExamCap
+
+        cap = ExamCap(self.adapter.ledger)
+        with self.adapter.ledger._db() as db:
+            db.execute(
+                "UPDATE exam_graded SET state='RELEASED', status='UNAVAILABLE' WHERE submission_id=?",
+                (submission_id,),
+            )
+        assert cap is not None
+        return {
+            "entry_id": "sha256:" + "4" * 64,
+            "private_evaluation_state": "UNAVAILABLE",
+            "private_evaluation_reason": "regrade_unbound:" + PLATFORM,
+        }
+
+
+def test_a_graded_marker_keeping_the_platform_code_is_restored_and_grades(tmp_path):
+    """The real grader's record of tonight's refusals: a GRADED marker with the platform code, the slot released."""
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause=PLATFORM)
+    (root / "auto-grade" / "markers" / (A + ".json")).unlink()
+    _row(ledger, A, "RELEASED", "UNAVAILABLE")
+    assert auto_grade.AutoGrader(
+        _UnavailableIntake(root, ledger, "x"), root
+    ).run_once() == (
+        A,
+        "GRADED",
+    )
+    marker = json.loads((root / "auto-grade" / "markers" / (A + ".json")).read_text())
+    assert marker["state"] == "GRADED" and PLATFORM in marker["code"]
+    assert infra_requeue.requeue(root, [A])["refused"] == {A: "marker_graded"}
+    out = infra_requeue.restore_platform(root, [A], ruling=RULING, apply=True)
+    assert out["restored"] == [A], out
+    kept = root.joinpath(*KEPT)
+    assert (
+        json.loads((kept / f"{A}.attempt-1.marker.json").read_text())["state"]
+        == "GRADED"
+    )
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchall() == [(2, None)]
+    (root / "auto-grade" / "artifacts" / A).mkdir(mode=0o700, parents=True)
+    intake = _DoorIntake(root, ledger, "sha256:" + "3" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
+    assert intake.graded == [A]
+
+
+def test_a_graded_marker_of_another_reason_or_a_scored_grade_is_never_restored(
+    tmp_path,
+):
+    root, ledger = _root(tmp_path)
+    for task, code in ((A, "dual_native_inference_binding"), (B, None)):
+        _failed(root, ledger, task, cause=PLATFORM)
+        marker = root / "auto-grade" / "markers" / (task + ".json")
+        body = json.loads(marker.read_text())
+        marker.write_text(json.dumps({**body, "state": "GRADED", "code": code}))
+    _failed(root, ledger, C, cause=PLATFORM)
+    marker = root / "auto-grade" / "markers" / (C + ".json")
+    body = json.loads(marker.read_text())
+    marker.write_text(json.dumps({**body, "state": "GRADED", "code": PLATFORM}))
+    _row(ledger, C, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+    out = infra_requeue.restore_platform(root, [A, B, C], ruling=RULING)
+    assert out["refused"] == {
+        A: "cause_not_platform",
+        B: "cause_not_platform",
+        C: "exam_row_counted_or_reserved",
+    }
