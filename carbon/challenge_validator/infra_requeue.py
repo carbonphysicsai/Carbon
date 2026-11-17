@@ -1329,12 +1329,43 @@ def restore_platform(root, tasks, *, ruling, apply=False, clock=time.time_ns):
 
 
 #: ``rearm`` (owner, 17 Nov, D11: "re-arm again, uncharged, in original order, any task whose earlier re-run also failed
-#: on our side, on Validator-2's receipt"): a task whose CURRENT marker is FAILED (the grader writes FAILED only for a
-#: Carbon code: a candidate outcome is CANDIDATE_FAILED, a grade GRADED) and which was already handed back at least once
+#: on our side, on Validator-2's receipt"): a task whose CURRENT marker is FAILED on Carbon's side and which was already
+#: handed back at least once, every earlier attempt Carbon's too. FAILED is not Carbon's by itself: the grader also writes
+#: FAILED ``MinerProgramFailure`` for the candidate's own crash, OOM, refused output or scratch cap. Such an attempt
+#: counts as Carbon's only when its failure evidence is a wall stop the grader did not count against the candidate
+#: (``WORKER_WALL_LIMIT_REACHED`` written FAILED: a contended pass); any other is refused (``candidate_program_failure``).
+#: An earlier GRADED attempt counts only for ``restore-platform``'s cause. The dry run shows each accepted task's causes.
+#: A task already handed back at least once
 #: (a kept ``attempt-N.marker.json``: its earlier re-run happened and failed too), handed back ONCE more by this mode,
 #: under a recorded receipt id, with every ``requeue`` door check. Its next grade spends nothing of the miner's round or
 #: day and stays on its original arrival epoch (`ExamCap.mark_requeued`, reusing its own row), like every hand-back.
 REARMS = "rearms.jsonl"
+
+
+#: The grader's class name for a failure of the candidate's own program (`research_carrier.MinerProgramFailure`), and
+#: the one kind of it written FAILED that is Carbon's: a wall stop the grader did not count (a contended pass).
+MINER_PROGRAM_FAILURE = "MinerProgramFailure"
+CONTENDED_WALL_STOP = "WORKER_WALL_LIMIT_REACHED"
+
+
+def _carbons_failure(code, failure_path):
+    """Whether a FAILED attempt is Carbon's: any Carbon code, or a MinerProgramFailure whose evidence is a wall stop."""
+    if type(code) is not str or not code:
+        return False
+    if code.split(":", 1)[0] != MINER_PROGRAM_FAILURE:
+        return True
+    try:
+        text = Path(failure_path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return MINER_PROGRAM_FAILURE + ": " + CONTENDED_WALL_STOP in text
+
+
+def _rearm_causes(root, task, attempt):
+    """Each attempt's marker code, oldest first (what the receipt covers; shown by the dry run and logged)."""
+    return [
+        _marker_body(_paths(root, task, n)["kept_marker"])[1] for n in range(1, attempt)
+    ] + [_marker_body(_paths(root, task, attempt)["marker"])[1]]
 
 
 def _rearm_refusal(root, db, door, task):
@@ -1356,9 +1387,19 @@ def _rearm_refusal(root, db, door, task):
     if state != "FAILED":
         # a delivered grade or a candidate outcome is never re-armed (a contested wall stop is ``reclass``'s)
         return None, None, "marker_" + str(state).lower()
+    if not _carbons_failure(code, paths["failure"]):
+        return None, None, "candidate_program_failure"
     for earlier in range(1, attempt):
-        kept_state, _code = _marker_body(_paths(root, task, earlier)["kept_marker"])
-        if kept_state not in ("FAILED", "GRADED"):
+        kept = _paths(root, task, earlier)
+        kept_state, kept_code = _marker_body(kept["kept_marker"])
+        if kept_state == "GRADED":
+            # only the platform gap `restore_platform` hands back (a grade that could not be computed)
+            carbons = type(kept_code) is str and PLATFORM_CAUSE in kept_code
+        else:
+            carbons = kept_state == "FAILED" and _carbons_failure(
+                kept_code, kept["kept_failure"]
+            )
+        if not carbons:
             # an earlier attempt that was the candidate's own outcome: not "failed on our side"
             return None, None, "earlier_attempt_not_carbons"
     refusal = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
@@ -1377,6 +1418,7 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
         "apply": apply,
         "ruling": ruling,
         "rearmed": [],
+        "causes": {},
         "refused": {},
     }
     if type(ruling) is not str or not _RULING.fullmatch(ruling):
@@ -1389,6 +1431,7 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
         if refusal is not None:
             out["refused"][task] = refusal
             continue
+        causes = _rearm_causes(root, task, attempt)
         if apply:
             paths = _restore_paths(root, task, attempt)
             paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
@@ -1397,6 +1440,7 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
                 "attempt": attempt + 1,
                 "kind": "rearm",
                 "cause": code,
+                "causes": causes,
                 "ruling": ruling,
                 "evaluation_kept": paths["evaluation"].is_dir(),
                 "at_ns": int(clock()),
@@ -1417,6 +1461,7 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
             ) as log:
                 log.write(json.dumps(line, sort_keys=True) + "\n")
         out["rearmed"].append(task)
+        out["causes"][task] = causes
     return out
 
 

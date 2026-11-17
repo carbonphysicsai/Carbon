@@ -52,10 +52,23 @@ def _marker(root, task, state, code, next_step):
     return path
 
 
-def _failure(root, task, cause):
+#: What the grader's failure evidence says for each kind of `MinerProgramFailure` (real 116 tails, 17 Nov).
+WALL_STOP = "MinerProgramFailure: WORKER_WALL_LIMIT_REACHED\n\ncode: reconstruction.worker.deadline.exceeded"
+CRASH = (
+    "MinerProgramFailure: RUNTIME\n\ncode: reconstruction.worker.runtime.nonzero_exit"
+)
+
+
+def _failure(root, task, cause, *, evidence=None):
     path = root / "auto-grade" / "failures" / (task + ".txt")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"Traceback ...\nRetentionUnavailable: {cause}\n\ncode: {cause}\n")
+    if evidence is None:
+        evidence = (
+            WALL_STOP
+            if cause == "MinerProgramFailure"
+            else f"RetentionUnavailable: {cause}\n\ncode: {cause}"
+        )
+    path.write_text(f"Traceback ...\n{evidence}\n")
 
 
 def _arrive(ledger, task):
@@ -124,10 +137,12 @@ def test_a_custody_failure_whose_resubmit_waits_to_grade_is_left_to_it(tmp_path)
     assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
 
 
-def _rerun_failed_again(root, ledger, task, *, code, next_step="slot_returned"):
-    """Attempt 2 (the automatic re-run) FAILED on Carbon's side and the grader gave its row back."""
+def _rerun_failed_again(
+    root, ledger, task, *, code, next_step="slot_returned", evidence=None
+):
+    """Attempt 2 (the automatic re-run) FAILED and the grader gave its row back."""
     _marker(root, task, "FAILED", code, next_step)
-    _failure(root, task, code)
+    _failure(root, task, code, evidence=evidence)
     with ledger._db() as db:
         db.execute(
             "UPDATE exam_graded SET status='FAILED_INFRA', state='RELEASED' WHERE submission_id=?",
@@ -272,3 +287,117 @@ def test_the_rearm_command(tmp_path, capsys):
     assert (
         EXAM and HOTKEY
     )  # the shared fixture's identity (imported for the row helpers)
+
+
+def test_a_crash_of_the_candidates_own_program_is_never_rearmed(tmp_path):
+    """The grader writes FAILED MinerProgramFailure for a crash/OOM/refused output too: not "failed on our side".
+    Only a wall stop it did not count (a contended pass, rtsk_3b776db9 / 89de9489) is Carbon's.
+    """
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _custody_task(root, ledger, A, _recipe("crash-now"))
+    infra_requeue.requeue(root, [A], apply=True, auto=True)
+    _rerun_failed_again(root, ledger, A, code="MinerProgramFailure", evidence=CRASH)
+    # an earlier attempt that crashed, then a Carbon failure
+    _marker(root, B, "FAILED", "MinerProgramFailure", "retry_scheduled")
+    _failure(root, B, "MinerProgramFailure", evidence=CRASH)
+    _arrive(ledger, B)
+    _store(root, B, _recipe("crash-before"))
+    _row(ledger, B, "RELEASED", "FAILED_INFRA")
+    infra_requeue.requeue(root, [B], apply=True, auto=True)
+    _rerun_failed_again(root, ledger, B, code="admitted_image_changed")
+    out = infra_requeue.rearm(root, [A, B], ruling=RULING, apply=True)
+    assert out["rearmed"] == []
+    assert out["refused"] == {
+        A: "candidate_program_failure",
+        B: "earlier_attempt_not_carbons",
+    }
+
+
+def test_the_dry_run_shows_every_attempts_cause_for_the_receipt(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _custody_task(root, ledger, A, _recipe("causes"))
+    infra_requeue.requeue(root, [A], apply=True, auto=True)
+    _rerun_failed_again(root, ledger, A, code="MinerProgramFailure")
+    dry = infra_requeue.rearm(root, [A], ruling=RULING)
+    assert dry["causes"] == {A: [CUSTODY, "MinerProgramFailure"]}
+    infra_requeue.rearm(root, [A], ruling=RULING, apply=True)
+    assert _requeue_ns(root)[-1]["causes"] == [CUSTODY, "MinerProgramFailure"]
+
+
+def test_an_earlier_graded_attempt_counts_only_for_the_platform_gap(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    kept = root / "auto-grade/requeued"
+    kept.mkdir(parents=True)
+    for task, code in ((A, infra_requeue.PLATFORM_CAUSE), (B, "UNAVAILABLE")):
+        _marker(root, task, "GRADED", code, None)
+        (root / "auto-grade/markers" / (task + ".json")).rename(
+            kept / f"{task}.attempt-1.marker.json"
+        )
+        _arrive(ledger, task)
+        _store(root, task, _recipe(task))
+        _row(ledger, task, "RELEASED", "FAILED_INFRA")
+        _rerun_failed_again(root, ledger, task, code="admitted_image_changed")
+    out = infra_requeue.rearm(root, [A, B], ruling=RULING)
+    assert out["rearmed"] == [A]
+    assert out["refused"] == {B: "earlier_attempt_not_carbons"}
+
+
+def test_after_a_rearm_nothing_else_hands_the_task_back(tmp_path):
+    """A re-armed task is never handed back again by `requeue`, the automatic retry or a second `rearm`, and its
+    consumed limit bypass is re-armed for the new attempt."""
+    from carbon.challenge_validator import auto_retry, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _custody_task(root, ledger, A, _recipe("after"))
+    infra_requeue.requeue(root, [A], apply=True, auto=True)
+    with ledger._db() as db:  # attempt 2 took its bypass, then failed again
+        db.execute("UPDATE exam_requeues SET reserved_ns=5 WHERE submission_id=?", (A,))
+    _rerun_failed_again(root, ledger, A, code="admitted_image_changed")
+    infra_requeue.rearm(root, [A], ruling=RULING, apply=True)
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchone() == (3, None)
+    _rerun_failed_again(root, ledger, A, code="admitted_image_changed")  # attempt 3
+    assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
+        A: "already_requeued"
+    }
+    assert infra_requeue.requeue(root, [A], apply=True, auto=True)["refused"] == {
+        A: "already_requeued"
+    }
+    assert auto_retry.used(root, A)
+    assert infra_requeue.rearm(root, [A], ruling=RULING, apply=True)["refused"] == {
+        A: "already_rearmed"
+    }
+
+
+def test_a_withdrawn_twin_never_hides_a_live_one_or_a_grade(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    one, two, three = _recipe("one"), _recipe("two"), _recipe("three")
+    # a withdrawn twin AND a pending resubmit: the resubmit grades fresh
+    _custody_task(root, ledger, A, one)
+    _withdrawn(root, "rtsk_" + "1" * 64, one)
+    _store(root, "rtsk_" + "2" * 64, one)
+    # an unreadable twin marker is no proof of a withdrawal
+    _custody_task(root, ledger, B, two)
+    _store(root, "rtsk_" + "3" * 64, two)
+    (root / "auto-grade/markers" / ("rtsk_" + "3" * 64 + ".json")).write_text("{")
+    # a twin already graded: never graded twice
+    _custody_task(root, ledger, C, three)
+    _store(root, "rtsk_" + "4" * 64, three)
+    _marker(root, "rtsk_" + "4" * 64, "GRADED", None, None)
+    out = infra_requeue.requeue(root, [A, B, C], apply=True)
+    assert out["requeued"] == []
+    assert out["refused"] == {
+        A: "given_back_rerun_exists",
+        B: "given_back_rerun_exists",
+        C: "given_back_rerun_exists",
+    }
