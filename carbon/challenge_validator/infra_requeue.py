@@ -1229,7 +1229,10 @@ def _restore_refusal(root, db, door, task):
     """``(attempt, None)`` when ``restore_platform`` accepts the task, else ``(None, code)`` (read-only)."""
     if type(task) is not str or not _TASK.fullmatch(task):
         return None, "not_a_task_id"
-    if _log_lines(root, RESTORES, task):
+    if _log_lines(root, RESTORES, task) or any(
+        record.get("kind") == "restore"
+        for record in _log_lines(root, "requeues.jsonl", task)
+    ):
         return None, "already_restored"
     attempt = _restore_attempt(root, task)
     if attempt is None:
@@ -1273,27 +1276,32 @@ def restore_platform(root, tasks, *, ruling, apply=False, clock=time.time_ns):
         if apply:
             paths = _restore_paths(root, task, attempt)
             paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
-            # the one bypass of the round/day limits is on record before the grader can see the task
-            cap.mark_requeued(task, attempt=attempt + 1)
-            if paths["failure"].exists():
-                os.replace(paths["failure"], paths["kept_failure"])
-            kept_evaluation = _keep_evaluation(paths)
-            # the commit point: with no marker, the grader's next tick takes the task
-            os.replace(paths["marker"], paths["kept_marker"])
             line = {
                 "task": task,
                 "attempt": attempt + 1,
                 "kind": "restore",
                 "cause": PLATFORM_CAUSE,
                 "ruling": ruling,
-                "evaluation_kept": kept_evaluation,
+                "evaluation_kept": paths["evaluation"].is_dir(),
                 "at_ns": int(clock()),
             }
-            for name in ("requeues.jsonl", RESTORES):
-                with open(
-                    paths["kept_marker"].parent / name, "a", encoding="utf-8"
-                ) as log:
-                    log.write(json.dumps(line, sort_keys=True) + "\n")
+            # once per task, fail closed: the restore is on record before anything moves (a crash below leaves the
+            # task refused ``already_restored`` for the operator, never restorable twice)
+            with open(
+                paths["kept_marker"].parent / RESTORES, "a", encoding="utf-8"
+            ) as log:
+                log.write(json.dumps(line, sort_keys=True) + "\n")
+            # the one bypass of the round/day limits is on record before the grader can see the task
+            cap.mark_requeued(task, attempt=attempt + 1)
+            if paths["failure"].exists():
+                os.replace(paths["failure"], paths["kept_failure"])
+            _keep_evaluation(paths)
+            # the commit point: with no marker, the grader's next tick takes the task
+            os.replace(paths["marker"], paths["kept_marker"])
+            with open(
+                paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
+            ) as log:
+                log.write(json.dumps(line, sort_keys=True) + "\n")
         out["restored"].append(task)
     return out
 

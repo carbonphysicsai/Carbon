@@ -157,3 +157,42 @@ def test_the_command_dry_runs_every_failed_marker_and_applies_only_listed_ids(
     assert infra_requeue.main([*args, "--ids", str(ids), "--apply"]) == 0
     assert json.loads(capsys.readouterr().out)["restored"] == [A]
     assert not (root / "auto-grade" / "markers" / (A + ".json")).exists()
+
+
+def test_a_task_restored_at_attempt_one_gets_its_one_bypass_and_no_auto_retry_after(
+    tmp_path,
+):
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause=PLATFORM)
+    out = infra_requeue.restore_platform(root, [A], ruling=RULING, apply=True)
+    assert out["restored"] == [A]
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchall() == [(2, None)]
+    # the automatic retry can no longer hand it back too
+    assert infra_requeue.requeue(root, [A], auto=True)["refused"] == {
+        A: "already_requeued"
+    }
+
+
+def test_a_restore_line_alone_blocks_a_second_restore(tmp_path):
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause=PLATFORM)
+    kept = root.joinpath(*KEPT)
+    kept.mkdir(parents=True)
+    (kept / "requeues.jsonl").write_text(
+        json.dumps({"task": A, "kind": "restore", "attempt": 2}) + "\n"
+    )
+    assert infra_requeue.restore_platform(root, [A], ruling=RULING)["refused"] == {
+        A: "already_restored"
+    }
+
+
+def test_the_command_refuses_apply_without_ids(tmp_path):
+    import pytest
+
+    root, _ledger = _root(tmp_path)
+    args = ["restore-platform", "--root", str(root), "--ruling", RULING, "--apply"]
+    with pytest.raises(SystemExit):
+        infra_requeue.main(args)
