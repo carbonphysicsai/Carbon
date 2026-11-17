@@ -5,6 +5,7 @@ directory; every failure is a typed stop that leaves no box file (a stale one is
 the slot shape is checked; the class check must repeat on the GPU under allowlist v8, match the class record's
 digests and reproduce the class's ops record; daemon.json keeps the snapshotter and the nvidia runtime;
 authorized_keys is exactly one line; nothing but public material reaches the box; a dry run runs nothing.
+It also documents the limit: a box that replays another box's output passes (PASS is not security qualification).
 """
 
 from __future__ import annotations
@@ -59,7 +60,9 @@ def _sha(body: bytes) -> str:
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def _class_record(digests: dict, *, seconds=1.0, identical=None, on_gpu=True):
+def _class_record(
+    digests: dict, *, seconds=1.0, identical=None, on_gpu=True, cpu="sha256:" + "c" * 64
+):
     cases = []
     for name, digest in digests.items():
         kind, rest = name.split(":")
@@ -74,7 +77,17 @@ def _class_record(digests: dict, *, seconds=1.0, identical=None, on_gpu=True):
                 "state_digest": digest if same else None,
                 "ran_on_gpu": on_gpu,
                 "ops": ["dot_general", "tanh"],
-                "rebuilds": [{"state_digest": digest, "seconds": seconds}] * 2,
+                "cpu_state_digest": cpu,
+                "parity_vs_cpu": {"max_abs": 1e-6, "rows": 64},
+                "rebuilds": [
+                    {
+                        "state_digest": digest,
+                        "predictions_digest": _sha(f"{name} {digest}".encode()),
+                        "backend": "gpu",
+                        "seconds": seconds + index,
+                    }
+                    for index in range(2)
+                ],
             }
         )
     all_same = all(c["bit_identical"] for c in cases)
@@ -144,6 +157,9 @@ class FakeBox:
         self.calls = []
         self.keyscan = f"{IP} ssh-ed25519 {HOST_KEY}\n"
         self.nproc = 30
+        self.online = "0-29"
+        self.on_main = True
+        self.extracts = 0
         self.mem_kib = 216 * 1024 * 1024
         self.smi = (0, f"{KIND}, {UUID}, 40960 MiB, {DRIVER}\n")
         self.driver_installs = 0
@@ -174,6 +190,8 @@ class FakeBox:
             assert argv == ["ssh-keyscan", "-t", "ed25519", "-p", "22", IP]
             return 0, self.keyscan, ""
         if argv[:3] == ["git", "-C", str(box_up.ROOT)]:
+            if argv == box_up.cmd_git_on_main(HEAD):
+                return (0, "", "") if self.on_main else (1, "", "")
             assert argv[3:] == ["rev-parse", "HEAD"]
             return 0, HEAD + "\n", ""
         assert argv[0] == "ssh" and "StrictHostKeyChecking=yes" in argv
@@ -186,7 +204,7 @@ class FakeBox:
     def remote(self, cmd, pipe_from):
         g, cfg = box_up, self.cfg
         if cmd == g.CMD_SHAPE:
-            return 0, f"{self.nproc}\nMemTotal:       {self.mem_kib} kB\n", ""
+            return 0, f"{self.nproc}\n{self.online}\nMemTotal: {self.mem_kib} kB\n", ""
         if cmd == g.CMD_DRIVER_QUERY:
             return (*self.smi, "")
         if cmd == g.cmd_driver_install(cfg.driver_package):
@@ -267,19 +285,18 @@ class FakeBox:
             return 0, "Loaded image ID: " + image + "\n", ""
         if cmd == g.cmd_work_dir(cfg):
             return 0, "", ""
-        if cmd == g.cmd_tree_present(HEAD):
-            return 0, "present\n" if self.tree else "", ""
-        if cmd == g.cmd_tree_extract(HEAD):
+        if cmd == g.CMD_TREE_EXTRACT:
             assert pipe_from == g.cmd_git_archive(HEAD)
             self.tree = True
+            self.extracts += 1
             return 0, "", ""
-        if cmd == g.cmd_prepare(cfg, HEAD):
+        if cmd == g.cmd_prepare(cfg):
             return 0, "{}", ""
         if cmd == g.CMD_DEVICE_READ:
             return 0, self.device, ""
         if cmd == g.CMD_CLASS_OUT:
             return 0, "", ""
-        if cmd == g.cmd_class_check(cfg, HEAD, UUID):
+        if cmd == g.cmd_class_check(cfg, UUID):
             return self.class_rc, "", ""
         if cmd == g.CMD_CLASS_OUTPUT_READ:
             return 0, self.class_output, ""
@@ -291,8 +308,25 @@ class FakeBox:
         return [argv[-1] for argv, _ in self.calls if argv[0] == "ssh"]
 
 
-def _argv(tmp_path, *extra, record=None, ops=None):
+def _manifest(image=JAX, lock=None):
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    return {
+        "schema": "carbon.c03.worker-image.v1",
+        "image_id": image,
+        "config_digest": image,
+        "source_tree_digest": "sha256:" + "1" * 64,
+        "wheel_digest": "sha256:" + "2" * 64,
+        "lock_digest": lock or GPU_PROFILE.environment_lock_digest,
+        "base_image_digest": "sha256:" + "3" * 64,
+        "build_recipe_digest": "sha256:" + "4" * 64,
+        "entrypoint_digest": "sha256:" + "5" * 64,
+    }
+
+
+def _argv(tmp_path, *extra, record=None, ops=None, manifest=None):
     boxes = tmp_path / "boxes"
+    (tmp_path / "jax-image.json").write_text(json.dumps(manifest or _manifest()))
     pub = tmp_path / "lane.pub"
     pub.write_text(LANE_PUBKEY + "\n")
     reference = record or _class_record(DIGESTS, seconds=9.0)
@@ -317,6 +351,8 @@ def _argv(tmp_path, *extra, record=None, ops=None):
         JAX,
         "--image",
         TORCH,
+        "--graph-gpu-image-manifest",
+        str(tmp_path / "jax-image.json"),
         "--class-record",
         str(tmp_path / "class.json"),
         "--class-ops-record",
@@ -363,6 +399,8 @@ def test_a_passing_box_gets_exactly_the_box_file(tmp_path):
         "driver_version",
         "host_key",
         "images",
+        "tree_commit",
+        "class_check_image_id",
         "class_check",
         "check_output_sha256",
         "check_ops_record_sha256",
@@ -380,6 +418,8 @@ def test_a_passing_box_gets_exactly_the_box_file(tmp_path):
     assert document["driver_version"] == DRIVER
     assert document["host_key"] == f"{IP} ssh-ed25519 {HOST_KEY}"
     assert document["images"] == [JAX, TORCH]
+    assert document["tree_commit"] == HEAD
+    assert document["class_check_image_id"] == JAX
     assert document["class_check"] == {
         "case_digests": DIGESTS,
         "class_record_sha256": _sha((tmp_path / "class.json").read_bytes()),
@@ -407,7 +447,7 @@ def test_the_device_record_digest_is_the_one_the_door_reads():
 
 def test_the_class_check_runs_like_the_receipted_runner(tmp_path):
     cfg = _config(tmp_path)
-    words = shlex.split(box_up.cmd_class_check(cfg, HEAD, UUID))
+    words = shlex.split(box_up.cmd_class_check(cfg, UUID))
     image = words.index(JAX)
     flags = words[:image]
     assert flags[:4] == ["sudo", "-n", "docker", "run"]
@@ -418,7 +458,7 @@ def test_the_class_check_runs_like_the_receipted_runner(tmp_path):
         ("--tmpfs", "/scratch:rw,size=4g"),
         ("--runtime", "nvidia"),
         ("--gpus", f"device={UUID}"),
-        ("-v", f"/var/lib/carbon-box-up/tree-{HEAD}:/carbon:ro"),
+        ("-v", "/var/lib/carbon-box-up/tree:/carbon:ro"),
         ("-v", "/var/lib/carbon-box-up/class-check:/out"),
         ("-e", "PYTHONPATH=/carbon"),
         ("--entrypoint", "/opt/carbon-worker/bin/python"),
@@ -463,9 +503,7 @@ def test_a_second_run_on_a_ready_box_changes_nothing(tmp_path):
 
 def _no_box_file(tmp_path):
     boxes = tmp_path / "boxes"
-    return not (boxes / "a100-1.json").exists() and not [
-        p for p in boxes.iterdir() if p.name.endswith(".part")
-    ]
+    return not list(boxes.iterdir())
 
 
 def test_a_wrong_device_kind_is_refused_before_anything_is_installed(tmp_path):
@@ -556,7 +594,7 @@ def test_digests_that_differ_from_the_class_record_refuse(tmp_path):
     )
     outcome = _run(cfg, box)
     _refused(outcome, "class_check_digest_mismatch")
-    assert outcome["detail"] == "graph:motor/softmax"
+    assert "graph:motor/softmax state_digest" in outcome["detail"].split(", ")
     assert _no_box_file(tmp_path)
 
 
@@ -662,7 +700,14 @@ def test_the_box_file_is_a_private_regular_file_in_a_private_directory(tmp_path)
     assert stat.S_IMODE(directory.st_mode) == 0o700
     assert stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
     assert info.st_uid == os.geteuid()
-    assert sorted(p.name for p in (tmp_path / "boxes").iterdir()) == ["a100-1.json"]
+    assert sorted(p.name for p in (tmp_path / "boxes").iterdir()) == [
+        "a100-1.class-check.json",
+        "a100-1.json",
+        "a100-1.ops-record.json",
+    ]
+    for name in ("a100-1.class-check.json", "a100-1.ops-record.json"):
+        side = os.lstat(tmp_path / "boxes" / name)
+        assert stat.S_ISREG(side.st_mode) and stat.S_IMODE(side.st_mode) == 0o600
 
 
 def test_a_boxes_dir_others_can_read_is_refused(tmp_path):
@@ -675,9 +720,25 @@ def test_a_boxes_dir_others_can_read_is_refused(tmp_path):
 
 
 def test_a_stale_box_file_is_removed_on_failure(tmp_path):
+    """Removal ON FAILURE: box files that appear after the start-of-run removal (mid-run) are gone after the refusal."""
+    cfg = _config(tmp_path)
+
+    class Planting(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.CMD_STAGE_ROOT_STAT:
+                for path in box_up.box_files(cfg):
+                    path.write_text("{}")
+            return super().remote(cmd, pipe_from)
+
+    box = Planting(cfg, stage="root:root 755 directory")
+    _refused(_run(cfg, box), "stage_root_mismatch")
+    assert _no_box_file(tmp_path)
+
+
+def test_a_failed_readmission_removes_an_earlier_admission(tmp_path):
     cfg = _config(tmp_path)
     assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
-    assert (tmp_path / "boxes" / "a100-1.json").exists()
+    assert len(list((tmp_path / "boxes").iterdir())) == 3
     _refused(
         _run(cfg, FakeBox(cfg, stage="root:root 755 directory")), "stage_root_mismatch"
     )
@@ -731,7 +792,8 @@ def test_only_public_material_goes_to_the_box(tmp_path):
     assert streamed == [
         ["docker", "save", JAX],
         ["docker", "save", TORCH],
-        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD],
+        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD, "--"]
+        + list(box_up.TREE_PATHS),
     ]
     lane_body = LANE_PUBKEY.split()[1]
     for argv, _ in box.calls:
@@ -759,6 +821,8 @@ def test_the_guard_refuses_any_other_upload(tmp_path):
     cfg = _config(tmp_path)
     session = box_up.Session(cfg, FakeBox(cfg), log=lambda _l: None)
     for pipe in (
+        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD],
+        box_up.cmd_git_archive(HEAD) + [".agent"],
         ["cat", str(tmp_path / "operator_key")],
         ["docker", "save", "sha256:" + "e" * 64],
         ["tar", "-c", "/home"],
@@ -876,3 +940,299 @@ def test_bad_arguments_exit_2_without_running(tmp_path, capsys):
     argv[argv.index("--jax-image") + 1] = "jax:latest"
     assert box_up.main(argv, runner=boom) == 2
     assert json.loads(capsys.readouterr().out)["reason"] == "bad_argument"
+
+
+# -- V2: exact device name -------------------------------------------------------------------------------------------
+
+
+def test_a_device_name_that_only_starts_with_the_kind_is_refused(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, smi=(0, f"{KIND}-SPECIAL, {UUID}, 40960 MiB, {DRIVER}\n"))
+    _refused(_run(cfg, box), "wrong_device_kind")
+
+
+def test_a_class_check_on_a_device_whose_name_only_starts_with_the_kind_refuses(
+    tmp_path,
+):
+    cfg = _config(tmp_path)
+    record = _class_record(DIGESTS)
+    record["nvidia_smi"]["gpus"] = [f"{KIND} SPECIAL, {DRIVER}, 40960 MiB, 8.0"]
+    box = FakeBox(
+        cfg, class_output=json.dumps(record), class_ops=json.dumps(_ops_record(record))
+    )
+    _refused(_run(cfg, box), "class_check_wrong_device")
+
+
+# -- V2: every digest ------------------------------------------------------------------------------------------------
+
+
+def _box_with(cfg, record):
+    return FakeBox(
+        cfg, class_output=json.dumps(record), class_ops=json.dumps(_ops_record(record))
+    )
+
+
+def test_a_rebuild_predictions_digest_that_differs_refuses(tmp_path):
+    cfg = _config(tmp_path)
+    record = _class_record(DIGESTS)
+    record["cases"][1]["rebuilds"][1]["predictions_digest"] = "sha256:" + "8" * 64
+    outcome = _run(cfg, _box_with(cfg, record))
+    _refused(outcome, "class_check_digest_mismatch")
+    assert outcome["detail"] == "graph:f08/conv rebuilds[1].predictions_digest"
+
+
+def test_a_digest_missing_on_one_side_refuses(tmp_path):
+    cfg = _config(tmp_path)
+    record = _class_record(DIGESTS)
+    del record["cases"][0]["rebuilds"][0]["predictions_digest"]
+    outcome = _run(cfg, _box_with(cfg, record))
+    _refused(outcome, "class_check_digest_mismatch")
+    assert outcome["detail"] == "graph:f08/mlp rebuilds[0].predictions_digest"
+
+
+def test_a_different_number_of_rebuilds_refuses(tmp_path):
+    cfg = _config(tmp_path)
+    record = _class_record(DIGESTS)
+    record["cases"][2]["rebuilds"].append(dict(record["cases"][2]["rebuilds"][0]))
+    _refused(_run(cfg, _box_with(cfg, record)), "class_check_digest_mismatch")
+
+
+def test_only_the_cpu_parity_digest_differing_is_still_admitted(tmp_path):
+    """A lane box never runs a CPU build (remote_gpu_build.eligible needs an accelerator), so the class record's CPU
+    parity run is not this box's to reproduce."""
+    cfg = _config(tmp_path)
+    record = _class_record(DIGESTS, cpu="sha256:" + "d" * 64)
+    record["cases"][0]["parity_vs_cpu"] = {"max_abs": 3e-4, "rows": 64}
+    record["cases"][0]["cpu_error"] = None
+    assert _run(cfg, _box_with(cfg, record))["status"] == "ADMITTED"
+
+
+def test_a_reference_class_record_that_did_not_repeat_is_refused(tmp_path):
+    reference = _class_record(DIGESTS, identical={"graph:f08/conv": False})
+    argv = _argv(tmp_path, record=reference)
+    with pytest.raises(box_up.Refused) as refused:
+        box_up.config_from_args(box_up.build_parser().parse_args(argv))
+    assert refused.value.reason == "class_record_not_gpu_repeats"
+
+
+# -- V2: the receiver's image and the class check's own files --------------------------------------------------------
+
+
+def _config_refusal(argv):
+    with pytest.raises(box_up.Refused) as refused:
+        box_up.config_from_args(box_up.build_parser().parse_args(argv))
+    return refused.value.reason
+
+
+def test_the_manifest_image_must_be_the_jax_image(tmp_path):
+    other = "sha256:" + "e" * 64
+    assert (
+        _config_refusal(_argv(tmp_path, manifest=_manifest(image=other)))
+        == "graph_gpu_image_mismatch"
+    )
+
+
+def test_a_manifest_that_is_not_the_jax_gpu_worker_is_refused(tmp_path):
+    manifest = _manifest(lock="sha256:" + "9" * 64)
+    assert (
+        _config_refusal(_argv(tmp_path, manifest=manifest)) == "graph_gpu_image_not_jax"
+    )
+
+
+def test_a_malformed_manifest_is_refused(tmp_path):
+    manifest = {**_manifest(), "extra": 1}
+    assert (
+        _config_refusal(_argv(tmp_path, manifest=manifest))
+        == "graph_gpu_image_manifest_invalid"
+    )
+
+
+def test_the_class_check_output_is_kept_beside_the_box_file(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    boxes = tmp_path / "boxes"
+    document = json.loads((boxes / "a100-1.json").read_text())
+    output = (boxes / "a100-1.class-check.json").read_bytes()
+    ops = (boxes / "a100-1.ops-record.json").read_bytes()
+    assert output == box.class_output.encode()
+    assert ops == box.class_ops.encode()
+    assert document["check_output_sha256"] == _sha(output)
+    assert document["check_ops_record_sha256"] == _sha(ops)
+    words = shlex.split(box_up.cmd_class_check(cfg, UUID))
+    assert document["class_check_image_id"] in words
+
+
+# -- review: docker restart ------------------------------------------------------------------------------------------
+
+
+def test_a_merged_daemon_json_the_daemon_does_not_show_gets_a_restart(tmp_path):
+    cfg = _config(tmp_path)
+    merged = {
+        "log-driver": "json-file",
+        "features": {"containerd-snapshotter": True},
+        "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
+    }
+    box = FakeBox(
+        cfg,
+        docker="29.1.3",
+        ctk=True,
+        daemon=box_up.daemon_json_text(merged),
+        daemon_live={"runtimes": merged["runtimes"]},
+    )
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert box.restarts == 1
+
+
+def test_a_daemon_that_is_right_is_not_restarted(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert box.restarts == 1
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert box.restarts == 1
+
+
+# -- review: malformed box output ------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        (
+            {
+                "class_output": json.dumps(
+                    {**_class_record(DIGESTS), "nvidia_smi": ["x"]}
+                )
+            },
+            None,
+        ),
+        ({"class_ops": '{"schema": "carbon.graph-gpu-ops.v1", "ops": NaN}'}, None),
+        (
+            {"class_output": json.dumps({**_class_record(DIGESTS), "cases": ["x"]})},
+            None,
+        ),
+        ({"class_output": "[1, 2]"}, None),
+        ({"device": '{"device_kind": NaN}'}, "device_record_invalid"),
+        (
+            {"device": json.dumps({**_device_document(), "device_memory_mib": "x"})},
+            "device_record_invalid",
+        ),
+    ],
+)
+def test_malformed_box_output_is_a_typed_refusal(tmp_path, change, reason):
+    cfg = _config(tmp_path)
+    if "class_output" in change and "class_ops" not in change:
+        try:
+            record = json.loads(change["class_output"])
+            change["class_ops"] = json.dumps(_ops_record(record))
+        except (TypeError, ValueError, AttributeError):
+            pass
+    outcome = _run(cfg, FakeBox(cfg, **change))
+    assert outcome["status"] == "REFUSED"
+    if reason:
+        assert outcome["reason"] == reason
+    else:
+        assert outcome["step"] == "class_check"
+        assert outcome["reason"].startswith("class_check_")
+    assert _no_box_file(tmp_path)
+
+
+def test_docker_info_that_is_not_an_object_is_a_typed_refusal(tmp_path):
+    cfg = _config(tmp_path)
+
+    class Odd(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.CMD_DOCKER_INFO:
+                return 0, "[1]", ""
+            return super().remote(cmd, pipe_from)
+
+    _refused(_run(cfg, Odd(cfg)), "docker_unreadable")
+
+
+def test_an_unexpected_shape_inside_a_step_is_a_typed_refusal(tmp_path):
+    """Any parse error a step did not foresee becomes `<step>_output_invalid`, never a traceback."""
+    cfg = _config(tmp_path)
+    session = box_up.Session(cfg, FakeBox(cfg), log=lambda _l: None)
+
+    def odd():
+        return {"a": 1}["missing"]
+
+    with pytest.raises(box_up.Refused) as refused:
+        session.run_step("lane_user", odd)
+    assert refused.value.reason == "lane_user_output_invalid"
+    assert refused.value.detail.startswith("KeyError")
+
+
+# -- review: the tree ------------------------------------------------------------------------------------------------
+
+
+def test_only_the_class_check_paths_are_archived():
+    archive = box_up.cmd_git_archive(HEAD)
+    paths = archive[archive.index("--") + 1 :]
+    assert paths == list(box_up.TREE_PATHS)
+    for path in paths:
+        assert (box_up.ROOT / path).exists(), path
+        for private in (".agent", "Business", "codex-queue", "tests", ".git"):
+            assert not path.startswith(private)
+
+
+def test_a_commit_not_on_origin_main_never_leaves_the_door(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, on_main=False)
+    outcome = _run(cfg, box)
+    _refused(outcome, "tree_not_on_origin_main")
+    assert box.extracts == 0
+    assert not [pipe for _, pipe in box.calls if pipe and pipe[0] == "git"]
+
+
+def test_the_tree_is_extracted_afresh_on_every_run(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert box.extracts == 2
+    assert "rm -rf /var/lib/carbon-box-up/tree;" in box_up.CMD_TREE_EXTRACT
+
+
+# -- review: CPUs online ---------------------------------------------------------------------------------------------
+
+
+def test_the_shape_counts_all_cpus_and_needs_0_to_15_online(tmp_path):
+    assert box_up.CMD_SHAPE.startswith("nproc --all;")
+    assert "/sys/devices/system/cpu/online" in box_up.CMD_SHAPE
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, nproc=32, online="0-7,16-31")
+    _refused(_run(cfg, box), "slot_cpus_offline")
+    assert box_up.cpu_list("0-3,8,10-11") == {0, 1, 2, 3, 8, 10, 11}
+
+
+# -- the provider ----------------------------------------------------------------------------------------------------
+
+
+def test_a_provider_the_owner_did_not_accept_is_refused(tmp_path):
+    argv = _argv(tmp_path)
+    argv[argv.index("--provider") + 1] = "otherprovider"
+    assert _config_refusal(argv) == "provider_not_accepted"
+
+
+# -- the documented limit --------------------------------------------------------------------------------------------
+
+
+def test_limit_a_box_replaying_another_boxs_output_is_admitted_pass_is_not_security_qualification(
+    tmp_path,
+):
+    """Every value deciding PASS comes from the box. A box that returns another box's recorded class-check output
+    (here: the class record itself, byte for byte, with its ops record) is admitted. This documents the limit; the
+    lane's per-build re-reads and the door's determinism checks remain the guard."""
+    reference = _class_record(DIGESTS, seconds=9.0)
+    reference_ops = _ops_record(reference)
+    cfg = _config(tmp_path, record=reference, ops=reference_ops)
+    replay = FakeBox(
+        cfg,
+        class_rc=0,
+        class_output=json.dumps(reference),
+        class_ops=json.dumps(reference_ops),
+    )
+    assert _run(cfg, replay)["status"] == "ADMITTED"
+    assert "replays another box's output can" in box_up.__doc__

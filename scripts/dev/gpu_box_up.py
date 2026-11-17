@@ -7,7 +7,8 @@ used. This tool drives the box over ssh as its admin user (the operator's key), 
 stops at the first failure with a typed reason:
 
   host_key     the box's ed25519 host key equals the operator's ``--host-key-fingerprint``; every later ssh pins it
-  shape        >= 16 logical CPUs and >= 4 x 16 GiB + 8 GiB MemTotal (4 slots x 4 cores x 16 GiB, always)
+  shape        >= 16 CPUs (``nproc --all``) with CPUs 0-15 online, and >= 4 x 16 GiB + 8 GiB MemTotal (every box
+               has the same shape: 4 slots x 4 cores x 16 GiB, cpusets 0-3, 4-7, 8-11, 12-15)
   driver       exactly one GPU named ``--device-kind``, driver >= ``--driver-floor`` (an older one is upgraded from the
                provider's apt repo and the run stops: ``driver_upgrade_needs_reboot``)
   docker       Docker Engine ``--docker-version`` from Docker's apt repo, the containerd image store and the nvidia
@@ -15,15 +16,23 @@ stops at the first failure with a typed reason:
   lane_user    ``carbon-grade`` (not root, in the docker group), authorized_keys exactly one door-restricted line
   stage_root   ``/home/carbon`` owned carbon-grade:carbon-grade, mode 0755
   images       each ``--image`` streamed from the door's daemon (``docker save | docker load``) and proved by its id
-  tree         a world-readable copy of this Carbon tree (``git archive`` of HEAD)
+  tree         a world-readable copy of only what the class check reads (`TREE_PATHS`, ``git archive`` of HEAD,
+               which must be reachable from origin/main), extracted afresh on every run
   device       the box's host device record (``carbon_accelerator.py prepare`` on the box), fetched back
-  class_check  ``gpu_rebuild_class_check.py`` in the pinned JAX image on the box's GPU: every case bit-identical and
-               on the GPU, the ops record measured against allowlist v8, every case's state digest equal to the class
-               record's and the ops record equal to the class's ops record
+  class_check  ``gpu_rebuild_class_check.py`` in the JAX GPU image the door's receiver serves (its
+               ``--graph-gpu-image-manifest``), on the box's GPU: every case bit-identical and on the GPU, the ops
+               record measured against allowlist v8 and bound to this run, every digest equal to the class record's
+               (CPU parity fields aside) and the ops record equal to the class's ops record
 
-Only on PASS is the box file ``<--boxes-dir>/<--box-name>.json`` (schema ``carbon.remote-gpu-build-box.v1``) written,
-atomically, 0600 in a 0700 directory. A run starts by removing a box file of that name, so a box that is being
-(re)brought up, or that failed, is never offered. ``--dry-run`` prints every command it would run and runs none.
+Only on PASS are the box file ``<--boxes-dir>/<--box-name>.json`` (schema ``carbon.remote-gpu-build-box.v1``) and,
+beside it, the class check's own output (``<name>.class-check.json``, ``<name>.ops-record.json``) written, each
+atomically, 0600 in a 0700 directory, the box file last. A run starts by removing those files, and removes them again
+on any refusal, so a box that is being (re)brought up, or that failed, is never offered. ``--dry-run`` prints every
+command it would run and runs none.
+
+**Every value deciding PASS comes from the box; a box or provider that lies or replays another box's output can
+pass. PASS is an engineering admission check, not security qualification; per-build re-reads in the lane and the
+door's own determinism checks remain the guard.**
 
 What goes to the box: the lane's PUBLIC key, the public Carbon tree, public worker images and daemon.json. Nothing
 else (no private key, no agent forwarding). The tool never reboots a box and never touches the door's own daemon
@@ -32,7 +41,8 @@ beyond ``docker save``. A PASS is a per-box class check, not scientific or secur
     python3 -I scripts/dev/gpu_box_up.py --ssh ubuntu@203.0.113.7 --box-name a100-1 --provider lambda \\
         --device-kind "NVIDIA A100-SXM4-40GB" --door-ip 198.51.100.2 --lane-pubkey lane.pub \\
         --host-key-fingerprint SHA256:... --jax-image sha256:... --image sha256:... \\
-        --class-record a100-class-check.json --class-ops-record a100-ops-record.json --boxes-dir ~/.carbon/boxes
+        --graph-gpu-image-manifest jax-gpu-image.json --class-record a100-class-check.json \\
+        --class-ops-record a100-ops-record.json --boxes-dir ~/.carbon/boxes
 """
 
 from __future__ import annotations
@@ -69,6 +79,35 @@ STAGE_ROOT = "/home/carbon"
 WORK = "/var/lib/carbon-box-up"
 HOST_ROOT = f"{WORK}/host-root"
 CLASS_OUT = f"{WORK}/class-check"
+TREE = f"{WORK}/tree"
+#: Exactly what the class check (and ``carbon_accelerator.py prepare``) import or read, found by running every child
+#: rebuild from an archive of only these paths: the package, the two scripts, and the public evidence files the
+#: launch versions' TRAIN material is assembled from. Nothing else of the repository goes to a rented box.
+TREE_PATHS = (
+    "carbon",
+    "scripts/dev/gpu_rebuild_class_check.py",
+    "scripts/dev/carbon_accelerator.py",
+    "docs/development/evidence/f08-near-limit-public-20261020/ladder-observed.json",
+    "docs/development/evidence/f08-near-limit-public-20261020/rr07-pod-environment.json",
+    "docs/development/evidence/f08-near-limit-public-20261020/ladder-actions.json",
+    "docs/development/evidence/f02-cold-pack-20261020/rr04-judgement.json",
+    "docs/development/evidence/f02-cold-pack-20261020/rr04-convergence-ledger.jsonl",
+    "docs/development/studies/MOTOR_SYNTHETIC_DECISION_V2.json",
+    "docs/development/evidence/track-b-replay/motor-counted-v2.json",
+    "docs/development/evidence/motor-pools-v1/practice.jsonl",
+    "docs/development/evidence/motor-pilot-v1/records.jsonl",
+    "docs/development/evidence/motor-decision-counted-v2/completion.json",
+    "docs/development/studies/AI_ACCELERATOR_COOLING_SYNTHETIC_V1.json",
+    "docs/development/evidence/track-b-replay/ai-cooling-counted-v1.json",
+    "docs/development/evidence/ai-cooling-counted-v1/completion.json",
+)
+#: The provider the owner accepted the A100 40GB build class on (OWNER-A100-40GB-BUILD-CLASS-01: "the Lambda 1x A100
+#: 40GB SXM4"). Another provider is a new owner decision, not an operator flag.
+ACCEPTED_PROVIDERS = ("lambda",)
+#: A case's CPU parity run. A lane box never runs a CPU build: `remote_gpu_build.eligible` requires an accelerator
+#: (carbon/reconstruction/remote_gpu_build.py:469) and `remote_gpu_build.op` yields None - the door's own daemon - for
+#: anything not eligible (:617). These fields are therefore not compared with the class record.
+CPU_FIELDS = frozenset({"cpu_state_digest", "parity_vs_cpu", "cpu_error"})
 #: Every box has the same shape: 4 slots x 4 cores, 16 GiB RAM per slot, plus headroom for the host.
 SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15")
 MIN_CPUS = 16
@@ -120,6 +159,25 @@ def _canonical(value) -> bytes:
     ).encode("utf-8")
 
 
+def _no_constant(name):
+    raise ValueError(f"{name} is not JSON")
+
+
+def _json(text, reason: str, what: str):
+    """Strict JSON from the box (no NaN or Infinity), or a typed refusal; never a traceback."""
+    try:
+        return json.loads(text, parse_constant=_no_constant)
+    except (TypeError, ValueError, RecursionError):
+        raise Refused(reason, f"{what} is not strict JSON") from None
+
+
+def _json_object(text, reason: str, what: str) -> dict:
+    value = _json(text, reason, what)
+    if type(value) is not dict:
+        raise Refused(reason, f"{what} is not a JSON object")
+    return value
+
+
 # -- configuration ----------------------------------------------------------------------------------------------------
 
 
@@ -141,6 +199,7 @@ class Config:
     images: tuple[str, ...]
     jax_image: str
     boxes_dir: Path
+    class_record_digests: dict
     class_record: dict
     class_record_sha256: str
     class_ops_record: dict
@@ -185,12 +244,30 @@ def _version(text: str) -> tuple[int, ...]:
 def _load_json_file(path: str, reason: str) -> tuple[dict, str]:
     try:
         raw = Path(path).read_bytes()
-        value = json.loads(raw)
-    except (OSError, ValueError):
+    except OSError:
         raise Refused(reason, f"cannot read {path}") from None
-    if type(value) is not dict:
-        raise Refused(reason, f"{path} is not a JSON object")
-    return value, _sha256(raw)
+    return _json_object(raw, reason, path), _sha256(raw)
+
+
+def _graph_gpu_image(path: str) -> str:
+    """The image id the door's receiver serves the graph GPU lane from: read with the receiver's own reader
+    (`docker_runtime.load_image_identity`, as `direct_receiver` does), and a JAX GPU worker.
+    """
+    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    try:
+        identity = load_image_identity(Path(path))
+    except WorkerFailure:
+        raise Refused(
+            "graph_gpu_image_manifest_invalid", f"cannot read {path}"
+        ) from None
+    if gpu_image_backend(identity) != "jax":
+        raise Refused(
+            "graph_gpu_image_not_jax", "the manifest is not the JAX GPU worker"
+        )
+    return identity.image_id
 
 
 def config_from_args(args) -> Config:
@@ -207,9 +284,11 @@ def config_from_args(args) -> Config:
         ) from None
     if not 1 <= args.port <= 65535:
         raise Refused("bad_argument", "--port")
-    if not _NAME.fullmatch(args.box_name) or not _NAME.fullmatch(args.provider):
+    if not _NAME.fullmatch(args.box_name):
+        raise Refused("bad_argument", "--box-name: letters, digits, '-', '_'")
+    if args.provider not in ACCEPTED_PROVIDERS:
         raise Refused(
-            "bad_argument", "--box-name/--provider: letters, digits, '-', '_'"
+            "provider_not_accepted", f"accepted: {', '.join(ACCEPTED_PROVIDERS)}"
         )
     if not _DEVICE_KIND.fullmatch(args.device_kind):
         raise Refused("bad_argument", "--device-kind")
@@ -234,8 +313,16 @@ def config_from_args(args) -> Config:
     ops, ops_sha = _load_json_file(args.class_ops_record, "class_ops_record_invalid")
     if record.get("schema") != CLASS_CHECK_SCHEMA:
         raise Refused("class_record_invalid", "not a class-check record")
+    if record.get("verdict") != "GPU_REPEATS":
+        raise Refused("class_record_not_gpu_repeats", str(record.get("verdict")))
+    reference = record_digests(record, "class_record_invalid")
     if ops.get("schema") != OPS_SCHEMA:
         raise Refused("class_ops_record_invalid", "not a graph GPU ops record")
+    if _graph_gpu_image(args.graph_gpu_image_manifest) != args.jax_image:
+        raise Refused(
+            "graph_gpu_image_mismatch",
+            "--jax-image is not the image --graph-gpu-image-manifest names",
+        )
     return Config(
         admin=user,
         ip=ip,
@@ -253,6 +340,7 @@ def config_from_args(args) -> Config:
         images=tuple(images),
         jax_image=args.jax_image,
         boxes_dir=Path(args.boxes_dir).expanduser(),
+        class_record_digests=reference,
         class_record=record,
         class_record_sha256=record_sha,
         class_ops_record=ops,
@@ -312,7 +400,9 @@ def ssh(cfg: Config, known_hosts: str, command: str) -> list[str]:
     return argv + [f"{cfg.admin}@{cfg.ip}", "--", command]
 
 
-CMD_SHAPE = "nproc; grep '^MemTotal:' /proc/meminfo"
+CMD_SHAPE = (
+    "nproc --all; cat /sys/devices/system/cpu/online; grep '^MemTotal:' /proc/meminfo"
+)
 CMD_DRIVER_QUERY = (
     "nvidia-smi --query-gpu=name,uuid,memory.total,driver_version "
     "--format=csv,noheader"
@@ -418,36 +508,48 @@ def cmd_git_head() -> list[str]:
     return ["git", "-C", str(ROOT), "rev-parse", "HEAD"]
 
 
+def cmd_git_on_main(commit: str) -> list[str]:
+    return [
+        "git",
+        "-C",
+        str(ROOT),
+        "merge-base",
+        "--is-ancestor",
+        commit,
+        "origin/main",
+    ]
+
+
 def cmd_git_archive(commit: str) -> list[str]:
-    return ["git", "-C", str(ROOT), "archive", "--format=tar", commit]
+    return [
+        "git",
+        "-C",
+        str(ROOT),
+        "archive",
+        "--format=tar",
+        commit,
+        "--",
+        *TREE_PATHS,
+    ]
 
 
 def cmd_work_dir(cfg: Config) -> str:
     return f"sudo -n install -d -o {cfg.admin} -m 0755 {WORK}"
 
 
-def tree_dir(commit: str) -> str:
-    return f"{WORK}/tree-{commit}"
+#: The tree is extracted afresh on every run (never reused from an earlier one), then swapped in.
+CMD_TREE_EXTRACT = (
+    f"set -eu; rm -rf {TREE}.part; mkdir -m 0755 {TREE}.part; tar -x -C {TREE}.part; "
+    f"chmod -R a+rX,go-w {TREE}.part; rm -rf {TREE}; mv {TREE}.part {TREE}"
+)
 
 
-def cmd_tree_present(commit: str) -> str:
-    return f"test -d {tree_dir(commit)} && echo present || true"
-
-
-def cmd_tree_extract(commit: str) -> str:
-    tree = tree_dir(commit)
-    return (
-        f"set -eu; rm -rf {tree}.part; mkdir -m 0755 {tree}.part; tar -x -C {tree}.part; "
-        f"chmod -R a+rX,go-w {tree}.part; mv {tree}.part {tree}"
-    )
-
-
-def cmd_prepare(cfg: Config, commit: str) -> str:
+def cmd_prepare(cfg: Config) -> str:
     return shlex.join(
         [
             "python3",
             "-I",
-            f"{tree_dir(commit)}/scripts/dev/carbon_accelerator.py",
+            f"{TREE}/scripts/dev/carbon_accelerator.py",
             "--host-root",
             HOST_ROOT,
             "prepare",
@@ -471,7 +573,7 @@ CMD_CLASS_OUTPUT_READ = f"sudo -n cat {CLASS_OUT}/class-check.json"
 CMD_CLASS_OPS_READ = f"sudo -n cat {CLASS_OUT}/ops-record.json"
 
 
-def cmd_class_check(cfg: Config, commit: str, uuid: str) -> str:
+def cmd_class_check(cfg: Config, uuid: str) -> str:
     """The receipted class-check runner's container, on this box's one GPU. ``--entrypoint`` replaces the worker
     image's admission entrypoint by its own Python; ``TMPDIR`` points into the tmpfs (the root is read-only).
     """
@@ -494,7 +596,7 @@ def cmd_class_check(cfg: Config, commit: str, uuid: str) -> str:
             "--gpus",
             f"device={uuid}",
             "-v",
-            f"{tree_dir(commit)}:/carbon:ro",
+            f"{TREE}:/carbon:ro",
             "-v",
             f"{CLASS_OUT}:/out",
             "-e",
@@ -525,12 +627,9 @@ def cmd_class_check(cfg: Config, commit: str, uuid: str) -> str:
 def merge_daemon_json(text: str) -> dict:
     """daemon.json with the containerd image store switched on, keeping every other key (the nvidia runtime that
     ``nvidia-ctk runtime configure`` merged in among them)."""
-    try:
-        value = json.loads(text) if text.strip() else {}
-    except ValueError:
-        raise Refused("daemon_json_invalid", "daemon.json is not JSON") from None
-    if type(value) is not dict:
-        raise Refused("daemon_json_invalid", "daemon.json is not an object")
+    value = (
+        _json_object(text, "daemon_json_invalid", "daemon.json") if text.strip() else {}
+    )
     features = value.get("features") or {}
     if type(features) is not dict:
         raise Refused("daemon_json_invalid", "features is not an object")
@@ -553,20 +652,54 @@ def host_key_fingerprint(key_b64: str) -> str:
     ).rstrip("=")
 
 
+def cpu_list(text: str) -> set:
+    """``/sys/devices/system/cpu/online`` (``0-29`` or ``0-15,32-47``) as a set of CPU numbers, or ValueError."""
+    cpus: set = set()
+    for part in text.split(","):
+        low, _, high = part.partition("-")
+        first, last = int(low), int(high or low)
+        if last < first:
+            raise ValueError(text)
+        cpus.update(range(first, last + 1))
+    return cpus
+
+
 def case_id(case: dict) -> str:
     return f'{case.get("kind")}:{case.get("key")}/{case.get("arch")}'
 
 
-def _case_digests(record: dict, reason: str) -> dict:
+def record_digests(record: dict, reason: str) -> dict:
+    """Every digest a class-check record carries, by case id (and rebuild index): each case's ``*_digest`` fields and
+    each rebuild's, except the CPU parity run's (`CPU_FIELDS`). A missing key on either side is a difference.
+    """
     cases = record.get("cases")
     if type(cases) is not list or not cases:
         raise Refused(reason, "no cases")
-    digests = {}
+    digests: dict = {}
     for case in cases:
         if type(case) is not dict or case_id(case) in digests:
             raise Refused(reason, "malformed or repeated case")
-        digests[case_id(case)] = case.get("state_digest")
+        name = case_id(case)
+        digests[name] = "case"
+        for key, value in case.items():
+            if key.endswith("_digest") and key not in CPU_FIELDS:
+                digests[f"{name} {key}"] = value
+        rebuilds = case.get("rebuilds")
+        if type(rebuilds) is not list:
+            raise Refused(reason, f"{name}: rebuilds")
+        digests[f"{name} rebuilds"] = len(rebuilds)
+        for index, rebuild in enumerate(rebuilds):
+            if type(rebuild) is not dict:
+                raise Refused(reason, f"{name}: rebuild {index}")
+            for key, value in rebuild.items():
+                if key.endswith("_digest"):
+                    digests[f"{name} rebuilds[{index}].{key}"] = value
     return digests
+
+
+def _gpu_name(row) -> str | None:
+    """The first field of an ``nvidia-smi --format=csv,noheader`` row: the device name, exactly."""
+    return row.split(",")[0].strip() if type(row) is str else None
 
 
 def evaluate_class_check(
@@ -578,17 +711,33 @@ def evaluate_class_check(
     device_kind: str,
     allowlist_v8: str,
 ) -> dict:
-    """PASS (the per-case digests) or Refused. PASS = every case bit-identical and on the GPU, on this device class;
-    the ops record measured against allowlist v8 and bound to this very output; every case's state digest equal to
-    the class record's; the ops record equal to the class's ops record (all but its ``class_record_digest``, which
-    names the run that wrote it)."""
+    """PASS (the per-case state digests) or Refused, never a traceback. PASS = every case bit-identical and on the
+    GPU, on exactly this device class; the ops record measured against allowlist v8 and bound to this very output;
+    every digest equal to the class record's (`record_digests`); the ops record equal to the class's ops record (all
+    but its ``class_record_digest``, which names the run that wrote it)."""
     try:
-        record = json.loads(raw_output)
-    except ValueError:
-        raise Refused("class_check_output_invalid", "class-check.json") from None
-    if type(record) is not dict or record.get("schema") != CLASS_CHECK_SCHEMA:
-        raise Refused("class_check_output_invalid", "not a class-check record")
-    digests = _case_digests(record, "class_check_output_invalid")
+        return _evaluate(
+            raw_output,
+            raw_ops,
+            class_record=class_record,
+            class_ops_record=class_ops_record,
+            device_kind=device_kind,
+            allowlist_v8=allowlist_v8,
+        )
+    except (TypeError, AttributeError, KeyError, IndexError, ValueError) as error:
+        raise Refused(
+            "class_check_output_invalid", f"{type(error).__name__}: {error}"[:300]
+        ) from None
+
+
+def _evaluate(
+    raw_output, raw_ops, *, class_record, class_ops_record, device_kind, allowlist_v8
+):
+    invalid = "class_check_output_invalid"
+    record = _json_object(raw_output, invalid, "class-check.json")
+    if record.get("schema") != CLASS_CHECK_SCHEMA:
+        raise Refused(invalid, "not a class-check record")
+    digests = record_digests(record, invalid)
     cases = record["cases"]
     repeated_not = [case_id(c) for c in cases if c.get("bit_identical") is not True]
     if repeated_not:
@@ -598,15 +747,17 @@ def evaluate_class_check(
         raise Refused("class_check_not_on_gpu", ", ".join(off_gpu))
     if record.get("verdict") != "GPU_REPEATS":
         raise Refused("class_check_verdict", str(record.get("verdict")))
-    rows = (record.get("nvidia_smi") or {}).get("gpus") or []
-    if not rows or any(not str(r).startswith(device_kind + ",") for r in rows):
-        raise Refused("class_check_wrong_device", "; ".join(map(str, rows)))
-    try:
-        ops = json.loads(raw_ops)
-    except ValueError:
-        raise Refused("class_check_output_invalid", "ops-record.json") from None
-    if type(ops) is not dict or ops.get("schema") != OPS_SCHEMA:
-        raise Refused("class_check_output_invalid", "not a graph GPU ops record")
+    smi = record.get("nvidia_smi")
+    rows = smi.get("gpus") if type(smi) is dict else None
+    if (
+        type(rows) is not list
+        or not rows
+        or any(_gpu_name(row) != device_kind for row in rows)
+    ):
+        raise Refused("class_check_wrong_device", str(rows)[:300])
+    ops = _json_object(raw_ops, invalid, "ops-record.json")
+    if ops.get("schema") != OPS_SCHEMA:
+        raise Refused(invalid, "not a graph GPU ops record")
     if ops.get("allowlist_digest") != allowlist_v8:
         raise Refused("class_check_not_allowlist_v8", str(ops.get("allowlist_digest")))
     # gpu_rebuild_class_check.ops_record binds the record it was derived from by this digest.
@@ -614,14 +765,14 @@ def evaluate_class_check(
         json.dumps(record, sort_keys=True).encode()
     ):
         raise Refused("class_check_ops_record_unbound", "ops record names another run")
-    reference = _case_digests(class_record, "class_record_invalid")
+    reference = record_digests(class_record, "class_record_invalid")
     if digests != reference:
         differ = sorted(
             k
             for k in set(digests) | set(reference)
-            if digests.get(k) != reference.get(k)
+            if digests.get(k, "<missing>") != reference.get(k, "<missing>")
         )
-        raise Refused("class_check_digest_mismatch", ", ".join(differ))
+        raise Refused("class_check_digest_mismatch", ", ".join(differ[:12]))
 
     def comparable(value):
         return _canonical(
@@ -630,7 +781,9 @@ def evaluate_class_check(
 
     if comparable(ops) != comparable(class_ops_record):
         raise Refused("class_check_ops_mismatch", "ops record differs from the class's")
-    return {"case_digests": digests}
+    return {
+        "case_digests": {case_id(c): c["state_digest"] for c in cases},
+    }
 
 
 def _allowlist_v8_digest() -> str:
@@ -648,10 +801,10 @@ def _device_record(document: dict) -> str:
     )
     from carbon.reconstruction.worker.model import WorkerFailure
 
-    digest = _sha256(_canonical(document))
     try:
+        digest = _sha256(_canonical(document))
         require_host_device(HostDeviceRecord(document, digest), GPU_PROFILE)
-    except WorkerFailure:
+    except (WorkerFailure, TypeError, ValueError, AttributeError):
         raise Refused(
             "device_record_invalid", "the host device record fails its shape"
         ) from None
@@ -678,21 +831,27 @@ def box_path(cfg: Config) -> Path:
     return cfg.boxes_dir / f"{cfg.name}.json"
 
 
-def remove_box_file(cfg: Config) -> None:
-    path = box_path(cfg)
-    if os.path.lexists(path):
-        os.unlink(path)
-
-
-def write_box_file(cfg: Config, document: dict) -> Path:
-    """Atomic: a 0600 temp file in the same directory, fsynced, renamed over the name."""
-    path = box_path(cfg)
-    fd, part = tempfile.mkstemp(
-        prefix=f".{cfg.name}.", suffix=".part", dir=cfg.boxes_dir
+def box_files(cfg: Config) -> tuple[Path, Path, Path]:
+    """The box file and, beside it, the class check's own output and ops record."""
+    return (
+        box_path(cfg),
+        cfg.boxes_dir / f"{cfg.name}.class-check.json",
+        cfg.boxes_dir / f"{cfg.name}.ops-record.json",
     )
+
+
+def remove_box_files(cfg: Config) -> None:
+    for path in box_files(cfg):
+        if os.path.lexists(path):
+            os.unlink(path)
+
+
+def write_private(directory: Path, path: Path, body: bytes) -> Path:
+    """Atomic: a 0600 temp file in the same directory, fsynced, renamed over the name."""
+    fd, part = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".part", dir=directory)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(json.dumps(document, indent=1, sort_keys=True) + "\n")
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(body)
             handle.flush()
             os.fsync(handle.fileno())
         os.chmod(part, 0o600)
@@ -701,12 +860,21 @@ def write_box_file(cfg: Config, document: dict) -> Path:
         if os.path.lexists(part):
             os.unlink(part)
         raise
-    directory = os.open(cfg.boxes_dir, os.O_RDONLY)
+    handle = os.open(directory, os.O_RDONLY)
     try:
-        os.fsync(directory)
+        os.fsync(handle)
     finally:
-        os.close(directory)
+        os.close(handle)
     return path
+
+
+def write_box_files(cfg: Config, document: dict, raw_output: str, raw_ops: str) -> Path:
+    """The class check's output and ops record first, the box file (the admission) last."""
+    path, output_path, ops_path = box_files(cfg)
+    write_private(cfg.boxes_dir, output_path, raw_output.encode("utf-8"))
+    write_private(cfg.boxes_dir, ops_path, raw_ops.encode("utf-8"))
+    body = json.dumps(document, indent=1, sort_keys=True) + "\n"
+    return write_private(cfg.boxes_dir, path, body.encode("utf-8"))
 
 
 # -- the run -----------------------------------------------------------------------------------------------------------
@@ -766,9 +934,9 @@ class Session:
             return
         pipe_from = list(pipe_from)
         allowed = [cmd_docker_save(image) for image in self.cfg.images]
+        commit = pipe_from[5] if len(pipe_from) > 5 else ""
         if pipe_from not in allowed and not (
-            pipe_from[:-1] == cmd_git_archive("x")[:-1]
-            and _COMMIT.fullmatch(pipe_from[-1])
+            _COMMIT.fullmatch(commit) and pipe_from == cmd_git_archive(commit)
         ):
             raise Refused("upload_refused", shlex.join(pipe_from))
 
@@ -814,14 +982,19 @@ class Session:
 
     def shape(self):
         out = self.remote(CMD_SHAPE, reason="shape_unreadable")
-        lines = out.split("\n")
+        lines = out.splitlines()
         try:
             cpus = int(lines[0].strip())
-            mem_kib = int(lines[1].split()[1])
+            online = cpu_list(lines[1].strip())
+            mem_kib = int(lines[2].split()[1])
         except (IndexError, ValueError):
             raise Refused("shape_unreadable", out.strip()[-200:]) from None
         if cpus < MIN_CPUS:
-            raise Refused("slot_shape_cpus", f"{cpus} logical CPUs < {MIN_CPUS}")
+            raise Refused("slot_shape_cpus", f"{cpus} CPUs < {MIN_CPUS}")
+        if not set(range(MIN_CPUS)) <= online:
+            raise Refused(
+                "slot_cpus_offline", f"CPUs 0-{MIN_CPUS - 1} are not all online"
+            )
         if mem_kib < MIN_MEM_KIB:
             raise Refused(
                 "slot_shape_memory", f"MemTotal {mem_kib} kB < {MIN_MEM_KIB} kB"
@@ -882,22 +1055,37 @@ class Session:
             previous = json.loads(before) if before.strip() else None
         except ValueError:
             previous = None
-        if previous != merged:
+        restarted = previous != merged
+        if restarted:
             self.remote(CMD_DOCKER_RESTART, reason="docker_restart_failed")
-        try:
-            info = json.loads(self.remote(CMD_DOCKER_INFO, reason="docker_unreadable"))
-        except ValueError:
-            raise Refused("docker_unreadable", "docker info is not JSON") from None
-        if info.get("ServerVersion") != cfg.docker_version:
-            raise Refused("docker_version_mismatch", str(info.get("ServerVersion")))
+        problem = self._docker_problem()
+        if problem and not restarted:
+            # daemon.json is already right but the daemon does not show it (an earlier run's restart failed, or
+            # someone changed it by hand): restart once rather than wedge every later run.
+            self.remote(CMD_DOCKER_RESTART, reason="docker_restart_failed")
+            problem = self._docker_problem()
+        if problem:
+            raise Refused(*problem)
+
+    def _docker_problem(self):
+        """``(reason, detail)`` when ``docker info`` does not show the version, the snapshotter and the nvidia
+        runtime; None when it does."""
+        info = _json_object(
+            self.remote(CMD_DOCKER_INFO, reason="docker_unreadable"),
+            "docker_unreadable",
+            "docker info",
+        )
+        if info.get("ServerVersion") != self.cfg.docker_version:
+            return "docker_version_mismatch", str(info.get("ServerVersion"))
         if "io.containerd.snapshotter.v1" not in json.dumps(info.get("DriverStatus")):
-            raise Refused(
-                "docker_snapshotter_missing", json.dumps(info.get("DriverStatus"))
+            return "docker_snapshotter_missing", json.dumps(info.get("DriverStatus"))
+        runtimes = info.get("Runtimes")
+        if type(runtimes) is not dict or "nvidia" not in runtimes:
+            return (
+                "docker_nvidia_runtime_missing",
+                "docker info lists no nvidia runtime",
             )
-        if "nvidia" not in (info.get("Runtimes") or {}):
-            raise Refused(
-                "docker_nvidia_runtime_missing", "docker info lists no nvidia runtime"
-            )
+        return None
 
     def lane_user(self):
         if not self.remote(CMD_LANE_UID, reason="lane_user_failed").strip():
@@ -947,30 +1135,28 @@ class Session:
         commit = out.strip()
         if rc != 0 or not _COMMIT.fullmatch(commit):
             raise Refused("tree_unreadable", (err or out).strip()[-200:])
-        self.remote(cmd_work_dir(self.cfg), reason="tree_ship_failed")
-        if (
-            self.remote(cmd_tree_present(commit), reason="tree_ship_failed").strip()
-            != "present"
-        ):
-            self.remote(
-                cmd_tree_extract(commit),
-                reason="tree_ship_failed",
-                pipe_from=cmd_git_archive(commit),
+        # Unpushed local commits never leave the door.
+        rc, _, err = self.call(cmd_git_on_main(commit))
+        if rc != 0:
+            raise Refused(
+                "tree_not_on_origin_main",
+                f"{commit} is not reachable from origin/main (rc={rc}: {err.strip()[-200:]})",
             )
+        self.remote(cmd_work_dir(self.cfg), reason="tree_ship_failed")
+        self.remote(
+            CMD_TREE_EXTRACT,
+            reason="tree_ship_failed",
+            pipe_from=cmd_git_archive(commit),
+        )
         return commit
 
-    def device(self, commit, uuid, driver):
-        self.remote(cmd_prepare(self.cfg, commit), reason="device_record_failed")
-        try:
-            document = json.loads(
-                self.remote(CMD_DEVICE_READ, reason="device_record_failed")
-            )
-        except ValueError:
-            raise Refused(
-                "device_record_invalid", "host-device.json is not JSON"
-            ) from None
-        if type(document) is not dict:
-            raise Refused("device_record_invalid", "host-device.json is not an object")
+    def device(self, uuid, driver):
+        self.remote(cmd_prepare(self.cfg), reason="device_record_failed")
+        document = _json_object(
+            self.remote(CMD_DEVICE_READ, reason="device_record_failed"),
+            "device_record_invalid",
+            "host-device.json",
+        )
         for field, want in (
             ("device_kind", self.cfg.device_kind),
             ("device_uuid", uuid),
@@ -982,10 +1168,10 @@ class Session:
                 )
         return document, _device_record(document)
 
-    def class_check(self, commit, uuid):
+    def class_check(self, uuid):
         self.remote(CMD_CLASS_OUT, reason="class_check_failed")
         rc, out, err = self.call(
-            ssh(self.cfg, self.known_hosts, cmd_class_check(self.cfg, commit, uuid))
+            ssh(self.cfg, self.known_hosts, cmd_class_check(self.cfg, uuid))
         )
         r_out, raw_output, _ = self.call(
             ssh(self.cfg, self.known_hosts, CMD_CLASS_OUTPUT_READ)
@@ -997,9 +1183,10 @@ class Session:
             raise Refused(
                 "class_check_failed", f"rc={rc}: {(err or out).strip()[-400:]}"
             )
+        raw_ops = raw_ops if r_ops == 0 else ""
         summary = evaluate_class_check(
             raw_output,
-            raw_ops if r_ops == 0 else "",
+            raw_ops,
             class_record=self.cfg.class_record,
             class_ops_record=self.cfg.class_ops_record,
             device_kind=self.cfg.device_kind,
@@ -1007,16 +1194,20 @@ class Session:
         )
         if rc != 0:
             raise Refused("class_check_failed", f"rc={rc} although the record passed")
-        return (
-            summary,
-            _sha256(raw_output.encode("utf-8")),
-            _sha256(raw_ops.encode("utf-8")),
-        )
+        return summary, raw_output, raw_ops
 
     def run_step(self, name, function, *args):
         self.step = name
         started = time.monotonic()
-        value = function(*args)
+        try:
+            value = function(*args)
+        except Refused:
+            raise
+        except (TypeError, ValueError, KeyError, AttributeError, IndexError) as error:
+            # Whatever the box printed, a malformed answer is a typed refusal, never a traceback.
+            raise Refused(
+                f"{name}_output_invalid", f"{type(error).__name__}: {error}"[:300]
+            ) from None
         self.log(
             json.dumps(
                 {
@@ -1030,7 +1221,17 @@ class Session:
 
 
 def box_document(
-    cfg, *, host_key, driver, device, device_digest, summary, output_sha, ops_sha, now
+    cfg,
+    *,
+    host_key,
+    driver,
+    device,
+    device_digest,
+    summary,
+    raw_output,
+    raw_ops,
+    commit,
+    now,
 ):
     docker_host = f"ssh://{LANE_USER}@{cfg.ip}" + (
         "" if cfg.port == 22 else f":{cfg.port}"
@@ -1047,13 +1248,15 @@ def box_document(
         "driver_version": driver,
         "host_key": host_key,
         "images": list(cfg.images),
+        "tree_commit": commit,
+        "class_check_image_id": cfg.jax_image,
         "class_check": {
             "case_digests": summary["case_digests"],
             "class_record_sha256": cfg.class_record_sha256,
             "class_ops_record_sha256": cfg.class_ops_record_sha256,
         },
-        "check_output_sha256": output_sha,
-        "check_ops_record_sha256": ops_sha,
+        "check_output_sha256": _sha256(raw_output.encode("utf-8")),
+        "check_ops_record_sha256": _sha256(raw_ops.encode("utf-8")),
         "admitted_unix": int(now),
     }
 
@@ -1076,7 +1279,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     except Refused as refusal:
         return refused("boxes_dir", refusal)
     # A box being (re)brought up is not offered until it passes again.
-    remove_box_file(cfg)
+    remove_box_files(cfg)
     session = Session(cfg, runner, log=log)
     scratch = tempfile.mkdtemp(prefix="gpu-box-up-")
     session.known_hosts = os.path.join(scratch, "known_hosts")
@@ -1089,11 +1292,9 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         session.run_step("stage_root", session.stage_root)
         session.run_step("images", session.images)
         commit = session.run_step("tree", session.tree)
-        device, device_digest = session.run_step(
-            "device", session.device, commit, uuid, driver
-        )
-        summary, output_sha, ops_sha = session.run_step(
-            "class_check", session.class_check, commit, uuid
+        device, device_digest = session.run_step("device", session.device, uuid, driver)
+        summary, raw_output, raw_ops = session.run_step(
+            "class_check", session.class_check, uuid
         )
         document = box_document(
             cfg,
@@ -1102,14 +1303,15 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
             device=device,
             device_digest=device_digest,
             summary=summary,
-            output_sha=output_sha,
-            ops_sha=ops_sha,
+            raw_output=raw_output,
+            raw_ops=raw_ops,
+            commit=commit,
             now=now(),
         )
         session.step = "box_file"
-        path = write_box_file(cfg, document)
+        path = write_box_files(cfg, document, raw_output, raw_ops)
     except Refused as refusal:
-        remove_box_file(cfg)
+        remove_box_files(cfg)
         return refused(session.step, refusal)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
@@ -1157,6 +1359,10 @@ def plan(cfg: Config) -> list[tuple[str, str]]:
     )
     steps.append(remote("docker (only when it changed)", CMD_DOCKER_RESTART))
     steps.append(remote("docker", CMD_DOCKER_INFO))
+    steps.append(
+        remote("docker (only when docker info does not show it)", CMD_DOCKER_RESTART)
+    )
+    steps.append(remote("docker (only after that restart)", CMD_DOCKER_INFO))
     steps.append(remote("lane_user", CMD_LANE_UID))
     steps.append(remote("lane_user (only when missing)", CMD_LANE_CREATE))
     for command in (
@@ -1175,17 +1381,13 @@ def plan(cfg: Config) -> list[tuple[str, str]]:
         )
         steps.append(remote("images", cmd_image_id(image)))
     steps.append(("tree", shlex.join(cmd_git_head())))
+    steps.append(("tree", shlex.join(cmd_git_on_main(commit))))
     steps.append(remote("tree", cmd_work_dir(cfg)))
-    steps.append(remote("tree", cmd_tree_present(commit)))
-    steps.append(
-        remote(
-            "tree (only when absent)", cmd_tree_extract(commit), cmd_git_archive(commit)
-        )
-    )
-    steps.append(remote("device", cmd_prepare(cfg, commit)))
+    steps.append(remote("tree", CMD_TREE_EXTRACT, cmd_git_archive(commit)))
+    steps.append(remote("device", cmd_prepare(cfg)))
     steps.append(remote("device", CMD_DEVICE_READ))
     steps.append(remote("class_check", CMD_CLASS_OUT))
-    steps.append(remote("class_check", cmd_class_check(cfg, commit, uuid)))
+    steps.append(remote("class_check", cmd_class_check(cfg, uuid)))
     steps.append(remote("class_check", CMD_CLASS_OUTPUT_READ))
     steps.append(remote("class_check", CMD_CLASS_OPS_READ))
     return steps
@@ -1207,7 +1409,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="the operator's private key for the admin login (stays on the door)",
     )
     parser.add_argument("--box-name", required=True)
-    parser.add_argument("--provider", required=True, help="a plain token, e.g. lambda")
+    parser.add_argument(
+        "--provider",
+        required=True,
+        help=f"the box's provider; accepted: {', '.join(ACCEPTED_PROVIDERS)}",
+    )
     parser.add_argument(
         "--device-kind", required=True, help='e.g. "NVIDIA A100-SXM4-40GB"'
     )
@@ -1235,6 +1441,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--jax-image",
         required=True,
         help="the pinned JAX GPU image id the class check runs in",
+    )
+    parser.add_argument(
+        "--graph-gpu-image-manifest",
+        required=True,
+        help="the receiver's graph GPU image manifest; its image id must equal --jax-image",
     )
     parser.add_argument(
         "--class-record", required=True, help="the class's reference class-check JSON"
