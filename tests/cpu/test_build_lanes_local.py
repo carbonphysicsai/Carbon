@@ -106,28 +106,22 @@ def test_a_third_build_waits_for_a_local_lane_while_grades_keep_the_remote_lanes
         round_.end()
 
 
-def test_a_build_waiting_for_a_busy_local_lane_never_stops_grades_starting(host):
-    """All four lanes grading; one remote grade ends; a build then holds a round slot but finds no local lane free, and
-    waits WITHOUT the door's lock: a new grade round still starts on the free remote lane.
-    """
+def test_grades_never_take_a_local_lane_while_the_door_has_remote_grade_lanes(host):
+    """Live 116 (7aeaa273, 17 Nov 22:2xZ): with every remote lane grading, grades fell back to the local lanes and held
+    them for minutes, so the A100's builds found no local lane to start or re-take (A100 idle, 69 builds queued). Now a
+    grade waits for a REMOTE lane, without a round slot, and a build takes a local lane at once."""
     work, _ = _door(host)
-    grades = [_Round(work, "grade") for _ in range(4)]
-    for grade in grades:
-        assert grade.entered.wait(5)
-    remote = [g for g in grades if g.lane.docker_host is not None]
-    local = [g for g in grades if g.lane.docker_host is None]
-    assert len(remote) == 2 and len(local) == 2
-    remote[0].end()
-    build = _Round(work, "advance")
-    assert not build.entered.wait(0.3)
-    # the build's slot is the only free one: give a grade a slot by ending a remote grade too
-    remote[1].end()
-    late = _Round(work, "grade")
-    assert late.entered.wait(5) and late.lane.docker_host is not None
-    assert not build.entered.wait(0.2)
-    local[0].end()
-    assert build.entered.wait(5) and build.lane.index == local[0].lane.index
-    for round_ in (build, late, local[1]):
+    grades = [_Round(work, "grade") for _ in range(3)]
+    entered = [g for g in grades if g.entered.wait(1)]
+    assert len(entered) == 2 and all(g.lane.docker_host is not None for g in entered)
+    waiting = next(g for g in grades if g not in entered)
+    assert not waiting.entered.wait(0.3)  # never a local lane
+    builds = [_Round(work, "advance") for _ in range(2)]
+    for build in builds:
+        assert build.entered.wait(5) and build.lane.docker_host is None
+    entered[0].end()
+    assert waiting.entered.wait(5) and waiting.lane.docker_host is not None
+    for round_ in (entered[1], waiting, *builds):
         round_.end()
 
 
@@ -202,36 +196,37 @@ def test_a_waiting_retake_holds_back_new_builds_never_new_grades(host):
     assert late.entered.is_set()
 
 
-def test_a_draining_door_gives_up_a_build_waiting_for_a_local_lane(host, tmp_path):
+def test_a_draining_door_gives_up_a_grade_waiting_for_a_remote_lane(host, tmp_path):
+    """A grade waiting for a remote lane (`_grades_remote_only`) holds no slot and gives up on a drain."""
     state = tmp_path / "state"
     state.mkdir()
     work = _WorkLock(host, state_dir=state, poll_s=POLL, lanes=(*LOCAL, *REMOTE))
     work.overlap_kinds = True
     work.local_builds(0)
-    grades = [_Round(work, "grade") for _ in range(4)]
+    grades = [_Round(work, "grade") for _ in range(2)]
     for grade in grades:
         assert grade.entered.wait(5)
-    grades[0].end()
     declined = []
 
-    def build():
+    def grade():
         try:
-            with work.taking("advance"):
+            with work.taking("grade", has_work=lambda: True):
                 pass
         except direct_intake.WorkDeclined as refused:
             declined.append(refused.reason)
 
-    thread = threading.Thread(target=build, daemon=True)
+    thread = threading.Thread(target=grade, daemon=True)
     thread.start()
     thread.join(0.3)
-    assert thread.is_alive()  # holds a slot, waits for a local lane without the lock
+    assert thread.is_alive()  # waits for a remote lane
+    builds = [_Round(work, "advance") for _ in range(2)]
+    for build in builds:
+        assert build.entered.wait(5)  # its wait never held the slots the builds need
     (state / direct_intake.DRAIN_NAME).touch()
     thread.join(5)
     assert declined == ["draining"]
     (state / direct_intake.DRAIN_NAME).unlink()
-    late = _Round(work, "grade")  # every slot came back: a grade starts
-    assert late.entered.wait(5)
-    for round_ in (*grades[1:], late):
+    for round_ in (*grades, *builds):
         round_.end()
 
 
@@ -264,25 +259,15 @@ def test_a_build_away_on_the_remote_box_never_lets_grades_starve_a_new_build(tmp
         assert waiting_grade.entered.is_set()
 
 
-def test_a_grade_never_stands_back_while_a_remote_lane_it_can_grade_on_is_free(host):
-    """Review: builds use LOCAL lanes only, so a grade stands back for a waiting build only when it would take a local
-    lane itself. A free remote lane is graded on at once; the waiting build gets the next free LOCAL lane.
-    """
+def test_a_build_back_from_the_remote_box_finds_its_local_lane_while_grades_wait(host):
+    """The A100's build re-takes a local lane at once: grades hold only the remote lanes, never the local ones."""
     work, _ = _door(host, extra=4)
     away = _Build(work)
     assert away.remote.wait(5)
-    grades = [_Round(work, "grade") for _ in range(4)]
-    for grade in grades:
-        assert grade.entered.wait(5)
-    remote = [g for g in grades if g.lane.docker_host is not None]
-    local = [g for g in grades if g.lane.docker_host is None]
-    waiting_build = _Round(work, "advance")
-    assert not waiting_build.entered.wait(0.2)
-    remote[0].end()
-    late = _Round(work, "grade")
-    assert late.entered.wait(5) and late.lane.docker_host is not None
-    assert not waiting_build.entered.wait(0.2)
-    local[0].end()
-    assert waiting_build.entered.wait(5) and waiting_build.lane.docker_host is None
-    for round_ in (remote[1], local[1], late, waiting_build, away):
+    grades = [_Round(work, "grade") for _ in range(3)]
+    entered = [g for g in grades if g.entered.wait(1)]
+    assert len(entered) == 2 and all(g.lane.docker_host is not None for g in entered)
+    away.finish.set()
+    assert away.local.wait(5)  # back on a local lane at once
+    for round_ in (*grades, away):
         round_.end()

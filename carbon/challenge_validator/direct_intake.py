@@ -1711,10 +1711,14 @@ class _WorkLock:
         order = list(enumerate(self._lanes))
         if self.builds_local:
             local = [(index, spec) for index, spec in order if type(spec) is str]
+            remote = [pair for pair in order if type(pair[1]) is not str]
+            # live 116 (7aeaa273, 17 Nov 22:2xZ): a grade that fell back to a local lane held it for minutes, so the
+            # A100's builds found no local lane to start or re-take and the A100 sat idle with 69 builds queued. With
+            # remote grade lanes, grades take ONLY those (`_grades_remote_only`); the local lanes are the builds'.
             order = (
                 local
                 if kind == "advance"
-                else [pair for pair in order if type(pair[1]) is not str] + local
+                else (remote if self._grades_remote_only() else remote + local)
             )
         for index, spec in order:
             if index not in self._usable:
@@ -1936,10 +1940,24 @@ class _WorkLock:
             return False
         return self._take_slots(kind)
 
+    def _grades_remote_only(self):
+        """Whether this door's grade rounds take its REMOTE lanes only: `builds_local` with at least one usable remote
+        lane (live 116, 17 Nov: grades on the local lanes starved the A100's builds of the lane each needs to start and
+        re-take). A door with no remote grade lane grades on its local lanes, as before."""
+        return self.builds_local and any(
+            type(self._lanes[index]) is not str for index in self._usable
+        )
+
     def _take_slots(self, kind):
         """A round slot, plus a build slot first for a build round under `builds_local` (so at most one build round per
-        local lane holds a round slot, and a grade round always finds a free lane), within one poll each.
+        local lane holds a round slot), within one poll each. A grade round of a door whose grades take remote lanes only
+        (`_grades_remote_only`) never sits on a round slot while no remote lane is free, as a build never does while no
+        local lane is.
         """
+        if kind != "advance" and self._grades_remote_only():
+            if not self._lane_free(local=False):
+                time.sleep(self._poll)
+                return False
         if self._build_slots is not None and kind == "advance":
             if not self._lane_free(local=True):
                 # a build only ever takes a LOCAL lane: it never sits on a round slot a grade could use on a free
