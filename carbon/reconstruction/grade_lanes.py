@@ -358,8 +358,8 @@ def released():
     round gives its LOCAL lane back so the door's other rounds grade on it, and holds a local lane again once the op
     has ended, on every exit path (a failed build included), before the op's error leaves and before the round's next
     op: its local inference and timing containers stay laned and gated. Meanwhile the round's binding is KEPT: the op's
-    containers run on its slot's machine and cores (`remote_gpu_build.cpuset` comes first), and its local holds (the
-    stage upload, `container_hold`) still take this host's timing gate SHARED, as before. Nothing changes outside a
+    containers run on its slot's machine and cores (`remote_gpu_build.cpuset` comes first), and its local transfers
+    (the stage upload, its output export: `research_carrier._remote_box_transfer`) take the timing gate SHARED. Nothing changes outside a
     round that offers a releaser, or on a REMOTE grade lane."""
     releaser = _RELEASER.get()
     lane = _BOUND.get()
@@ -422,11 +422,17 @@ def is_timing_identity(identity):
     return type(identity) is str and identity.startswith(TIMING_IDENTITY_PREFIXES)
 
 
+class TimingGateBusy(RuntimeError):
+    """A SHARED hold with a ``deadline`` (`container_hold`) did not get the host timing gate in time."""
+
+
 @contextmanager
-def container_hold(*, identity=None, poll_s=None, sleep=None):
+def container_hold(*, identity=None, poll_s=None, sleep=None, deadline=None):
     """Held by the carrier for one container's whole life (before create, until it is removed). Outside a lane-bound
     round: nothing. Inside one: the host timing gate SHARED, or EXCLUSIVE for a timing stage (inside
-    `timing_exclusive`, or an operation ``identity`` that `is_timing_identity`)."""
+    `timing_exclusive`, or an operation ``identity`` that `is_timing_identity`). ``deadline`` (`time.monotonic`, a
+    SHARED hold only): past it without the gate, `TimingGateBusy` (the caller's own typed outcome), never a hold.
+    """
     lane = current()
     if lane is None:
         _tell("held", identity)
@@ -465,6 +471,8 @@ def container_hold(*, identity=None, poll_s=None, sleep=None):
                         break
                     except BlockingIOError:
                         pass
+                if deadline is not None and time.monotonic() >= deadline:
+                    raise TimingGateBusy(identity)
                 pause(poll)
         waited = time.monotonic() - began
         if exclusive or waited >= 1.0:

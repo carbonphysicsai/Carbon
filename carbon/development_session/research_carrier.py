@@ -1594,17 +1594,29 @@ def _timing_stage(identity):
 
 
 @contextmanager
-def _remote_box_transfer(on_remote_box, identity):
+def _remote_box_transfer(on_remote_box, identity, deadline=None):
     """A container on a REMOTE GPU build box holds this host's timing gate SHARED only while its local transfers run
     (V2 ruling, 17 Nov 2026: here its output export; its stage upload holds it where the stage is mirrored), never for
     its run. Any other container: nothing here (it holds the gate for its whole life, `grade_lanes.container_hold`).
+
+    The export waits for the gate (a local timing stage) at most until ``deadline`` (`time.monotonic`: what is left of
+    the op's own budget for its export); past it the op is Carbon's (`RemoteLaneDown`, FAILED_INFRA, never charged),
+    typed: never an export beside a timing stage, never one cut short by its watchdog.
     """
     if not on_remote_box:
         yield
         return
     from carbon.reconstruction import grade_lanes
 
-    with grade_lanes.container_hold(identity=identity):
+    with ExitStack() as stack:
+        try:
+            stack.enter_context(
+                grade_lanes.container_hold(identity=identity, deadline=deadline)
+            )
+        except grade_lanes.TimingGateBusy:
+            raise remote_lane.RemoteLaneDown(
+                b"remote_gpu_build_export_timing_gate_busy"
+            ) from None
         yield
 
 
@@ -2742,7 +2754,8 @@ def _run_locked(
             observed = observe_effective_resources(cli=cli, container_name=name)
         with (
             _fixed_practice_stage(operation, provenance, "EXPORT"),
-            _remote_box_transfer(on_remote_box, identity),
+            # the gate wait comes out of the export's own budget: at most until 5 s of it are left
+            _remote_box_transfer(on_remote_box, identity, started + seconds - 40),
         ):
             export_started = time.monotonic()
             export_timeout = max(1, seconds - 35 - (export_started - started))

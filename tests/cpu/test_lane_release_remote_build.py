@@ -338,12 +338,9 @@ def test_a_remote_box_container_holds_the_timing_gate_only_for_its_transfers(hos
     from carbon.development_session import research_carrier
 
     source = inspect.getsource(research_carrier._run_locked)
-    assert "on_remote_box = remote_gpu_build.remote_box() is not None" in source
-    assert (
-        "if not on_remote_box:\n"
-        "                    lease.enter_context(grade_lanes.container_hold(identity=identity))"
-    ) in source
-    assert "_remote_box_transfer(on_remote_box, identity)" in source
+    # the lifelong hold is skipped for a remote-box container; its export holds the gate (below)
+    assert "if not on_remote_box:" in source
+    assert "_remote_box_transfer(on_remote_box, identity," in source
     lane = grade_lanes.Lane(0, "0-3", str(host))
     transfer, released, timing_done = (threading.Event() for _ in range(3))
 
@@ -375,3 +372,43 @@ def test_a_remote_box_container_holds_the_timing_gate_only_for_its_transfers(hos
         grade_lanes.container_hold(identity="single-call-w", poll_s=POLL),
     ):
         pass
+
+
+def test_a_remote_export_that_cannot_get_the_timing_gate_in_time_is_carbons(host):
+    """The export waits for a running timing stage at most until its deadline; past it the op is Carbon's
+    (`RemoteLaneDown`, FAILED_INFRA, never charged), never an export beside the timing stage.
+    """
+    import time
+
+    from carbon.development_session import research_carrier
+
+    timing, leave = threading.Event(), threading.Event()
+
+    def timing_stage():
+        with (
+            grade_lanes.bound(grade_lanes.Lane(1, "4-7", str(host))),
+            grade_lanes.container_hold(identity="single-call-q", poll_s=POLL),
+        ):
+            timing.set()
+            assert leave.wait(5)
+
+    threading.Thread(target=timing_stage, daemon=True).start()
+    assert timing.wait(5)
+    with grade_lanes.bound(grade_lanes.Lane(0, "0-3", str(host))):
+        with (
+            pytest.raises(RemoteLaneDown) as raised,
+            research_carrier._remote_box_transfer(
+                True, "direct-x-build", time.monotonic() + 0.2
+            ),
+        ):
+            raise AssertionError("exported beside a timing stage")
+        assert (
+            raised.value.private_diagnostic
+            == b"remote_gpu_build_export_timing_gate_busy"
+        )
+        leave.set()
+        # the gate free again: the export holds it, within its deadline
+        with research_carrier._remote_box_transfer(
+            True, "direct-x-build", time.monotonic() + 5
+        ):
+            pass
