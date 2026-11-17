@@ -1,34 +1,52 @@
 #!/usr/bin/env python3
-"""Bring a freshly rented GPU box up as a remote GPU build lane, with one command from the door host.
+"""Bring a freshly rented GPU box up as a remote GPU build lane, in two phases run by two people with two keys.
 
-Owner's order: rented A100 boxes are used on demand. A fresh rental is brought up with ONE command from the door in
-under 20 minutes, and it must pass an automatic per-box class check before it takes work; a box that fails is never
-used. This tool drives the box over ssh as its admin user (the operator's key), one idempotent step at a time, and
-stops at the first failure with a typed reason:
+Owner's order: rented A100 boxes are used on demand. A fresh rental is brought up in under 20 minutes and must pass an
+automatic per-box class check before it takes work; a box that fails is never used. The owner allowed the door's key
+on a Lambda box ONLY as ``carbon-grade``, from the door's address; the door never logs in as the box's admin user.
+So the bring-up is two subcommands of this one tool, each a single command, each stopping at its first failure with a
+typed reason, each idempotent:
 
-  host_key     the box's ed25519 host key equals the operator's ``--host-key-fingerprint``; every later ssh pins it
+``admin``: Compute Ops runs it from THEIR OWN machine, as the box's admin user (``--user``, default ``ubuntu``) with
+THEIR OWN key. It changes the box and writes nothing on the door side (no box file, no door records needed):
+
+  host_key     the box's ed25519 host key equals ``--host-key-fingerprint``; every later ssh pins it
   shape        >= 16 CPUs (``nproc --all``) with CPUs 0-15 online, and >= 4 x 16 GiB + 8 GiB MemTotal (every box
                has the same shape: 4 slots x 4 cores x 16 GiB, cpusets 0-3, 4-7, 8-11, 12-15)
   driver       exactly one GPU named ``--device-kind``, driver >= ``--driver-floor`` (an older one is upgraded from the
                provider's apt repo and the run stops: ``driver_upgrade_needs_reboot``)
-  docker       Docker Engine ``--docker-version`` from Docker's apt repo, the containerd image store and the nvidia
-               runtime merged into daemon.json, both shown by ``docker info``
-  lane_user    ``carbon-grade`` (not root, in the docker group), authorized_keys exactly one door-restricted line
+  docker       Docker Engine ``--docker-version`` and containerd ``--containerd-version`` from Docker's apt repo, the
+               containerd image store and the nvidia runtime merged into daemon.json, all shown by ``docker info``
+  lane_user    ``carbon-grade`` (home /home/carbon-grade, not root, in the docker group), authorized_keys exactly
+               ``restrict,from="<door ip>" <lane public key>``
   stage_root   ``/home/carbon`` owned carbon-grade:carbon-grade, mode 0755
+
+It prints a JSON summary (``carbon.gpu-box-admin.v1``, ``"admin": "PASS"``) the operator may copy to the door.
+
+``door``: run on the door as the door user, logging in to the box ONLY as ``carbon-grade`` with the lane key, and
+never using sudo there (every door-phase command is checked for it). It re-verifies the admin work READ-ONLY (a
+mismatch is ``admin_incomplete:<admin step to re-run>``), then:
+
   images       each ``--image`` streamed from the door's daemon (``docker save | docker load``) and proved by its id
-  tree         a world-readable copy of only what the class check reads (`TREE_PATHS`, ``git archive`` of HEAD,
-               which must be reachable from origin/main), extracted afresh on every run
-  device       the box's host device record (``carbon_accelerator.py prepare`` on the box), fetched back
+  tree         only what the class check reads (`TREE_PATHS`, ``git archive`` of HEAD, which must be reachable from
+               origin/main), extracted afresh every run into carbon-grade's own ``~/carbon-box-up/tree-<sha>``
+  device       the box's host device record (``carbon_accelerator.py prepare``, which needs no root), fetched back
   class_check  ``gpu_rebuild_class_check.py`` in the JAX GPU image the door's receiver serves (its
                ``--graph-gpu-image-manifest``), on the box's GPU: every case bit-identical and on the GPU, the ops
                record measured against allowlist v8 and bound to this run, every digest equal to the class record's
                (CPU parity fields aside) and the ops record equal to the class's ops record
 
+The class check's container runs as uid 65532 and writes into a fresh ``~/carbon-box-up/class-check`` of mode 0703:
+its owner (carbon-grade) can read and remove what is written there, the container can create files in it, and no
+other local user can reach it, since its parent is 0700 (the daemon, not the container, resolves the bind mount).
+The door reads each file only when the container's uid owns it, then removes the directory.
+
 Only on PASS are the box file ``<--boxes-dir>/<--box-name>.json`` (schema ``carbon.remote-gpu-build-box.v1``) and,
 beside it, the class check's own output (``<name>.class-check.json``, ``<name>.ops-record.json``) written, each
-atomically, 0600 in a 0700 directory, the box file last. A run starts by removing those files, and removes them again
-on any refusal, so a box that is being (re)brought up, or that failed, is never offered. ``--dry-run`` prints every
-command it would run and runs none.
+atomically, 0600 in a 0700 directory, the box file last. A run starts by removing those files, and any end but a full
+PASS leaves none of them, so a box that is being (re)brought up, or that failed, is never offered. With
+``--admin-summary`` the admin phase's JSON must agree with what the door reads (host key, GPU uuid, driver) and its
+sha256 is recorded. ``--dry-run`` prints every command a phase would run and runs none.
 
 **Every value deciding PASS comes from the box; a box or provider that lies or replays another box's output can
 pass. PASS is an engineering admission check, not security qualification; per-build re-reads in the lane and the
@@ -38,11 +56,15 @@ What goes to the box: the lane's PUBLIC key, the public Carbon tree, public work
 else (no private key, no agent forwarding). The tool never reboots a box and never touches the door's own daemon
 beyond ``docker save``. A PASS is a per-box class check, not scientific or security qualification.
 
-    python3 -I scripts/dev/gpu_box_up.py --ssh ubuntu@203.0.113.7 --box-name a100-1 --provider lambda \\
-        --device-kind "NVIDIA A100-SXM4-40GB" --door-ip 198.51.100.2 --lane-pubkey lane.pub \\
-        --host-key-fingerprint SHA256:... --jax-image sha256:... --image sha256:... \\
+    # Compute Ops, from their own machine, as the box's admin user with their own key:
+    python3 -I scripts/dev/gpu_box_up.py admin --ip 203.0.113.7 --host-key-fingerprint SHA256:... \\
+        --device-kind "NVIDIA A100-SXM4-40GB" --door-ip 198.51.100.2 --lane-pubkey lane.pub > admin.json
+    # On the door, as the door user, logging in as carbon-grade with the lane key:
+    python3 -I scripts/dev/gpu_box_up.py door --ip 203.0.113.7 --host-key-fingerprint SHA256:... \\
+        --box-name a100-1 --provider lambda --device-kind "NVIDIA A100-SXM4-40GB" --door-ip 198.51.100.2 \\
+        --lane-pubkey lane.pub --ssh-key ~/.ssh/carbon-lane --jax-image sha256:... --image sha256:... \\
         --graph-gpu-image-manifest jax-gpu-image.json --class-record a100-class-check.json \\
-        --class-ops-record a100-ops-record.json --boxes-dir ~/.carbon/boxes
+        --class-ops-record a100-ops-record.json --boxes-dir ~/.carbon/boxes --admin-summary admin.json
 """
 
 from __future__ import annotations
@@ -71,15 +93,18 @@ if str(ROOT) not in sys.path:
 from carbon.reconstruction.remote_lane import parse_docker_host
 
 BOX_SCHEMA = "carbon.remote-gpu-build-box.v1"
+ADMIN_SCHEMA = "carbon.gpu-box-admin.v1"
 CLASS_CHECK_SCHEMA = "carbon.gpu-rebuild.class-check.v1"
 OPS_SCHEMA = "carbon.graph-gpu-ops.v1"
 LANE_USER = "carbon-grade"
+LANE_HOME = f"/home/{LANE_USER}"
+DEFAULT_ADMIN_USER = "ubuntu"
 STAGE_ROOT = "/home/carbon"
-#: The tool's own working directory on the box (the tree, the host record, the class-check output).
-WORK = "/var/lib/carbon-box-up"
-HOST_ROOT = f"{WORK}/host-root"
-CLASS_OUT = f"{WORK}/class-check"
-TREE = f"{WORK}/tree"
+#: The door phase's own working directory on the box, carbon-grade's and 0700: the tree, the host record, the
+#: class-check output.
+BOX_WORK = f"{LANE_HOME}/carbon-box-up"
+HOST_ROOT = f"{BOX_WORK}/host-root"
+CLASS_OUT = f"{BOX_WORK}/class-check"
 #: Exactly what the class check (and ``carbon_accelerator.py prepare``) import or read, found by running every child
 #: rebuild from an archive of only these paths: the package, the two scripts, and the public evidence files the
 #: launch versions' TRAIN material is assembled from. Nothing else of the repository goes to a rented box.
@@ -114,7 +139,8 @@ CPU_FIELDS = frozenset({"cpu_state_digest", "parity_vs_cpu", "cpu_error"})
 SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15")
 MIN_CPUS = 16
 MIN_MEM_KIB = (len(SLOT_CPUSETS) * 16 + 8) * 1024 * 1024
-WORKER_USER = "65532:65532"
+WORKER_UID = "65532"
+WORKER_USER = f"{WORKER_UID}:{WORKER_UID}"
 WORKER_PYTHON = "/opt/carbon-worker/bin/python"
 CLASS_CHECK_STEPS = 512
 DEFAULT_DRIVER_FLOOR = "580.65.06"
@@ -187,12 +213,14 @@ def _json_object(text, reason: str, what: str) -> dict:
 
 @dataclass(frozen=True)
 class Config:
-    admin: str
+    """One phase's arguments. ``user`` is who the tool logs in as: the admin user (admin phase) or carbon-grade
+    (door phase). The door-only fields stay empty for the admin phase."""
+
+    phase: str
+    user: str
     ip: str
     port: int
     ssh_key: str | None
-    name: str
-    provider: str
     device_kind: str
     driver_floor: str
     driver_package: str
@@ -201,14 +229,18 @@ class Config:
     door_ip: str
     lane_pubkey: str
     host_key_fingerprint: str
-    images: tuple[str, ...]
-    jax_image: str
-    boxes_dir: Path
-    class_record_digests: dict
-    class_record: dict
-    class_record_sha256: str
-    class_ops_record: dict
-    class_ops_record_sha256: str
+    name: str = ""
+    provider: str = ""
+    images: tuple[str, ...] = ()
+    jax_image: str = ""
+    boxes_dir: Path | None = None
+    class_record_digests: dict | None = None
+    class_record: dict | None = None
+    class_record_sha256: str = ""
+    class_ops_record: dict | None = None
+    class_ops_record_sha256: str = ""
+    admin_summary: dict | None = None
+    admin_summary_sha256: str | None = None
 
 
 def public_key_line(text: str) -> str:
@@ -275,26 +307,18 @@ def _graph_gpu_image(path: str) -> str:
     return identity.image_id
 
 
-def config_from_args(args) -> Config:
-    user, sep, ip = args.ssh.partition("@")
-    if not sep or not _ADMIN.fullmatch(user):
-        raise Refused("bad_argument", "--ssh must be USER@IPV4")
+def _common(args, *, user: str) -> dict:
+    """The arguments both phases share, checked."""
     try:
-        if ipaddress.ip_address(ip).version != 4:
+        if ipaddress.ip_address(args.ip).version != 4:
             raise ValueError
         door = str(ipaddress.ip_address(args.door_ip))
     except ValueError:
         raise Refused(
-            "bad_argument", "--ssh needs an IPv4 address; --door-ip an IP"
+            "bad_argument", "--ip needs an IPv4 address; --door-ip an IP"
         ) from None
     if not 1 <= args.port <= 65535:
         raise Refused("bad_argument", "--port")
-    if not _NAME.fullmatch(args.box_name):
-        raise Refused("bad_argument", "--box-name: letters, digits, '-', '_'")
-    if args.provider not in ACCEPTED_PROVIDERS:
-        raise Refused(
-            "provider_not_accepted", f"accepted: {', '.join(ACCEPTED_PROVIDERS)}"
-        )
     if not _DEVICE_KIND.fullmatch(args.device_kind):
         raise Refused("bad_argument", "--device-kind")
     _version(args.driver_floor)
@@ -302,20 +326,55 @@ def config_from_args(args) -> Config:
         raise Refused("bad_argument", "--docker-version")
     if not _VERSION.fullmatch(args.containerd_version):
         raise Refused("bad_argument", "--containerd-version")
-    if not _PACKAGE.fullmatch(args.driver_package):
+    package = getattr(args, "driver_package", DEFAULT_DRIVER_PACKAGE)
+    if not _PACKAGE.fullmatch(package):
         raise Refused("bad_argument", "--driver-package")
     if not _FINGERPRINT.fullmatch(args.host_key_fingerprint):
         raise Refused("bad_argument", "--host-key-fingerprint must be SHA256:<43>")
-    images = list(dict.fromkeys([args.jax_image, *args.image]))
-    for image in images:
-        if not _IMAGE_ID.fullmatch(image):
-            raise Refused("bad_argument", f"image ids are full sha256 ids: {image}")
     try:
         pubkey = public_key_line(Path(args.lane_pubkey).read_text(encoding="utf-8"))
     except OSError:
         raise Refused(
             "lane_pubkey_invalid", f"cannot read {args.lane_pubkey}"
         ) from None
+    return {
+        "user": user,
+        "ip": args.ip,
+        "port": args.port,
+        "ssh_key": args.ssh_key,
+        "device_kind": args.device_kind,
+        "driver_floor": args.driver_floor,
+        "driver_package": package,
+        "docker_version": args.docker_version,
+        "containerd_version": args.containerd_version,
+        "door_ip": door,
+        "lane_pubkey": pubkey,
+        "host_key_fingerprint": args.host_key_fingerprint,
+    }
+
+
+def config_from_args(args) -> Config:
+    if args.phase == "admin":
+        # The admin phase is the box admin's, never the lane user's: the two phases cannot be confused.
+        if args.user == LANE_USER:
+            raise Refused(
+                "admin_user_is_lane_user",
+                f"the admin phase runs as the box's admin user, never {LANE_USER}",
+            )
+        if not _ADMIN.fullmatch(args.user):
+            raise Refused("bad_argument", "--user")
+        return Config(phase="admin", **_common(args, user=args.user))
+    common = _common(args, user=LANE_USER)
+    if not _NAME.fullmatch(args.box_name):
+        raise Refused("bad_argument", "--box-name: letters, digits, '-', '_'")
+    if args.provider not in ACCEPTED_PROVIDERS:
+        raise Refused(
+            "provider_not_accepted", f"accepted: {', '.join(ACCEPTED_PROVIDERS)}"
+        )
+    images = list(dict.fromkeys([args.jax_image, *args.image]))
+    for image in images:
+        if not _IMAGE_ID.fullmatch(image):
+            raise Refused("bad_argument", f"image ids are full sha256 ids: {image}")
     record, record_sha = _load_json_file(args.class_record, "class_record_invalid")
     ops, ops_sha = _load_json_file(args.class_ops_record, "class_ops_record_invalid")
     if record.get("schema") != CLASS_CHECK_SCHEMA:
@@ -331,21 +390,18 @@ def config_from_args(args) -> Config:
             "graph_gpu_image_mismatch",
             "--jax-image is not the image --graph-gpu-image-manifest names",
         )
+    summary, summary_sha = None, None
+    if args.admin_summary:
+        summary, summary_sha = _load_json_file(
+            args.admin_summary, "admin_summary_invalid"
+        )
+        if summary.get("schema") != ADMIN_SCHEMA or summary.get("admin") != "PASS":
+            raise Refused("admin_summary_invalid", "not a passing admin summary")
     return Config(
-        admin=user,
-        ip=ip,
-        port=args.port,
-        ssh_key=args.ssh_key,
+        phase="door",
+        **common,
         name=args.box_name,
         provider=args.provider,
-        device_kind=args.device_kind,
-        driver_floor=args.driver_floor,
-        driver_package=args.driver_package,
-        docker_version=args.docker_version,
-        containerd_version=args.containerd_version,
-        door_ip=door,
-        lane_pubkey=pubkey,
-        host_key_fingerprint=args.host_key_fingerprint,
         images=tuple(images),
         jax_image=args.jax_image,
         boxes_dir=Path(args.boxes_dir).expanduser(),
@@ -354,6 +410,8 @@ def config_from_args(args) -> Config:
         class_record_sha256=record_sha,
         class_ops_record=ops,
         class_ops_record_sha256=ops_sha,
+        admin_summary=summary,
+        admin_summary_sha256=summary_sha,
     )
 
 
@@ -380,7 +438,7 @@ def cmd_keyscan(cfg: Config) -> list[str]:
 
 
 def ssh(cfg: Config, known_hosts: str, command: str) -> list[str]:
-    """The one way a command reaches the box: the pinned host key, no agent, no forwarding."""
+    """The one way a command reaches the box: the pinned host key, no agent, no forwarding, as the phase's user."""
     argv = [
         "ssh",
         "-o",
@@ -406,9 +464,10 @@ def ssh(cfg: Config, known_hosts: str, command: str) -> list[str]:
     ]
     if cfg.ssh_key:
         argv += ["-i", cfg.ssh_key, "-o", "IdentitiesOnly=yes"]
-    return argv + [f"{cfg.admin}@{cfg.ip}", "--", command]
+    return argv + [f"{cfg.user}@{cfg.ip}", "--", command]
 
 
+# Read-only, no privilege: both phases.
 CMD_SHAPE = (
     "nproc --all; cat /sys/devices/system/cpu/online; grep '^MemTotal:' /proc/meminfo"
 )
@@ -416,6 +475,14 @@ CMD_DRIVER_QUERY = (
     "nvidia-smi --query-gpu=name,uuid,memory.total,driver_version "
     "--format=csv,noheader"
 )
+CMD_STAGE_ROOT_STAT = f"stat -c '%U:%G %a %F' {STAGE_ROOT}"
+_DOCKER_VERSION_FORMAT = (
+    "docker version --format '{{.Server.Version}} {{range .Server.Components}}"
+    '{{if eq .Name "containerd"}}{{.Version}}{{end}}{{end}}\' 2>/dev/null || true'
+)
+_DOCKER_INFO_FORMAT = "docker info --format '{{json .}}'"
+
+# -- admin phase: as the box's admin user, with sudo ------------------------------------------------------------------
 
 
 def cmd_driver_install(package: str) -> str:
@@ -426,10 +493,7 @@ def cmd_driver_install(package: str) -> str:
 
 
 #: The daemon's version and its containerd's, as the daemon reports them: "<docker> <containerd>".
-CMD_DOCKER_VERSION = (
-    "sudo -n docker version --format '{{.Server.Version}} {{range .Server.Components}}"
-    '{{if eq .Name "containerd"}}{{.Version}}{{end}}{{end}}\' 2>/dev/null || true'
-)
+CMD_DOCKER_VERSION = "sudo -n " + _DOCKER_VERSION_FORMAT
 
 
 def engine_versions(text: str) -> str:
@@ -478,7 +542,7 @@ DAEMON_JSON = "/etc/docker/daemon.json"
 CMD_DAEMON_READ = sudo_sh(f"cat {DAEMON_JSON} 2>/dev/null || true")
 CMD_CTK_CONFIGURE = "sudo -n nvidia-ctk runtime configure --runtime=docker"
 CMD_DOCKER_RESTART = "sudo -n systemctl restart docker"
-CMD_DOCKER_INFO = "sudo -n docker info --format '{{json .}}'"
+CMD_DOCKER_INFO = "sudo -n " + _DOCKER_INFO_FORMAT
 
 
 def cmd_daemon_write(text: str) -> str:
@@ -489,9 +553,11 @@ def cmd_daemon_write(text: str) -> str:
 
 
 CMD_LANE_UID = f"id -u {LANE_USER} 2>/dev/null || true"
-CMD_LANE_CREATE = f"sudo -n useradd --create-home --shell /bin/bash {LANE_USER}"
+CMD_LANE_CREATE = f"sudo -n useradd --create-home --home-dir {LANE_HOME} --shell /bin/bash {LANE_USER}"
 CMD_LANE_GROUP = f"sudo -n usermod -aG docker {LANE_USER}"
-CMD_LANE_ID = f"id -u {LANE_USER}; id -nG {LANE_USER}"
+CMD_LANE_ID = (
+    f"id -u {LANE_USER}; id -nG {LANE_USER}; getent passwd {LANE_USER} | cut -d: -f6"
+)
 _LANE_HOME = f'"$(getent passwd {LANE_USER} | cut -d: -f6)"'
 
 
@@ -512,14 +578,19 @@ CMD_AUTHORIZED_KEYS_READ = sudo_sh(f"cat {_LANE_HOME}/.ssh/authorized_keys")
 CMD_STAGE_ROOT = (
     f"sudo -n install -d -o {LANE_USER} -g {LANE_USER} -m 0755 {STAGE_ROOT}"
 )
-CMD_STAGE_ROOT_STAT = f"stat -c '%U:%G %a %F' {STAGE_ROOT}"
+
+# -- door phase: as carbon-grade, never sudo ---------------------------------------------------------------------------
+
+DOOR_DOCKER_VERSION = _DOCKER_VERSION_FORMAT
+DOOR_DOCKER_INFO = _DOCKER_INFO_FORMAT
+DOOR_WHOAMI = 'id -un; id -u; id -nG; printf "%s\\n" "$HOME"'
+DOOR_AUTHORIZED_KEYS_READ = 'cat "$HOME/.ssh/authorized_keys"'
+DOOR_DOCKER_LOAD = "docker load"
+DOOR_WORK_DIR = f"mkdir -p {BOX_WORK} && chmod 0700 {BOX_WORK}"
 
 
-def cmd_image_id(image: str) -> str:
-    return f"sudo -n docker image inspect --format '{{{{.Id}}}}' {image} 2>/dev/null || true"
-
-
-CMD_DOCKER_LOAD = "sudo -n docker load"
+def door_image_id(image: str) -> str:
+    return f"docker image inspect --format '{{{{.Id}}}}' {image} 2>/dev/null || true"
 
 
 def cmd_docker_save(image: str) -> list[str]:
@@ -555,23 +626,25 @@ def cmd_git_archive(commit: str) -> list[str]:
     ]
 
 
-def cmd_work_dir(cfg: Config) -> str:
-    return f"sudo -n install -d -o {cfg.admin} -m 0755 {WORK}"
+def tree_dir(commit: str) -> str:
+    return f"{BOX_WORK}/tree-{commit}"
 
 
-#: The tree is extracted afresh on every run (never reused from an earlier one), then swapped in.
-CMD_TREE_EXTRACT = (
-    f"set -eu; rm -rf {TREE}.part; mkdir -m 0755 {TREE}.part; tar -x -C {TREE}.part; "
-    f"chmod -R a+rX,go-w {TREE}.part; rm -rf {TREE}; mv {TREE}.part {TREE}"
-)
+def cmd_tree_extract(commit: str) -> str:
+    """Every run extracts afresh (earlier trees, and any partial one, removed first), then swaps the tree in."""
+    tree = tree_dir(commit)
+    return (
+        f"set -eu; rm -rf {BOX_WORK}/tree-*; mkdir -m 0755 {tree}.part; tar -x -C {tree}.part; "
+        f"chmod -R a+rX,go-w {tree}.part; mv {tree}.part {tree}"
+    )
 
 
-def cmd_prepare(cfg: Config) -> str:
+def cmd_prepare(cfg: Config, commit: str) -> str:
     return shlex.join(
         [
             "python3",
             "-I",
-            f"{TREE}/scripts/dev/carbon_accelerator.py",
+            f"{tree_dir(commit)}/scripts/dev/carbon_accelerator.py",
             "--host-root",
             HOST_ROOT,
             "prepare",
@@ -588,21 +661,28 @@ def cmd_prepare(cfg: Config) -> str:
 
 
 CMD_DEVICE_READ = f"cat {HOST_ROOT}/host-device.json"
-CMD_CLASS_OUT = sudo_sh(
-    f"set -eu; rm -rf {CLASS_OUT}; install -d -o 65532 -g 65532 -m 0700 {CLASS_OUT}"
-)
-CMD_CLASS_OUTPUT_READ = f"sudo -n cat {CLASS_OUT}/class-check.json"
-CMD_CLASS_OPS_READ = f"sudo -n cat {CLASS_OUT}/ops-record.json"
+#: Fresh each run, mode 0703: carbon-grade (owner) reads and removes; the uid-65532 container creates its files; its
+#: parent `BOX_WORK` is 0700, so no other local user reaches it.
+CMD_CLASS_OUT = f"set -eu; rm -rf {CLASS_OUT}; mkdir -m 0703 {CLASS_OUT}"
+CMD_CLASS_CLEAN = f"rm -rf {CLASS_OUT}"
 
 
-def cmd_class_check(cfg: Config, uuid: str) -> str:
-    """The receipted class-check runner's container, on this box's one GPU. ``--entrypoint`` replaces the worker
-    image's admission entrypoint by its own Python; ``TMPDIR`` points into the tmpfs (the root is read-only).
-    """
+def _read_worker_file(name: str) -> str:
+    """Read a class-check file only when the container's uid wrote it (nothing planted before the run)."""
+    path = f"{CLASS_OUT}/{name}"
+    return f'set -eu; test "$(stat -c %u {path})" = {WORKER_UID}; cat {path}'
+
+
+CMD_CLASS_OUTPUT_READ = _read_worker_file("class-check.json")
+CMD_CLASS_OPS_READ = _read_worker_file("ops-record.json")
+
+
+def cmd_class_check(cfg: Config, commit: str, uuid: str) -> str:
+    """The receipted class-check runner's container, on this box's one GPU, started by carbon-grade (docker group).
+    ``--entrypoint`` replaces the worker image's admission entrypoint by its own Python; ``TMPDIR`` points into the
+    tmpfs (the root is read-only)."""
     return shlex.join(
         [
-            "sudo",
-            "-n",
             "docker",
             "run",
             "--rm",
@@ -618,7 +698,7 @@ def cmd_class_check(cfg: Config, uuid: str) -> str:
             "--gpus",
             f"device={uuid}",
             "-v",
-            f"{TREE}:/carbon:ro",
+            f"{tree_dir(commit)}:/carbon:ro",
             "-v",
             f"{CLASS_OUT}:/out",
             "-e",
@@ -979,7 +1059,7 @@ def subprocess_runner(argv, pipe_from=None):
 
 
 class Session:
-    """One bring-up: every external command passes through `call` (and so through the injected runner)."""
+    """One phase's run: every external command passes through `call` (and so through the injected runner)."""
 
     def __init__(self, cfg: Config, runner, *, log=None):
         self.cfg = cfg
@@ -989,13 +1069,25 @@ class Session:
         self.known_hosts: str | None = None
 
     def _guard(self, argv, pipe_from):
-        """What leaves the door: no private key text in any command, and only public images or the public tree
-        streamed. A violation is a bug in this tool, refused before anything is sent."""
+        """What leaves this machine, refused before anything is sent (a violation is a bug in this tool): no private
+        key text in any command; in the door phase no sudo on the box, and only public images or the public tree
+        streamed; in the admin phase nothing streamed at all."""
         if any("PRIVATE KEY" in str(arg) for arg in argv):
             raise Refused("secret_refused", "a command carried private key text")
+        if (
+            self.cfg.phase == "door"
+            and argv
+            and argv[0] == "ssh"
+            and "sudo" in argv[-1]
+        ):
+            raise Refused(
+                "door_sudo_refused", "the door phase never uses sudo on the box"
+            )
         if pipe_from is None:
             return
         pipe_from = list(pipe_from)
+        if self.cfg.phase != "door":
+            raise Refused("upload_refused", shlex.join(pipe_from))
         allowed = [cmd_docker_save(image) for image in self.cfg.images]
         commit = pipe_from[5] if len(pipe_from) > 5 else ""
         if pipe_from not in allowed and not (
@@ -1016,7 +1108,40 @@ class Session:
             raise Refused(reason, f"rc={rc}: {tail}")
         return out
 
-    # The steps, in order. Each reads the box first and changes only what differs.
+    def run_step(self, name, function, *args):
+        self.step = name
+        started = time.monotonic()
+        try:
+            value = function(*args)
+        except Refused:
+            raise
+        except (TypeError, ValueError, KeyError, AttributeError, IndexError) as error:
+            # Whatever the box printed, a malformed answer is a typed refusal, never a traceback.
+            raise Refused(
+                f"{name}_output_invalid", f"{type(error).__name__}: {error}"[:300]
+            ) from None
+        self.log(
+            json.dumps(
+                {
+                    "phase": self.cfg.phase,
+                    "step": name,
+                    "status": "ok",
+                    "seconds": round(time.monotonic() - started, 1),
+                }
+            )
+        )
+        return value
+
+    def verify(self, name, function, *args):
+        """A door-phase re-check of the admin phase's work: any refusal names the admin step to re-run."""
+        try:
+            return self.run_step(name, function, *args)
+        except Refused as refusal:
+            raise Refused(
+                f"admin_incomplete:{name}", f"{refusal.reason}: {refusal.detail}"
+            ) from None
+
+    # -- shared steps (read-only) --------------------------------------------------------------------------------------
 
     def host_key(self):
         rc, out, _ = self.call(cmd_keyscan(self.cfg))
@@ -1043,18 +1168,19 @@ class Session:
         Path(self.known_hosts).write_text(line + "\n", encoding="utf-8")
         return line
 
-    def shape(self):
+    def shape(self) -> dict:
         out = self.remote(CMD_SHAPE, reason="shape_unreadable")
         lines = out.splitlines()
         try:
             cpus = int(lines[0].strip())
-            online = cpu_list(lines[1].strip())
+            online = lines[1].strip()
+            online_set = cpu_list(online)
             mem_kib = int(lines[2].split()[1])
         except (IndexError, ValueError):
             raise Refused("shape_unreadable", out.strip()[-200:]) from None
         if cpus < MIN_CPUS:
             raise Refused("slot_shape_cpus", f"{cpus} CPUs < {MIN_CPUS}")
-        if not set(range(MIN_CPUS)) <= online:
+        if not set(range(MIN_CPUS)) <= online_set:
             raise Refused(
                 "slot_cpus_offline", f"CPUs 0-{MIN_CPUS - 1} are not all online"
             )
@@ -1062,19 +1188,14 @@ class Session:
             raise Refused(
                 "slot_shape_memory", f"MemTotal {mem_kib} kB < {MIN_MEM_KIB} kB"
             )
+        return {"cpus": cpus, "online": online, "mem_total_kib": mem_kib}
 
-    def driver(self):
+    def read_driver(self):
+        """``(uuid, driver)`` of the box's one GPU of exactly ``--device-kind``, or None when nvidia-smi fails."""
         cfg = self.cfg
         rc, out, _ = self.call(ssh(cfg, self.known_hosts, CMD_DRIVER_QUERY))
         if rc != 0:
-            # No driver, or one that no longer talks to its library (an upgrade waiting for a reboot).
-            self.remote(
-                cmd_driver_install(cfg.driver_package), reason="driver_install_failed"
-            )
-            raise Refused(
-                "driver_upgrade_needs_reboot",
-                f"nvidia-smi failed; {cfg.driver_package} installed: reboot the box, then run this again",
-            )
+            return None
         rows = [
             [f.strip() for f in r.split(",")] for r in out.splitlines() if r.strip()
         ]
@@ -1085,16 +1206,65 @@ class Session:
         name, uuid, _memory, driver = rows[0]
         if name != cfg.device_kind:
             raise Refused("wrong_device_kind", f"{name!r} is not {cfg.device_kind!r}")
-        if _version(driver) < _version(cfg.driver_floor):
+        return uuid, driver
+
+    def _below_floor(self, driver: str) -> bool:
+        return _version(driver) < _version(self.cfg.driver_floor)
+
+    def docker_problem(self, info_command: str, version_command: str):
+        """``(reason, detail)`` when the daemon does not show the pinned docker and containerd versions, the containerd
+        snapshotter and the nvidia runtime; None when it does."""
+        info = _json_object(
+            self.remote(info_command, reason="docker_unreadable"),
+            "docker_unreadable",
+            "docker info",
+        )
+        if info.get("ServerVersion") != self.cfg.docker_version:
+            return "docker_version_mismatch", str(info.get("ServerVersion"))
+        engine = engine_versions(
+            self.remote(version_command, reason="docker_unreadable")
+        )
+        if engine != self._engine():
+            return "containerd_version_mismatch", engine or "unreadable"
+        if "io.containerd.snapshotter.v1" not in json.dumps(info.get("DriverStatus")):
+            return "docker_snapshotter_missing", json.dumps(info.get("DriverStatus"))
+        runtimes = info.get("Runtimes")
+        if type(runtimes) is not dict or "nvidia" not in runtimes:
+            return (
+                "docker_nvidia_runtime_missing",
+                "docker info lists no nvidia runtime",
+            )
+        return None
+
+    def _engine(self) -> str:
+        return f"{self.cfg.docker_version} {self.cfg.containerd_version}"
+
+    def _stage_root_seen(self):
+        seen = self.remote(CMD_STAGE_ROOT_STAT, reason="stage_root_failed").strip()
+        if seen != f"{LANE_USER}:{LANE_USER} 755 directory":
+            raise Refused("stage_root_mismatch", seen)
+
+    # -- admin phase (as the box's admin user) -------------------------------------------------------------------------
+
+    def driver(self):
+        cfg = self.cfg
+        seen = self.read_driver()
+        if seen is None or self._below_floor(seen[1]):
+            # No driver, one below the floor, or one that no longer talks to its library (an upgrade waiting for a
+            # reboot): install the series and stop. The tool never reboots a box and never loops.
             self.remote(
                 cmd_driver_install(cfg.driver_package), reason="driver_install_failed"
             )
+            what = (
+                "nvidia-smi failed"
+                if seen is None
+                else f"driver {seen[1]} < {cfg.driver_floor}"
+            )
             raise Refused(
                 "driver_upgrade_needs_reboot",
-                f"driver {driver} < {cfg.driver_floor}; {cfg.driver_package} installed: "
-                "reboot the box, then run this again",
+                f"{what}; {cfg.driver_package} installed: reboot the box, then run the admin phase again",
             )
-        return uuid, driver
+        return seen
 
     def docker(self):
         cfg = self.cfg
@@ -1122,42 +1292,15 @@ class Session:
         restarted = previous != merged
         if restarted:
             self.remote(CMD_DOCKER_RESTART, reason="docker_restart_failed")
-        problem = self._docker_problem()
+        problem = self.docker_problem(CMD_DOCKER_INFO, CMD_DOCKER_VERSION)
         if problem and not restarted:
             # daemon.json is already right but the daemon does not show it (an earlier run's restart failed, or
             # someone changed it by hand): restart once rather than wedge every later run.
             self.remote(CMD_DOCKER_RESTART, reason="docker_restart_failed")
-            problem = self._docker_problem()
+            problem = self.docker_problem(CMD_DOCKER_INFO, CMD_DOCKER_VERSION)
         if problem:
             raise Refused(*problem)
-
-    def _engine(self) -> str:
-        return f"{self.cfg.docker_version} {self.cfg.containerd_version}"
-
-    def _docker_problem(self):
-        """``(reason, detail)`` when ``docker info`` does not show the version, the snapshotter and the nvidia
-        runtime; None when it does."""
-        info = _json_object(
-            self.remote(CMD_DOCKER_INFO, reason="docker_unreadable"),
-            "docker_unreadable",
-            "docker info",
-        )
-        if info.get("ServerVersion") != self.cfg.docker_version:
-            return "docker_version_mismatch", str(info.get("ServerVersion"))
-        engine = engine_versions(
-            self.remote(CMD_DOCKER_VERSION, reason="docker_unreadable")
-        )
-        if engine != self._engine():
-            return "containerd_version_mismatch", engine or "unreadable"
-        if "io.containerd.snapshotter.v1" not in json.dumps(info.get("DriverStatus")):
-            return "docker_snapshotter_missing", json.dumps(info.get("DriverStatus"))
-        runtimes = info.get("Runtimes")
-        if type(runtimes) is not dict or "nvidia" not in runtimes:
-            return (
-                "docker_nvidia_runtime_missing",
-                "docker info lists no nvidia runtime",
-            )
-        return None
+        return self._engine().split()
 
     def lane_user(self):
         if not self.remote(CMD_LANE_UID, reason="lane_user_failed").strip():
@@ -1168,6 +1311,8 @@ class Session:
             raise Refused("lane_user_is_root", f"{LANE_USER} has uid 0")
         if len(lines) < 2 or "docker" not in lines[1].split():
             raise Refused("lane_user_not_in_docker", lines[1] if len(lines) > 1 else "")
+        if len(lines) < 3 or lines[2].strip() != LANE_HOME:
+            raise Refused("lane_home_mismatch", lines[2] if len(lines) > 2 else "")
         line = authorized_keys_line(self.cfg.door_ip, self.cfg.lane_pubkey)
         self.remote(cmd_authorized_keys_write(line), reason="lane_user_failed")
         if (
@@ -1180,23 +1325,78 @@ class Session:
 
     def stage_root(self):
         self.remote(CMD_STAGE_ROOT, reason="stage_root_failed")
-        seen = self.remote(CMD_STAGE_ROOT_STAT, reason="stage_root_failed").strip()
-        if seen != f"{LANE_USER}:{LANE_USER} 755 directory":
-            raise Refused("stage_root_mismatch", seen)
+        self._stage_root_seen()
+
+    # -- door phase (as carbon-grade, read-only re-checks first) -------------------------------------------------------
+
+    def door_lane_user(self):
+        """Logged in as carbon-grade with the lane key: who we are, and our own authorized_keys."""
+        lines = self.remote(DOOR_WHOAMI, reason="lane_login_failed").splitlines()
+        if len(lines) < 4:
+            raise Refused("lane_user_unreadable", " / ".join(lines))
+        user, uid, groups, home = (part.strip() for part in lines[:4])
+        if user != LANE_USER:
+            raise Refused("lane_user_mismatch", user)
+        if uid == "0":
+            raise Refused("lane_user_is_root", f"{LANE_USER} has uid 0")
+        if "docker" not in groups.split():
+            raise Refused("lane_user_not_in_docker", groups)
+        if home != LANE_HOME:
+            raise Refused("lane_home_mismatch", home)
+        line = authorized_keys_line(self.cfg.door_ip, self.cfg.lane_pubkey)
+        if (
+            self.remote(DOOR_AUTHORIZED_KEYS_READ, reason="lane_user_failed")
+            != line + "\n"
+        ):
+            raise Refused(
+                "authorized_keys_mismatch", "authorized_keys is not the one line"
+            )
+
+    def door_driver(self):
+        seen = self.read_driver()
+        if seen is None:
+            raise Refused("driver_unreadable", "nvidia-smi failed")
+        if self._below_floor(seen[1]):
+            raise Refused(
+                "driver_below_floor", f"driver {seen[1]} < {self.cfg.driver_floor}"
+            )
+        return seen
+
+    def door_docker(self):
+        problem = self.docker_problem(DOOR_DOCKER_INFO, DOOR_DOCKER_VERSION)
+        if problem:
+            raise Refused(*problem)
+
+    def door_stage_root(self):
+        self._stage_root_seen()
+
+    def door_admin_summary(self, host_key, uuid, driver):
+        """The admin phase's own summary, when the operator brought it: it must describe the box the door reads."""
+        summary = self.cfg.admin_summary
+        for field, want in (
+            ("box_ip", self.cfg.ip),
+            ("host_key", host_key),
+            ("device_uuid", uuid),
+            ("driver_version", driver),
+        ):
+            if summary.get(field) != want:
+                raise Refused(
+                    "admin_summary_mismatch", f"{field}: {summary.get(field)!r}"
+                )
 
     def images(self):
         for image in self.cfg.images:
             if (
-                self.remote(cmd_image_id(image), reason="image_unreadable").strip()
+                self.remote(door_image_id(image), reason="image_unreadable").strip()
                 == image
             ):
                 continue
             self.remote(
-                CMD_DOCKER_LOAD,
+                DOOR_DOCKER_LOAD,
                 reason="image_load_failed",
                 pipe_from=cmd_docker_save(image),
             )
-            seen = self.remote(cmd_image_id(image), reason="image_unreadable").strip()
+            seen = self.remote(door_image_id(image), reason="image_unreadable").strip()
             if seen != image:
                 raise Refused(
                     "image_id_mismatch", f"{image} loaded as {seen or 'nothing'}"
@@ -1214,16 +1414,16 @@ class Session:
                 "tree_not_on_origin_main",
                 f"{commit} is not reachable from origin/main (rc={rc}: {err.strip()[-200:]})",
             )
-        self.remote(cmd_work_dir(self.cfg), reason="tree_ship_failed")
+        self.remote(DOOR_WORK_DIR, reason="tree_ship_failed")
         self.remote(
-            CMD_TREE_EXTRACT,
+            cmd_tree_extract(commit),
             reason="tree_ship_failed",
             pipe_from=cmd_git_archive(commit),
         )
         return commit
 
-    def device(self, uuid, driver):
-        self.remote(cmd_prepare(self.cfg), reason="device_record_failed")
+    def device(self, commit, uuid, driver):
+        self.remote(cmd_prepare(self.cfg, commit), reason="device_record_failed")
         document = _json_object(
             self.remote(CMD_DEVICE_READ, reason="device_record_failed"),
             "device_record_invalid",
@@ -1240,17 +1440,25 @@ class Session:
                 )
         return document, _device_record(document)
 
-    def class_check(self, uuid):
+    def class_check(self, commit, uuid):
         self.remote(CMD_CLASS_OUT, reason="class_check_failed")
-        rc, out, err = self.call(
-            ssh(self.cfg, self.known_hosts, cmd_class_check(self.cfg, uuid))
-        )
-        r_out, raw_output, _ = self.call(
-            ssh(self.cfg, self.known_hosts, CMD_CLASS_OUTPUT_READ)
-        )
-        r_ops, raw_ops, _ = self.call(
-            ssh(self.cfg, self.known_hosts, CMD_CLASS_OPS_READ)
-        )
+        try:
+            rc, out, err = self.call(
+                ssh(
+                    self.cfg,
+                    self.known_hosts,
+                    cmd_class_check(self.cfg, commit, uuid),
+                )
+            )
+            r_out, raw_output, _ = self.call(
+                ssh(self.cfg, self.known_hosts, CMD_CLASS_OUTPUT_READ)
+            )
+            r_ops, raw_ops, _ = self.call(
+                ssh(self.cfg, self.known_hosts, CMD_CLASS_OPS_READ)
+            )
+        finally:
+            # best effort: the next run recreates it from nothing anyway
+            self.call(ssh(self.cfg, self.known_hosts, CMD_CLASS_CLEAN))
         if r_out != 0 or not raw_output.strip():
             raise Refused(
                 "class_check_failed", f"rc={rc}: {(err or out).strip()[-400:]}"
@@ -1268,28 +1476,53 @@ class Session:
             raise Refused("class_check_failed", f"rc={rc} although the record passed")
         return summary, raw_output, raw_ops
 
-    def run_step(self, name, function, *args):
-        self.step = name
-        started = time.monotonic()
-        try:
-            value = function(*args)
-        except Refused:
-            raise
-        except (TypeError, ValueError, KeyError, AttributeError, IndexError) as error:
-            # Whatever the box printed, a malformed answer is a typed refusal, never a traceback.
-            raise Refused(
-                f"{name}_output_invalid", f"{type(error).__name__}: {error}"[:300]
-            ) from None
-        self.log(
-            json.dumps(
-                {
-                    "step": name,
-                    "status": "ok",
-                    "seconds": round(time.monotonic() - started, 1),
-                }
-            )
-        )
-        return value
+
+def _known_hosts_scratch():
+    """A private temporary directory for the pinned known_hosts file of this run (removed at the end)."""
+    scratch = tempfile.mkdtemp(prefix="gpu-box-up-")
+    return scratch, os.path.join(scratch, "known_hosts")
+
+
+def run_admin(cfg: Config, runner, *, log=None) -> dict:
+    """The admin phase. Changes the box; writes nothing on the door side. Returns the summary document."""
+    started = time.monotonic()
+    session = Session(cfg, runner, log=log)
+    scratch, session.known_hosts = _known_hosts_scratch()
+    try:
+        host_key = session.run_step("host_key", session.host_key)
+        shape = session.run_step("shape", session.shape)
+        uuid, driver = session.run_step("driver", session.driver)
+        docker, containerd = session.run_step("docker", session.docker)
+        session.run_step("lane_user", session.lane_user)
+        session.run_step("stage_root", session.stage_root)
+    except Refused as refusal:
+        return {
+            "schema": ADMIN_SCHEMA,
+            "admin": "REFUSED",
+            "box_ip": cfg.ip,
+            "step": session.step,
+            "reason": refusal.reason,
+            "detail": refusal.detail,
+            "seconds": round(time.monotonic() - started, 1),
+        }
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    return {
+        "schema": ADMIN_SCHEMA,
+        "admin": "PASS",
+        "box_ip": cfg.ip,
+        "port": cfg.port,
+        "host_key": host_key,
+        "device_kind": cfg.device_kind,
+        "device_uuid": uuid,
+        "driver_version": driver,
+        "docker_version": docker,
+        "containerd_version": containerd,
+        "shape": shape,
+        "lane_user": LANE_USER,
+        "stage_root": STAGE_ROOT,
+        "seconds": round(time.monotonic() - started, 1),
+    }
 
 
 def box_document(
@@ -1309,7 +1542,7 @@ def box_document(
         "" if cfg.port == 22 else f":{cfg.port}"
     )
     parse_docker_host(docker_host)
-    return {
+    document = {
         "schema": BOX_SCHEMA,
         "name": cfg.name,
         "docker_host": docker_host,
@@ -1331,10 +1564,14 @@ def box_document(
         "check_ops_record_sha256": _sha256(raw_ops.encode("utf-8")),
         "admitted_unix": int(now),
     }
+    if cfg.admin_summary_sha256 is not None:
+        document["admin_summary_sha256"] = cfg.admin_summary_sha256
+    return document
 
 
 def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
-    """Run every step; write the box file only on PASS. Returns the outcome document."""
+    """The door phase: re-verify the admin work read-only, then images, tree, device and class check as carbon-grade;
+    write the box file only on PASS. Returns the outcome document."""
     started = time.monotonic()
 
     def refused(step, refusal):
@@ -1353,21 +1590,26 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     # A box being (re)brought up is not offered until it passes again.
     remove_box_files(cfg)
     session = Session(cfg, runner, log=log)
-    scratch = tempfile.mkdtemp(prefix="gpu-box-up-")
-    session.known_hosts = os.path.join(scratch, "known_hosts")
+    scratch, session.known_hosts = _known_hosts_scratch()
     admitted = False
     try:
         host_key = session.run_step("host_key", session.host_key)
-        session.run_step("shape", session.shape)
-        uuid, driver = session.run_step("driver", session.driver)
-        session.run_step("docker", session.docker)
-        session.run_step("lane_user", session.lane_user)
-        session.run_step("stage_root", session.stage_root)
+        session.verify("lane_user", session.door_lane_user)
+        session.verify("shape", session.shape)
+        uuid, driver = session.verify("driver", session.door_driver)
+        session.verify("docker", session.door_docker)
+        session.verify("stage_root", session.door_stage_root)
+        if cfg.admin_summary is not None:
+            session.run_step(
+                "admin_summary", session.door_admin_summary, host_key, uuid, driver
+            )
         session.run_step("images", session.images)
         commit = session.run_step("tree", session.tree)
-        device, device_digest = session.run_step("device", session.device, uuid, driver)
+        device, device_digest = session.run_step(
+            "device", session.device, commit, uuid, driver
+        )
         summary, raw_output, raw_ops = session.run_step(
-            "class_check", session.class_check, uuid
+            "class_check", session.class_check, commit, uuid
         )
         document = box_document(
             cfg,
@@ -1398,14 +1640,19 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     }
 
 
-def plan(cfg: Config) -> list[tuple[str, str]]:
-    """Every command a run may send, in order, with what is only known on the box as a placeholder."""
-    kh, uuid, commit = "<known_hosts>", "<gpu-uuid>", "<HEAD>"
+def _planner(cfg: Config):
+    kh = "<known_hosts>"
 
     def remote(step, command, pipe_from=None):
         text = shlex.join(ssh(cfg, kh, command))
         return (step, f"{shlex.join(pipe_from)} | {text}" if pipe_from else text)
 
+    return remote
+
+
+def plan_admin(cfg: Config) -> list[tuple[str, str]]:
+    """Every command the admin phase may send, in order."""
+    remote = _planner(cfg)
     steps = [("host_key", shlex.join(cmd_keyscan(cfg)))]
     steps.append(remote("shape", CMD_SHAPE))
     steps.append(remote("driver", CMD_DRIVER_QUERY))
@@ -1436,10 +1683,10 @@ def plan(cfg: Config) -> list[tuple[str, str]]:
     )
     steps.append(remote("docker (only when it changed)", CMD_DOCKER_RESTART))
     steps.append(remote("docker", CMD_DOCKER_INFO))
+    steps.append(remote("docker", CMD_DOCKER_VERSION))
     steps.append(
         remote("docker (only when docker info does not show it)", CMD_DOCKER_RESTART)
     )
-    steps.append(remote("docker (only after that restart)", CMD_DOCKER_INFO))
     steps.append(remote("lane_user", CMD_LANE_UID))
     steps.append(remote("lane_user (only when missing)", CMD_LANE_CREATE))
     for command in (
@@ -1451,51 +1698,56 @@ def plan(cfg: Config) -> list[tuple[str, str]]:
         steps.append(remote("lane_user", command))
     steps.append(remote("stage_root", CMD_STAGE_ROOT))
     steps.append(remote("stage_root", CMD_STAGE_ROOT_STAT))
-    for image in cfg.images:
-        steps.append(remote("images", cmd_image_id(image)))
-        steps.append(
-            remote("images (only when absent)", CMD_DOCKER_LOAD, cmd_docker_save(image))
-        )
-        steps.append(remote("images", cmd_image_id(image)))
-    steps.append(("tree", shlex.join(cmd_git_head())))
-    steps.append(("tree", shlex.join(cmd_git_on_main(commit))))
-    steps.append(remote("tree", cmd_work_dir(cfg)))
-    steps.append(remote("tree", CMD_TREE_EXTRACT, cmd_git_archive(commit)))
-    steps.append(remote("device", cmd_prepare(cfg)))
-    steps.append(remote("device", CMD_DEVICE_READ))
-    steps.append(remote("class_check", CMD_CLASS_OUT))
-    steps.append(remote("class_check", cmd_class_check(cfg, uuid)))
-    steps.append(remote("class_check", CMD_CLASS_OUTPUT_READ))
-    steps.append(remote("class_check", CMD_CLASS_OPS_READ))
     return steps
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description=__doc__.split("\n\n")[0],
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--ssh",
-        required=True,
-        help="the box's admin login, USER@IPV4 (e.g. ubuntu@203.0.113.7)",
-    )
+def plan_door(cfg: Config) -> list[tuple[str, str]]:
+    """Every command the door phase may send, in order, with what is only known on the box as a placeholder."""
+    remote = _planner(cfg)
+    uuid, commit = "<gpu-uuid>", "<HEAD>"
+    steps = [("host_key", shlex.join(cmd_keyscan(cfg)))]
+    steps.append(remote("lane_user (verify)", DOOR_WHOAMI))
+    steps.append(remote("lane_user (verify)", DOOR_AUTHORIZED_KEYS_READ))
+    steps.append(remote("shape (verify)", CMD_SHAPE))
+    steps.append(remote("driver (verify)", CMD_DRIVER_QUERY))
+    steps.append(remote("docker (verify)", DOOR_DOCKER_INFO))
+    steps.append(remote("docker (verify)", DOOR_DOCKER_VERSION))
+    steps.append(remote("stage_root (verify)", CMD_STAGE_ROOT_STAT))
+    for image in cfg.images:
+        steps.append(remote("images", door_image_id(image)))
+        steps.append(
+            remote(
+                "images (only when absent)", DOOR_DOCKER_LOAD, cmd_docker_save(image)
+            )
+        )
+        steps.append(remote("images", door_image_id(image)))
+    steps.append(("tree", shlex.join(cmd_git_head())))
+    steps.append(("tree", shlex.join(cmd_git_on_main(commit))))
+    steps.append(remote("tree", DOOR_WORK_DIR))
+    steps.append(remote("tree", cmd_tree_extract(commit), cmd_git_archive(commit)))
+    steps.append(remote("device", cmd_prepare(cfg, commit)))
+    steps.append(remote("device", CMD_DEVICE_READ))
+    steps.append(remote("class_check", CMD_CLASS_OUT))
+    steps.append(remote("class_check", cmd_class_check(cfg, commit, uuid)))
+    steps.append(remote("class_check", CMD_CLASS_OUTPUT_READ))
+    steps.append(remote("class_check", CMD_CLASS_OPS_READ))
+    steps.append(remote("class_check", CMD_CLASS_CLEAN))
+    return steps
+
+
+def _box_arguments(parser):
+    """What both phases need to reach and recognise the box."""
+    parser.add_argument("--ip", required=True, help="the box's IPv4 address")
     parser.add_argument("--port", type=int, default=22)
     parser.add_argument(
-        "--ssh-key",
-        help="the operator's private key for the admin login (stays on the door)",
-    )
-    parser.add_argument("--box-name", required=True)
-    parser.add_argument(
-        "--provider",
+        "--host-key-fingerprint",
         required=True,
-        help=f"the box's provider; accepted: {', '.join(ACCEPTED_PROVIDERS)}",
+        help="the box's ed25519 host key, SHA256:... (from the provider's console)",
     )
     parser.add_argument(
         "--device-kind", required=True, help='e.g. "NVIDIA A100-SXM4-40GB"'
     )
     parser.add_argument("--driver-floor", default=DEFAULT_DRIVER_FLOOR)
-    parser.add_argument("--driver-package", default=DEFAULT_DRIVER_PACKAGE)
     parser.add_argument("--docker-version", default=DEFAULT_DOCKER_VERSION)
     parser.add_argument("--containerd-version", default=DEFAULT_CONTAINERD_VERSION)
     parser.add_argument(
@@ -1505,39 +1757,74 @@ def build_parser() -> argparse.ArgumentParser:
         "--lane-pubkey", required=True, help="the lane user's PUBLIC key file (.pub)"
     )
     parser.add_argument(
-        "--host-key-fingerprint",
-        required=True,
-        help="the box's ed25519 host key, SHA256:...",
+        "--dry-run", action="store_true", help="print every command; run none"
     )
-    parser.add_argument(
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__.split("\n\n")[0],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    phases = parser.add_subparsers(dest="phase", required=True)
+
+    admin = phases.add_parser(
+        "admin",
+        help="Compute Ops, from their own machine, as the box's admin user with their own key",
+    )
+    _box_arguments(admin)
+    admin.add_argument(
+        "--user",
+        default=DEFAULT_ADMIN_USER,
+        help=f"the box's admin user (default {DEFAULT_ADMIN_USER}; never {LANE_USER})",
+    )
+    admin.add_argument(
+        "--ssh-key", help="the admin's private key (stays on their machine)"
+    )
+    admin.add_argument("--driver-package", default=DEFAULT_DRIVER_PACKAGE)
+
+    door = phases.add_parser(
+        "door",
+        help=f"on the door, as the door user, logging in to the box as {LANE_USER}",
+    )
+    _box_arguments(door)
+    door.add_argument("--ssh-key", help="the lane's private key (stays on the door)")
+    door.add_argument("--box-name", required=True)
+    door.add_argument(
+        "--provider",
+        required=True,
+        help=f"the box's provider; accepted: {', '.join(ACCEPTED_PROVIDERS)}",
+    )
+    door.add_argument(
         "--image",
         action="append",
         default=[],
         help="a worker image id to load (repeat)",
     )
-    parser.add_argument(
+    door.add_argument(
         "--jax-image",
         required=True,
         help="the pinned JAX GPU image id the class check runs in",
     )
-    parser.add_argument(
+    door.add_argument(
         "--graph-gpu-image-manifest",
         required=True,
         help="the receiver's graph GPU image manifest; its image id must equal --jax-image",
     )
-    parser.add_argument(
+    door.add_argument(
         "--class-record", required=True, help="the class's reference class-check JSON"
     )
-    parser.add_argument(
+    door.add_argument(
         "--class-ops-record",
         required=True,
         help="the class's reference graph GPU ops record",
     )
-    parser.add_argument(
+    door.add_argument(
         "--boxes-dir", required=True, help="where the door's box files live (0700)"
     )
-    parser.add_argument(
-        "--dry-run", action="store_true", help="print every command; run none"
+    door.add_argument(
+        "--admin-summary",
+        help="the admin phase's JSON (optional): it must agree with what the door reads",
     )
     return parser
 
@@ -1551,6 +1838,7 @@ def main(argv=None, runner=None) -> int:
             json.dumps(
                 {
                     "status": "REFUSED",
+                    "phase": args.phase,
                     "step": "arguments",
                     "reason": refusal.reason,
                     "detail": refusal.detail,
@@ -1559,9 +1847,13 @@ def main(argv=None, runner=None) -> int:
         )
         return 2
     if args.dry_run:
-        for step, command in plan(cfg):
+        for step, command in (plan_admin if cfg.phase == "admin" else plan_door)(cfg):
             print(f"[{step}] {command}")
         return 0
+    if cfg.phase == "admin":
+        outcome = run_admin(cfg, runner or subprocess_runner)
+        print(json.dumps(outcome, indent=1, sort_keys=True))
+        return 0 if outcome["admin"] == "PASS" else 1
     outcome = bring_up(cfg, runner or subprocess_runner)
     print(json.dumps(outcome, indent=1, sort_keys=True))
     return 0 if outcome["status"] == "ADMITTED" else 1

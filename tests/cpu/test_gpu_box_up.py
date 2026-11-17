@@ -1,11 +1,15 @@
-"""One-command GPU box bring-up (scripts/dev/gpu_box_up.py), driven against a fake box.
+"""GPU box bring-up in two phases (scripts/dev/gpu_box_up.py), driven against a fake box.
 
-Claims: a box that passes every step gets exactly one box file with exactly the documented fields, 0600 in a 0700
-directory; every failure is a typed stop that leaves no box file (a stale one is removed); the host key is pinned;
-the slot shape is checked; the class check must repeat on the GPU under allowlist v8, match the class record's
-digests and reproduce the class's ops record; daemon.json keeps the snapshotter and the nvidia runtime;
-authorized_keys is exactly one line; nothing but public material reaches the box; a dry run runs nothing.
-It also documents the limit: a box that replays another box's output passes (PASS is not security qualification).
+Claims, admin phase (the box's admin user, the operator's own key): it changes the box (driver, docker + containerd,
+daemon.json, the carbon-grade lane user and its one restricted key line, the stage root), needs and writes no door
+files, streams nothing, refuses to run as carbon-grade, and prints a summary.
+
+Claims, door phase (carbon-grade only, never sudo): it re-verifies the admin work read-only and names the admin step to
+re-run when anything is missing; an admin summary must agree with the box; a box that passes every step gets exactly
+one box file with exactly the documented fields, 0600 in a 0700 directory, and every failure is a typed stop that
+leaves no box file; the class check must repeat on the GPU under allowlist v8, match the class record's digests and
+reproduce the class's ops record; nothing but public material reaches the box; a dry run runs nothing. It also
+documents the limit: a box that replays another box's output passes (PASS is not security qualification).
 """
 
 from __future__ import annotations
@@ -149,17 +153,47 @@ def _printed_text(command: str) -> str:
     return words[words.index("printf") + 2]
 
 
-class FakeBox:
-    """A fresh Ubuntu box with an A100, reached only through the runner. Every command it does not know fails the test."""
+def _manifest(image=JAX, lock=None):
+    from carbon.reconstruction.accelerators import GPU_PROFILE
 
-    def __init__(self, cfg, **state):
+    return {
+        "schema": "carbon.c03.worker-image.v1",
+        "image_id": image,
+        "config_digest": image,
+        "source_tree_digest": "sha256:" + "1" * 64,
+        "wheel_digest": "sha256:" + "2" * 64,
+        "lock_digest": lock or GPU_PROFILE.environment_lock_digest,
+        "base_image_digest": "sha256:" + "3" * 64,
+        "build_recipe_digest": "sha256:" + "4" * 64,
+        "entrypoint_digest": "sha256:" + "5" * 64,
+    }
+
+
+MERGED_DAEMON = {
+    "log-driver": "json-file",
+    "features": {"containerd-snapshotter": True},
+    "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
+}
+LANE_LINE = f'restrict,from="{DOOR}" {LANE_PUBKEY}'
+
+
+class FakeBox:
+    """An Ubuntu box with an A100, reached only through the runner. Every command it does not know fails the test.
+
+    Fresh for the admin phase; as the admin phase leaves it for the door phase (``prepared``). Commands with sudo are
+    accepted only from the admin user, and the lane user's commands only from carbon-grade.
+    """
+
+    def __init__(self, cfg, *, prepared=None, **state):
         self.cfg = cfg
         self.calls = []
+        self.users = []
         self.keyscan = f"{IP} ssh-ed25519 {HOST_KEY}\n"
         self.nproc = 30
         self.online = "0-29"
         self.on_main = True
         self.extracts = 0
+        self.cleans = 0
         self.mem_kib = 216 * 1024 * 1024
         self.smi = (0, f"{KIND}, {UUID}, 40960 MiB, {DRIVER}\n")
         self.driver_installs = 0
@@ -170,6 +204,8 @@ class FakeBox:
         self.daemon_live = None
         self.restarts = 0
         self.lane_uid = ""
+        self.lane_name = "carbon-grade"
+        self.lane_home = ""
         self.groups = ["carbon-grade"]
         self.authorized_keys = ""
         self.stage = "carbon-grade:carbon-grade 755 directory"
@@ -183,6 +219,15 @@ class FakeBox:
         self.class_ops = json.dumps(
             _ops_record(record), sort_keys=True, separators=(",", ":")
         )
+        if prepared if prepared is not None else cfg.phase == "door":
+            self.docker = "29.1.3"
+            self.ctk = True
+            self.daemon = box_up.daemon_json_text(MERGED_DAEMON)
+            self.daemon_live = dict(MERGED_DAEMON)
+            self.lane_uid = "1001"
+            self.lane_home = "/home/carbon-grade"
+            self.groups = ["carbon-grade", "docker"]
+            self.authorized_keys = LANE_LINE + "\n"
         self.__dict__.update(state)
 
     def __call__(self, argv, pipe_from=None):
@@ -199,21 +244,46 @@ class FakeBox:
         known = next(a for a in argv if a.startswith("UserKnownHostsFile="))
         pinned = Path(known.split("=", 1)[1]).read_text()
         assert pinned == f"{IP} ssh-ed25519 {HOST_KEY}\n"
-        assert argv[-3:-1] == [f"ubuntu@{IP}", "--"]
+        assert argv[-2] == "--" and argv[-3].endswith(f"@{IP}")
+        self.user = argv[-3].split("@")[0]
+        self.users.append(self.user)
+        if "sudo" in argv[-1]:
+            assert self.user != "carbon-grade", argv[-1]
         return self.remote(argv[-1], pipe_from)
+
+    def _info(self):
+        live = self.daemon_live or {}
+        snapshotter = (live.get("features") or {}).get("containerd-snapshotter")
+        driver = "io.containerd.snapshotter.v1" if snapshotter else "overlay2"
+        return json.dumps(
+            {
+                "ServerVersion": self.docker,
+                "DriverStatus": [["driver-type", driver]],
+                "Runtimes": {"runc": {}, **(live.get("runtimes") or {})},
+            }
+        )
+
+    def _lane_only(self):
+        assert self.user == "carbon-grade", self.user
 
     def remote(self, cmd, pipe_from):
         g, cfg = box_up, self.cfg
+        # both phases, read-only
         if cmd == g.CMD_SHAPE:
             return 0, f"{self.nproc}\n{self.online}\nMemTotal: {self.mem_kib} kB\n", ""
         if cmd == g.CMD_DRIVER_QUERY:
             return (*self.smi, "")
+        if cmd in (g.CMD_DOCKER_VERSION, g.DOOR_DOCKER_VERSION):
+            out = f"{self.docker} {self.containerd}\n" if self.docker else ""
+            return 0, out, ""
+        if cmd in (g.CMD_DOCKER_INFO, g.DOOR_DOCKER_INFO):
+            return 0, self._info(), ""
+        if cmd == g.CMD_STAGE_ROOT_STAT:
+            return 0, self.stage + "\n", ""
+        # admin phase
         if cmd == g.cmd_driver_install(cfg.driver_package):
             self.driver_installs += 1
             return 0, "", ""
-        if cmd == g.CMD_DOCKER_VERSION:
-            out = f"{self.docker} {self.containerd}\n" if self.docker else ""
-            return 0, out, ""
         if cmd == g.cmd_docker_install(cfg.docker_version, cfg.containerd_version):
             self.docker = cfg.docker_version
             self.containerd = "v" + cfg.containerd_version
@@ -240,31 +310,21 @@ class FakeBox:
             self.restarts += 1
             self.daemon_live = json.loads(self.daemon)
             return 0, "", ""
-        if cmd == g.CMD_DOCKER_INFO:
-            live = self.daemon_live or {}
-            snapshotter = (live.get("features") or {}).get("containerd-snapshotter")
-            driver = "io.containerd.snapshotter.v1" if snapshotter else "overlay2"
-            return (
-                0,
-                json.dumps(
-                    {
-                        "ServerVersion": self.docker,
-                        "DriverStatus": [["driver-type", driver]],
-                        "Runtimes": {"runc": {}, **(live.get("runtimes") or {})},
-                    }
-                ),
-                "",
-            )
         if cmd == g.CMD_LANE_UID:
             return 0, self.lane_uid, ""
         if cmd == g.CMD_LANE_CREATE:
             self.lane_uid = "1001"
+            self.lane_home = "/home/carbon-grade"
             return 0, "", ""
         if cmd == g.CMD_LANE_GROUP:
             self.groups.append("docker")
             return 0, "", ""
         if cmd == g.CMD_LANE_ID:
-            return 0, f"{self.lane_uid}\n{' '.join(self.groups)}\n", ""
+            return (
+                0,
+                f"{self.lane_uid}\n{' '.join(self.groups)}\n{self.lane_home}\n",
+                "",
+            )
         if (
             cmd.startswith("sudo -n sh -c ")
             and "printf" in cmd
@@ -276,68 +336,88 @@ class FakeBox:
             return 0, self.authorized_keys, ""
         if cmd == g.CMD_STAGE_ROOT:
             return 0, "", ""
-        if cmd == g.CMD_STAGE_ROOT_STAT:
-            return 0, self.stage + "\n", ""
-        if cmd.startswith("sudo -n docker image inspect"):
-            image = shlex.split(cmd)[7]
+        # door phase, as carbon-grade
+        self._lane_only()
+        if cmd == g.DOOR_WHOAMI:
+            if not self.lane_uid or LANE_LINE not in self.authorized_keys:
+                return 255, "", "Permission denied (publickey)."
+            return (
+                0,
+                f"{self.lane_name}\n{self.lane_uid}\n{' '.join(self.groups)}\n{self.lane_home}\n",
+                "",
+            )
+        if cmd == g.DOOR_AUTHORIZED_KEYS_READ:
+            return 0, self.authorized_keys, ""
+        if cmd.startswith("docker image inspect"):
+            image = shlex.split(cmd)[5]
             return 0, (self.loaded.get(image, "") + "\n"), ""
-        if cmd == g.CMD_DOCKER_LOAD:
+        if cmd == g.DOOR_DOCKER_LOAD:
             assert pipe_from[:2] == ["docker", "save"]
             image = pipe_from[2]
             self.loaded[image] = self.load_as.get(image, image)
             return 0, "Loaded image ID: " + image + "\n", ""
-        if cmd == g.cmd_work_dir(cfg):
+        if cmd == g.DOOR_WORK_DIR:
             return 0, "", ""
-        if cmd == g.CMD_TREE_EXTRACT:
+        if cmd == g.cmd_tree_extract(HEAD):
             assert pipe_from == g.cmd_git_archive(HEAD)
             self.tree = True
             self.extracts += 1
             return 0, "", ""
-        if cmd == g.cmd_prepare(cfg):
+        if cmd == g.cmd_prepare(cfg, HEAD):
             return 0, "{}", ""
         if cmd == g.CMD_DEVICE_READ:
             return 0, self.device, ""
         if cmd == g.CMD_CLASS_OUT:
             return 0, "", ""
-        if cmd == g.cmd_class_check(cfg, UUID):
+        if cmd == g.cmd_class_check(cfg, HEAD, UUID):
             return self.class_rc, "", ""
         if cmd == g.CMD_CLASS_OUTPUT_READ:
             return 0, self.class_output, ""
         if cmd == g.CMD_CLASS_OPS_READ:
             return 0, self.class_ops, ""
+        if cmd == g.CMD_CLASS_CLEAN:
+            self.cleans += 1
+            return 0, "", ""
         raise AssertionError(f"unexpected remote command: {cmd}")
 
     def remote_commands(self):
         return [argv[-1] for argv, _ in self.calls if argv[0] == "ssh"]
 
 
-def _manifest(image=JAX, lock=None):
-    from carbon.reconstruction.accelerators import GPU_PROFILE
-
-    return {
-        "schema": "carbon.c03.worker-image.v1",
-        "image_id": image,
-        "config_digest": image,
-        "source_tree_digest": "sha256:" + "1" * 64,
-        "wheel_digest": "sha256:" + "2" * 64,
-        "lock_digest": lock or GPU_PROFILE.environment_lock_digest,
-        "base_image_digest": "sha256:" + "3" * 64,
-        "build_recipe_digest": "sha256:" + "4" * 64,
-        "entrypoint_digest": "sha256:" + "5" * 64,
-    }
-
-
-def _argv(tmp_path, *extra, record=None, ops=None, manifest=None):
-    boxes = tmp_path / "boxes"
-    (tmp_path / "jax-image.json").write_text(json.dumps(manifest or _manifest()))
+def _pub(tmp_path):
     pub = tmp_path / "lane.pub"
     pub.write_text(LANE_PUBKEY + "\n")
+    return pub
+
+
+def _admin_argv(tmp_path, *extra):
+    return [
+        "admin",
+        "--ip",
+        IP,
+        "--host-key-fingerprint",
+        HOST_FINGERPRINT,
+        "--device-kind",
+        KIND,
+        "--door-ip",
+        DOOR,
+        "--lane-pubkey",
+        str(_pub(tmp_path)),
+        *extra,
+    ]
+
+
+def _door_argv(tmp_path, *extra, record=None, ops=None, manifest=None):
+    (tmp_path / "jax-image.json").write_text(json.dumps(manifest or _manifest()))
     reference = record or _class_record(DIGESTS, seconds=9.0)
     (tmp_path / "class.json").write_text(json.dumps(reference))
     (tmp_path / "class-ops.json").write_text(json.dumps(ops or _ops_record(reference)))
     return [
-        "--ssh",
-        f"ubuntu@{IP}",
+        "door",
+        "--ip",
+        IP,
+        "--host-key-fingerprint",
+        HOST_FINGERPRINT,
         "--box-name",
         "a100-1",
         "--provider",
@@ -347,9 +427,7 @@ def _argv(tmp_path, *extra, record=None, ops=None, manifest=None):
         "--door-ip",
         DOOR,
         "--lane-pubkey",
-        str(pub),
-        "--host-key-fingerprint",
-        HOST_FINGERPRINT,
+        str(_pub(tmp_path)),
         "--jax-image",
         JAX,
         "--image",
@@ -361,14 +439,32 @@ def _argv(tmp_path, *extra, record=None, ops=None, manifest=None):
         "--class-ops-record",
         str(tmp_path / "class-ops.json"),
         "--boxes-dir",
-        str(boxes),
+        str(tmp_path / "boxes"),
         *extra,
     ]
 
 
+def _parse(argv):
+    return box_up.config_from_args(box_up.build_parser().parse_args(argv))
+
+
+def _admin_config(tmp_path, *extra):
+    return _parse(_admin_argv(tmp_path, *extra))
+
+
 def _config(tmp_path, *extra, **kwargs):
-    args = box_up.build_parser().parse_args(_argv(tmp_path, *extra, **kwargs))
-    return box_up.config_from_args(args)
+    """The door phase's config."""
+    return _parse(_door_argv(tmp_path, *extra, **kwargs))
+
+
+def _config_refusal(argv):
+    with pytest.raises(box_up.Refused) as refused:
+        _parse(argv)
+    return refused.value.reason
+
+
+def _admin(cfg, box):
+    return box_up.run_admin(cfg, box, log=lambda _line: None)
 
 
 def _run(cfg, box):
@@ -380,7 +476,380 @@ def _refused(outcome, reason):
     assert outcome["reason"] == reason, outcome
 
 
-# -- the happy path -------------------------------------------------------------------------------------------------
+def _admin_refused(outcome, reason):
+    assert outcome["admin"] == "REFUSED", outcome
+    assert outcome["reason"] == reason, outcome
+
+
+def _no_box_file(tmp_path):
+    boxes = tmp_path / "boxes"
+    return not list(boxes.iterdir())
+
+
+# == the two phases together ==========================================================================================
+
+
+def test_a_fresh_box_is_brought_up_by_the_admin_phase_then_admitted_by_the_door(
+    tmp_path,
+):
+    admin_cfg = _admin_config(tmp_path)
+    box = FakeBox(admin_cfg)
+    summary = _admin(admin_cfg, box)
+    assert summary["admin"] == "PASS", summary
+    assert set(box.users) == {"ubuntu"}
+    (tmp_path / "admin.json").write_text(json.dumps(summary))
+    box.cfg = _config(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
+    box.users.clear()
+    outcome = _run(box.cfg, box)
+    assert outcome["status"] == "ADMITTED", outcome
+    assert set(box.users) == {"carbon-grade"}
+    document = json.loads((tmp_path / "boxes" / "a100-1.json").read_text())
+    assert document["admin_summary_sha256"] == _sha(
+        (tmp_path / "admin.json").read_bytes()
+    )
+
+
+# == the admin phase ===================================================================================================
+
+
+def test_the_admin_phase_prints_its_summary(tmp_path, capsys):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert box_up.main(_admin_argv(tmp_path), runner=box) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["schema"] == "carbon.gpu-box-admin.v1"
+    assert summary["admin"] == "PASS"
+    assert summary["box_ip"] == IP
+    assert summary["host_key"] == f"{IP} ssh-ed25519 {HOST_KEY}"
+    assert summary["device_uuid"] == UUID and summary["driver_version"] == DRIVER
+    assert summary["docker_version"] == "29.1.3"
+    assert summary["containerd_version"] == "2.4.2"
+    assert summary["shape"] == {
+        "cpus": 30,
+        "online": "0-29",
+        "mem_total_kib": 216 * 1024 * 1024,
+    }
+    # The box was actually brought up: docker, toolkit, daemon.json, the lane user, its key.
+    assert box.docker == "29.1.3" and box.ctk and box.restarts == 1
+    assert box.lane_uid == "1001" and "docker" in box.groups
+    assert box.authorized_keys == LANE_LINE + "\n"
+
+
+def test_the_admin_phase_needs_no_door_files_and_writes_none(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setattr(box_up.tempfile, "tempdir", str(scratch))
+    argv = _admin_argv(tmp_path)
+    before = sorted(p.name for p in tmp_path.iterdir())
+    cfg = _parse(argv)
+    assert cfg.boxes_dir is None and cfg.class_record is None
+    assert cfg.admin_summary is None and cfg.images == ()
+    assert _admin(cfg, FakeBox(cfg))["admin"] == "PASS"
+    assert sorted(p.name for p in tmp_path.iterdir()) == before
+    assert list(scratch.iterdir()) == []
+    for flag in ("--boxes-dir", "--class-record", "--graph-gpu-image-manifest"):
+        with pytest.raises(SystemExit):
+            box_up.build_parser().parse_args([*argv, flag, "x"])
+
+
+def test_the_admin_phase_streams_nothing_to_the_box(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert [pipe for _, pipe in box.calls if pipe is not None] == []
+    session = box_up.Session(cfg, box, log=lambda _l: None)
+    with pytest.raises(box_up.Refused) as refused:
+        session.call(["ssh", "x"], box_up.cmd_docker_save(JAX))
+    assert refused.value.reason == "upload_refused"
+
+
+def test_the_lane_user_is_refused_as_the_admin(tmp_path, capsys):
+    def boom(argv, pipe_from=None):
+        raise AssertionError("ran a command")
+
+    argv = _admin_argv(tmp_path, "--user", "carbon-grade")
+    assert _config_refusal(argv) == "admin_user_is_lane_user"
+    assert box_up.main(argv, runner=boom) == 2
+    assert json.loads(capsys.readouterr().out)["reason"] == "admin_user_is_lane_user"
+
+
+def test_the_admin_phase_logs_in_as_its_user(tmp_path):
+    cfg = _admin_config(tmp_path, "--user", "admin2")
+    assert cfg.user == "admin2"
+    argv = box_up.ssh(cfg, "kh", "true")
+    assert argv[-3] == f"admin2@{IP}"
+
+
+def test_a_second_admin_run_on_a_ready_box_changes_nothing(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    box.calls.clear()
+    assert _admin(cfg, box)["admin"] == "PASS"
+    commands = box.remote_commands()
+    assert box_up.cmd_docker_install("29.1.3", "2.4.2") not in commands
+    assert box_up.CMD_TOOLKIT_INSTALL not in commands
+    assert box_up.CMD_LANE_CREATE not in commands
+    assert box_up.CMD_DOCKER_RESTART not in commands
+    assert box.restarts == 1
+
+
+def test_a_wrong_device_kind_is_refused_before_anything_is_installed(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, smi=(0, f"NVIDIA A100-SXM4-80GB, {UUID}, 81920 MiB, {DRIVER}\n"))
+    outcome = _admin(cfg, box)
+    _admin_refused(outcome, "wrong_device_kind")
+    assert outcome["step"] == "driver"
+    assert box.driver_installs == 0 and box.docker == ""
+
+
+def test_a_device_name_that_only_starts_with_the_kind_is_refused(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, smi=(0, f"{KIND}-SPECIAL, {UUID}, 40960 MiB, {DRIVER}\n"))
+    _admin_refused(_admin(cfg, box), "wrong_device_kind")
+
+
+def test_more_than_one_gpu_is_refused(tmp_path):
+    cfg = _admin_config(tmp_path)
+    row = f"{KIND}, {UUID}, 40960 MiB, {DRIVER}\n"
+    _admin_refused(_admin(cfg, FakeBox(cfg, smi=(0, row * 2))), "gpu_count")
+
+
+def test_an_old_driver_is_upgraded_and_the_run_stops_for_a_reboot(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, smi=(0, f"{KIND}, {UUID}, 40960 MiB, 570.172.08\n"))
+    _admin_refused(_admin(cfg, box), "driver_upgrade_needs_reboot")
+    assert box.driver_installs == 1
+    commands = box.remote_commands()
+    assert commands[-1] == box_up.cmd_driver_install("nvidia-driver-580-server")
+    assert box_up.CMD_DOCKER_VERSION not in commands  # no loop, nothing after
+
+
+def test_a_missing_driver_is_installed_and_the_run_stops_for_a_reboot(tmp_path):
+    cfg = _admin_config(tmp_path, "--driver-package", "nvidia-driver-580")
+    box = FakeBox(cfg, smi=(9, "NVIDIA-SMI has failed\n"))
+    _admin_refused(_admin(cfg, box), "driver_upgrade_needs_reboot")
+    assert box.remote_commands()[-1] == box_up.cmd_driver_install("nvidia-driver-580")
+
+
+def test_the_driver_floor_compares_versions_not_strings(tmp_path):
+    cfg = _admin_config(tmp_path, "--driver-floor", "580.65.06")
+    box = FakeBox(cfg, smi=(0, f"{KIND}, {UUID}, 40960 MiB, 580.105.08\n"))
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.driver_installs == 0
+
+
+def test_a_host_key_that_is_not_the_operators_refuses_before_any_ssh(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, keyscan=f"{IP} ssh-ed25519 {_key_body(99)}\n")
+    _admin_refused(_admin(cfg, box), "host_key_mismatch")
+    assert [argv[0] for argv, _ in box.calls] == ["ssh-keyscan"]
+
+
+def test_no_host_key_refuses(tmp_path):
+    cfg = _admin_config(tmp_path)
+    _admin_refused(_admin(cfg, FakeBox(cfg, keyscan="")), "host_key_unavailable")
+
+
+def test_too_few_cpus_refuses(tmp_path):
+    cfg = _admin_config(tmp_path)
+    outcome = _admin(cfg, FakeBox(cfg, nproc=15))
+    _admin_refused(outcome, "slot_shape_cpus")
+    assert outcome["step"] == "shape"
+
+
+def test_too_little_memory_refuses(tmp_path):
+    cfg = _admin_config(tmp_path)
+    for mem in (64 * 1024 * 1024, 72 * 1024 * 1024 - 1):
+        _admin_refused(_admin(cfg, FakeBox(cfg, mem_kib=mem)), "slot_shape_memory")
+
+
+def test_exactly_the_minimum_shape_passes(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, nproc=16, online="0-15", mem_kib=72 * 1024 * 1024)
+    assert _admin(cfg, box)["admin"] == "PASS"
+
+
+def test_the_shape_counts_all_cpus_and_needs_0_to_15_online(tmp_path):
+    assert box_up.CMD_SHAPE.startswith("nproc --all;")
+    assert "/sys/devices/system/cpu/online" in box_up.CMD_SHAPE
+    cfg = _admin_config(tmp_path)
+    _admin_refused(
+        _admin(cfg, FakeBox(cfg, nproc=32, online="0-7,16-31")), "slot_cpus_offline"
+    )
+    assert box_up.cpu_list("0-3,8,10-11") == {0, 1, 2, 3, 8, 10, 11}
+
+
+def test_the_daemon_json_merge_keeps_the_snapshotter_and_the_nvidia_runtime():
+    ctk = {
+        "log-driver": "json-file",
+        "features": {"buildkit": True},
+        "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
+    }
+    merged = box_up.merge_daemon_json(json.dumps(ctk, indent=4))
+    assert merged == {
+        "log-driver": "json-file",
+        "features": {"buildkit": True, "containerd-snapshotter": True},
+        "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
+    }
+    # A second pass over its own output changes nothing.
+    assert box_up.merge_daemon_json(box_up.daemon_json_text(merged)) == merged
+    with pytest.raises(box_up.Refused) as refused:
+        box_up.merge_daemon_json('{"features": {"containerd-snapshotter": true}}')
+    assert refused.value.reason == "docker_nvidia_runtime_missing"
+
+
+def test_the_box_daemon_json_ends_with_both(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    final = json.loads(box.daemon)
+    assert final["features"]["containerd-snapshotter"] is True
+    assert final["runtimes"]["nvidia"]["path"] == "nvidia-container-runtime"
+    assert final["log-driver"] == "json-file"
+
+
+def test_a_daemon_without_the_snapshotter_after_restart_refuses(tmp_path):
+    cfg = _admin_config(tmp_path)
+
+    class NoSnapshotter(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.CMD_DOCKER_INFO:
+                info = {
+                    "ServerVersion": "29.1.3",
+                    "DriverStatus": [],
+                    "Runtimes": {"nvidia": {}},
+                }
+                return 0, json.dumps(info), ""
+            return super().remote(cmd, pipe_from)
+
+    _admin_refused(_admin(cfg, NoSnapshotter(cfg)), "docker_snapshotter_missing")
+
+
+def test_a_merged_daemon_json_the_daemon_does_not_show_gets_a_restart(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(
+        cfg,
+        docker="29.1.3",
+        ctk=True,
+        daemon=box_up.daemon_json_text(MERGED_DAEMON),
+        daemon_live={"runtimes": MERGED_DAEMON["runtimes"]},
+    )
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.restarts == 1
+
+
+def test_a_daemon_that_is_right_is_not_restarted(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.restarts == 1
+
+
+def test_docker_info_that_is_not_an_object_is_a_typed_refusal(tmp_path):
+    cfg = _admin_config(tmp_path)
+
+    class Odd(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.CMD_DOCKER_INFO:
+                return 0, "[1]", ""
+            return super().remote(cmd, pipe_from)
+
+    _admin_refused(_admin(cfg, Odd(cfg)), "docker_unreadable")
+
+
+def test_a_box_with_another_containerd_is_reinstalled_to_the_pinned_one(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, docker="29.1.3", containerd="v2.1.0")
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.containerd == "v2.4.2"
+    install = box_up.cmd_docker_install("29.1.3", "2.4.2")
+    assert (
+        '"containerd.io=$c"' in install
+        and "apt-mark hold docker-ce docker-ce-cli containerd.io" in install
+    )
+
+
+def test_a_containerd_that_stays_wrong_is_refused(tmp_path):
+    cfg = _admin_config(tmp_path)
+
+    class Stuck(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.cmd_docker_install(
+                cfg.docker_version, cfg.containerd_version
+            ):
+                self.docker = cfg.docker_version
+                return 0, "", ""
+            return super().remote(cmd, pipe_from)
+
+    _admin_refused(
+        _admin(cfg, Stuck(cfg, containerd="v2.1.0")), "containerd_version_mismatch"
+    )
+
+
+def test_engine_versions_reads_docker_and_containerd():
+    assert box_up.engine_versions("29.1.3 v2.4.2\n") == "29.1.3 2.4.2"
+    assert box_up.engine_versions("29.1.3\n") == ""
+    assert box_up.engine_versions("") == ""
+
+
+def test_the_authorized_keys_line_is_exact(tmp_path):
+    assert box_up.authorized_keys_line(DOOR, LANE_PUBKEY) == LANE_LINE
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.authorized_keys == LANE_LINE + "\n"
+    assert "--home-dir /home/carbon-grade" in box_up.CMD_LANE_CREATE
+
+
+def test_authorized_keys_that_read_back_differently_refuse(tmp_path):
+    cfg = _admin_config(tmp_path)
+
+    class Extra(FakeBox):
+        def remote(self, cmd, pipe_from):
+            rc, out, err = super().remote(cmd, pipe_from)
+            if cmd == box_up.CMD_AUTHORIZED_KEYS_READ:
+                out += "ssh-ed25519 AAAA other\n"
+            return rc, out, err
+
+    _admin_refused(_admin(cfg, Extra(cfg)), "authorized_keys_mismatch")
+
+
+def test_a_lane_user_with_uid_zero_refuses(tmp_path):
+    cfg = _admin_config(tmp_path)
+    _admin_refused(_admin(cfg, FakeBox(cfg, lane_uid="0")), "lane_user_is_root")
+
+
+def test_a_lane_user_with_another_home_refuses(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, lane_uid="1001", lane_home="/srv/carbon-grade")
+    _admin_refused(_admin(cfg, box), "lane_home_mismatch")
+
+
+def test_a_private_key_as_the_lane_key_is_refused(tmp_path):
+    argv = _admin_argv(tmp_path)
+    (tmp_path / "lane.pub").write_text(
+        "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n-----END OPENSSH PRIVATE KEY-----\n"
+    )
+    assert _config_refusal(argv) == "lane_pubkey_is_private"
+
+
+def test_an_admin_dry_run_runs_nothing_and_prints_every_command(tmp_path, capsys):
+    def boom(argv, pipe_from=None):
+        raise AssertionError("the dry run ran a command")
+
+    assert box_up.main([*_admin_argv(tmp_path), "--dry-run"], runner=boom) == 0
+    out = capsys.readouterr().out
+    assert f"ssh-keyscan -t ed25519 -p 22 {IP}" in out
+    assert "nvidia-ctk runtime configure --runtime=docker" in out
+    assert f"ubuntu@{IP}" in out and "carbon-grade@" not in out
+    printed = [line for line in out.splitlines() if line.startswith("[")]
+    assert len(printed) == len(box_up.plan_admin(_admin_config(tmp_path)))
+
+
+# == the door phase: who it is and what it may do =====================================================================
 
 
 def test_a_passing_box_gets_exactly_the_box_file(tmp_path):
@@ -431,9 +900,125 @@ def test_a_passing_box_gets_exactly_the_box_file(tmp_path):
     assert document["check_output_sha256"] == _sha(box.class_output.encode())
     assert document["check_ops_record_sha256"] == _sha(box.class_ops.encode())
     assert document["admitted_unix"] == 1763300000
-    # The box was actually brought up: docker installed, toolkit, images, tree.
-    assert box.docker == "29.1.3" and box.ctk and box.tree and box.restarts == 1
-    assert box.loaded == {JAX: JAX, TORCH: TORCH}
+    assert box.loaded == {JAX: JAX, TORCH: TORCH} and box.tree
+    # The door changed nothing the admin phase owns.
+    assert box.restarts == 0 and box.driver_installs == 0
+
+
+def test_the_door_phase_never_uses_sudo_on_the_box(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert set(box.users) == {"carbon-grade"}
+    for command in box.remote_commands():
+        assert "sudo" not in command, command
+    for _step, command in box_up.plan_door(cfg):
+        assert "sudo" not in command, command
+
+
+def test_the_door_guard_refuses_a_sudo_command(tmp_path):
+    cfg = _config(tmp_path)
+    session = box_up.Session(cfg, FakeBox(cfg), log=lambda _l: None)
+    with pytest.raises(box_up.Refused) as refused:
+        session.call(box_up.ssh(cfg, "kh", "sudo -n true"))
+    assert refused.value.reason == "door_sudo_refused"
+
+
+def test_the_door_logs_in_only_as_carbon_grade(tmp_path):
+    cfg = _config(tmp_path)
+    assert cfg.user == "carbon-grade"
+    with pytest.raises(SystemExit):
+        box_up.build_parser().parse_args([*_door_argv(tmp_path), "--user", "ubuntu"])
+
+
+# The admin phase's work, one item missing at a time: the door names the admin step to re-run, and changes nothing.
+ADMIN_ITEMS = [
+    ("lane_user", {"lane_uid": ""}),
+    ("lane_user", {"authorized_keys": f'from="{DOOR}" {LANE_PUBKEY}\n'}),
+    ("lane_user", {"groups": ["carbon-grade"]}),
+    ("lane_user", {"lane_home": "/srv/carbon-grade"}),
+    ("lane_user", {"authorized_keys": LANE_LINE + "\nssh-ed25519 AAAA other\n"}),
+    ("shape", {"nproc": 8}),
+    ("shape", {"mem_kib": 32 * 1024 * 1024}),
+    ("driver", {"smi": (0, f"{KIND}, {UUID}, 40960 MiB, 570.172.08\n")}),
+    ("driver", {"smi": (9, "NVIDIA-SMI has failed\n")}),
+    ("driver", {"smi": (0, f"NVIDIA A100-SXM4-80GB, {UUID}, 81920 MiB, {DRIVER}\n")}),
+    ("docker", {"docker": ""}),
+    ("docker", {"docker": "28.0.1"}),
+    ("docker", {"containerd": "v2.1.0"}),
+    ("docker", {"daemon_live": {"runtimes": MERGED_DAEMON["runtimes"]}}),
+    ("docker", {"daemon_live": {"features": {"containerd-snapshotter": True}}}),
+    ("stage_root", {"stage": "root:root 755 directory"}),
+    ("stage_root", {"stage": "carbon-grade:carbon-grade 777 directory"}),
+]
+
+
+@pytest.mark.parametrize(("step", "missing"), ADMIN_ITEMS)
+def test_the_door_refuses_when_an_admin_item_is_missing(tmp_path, step, missing):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, **missing)
+    outcome = _run(cfg, box)
+    _refused(outcome, f"admin_incomplete:{step}")
+    assert outcome["step"] == step
+    assert box.restarts == 0 and box.driver_installs == 0 and not box.loaded
+    assert not box.tree
+    assert _no_box_file(tmp_path)
+
+
+def test_a_matching_admin_summary_is_recorded(tmp_path):
+    summary = {
+        "schema": "carbon.gpu-box-admin.v1",
+        "admin": "PASS",
+        "box_ip": IP,
+        "host_key": f"{IP} ssh-ed25519 {HOST_KEY}",
+        "device_uuid": UUID,
+        "driver_version": DRIVER,
+    }
+    (tmp_path / "admin.json").write_text(json.dumps(summary))
+    cfg = _config(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
+    assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
+    document = json.loads((tmp_path / "boxes" / "a100-1.json").read_text())
+    assert document["admin_summary_sha256"] == _sha(
+        (tmp_path / "admin.json").read_bytes()
+    )
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("host_key", f"{IP} ssh-ed25519 {_key_body(42)}"),
+        ("device_uuid", "GPU-ffffffff-4567-89ab-cdef-0123456789ab"),
+        ("driver_version", "580.65.06"),
+        ("box_ip", "203.0.113.8"),
+    ],
+)
+def test_an_admin_summary_that_disagrees_with_the_box_is_refused(
+    tmp_path, field, value
+):
+    summary = {
+        "schema": "carbon.gpu-box-admin.v1",
+        "admin": "PASS",
+        "box_ip": IP,
+        "host_key": f"{IP} ssh-ed25519 {HOST_KEY}",
+        "device_uuid": UUID,
+        "driver_version": DRIVER,
+        field: value,
+    }
+    (tmp_path / "admin.json").write_text(json.dumps(summary))
+    cfg = _config(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
+    box = FakeBox(cfg)
+    outcome = _run(cfg, box)
+    _refused(outcome, "admin_summary_mismatch")
+    assert outcome["detail"].startswith(field)
+    assert not box.loaded and _no_box_file(tmp_path)
+
+
+def test_an_admin_summary_that_did_not_pass_is_refused(tmp_path):
+    (tmp_path / "admin.json").write_text(
+        json.dumps({"schema": "carbon.gpu-box-admin.v1", "admin": "REFUSED"})
+    )
+    argv = _door_argv(tmp_path, "--admin-summary", str(tmp_path / "admin.json"))
+    assert _config_refusal(argv) == "admin_summary_invalid"
 
 
 def test_the_device_record_digest_is_the_one_the_door_reads():
@@ -448,12 +1033,25 @@ def test_the_device_record_digest_is_the_one_the_door_reads():
     assert refused.value.reason == "device_record_invalid"
 
 
+def test_the_device_record_is_prepared_as_carbon_grade_in_its_own_directory(tmp_path):
+    cfg = _config(tmp_path)
+    words = shlex.split(box_up.cmd_prepare(cfg, HEAD))
+    assert words[:3] == [
+        "python3",
+        "-I",
+        f"/home/carbon-grade/carbon-box-up/tree-{HEAD}/scripts/dev/carbon_accelerator.py",
+    ]
+    assert ("--host-root", "/home/carbon-grade/carbon-box-up/host-root") in set(
+        itertools.pairwise(words)
+    )
+
+
 def test_the_class_check_runs_like_the_receipted_runner(tmp_path):
     cfg = _config(tmp_path)
-    words = shlex.split(box_up.cmd_class_check(cfg, UUID))
+    words = shlex.split(box_up.cmd_class_check(cfg, HEAD, UUID))
     image = words.index(JAX)
     flags = words[:image]
-    assert flags[:4] == ["sudo", "-n", "docker", "run"]
+    assert flags[:2] == ["docker", "run"]
     pairs = set(itertools.pairwise(flags))
     for pair in (
         ("--user", "65532:65532"),
@@ -461,8 +1059,8 @@ def test_the_class_check_runs_like_the_receipted_runner(tmp_path):
         ("--tmpfs", "/scratch:rw,size=4g"),
         ("--runtime", "nvidia"),
         ("--gpus", f"device={UUID}"),
-        ("-v", "/var/lib/carbon-box-up/tree:/carbon:ro"),
-        ("-v", "/var/lib/carbon-box-up/class-check:/out"),
+        ("-v", f"/home/carbon-grade/carbon-box-up/tree-{HEAD}:/carbon:ro"),
+        ("-v", "/home/carbon-grade/carbon-box-up/class-check:/out"),
         ("-e", "PYTHONPATH=/carbon"),
         ("--entrypoint", "/opt/carbon-worker/bin/python"),
     ):
@@ -483,81 +1081,66 @@ def test_the_class_check_runs_like_the_receipted_runner(tmp_path):
     ]
 
 
-def test_a_second_run_on_a_ready_box_changes_nothing(tmp_path):
+def test_the_class_check_output_dir_needs_no_root(tmp_path):
+    """A fresh 0703 directory in carbon-grade's 0700 work dir: the container (uid 65532) creates its files, carbon-grade
+    reads them only when that uid owns them, and removes the directory afterwards."""
+    assert box_up.CMD_CLASS_OUT == (
+        "set -eu; rm -rf /home/carbon-grade/carbon-box-up/class-check; "
+        "mkdir -m 0703 /home/carbon-grade/carbon-box-up/class-check"
+    )
+    assert box_up.DOOR_WORK_DIR.endswith("chmod 0700 /home/carbon-grade/carbon-box-up")
+    for read in (box_up.CMD_CLASS_OUTPUT_READ, box_up.CMD_CLASS_OPS_READ):
+        assert 'test "$(stat -c %u ' in read and ')" = 65532;' in read
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    assert box.cleans == 1
+    failed = FakeBox(cfg, class_rc=1)
+    _refused(_run(cfg, failed), "class_check_failed")
+    assert failed.cleans == 1
+
+
+def test_a_second_door_run_loads_nothing_again(tmp_path):
     cfg = _config(tmp_path)
     box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
     box.calls.clear()
     assert _run(cfg, box)["status"] == "ADMITTED"
-    commands = box.remote_commands()
-    assert box_up.cmd_docker_install("29.1.3", "2.4.2") not in commands
-    assert box_up.CMD_TOOLKIT_INSTALL not in commands
-    assert box_up.CMD_LANE_CREATE not in commands
-    assert box_up.CMD_DOCKER_LOAD not in commands
-    assert box_up.CMD_DOCKER_RESTART not in commands
-    assert box.restarts == 1
-    assert (
-        json.loads((tmp_path / "boxes" / "a100-1.json").read_text())["name"] == "a100-1"
-    )
+    assert box_up.DOOR_DOCKER_LOAD not in box.remote_commands()
 
 
-# -- typed stops ------------------------------------------------------------------------------------------------------
-
-
-def _no_box_file(tmp_path):
-    boxes = tmp_path / "boxes"
-    return not list(boxes.iterdir())
-
-
-def test_a_wrong_device_kind_is_refused_before_anything_is_installed(tmp_path):
+def test_a_door_host_key_mismatch_refuses_before_any_ssh(tmp_path):
     cfg = _config(tmp_path)
-    box = FakeBox(cfg, smi=(0, f"NVIDIA A100-SXM4-80GB, {UUID}, 81920 MiB, {DRIVER}\n"))
-    outcome = _run(cfg, box)
-    _refused(outcome, "wrong_device_kind")
-    assert outcome["step"] == "driver"
-    assert box.driver_installs == 0 and box.docker == ""
+    box = FakeBox(cfg, keyscan=f"{IP} ssh-ed25519 {_key_body(99)}\n")
+    _refused(_run(cfg, box), "host_key_mismatch")
+    assert [argv[0] for argv, _ in box.calls] == ["ssh-keyscan"]
     assert _no_box_file(tmp_path)
 
 
-def test_more_than_one_gpu_is_refused(tmp_path):
-    cfg = _config(tmp_path)
-    row = f"{KIND}, {UUID}, 40960 MiB, {DRIVER}\n"
-    _refused(_run(cfg, FakeBox(cfg, smi=(0, row * 2))), "gpu_count")
-
-
-def test_an_old_driver_is_upgraded_and_the_run_stops_for_a_reboot(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, smi=(0, f"{KIND}, {UUID}, 40960 MiB, 570.172.08\n"))
-    outcome = _run(cfg, box)
-    _refused(outcome, "driver_upgrade_needs_reboot")
-    assert box.driver_installs == 1
-    commands = box.remote_commands()
-    assert commands[-1] == box_up.cmd_driver_install("nvidia-driver-580-server")
-    assert box_up.CMD_DOCKER_VERSION not in commands  # no loop, nothing after
-    assert _no_box_file(tmp_path)
-
-
-def test_a_missing_driver_is_installed_and_the_run_stops_for_a_reboot(tmp_path):
-    cfg = _config(tmp_path, "--driver-package", "nvidia-driver-580")
-    box = FakeBox(cfg, smi=(9, "NVIDIA-SMI has failed\n"))
-    _refused(_run(cfg, box), "driver_upgrade_needs_reboot")
-    assert box.remote_commands()[-1] == box_up.cmd_driver_install("nvidia-driver-580")
-
-
-def test_the_driver_floor_compares_versions_not_strings(tmp_path):
-    cfg = _config(tmp_path, "--driver-floor", "580.65.06")
-    box = FakeBox(cfg, smi=(0, f"{KIND}, {UUID}, 40960 MiB, 580.105.08\n"))
-    box.device = json.dumps({**_device_document(), "driver_version": "580.105.08"})
-    assert _run(cfg, box)["status"] == "ADMITTED"
+@pytest.mark.parametrize("phase", ["admin", "door"])
+def test_every_ssh_pins_the_host_key(tmp_path, phase):
+    cfg = _admin_config(tmp_path) if phase == "admin" else _config(tmp_path)
+    box = FakeBox(cfg)
+    if phase == "admin":
+        assert _admin(cfg, box)["admin"] == "PASS"
+    else:
+        assert _run(cfg, box)["status"] == "ADMITTED"
+    for argv, _ in box.calls:
+        if argv[0] == "ssh":
+            assert "StrictHostKeyChecking=yes" in argv
+            assert "GlobalKnownHostsFile=/dev/null" in argv
+            assert "ForwardAgent=no" in argv and "ClearAllForwardings=yes" in argv
 
 
 def test_an_image_whose_id_differs_after_loading_is_refused(tmp_path):
     cfg = _config(tmp_path)
-    box = FakeBox(cfg, load_as={TORCH: "sha256:" + "f" * 64})
-    outcome = _run(cfg, box)
+    outcome = _run(cfg, FakeBox(cfg, load_as={TORCH: "sha256:" + "f" * 64}))
     _refused(outcome, "image_id_mismatch")
     assert outcome["step"] == "images"
     assert _no_box_file(tmp_path)
+
+
+# == the door phase: the class check ==================================================================================
 
 
 def test_one_case_that_did_not_repeat_refuses(tmp_path):
@@ -575,27 +1158,22 @@ def test_one_case_that_did_not_repeat_refuses(tmp_path):
     assert _no_box_file(tmp_path)
 
 
+def _box_with(cfg, record):
+    return FakeBox(
+        cfg, class_output=json.dumps(record), class_ops=json.dumps(_ops_record(record))
+    )
+
+
 def test_a_case_not_on_the_gpu_refuses(tmp_path):
     cfg = _config(tmp_path)
-    record = _class_record(DIGESTS, on_gpu=False)
-    box = FakeBox(
-        cfg,
-        class_output=json.dumps(record),
-        class_ops=json.dumps(_ops_record(record)),
-    )
+    box = _box_with(cfg, _class_record(DIGESTS, on_gpu=False))
     _refused(_run(cfg, box), "class_check_not_on_gpu")
 
 
 def test_digests_that_differ_from_the_class_record_refuse(tmp_path):
     cfg = _config(tmp_path)
     other = {**DIGESTS, "graph:motor/softmax": "sha256:" + "9" * 64}
-    record = _class_record(other)
-    box = FakeBox(
-        cfg,
-        class_output=json.dumps(record),
-        class_ops=json.dumps(_ops_record(record)),
-    )
-    outcome = _run(cfg, box)
+    outcome = _run(cfg, _box_with(cfg, _class_record(other)))
     _refused(outcome, "class_check_digest_mismatch")
     assert "graph:motor/softmax state_digest" in outcome["detail"].split(", ")
     assert _no_box_file(tmp_path)
@@ -604,12 +1182,7 @@ def test_digests_that_differ_from_the_class_record_refuse(tmp_path):
 def test_a_case_missing_from_the_class_record_refuses(tmp_path):
     cfg = _config(tmp_path)
     record = _class_record({**DIGESTS, "graph:f02/norm": "sha256:" + "4" * 64})
-    box = FakeBox(
-        cfg,
-        class_output=json.dumps(record),
-        class_ops=json.dumps(_ops_record(record)),
-    )
-    _refused(_run(cfg, box), "class_check_digest_mismatch")
+    _refused(_run(cfg, _box_with(cfg, record)), "class_check_digest_mismatch")
 
 
 def test_a_run_that_exits_nonzero_never_passes(tmp_path):
@@ -618,7 +1191,13 @@ def test_a_run_that_exits_nonzero_never_passes(tmp_path):
     _refused(_run(cfg, FakeBox(cfg, class_output="")), "class_check_failed")
 
 
-# -- condition 1: the class's exact ops record ----------------------------------------------------------------------
+def test_a_class_check_on_a_device_whose_name_only_starts_with_the_kind_refuses(
+    tmp_path,
+):
+    cfg = _config(tmp_path)
+    record = _class_record(DIGESTS)
+    record["nvidia_smi"]["gpus"] = [f"{KIND} SPECIAL, {DRIVER}, 40960 MiB, 8.0"]
+    _refused(_run(cfg, _box_with(cfg, record)), "class_check_wrong_device")
 
 
 def test_an_ops_record_that_differs_from_the_class_ops_record_refuses(tmp_path):
@@ -649,7 +1228,7 @@ def test_a_missing_ops_record_refuses(tmp_path):
     _refused(_run(cfg, FakeBox(cfg, class_ops="")), "class_check_output_invalid")
 
 
-def test_the_ops_record_compares_as_canonical_json(tmp_path):
+def test_the_ops_record_compares_as_canonical_json():
     """Key order and spacing do not matter; every value but the run-naming digest must be equal."""
     record = _class_record(DIGESTS, seconds=3.0)
     reference = _ops_record(_class_record(DIGESTS, seconds=9.0))
@@ -663,314 +1242,6 @@ def test_the_ops_record_compares_as_canonical_json(tmp_path):
         allowlist_v8=box_up._allowlist_v8_digest(),
     )
     assert summary == {"case_digests": DIGESTS}
-
-
-# -- condition 2: the pinned host key -------------------------------------------------------------------------------
-
-
-def test_a_host_key_that_is_not_the_operators_refuses_before_any_ssh(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, keyscan=f"{IP} ssh-ed25519 {_key_body(99)}\n")
-    outcome = _run(cfg, box)
-    _refused(outcome, "host_key_mismatch")
-    assert [argv[0] for argv, _ in box.calls] == ["ssh-keyscan"]
-    assert _no_box_file(tmp_path)
-
-
-def test_no_host_key_refuses(tmp_path):
-    cfg = _config(tmp_path)
-    _refused(_run(cfg, FakeBox(cfg, keyscan="")), "host_key_unavailable")
-
-
-def test_every_ssh_pins_the_host_key(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg)
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    for argv, _ in box.calls:
-        if argv[0] == "ssh":
-            assert "StrictHostKeyChecking=yes" in argv
-            assert "GlobalKnownHostsFile=/dev/null" in argv
-
-
-# -- condition 3: files ---------------------------------------------------------------------------------------------
-
-
-def test_the_box_file_is_a_private_regular_file_in_a_private_directory(tmp_path):
-    cfg = _config(tmp_path)
-    assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
-    directory = os.lstat(tmp_path / "boxes")
-    info = os.lstat(tmp_path / "boxes" / "a100-1.json")
-    assert stat.S_IMODE(directory.st_mode) == 0o700
-    assert stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
-    assert info.st_uid == os.geteuid()
-    assert sorted(p.name for p in (tmp_path / "boxes").iterdir()) == [
-        "a100-1.class-check.json",
-        "a100-1.json",
-        "a100-1.ops-record.json",
-    ]
-    for name in ("a100-1.class-check.json", "a100-1.ops-record.json"):
-        side = os.lstat(tmp_path / "boxes" / name)
-        assert stat.S_ISREG(side.st_mode) and stat.S_IMODE(side.st_mode) == 0o600
-
-
-def test_a_boxes_dir_others_can_read_is_refused(tmp_path):
-    cfg = _config(tmp_path)
-    (tmp_path / "boxes").mkdir(mode=0o755)
-    os.chmod(tmp_path / "boxes", 0o755)
-    box = FakeBox(cfg)
-    _refused(_run(cfg, box), "boxes_dir_unsafe")
-    assert box.calls == []
-
-
-def test_a_stale_box_file_is_removed_on_failure(tmp_path):
-    """Removal ON FAILURE: box files that appear after the start-of-run removal (mid-run) are gone after the refusal."""
-    cfg = _config(tmp_path)
-
-    class Planting(FakeBox):
-        def remote(self, cmd, pipe_from):
-            if cmd == box_up.CMD_STAGE_ROOT_STAT:
-                for path in box_up.box_files(cfg):
-                    path.write_text("{}")
-            return super().remote(cmd, pipe_from)
-
-    box = Planting(cfg, stage="root:root 755 directory")
-    _refused(_run(cfg, box), "stage_root_mismatch")
-    assert _no_box_file(tmp_path)
-
-
-def test_a_failed_readmission_removes_an_earlier_admission(tmp_path):
-    cfg = _config(tmp_path)
-    assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
-    assert len(list((tmp_path / "boxes").iterdir())) == 3
-    _refused(
-        _run(cfg, FakeBox(cfg, stage="root:root 755 directory")), "stage_root_mismatch"
-    )
-    assert _no_box_file(tmp_path)
-
-
-def test_a_stale_symlink_is_removed_not_followed(tmp_path):
-    cfg = _config(tmp_path)
-    (tmp_path / "boxes").mkdir(mode=0o700)
-    target = tmp_path / "elsewhere.json"
-    target.write_text("{}")
-    (tmp_path / "boxes" / "a100-1.json").symlink_to(target)
-    _refused(_run(cfg, FakeBox(cfg, nproc=8)), "slot_shape_cpus")
-    assert not os.path.lexists(tmp_path / "boxes" / "a100-1.json")
-    assert target.read_text() == "{}"
-
-
-# -- condition 4: slot shape ----------------------------------------------------------------------------------------
-
-
-def test_too_few_cpus_refuses(tmp_path):
-    cfg = _config(tmp_path)
-    outcome = _run(cfg, FakeBox(cfg, nproc=15))
-    _refused(outcome, "slot_shape_cpus")
-    assert outcome["step"] == "shape"
-
-
-def test_too_little_memory_refuses(tmp_path):
-    cfg = _config(tmp_path)
-    _refused(_run(cfg, FakeBox(cfg, mem_kib=64 * 1024 * 1024)), "slot_shape_memory")
-    _refused(_run(cfg, FakeBox(cfg, mem_kib=72 * 1024 * 1024 - 1)), "slot_shape_memory")
-
-
-def test_exactly_the_minimum_shape_passes(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, nproc=16, mem_kib=72 * 1024 * 1024)
-    assert _run(cfg, box)["status"] == "ADMITTED"
-
-
-# -- condition 5: nothing secret reaches the box --------------------------------------------------------------------
-
-
-def test_only_public_material_goes_to_the_box(tmp_path):
-    cfg = _config(tmp_path, "--ssh-key", str(tmp_path / "operator_key"))
-    (tmp_path / "operator_key").write_text(
-        "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret\n"
-    )
-    box = FakeBox(cfg)
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    streamed = [pipe for _, pipe in box.calls if pipe is not None]
-    assert streamed == [
-        ["docker", "save", JAX],
-        ["docker", "save", TORCH],
-        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD, "--"]
-        + list(box_up.TREE_PATHS),
-    ]
-    lane_body = LANE_PUBKEY.split()[1]
-    for argv, _ in box.calls:
-        text = " ".join(argv)
-        assert "PRIVATE KEY" not in text and "secret" not in text
-        if argv[0] == "ssh":
-            assert "ForwardAgent=no" in argv and "ClearAllForwardings=yes" in argv
-            command = argv[-1]
-            # The only key material in any command is the lane's public key.
-            if "ssh-ed25519" in command:
-                assert lane_body in command and "authorized_keys" in command
-
-
-def test_a_private_key_as_the_lane_key_is_refused(tmp_path):
-    argv = _argv(tmp_path)
-    (tmp_path / "lane.pub").write_text(
-        "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n-----END OPENSSH PRIVATE KEY-----\n"
-    )
-    with pytest.raises(box_up.Refused) as refused:
-        box_up.config_from_args(box_up.build_parser().parse_args(argv))
-    assert refused.value.reason == "lane_pubkey_is_private"
-
-
-def test_the_guard_refuses_any_other_upload(tmp_path):
-    cfg = _config(tmp_path)
-    session = box_up.Session(cfg, FakeBox(cfg), log=lambda _l: None)
-    for pipe in (
-        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD],
-        box_up.cmd_git_archive(HEAD) + [".agent"],
-        ["cat", str(tmp_path / "operator_key")],
-        ["docker", "save", "sha256:" + "e" * 64],
-        ["tar", "-c", "/home"],
-    ):
-        with pytest.raises(box_up.Refused) as refused:
-            session.call(["ssh", "x"], pipe)
-        assert refused.value.reason == "upload_refused"
-    with pytest.raises(box_up.Refused) as refused:
-        session.call(["ssh", "x", "echo '-----BEGIN RSA PRIVATE KEY-----'"])
-    assert refused.value.reason == "secret_refused"
-
-
-# -- daemon.json and authorized_keys ---------------------------------------------------------------------------------
-
-
-def test_the_daemon_json_merge_keeps_the_snapshotter_and_the_nvidia_runtime():
-    ctk = {
-        "log-driver": "json-file",
-        "features": {"buildkit": True},
-        "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
-    }
-    merged = box_up.merge_daemon_json(json.dumps(ctk, indent=4))
-    assert merged == {
-        "log-driver": "json-file",
-        "features": {"buildkit": True, "containerd-snapshotter": True},
-        "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
-    }
-    # A second pass over its own output changes nothing.
-    assert box_up.merge_daemon_json(box_up.daemon_json_text(merged)) == merged
-    with pytest.raises(box_up.Refused) as refused:
-        box_up.merge_daemon_json('{"features": {"containerd-snapshotter": true}}')
-    assert refused.value.reason == "docker_nvidia_runtime_missing"
-
-
-def test_the_box_daemon_json_ends_with_both(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg)
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    final = json.loads(box.daemon)
-    assert final["features"]["containerd-snapshotter"] is True
-    assert final["runtimes"]["nvidia"]["path"] == "nvidia-container-runtime"
-    assert final["log-driver"] == "json-file"
-
-
-def test_a_daemon_without_the_snapshotter_after_restart_refuses(tmp_path):
-    cfg = _config(tmp_path)
-
-    class NoSnapshotter(FakeBox):
-        def remote(self, cmd, pipe_from):
-            if cmd == box_up.CMD_DOCKER_INFO:
-                info = {
-                    "ServerVersion": "29.1.3",
-                    "DriverStatus": [],
-                    "Runtimes": {"nvidia": {}},
-                }
-                return 0, json.dumps(info), ""
-            return super().remote(cmd, pipe_from)
-
-    _refused(_run(cfg, NoSnapshotter(cfg)), "docker_snapshotter_missing")
-
-
-def test_the_authorized_keys_line_is_exact(tmp_path):
-    assert box_up.authorized_keys_line(DOOR, LANE_PUBKEY) == (
-        f'restrict,from="{DOOR}" {LANE_PUBKEY}'
-    )
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg)
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.authorized_keys == (f'restrict,from="{DOOR}" {LANE_PUBKEY}\n')
-
-
-def test_authorized_keys_that_read_back_differently_refuse(tmp_path):
-    cfg = _config(tmp_path)
-
-    class Extra(FakeBox):
-        def remote(self, cmd, pipe_from):
-            rc, out, err = super().remote(cmd, pipe_from)
-            if cmd == box_up.CMD_AUTHORIZED_KEYS_READ:
-                out += "ssh-ed25519 AAAA other\n"
-            return rc, out, err
-
-    _refused(_run(cfg, Extra(cfg)), "authorized_keys_mismatch")
-
-
-def test_a_lane_user_with_uid_zero_refuses(tmp_path):
-    cfg = _config(tmp_path)
-    _refused(_run(cfg, FakeBox(cfg, lane_uid="0")), "lane_user_is_root")
-
-
-# -- dry run --------------------------------------------------------------------------------------------------------
-
-
-def test_a_dry_run_runs_nothing_and_prints_every_command(tmp_path, capsys):
-    def boom(argv, pipe_from=None):
-        raise AssertionError("the dry run ran a command")
-
-    assert box_up.main([*_argv(tmp_path), "--dry-run"], runner=boom) == 0
-    out = capsys.readouterr().out
-    assert not (tmp_path / "boxes").exists()
-    assert f"ssh-keyscan -t ed25519 -p 22 {IP}" in out
-    assert "nvidia-ctk runtime configure --runtime=docker" in out
-    assert f"docker save {TORCH} | ssh" in out
-    assert "gpu_rebuild_class_check.py" in out and "--steps 512" in out
-    printed = [line for line in out.splitlines() if line.startswith("[")]
-    assert len(printed) == len(box_up.plan(_config(tmp_path)))
-
-
-def test_bad_arguments_exit_2_without_running(tmp_path, capsys):
-    def boom(argv, pipe_from=None):
-        raise AssertionError("ran a command")
-
-    argv = _argv(tmp_path)
-    argv[argv.index("--jax-image") + 1] = "jax:latest"
-    assert box_up.main(argv, runner=boom) == 2
-    assert json.loads(capsys.readouterr().out)["reason"] == "bad_argument"
-
-
-# -- V2: exact device name -------------------------------------------------------------------------------------------
-
-
-def test_a_device_name_that_only_starts_with_the_kind_is_refused(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, smi=(0, f"{KIND}-SPECIAL, {UUID}, 40960 MiB, {DRIVER}\n"))
-    _refused(_run(cfg, box), "wrong_device_kind")
-
-
-def test_a_class_check_on_a_device_whose_name_only_starts_with_the_kind_refuses(
-    tmp_path,
-):
-    cfg = _config(tmp_path)
-    record = _class_record(DIGESTS)
-    record["nvidia_smi"]["gpus"] = [f"{KIND} SPECIAL, {DRIVER}, 40960 MiB, 8.0"]
-    box = FakeBox(
-        cfg, class_output=json.dumps(record), class_ops=json.dumps(_ops_record(record))
-    )
-    _refused(_run(cfg, box), "class_check_wrong_device")
-
-
-# -- V2: every digest ------------------------------------------------------------------------------------------------
-
-
-def _box_with(cfg, record):
-    return FakeBox(
-        cfg, class_output=json.dumps(record), class_ops=json.dumps(_ops_record(record))
-    )
 
 
 def test_a_rebuild_predictions_digest_that_differs_refuses(tmp_path):
@@ -1008,12 +1279,15 @@ def test_only_the_cpu_parity_digest_differing_is_still_admitted(tmp_path):
     assert _run(cfg, _box_with(cfg, record))["status"] == "ADMITTED"
 
 
+# == the door phase: its references and arguments =====================================================================
+
+
 def test_a_reference_class_record_that_did_not_repeat_is_refused(tmp_path):
     reference = _class_record(DIGESTS, identical={"graph:f08/conv": False})
-    argv = _argv(tmp_path, record=reference)
-    with pytest.raises(box_up.Refused) as refused:
-        box_up.config_from_args(box_up.build_parser().parse_args(argv))
-    assert refused.value.reason == "class_record_not_gpu_repeats"
+    assert (
+        _config_refusal(_door_argv(tmp_path, record=reference))
+        == "class_record_not_gpu_repeats"
+    )
 
 
 def _incomplete(mutate):
@@ -1050,29 +1324,18 @@ def _incomplete(mutate):
 def test_an_incomplete_reference_class_record_is_refused(tmp_path, mutate):
     """Validator-2: the digest compare is symmetric, so a field missing from BOTH the reference and the box's record
     would match; an incomplete reference is refused before any box is touched."""
-    argv = _argv(tmp_path, record=_incomplete(mutate))
-    with pytest.raises(box_up.Refused) as refused:
-        box_up.config_from_args(box_up.build_parser().parse_args(argv))
-    assert refused.value.reason == "class_record_incomplete"
+    argv = _door_argv(tmp_path, record=_incomplete(mutate))
+    assert _config_refusal(argv) == "class_record_incomplete"
 
 
-def test_the_complete_reference_fixture_is_accepted(tmp_path):
+def test_the_complete_reference_fixture_is_accepted():
     box_up.require_complete_reference(_class_record(DIGESTS))
-
-
-# -- V2: the receiver's image and the class check's own files --------------------------------------------------------
-
-
-def _config_refusal(argv):
-    with pytest.raises(box_up.Refused) as refused:
-        box_up.config_from_args(box_up.build_parser().parse_args(argv))
-    return refused.value.reason
 
 
 def test_the_manifest_image_must_be_the_jax_image(tmp_path):
     other = "sha256:" + "e" * 64
     assert (
-        _config_refusal(_argv(tmp_path, manifest=_manifest(image=other)))
+        _config_refusal(_door_argv(tmp_path, manifest=_manifest(image=other)))
         == "graph_gpu_image_mismatch"
     )
 
@@ -1080,16 +1343,70 @@ def test_the_manifest_image_must_be_the_jax_image(tmp_path):
 def test_a_manifest_that_is_not_the_jax_gpu_worker_is_refused(tmp_path):
     manifest = _manifest(lock="sha256:" + "9" * 64)
     assert (
-        _config_refusal(_argv(tmp_path, manifest=manifest)) == "graph_gpu_image_not_jax"
+        _config_refusal(_door_argv(tmp_path, manifest=manifest))
+        == "graph_gpu_image_not_jax"
     )
 
 
 def test_a_malformed_manifest_is_refused(tmp_path):
     manifest = {**_manifest(), "extra": 1}
     assert (
-        _config_refusal(_argv(tmp_path, manifest=manifest))
+        _config_refusal(_door_argv(tmp_path, manifest=manifest))
         == "graph_gpu_image_manifest_invalid"
     )
+
+
+def test_a_provider_the_owner_did_not_accept_is_refused(tmp_path):
+    argv = _door_argv(tmp_path)
+    argv[argv.index("--provider") + 1] = "otherprovider"
+    assert _config_refusal(argv) == "provider_not_accepted"
+
+
+def test_bad_arguments_exit_2_without_running(tmp_path, capsys):
+    def boom(argv, pipe_from=None):
+        raise AssertionError("ran a command")
+
+    argv = _door_argv(tmp_path)
+    argv[argv.index("--jax-image") + 1] = "jax:latest"
+    assert box_up.main(argv, runner=boom) == 2
+    assert json.loads(capsys.readouterr().out)["reason"] == "bad_argument"
+
+
+def test_a_door_dry_run_runs_nothing_and_prints_every_command(tmp_path, capsys):
+    def boom(argv, pipe_from=None):
+        raise AssertionError("the dry run ran a command")
+
+    assert box_up.main([*_door_argv(tmp_path), "--dry-run"], runner=boom) == 0
+    out = capsys.readouterr().out
+    assert not (tmp_path / "boxes").exists()
+    assert f"ssh-keyscan -t ed25519 -p 22 {IP}" in out
+    assert f"docker save {TORCH} | ssh" in out
+    assert "gpu_rebuild_class_check.py" in out and "--steps 512" in out
+    assert f"carbon-grade@{IP}" in out and "ubuntu@" not in out
+    assert "sudo" not in out
+    printed = [line for line in out.splitlines() if line.startswith("[")]
+    assert len(printed) == len(box_up.plan_door(_config(tmp_path)))
+
+
+# == the door phase: files ============================================================================================
+
+
+def test_the_box_file_is_a_private_regular_file_in_a_private_directory(tmp_path):
+    cfg = _config(tmp_path)
+    assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
+    directory = os.lstat(tmp_path / "boxes")
+    info = os.lstat(tmp_path / "boxes" / "a100-1.json")
+    assert stat.S_IMODE(directory.st_mode) == 0o700
+    assert stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
+    assert info.st_uid == os.geteuid()
+    assert sorted(p.name for p in (tmp_path / "boxes").iterdir()) == [
+        "a100-1.class-check.json",
+        "a100-1.json",
+        "a100-1.ops-record.json",
+    ]
+    for name in ("a100-1.class-check.json", "a100-1.ops-record.json"):
+        side = os.lstat(tmp_path / "boxes" / name)
+        assert stat.S_ISREG(side.st_mode) and stat.S_IMODE(side.st_mode) == 0o600
 
 
 def test_the_class_check_output_is_kept_beside_the_box_file(tmp_path):
@@ -1104,41 +1421,159 @@ def test_the_class_check_output_is_kept_beside_the_box_file(tmp_path):
     assert ops == box.class_ops.encode()
     assert document["check_output_sha256"] == _sha(output)
     assert document["check_ops_record_sha256"] == _sha(ops)
-    words = shlex.split(box_up.cmd_class_check(cfg, UUID))
+    words = shlex.split(box_up.cmd_class_check(cfg, HEAD, UUID))
     assert document["class_check_image_id"] in words
 
 
-# -- review: docker restart ------------------------------------------------------------------------------------------
-
-
-def test_a_merged_daemon_json_the_daemon_does_not_show_gets_a_restart(tmp_path):
+def test_a_boxes_dir_others_can_read_is_refused(tmp_path):
     cfg = _config(tmp_path)
-    merged = {
-        "log-driver": "json-file",
-        "features": {"containerd-snapshotter": True},
-        "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
-    }
-    box = FakeBox(
-        cfg,
-        docker="29.1.3",
-        ctk=True,
-        daemon=box_up.daemon_json_text(merged),
-        daemon_live={"runtimes": merged["runtimes"]},
-    )
+    (tmp_path / "boxes").mkdir(mode=0o755)
+    os.chmod(tmp_path / "boxes", 0o755)
+    box = FakeBox(cfg)
+    _refused(_run(cfg, box), "boxes_dir_unsafe")
+    assert box.calls == []
+
+
+def test_a_stale_box_file_is_removed_on_failure(tmp_path):
+    """Removal ON FAILURE: box files that appear after the start-of-run removal (mid-run) are gone after the refusal."""
+    cfg = _config(tmp_path)
+
+    class Planting(FakeBox):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.CMD_STAGE_ROOT_STAT:
+                for path in box_up.box_files(cfg):
+                    path.write_text("{}")
+            return super().remote(cmd, pipe_from)
+
+    box = Planting(cfg, stage="root:root 755 directory")
+    _refused(_run(cfg, box), "admin_incomplete:stage_root")
+    assert _no_box_file(tmp_path)
+
+
+def test_a_failed_readmission_removes_an_earlier_admission(tmp_path):
+    cfg = _config(tmp_path)
+    assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
+    assert len(list((tmp_path / "boxes").iterdir())) == 3
+    _refused(_run(cfg, FakeBox(cfg, nproc=8)), "admin_incomplete:shape")
+    assert _no_box_file(tmp_path)
+
+
+def test_a_stale_symlink_is_removed_not_followed(tmp_path):
+    cfg = _config(tmp_path)
+    (tmp_path / "boxes").mkdir(mode=0o700)
+    target = tmp_path / "elsewhere.json"
+    target.write_text("{}")
+    (tmp_path / "boxes" / "a100-1.json").symlink_to(target)
+    _refused(_run(cfg, FakeBox(cfg, nproc=8)), "admin_incomplete:shape")
+    assert not os.path.lexists(tmp_path / "boxes" / "a100-1.json")
+    assert target.read_text() == "{}"
+
+
+def test_a_box_file_that_appears_during_the_run_is_never_replaced(
+    tmp_path, monkeypatch
+):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    real = box_up.write_box_files
+
+    def racing(cfg_, document, raw_output, raw_ops):
+        box_up.box_path(cfg_).write_text("another run")
+        os.chmod(box_up.box_path(cfg_), 0o600)
+        return real(cfg_, document, raw_output, raw_ops)
+
+    monkeypatch.setattr(box_up, "write_box_files", racing)
+    _refused(_run(cfg, box), "box_file_exists")
+    assert not any(os.path.lexists(p) for p in box_up.box_files(cfg))
+
+
+def test_an_unexpected_error_writing_the_box_file_leaves_no_files(
+    tmp_path, monkeypatch
+):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    real = box_up.write_private
+
+    def failing(directory, path, body):
+        if path == box_up.box_path(cfg):
+            raise OSError("disk full")
+        return real(directory, path, body)
+
+    monkeypatch.setattr(box_up, "write_private", failing)
+    with pytest.raises(OSError):
+        _run(cfg, box)
+    assert not any(os.path.lexists(p) for p in box_up.box_files(cfg))
+
+
+# == the door phase: only public material leaves the door ==============================================================
+
+
+def test_only_public_material_goes_to_the_box(tmp_path):
+    cfg = _config(tmp_path, "--ssh-key", str(tmp_path / "lane_key"))
+    (tmp_path / "lane_key").write_text("-----BEGIN OPENSSH PRIVATE KEY-----\nsecret\n")
+    box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.restarts == 1
+    streamed = [pipe for _, pipe in box.calls if pipe is not None]
+    assert streamed == [
+        ["docker", "save", JAX],
+        ["docker", "save", TORCH],
+        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD, "--"]
+        + list(box_up.TREE_PATHS),
+    ]
+    for argv, _ in box.calls:
+        text = " ".join(argv)
+        assert "PRIVATE KEY" not in text and "secret" not in text
 
 
-def test_a_daemon_that_is_right_is_not_restarted(tmp_path):
+def test_the_guard_refuses_any_other_upload(tmp_path):
+    cfg = _config(tmp_path)
+    session = box_up.Session(cfg, FakeBox(cfg), log=lambda _l: None)
+    for pipe in (
+        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD],
+        box_up.cmd_git_archive(HEAD) + [".agent"],
+        ["cat", str(tmp_path / "lane_key")],
+        ["docker", "save", "sha256:" + "e" * 64],
+        ["tar", "-c", "/home"],
+    ):
+        with pytest.raises(box_up.Refused) as refused:
+            session.call(["ssh", "x"], pipe)
+        assert refused.value.reason == "upload_refused"
+    with pytest.raises(box_up.Refused) as refused:
+        session.call(["ssh", "x", "echo '-----BEGIN RSA PRIVATE KEY-----'"])
+    assert refused.value.reason == "secret_refused"
+
+
+def test_only_the_class_check_paths_are_archived():
+    archive = box_up.cmd_git_archive(HEAD)
+    paths = archive[archive.index("--") + 1 :]
+    assert paths == list(box_up.TREE_PATHS)
+    for path in paths:
+        assert (box_up.ROOT / path).exists(), path
+        for private in (".agent", "Business", "codex-queue", "tests", ".git"):
+            assert not path.startswith(private)
+
+
+def test_a_commit_not_on_origin_main_never_leaves_the_door(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, on_main=False)
+    _refused(_run(cfg, box), "tree_not_on_origin_main")
+    assert box.extracts == 0
+    assert not [pipe for _, pipe in box.calls if pipe and pipe[0] == "git"]
+
+
+def test_the_tree_is_extracted_afresh_on_every_run_into_carbon_grades_dir(tmp_path):
     cfg = _config(tmp_path)
     box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.restarts == 1
     assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.restarts == 1
+    assert box.extracts == 2
+    extract = box_up.cmd_tree_extract(HEAD)
+    assert extract.startswith(
+        "set -eu; rm -rf /home/carbon-grade/carbon-box-up/tree-*;"
+    )
+    assert f"mv /home/carbon-grade/carbon-box-up/tree-{HEAD}.part " in extract
 
 
-# -- review: malformed box output ------------------------------------------------------------------------------------
+# == malformed box output ==============================================================================================
 
 
 @pytest.mark.parametrize(
@@ -1183,18 +1618,6 @@ def test_malformed_box_output_is_a_typed_refusal(tmp_path, change, reason):
     assert _no_box_file(tmp_path)
 
 
-def test_docker_info_that_is_not_an_object_is_a_typed_refusal(tmp_path):
-    cfg = _config(tmp_path)
-
-    class Odd(FakeBox):
-        def remote(self, cmd, pipe_from):
-            if cmd == box_up.CMD_DOCKER_INFO:
-                return 0, "[1]", ""
-            return super().remote(cmd, pipe_from)
-
-    _refused(_run(cfg, Odd(cfg)), "docker_unreadable")
-
-
 def test_an_unexpected_shape_inside_a_step_is_a_typed_refusal(tmp_path):
     """Any parse error a step did not foresee becomes `<step>_output_invalid`, never a traceback."""
     cfg = _config(tmp_path)
@@ -1204,64 +1627,12 @@ def test_an_unexpected_shape_inside_a_step_is_a_typed_refusal(tmp_path):
         return {"a": 1}["missing"]
 
     with pytest.raises(box_up.Refused) as refused:
-        session.run_step("lane_user", odd)
-    assert refused.value.reason == "lane_user_output_invalid"
+        session.run_step("images", odd)
+    assert refused.value.reason == "images_output_invalid"
     assert refused.value.detail.startswith("KeyError")
 
 
-# -- review: the tree ------------------------------------------------------------------------------------------------
-
-
-def test_only_the_class_check_paths_are_archived():
-    archive = box_up.cmd_git_archive(HEAD)
-    paths = archive[archive.index("--") + 1 :]
-    assert paths == list(box_up.TREE_PATHS)
-    for path in paths:
-        assert (box_up.ROOT / path).exists(), path
-        for private in (".agent", "Business", "codex-queue", "tests", ".git"):
-            assert not path.startswith(private)
-
-
-def test_a_commit_not_on_origin_main_never_leaves_the_door(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, on_main=False)
-    outcome = _run(cfg, box)
-    _refused(outcome, "tree_not_on_origin_main")
-    assert box.extracts == 0
-    assert not [pipe for _, pipe in box.calls if pipe and pipe[0] == "git"]
-
-
-def test_the_tree_is_extracted_afresh_on_every_run(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg)
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.extracts == 2
-    assert "rm -rf /var/lib/carbon-box-up/tree;" in box_up.CMD_TREE_EXTRACT
-
-
-# -- review: CPUs online ---------------------------------------------------------------------------------------------
-
-
-def test_the_shape_counts_all_cpus_and_needs_0_to_15_online(tmp_path):
-    assert box_up.CMD_SHAPE.startswith("nproc --all;")
-    assert "/sys/devices/system/cpu/online" in box_up.CMD_SHAPE
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, nproc=32, online="0-7,16-31")
-    _refused(_run(cfg, box), "slot_cpus_offline")
-    assert box_up.cpu_list("0-3,8,10-11") == {0, 1, 2, 3, 8, 10, 11}
-
-
-# -- the provider ----------------------------------------------------------------------------------------------------
-
-
-def test_a_provider_the_owner_did_not_accept_is_refused(tmp_path):
-    argv = _argv(tmp_path)
-    argv[argv.index("--provider") + 1] = "otherprovider"
-    assert _config_refusal(argv) == "provider_not_accepted"
-
-
-# -- the documented limit --------------------------------------------------------------------------------------------
+# == the documented limit ==============================================================================================
 
 
 def test_limit_a_box_replaying_another_boxs_output_is_admitted_pass_is_not_security_qualification(
@@ -1281,75 +1652,3 @@ def test_limit_a_box_replaying_another_boxs_output_is_admitted_pass_is_not_secur
     )
     assert _run(cfg, replay)["status"] == "ADMITTED"
     assert "replays another box's output can" in box_up.__doc__
-
-
-# -- V2 (17 Nov): containerd pinned, authorized_keys restrict, exclusive side records --------------------------------
-
-
-def test_a_box_with_another_containerd_is_reinstalled_to_the_pinned_one(tmp_path):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg, docker="29.1.3", containerd="v2.1.0")
-    assert _run(cfg, box)["status"] == "ADMITTED"
-    assert box.containerd == "v2.4.2"
-    install = box_up.cmd_docker_install("29.1.3", "2.4.2")
-    assert (
-        '"containerd.io=$c"' in install
-        and "apt-mark hold docker-ce docker-ce-cli containerd.io" in install
-    )
-
-
-def test_a_containerd_that_stays_wrong_is_refused(tmp_path):
-    cfg = _config(tmp_path)
-
-    class Stuck(FakeBox):
-        def remote(self, cmd, pipe_from):
-            if cmd == box_up.cmd_docker_install(
-                cfg.docker_version, cfg.containerd_version
-            ):
-                self.docker = cfg.docker_version
-                return 0, "", ""
-            return super().remote(cmd, pipe_from)
-
-    box = Stuck(cfg, containerd="v2.1.0")
-    _refused(_run(cfg, box), "containerd_version_mismatch")
-
-
-def test_engine_versions_reads_docker_and_containerd():
-    assert box_up.engine_versions("29.1.3 v2.4.2\n") == "29.1.3 2.4.2"
-    assert box_up.engine_versions("29.1.3\n") == ""
-    assert box_up.engine_versions("") == ""
-
-
-def test_a_box_file_that_appears_during_the_run_is_never_replaced(
-    tmp_path, monkeypatch
-):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg)
-    real = box_up.write_box_files
-
-    def racing(cfg_, document, raw_output, raw_ops):
-        box_up.box_path(cfg_).write_text("another run")
-        os.chmod(box_up.box_path(cfg_), 0o600)
-        return real(cfg_, document, raw_output, raw_ops)
-
-    monkeypatch.setattr(box_up, "write_box_files", racing)
-    _refused(_run(cfg, box), "box_file_exists")
-    assert not any(os.path.lexists(p) for p in box_up.box_files(cfg))
-
-
-def test_an_unexpected_error_writing_the_box_file_leaves_no_files(
-    tmp_path, monkeypatch
-):
-    cfg = _config(tmp_path)
-    box = FakeBox(cfg)
-    real = box_up.write_private
-
-    def failing(directory, path, body):
-        if path == box_up.box_path(cfg):
-            raise OSError("disk full")
-        return real(directory, path, body)
-
-    monkeypatch.setattr(box_up, "write_private", failing)
-    with pytest.raises(OSError):
-        _run(cfg, box)
-    assert not any(os.path.lexists(p) for p in box_up.box_files(cfg))
