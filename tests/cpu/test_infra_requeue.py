@@ -1015,6 +1015,10 @@ def test_a_517b_leftover_is_set_aside_by_a_later_grader_process_and_the_rerun_bi
     _failed(root, ledger, A)
     infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
     _first_attempt_binding(root, A)  # as a 517b requeue left it: still in place
+    # written by the EARLIER process: well before this grader started (the set-aside needs a 2 s margin)
+    then = time.time() - 600
+    for path in (*_evaluation(root, A).rglob("*"), _evaluation(root, A)):
+        os.utime(path, (then, then))
     intake = _BindingIntake(root, [A], "sha256:" + "2" * 64)
     assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
     kept = root / "auto-grade" / "requeued" / f"{A}.interrupted-1.evaluation"
