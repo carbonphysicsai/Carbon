@@ -217,6 +217,53 @@ def _campaign_limit_code(exc):
     )
 
 
+#: An image id in a provider binding row: the only values a declared door migration may move (with the graph GPU lane).
+_IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
+
+
+def _same_principal(old, new):
+    """Whether two provider binding rows differ ONLY in what a declared door migration moves: worker image ids and the
+    graph GPU lane (its ``GRAPH_GPU_LANE`` tail, added or changed). Everything else must be equal: requester, owner,
+    the row's form and markers (``PER_RECIPE_LIBRARY_IMAGE``, ``CONSTRUCTION_PARENT`` and its runtimes), a fixed
+    image's bundle reference, and the evaluation pack."""
+    import json as _json
+
+    try:
+        a, b = _json.loads(old), _json.loads(new)
+    except (TypeError, ValueError):
+        return False
+    if type(a) is not list or type(b) is not list or len(a) < 2 or len(b) < 2:
+        return False
+
+    def shape(items):
+        if "GRAPH_GPU_LANE" in items:
+            at = items.index("GRAPH_GPU_LANE")
+            if len(items) != at + 3:
+                return None
+            items = items[:at]
+        pack = [
+            items[i + 1]
+            for i, item in enumerate(items[:-1])
+            if item == "EVALUATION_PACK"
+        ]
+        masked = [
+            "<image>" if type(item) is str and _IMAGE_ID.fullmatch(item) else item
+            for item in items
+        ]
+        return masked, pack
+
+    left, right = shape(a), shape(b)
+    return (
+        left is not None
+        and right is not None
+        and a[:2] == b[:2]
+        # a FIXED-image row's own bundle image (position 2) is no door key: only its parent and inference ids move
+        and (a[2] == "PER_RECIPE_LIBRARY_IMAGE" or a[2] == b[2])
+        and left[1] == right[1]
+        and left[0] == right[0]
+    )
+
+
 class DirectDevelopmentTasksV3:
     """Durable public-development direct tasks beside the historical v2 store.
 
@@ -258,6 +305,7 @@ class DirectDevelopmentTasksV3:
         evaluation_pack_digest=None,
         graph_gpu_image=None,
         graph_gpu_ops=None,
+        binding_migrated=False,
     ) -> None:
         from .gpu_practice import DirectParents, gpu_image_backend
 
@@ -440,7 +488,25 @@ class DirectDevelopmentTasksV3:
                     row = (binding, os.urandom(32))
                     db.execute("INSERT INTO direct_binding VALUES(1,?,?)", row)
                 if row[0] != binding:
-                    raise ValueError("direct requester or image binding changed")
+                    if not (
+                        binding_migrated is True and _same_principal(row[0], binding)
+                    ):
+                        raise ValueError("direct requester or image binding changed")
+                    # The door's DECLARED migration (`state_binding`, M1) moved its worker images / graph GPU lane:
+                    # this owner's provider re-freezes to the door's current ones. The requester, owner and pack
+                    # never move; the old row is kept (write-once history) and the entropy stays.
+                    db.execute(
+                        "CREATE TABLE IF NOT EXISTS direct_binding_history("
+                        "seq INTEGER PRIMARY KEY, identity TEXT NOT NULL, replaced_ns INTEGER NOT NULL)"
+                    )
+                    db.execute(
+                        "INSERT INTO direct_binding_history(identity, replaced_ns) VALUES(?,?)",
+                        (row[0], time.time_ns()),
+                    )
+                    db.execute(
+                        "UPDATE direct_binding SET identity=? WHERE id=1", (binding,)
+                    )
+                    row = (binding, row[1])
                 self._entropy = row[1]
                 retained = db.execute(
                     "SELECT id,request,view,cancellation FROM direct_tasks ORDER BY id"
