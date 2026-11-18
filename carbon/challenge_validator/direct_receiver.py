@@ -1232,7 +1232,8 @@ def _declared_change(old, new, touched):
     current one), each hop's paths EQUAL to that hop's OWN computed changed grading paths. A stretch with NO grading
     change needs no record (exactly as a single-hop migration needs none): the chain steps over it to the next record's
     revision, or to NEW, when that revision descends from where it stands and git computes no changed grading path. The
-    answer is then one record naming OLD..NEW, the computed paths, every hop's reason and the last hop's evidence."""
+    answer is then one record naming OLD..NEW, the computed paths, every hop's reason and the last hop's evidence.
+    """
     record = DECLARED_EXAM_CHANGE
     if record is None or touched is None:
         return None

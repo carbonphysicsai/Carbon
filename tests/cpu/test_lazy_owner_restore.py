@@ -313,7 +313,8 @@ def test_a_chain_of_declared_hops_migrates_an_owner_two_revisions_back(monkeypat
 
 def test_a_stretch_with_no_grading_change_needs_no_record_in_a_chain(monkeypatch):
     """Live 116 (943ce2c7 -> 1f2c9282 changed no grading path, so it has no record): an owner frozen at a revision with
-    no grading change up to the next record's start, or up to NEW, still migrates by the chain."""
+    no grading change up to the next record's start, or up to NEW, still migrates by the chain.
+    """
     a, b, c, d = ("a" * 40, "b" * 40, "c" * 40, "d" * 40)
     computed = {
         (a, b): (),  # no grading change: no record exists for it
