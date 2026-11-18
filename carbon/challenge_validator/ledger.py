@@ -223,6 +223,11 @@ class AttemptLedger:
         try:
             # `executescript` commits on its own, so it runs outside `_db`.
             db.executescript(DDL)
+            # V2 (18 Nov 2026): WAL, so readers (`_read`: the advance passes) never hold a writer back and a writer never
+            # holds a reader (live 116: the rollback journal let 6 readers starve the grade claim's write). Persistent in
+            # the file; every copier takes the backup API or a checkpoint + db/wal/shm (Deploy's audit). A filesystem
+            # that refuses WAL keeps the default journal, unchanged.
+            db.execute("PRAGMA journal_mode=WAL")
         finally:
             db.close()
         with self._db() as db:
