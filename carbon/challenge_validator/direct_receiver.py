@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import functools
 import hashlib
 import io
 import json
@@ -901,8 +902,20 @@ def _revision_only_change(frozen, candidate, *, images_migrated=False):
     )
 
 
+#: `git` bounds for the start's history reads, first try then one retry (18 Nov 2026: a start runs them once per
+#: retained owner; a bound hit under load must not set an owner aside, so a timeout is retried once, longer).
+GIT_READ_SECONDS = (30, 120)
+#: (old, new, root) -> the ancestry git answered (True / False), read once per start; an unanswered read is not kept
+_ANCESTRY = {}
+#: (old, new) pairs git could not answer at all (timeout or error): the refusal's reason says so (`_migration_refused`)
+_ANCESTRY_UNKNOWN = set()
+
+
 def _is_ancestor(old, new, root=None):
-    """Whether accepted revision ``old`` is an ancestor of ``new`` in this checkout's history (git)."""
+    """Whether accepted revision ``old`` is an ancestor of ``new`` in this checkout's history (git). Answered once per
+    start (`_ANCESTRY`); a read that times out is retried once with a longer bound (`GIT_READ_SECONDS`); one git
+    still cannot answer is False (the migration refuses, as before) and noted in `_ANCESTRY_UNKNOWN`.
+    """
     import subprocess
 
     if not all(
@@ -911,16 +924,28 @@ def _is_ancestor(old, new, root=None):
     ):
         return False
     root = Path(__file__).resolve().parents[2] if root is None else Path(root)
-    try:
-        done = subprocess.run(
-            ["git", "-C", str(root), "merge-base", "--is-ancestor", old, new],
-            capture_output=True,
-            timeout=30,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    return done.returncode == 0
+    key = (old, new, str(root))
+    if key in _ANCESTRY:
+        return _ANCESTRY[key]
+    for seconds in GIT_READ_SECONDS:
+        try:
+            done = subprocess.run(
+                ["git", "-C", str(root), "merge-base", "--is-ancestor", old, new],
+                capture_output=True,
+                timeout=seconds,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            continue
+        except OSError:
+            break
+        if done.returncode in (0, 1):
+            # git's own answer: an ancestor (0) or not (1); anything else is an error (an unknown commit)
+            _ANCESTRY[key] = done.returncode == 0
+            return _ANCESTRY[key]
+        break
+    _ANCESTRY_UNKNOWN.add((old, new))
+    return False
 
 
 #: M2 (Validator 4 Nov 12:55): the grading and rebuild paths, by the Validator's categories. A carried owner's manifest
@@ -1199,18 +1224,26 @@ def _grading_change(old, new, root=None):
     key = (old, new, str(root))
     if key in _GRADING_CHANGES:
         return _GRADING_CHANGES[key]
-    try:
-        moved = build_inputs.listing(root, revision=old) != build_inputs.listing(
-            root, revision=new
-        )
-        names = subprocess.run(
-            ["git", "-C", str(root), "diff", "--name-only", "-z", "--no-renames"]
-            + [old, new],
-            capture_output=True,
-            timeout=60,
-            check=True,
-        ).stdout.decode("utf-8")
-    except (OSError, ValueError, UnicodeDecodeError, subprocess.SubprocessError):
+    names = None
+    # a bound hit under load is retried once, longer (see `GIT_READ_SECONDS`)
+    for seconds in (60, 180):
+        try:
+            moved = build_inputs.listing(root, revision=old) != build_inputs.listing(
+                root, revision=new
+            )
+            names = subprocess.run(
+                ["git", "-C", str(root), "diff", "--name-only", "-z", "--no-renames"]
+                + [old, new],
+                capture_output=True,
+                timeout=seconds,
+                check=True,
+            ).stdout.decode("utf-8")
+            break
+        except subprocess.TimeoutExpired:
+            continue
+        except (OSError, ValueError, UnicodeDecodeError, subprocess.SubprocessError):
+            return None
+    if names is None:
         return None
     touched = [BUILD_INPUTS_CHANGED] if moved else []
     touched += sorted(path for path in names.split("\0") if path and grading_path(path))
@@ -1246,6 +1279,32 @@ def _retained_contracts(ledger):
     return found
 
 
+def _migration_refused(hotkey, old, new, reason):
+    """Log why one owner's manifest was not migrated (18 Nov 2026: switch 3's start refused with no reason), then
+    False. The owner appears as its sha256 only; the revisions are the frozen and the candidate ones.
+    """
+    import sys
+
+    def revision(implementation):
+        return implementation.get("revision") if type(implementation) is dict else None
+
+    print(
+        json.dumps(
+            {
+                "event": "owner_manifest_migration_refused",
+                "reason": reason,
+                "owner_sha256": hashlib.sha256(str(hotkey).encode()).hexdigest(),
+                "from_revision": revision(old),
+                "to_revision": revision(new),
+            },
+            sort_keys=True,
+        ),
+        file=sys.stderr,
+        flush=True,
+    )
+    return False
+
+
 def _migrate_owner_manifest(
     ledger, hotkey, raw, frozen, candidate, *, images_migrated=False
 ):
@@ -1263,14 +1322,24 @@ def _migrate_owner_manifest(
     from carbon.development_session.profile import canonical, digest
     from carbon.reconstruction.served_recipe_contract import registered
 
+    refused = functools.partial(
+        _migration_refused,
+        hotkey,
+        frozen.get("implementation"),
+        candidate.get("implementation"),
+    )
     if not _revision_only_change(frozen, candidate, images_migrated=images_migrated):
-        return False
+        return refused("change_not_revision_only")
     old, new = (
         frozen["implementation"]["revision"],
         candidate["implementation"]["revision"],
     )
     if not _is_ancestor(old, new):
-        return False
+        return refused(
+            "ancestry_unknown"
+            if (old, new) in _ANCESTRY_UNKNOWN
+            else "revision_not_ancestor"
+        )
     touched = _grading_change(old, new)
     declared = _declared_change(old, new, touched) if touched else None
     if declared is not None:
@@ -1316,9 +1385,9 @@ def _migrate_owner_manifest(
     try:
         contract = registered(challenge["id"], challenge["version"]).digest
     except LookupError:
-        return False
+        return refused("contract_unregistered")
     if not _retained_contracts(ledger) <= {contract}:
-        return False
+        return refused("retained_contract_not_served")
     payload = canonical(candidate)
     with ledger.db() as db:
         db.execute("BEGIN IMMEDIATE")
@@ -1327,7 +1396,7 @@ def _migrate_owner_manifest(
             (payload, digest(payload), raw),
         ).rowcount
     if changed != 1:
-        return False
+        return refused("manifest_changed_meanwhile")
     record = {
         "event": "owner_manifest_migrated",
         "owner_sha256": hashlib.sha256(hotkey.encode()).hexdigest(),

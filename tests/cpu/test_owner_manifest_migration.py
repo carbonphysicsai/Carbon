@@ -352,3 +352,77 @@ def test_a_declared_door_image_migration_lets_the_manifest_adopt_the_new_images(
         },
         images_migrated=True,
     )
+
+
+
+def _refusals(capsys):
+    return [
+        json.loads(line)
+        for line in capsys.readouterr().err.splitlines()
+        if '"owner_manifest_migration_refused"' in line
+    ]
+
+
+def test_each_refusal_names_its_reason(tmp_path, served, capsys):
+    """18 Nov 2026: switch 3's start refused at one owner with no reason. Every refusal now logs one, with the owner
+    as a digest only; behaviour is unchanged (False, the manifest kept)."""
+    frozen = _manifest(OLD)
+    cases = (
+        (
+            _manifest(NEW, image="sha256:" + "2" * 64),
+            [served],
+            "change_not_revision_only",
+        ),
+        (_manifest(NEW), ["sha256:" + "d" * 64], "retained_contract_not_served"),
+    )
+    for n, (candidate, contracts, reason) in enumerate(cases):
+        root = tmp_path / str(n)
+        root.mkdir()
+        ledger = Ledger(root, frozen, contracts)
+        assert _migrate(ledger, frozen, candidate) is False
+        assert ledger.manifest() == frozen
+        (logged,) = _refusals(capsys)
+        assert logged["reason"] == reason
+        assert logged["from_revision"] == OLD and logged["to_revision"] == NEW
+        assert len(logged["owner_sha256"]) == 64
+        assert "5Owner" not in json.dumps(logged)
+    backwards = tmp_path / "back"
+    backwards.mkdir()
+    ledger = Ledger(backwards, _manifest(NEW), [served])
+    assert _migrate(ledger, _manifest(NEW), _manifest(OLD)) is False
+    assert [x["reason"] for x in _refusals(capsys)] == ["revision_not_ancestor"]
+
+
+def test_an_ancestry_git_cannot_answer_is_named_and_a_timeout_is_retried(
+    tmp_path, monkeypatch
+):
+    """A start reads the ancestry once per owner: a bound hit under load is retried once, longer, and an answer is
+    kept for the start, so load does not set owners aside at random. One git still cannot answer is refused (as
+    before) and named ``ancestry_unknown``."""
+    import subprocess as sp
+
+    first, second = "1" * 40, "2" * 40
+    calls = []
+
+    def run(argv, *, capture_output, timeout, check):
+        calls.append(timeout)
+        if len(calls) == 1:
+            raise sp.TimeoutExpired(argv, timeout)
+        return sp.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(dr, "_ANCESTRY", {})
+    monkeypatch.setattr(dr, "_ANCESTRY_UNKNOWN", set())
+    monkeypatch.setattr(sp, "run", run)
+    assert dr._is_ancestor(first, second, tmp_path) is True
+    assert calls == list(dr.GIT_READ_SECONDS)
+    assert dr._is_ancestor(first, second, tmp_path) is True  # kept: no second read
+    assert calls == list(dr.GIT_READ_SECONDS)
+
+    def stuck(argv, *, capture_output, timeout, check):
+        raise sp.TimeoutExpired(argv, timeout)
+
+    monkeypatch.setattr(sp, "run", stuck)
+    assert dr._is_ancestor(second, first, tmp_path) is False
+    assert (second, first) in dr._ANCESTRY_UNKNOWN
+    # unanswered: asked again next time
+    assert (second, first, str(tmp_path)) not in dr._ANCESTRY
