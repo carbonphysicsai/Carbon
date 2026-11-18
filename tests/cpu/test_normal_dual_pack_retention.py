@@ -477,3 +477,29 @@ def test_legacy_pack_does_not_enter_dual_dispatch():
         retention._retain_selected_pack_evaluation(adapter, "unused", retained, {})
         is retained
     )
+
+
+def test_a_locked_ledger_at_settle_leaves_the_grade_to_the_graders_retryable_give_back(
+    tmp_path, monkeypatch
+):
+    """V2 (18 Nov 2026): a ledger still locked when the graded outcome settles its exam-cap slot is Carbon's: the
+    error leaves `retain_result` (never an UNAVAILABLE evaluation filed GRADED, the miner's grade lost), so the grader
+    gives the slot back FAILED_INFRA (`auto_grade._fail`) with its one automatic retry."""
+    from carbon.challenge_validator import auto_retry, exam_cap
+
+    fixture = _fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(source, "produce_dual_benchmark_input", _producer(fixture))
+    settled = []
+    real = exam_cap.ExamCap.settle
+
+    def settle(self, reservation, status, **kwargs):
+        settled.append(status)
+        if status != "UNAVAILABLE":
+            raise sqlite3.OperationalError("database is locked")
+        return real(self, reservation, status, **kwargs)
+
+    monkeypatch.setattr(exam_cap.ExamCap, "settle", settle)
+    with pytest.raises(sqlite3.OperationalError):
+        fixture.retain()
+    assert settled and "UNAVAILABLE" not in settled  # never settled as not graded
+    assert auto_retry.retryable("OperationalError")
