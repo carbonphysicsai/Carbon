@@ -19,7 +19,13 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    (`bring_up`, detached): pin its host key, ``gpu_box_up.py admin`` here with the admin key, ``gpu_box_up.py door``
    on the door with the lane key. A failed bring-up terminates the instance at once (never paid for idle).
 3. **Scale down.** A box THIS tool launched whose slots have all been free for more than ``idle_release_s`` (1 h)
-   is drained first (its box file renamed ``<name>.json.drained``); once no slot is busy it is terminated.
+   is drained first (its box file renamed ``<name>.json.drained``); once no slot is busy it is terminated. The idle
+   clock runs only while the door can use the box: a tick whose queue is unreadable (the door down, restarting or
+   moved) or shows ``waiting_to_build > 0`` stamps every box ``held_at`` = now, and idle counts from the latest of that
+   stamp, the box's last busy slot and its admission. A box file put back with an old admission time therefore does
+   not start out idle (carbon-a100 was released 18 Nov 2026 13:51Z, 6 min after a rollback restored its file, with
+   builds queued). The LAST box is never drained or released while builds wait: a draining last box gets its file
+   back (``undrain``) when a tick sees ``waiting_to_build > 0`` (Lead, 18 Nov 2026).
 
 Every launch, failure and release is a line in ``<state_dir>/log.jsonl`` with its price, hours and cost. Instances
 this tool did not launch (``name_prefix``) count toward the box and dollar caps but are never touched, unless ADOPTED
@@ -199,11 +205,16 @@ def may_rent(instances, price_usd_h, config) -> bool:
     return total <= config.max_usd_per_hour + 1e-9
 
 
-def idle_for(entry, now) -> float:
-    """Seconds since the box last had a busy slot (its newest slot activity, else its admission)."""
+def idle_for(entry, now, record=None) -> float:
+    """Seconds since the box last had a busy slot (its newest slot activity, else its admission), and since this tool
+    last saw the door unable to use it or builds waiting (``record["held_at"]``)."""
     if entry.get("busy"):
         return 0.0
-    return now - max(entry.get("last") or 0.0, entry.get("admitted") or 0.0)
+    return now - max(
+        entry.get("last") or 0.0,
+        entry.get("admitted") or 0.0,
+        (record or {}).get("held_at") or 0.0,
+    )
 
 
 # -- the outside world ------------------------------------------------------------------------------------------------
@@ -399,6 +410,10 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
     instances = client.instances()
     by_id = {i["id"]: i for i in instances}
     ours = state["boxes"]
+    if waiting is None or waiting > 0:
+        # the door cannot use an idle box now (down, restarting, moved) or builds wait for one: no box is idle
+        for record in ours.values():
+            record["held_at"] = now
 
     # a box we launched that the account no longer has: gone (logged once)
     for name, record in list(ours.items()):
@@ -449,15 +464,15 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
         for name, record in list(ours.items()):
             entry = boxes.get(name)
             if record["phase"] == "ACTIVE" and entry is not None and entry.get("file"):
-                if idle_for(entry, now) > config.idle_release_s and DRY[0]:
+                if idle_for(entry, now, record) > config.idle_release_s and DRY[0]:
                     log(
                         config,
                         action="would_drain",
                         box=name,
                         id=record["id"],
-                        idle_min=round(idle_for(entry, now) / 60, 1),
+                        idle_min=round(idle_for(entry, now, record) / 60, 1),
                     )
-                elif idle_for(entry, now) > config.idle_release_s:
+                elif idle_for(entry, now, record) > config.idle_release_s:
                     moved = _door(
                         config,
                         [
@@ -474,7 +489,36 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                             action="drain",
                             box=name,
                             id=record["id"],
-                            idle_min=round(idle_for(entry, now) / 60, 1),
+                            idle_min=round(idle_for(entry, now, record) / 60, 1),
+                        )
+            elif (
+                record["phase"] == "DRAINING"
+                and waiting > 0
+                and not any(
+                    e.get("file") for other, e in boxes.items() if other != name
+                )
+            ):
+                # the last box while builds wait: never released; its box file goes back (Lead, 18 Nov 2026)
+                if DRY[0]:
+                    log(config, action="would_undrain", box=name, id=record["id"])
+                else:
+                    back = _door(
+                        config,
+                        [
+                            "mv",
+                            "-n",
+                            f"{config.boxes_dir}/{name}.json.drained",
+                            f"{config.boxes_dir}/{name}.json",
+                        ],
+                    )
+                    if back.returncode == 0:
+                        record["phase"] = "ACTIVE"
+                        log(
+                            config,
+                            action="undrain",
+                            box=name,
+                            id=record["id"],
+                            waiting=waiting,
                         )
             elif record["phase"] == "DRAINING" and (
                 entry is None or not entry.get("busy")

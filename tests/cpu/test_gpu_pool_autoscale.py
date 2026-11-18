@@ -414,13 +414,13 @@ def test_a_dry_tick_changes_nothing(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(scale, "DRY", [True])
     idle = {"carbon-a100": {"file": True, "busy": False, "last": T0, "admitted": 0.0}}
     capsys.readouterr()
-    _ticks(config, client, 99, boxes=idle, start=T0 + 3900, count=4)
+    _ticks(config, client, 0, boxes=idle, start=T0 + 3900, count=4)
     printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert {"would_drain"} <= {p.get("action") for p in printed}
     assert client.launched == [] and client.terminated == []
     assert (Path(config.state_dir) / "state.json").read_text() == before
     assert (Path(config.state_dir) / "log.jsonl").read_text() == log_before
-    assert printed[-1]["dry"] and printed[-1]["waiting_to_build"] == 99
+    assert printed[-1]["dry"] and printed[-1]["waiting_to_build"] == 0
 
 
 def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
@@ -443,15 +443,19 @@ def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
     monkeypatch.setattr(
         scale, "_door", lambda c, argv, **k: type("R", (), {"returncode": 0})()
     )
-    _ticks(config, client, 80, boxes=idle, start=T0 + 300, count=12)
-    assert client.launched == []  # 55 min of backlog, but the one box is idle
-    _ticks(config, client, 80, boxes=idle, start=T0 + 3900, count=1)  # drained
+    _ticks(config, client, 80, boxes=idle, start=T0 + 300, count=14)
+    # 65 min of backlog with the one box idle: no rent, and (Lead 18 Nov 2026) no drain while builds wait
+    assert client.launched == [] and client.terminated == []
+    assert scale.load_state(config)["boxes"]["carbon-a100"]["phase"] == "ACTIVE"
+    held = T0 + 300 + 13 * 300
+    _ticks(config, client, 0, boxes=idle, start=held + 3700, count=1)  # drained
     gone = {"carbon-a100": dict(idle["carbon-a100"], file=False)}
-    _ticks(config, client, 80, boxes=gone, start=T0 + 4200, count=1)
+    released = held + 4000
+    _ticks(config, client, 0, boxes=gone, start=released, count=1)
     assert client.terminated == ["i-a100"]
-    _ticks(config, client, 80, boxes=gone, start=T0 + 4500, count=10)
+    _ticks(config, client, 80, boxes=gone, start=released + 300, count=10)
     assert client.launched == []  # within the idle period after the release
-    _ticks(config, client, 80, boxes=gone, start=T0 + 4200 + 3600, count=1)
+    _ticks(config, client, 80, boxes=gone, start=released + 3600, count=1)
     assert len(client.launched) == 1
     # and a busy box up does not block a rent
     (tmp_path / "b").mkdir()
@@ -482,3 +486,79 @@ def test_an_unreadable_queue_drains_and_releases_nothing(tmp_path, monkeypatch):
     assert scale.load_state(config)["boxes"]["carbon-a100"]["phase"] == "ACTIVE"
     _ticks(config, client, None, boxes=gone, start=T0 + 9000, count=2)
     assert client.launched == [] and client.terminated == []
+
+
+def _adopted(config, client, entry):
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, {"carbon-a100": entry}),
+        now=T0,
+    )
+
+
+def test_a_box_file_put_back_with_an_old_admission_is_not_idle_while_builds_wait(
+    tmp_path, monkeypatch
+):
+    """18 Nov 2026: a rollback restored carbon-a100's box file with its admission of an hour before and its slots idle
+    since then; the next tick drained it (62.6 min "idle") and released it with builds queued. The idle clock runs only
+    while the queue is readable and empty: a tick with the door down or builds waiting stamps the box held.
+    """
+    config = _config(tmp_path)
+    client = _Client([A100])
+    old = {"file": True, "busy": False, "last": T0, "admitted": T0}
+    _adopted(config, client, old)
+    moved = []
+    monkeypatch.setattr(
+        scale,
+        "_door",
+        lambda c, argv, **k: moved.append(argv) or type("R", (), {"returncode": 0})(),
+    )
+    # the door down (queue unreadable, file gone) for 50 min, then back with the OLD file and 9 builds waiting
+    _ticks(config, client, None, boxes={}, start=T0 + 600, count=10)
+    _ticks(config, client, 9, boxes={"carbon-a100": old}, start=T0 + 3900, count=3)
+    assert moved == [] and client.terminated == []
+    # the queue empties: the box is idle from the last tick that saw builds waiting, not from its admission
+    last_held = T0 + 3900 + 2 * 300
+    _ticks(
+        config, client, 0, boxes={"carbon-a100": old}, start=last_held + 300, count=1
+    )
+    assert moved == []
+    _ticks(
+        config, client, 0, boxes={"carbon-a100": old}, start=last_held + 3700, count=1
+    )
+    assert moved[0][-1].endswith("carbon-a100.json.drained")
+
+
+@pytest.mark.parametrize("other_box", [False, True])
+def test_the_last_box_is_never_released_while_builds_wait(
+    tmp_path, monkeypatch, other_box
+):
+    """Lead 18 Nov 2026: a draining box that is the door's last gets its file back when builds wait; with another box
+    up it is released as before."""
+    config = _config(tmp_path)
+    client = _Client([A100])
+    idle = {"file": True, "busy": False, "last": T0, "admitted": T0}
+    _adopted(config, client, idle)
+    moved = []
+    monkeypatch.setattr(
+        scale,
+        "_door",
+        lambda c, argv, **k: moved.append(argv) or type("R", (), {"returncode": 0})(),
+    )
+    _ticks(config, client, 0, boxes={"carbon-a100": idle}, start=T0 + 3900, count=1)
+    assert scale.load_state(config)["boxes"]["carbon-a100"]["phase"] == "DRAINING"
+    drained = {"carbon-a100": dict(idle, file=False)}
+    if other_box:
+        drained["a100-other"] = {"file": True, "busy": True, "last": T0, "admitted": T0}
+    _ticks(config, client, 5, boxes=drained, start=T0 + 4200, count=1)
+    record = scale.load_state(config)["boxes"].get("carbon-a100")
+    if other_box:
+        assert client.terminated == ["i-a100"] and record is None
+    else:
+        assert client.terminated == [] and record["phase"] == "ACTIVE"
+        assert moved[-1][-2].endswith("carbon-a100.json.drained")
+        assert moved[-1][-1].endswith("carbon-a100.json")
+        assert any(e["action"] == "undrain" for e in _log(config))
