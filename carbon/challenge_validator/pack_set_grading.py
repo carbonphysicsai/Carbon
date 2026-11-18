@@ -396,6 +396,8 @@ def _contend_set(
         from .grade_sequencer import CROWN_LOCK
 
         with CROWN_LOCK:  # the crown's read and write, as every crown commit (V2, 18 Nov 2026)
+            # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
+            # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
             outcome = promotion.consider_private(
                 origin,
                 filed["evaluation_key"],

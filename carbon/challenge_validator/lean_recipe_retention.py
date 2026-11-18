@@ -3030,6 +3030,8 @@ def _contend(
         # other grade's crown commit meanwhile); the store's compare-and-set (`PoolStore._set_incumbent`, expected
         # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`)
         with CROWN_LOCK:
+            # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
+            # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
             reader = getattr(promotion.store, "incumbent", None)
             met = ((reader() if reader is not None else None) or {}).get("model_id")
             outcome = promotion.consider_private(
@@ -3324,6 +3326,8 @@ def reconsider_paused_pack(
 def _consider_watched(watched, promotion, record, adapter, score_pack, accuracy, discovery):
     from carbon.challenge_validator import koth_registry
 
+    # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
+    # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
     return watched.mark(
         promotion.consider_private(
             record["submission_id"],

@@ -20,6 +20,10 @@ class _Store:
     def incumbent(self):
         return {"model_id": "king"}
 
+    def crown_mean(self, submission_id, key):
+        # the king's crown-average mean as filed now (`crown_average.screening` reads it inside the decision)
+        return self.mean if submission_id == "king" else None
+
 
 class _Promotion:
     def __init__(self, store, seen):
@@ -30,7 +34,10 @@ class _Promotion:
 
     def consider_private(self, submission_id, key, comparator, **kwargs):
         # the king's standing as the store holds it NOW, and whether the crown lock is held by this thread
-        self.seen.append((self.store.mean, grade_sequencer.CROWN_LOCK._is_owned()))
+        assert "average" not in kwargs  # no king value is passed in from before the lock
+        self.seen.append(
+            (self.store.crown_mean("king", key), grade_sequencer.CROWN_LOCK._is_owned())
+        )
         return {"outcome": "INCUMBENT_KEEPS", "reason": "test"}
 
 
