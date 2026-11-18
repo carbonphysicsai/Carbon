@@ -8,6 +8,7 @@ not replay a worker, grade predictions, or grant receiver/official authority.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import io
 import json
 import math
@@ -6071,6 +6072,10 @@ def _regrade_retained_entry(
         **({"pool_store": pool_store} if counted else {}),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
+
+
+# the wrapper's signature is the regrade's own (the grade-entry checks read each entry's parameters: test_grade_claim_scan)
+regrade_retained_entry.__signature__ = inspect.signature(_regrade_retained_entry)
 
 
 def _graph_regrade_query(discovery, material, *, recipe=None):
