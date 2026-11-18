@@ -57,10 +57,10 @@ def test_a_task_refused_on_the_platform_after_its_retry_is_restored_once_and_gra
 ):
     root, ledger = _root(tmp_path)
     _after_auto_retry(root, ledger, A)
-    # before: neither the automatic retry nor the operator requeue may hand it back again
-    assert infra_requeue.requeue(root, [A], auto=True)["refused"] == {
-        A: "already_requeued"
-    }
+    # before: the operator requeue may not hand it back again; the automatic retry may (switch 5: a later attempt that
+    # FAILED on Carbon's side, on ``rearm``'s criteria; dry here)
+    dry_auto = infra_requeue.requeue(root, [A], auto=True)
+    assert dry_auto["requeued"] == [A] and dry_auto["refused"] == {}
     assert infra_requeue.requeue(root, [A])["refused"] == {A: "already_requeued"}
     dry = infra_requeue.restore_platform(root, [A], ruling=RULING)
     assert dry["refused"] == {} and dry["restored"] == [A]
@@ -170,10 +170,8 @@ def test_a_task_restored_at_attempt_one_gets_its_one_bypass_and_no_auto_retry_af
         assert db.execute(
             "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
         ).fetchall() == [(2, None)]
-    # the automatic retry can no longer hand it back too
-    assert infra_requeue.requeue(root, [A], auto=True)["refused"] == {
-        A: "already_requeued"
-    }
+    # the automatic retry cannot hand it back too while attempt 2 is pending (no marker yet)
+    assert infra_requeue.requeue(root, [A], auto=True)["refused"] == {A: "no_marker"}
 
 
 def test_a_restore_line_alone_blocks_a_second_restore(tmp_path):

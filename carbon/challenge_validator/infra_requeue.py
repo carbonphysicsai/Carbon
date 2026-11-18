@@ -18,6 +18,11 @@ reserved or graded. `auto_grade._give_back` then raised as well (fixed in A1), s
 uncharged); a given-back task's same-recipe twin that its miner WITHDREW is not a fresh rerun (it never grades);
 ``rearm`` hands back once more a task whose earlier re-run also FAILED on Carbon's side (see ``REARMS``).
 
+Switch 5 (owner: Carbon's failures re-run automatically): the receiver's own automatic retry (`auto_retry`, bounded per
+cause there) hands back a LATER attempt too, on exactly ``rearm``'s criteria (every earlier attempt FAILED on Carbon's
+side, the current one too; never a candidate outcome, a delivered grade or a counted row) without a receipt, logged
+``auto_rearm`` in ``requeues.jsonl``; ``_RESTORE_LAST_ATTEMPT`` bounds the attempts it scans.
+
 ``list`` (read-only) regenerates the task list from the door itself, BY CRITERION, never from a frozen file: every
 FAILED task ``requeue`` would accept (with its arrival time, grouped at ``--split``, 3 Nov 00:00Z by default, for
 reading only: the criterion has no date), the FAILED tasks it refuses counted by reason, and the cost: the count and
@@ -432,8 +437,9 @@ def _binding_refusal(root, task, paths):
 
 
 def _requeue_refusal(root, db, door, task, *, auto=False):
-    """None when ``requeue`` accepts the task, else its refusal code (read-only). ``auto`` (the receiver's own one
-    automatic retry, `auto_retry`): the same criteria without the 4 Nov incident's cause filter, attempt 1 only.
+    """None when ``requeue`` accepts the task, else its refusal code (read-only). ``auto`` (the receiver's own
+    automatic retry, `auto_retry`): the same criteria without the 4 Nov incident's cause filter; a later attempt's
+    automatic retry is `_auto_rearm`'s, never this path.
     """
     if type(task) is not str or not _TASK.fullmatch(task):
         return "not_a_task_id"
@@ -610,6 +616,20 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns, auto=False):
     ledger, cap = _ledger(root)
     door = _Door(root)
     for task in tasks:
+        if auto and type(task) is str and _TASK.fullmatch(task):
+            later = _restore_attempt(root, task)
+            if later is None:
+                out["refused"][task] = "attempts_unreadable_or_exhausted"
+                continue
+            if later > _ATTEMPT:
+                refusal = _auto_rearm(
+                    root, ledger, cap, door, task, apply=apply, clock=clock
+                )
+                if refusal is not None:
+                    out["refused"][task] = refusal
+                else:
+                    out["requeued"].append(task)
+                continue
         with ledger._db() as db:
             action, code = _decision(root, db, door, task, auto=auto)
         if action is None:
@@ -1629,11 +1649,13 @@ def _rearm_causes(root, task, attempt):
     ] + [_marker_body(_paths(root, task, attempt)["marker"])[1]]
 
 
-def _rearm_refusal(root, db, door, task):
-    """``(attempt, code, None)`` when ``rearm`` accepts the task, else ``(None, None, refusal)`` (read-only)."""
+def _rearm_refusal(root, db, door, task, *, auto=False):
+    """``(attempt, code, None)`` when ``rearm`` accepts the task, else ``(None, None, refusal)`` (read-only). ``auto``
+    (the receiver's automatic retry of a later attempt, `requeue(auto=True)`): the same criteria, not once per task
+    (`auto_retry` bounds it per cause)."""
     if type(task) is not str or not _TASK.fullmatch(task):
         return None, None, "not_a_task_id"
-    if _log_lines(root, REARMS, task):
+    if not auto and _log_lines(root, REARMS, task):
         return None, None, "already_rearmed"
     attempt = _restore_attempt(root, task)
     if attempt is None:
@@ -1667,6 +1689,48 @@ def _rearm_refusal(root, db, door, task):
     if refusal is not None:
         return None, None, refusal
     return attempt, code if type(code) is str else None, None
+
+
+def _hand_back_again(cap, task, attempt, paths, line):
+    """Hand a later FAILED attempt back to the grader (``rearm`` and the automatic retry of a later attempt): its own
+    limit bypass, its failure, evaluation and marker kept as ``attempt-<n>``, then a ``requeues.jsonl`` line.
+    """
+    cap.mark_requeued(task, attempt=attempt + 1)
+    if paths["failure"].exists():
+        os.replace(paths["failure"], paths["kept_failure"])
+    _keep_evaluation(paths)
+    _mark_regenerate(paths, task, attempt)
+    # the commit point: with no marker, the grader's next tick takes the task
+    os.replace(paths["marker"], paths["kept_marker"])
+    with open(
+        paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
+    ) as log:
+        log.write(json.dumps(line, sort_keys=True) + "\n")
+
+
+def _auto_rearm(root, ledger, cap, door, task, *, apply, clock):
+    """The automatic retry of a LATER attempt (switch 5): ``rearm``'s criteria (`_rearm_refusal(auto=True)`), no
+    receipt. None when handed back (or, dry, when it would be), else the refusal code.
+    """
+    with ledger._db() as db:
+        attempt, code, refusal = _rearm_refusal(root, db, door, task, auto=True)
+    if refusal is not None:
+        return refusal
+    if apply:
+        paths = _restore_paths(root, task, attempt)
+        paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
+        line = {
+            "task": task,
+            "attempt": attempt + 1,
+            "kind": "auto_rearm",
+            "cause": code,
+            "causes": _rearm_causes(root, task, attempt),
+            "evaluation_kept": paths["evaluation"].is_dir(),
+            "auto": True,
+            "at_ns": int(clock()),
+        }
+        _hand_back_again(cap, task, attempt, paths, line)
+    return None
 
 
 def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
@@ -1711,17 +1775,7 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
                 paths["kept_marker"].parent / REARMS, "a", encoding="utf-8"
             ) as log:
                 log.write(json.dumps(line, sort_keys=True) + "\n")
-            cap.mark_requeued(task, attempt=attempt + 1)
-            if paths["failure"].exists():
-                os.replace(paths["failure"], paths["kept_failure"])
-            _keep_evaluation(paths)
-            _mark_regenerate(paths, task, attempt)
-            # the commit point: with no marker, the grader's next tick takes the task
-            os.replace(paths["marker"], paths["kept_marker"])
-            with open(
-                paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
-            ) as log:
-                log.write(json.dumps(line, sort_keys=True) + "\n")
+            _hand_back_again(cap, task, attempt, paths, line)
         out["rearmed"].append(task)
         out["causes"][task] = causes
     return out

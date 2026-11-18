@@ -5,13 +5,15 @@ infrastructure failure is not scientific failure. Nothing here grades, scores or
 - **Next step** (every FAILED marker, private; a closed code whose sentence is true for it, `NEXT_STEPS`):
   ``retry_scheduled`` / ``slot_returned`` / ``resubmit_after_fix`` / ``resubmit_program_changed``, or None when a
   charged slot could not be proven undelivered (the operator decides; an alert line is written).
-- **Retry, once per task for life** (persisted: the schedule log here + the ledger's ``exam_requeues`` row of the
-  re-grade). Only for a transient Carbon code (`retryable`): never a version-wide Carbon gap (a registration, a pack,
-  the menu keys: a retry meets the same gap, so the slot is returned and the operator re-queues after the fix), never a
-  candidate outcome, never a duplicate. It is applied through `infra_requeue.requeue(..., auto=True)`: exactly the
-  operator tool's criteria (never a COUNTED / RESERVED / graded task, never a recipe already graded, the task row
-  bound to the served pack) minus the 4 Nov incident's cause filter; the re-grade reuses the task's own row (no new
-  slot, its original epoch). It is spaced (`RETRY_SECONDS` after the failure; applied on an idle tick, or once overdue
+- **Retry, bounded per cause** (switch 5, owner: Carbon's failures re-run automatically; persisted in the schedule log
+  here): up to `PER_CAUSE_RETRIES` automatic retries for each Carbon code (`CAUSE_RETRIES` names a smaller one) and
+  `TASK_RETRIES` in all for a task, a backstop against a hot loop. Only for a transient Carbon code (`retryable`): never
+  a version-wide Carbon gap (a registration, a pack, the menu keys: a retry meets the same gap, so the slot is returned
+  and the operator re-queues after the fix), never a candidate outcome, never a duplicate. It is applied through
+  `infra_requeue.requeue(..., auto=True)`: exactly the operator tool's criteria (never a COUNTED / RESERVED / graded
+  task, never a recipe already graded, the task row bound to the served pack) minus the 4 Nov incident's cause filter,
+  and for a later attempt ``rearm``'s (every earlier attempt FAILED on Carbon's side), with no receipt; the re-grade
+  reuses the task's own row (no new slot, its original epoch). It is spaced (`RETRY_SECONDS` after the failure; applied on an idle tick, or once overdue
   by `OVERDUE_SECONDS` so a busy door cannot starve it) and never while the door drains.
 - **A COUNTED slot with no delivered verdict** (Validator-2B (2)) is released automatically only when ALL hold
   (`undelivered_refusal`): the marker is FAILED with a Carbon code; the pool store was read and holds no graded
@@ -29,8 +31,8 @@ from pathlib import Path
 
 #: The closed next-step codes and the one sentence each means (Validator-2B traces each in the head).
 NEXT_STEPS = {
-    "retry_scheduled": "Carbon's infrastructure failed this grade; Carbon grades it again once, automatically, and "
-    "it costs you no slot.",
+    "retry_scheduled": "Carbon's infrastructure failed this grade; Carbon grades it again automatically, and it costs "
+    "you no slot.",
     "slot_returned": "Carbon's infrastructure failed this grade; no slot is charged for it, and a resubmit is graded "
     "in your next round as usual.",
     "resubmit_after_fix": "A Carbon-side gap stopped this grade for this version; no slot is charged for it; resubmit "
@@ -49,6 +51,13 @@ OWN_NEXT_STEPS = {}
 #: an idle tick is applied anyway.
 RETRY_SECONDS = 15 * 60
 OVERDUE_SECONDS = 60 * 60
+#: Automatic retries per Carbon code (its base, before any ``:``) and per task in all (switch 5): a backstop against a
+#: hot loop, not a policy on miners (each retry is uncharged on the task's own row and cannot probe the exam).
+PER_CAUSE_RETRIES = 3
+TASK_RETRIES = 5
+#: A smaller bound for a code whose repeat is not plainly Carbon's: a timed answer beyond the speed-match tolerance
+#: keeps its one retry (Validator-2B ruling, 15 Nov; the speed gate stays honest), a second stays FAILED.
+CAUSE_RETRIES = {"speed_outputs_disagree": 1}
 LOG_NAME = "auto-retry.jsonl"
 ALERT_NAME = "auto-retry-alerts.jsonl"
 
@@ -120,27 +129,35 @@ def _append(path, record):
         log.write(json.dumps(record, sort_keys=True) + "\n")
 
 
-def used(root, task, ledger=None) -> bool:
-    """Whether this task already had its one automatic retry (scheduled, applied or refused) or any re-queue at all."""
-    if any(r["task"] == task for r in _lines(_dir(root) / LOG_NAME)):
+def _cause(code):
+    return code.split(":", 1)[0] if type(code) is str else None
+
+
+def used(root, task, ledger=None, *, code=None) -> bool:
+    """Whether this task's automatic retries are spent: `TASK_RETRIES` scheduled in all, or (with ``code``) the bound
+    for that code's cause (`CAUSE_RETRIES`, else `PER_CAUSE_RETRIES`). ``ledger`` is unused (kept for callers).
+    """
+    del ledger
+    scheduled = [
+        r
+        for r in _lines(_dir(root) / LOG_NAME)
+        if r["task"] == task and r.get("kind") == "scheduled"
+    ]
+    if len(scheduled) >= TASK_RETRIES:
         return True
-    if ledger is None:
+    if code is None:
         return False
-    with ledger._db() as db:
-        try:
-            row = db.execute(
-                "SELECT 1 FROM exam_requeues WHERE submission_id=?", (task,)
-            ).fetchone()
-        except Exception:  # noqa: BLE001 - no requeue table yet: never re-queued
-            row = None
-    return row is not None
+    cause = _cause(code)
+    same = sum(1 for r in scheduled if _cause(r.get("code")) == cause)
+    return same >= CAUSE_RETRIES.get(cause, PER_CAUSE_RETRIES)
 
 
 def schedule(root, task, code, *, ledger=None, clock=time.time_ns) -> bool:
-    """Schedule the task's one automatic retry; False when it is not retryable or its retry was already used."""
+    """Schedule an automatic retry of the task; False when its code is not retryable, a retry of it is still pending,
+    or its retries for this cause (or in all) are spent."""
     if type(task) is not str or not _TASK.fullmatch(task) or not retryable(code):
         return False
-    if used(root, task, ledger):
+    if task in _pending(root) or used(root, task, ledger, code=code):
         return False
     _append(
         _dir(root) / LOG_NAME,
@@ -149,21 +166,30 @@ def schedule(root, task, code, *, ledger=None, clock=time.time_ns) -> bool:
     return True
 
 
+def _pending(root):
+    """``{task: scheduled at_ns}`` for each task whose LAST schedule has no applied/refused record after it, in log
+    order (one task may be retried more than once, each schedule closed by its own outcome).
+    """
+    pending = {}
+    for r in _lines(_dir(root) / LOG_NAME):
+        if r.get("kind") == "scheduled":
+            pending[r["task"]] = r.get("at_ns")
+        elif r.get("kind") in ("applied", "refused"):
+            pending.pop(r["task"], None)
+    return pending
+
+
 def due(root, *, clock=time.time_ns, idle=True):
     """Scheduled retries due now, oldest first: ``RETRY_SECONDS`` after scheduling on an idle tick, else only once
     overdue by ``OVERDUE_SECONDS``."""
     now = int(clock())
-    records = _lines(_dir(root) / LOG_NAME)
-    done = {r["task"] for r in records if r.get("kind") in ("applied", "refused")}
     wait = RETRY_SECONDS if idle else RETRY_SECONDS + OVERDUE_SECONDS
-    return [
-        r["task"]
-        for r in records
-        if r.get("kind") == "scheduled"
-        and r["task"] not in done
-        and type(r.get("at_ns")) is int
-        and now - r["at_ns"] >= wait * 1_000_000_000
-    ]
+    pending = sorted(
+        (at_ns, task)
+        for task, at_ns in _pending(root).items()
+        if type(at_ns) is int and now - at_ns >= wait * 1_000_000_000
+    )
+    return [task for _at_ns, task in pending]
 
 
 def apply_due(root, *, draining=False, idle=True, clock=time.time_ns):

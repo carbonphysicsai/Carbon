@@ -352,9 +352,10 @@ def test_an_earlier_graded_attempt_counts_only_for_the_platform_gap(tmp_path):
     assert out["refused"] == {B: "earlier_attempt_not_carbons"}
 
 
-def test_after_a_rearm_nothing_else_hands_the_task_back(tmp_path):
-    """A re-armed task is never handed back again by `requeue`, the automatic retry or a second `rearm`, and its
-    consumed limit bypass is re-armed for the new attempt."""
+def test_after_a_rearm_only_the_automatic_retry_hands_the_task_back(tmp_path):
+    """A re-armed task is never handed back again by `requeue` or a second `rearm`; its consumed limit bypass is
+    re-armed for the new attempt. Switch 5: the automatic retry hands its later attempt back on ``rearm``'s criteria
+    (every attempt FAILED on Carbon's side), no receipt, logged ``auto_rearm``."""
     from carbon.challenge_validator import auto_retry, infra_requeue
 
     root, ledger = _root(tmp_path)
@@ -372,12 +373,34 @@ def test_after_a_rearm_nothing_else_hands_the_task_back(tmp_path):
     assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
         A: "already_requeued"
     }
-    assert infra_requeue.requeue(root, [A], apply=True, auto=True)["refused"] == {
-        A: "already_requeued"
-    }
-    assert auto_retry.used(root, A, ledger)  # the door passes its ledger
     assert infra_requeue.rearm(root, [A], ruling=RULING, apply=True)["refused"] == {
         A: "already_rearmed"
+    }
+    assert not auto_retry.used(root, A, ledger)  # its automatic retries are not spent
+    out = infra_requeue.requeue(root, [A], apply=True, auto=True)
+    assert out["requeued"] == [A] and out["refused"] == {}
+    last = _requeue_ns(root)[-1]
+    assert (last["kind"], last["attempt"], last["auto"]) == ("auto_rearm", 4, True)
+    assert (root / "auto-grade/requeued" / f"{A}.attempt-3.marker.json").exists()
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchone() == (4,)
+
+
+def test_the_automatic_retry_never_hands_back_a_later_attempt_after_a_candidate_outcome(
+    tmp_path,
+):
+    """``rearm``'s criteria hold for the automatic retry: an earlier attempt that was the candidate's own failure (an
+    uncontended MinerProgramFailure) is never handed back, nor a current one."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _custody_task(root, ledger, A, _recipe("cand"))
+    infra_requeue.requeue(root, [A], apply=True, auto=True)
+    _rerun_failed_again(root, ledger, A, code="MinerProgramFailure")
+    assert infra_requeue.requeue(root, [A], apply=True, auto=True)["refused"] == {
+        A: "candidate_program_failure"
     }
 
 

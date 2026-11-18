@@ -66,7 +66,7 @@ def test_only_a_transient_carbon_code_is_retried(code, expected):
     assert auto_retry.retryable(code) is expected
 
 
-def test_a_task_is_scheduled_once_for_life_and_spaced(tmp_path):
+def test_a_task_has_one_pending_retry_at_a_time_and_it_is_spaced(tmp_path):
     root, ledger = _root(tmp_path)
     t0 = 10_000 * S
     assert auto_retry.schedule(
@@ -74,7 +74,7 @@ def test_a_task_is_scheduled_once_for_life_and_spaced(tmp_path):
     )
     assert not auto_retry.schedule(
         root, A, "inference_pair_incomplete", ledger=ledger, clock=lambda: t0
-    )
+    )  # its retry is still pending
     assert not auto_retry.schedule(
         root, B, "pool_constants_x", ledger=ledger, clock=lambda: t0
     )
@@ -86,11 +86,44 @@ def test_a_task_is_scheduled_once_for_life_and_spaced(tmp_path):
     assert auto_retry.due(root, clock=lambda: ready, idle=False) == []
     overdue = t0 + (auto_retry.RETRY_SECONDS + auto_retry.OVERDUE_SECONDS) * S
     assert auto_retry.due(root, clock=lambda: overdue, idle=False) == [A]
-    # a task the operator already re-queued (a ledger requeue row) never gets an automatic one
+    # switch 5: a task the operator already re-queued (a ledger requeue row) gets its automatic retries too
     from carbon.challenge_validator.exam_cap import ExamCap
 
     ExamCap(ledger).mark_requeued(C)
-    assert not auto_retry.schedule(root, C, "inference_pair_incomplete", ledger=ledger)
+    assert auto_retry.schedule(root, C, "inference_pair_incomplete", ledger=ledger)
+
+
+def _close(root, task, at_ns):
+    """The retry was applied (what `apply_due` records), so the task may be scheduled again."""
+    path = root / "auto-grade" / "requeued" / auto_retry.LOG_NAME
+    with open(path, "a", encoding="utf-8") as log:
+        log.write(json.dumps({"task": task, "kind": "applied", "at_ns": at_ns}) + "\n")
+
+
+def test_retries_are_bounded_per_cause_and_per_task(tmp_path):
+    """Switch 5 (owner: Carbon's failures re-run automatically): each Carbon cause gets `PER_CAUSE_RETRIES` automatic
+    retries, a task `TASK_RETRIES` in all; a speed-match disagreement keeps its one (`CAUSE_RETRIES`).
+    """
+    root = tmp_path
+    at = iter(range(1, 100))
+    for _ in range(auto_retry.PER_CAUSE_RETRIES):
+        assert auto_retry.schedule(root, A, "inference_pair_incomplete:unrecorded")
+        _close(root, A, next(at))
+    assert not auto_retry.schedule(root, A, "inference_pair_incomplete")  # cause spent
+    assert auto_retry.used(root, A, code="inference_pair_incomplete")
+    assert not auto_retry.used(root, A, code="WorkerFailure")
+    left = auto_retry.TASK_RETRIES - auto_retry.PER_CAUSE_RETRIES
+    for _ in range(left):
+        assert auto_retry.schedule(root, A, "WorkerFailure")
+        _close(root, A, next(at))
+    assert not auto_retry.schedule(
+        root, A, "single_call_evidence_unavailable"
+    )  # task spent
+    assert auto_retry.used(root, A)
+    assert auto_retry.schedule(root, B, "speed_outputs_disagree")
+    _close(root, B, next(at))
+    assert not auto_retry.schedule(root, B, "speed_outputs_disagree")
+    assert auto_retry.schedule(root, B, "inference_pair_incomplete")
 
 
 def test_applying_reuses_infra_requeues_criteria_without_the_incident_cause(tmp_path):
@@ -124,7 +157,8 @@ def test_applying_reuses_infra_requeues_criteria_without_the_incident_cause(tmp_
     assert json.loads(requeued.splitlines()[-1])["auto"] is True
     # recorded applied/refused exactly once: nothing is due again
     assert auto_retry.apply_due(root, clock=lambda: later + 10**12) == []
-    assert auto_retry.used(root, A, ledger) and auto_retry.used(root, B, ledger)
+    # each schedule is closed by its outcome: either task may be scheduled again for a new Carbon failure
+    assert not auto_retry.used(root, A, ledger) and not auto_retry.used(root, B, ledger)
 
 
 def _intake(ledger, retain):
