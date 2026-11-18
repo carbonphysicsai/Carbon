@@ -1720,6 +1720,8 @@ class OwnerProviders:
         #: Owners restored while their registration was UNKNOWN (no usable snapshot): their queues were kept; the first
         #: fresh snapshot decides each (`_settle_unobserved`).
         self._unobserved = set()
+        #: owner directory name (the owner's sha256) -> why `restore` set it aside (see `restore`)
+        self._set_aside = {}
         self._closing = False
 
     def gpu_runtimes(self):
@@ -1950,6 +1952,9 @@ class OwnerProviders:
         with self._lock:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
+            if hashlib.sha256(hotkey.encode()).hexdigest() in self._set_aside:
+                # set aside at this start (`restore`): refused until a later start reopens it
+                raise Unavailable("direct_provider_owner_set_aside")
             if not restoring:
                 self._settle_unobserved()
             if hotkey not in self._providers:
@@ -2090,33 +2095,58 @@ class OwnerProviders:
         )
 
     def restore(self):
-        """Reopen every retained owner before listening, including interrupted work."""
-        for directory in sorted(self.root.iterdir()):
-            _private_directory(directory)
-            owner = private_json(directory / "owner.json")
-            if (
-                type(owner) is not dict
-                or set(owner) != {"hotkey"}
-                or type(owner["hotkey"]) is not str
-                or hashlib.sha256(owner["hotkey"].encode()).hexdigest()
-                != directory.name
-            ):
-                raise ValueError("retained receiver owner binding differs")
-            from carbon.challenge_validator import crown_average
+        """Reopen every retained owner before listening, including interrupted work.
 
+        An owner this start cannot reopen (its campaign manifest cannot be migrated to this revision, its directory or
+        owner binding is unreadable, ...) is SET ASIDE, not the whole door (Lead R2, owner G4, 18 Nov 2026: an in-place
+        restart runs this migration on live state, and switch 3's start refused 343 owners for one). Nothing of it is
+        opened, changed or cancelled: its files stay as they are for the next start, every request of it is refused
+        ``direct_provider_owner_set_aside`` (fail closed, a grade of it given back as Carbon's), and the journal names
+        it (``owner_restore_set_aside``: its sha256 and why). An owner whose provider was already opened when the
+        failure came refuses the start as before (it holds work), and so does a start that could open NO owner.
+        """
+        from carbon.challenge_validator import crown_average
+
+        first = None
+        for directory in sorted(self.root.iterdir()):
+            name = directory.name
             try:
+                _private_directory(directory)
+                owner = private_json(directory / "owner.json")
+                if (
+                    type(owner) is not dict
+                    or set(owner) != {"hotkey"}
+                    or type(owner["hotkey"]) is not str
+                    or hashlib.sha256(owner["hotkey"].encode()).hexdigest() != name
+                ):
+                    raise ValueError("retained receiver owner binding differs")
                 self._open(
                     owner["hotkey"],
                     restoring=True,
                     host=owner["hotkey"] == crown_average.HOST_OWNER,
                 )
             except Exception as failure:
-                # Switch 3, 18 Nov 2026: the start refused at one owner and the journal never said which; name it
-                # (its directory, the owner's sha256) and why, then refuse as before.
-                _log_start_failure(
-                    "owner_restore_failed", failure, owner_sha256=directory.name
+                opened = any(
+                    hashlib.sha256(hotkey.encode()).hexdigest() == name
+                    for hotkey in self._providers
                 )
-                raise
+                if opened:
+                    # its provider holds work: never left half-open behind a set-aside
+                    _log_start_failure("owner_restore_failed", failure, owner_sha256=name)
+                    raise
+                code = getattr(failure, "code", None) or type(failure).__name__
+                with self._lock:
+                    self._set_aside[name] = code
+                _log_start_failure("owner_restore_set_aside", failure, owner_sha256=name)
+                first = failure if first is None else first
+        if first is not None and not self._providers:
+            # no owner could be reopened: a whole-door failure, never one owner's
+            raise first
+
+    def set_aside(self):
+        """``{owner sha256: code}`` of the owners this start set aside (`restore`)."""
+        with self._lock:
+            return dict(self._set_aside)
 
     def cancel(self):
         """Close admission and request our providers' domain cancellation of every task that holds work.

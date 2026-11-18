@@ -2169,7 +2169,7 @@ def test_an_owner_the_restore_refuses_is_named_in_the_journal(
     tmp_path, monkeypatch, capsys
 ):
     """Switch 3 (18 Nov 2026): the restore refused at one owner and nothing said which. It logs the owner's directory
-    (its sha256) and the reason, then refuses as before."""
+    (its sha256) and the reason; with no other owner to open, the start refuses as before."""
     name = hashlib.sha256(OWNER.encode()).hexdigest()
     (tmp_path / name).mkdir()
     monkeypatch.setattr(receiver, "_private_directory", lambda path: path)
@@ -2185,8 +2185,91 @@ def test_an_owner_the_restore_refuses_is_named_in_the_journal(
         pool.restore()
     logged = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
     assert logged == {
-        "event": "owner_restore_failed",
+        "event": "owner_restore_set_aside",
         "code": "ValueError",
         "reason": "retained direct owner campaign binding changed",
         "owner_sha256": name,
     }
+
+
+def _owner_dirs(tmp_path, monkeypatch, hotkeys):
+    import hashlib
+
+    names = {}
+    for hotkey in hotkeys:
+        name = hashlib.sha256(hotkey.encode()).hexdigest()
+        (tmp_path / name).mkdir()
+        names[hotkey] = name
+    by_name = {name: hotkey for hotkey, name in names.items()}
+    monkeypatch.setattr(receiver, "_private_directory", lambda path: path)
+    monkeypatch.setattr(
+        receiver, "private_json", lambda path: {"hotkey": by_name[path.parent.name]}
+    )
+    return names
+
+
+def test_an_owner_the_restore_cannot_migrate_is_set_aside_and_the_door_restores_the_rest(
+    tmp_path, monkeypatch, capsys
+):
+    """Lead R2 / owner G4 (18 Nov 2026): one owner whose manifest cannot be migrated no longer refuses the whole
+    door. It is set aside (named in the journal), never opened, and every later request of it is refused; the other
+    owners are restored."""
+    other = "5" + "2" * 47
+    names = _owner_dirs(tmp_path, monkeypatch, [OWNER, other])
+    pool = receiver.OwnerProviders(tmp_path, None, None, None)
+    opened = []
+
+    def opening(hotkey, *, restoring, host=False):
+        if hotkey == OWNER:
+            raise ValueError("retained direct owner campaign binding changed")
+        opened.append(hotkey)
+        pool._providers[hotkey] = SimpleNamespace(_views={})
+
+    monkeypatch.setattr(pool, "_open", opening)
+    pool.restore()
+    assert opened == [other]
+    assert pool.set_aside() == {names[OWNER]: "ValueError"}
+    logged = [json.loads(x) for x in capsys.readouterr().err.strip().splitlines()]
+    assert {
+        "event": "owner_restore_set_aside",
+        "code": "ValueError",
+        "reason": "retained direct owner campaign binding changed",
+        "owner_sha256": names[OWNER],
+    } in logged
+    # the real `_open` refuses it from now on, before reading anything of it
+    monkeypatch.undo()
+    from carbon.challenge_validator.interface import Unavailable
+
+    with pytest.raises(Unavailable, match="direct_provider_owner_set_aside"):
+        receiver.OwnerProviders._open(pool, OWNER, restoring=False)
+
+
+def test_an_owner_whose_provider_was_opened_before_its_failure_still_refuses_the_start(
+    tmp_path, monkeypatch
+):
+    other = "5" + "2" * 47
+    _owner_dirs(tmp_path, monkeypatch, [OWNER, other])
+    pool = receiver.OwnerProviders(tmp_path, None, None, None)
+
+    def opening(hotkey, *, restoring, host=False):
+        pool._providers[hotkey] = SimpleNamespace(_views={})
+        if hotkey == OWNER:
+            raise RuntimeError("cancel of a queued task failed")
+
+    monkeypatch.setattr(pool, "_open", opening)
+    with pytest.raises(RuntimeError, match="cancel of a queued task failed"):
+        pool.restore()
+    assert pool.set_aside() == {}
+
+
+def test_a_start_that_can_open_no_owner_refuses_as_before(tmp_path, monkeypatch):
+    other = "5" + "2" * 47
+    _owner_dirs(tmp_path, monkeypatch, [OWNER, other])
+    pool = receiver.OwnerProviders(tmp_path, None, None, None)
+
+    def refused(hotkey, *, restoring, host=False):
+        raise ValueError("retained direct owner campaign binding changed")
+
+    monkeypatch.setattr(pool, "_open", refused)
+    with pytest.raises(ValueError, match="binding changed"):
+        pool.restore()
