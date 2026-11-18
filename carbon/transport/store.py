@@ -32,6 +32,8 @@ _REFERENCE_COLUMNS = ("receipt_sequence", "receipt")
 
 def _is_reference(column):
     return column in _REFERENCE_COLUMNS or column.endswith("_receipt_sequence")
+
+
 _TRANSPORT_TABLES = frozenset({"receipt", "nonce", "transport_meta", "sqlite_sequence"})
 
 
@@ -46,7 +48,9 @@ def _references(connection):
         columns = {
             row[1] for row in connection.execute(f'PRAGMA table_info("{table}")')
         }
-        found.extend((table, column) for column in sorted(columns) if _is_reference(column))
+        found.extend(
+            (table, column) for column in sorted(columns) if _is_reference(column)
+        )
     return found
 
 
@@ -55,7 +59,9 @@ def _prune(connection, cutoff_ns, keep_from=None):
     how many went. V2's keep rules (18 Nov 2026): (a) every sequence above ``keep_from`` (a consumer's processed
     watermark, when one is installed: `ReceiptJournal.keep_from`); (b) every sequence an extension table names;
     (c) the highest row (`highest_receipt` never goes back)."""
-    top = connection.execute("SELECT COALESCE(MAX(sequence),0) FROM receipt").fetchone()[0]
+    top = connection.execute(
+        "SELECT COALESCE(MAX(sequence),0) FROM receipt"
+    ).fetchone()[0]
     limit = top - 1 if keep_from is None else min(top - 1, int(keep_from))
     keep = f"AND sequence <= {int(limit)} " + " ".join(
         f'AND sequence NOT IN (SELECT "{column}" FROM "{table}" WHERE "{column}" IS NOT NULL)'

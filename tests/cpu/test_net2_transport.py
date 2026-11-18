@@ -418,7 +418,7 @@ def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_requ
     db.commit()
     receive(gate)  # accepted: the old unreferenced receipts went
     left = {row[0] for row in db.execute("SELECT sequence FROM receipt")}
-    assert 7 in left and len(left) == 2  # the referenced one and the new one
+    assert left == {7, 1000, 1001}  # the referenced one, the highest old one (V2 keep rule c), the new one
     db.close()
     # a journal of fresh receipts still refuses at the cap, with an alert
     (tmp_path / "fresh").mkdir()
@@ -432,7 +432,9 @@ def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_requ
     ) in lines
 
 
-def test_the_prune_keeps_the_highest_row_and_everything_above_a_watermark(tmp_path, monkeypatch):
+def test_the_prune_keeps_the_highest_row_and_everything_above_a_watermark(
+    tmp_path, monkeypatch
+):
     """V2's keep rules (18 Nov 2026): (c) the highest receipt is never pruned (`highest_receipt` never goes back);
     (a) nothing above an installed processed watermark goes."""
     import sqlite3
@@ -453,5 +455,10 @@ def test_the_prune_keeps_the_highest_row_and_everything_above_a_watermark(tmp_pa
     _fill_old(marked.journal, 100, age_ns=old)
     marked.journal.keep_from = lambda: 40
     receive(marked)
-    left = {row[0] for row in sqlite3.connect(marked.journal.path).execute("SELECT sequence FROM receipt")}
+    left = {
+        row[0]
+        for row in sqlite3.connect(marked.journal.path).execute(
+            "SELECT sequence FROM receipt"
+        )
+    }
     assert set(range(41, 102)) <= left and not left & set(range(1, 41))
