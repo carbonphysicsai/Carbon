@@ -431,3 +431,18 @@ def test_a_hung_grade_is_ended_and_never_stalls_a_later_commit(monkeypatch):
     hung_go.set()
     thread.join(5)
     assert raised == [True]
+
+
+def test_an_abandoned_grade_that_wakes_ends_its_round_quietly():
+    """V2 (18 Nov 2026): the hung grade's thread, waking after `_end_hung_grades` gave its slot back, meets
+    GradeAbandoned at its turn (inside `_grade_on_lane`'s own handlers too). Its round ends with None: no marker, no
+    second `_fail`, no crash of the grader loop."""
+    failed = []
+
+    def steps(grader, sid, turn):
+        raise grade_sequencer.GradeAbandoned(0)
+
+    grader = _grader(["hung"], steps)
+    grader._fail = lambda sid, code: failed.append((sid, code))
+    assert grader._run_once() is None
+    assert grader.marked == set() and failed == []

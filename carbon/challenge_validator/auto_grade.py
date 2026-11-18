@@ -695,7 +695,14 @@ class AutoGrader:
                     task.bind(submission_id, group)
                     return self._grade_copy(submission_id, first)
             task.bind(submission_id, group)
-            outcome = self._grade_one(submission_id, turn=task.turn)
+            from .grade_sequencer import GradeAbandoned
+
+            try:
+                outcome = self._grade_one(submission_id, turn=task.turn)
+            except GradeAbandoned:
+                # ended as hung meanwhile (`_end_hung_grades` already gave its slot back): this thread writes nothing
+                # more and its round simply ends (its lane and miner go back as any round's do)
+                return None
             if outcome is _NEXT:
                 # not gradable now: the claim may already be spent, so the next task gets a fresh ticket
                 skipped.add(submission_id)
