@@ -436,6 +436,16 @@ def _binding_refusal(root, task, paths):
     return None
 
 
+def _carbon_settled(db, task):
+    """Whether ``task``'s exam rows hold no slot: none COUNTED or RESERVED (every row RELEASED: given back, never
+    charged). No row at all (a grade cut before its reservation) holds none either."""
+    return not db.execute(
+        "SELECT 1 FROM exam_graded WHERE submission_id=? AND kind='GRADED' "
+        "AND state IN ('COUNTED','RESERVED')",
+        (task,),
+    ).fetchone()
+
+
 def _requeue_refusal(root, db, door, task, *, auto=False):
     """None when ``requeue`` accepts the task, else its refusal code (read-only). ``auto`` (the receiver's own
     automatic retry, `auto_retry`): the same criteria without the 4 Nov incident's cause filter; a later attempt's
@@ -453,7 +463,9 @@ def _requeue_refusal(root, db, door, task, *, auto=False):
             return "no_marker"
         if state != "FAILED":
             return "marker_" + state.lower()
-        if not auto and not _cause(paths):
+        if not auto and not _cause(paths) and not _carbon_settled(db, task):
+            # CARBON-CUT REQUEUE (V2, 18 Nov 2026): a FAILED marker (Carbon's by construction) whose exam rows hold
+            # no slot is requeueable whatever its code; the 4 Nov cause list still answers for anything else
             return "cause_not_requeueable"
     elif auto:
         return "already_requeued"

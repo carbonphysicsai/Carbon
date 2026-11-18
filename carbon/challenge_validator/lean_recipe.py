@@ -48,6 +48,11 @@ WITHDRAWN_CODE = "withdrawn_by_miner"
 #: ``auto-grade/requeued`` beside the grade requeues.
 REBUILD_REQUESTS = "rebuild-requests.jsonl"
 REBUILD_APPLIED = "rebuild-applied.jsonl"
+#: The builds the receiver's own stop cancelled (`OwnerProviders.cancel`), one line each: re-run at the next start by
+#: `_apply_rebuild_requests` (CARBON-CUT REQUEUE, V2 18 Nov 2026), once each, like an operator rebuild request.
+STOP_CANCELLED = "stop-cancelled.jsonl"
+#: The ruling an automatic stop-cancel re-run is logged under (there is no operator receipt: V2's standing ruling)
+STOP_CANCEL_RULING = "carbon-cut-stop-cancel"
 #: Every build re-run the door made (`LeanRecipeAdapter._requeue_failed_build`), append-only: ``{from_task, new_task,
 #: chain_root, code, at_ns}``; the caps below count it.
 BUILD_RETRIES = "build-retries.jsonl"
@@ -1293,7 +1298,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
     def _apply_rebuild_requests_locked(self):
         try:
             directory = Path(self.ledger.path).parent / "auto-grade" / "requeued"
-            requests = _jsonl(directory / REBUILD_REQUESTS)
+            requests = _jsonl(directory / REBUILD_REQUESTS) + [
+                {"task": line.get("task"), "ruling": STOP_CANCEL_RULING}
+                for line in _jsonl(directory / STOP_CANCELLED)
+            ]
             if not requests:
                 return
             done = {line.get("task") for line in _jsonl(directory / REBUILD_APPLIED)}
@@ -1375,13 +1383,25 @@ class LeanRecipeAdapter(ChallengeAdapter):
             task = provider.get_research_result(
                 DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
             ).task
-            if task.state not in (
-                DirectTaskStateV3.FAILED_INFRA,
-                DirectTaskStateV3.UNRESOLVED,
-            ) and not (
-                task.state is DirectTaskStateV3.REFUSED
-                and _cpu_wall_refusal(provider, owner, task_id.value)
+            stop_cancelled = (
+                operator is not None
+                and task.state is DirectTaskStateV3.CANCELLED
+                and not _withdrawn_cancellation(provider, task_id.value)
+            )
+            if (
+                task.state
+                not in (
+                    DirectTaskStateV3.FAILED_INFRA,
+                    DirectTaskStateV3.UNRESOLVED,
+                )
+                and not stop_cancelled
+                and not (
+                    task.state is DirectTaskStateV3.REFUSED
+                    and _cpu_wall_refusal(provider, owner, task_id.value)
+                )
             ):
+                # CARBON-CUT REQUEUE (V2, 18 Nov 2026): a build CANCELLED by the receiver's own stop (never a miner's
+                # withdrawal) re-runs too, on an operator request or the stop's own record (`STOP_CANCELLED`)
                 # 17 Nov (Lead; owner: "miners re-run automatically"): a build refused ONLY because its build-pipeline
                 # inference hit the worker wall on the door's CPU worker is re-run like a FAILED_INFRA one
                 return None

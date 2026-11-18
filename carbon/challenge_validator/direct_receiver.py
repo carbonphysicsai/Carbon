@@ -2562,18 +2562,27 @@ class OwnerProviders:
             self._closing = True
             providers = tuple(self._providers.values())
         errors = []
+        stopped = []
         for provider in providers:
             with provider._lock:
                 views = tuple(provider._views.values())
             for view in views:
                 if view.state is DirectTaskStateV3.QUEUED:
                     continue
+                building = view.state in (
+                    DirectTaskStateV3.RUNNING,
+                    DirectTaskStateV3.CANCEL_REQUESTED,
+                )
                 try:
                     provider.cancel_observed_task(
                         view.task_id, self.discovery.info.challenge_key
                     )
                 except Exception as failure:  # noqa: BLE001 - cancel all owned tasks
                     errors.append(type(failure).__name__)
+                    continue
+                if building:
+                    stopped.append(view.task_id.value)
+        _record_stop_cancelled(self.root.parent, stopped)
         if errors:
             raise ReceiverUnavailable("direct_receiver_cancellation_unresolved")
 
@@ -2604,6 +2613,26 @@ def _open_crown_owners(grader):
     try:
         grader._prelude_owners()
     except Exception:  # noqa: BLE001, S110 - opens on first touch
+        pass
+
+
+def _record_stop_cancelled(state_root, tasks):
+    """The builds THIS stop cancelled, one line each (`lean_recipe.STOP_CANCELLED`): the next start re-runs each once
+    as Carbon's, uncharged, at its original place (CARBON-CUT REQUEUE, V2 18 Nov 2026). Only the receiver writes it,
+    so a miner's own cancel is never re-run. Never raises: a stop never fails on its record."""
+    if not tasks:
+        return
+    try:
+        from carbon.challenge_validator.lean_recipe import STOP_CANCELLED
+
+        directory = Path(state_root) / "auto-grade" / "requeued"
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        at = time.time_ns()
+        with open(directory / STOP_CANCELLED, "a", encoding="utf-8") as log:
+            for task in tasks:
+                line = json.dumps({"task": task, "at_ns": at}, sort_keys=True)
+                log.write(line + "\n")
+    except Exception:  # noqa: BLE001, S110 - a stop never fails on its record
         pass
 
 

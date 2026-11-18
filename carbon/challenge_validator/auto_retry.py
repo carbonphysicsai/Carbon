@@ -206,6 +206,100 @@ def due(root, *, clock=time.time_ns, idle=True):
     return [task for _at_ns, task in pending]
 
 
+#: CARBON-CUT REQUEUE (V2's ruling, 18 Nov 2026): how often the sweep looks for Carbon-side FAILED grades no retry was
+#: ever scheduled for (a grade cut by our own stop or restart is marked at restore, never scheduled), and how far back.
+SWEEP_SECONDS = 60 * 60
+SWEEP_WINDOW_SECONDS = 24 * 60 * 60
+#: when this process last swept, per state root (monotonic seconds)
+_SWEPT = {}
+#: the owed-list line for a FAILED marker whose exam row is still COUNTED (released only by the operator's
+#: `infra_requeue release`, which proves the result never reached the miner)
+COUNTED_UNDER_FAILED = "counted_row_under_failed_marker"
+
+
+def _held_rows(root):
+    """``{task: {state, ...}}`` of every GRADED exam row (read-only), or None when the ledger cannot be read."""
+    import sqlite3
+
+    path = Path(root) / "attempts.sqlite3"
+    try:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
+        try:
+            rows = db.execute(
+                "SELECT submission_id, state FROM exam_graded WHERE kind='GRADED'"
+            ).fetchall()
+        finally:
+            db.close()
+    except Exception:  # noqa: BLE001 - unreadable: nothing is scheduled
+        return None
+    held = {}
+    for task, state in rows:
+        held.setdefault(task, set()).add(state)
+    return held
+
+
+def sweep_carbon_cut(root, *, clock=time.time_ns, monotonic=time.monotonic):
+    """At most once per `SWEEP_SECONDS` per process: schedule an automatic retry (`schedule`, under owner D16's caps)
+    for every FAILED grade marker written in the last `SWEEP_WINDOW_SECONDS` that has none pending and none spent, and
+    whose exam rows hold no slot (no COUNTED or RESERVED row: it was given back on Carbon's side). A FAILED marker is
+    Carbon's by construction (the candidate's own outcome is CANDIDATE_FAILED). One with a COUNTED row is never
+    retried here: it is named once on the owed list (`COUNTED_UNDER_FAILED`) for the operator's release. Returns the
+    tasks scheduled. Never raises."""
+    key = str(root)
+    now = monotonic()
+    last = _SWEPT.get(key)
+    if last is not None and now - last < SWEEP_SECONDS:
+        return []
+    _SWEPT[key] = now
+    try:
+        held = _held_rows(root)
+        if held is None:
+            return []
+        markers = Path(root) / "auto-grade" / "markers"
+        cutoff = clock() / 1e9 - SWEEP_WINDOW_SECONDS
+        pending = _pending(root)
+        flagged = {
+            r["task"]
+            for r in _lines(_dir(root) / ALERT_NAME)
+            if r.get("event") == COUNTED_UNDER_FAILED
+        }
+        scheduled = []
+        for path in sorted(markers.glob("rtsk_*.json")):
+            try:
+                if path.stat().st_mtime < cutoff:
+                    continue
+                marker = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if type(marker) is not dict or marker.get("state") != "FAILED":
+                continue
+            task, code = path.stem, marker.get("code")
+            states = held.get(task, set())
+            if "COUNTED" in states:
+                if task not in flagged:
+                    _append(
+                        _dir(root) / ALERT_NAME,
+                        {
+                            "task": task,
+                            "event": COUNTED_UNDER_FAILED,
+                            "reason": "owed_list",
+                            "code": code,
+                            "at_ns": int(clock()),
+                        },
+                    )
+                    flagged.add(task)
+                continue
+            if "RESERVED" in states or task in pending or not retryable(code):
+                continue
+            if used(root, task, code=code):
+                continue  # its cap's owed line was written when it was spent
+            if schedule(root, task, code, clock=clock):
+                scheduled.append(task)
+        return scheduled
+    except Exception:  # noqa: BLE001 - the sweep never fails the grader's round
+        return []
+
+
 def apply_due(root, *, draining=False, idle=True, clock=time.time_ns):
     """Hand each due retry back to the grader through `infra_requeue.requeue(auto=True)` (its criteria re-checked at
     the moment of applying). Each task is recorded applied or refused exactly once. Nothing while the door drains.
@@ -216,6 +310,8 @@ def apply_due(root, *, draining=False, idle=True, clock=time.time_ns):
         return []
     from . import infra_requeue
 
+    # a Carbon-side FAILED grade no retry was scheduled for (cut by our own stop or restart): scheduled here
+    sweep_carbon_cut(root, clock=clock)
     results = []
     for task in due(root, clock=clock, idle=idle):
         out = infra_requeue.requeue(root, [task], apply=True, clock=clock, auto=True)
