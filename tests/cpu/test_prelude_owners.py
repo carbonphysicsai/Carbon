@@ -493,7 +493,8 @@ def test_the_overdue_wait_for_a_busy_owner_is_bounded_and_defers_again(monkeypat
 
 def test_a_grader_built_without_a_pool_store_holds_no_grade():
     """Runner g8934 (18 Nov 2026): a grader built without a pool store (a one-shot tool, a test double) files nothing,
-    so the start-up filing holds no grade there, and never raises (it killed the grade thread)."""
+    so the start-up filing holds no grade there, and never raises (it killed the grade thread).
+    """
     grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
     grader._stranded_filed = False
     assert not hasattr(grader, "pool_store")
