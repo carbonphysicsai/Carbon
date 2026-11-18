@@ -2323,7 +2323,8 @@ def test_a_start_failure_without_a_code_is_named_in_the_journal(
     tmp_path, monkeypatch, capsys
 ):
     """18 Nov 2026: c8bf7b24 exited 2 s into every start with only `direct_receiver_unavailable`. The journal now gets
-    the failure's type, Carbon's fixed message and where it was raised; stdout keeps the closed code only."""
+    the failure's type, Carbon's fixed message and where it was raised; stdout keeps the closed code only.
+    """
     (tmp_path / "config.json").write_text("{}")
 
     def refused(*_args, **_kwargs):
