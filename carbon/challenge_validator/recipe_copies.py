@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS recipe_copy_digests(
     submission_id TEXT PRIMARY KEY,
     recipe_digest TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS recipe_copy_by_digest ON recipe_copy_digests(recipe_digest);
 CREATE TABLE IF NOT EXISTS recipe_copy_activation(
     contract_digest TEXT PRIMARY KEY,
     after_seq INTEGER NOT NULL,
@@ -69,6 +70,30 @@ def _prepare(db):
     for statement in _DDL.strip().split(";"):
         if statement.strip():
             db.execute(statement)
+
+
+#: The ledgers whose tables `_prepare` made in this process (`_prepared_once`): `decide` then reads on a read-only
+#: snapshot, never the write lock (live 116, 18 Nov 2026).
+_PREPARED: set = set()
+
+
+def _prepared_once(ledger, contract_digest):
+    """The tables and this contract's activation point (`_activation` writes it on its first call), made once per
+    process on the write lock; every later decision reads them on a read-only snapshot."""
+    key = (str(getattr(ledger, "path", id(ledger))), contract_digest)
+    if key in _PREPARED:
+        return
+    with _db(ledger) as db:
+        _prepare(db)
+        _activation(db, contract_digest)
+    _PREPARED.add(key)
+
+
+def _snapshot(ledger):
+    """A read-only snapshot of the ledger (`AttemptLedger._read`: DEFERRED, never the write lock); a ledger without
+    one (a test double) is read on its ordinary transaction."""
+    read = getattr(ledger, "_read", None)
+    return read() if callable(read) else _db(ledger)
 
 
 def _stored(db, submission_id):
@@ -196,17 +221,29 @@ def decide(
     # behind the advance rounds and stopped every grade. The order, the activation point, every stored digest and every
     # earlier first's slot state are now read in this ONE transaction; only a digest never stored is computed (and
     # stored, once ever) outside it. Same decisions in the same order.
-    with _db(ledger) as db:
-        _prepare(db)
+    _prepared_once(ledger, adapter.contract_digest)
+    with _snapshot(ledger) as db:
         ordered = _admitted(db, adapter.contract_digest)
         own = dict(ordered).get(submission_id)
         if own is None:
             return GRADE, None  # no admission row: nothing to order it by
         start = _activation(db, adapter.contract_digest)
-        stored = dict(
-            db.execute(
-                "SELECT submission_id, recipe_digest FROM recipe_copy_digests"
-            ).fetchall()
+        # every task with a stored digest, and those sharing this one's (`recipe_copy_by_digest`): cross-account,
+        # matched by digest only (V2)
+        known = {
+            row[0] for row in db.execute("SELECT submission_id FROM recipe_copy_digests")
+        }
+        mine = _stored(db, submission_id)
+        same = (
+            set()
+            if mine is None
+            else {
+                row[0]
+                for row in db.execute(
+                    "SELECT submission_id FROM recipe_copy_digests WHERE recipe_digest=?",
+                    (mine,),
+                )
+            }
         )
         states = dict(
             db.execute(
@@ -217,21 +254,29 @@ def decide(
         )
     if own <= start:
         return GRADE, None  # admitted before the rule: never matched
-
-    def digest_of(task):
-        known = stored.get(task)
-        return known if known is not None else recipe_digest(adapter, task, ledger)
-
-    digest = digest_of(submission_id)
+    digest = mine if mine is not None else recipe_digest(adapter, submission_id, ledger)
     if digest is None:
         return GRADE, None
+    if mine is None:
+        # its own digest was computed just now: the tasks sharing it, read once (`recipe_copy_by_digest`)
+        with _snapshot(ledger) as db:
+            same = {
+                row[0]
+                for row in db.execute(
+                    "SELECT submission_id FROM recipe_copy_digests WHERE recipe_digest=?",
+                    (digest,),
+                )
+            }
     for earlier, seq in ordered:
         if seq <= start:
             continue  # before the rule: never a first
         if seq >= own:
             break
-        if digest_of(earlier) != digest:
-            continue
+        if earlier in known:
+            if earlier not in same:
+                continue  # a stored digest, another recipe: compared without opening its owner
+        elif recipe_digest(adapter, earlier, ledger) != digest:
+            continue  # computed (and stored) once, only when never stored (V2: compute only the missing ones)
         state = states.get(earlier)
         row = None if state is None else (state,)
         if row is not None and row[0] == "COUNTED":

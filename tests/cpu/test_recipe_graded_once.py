@@ -648,33 +648,75 @@ def test_the_real_lean_recipe_owner_on_a_rollback_journal_ledger_never_locks(doo
     assert door.graded == [T[0]]
 
 
-def test_a_decision_over_many_earlier_submissions_opens_one_ledger_transaction(door, monkeypatch):
-    """Live 116, 18 Nov 2026 (stack 20:24:26Z): `decide` opened a BEGIN IMMEDIATE per earlier submission under the
-    grade claim and every grade stopped behind the build rounds' ledger reads. With every digest already stored, a
-    decision over many earlier submissions now opens exactly one ledger transaction, and decides the same."""
-    many = [f"rtsk_{n:064x}" for n in range(100, 140)]
+def _decide(door, sid):
+    return recipe_copies.decide(
+        adapter=door.adapter,
+        ledger=door.ledger,
+        marker=door.grader.marker,
+        submission_id=sid,
+        challenge_id=CHALLENGE.challenge_id,
+        challenge_version=CHALLENGE.version,
+        exam_key=EXAM,
+    )
+
+
+def _many(door, count):
+    many = [f"rtsk_{n:064x}" for n in range(100, 100 + count)]
     for n, sid in enumerate(many):
         door.submit(sid, HOTKEYS[n % len(HOTKEYS)], _recipe(setting=1000 + n))
     door.submit(T[0], HOTKEYS[0], _recipe())
     door.submit(T[1], HOTKEYS[1], _recipe())
     for sid in [*many, T[0], T[1]]:
         recipe_copies.recipe_digest(door.adapter, sid, door.ledger)  # stored, as at admission
-    opened = []
+    return many
+
+
+def test_a_decision_takes_no_write_lock_and_opens_no_owner_for_stored_digests(door, monkeypatch):
+    """Live 116, 18 Nov 2026 (stack 20:24:26Z): `decide` opened a BEGIN IMMEDIATE per earlier submission under the
+    grade claim and every grade stopped behind the build rounds' ledger reads. Now, with every digest stored, a decision
+    over many earlier submissions takes NO write transaction (one read-only snapshot) and opens no owner, and decides
+    the same, cross-account, by digest only."""
+    _many(door, 40)
+    assert _decide(door, T[1]) == (recipe_copies.WAIT, T[0])  # warm: the tables + activation made once
+    writes = []
     real = door.ledger._db
 
     def counted():
-        opened.append(1)
+        writes.append(1)
         return real()
 
     monkeypatch.setattr(door.ledger, "_db", counted)
-    decision = recipe_copies.decide(
-        adapter=door.adapter,
-        ledger=door.ledger,
-        marker=door.grader.marker,
-        submission_id=T[1],
-        challenge_id=CHALLENGE.challenge_id,
-        challenge_version=CHALLENGE.version,
-        exam_key=EXAM,
-    )
-    assert decision == (recipe_copies.WAIT, T[0])  # T0 is unsettled: same decision as before
-    assert len(opened) == 1
+
+    def no_owner(task):
+        raise AssertionError("an owner was opened for a stored digest")
+
+    monkeypatch.setattr(door.adapter, "owner", no_owner)
+    assert _decide(door, T[1]) == (recipe_copies.WAIT, T[0])  # T0 unsettled, from another account: same decision
+    assert writes == []
+
+
+def test_a_claim_over_400_earlier_submissions_with_6_concurrent_readers_is_quick(door):
+    """Lead (18 Nov 2026): a claim with 400 earlier submissions while 6 advance rounds read the ledger finishes in
+    well under a second's worth of ledger work per claim (it used to queue a write lock per earlier submission)."""
+    import threading
+    import time
+
+    _many(door, 400)
+    _decide(door, T[1])  # warm
+    stop = threading.Event()
+
+    def reader():
+        while not stop.is_set():
+            door.ledger.submitted_outcomes(CONTRACT)
+
+    readers = [threading.Thread(target=reader, daemon=True) for _ in range(6)]
+    for thread in readers:
+        thread.start()
+    try:
+        began = time.monotonic()
+        assert _decide(door, T[1]) == (recipe_copies.WAIT, T[0])
+        assert time.monotonic() - began < 5.0
+    finally:
+        stop.set()
+        for thread in readers:
+            thread.join(5)
