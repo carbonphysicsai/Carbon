@@ -620,6 +620,15 @@ def test_the_real_lean_recipe_owner_on_a_rollback_journal_ledger_never_locks(doo
     # stored) and decide raises OperationalError: 'database is locked' on the nested connection, masked by _db's
     # ROLLBACK as 'cannot rollback - no transaction is active'.
     _bind_real_lean_recipe_owner(door)
+    # V2 (18 Nov 2026): the ledger now opens in WAL mode; this test keeps proving the copies path never locks on a
+    # ROLLBACK journal, so it sets this ledger back to one itself (outside any transaction)
+    import sqlite3
+
+    raw = sqlite3.connect(door.ledger.path)
+    try:
+        assert raw.execute("PRAGMA journal_mode=DELETE").fetchone()[0] == "delete"
+    finally:
+        raw.close()
     with door.ledger._db() as db:
         assert db.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
     _submit_real(door, T[0], HOTKEYS[0], _recipe())

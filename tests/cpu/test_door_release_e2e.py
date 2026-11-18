@@ -425,7 +425,9 @@ def test_a_carried_state_admits_builds_and_grades_after_the_release(
     door = Door(root, monkeypatch)
     try:
         with door.ledger._db() as db:
-            assert db.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
+            # V2 (18 Nov 2026): the attempt ledger runs in WAL mode by design (`AttemptLedger.__init__`), a carried
+            # rollback-journal ledger included
+            assert db.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         # an upload admitted before the release (no grader has started on this root yet)
         pre = door.submit(PRE, door.recipe(), NOW)
         # 2. the release: the new grader's first start on the carried root
