@@ -1233,7 +1233,20 @@ def serve_loopback(
                 target=_advance_loop,
                 args=(intake, stop, work, getattr(grader, "oldest_pending_ns", None)),
                 # N parallel build rounds wait longer when idle; one keeps the loop's default (and its signature)
-                kwargs={"idle_s": ADVANCE_IDLE_S} if advance_rounds > 1 else {},
+                kwargs=(
+                    {
+                        "idle_s": ADVANCE_IDLE_S,
+                        # the start-up filing first, bounded (`STARTUP_PRELUDE_WAIT_SECONDS`)
+                        "ready": (
+                            None
+                            if grader is None
+                            else lambda: getattr(grader, "_stranded_filed", True)
+                            is True
+                        ),
+                    }
+                    if advance_rounds > 1
+                    else {}
+                ),
                 daemon=True,
             )
         )
@@ -2592,9 +2605,24 @@ ADVANCE_IDLE_S = 5
 RETAKE_PRIORITY_SECONDS = 300
 
 
-def _advance_loop(intake, stop, work=None, since=None, idle_s=1):
+#: Restart speed (case-procs + V2, 18 Nov 2026): the build rounds wait at most this long at start for the grader's
+#: start-up filing of stranded challengers (`AutoGrader._stranded_filed`), so no build takes the owners it needs first
+#: (live 17:19Z restart: builds took them and the filing landed only at +336 s, holding every grade).
+STARTUP_PRELUDE_WAIT_SECONDS = 60
+
+
+def _advance_loop(intake, stop, work=None, since=None, idle_s=1, ready=None):
     work = work or _WorkLock(stop=stop)
     failures = 0
+    if ready is not None:
+        deadline = time.monotonic() + STARTUP_PRELUDE_WAIT_SECONDS
+        while not stop.is_set() and time.monotonic() < deadline:
+            try:
+                if ready():
+                    break
+            except Exception:  # noqa: BLE001 - doubt: the builds go on
+                break
+            stop.wait(1)
     while not stop.is_set():
         wait = 1
         try:

@@ -60,7 +60,7 @@ UPKEEP_DEFER_MAX_SECONDS = 30 * 60
 #: OPERATIONAL (V2's ruling, 18 Nov 2026): the longest the start-up filing of stranded challengers holds the door's
 #: grades back (`AutoGrader._stranded_holds_grades`; the shorter of this and `UPKEEP_DEFER_MAX_SECONDS`), so a filing
 #: that keeps being skipped or refused can never stop grading the way the every-owner wait did.
-STRANDED_GRADE_HOLD_SECONDS = 10 * 60
+STRANDED_GRADE_HOLD_SECONDS = 60  # case-procs + V2 (18 Nov 2026): was 600; the builds now wait for the filing first
 #: OPERATIONAL (V2's ruling, 18 Nov 2026): the longest the incumbent's steps wait, INSIDE the sequencer's exclusive,
 #: for owners other rounds hold (the overdue path, or unreadable owners), polling each second; then they let go and
 #: are deferred again (`prelude_owners_busy`), so no running build can stop grading past it.
