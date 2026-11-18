@@ -345,3 +345,65 @@ def test_no_lane_line_on_a_one_lane_door(capsys):
     grader._grade_on_lane = lambda sid, turn: ("rtsk_a", "COUNTED")
     grader._grade_one("rtsk_a")
     assert '"grade_lane"' not in capsys.readouterr().err
+
+
+def test_a_remote_lane_never_waits_on_the_hosts_lane_zero(tmp_path):
+    """Live 116, 18 Nov 2026 02:40Z: a grade re-taking its REMOTE lane after its commit turn waited on the host's
+    lane 0 (the grading lock, held by something with no two-lane record), and every new grade round stood back. Lane
+    0's share rule guards this host's cores only: a remote lane is taken (new round or re-take) whoever holds lane 0;
+    a second LOCAL lane still waits for it, as before.
+    """
+    box = "ssh://carbon-grade@box.example"
+    a = remote_lane.RemoteSpec(box, "0-3", "/srv/gb")
+    work = _door(tmp_path, ("0-3", "4-7", a))
+    foreign = work._take(grade_lanes.lane_lock_name(0))  # lane 0 held, no holder record
+    assert foreign is not None
+    remote = work._take_local_lane(
+        like=grade_lanes.Lane(2, "0-3", str(work._dir), box, "/srv/gb")
+    )
+    assert remote is not None and remote[2].index == 2
+    assert (
+        work._take_local_lane(like=grade_lanes.Lane(1, "4-7", str(work._dir))) is None
+    )
+    work._unlock(remote[0])
+    work._unlock(foreign)
+
+
+def test_a_waiting_retake_hands_back_its_priority_but_still_waits_for_a_lane(
+    tmp_path, monkeypatch
+):
+    """V2 (18 Nov 2026): a re-take waiting past RETAKE_PRIORITY_SECONDS stops making new rounds stand back (the
+    counter drops once, never below zero) and still returns only with a lane held.
+    """
+    from carbon.challenge_validator import direct_intake
+
+    monkeypatch.setattr(direct_intake, "RETAKE_PRIORITY_SECONDS", 0.1)
+    work = _door(tmp_path, ("0-3", "4-7"))
+    lane_free, back = threading.Event(), {}
+    real = work._take_local_lane
+
+    def take(**kwargs):
+        return real(**kwargs) if lane_free.is_set() else None
+
+    monkeypatch.setattr(work, "_take_local_lane", take)
+
+    def grade():
+        with work.taking("grade", has_work=lambda: True):
+            with grade_lanes.given_back():
+                pass
+            back["lane"] = grade_lanes.current()
+
+    thread = threading.Thread(target=grade, daemon=True)
+    thread.start()
+    for _ in range(200):  # the re-take started, then handed its priority back
+        if back.get("seen") is None and work._grade_retakers == 1:
+            back["seen"] = True
+        if back.get("seen") and work._grade_retakers == 0:
+            break
+        threading.Event().wait(0.01)
+    assert back.get("seen") and work._grade_retakers == 0
+    # still waiting: never on without a lane
+    assert thread.is_alive() and "lane" not in back
+    lane_free.set()
+    thread.join(10)
+    assert back["lane"] is not None and work._grade_retakers == 0

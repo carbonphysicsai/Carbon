@@ -1723,7 +1723,8 @@ class _WorkLock:
             if fd is None:
                 continue
             self._fds.append(fd)
-            if index > 0 and not self._lane_zero_shares():
+            if index > 0 and type(spec) is str and not self._lane_zero_shares():
+                # lane 0's share rule guards THIS host's cores only: a remote lane (another machine) never waits on it
                 self._release_fds()
                 return False
             self._hold(
@@ -2040,7 +2041,9 @@ class _WorkLock:
             if fd is None:
                 continue
             try:
-                if index > 0 and not self._lane_zero_shares():
+                # this host's lanes only (live 116, 18 Nov 02:40Z: a grade re-taking its REMOTE lane after its commit
+                # turn waited on the host's lane 0, and every new grade round stood back behind it)
+                if index > 0 and type(spec) is str and not self._lane_zero_shares():
                     self._unlock(fd)
                     return None
                 grade_lanes.write_holder(self._dir, index, grade_lanes.TWO_LANE_MODE)
@@ -2439,9 +2442,31 @@ class _Taking:
         counter = "_grade_retakers" if self.any_lane else "_retakers"
         with work._kinds:
             setattr(work, counter, getattr(work, counter) + 1)
+        # A re-take that keeps waiting is logged each minute, and after RETAKE_PRIORITY_SECONDS it stops making new
+        # rounds stand back (it still waits for a lane: never on without one, V2 B1), so one stuck re-take never
+        # stops the door's grading (live 116, 18 Nov 02:40Z).
+        standing = [True]
+        logged = [began]
+
+        def waiting():
+            now = time.monotonic()
+            if now - logged[0] >= 60:
+                logged[0] = now
+                log(
+                    "direct_work_lane_retake_waiting",
+                    kind=self.kind,
+                    seconds=round(now - began),
+                    lane=getattr(self._gave_back, "index", None),
+                )
+            if standing[0] and now - began >= RETAKE_PRIORITY_SECONDS:
+                standing[0] = False
+                with work._kinds:
+                    setattr(work, counter, getattr(work, counter) - 1)
+                    work._kinds.notify_all()
+
         try:
             while not work._take_slots(self.kind):
-                pass
+                waiting()
             try:
                 while True:
                     try:
@@ -2458,14 +2483,16 @@ class _Taking:
                         held = None
                     if held is not None:
                         break
+                    waiting()
                     time.sleep(work._poll)
             except BaseException:
                 work._release_slot(self.kind)
                 raise
         finally:
-            with work._kinds:
-                setattr(work, counter, getattr(work, counter) - 1)
-                work._kinds.notify_all()
+            if standing[0]:
+                with work._kinds:
+                    setattr(work, counter, getattr(work, counter) - 1)
+                    work._kinds.notify_all()
         self._held, self._released = held, False
         with work._kinds:
             work._away.discard(threading.get_ident())
@@ -2502,6 +2529,8 @@ def _round(work, kind, has_work=None, since=None):
 #: OPERATIONAL, not science: how long an advance loop with nothing to start waits before its next round (it takes
 #: a lane for each round).
 ADVANCE_IDLE_S = 5
+#: How long a round re-taking a lane (`_Taking.retake`) keeps priority over NEW rounds before it waits like them.
+RETAKE_PRIORITY_SECONDS = 300
 
 
 def _advance_loop(intake, stop, work=None, since=None, idle_s=1):
