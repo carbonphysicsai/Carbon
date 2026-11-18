@@ -1828,8 +1828,7 @@ def door_link_files(cfg, host_key: str, directory: str) -> str:
     ssh_binary = shutil.which("ssh") or "/usr/bin/ssh"
     docker_binary = shutil.which("docker") or "/usr/bin/docker"
     texts = {
-        os.path.join(directory, "known_hosts"): (host_key + "
-", 0o600),
+        os.path.join(directory, "known_hosts"): (host_key + "\n", 0o600),
         os.path.join(bin_dir, "ssh"): (rgb.ssh_shim_text(lane, ssh_binary), 0o500),
         os.path.join(directory, "docker"): (
             rgb.wrapper_text(

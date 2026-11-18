@@ -291,11 +291,9 @@ class FakeBox:
             }
         )
         if not self.door_link_ok:
-            return 255, "", f"carbon-grade@{IP}: Permission denied (publickey).
-"
+            return 255, "", f"carbon-grade@{IP}: Permission denied (publickey).\n"
         ids = [self.loaded.get(image, "") for image in argv[5:]]
-        return 0, "".join(i + "
-" for i in ids if i), ""
+        return 0, "".join(i + "\n" for i in ids if i), ""
 
     def _lane_only(self):
         assert self.user == "carbon-grade", self.user
@@ -2019,8 +2017,7 @@ def test_a_box_the_doors_own_build_link_cannot_reach_is_never_admitted(tmp_path)
 
 def test_the_door_link_is_the_doors_own_generated_wrapper_with_the_recorded_key(tmp_path):
     key = tmp_path / "lane_key"
-    key.write_text("not a real key
-")
+    key.write_text("not a real key\n")
     cfg = _config(tmp_path, "--ssh-key", str(key))
     box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
@@ -2029,8 +2026,7 @@ def test_the_door_link_is_the_doors_own_generated_wrapper_with_the_recorded_key(
     # the key the box file names is the one the link offers, alone; the host key is the pinned one, strictly
     assert f"-i {document['ssh_key']} -o IdentitiesOnly=yes" in link["shim"]
     assert "StrictHostKeyChecking=yes" in link["shim"]
-    assert link["known_hosts"] == f"{IP} ssh-ed25519 {HOST_KEY}
-"
+    assert link["known_hosts"] == f"{IP} ssh-ed25519 {HOST_KEY}\n"
     assert f"DOCKER_HOST=ssh://carbon-grade@{IP}" in link["wrapper"]
     # the last check before the box file, and every admitted image was found through it
     steps = [step for step, _ in box_up.plan_door(cfg)]
@@ -2041,8 +2037,7 @@ def test_a_door_link_missing_an_admitted_image_is_refused(tmp_path):
     cfg = _config(tmp_path)
     box = FakeBox(cfg)
     real = box._door_link
-    box._door_link = lambda argv: (0, real(argv)[1].splitlines()[0] + "
-", "")
+    box._door_link = lambda argv: (0, real(argv)[1].splitlines()[0] + "\n", "")
     outcome = _run(cfg, box)
     _refused(outcome, "door_link_failed")
     assert _no_box_file(tmp_path)
