@@ -942,6 +942,7 @@ def _is_ancestor(old, new, root=None):
         if done.returncode in (0, 1):
             # git's own answer: an ancestor (0) or not (1); anything else is an error (an unknown commit)
             _ANCESTRY[key] = done.returncode == 0
+            _ANCESTRY_UNKNOWN.discard((old, new))
             return _ANCESTRY[key]
         break
     _ANCESTRY_UNKNOWN.add((old, new))
@@ -1325,8 +1326,8 @@ def _migrate_owner_manifest(
     refused = functools.partial(
         _migration_refused,
         hotkey,
-        frozen.get("implementation"),
-        candidate.get("implementation"),
+        frozen.get("implementation") if type(frozen) is dict else None,
+        candidate.get("implementation") if type(candidate) is dict else None,
     )
     if not _revision_only_change(frozen, candidate, images_migrated=images_migrated):
         return refused("change_not_revision_only")
