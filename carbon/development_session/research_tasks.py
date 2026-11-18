@@ -268,7 +268,8 @@ def _failure_is_carbons(exc, child_states) -> bool:
     """The typed Carbon-side failures that used to end UNRESOLVED (live 116, 18 Nov 2026, V2: all ours): the ledger's
     "one numerical worker" refusal (a stale RESERVED op of this owner, never the candidate's), and the worker's own
     export stream timing out after every child SUCCEEDED (Carbon copying a finished child's output). Anything else keeps
-    its class: a SUCCEEDED child whose evidence fails verification stays UNRESOLVED (never a free re-run)."""
+    its class: a SUCCEEDED child whose evidence fails verification stays UNRESOLVED (never a free re-run).
+    """
     from .research_carrier import ONE_NUMERICAL_WORKER
 
     if type(exc) is ValueError and str(exc) == ONE_NUMERICAL_WORKER:
@@ -287,7 +288,11 @@ def _log_unresolved(exc, child_states):
     try:
         from carbon.battery.intake import log
 
-        log("direct_task_unresolved", type=type(exc).__name__, children=list(child_states))
+        log(
+            "direct_task_unresolved",
+            type=type(exc).__name__,
+            children=list(child_states),
+        )
     except Exception:  # noqa: BLE001 - a diagnostic line never changes the outcome
         return
 

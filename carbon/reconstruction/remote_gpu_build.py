@@ -1273,7 +1273,9 @@ def op(
     from carbon.reconstruction import grade_lanes
 
     with ExitStack() as held:
-        with grade_lanes.timed_wait():  # a slot wait is Carbon's queue (`grade_lanes.waited_seconds`)
+        with (
+            grade_lanes.timed_wait()
+        ):  # a slot wait is Carbon's queue (`grade_lanes.waited_seconds`)
             binding = _take(
                 offer,
                 identity,
