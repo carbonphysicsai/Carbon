@@ -120,9 +120,7 @@ def _canonical(failures):
 
 def ensure(ledger):
     """Create the table beside the Ladder's in the receiver's ledger file (a no-op when it exists)."""
-    db = sqlite3.connect(
-        ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
-    )
+    db = sqlite3.connect(ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS)
     try:
         db.executescript(DDL)
     finally:
