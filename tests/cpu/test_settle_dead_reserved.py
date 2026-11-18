@@ -1,7 +1,8 @@
 """Lead (18 Nov 2026): live 116 had 8 RESERVED numerical ops left by dead runs, each refusing every later build of its
 owner with "one numerical worker; reconcile active operation" until a door stop and a manual `reconcile_worker`. A
 round that holds the owner's numerical lease (so no live supervisor of that owner runs) now settles such an op itself
-through `reconcile_worker`'s own settle, ONLY when its worker container is gone, and reserves once more."""
+through `reconcile_worker`'s own settle, ONLY when its worker container is gone, and reserves once more.
+"""
 
 from __future__ import annotations
 
@@ -98,7 +99,9 @@ def test_the_manual_settle_is_unchanged(tmp_path, monkeypatch):
         carrier.reconcile_worker(ledger, owner="one", identity="worker")
 
 
-def test_a_docker_or_ssh_failure_keeps_the_op_and_the_plain_refusal(tmp_path, monkeypatch):
+def test_a_docker_or_ssh_failure_keeps_the_op_and_the_plain_refusal(
+    tmp_path, monkeypatch
+):
     """V2: a `cli.run` that raises (ssh, docker, a timeout) never fails the round: the op stays RESERVED, the line says
     why, and the round's reservation refuses exactly as before."""
     ledger, _directory = setup(tmp_path)

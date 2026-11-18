@@ -3891,17 +3891,13 @@ def _reconcile_locked(ledger, *, owner, identity, only_if_gone=False):
     (`_settle_dead_numerical`): a worker container still present refuses (reservation retained), never removed.
     """
     matches = [
-        op
-        for op in ledger.status(owner=owner)["operations"]
-        if op["id"] == identity
+        op for op in ledger.status(owner=owner)["operations"] if op["id"] == identity
     ]
     if len(matches) != 1:
         raise ValueError("owned operation unavailable")
     op = matches[0]
     if op["state"] == "HELD":
-        raise ValueError(
-            "never-claimed sequence capacity requires sequence cleanup"
-        )
+        raise ValueError("never-claimed sequence capacity requires sequence cleanup")
     if op["state"] != "RESERVED":
         return op["result"]
     # Keyed on the durable intent, not the reserved milliseconds: the
@@ -3922,9 +3918,7 @@ def _reconcile_locked(ledger, *, owner, identity, only_if_gone=False):
         )
     path, intent = intents[0]
     launch = digest(
-        canonical(
-            {"owner": owner, "identity": identity, "request": intent["request"]}
-        )
+        canonical({"owner": owner, "identity": identity, "request": intent["request"]})
     )
     name, label = _intent_container(intent, launch)
     if (
@@ -3959,9 +3953,12 @@ def _reconcile_locked(ledger, *, owner, identity, only_if_gone=False):
         )
         return result
     cli = remote_gpu_build.cli(remote_build) or _cli_for(remote)
-    if only_if_gone and cli.run(
-        ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
-    ).stdout.strip():
+    if (
+        only_if_gone
+        and cli.run(
+            ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+        ).stdout.strip()
+    ):
         raise ValueError("worker container present; reservation retained")
     with remote_gpu_build.bound(remote_build):
         remove_exact_container(cli=cli, container_name=name, launch_digest=label)
