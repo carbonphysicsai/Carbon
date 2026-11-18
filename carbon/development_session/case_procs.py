@@ -23,7 +23,7 @@ margin. G2 (Lead, 17 Nov): ALSO when the one-process pass cannot end by the wall
 graphs this is for) but a worker's own need fits; their failure is then Carbon's once (F2) and the retry is one process.
 Else the pass is the one-process pass from the start (`case_procs_deadline`), graded exactly as before. A worker is
 planned at ITS speed (live 116, 18 Nov 2026): the parent times one sampled row pinned to one core, as a worker runs,
-and workers only when that plan beats the one-process pass. Planned
+and workers only when that plan beats the one-process pass by CASE_PROCS_MIN_GAIN. Planned
 at the parent's 4-core per-row instead, every worker of a dense graph missed its deadline and the pass ran twice.
 
 A fallback is Carbon's ONCE (Validator-2 F2, 16 Nov): every fallback leaves a ``case_procs:`` line on stderr; a failed
@@ -77,6 +77,10 @@ CASE_PROCS_FALLBACK_SLACK = 1.25
 #: the late workers and reading their parts (live 116, 18 Nov 2026: a deadline AT the latest left no time for that, so
 #: a full miss always stopped the pass as Carbon's).
 CASE_PROCS_KILL_SECONDS = 10.0
+#: OPERATIONAL, not science: workers start only when their planned need times this is still within the one-process
+#: pass's own rows left (live 116, 18 Nov 2026: heavy graded passes already keep 3.5-3.8 of 4 cores busy in one
+#: process, so workers gain little and risk the pass twice; a gain under ~1.5 x is not worth that risk).
+CASE_PROCS_MIN_GAIN = 1.5
 
 #: Marks a per-case processes program (the parent's environment name for its workers' control).
 CONTROL_NAME = "CARBON_CASE_PROC"
@@ -122,6 +126,7 @@ def case_procs_deadline(
     slack,
     fallback_slack,
     kill,
+    gain,
 ):
     """The workers' deadline (monotonic seconds), or None: no workers, the one-process pass (Validator-2 F1, widened
     by G2 on the Lead's ruling, 17 Nov: F1's x cores factor gave workers only to passes of <= ~90 s, never to the slow
@@ -130,8 +135,8 @@ def case_procs_deadline(
     A worker repeats the parent's start and first call, then makes its slice pinned to ONE core at ``per_row_one``: the
     parent's own per-row time measured pinned to one core (live 116, 18 Nov 2026: planned at the 4-core ``per_row``,
     every worker of a dense graph missed its deadline and the pass was graded twice). It needs ``startup + first +
-    per_row_one x the longest slice``, and its allowance is ``slack`` x that. Workers only when that need is shorter
-    than the one-process pass's own rows left (``per_row`` x the rows not sampled): else they cannot be faster.
+    per_row_one x the longest slice``, and its allowance is ``slack`` x that. Workers only when ``gain`` x that need is
+    within the one-process pass's own rows left (``per_row`` x the rows not sampled): else they gain too little.
     ZONE A, the WORST CASE fits: every worker stopped at its deadline, ``kill`` seconds to stop them, and then all
     ``rows`` made by the parent alone (``fallback_slack`` x per_row x rows) still end by ``wall_end``: the deadline is
     the allowance, capped there.
@@ -143,7 +148,7 @@ def case_procs_deadline(
     if sampled >= rows:
         return None
     need = startup + first + per_row_one * longest
-    if need >= per_row * (rows - sampled):
+    if gain * need > per_row * (rows - sampled):
         return None
     latest = wall_end - kill - fallback_slack * per_row * rows
     if latest - now >= need:
@@ -301,7 +306,7 @@ __DEADLINE_SOURCE__
         # before (operational, not science).
         deadline = case_procs_deadline(time.monotonic(), startup, first, per_row, per_row_one,
                                        max(high - low for low, high in slices), rows, len(sample), case_wall_end,
-                                       __SLACK__, __FALLBACK_SLACK__, __KILL__)
+                                       __SLACK__, __FALLBACK_SLACK__, __KILL__, __GAIN__)
         if deadline is None:
             slices = []
     if slices:
@@ -422,6 +427,7 @@ def _edits(memory_bytes: int, wall_seconds: int):
         .replace("__SLACK__", repr(CASE_PROCS_DEADLINE_SLACK))
         .replace("__FALLBACK_SLACK__", repr(CASE_PROCS_FALLBACK_SLACK))
         .replace("__KILL__", repr(CASE_PROCS_KILL_SECONDS))
+        .replace("__GAIN__", repr(CASE_PROCS_MIN_GAIN))
         .replace("__CONTROL_NAME__", CONTROL_NAME)
     )
     return (
