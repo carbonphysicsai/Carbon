@@ -16,6 +16,7 @@ import json
 import os
 import re
 import signal
+import sys
 import tempfile
 import threading
 import time
@@ -2103,11 +2104,19 @@ class OwnerProviders:
                 raise ValueError("retained receiver owner binding differs")
             from carbon.challenge_validator import crown_average
 
-            self._open(
-                owner["hotkey"],
-                restoring=True,
-                host=owner["hotkey"] == crown_average.HOST_OWNER,
-            )
+            try:
+                self._open(
+                    owner["hotkey"],
+                    restoring=True,
+                    host=owner["hotkey"] == crown_average.HOST_OWNER,
+                )
+            except Exception as failure:
+                # Switch 3, 18 Nov 2026: the start refused at one owner and the journal never said which; name it
+                # (its directory, the owner's sha256) and why, then refuse as before.
+                _log_start_failure(
+                    "owner_restore_failed", failure, owner_sha256=directory.name
+                )
+                raise
 
     def cancel(self):
         """Close admission and request our providers' domain cancellation of every task that holds work.
@@ -2157,6 +2166,42 @@ class OwnerProviders:
                 if state == "RECONCILIATION_REQUIRED":
                     raise ReceiverUnavailable("direct_receiver_cleanup_unresolved")
             provider.close()
+
+
+def _stop_providers(providers, *, cancel):
+    """serve's last step: cancel (unless retaining) then close the owner providers.
+
+    Switch 3, 18 Nov 2026: a start that failed with restored work still held made close() refuse, and its
+    `direct_receiver_cleanup_unresolved` REPLACED the failure that stopped the start (the journal said only that). When
+    a failure is already on its way out, it stays the one raised and the close's refusal is logged beside it; with
+    none, close() refuses exactly as before.
+    """
+    first = sys.exc_info()[1]
+    try:
+        if cancel:
+            providers.cancel()
+    finally:
+        try:
+            providers.close()
+        except Exception as late:
+            if first is None:
+                raise
+            _log_start_failure("receiver_close_refused", late, first=first)
+
+
+def _log_start_failure(event, failure, **fields):
+    """One stderr line (the unit's journal, operator-only) naming a start failure by its code or type."""
+    if "first" in fields:
+        first = fields.pop("first")
+        fields["first"] = getattr(first, "code", None) or type(first).__name__
+    record = {
+        "event": event,
+        "code": getattr(failure, "code", None) or type(failure).__name__,
+        # Carbon's own refusals carry fixed text (`retained direct owner campaign binding changed`); bounded.
+        "reason": str(failure)[:200],
+        **fields,
+    }
+    print(json.dumps(record, sort_keys=True), file=sys.stderr, flush=True)
 
 
 def _require_speed_match(challenge_id, version):
@@ -2808,11 +2853,7 @@ def serve(
                 timer.cancel()
             # The shared listener waits for its worker, even if cancellation
             # raises. No worker or carrier is reimplemented here.
-            try:
-                if retention is None:
-                    providers.cancel()
-            finally:
-                providers.close()
+            _stop_providers(providers, cancel=retention is None)
 
 
 #: Chain failures a starting receiver waits out (infrastructure: the endpoint is down, slow, throttled or behind).

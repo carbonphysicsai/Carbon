@@ -2128,3 +2128,65 @@ def test_a_failed_cancellation_of_an_unknown_owner_is_decided_again_and_never_bu
     provider.fail = False
     pool._settle_unobserved()
     assert pool._unobserved == set() and provider.cancelled == ["task-a"]
+
+
+def test_a_failed_start_keeps_its_own_failure_when_close_then_refuses(capsys):
+    """Switch 3 (18 Nov 2026): the start failed with restored work still held, close() refused, and its
+    `cleanup_unresolved` replaced the failure that stopped the start. The first failure is the one raised now; the
+    close's refusal is logged beside it."""
+    calls = []
+
+    def refuse():
+        calls.append("close")
+        raise receiver.ReceiverUnavailable("direct_receiver_cleanup_unresolved")
+
+    providers = SimpleNamespace(cancel=lambda: calls.append("cancel"), close=refuse)
+    with pytest.raises(ValueError, match="binding changed"):
+        try:
+            raise ValueError("retained direct owner campaign binding changed")
+        finally:
+            receiver._stop_providers(providers, cancel=True)
+    assert calls == ["cancel", "close"]
+    logged = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert logged == {
+        "event": "receiver_close_refused",
+        "code": "direct_receiver_cleanup_unresolved",
+        "reason": "direct_receiver_cleanup_unresolved",
+        "first": "ValueError",
+    }
+
+
+def test_with_no_failure_in_flight_close_still_refuses_as_before():
+    def refuse():
+        raise receiver.ReceiverUnavailable("direct_receiver_cleanup_unresolved")
+
+    providers = SimpleNamespace(cancel=lambda: None, close=refuse)
+    with pytest.raises(receiver.ReceiverUnavailable, match="cleanup_unresolved"):
+        receiver._stop_providers(providers, cancel=False)
+
+
+def test_an_owner_the_restore_refuses_is_named_in_the_journal(
+    tmp_path, monkeypatch, capsys
+):
+    """Switch 3 (18 Nov 2026): the restore refused at one owner and nothing said which. It logs the owner's directory
+    (its sha256) and the reason, then refuses as before."""
+    name = hashlib.sha256(OWNER.encode()).hexdigest()
+    (tmp_path / name).mkdir()
+    monkeypatch.setattr(receiver, "_private_directory", lambda path: path)
+    monkeypatch.setattr(receiver, "private_json", lambda path: {"hotkey": OWNER})
+    pool = receiver.OwnerProviders(tmp_path, None, None, None)
+
+    def refused(hotkey, *, restoring, host=False):
+        assert hotkey == OWNER and restoring
+        raise ValueError("retained direct owner campaign binding changed")
+
+    monkeypatch.setattr(pool, "_open", refused)
+    with pytest.raises(ValueError, match="binding changed"):
+        pool.restore()
+    logged = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert logged == {
+        "event": "owner_restore_failed",
+        "code": "ValueError",
+        "reason": "retained direct owner campaign binding changed",
+        "owner_sha256": name,
+    }
