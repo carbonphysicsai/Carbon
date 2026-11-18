@@ -329,8 +329,15 @@ def _weighted(slots):
 
 
 def _slots(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
-    """The d of each of the five slots of `menu` ranked by `predictions` on the backed-off limits; tied keys share
-    the mean d of their group over the slots they occupy."""
+    """The d of each of the five slots of `menu` ranked by `predictions` on the limits the registered `ranking` names
+    (backed off by U for ``backoff_u``; the registered limits themselves for ``original_limits``); tied keys share
+    the mean d of their group over the slots they occupy.
+
+    The key that decides is `pool_solver_reference._key` on that ranking problem: tier 0 = every predicted margin
+    >= 0, ordered by the objective; tier 1 = a predicted margin < 0, by the summed violation in U units; tier 2 = an
+    invalid prediction. A predicted margin of EXACTLY 0 is feasible (tier 0), the same convention as `pick_d`, where
+    only a true margin < 0 is infeasible, so the ranking and the truth side agree on the boundary. Equal keys tie
+    and share the group's mean d."""
     _require(set(predictions) >= set(menu), "menu_predictions_missing_a_design")
     names = set(problem.outputs)
     _require(ranking in RANKINGS, "menu_ranking_unregistered")
