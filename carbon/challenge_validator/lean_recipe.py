@@ -96,7 +96,9 @@ def _build_retry_counts(directory, task, code):
     """``(chain_root, re-runs in the chain, re-runs of ``code`` in it)`` from `BUILD_RETRIES`: the chain is the miner's
     task and every door re-run made from it (each line names its chain's root)."""
     lines = _jsonl(Path(directory) / BUILD_RETRIES)
-    root = next((line.get("chain_root") for line in lines if line.get("new_task") == task), None)
+    root = next(
+        (line.get("chain_root") for line in lines if line.get("new_task") == task), None
+    )
     root = task if type(root) is not str else root
     chain = [line for line in lines if line.get("chain_root") == root]
     return root, len(chain), sum(1 for line in chain if line.get("code") == code)

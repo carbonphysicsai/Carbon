@@ -121,7 +121,8 @@ def test_a_requeue_refused_for_the_cpu_wall_is_rerun_again_within_the_caps(
     ledger, tmp_path
 ):
     """rtsk_af647b3b: the door's own requeue, refused for the wall. Owner D16 (18 Nov 2026, V2 Y): a re-run of a re-run
-    is allowed within the caps (3 per failure code, 5 per chain), so it runs its next generation automatically."""
+    is allowed within the caps (3 per failure code, 5 per chain), so it runs its next generation automatically.
+    """
     _queue(ledger)
     assert _requeue(ledger) == "requeued"
     door, provider = _door(ledger), _Provider({N: DirectTaskStateV3.REFUSED})
