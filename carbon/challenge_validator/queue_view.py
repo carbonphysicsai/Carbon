@@ -13,7 +13,8 @@ this door already keeps. Reads; writes nothing.
   counts until the next read, 30 s later: a brief undercount, never an inflated queue).
 - **what actually runs (Live ops' queue truth audit, 18 Nov 2026):** a RUNNING task is BUILDING only while one of its
   own operations (prep, build, practice inference or timing, `direct_child_identity`; or its remote GPU build's
-  shadow) is RESERVED in its owner's campaign ledger, which happens only once it holds a build slot; a RUNNING task with none is still WAITING TO BUILD (its round waits for a slot). The
+  shadow) is RESERVED in its owner's campaign ledger, which happens only once it holds a build slot;
+  a RUNNING task with none is still WAITING TO BUILD (its round waits for a slot). The
   ledger is read on a read-only connection (``mode=ro``: no write lock, never blocks a build or a grade); an unreadable
   ledger counts its RUNNING tasks as building, as before. A SUCCEEDED task whose grade is already claimed (in flight,
   `grade_sequencer`) is no longer waiting to grade.
