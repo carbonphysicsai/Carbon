@@ -32,7 +32,9 @@ def test_an_advance_pass_skips_a_set_aside_owners_task_and_builds_the_next():
 
 def test_any_other_owner_refusal_still_raises():
     adapter = LeanRecipeAdapter.__new__(LeanRecipeAdapter)
-    adapter.owner = lambda task: (_ for _ in ()).throw(Unavailable("direct_receiver_stopping"))
+    adapter.owner = lambda task: (_ for _ in ()).throw(
+        Unavailable("direct_receiver_stopping")
+    )
     try:
         adapter._active_owner(ASIDE)
     except Unavailable as raised:
@@ -53,5 +55,8 @@ def test_an_unreadable_owner_holds_only_its_own_task_in_the_grade_scan():
     grader._grade_one = lambda task, *, turn: graded.append(task) or (task, "GRADED")
     sequencer, claims = grade_sequencer.Sequencer(), grade_sequencer.OwnerClaims()
     with sequencer.task() as task:
-        assert grader._claim_and_grade(sequencer, task, set(), claims, []) == (LIVE, "GRADED")
+        assert grader._claim_and_grade(sequencer, task, set(), claims, []) == (
+            LIVE,
+            "GRADED",
+        )
     assert graded == [LIVE]
