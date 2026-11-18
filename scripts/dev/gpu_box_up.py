@@ -1599,6 +1599,26 @@ class Session:
                 "authorized_keys is not this door's line plus other doors' lane keys",
             )
 
+    def door_link(self, host_key):
+        """The door's own build link (`door_link_files`, no hand-made ssh config) reaches the box's Docker and finds
+        every admitted image, or Refused: live 116, 18 Nov 2026, the replacement A100 passed every check over this
+        phase's own ssh and was ADMITTED at 15:01Z, while the door's link got "Permission denied (publickey)" and no
+        build ran for three hours."""
+        directory = tempfile.mkdtemp(prefix="gpu-box-link-")
+        try:
+            try:
+                wrapper = door_link_files(self.cfg, host_key, directory)
+            except Exception as error:  # noqa: BLE001 - a link the door cannot write is a refusal
+                raise Refused("door_link_failed", f"{type(error).__name__}: {error}"[:300]) from None
+            rc, out, err = self.call(cmd_door_link(wrapper, self.cfg))
+            seen = out.split()
+            wanted = list(self.cfg.images)
+            if rc != 0 or seen != wanted:
+                tail = (err or out or "").strip()[-300:]
+                raise Refused("door_link_failed", f"rc={rc}: {tail}")
+        finally:
+            shutil.rmtree(directory, ignore_errors=True)
+
     def door_driver(self):
         seen = self.read_driver()
         if seen is None:
@@ -1787,6 +1807,53 @@ def run_admin(cfg: Config, runner, *, log=None) -> dict:
     }
 
 
+def box_ssh_key(cfg) -> str | None:
+    """The lane key's absolute path as the box file names it (``ssh_key``), or None when the phase has no key."""
+    return os.path.abspath(os.path.expanduser(cfg.ssh_key)) if cfg.ssh_key else None
+
+
+def door_link_files(cfg, host_key: str, directory: str) -> str:
+    """The door's OWN build link for this box, written into ``directory`` by `remote_gpu_build`'s generators: its pinned
+    ``known_hosts``, its ``bin/ssh`` shim (`pinned_ssh_options`: the pinned key strictly and the key the box file will
+    name) and its ``docker`` wrapper. Returns the wrapper's path. The same text the door writes at a box's first op, so
+    what passes here is the link every build will use.
+    """
+    from types import SimpleNamespace
+
+    from carbon.reconstruction import remote_gpu_build as rgb
+
+    lane = SimpleNamespace(lane_dir=directory, spec=SimpleNamespace(ssh_key=box_ssh_key(cfg)))
+    bin_dir = os.path.join(directory, "bin")
+    os.makedirs(bin_dir, mode=0o700, exist_ok=True)
+    ssh_binary = shutil.which("ssh") or "/usr/bin/ssh"
+    docker_binary = shutil.which("docker") or "/usr/bin/docker"
+    texts = {
+        os.path.join(directory, "known_hosts"): (host_key + "
+", 0o600),
+        os.path.join(bin_dir, "ssh"): (rgb.ssh_shim_text(lane, ssh_binary), 0o500),
+        os.path.join(directory, "docker"): (
+            rgb.wrapper_text(
+                f"ssh://{cfg.user}@{cfg.ip}",
+                os.environ.get("HOME", "/"),
+                docker_binary,
+                bin_dir,
+            ),
+            0o500,
+        ),
+    }
+    for path, (text, mode) in texts.items():
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.chmod(path, mode)
+    return os.path.join(directory, "docker")
+
+
+def cmd_door_link(wrapper: str, cfg) -> list[str]:
+    """Every admitted image, by full id, through the door's own wrapper (``image inspect``: ``docker images`` hides
+    untagged ids on a containerd store)."""
+    return [wrapper, "image", "inspect", "--format", "{{.Id}}", *cfg.images]
+
+
 def box_document(
     cfg,
     *,
@@ -1830,7 +1897,7 @@ def box_document(
         document["admin_summary_sha256"] = cfg.admin_summary_sha256
     if cfg.ssh_key:
         # the door's lane key that passed every check above: the door's builds use exactly it (`pinned_ssh_options`)
-        document["ssh_key"] = os.path.abspath(os.path.expanduser(cfg.ssh_key))
+        document["ssh_key"] = box_ssh_key(cfg)
     return document
 
 
@@ -1882,6 +1949,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         summary, raw_output, raw_ops = session.run_step(
             "class_check", session.class_check, commit, uuid
         )
+        session.run_step("door_link", session.door_link, host_key)
         document = box_document(
             cfg,
             host_key=host_key,
@@ -2015,6 +2083,7 @@ def plan_door(cfg: Config) -> list[tuple[str, str]]:
     steps.append(remote("class_check", CMD_CLASS_OUTPUT_READ))
     steps.append(remote("class_check", CMD_CLASS_OPS_READ))
     steps.append(remote("class_check", cmd_class_clean(cfg)))
+    steps.append(("door_link", shlex.join(cmd_door_link("<link>/docker", cfg))))
     return steps
 
 

@@ -215,6 +215,9 @@ class FakeBox:
         self.sshd_writes = 0
         self.sshd_reloads = 0
         self.sshd_includes = True
+        # whether the door's own build link (its generated shim + wrapper) logs in to the box
+        self.door_link_ok = True
+        self.door_links = []
         # Lambda's Ubuntu 22.04: python3 is 3.10, no newer interpreter until the admin phase installs python3.11
         self.python = ""
         self.python_installs = 0
@@ -251,6 +254,8 @@ class FakeBox:
                 return (0, "", "") if self.on_main else (1, "", "")
             assert argv[3:] == ["rev-parse", "HEAD"]
             return 0, HEAD + "\n", ""
+        if argv[0].endswith("/docker") and argv[1:3] == ["image", "inspect"]:
+            return self._door_link(argv)
         assert argv[0] == "ssh" and "StrictHostKeyChecking=yes" in argv
         known = next(a for a in argv if a.startswith("UserKnownHostsFile="))
         pinned = Path(known.split("=", 1)[1]).read_text()
@@ -273,6 +278,24 @@ class FakeBox:
                 "Runtimes": {"runc": {}, **(live.get("runtimes") or {})},
             }
         )
+
+    def _door_link(self, argv):
+        """The door's own wrapper, as `remote_gpu_build` generated it: read back what it would run."""
+        wrapper = Path(argv[0])
+        shim = (wrapper.parent / "bin" / "ssh").read_text()
+        self.door_links.append(
+            {
+                "wrapper": wrapper.read_text(),
+                "shim": shim,
+                "known_hosts": (wrapper.parent / "known_hosts").read_text(),
+            }
+        )
+        if not self.door_link_ok:
+            return 255, "", f"carbon-grade@{IP}: Permission denied (publickey).
+"
+        ids = [self.loaded.get(image, "") for image in argv[5:]]
+        return 0, "".join(i + "
+" for i in ids if i), ""
 
     def _lane_only(self):
         assert self.user == "carbon-grade", self.user
@@ -1980,3 +2003,46 @@ def test_the_class_check_dir_is_purged_as_the_container_uid_before_and_after(tmp
     assert cfg.jax_image in purge and "sudo" not in purge
     assert purge in box_up.cmd_class_out(cfg) and "|| true" in box_up.cmd_class_out(cfg)
     assert box_up.cmd_class_clean(cfg).startswith(purge)
+
+
+def test_a_box_the_doors_own_build_link_cannot_reach_is_never_admitted(tmp_path):
+    """Live 116, 18 Nov 2026: the replacement A100 passed every check over this phase's ssh and was ADMITTED at 15:01Z,
+    but the door's own link got "Permission denied (publickey)" and no build ran for three hours."""
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, door_link_ok=False)
+    outcome = _run(cfg, box)
+    _refused(outcome, "door_link_failed")
+    assert outcome["step"] == "door_link"
+    assert "Permission denied (publickey)" in outcome["detail"]
+    assert _no_box_file(tmp_path)
+
+
+def test_the_door_link_is_the_doors_own_generated_wrapper_with_the_recorded_key(tmp_path):
+    key = tmp_path / "lane_key"
+    key.write_text("not a real key
+")
+    cfg = _config(tmp_path, "--ssh-key", str(key))
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    (link,) = box.door_links
+    document = json.loads((tmp_path / "boxes" / "a100-1.json").read_text())
+    # the key the box file names is the one the link offers, alone; the host key is the pinned one, strictly
+    assert f"-i {document['ssh_key']} -o IdentitiesOnly=yes" in link["shim"]
+    assert "StrictHostKeyChecking=yes" in link["shim"]
+    assert link["known_hosts"] == f"{IP} ssh-ed25519 {HOST_KEY}
+"
+    assert f"DOCKER_HOST=ssh://carbon-grade@{IP}" in link["wrapper"]
+    # the last check before the box file, and every admitted image was found through it
+    steps = [step for step, _ in box_up.plan_door(cfg)]
+    assert steps[-1] == "door_link"
+
+
+def test_a_door_link_missing_an_admitted_image_is_refused(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    real = box._door_link
+    box._door_link = lambda argv: (0, real(argv)[1].splitlines()[0] + "
+", "")
+    outcome = _run(cfg, box)
+    _refused(outcome, "door_link_failed")
+    assert _no_box_file(tmp_path)
