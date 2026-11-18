@@ -1650,47 +1650,70 @@ def _unblock_timing():
         yield_grade_session()
 
 
-def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, procedure):
-    """The FIRST fresh instance's flat raw answers of a re-check pair, read through the pair reader with the pair's own
-    identities and the subset's shapes; the state is bound to the graded entry's. Unreadable = Carbon's gap.
+def _menu_rowcheck_outputs(
+    evidence, entry, subset, subset_shape, out_dtype, procedure, identities
+):
+    """The fresh instance's flat raw answers of a re-check run: ONE fresh operation (`paired_inference.infer_frozen_once`;
+    V2's R1 (a), 18 Nov 2026: the answers are compared with the graded pass's, the second instance only repeated the
+    pair's repeatability, which the subset repeat covers). Read under the pair reader's own phase checks
+    (`inference_pair_evidence._phase`: operation, controls, originals, receipt and accounting bound), with the run's
+    ledger identity one of ``identities``' children and the state bound to the graded entry's. Unreadable = Carbon's gap.
     """
     import numpy as np
 
+    from carbon.development_session.bundle_construction_worker import (
+        _digest,
+        _tensors,
+    )
+    from carbon.development_session.paired_inference import (
+        ONCE_SCHEMA,
+        repeat_identity,
+    )
     from carbon.scoring import inference_pair_evidence as pair_reader
     from carbon.scoring import pair_read_bound
 
-    raw = _json(evidence)
     try:
-        phases = [evidence[name] for name in ("primary", "repeat")]
         width = 1
         for n in tuple(subset_shape)[1:]:
             width *= int(n)
+        ledgers = {repeat_identity(identity) for identity in identities}
         # read under a ceiling sized from the subset's own shape (a menu version's re-check: Motor / Cooling 1.8 only)
         _unblock_timing()
         with pair_read_bound.raised(pair_read_bound.pair_bytes(len(subset), width)):
-            read = pair_reader.read_inference_pair(
-                raw,
-                registered_sha256=_sha(raw),
-                expected={
-                    "recipe_digest": evidence["recipe_digest"],
+            value = pair_reader._parse(_json(evidence), pair_reader._MAX_BYTES, "pair")
+            phase = value["repeat"]
+            ledger = phase["accounting"]["ledger_identity"]
+            if not (
+                value["schema"] == ONCE_SCHEMA
+                and value["execution_boundary"] == "C03_DOCKER"
+                and value["scientific_qualification"] is False
+                and value["official_eligible"] is False
+                and value["state_digest"] == entry["state_digest"]
+                and value["inputs_digest"] == _digest(_tensors(inputs=subset))
+                and value["logical_prediction_rows"] == len(subset)
+                and ledger in ledgers
+            ):
+                raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
+            outputs = pair_reader._phase(
+                phase,
+                {
+                    "recipe_digest": value["recipe_digest"],
                     "state_digest": entry["state_digest"],
-                    "inputs_digest": evidence["inputs_digest"],
-                    "inference_image_id": evidence["inference_image_id"],
-                    "operation_ids": [p["worker_operation"] for p in phases],
-                    "ledger_identities": [
-                        p["accounting"]["ledger_identity"] for p in phases
-                    ],
-                    "controls_digests": [p["controls_digest"] for p in phases],
+                    "inputs_digest": value["inputs_digest"],
+                    "operation_ids": [phase["worker_operation"]],
+                    "ledger_identities": [ledger],
+                    "controls_digests": [phase["controls_digest"]],
                     "input_shape": list(subset.shape),
                     "output_shape": list(subset_shape),
                     "input_dtype": str(subset.dtype),
                     "output_dtype": str(np.dtype(out_dtype)),
                 },
-                procedure=procedure,
-            )
+                0,
+                procedure,
+            )[0]
     except (pair_reader.PairEvidenceRefused, KeyError, TypeError, ValueError) as exc:
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable") from exc
-    return list(read.outputs[0])
+    return list(outputs)
 
 
 def _served_recipe(adapter, submission_id):
@@ -1805,9 +1828,10 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     measurement as a host-private side file (`pool_menu.rowcheck_side_file`). None for every version whose registration
     has no ``menu`` block: nothing runs and nothing changes for it.
 
-    The queries run under the pair's own carrier, budget and wall caps (`infer_frozen_pair`, two fresh operations with
-    new identities). Any fault of Carbon's is `RetentionUnavailable` (FAILED_INFRA, the slot given back); a candidate
-    wall hit is retried once and a second is the candidate's typed failure, exactly as for the pair.
+    The query runs as ONE fresh operation with a new identity, under the pair's own carrier, checks, budget and wall caps
+    (`infer_frozen_once`; V2's R1 (a), 18 Nov 2026: was two, `infer_frozen_pair`). Any fault of Carbon's is
+    `RetentionUnavailable` (FAILED_INFRA, the slot given back); a candidate wall hit is retried once and a second is the
+    candidate's typed failure, exactly as before.
     """
     import numpy as np
 
@@ -1819,7 +1843,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
-        infer_frozen_pair,
+        infer_frozen_once,
     )
     from carbon.scoring import pool_exam, pool_menu, pool_version
 
@@ -1908,15 +1932,20 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     procedure = accuracy.get("paired_repeat_procedure", "batched_measured")
     image = _inference_image_of(provider, regrade, submission_id)
 
+    # a NEW identity form (one operation, never an earlier pair's): the run and its one wall retry
+    base = (
+        "menu-rowcheck-once-"
+        + adapter.discovery.evaluation_pack_snapshot.manifest_digest
+        + "-"
+        + submission_id
+    )
+    identities = (base, base + "-wall-retry")
+
     def attempt(suffix):
-        return infer_frozen_pair(
+        return infer_frozen_once(
             provider.ledger,
             owner=owner,
-            identity="menu-rowcheck-"
-            + adapter.discovery.evaluation_pack_snapshot.manifest_digest
-            + "-"
-            + submission_id
-            + suffix,
+            identity=base + suffix,
             inference_image=image,
             recipe=recipe,
             challenge_binding={
@@ -1959,6 +1988,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         subset_shape,
         output_dtype(interface),
         procedure,
+        identities,
     )
     width = len(flat) // len(queried)
     if not width or width * len(queried) != len(flat):

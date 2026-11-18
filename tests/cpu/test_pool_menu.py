@@ -663,19 +663,23 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
 
     calls = []
 
-    def fake_pair(ledger, **kwargs):
+    def fake_once(ledger, **kwargs):
         seen.update(kwargs)
         calls.append(kwargs["identity"])
         return SimpleNamespace(evidence={"fake": True})
 
-    monkeypatch.setattr(paired_inference, "infer_frozen_pair", fake_pair)
-    monkeypatch.setattr(
-        lrr,
-        "_menu_rowcheck_outputs",
-        lambda evidence, entry, subset, shape, dtype, procedure: [
-            float(v) for v in subset[:, 0]
-        ],
-    )
+    def no_pair(*_a, **_k):
+        raise AssertionError("the re-check runs ONE fresh operation (V2 R1 (a)), never a pair")
+
+    monkeypatch.setattr(paired_inference, "infer_frozen_once", fake_once)
+    monkeypatch.setattr(paired_inference, "infer_frozen_pair", no_pair)
+    read_with = []
+
+    def outputs(evidence, entry, subset, shape, dtype, procedure, identities):
+        read_with.append(identities)
+        return [float(v) for v in subset[:, 0]]
+
+    monkeypatch.setattr(lrr, "_menu_rowcheck_outputs", outputs)
     snapshot = SimpleNamespace(
         manifest_digest="sha256:" + "0" * 64,
         read_json_role=lambda *a, **k: {"paired_repeat_procedure": "per_case"},
@@ -758,7 +762,9 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
             first["inputs"].tolist() == inputs[plan].tolist()
         )  # the keyed subset, in the keyed order
         assert first["expected_output_shape"] == (5, 1)
-    assert first["identity"].startswith("menu-rowcheck-")  # never the pair's identity
+    assert first["identity"].startswith("menu-rowcheck-once-")  # never the pair's identity, nor an earlier pair's
+    # the reader accepts the run and its one wall retry only
+    assert read_with[0] == (first["identity"], first["identity"] + "-wall-retry")
     read = pool_menu.read_rowcheck_side_file(raw)
     assert read["positions"] == plan
     assert read["outputs"] == [[float(inputs[i, 0])] for i in plan]
@@ -944,3 +950,80 @@ def test_no_menu_file_is_a_producer_file():
         "pool_version.py",
         "menu_score.py",
     } & set(physical_dual_pack._SHARED_FILES)
+
+
+def test_the_one_op_recheck_reader_binds_the_run_to_its_identity_state_and_inputs(monkeypatch):
+    """V2 R1 (a), 18 Nov 2026: the re-check is ONE fresh operation. Its reader takes the pair reader's own phase checks
+    (operation, controls, originals, receipt, accounting) on that one phase, and refuses (Carbon's gap) a run whose
+    ledger identity is not this re-check's (or its wall retry's), whose state is not the graded entry's, or whose
+    inputs are not the keyed subset."""
+    import numpy as np
+
+    from carbon.challenge_validator import lean_recipe_retention as lrr
+    from carbon.development_session import paired_inference
+    from carbon.development_session.bundle_construction_worker import _digest, _tensors
+    from carbon.scoring import inference_pair_evidence as pair_reader
+
+    subset = np.arange(6.0).reshape(3, 2)
+    identities = ("menu-rowcheck-once-p-rtsk_x", "menu-rowcheck-once-p-rtsk_x-wall-retry")
+    seen = {}
+
+    def phase(value, expected, index, procedure):
+        seen.update(expected=expected, index=index, procedure=procedure, value=value)
+        return ((1.0, 2.0, 3.0), None, b"", b"")
+
+    monkeypatch.setattr(pair_reader, "_phase", phase)
+    monkeypatch.setattr(lrr, "_unblock_timing", lambda: None)
+
+    def evidence(**change):
+        body = {
+            "schema": paired_inference.ONCE_SCHEMA,
+            "execution_boundary": "C03_DOCKER",
+            "recipe_digest": "sha256:" + "1" * 64,
+            "state_digest": "sha256:" + "2" * 64,
+            "inputs_digest": _digest(_tensors(inputs=subset)),
+            "inference_image_id": "sha256:" + "3" * 64,
+            "logical_prediction_rows": 3,
+            "elapsed_seconds": 1.0,
+            "repeat": {
+                "worker_operation": "operation-" + "4" * 64,
+                "controls_digest": "sha256:" + "5" * 64,
+                "originals": {},
+                "accounting": {"ledger_identity": paired_inference.repeat_identity(identities[1])},
+            },
+            "scientific_qualification": False,
+            "official_eligible": False,
+        }
+        body.update(change)
+        return body
+
+    entry = {"state_digest": "sha256:" + "2" * 64}
+
+    def read(ev, at=entry):
+        return lrr._menu_rowcheck_outputs(ev, at, subset, (3, 1), "float64", "per_case", identities)
+
+    assert read(evidence()) == [1.0, 2.0, 3.0]
+    assert seen["index"] == 0 and seen["procedure"] == "per_case"
+    assert seen["expected"]["ledger_identities"] == [paired_inference.repeat_identity(identities[1])]
+    assert seen["expected"]["operation_ids"] == ["operation-" + "4" * 64]
+    assert seen["expected"]["output_shape"] == [3, 1]
+    other = evidence()
+    other["repeat"] = {**other["repeat"], "accounting": {"ledger_identity": paired_inference.repeat_identity("x")}}
+    for bad in (
+        other,
+        evidence(schema="carbon.source-free-inference-pair.v1"),
+        evidence(inputs_digest=_digest(_tensors(inputs=subset[::-1].copy()))),
+        evidence(logical_prediction_rows=2),
+        evidence(execution_boundary="TEST_ONLY_LOCAL_RUNNER"),
+    ):
+        with pytest.raises(lrr.RetentionUnavailable, match="menu_rowcheck_evidence_unreadable"):
+            read(bad)
+    with pytest.raises(lrr.RetentionUnavailable, match="menu_rowcheck_evidence_unreadable"):
+        read(evidence(), at={"state_digest": "sha256:" + "9" * 64})
+
+    def refused(*_a):
+        raise pair_reader.PairEvidenceRefused("receipt_binding")
+
+    monkeypatch.setattr(pair_reader, "_phase", refused)
+    with pytest.raises(lrr.RetentionUnavailable, match="menu_rowcheck_evidence_unreadable"):
+        read(evidence())
