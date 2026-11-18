@@ -418,7 +418,11 @@ def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_requ
     db.commit()
     receive(gate)  # accepted: the old unreferenced receipts went
     left = {row[0] for row in db.execute("SELECT sequence FROM receipt")}
-    assert left == {7, 1000, 1001}  # the referenced one, the highest old one (V2 keep rule c), the new one
+    assert left == {
+        7,
+        1000,
+        1001,
+    }  # the referenced one, the highest old one (V2 keep rule c), the new one
     db.close()
     # a journal of fresh receipts still refuses at the cap, with an alert
     (tmp_path / "fresh").mkdir()
