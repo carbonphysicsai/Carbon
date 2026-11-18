@@ -19,7 +19,7 @@ from .models import (
     digest,
 )
 
-PRUNE_AT = 0.8  # prune old unreferenced receipts at this share of the capacity (and alert)
+PRUNE_AT = 0.8  # prune old receipts (and alert) at this share of capacity
 #: A receipt older than this (by its received time) may be pruned when no journal extension table names it.
 PRUNE_AGE_NS = 3600 * 1_000_000_000
 #: At most this many receipts go in one admission (bounded work in the admission's transaction).
