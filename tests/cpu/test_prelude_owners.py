@@ -363,9 +363,8 @@ def test_a_king_admitted_under_an_earlier_pack_resolves_through_the_ledger():
 
 
 def test_a_grade_in_flight_holding_a_steps_owner_never_hangs_the_steps_they_run_after_it():
-    """V2's ruling (18 Nov 2026): the steps take the sequencer's exclusive FIRST, then their owners without waiting. A
-    grade in flight that holds one of their owners: the steps wait for it to end (the crown CAS), never while holding
-    owner claims, and then run."""
+    """Owner + V2 (18 Nov 2026): no door-wide exclusive. A grade in flight that holds one of the steps' owners: the
+    steps skip (holding nothing, never waiting) and run on a round after it ends."""
     claims = grade_sequencer.OwnerClaims()
     seen = []
     grader = _grader(claims, seen)
@@ -375,6 +374,7 @@ def test_a_grade_in_flight_holding_a_steps_owner_never_hangs_the_steps_they_run_
     def grade():
         with sequencer.task() as task:
             task.bind("rtsk_" + "g" * 64)
+            task.release_claim()
             assert claims.try_claim(KING_OWNER)  # the king's own miner's grade
             grading.set()
             assert finish.wait(5)
@@ -387,12 +387,13 @@ def test_a_grade_in_flight_holding_a_steps_owner_never_hangs_the_steps_they_run_
     threading.Thread(
         target=lambda: (grader._run_once(), done.set()), daemon=True
     ).start()
-    assert not done.wait(0.3) and seen == []
-    # waiting for the grade in flight, the steps hold no owner claim
-    assert claims.held() == {KING_OWNER}
+    assert done.wait(5) and seen == []  # skipped, never waited
+    assert claims.held() == {KING_OWNER}  # the steps hold no owner claim
     finish.set()
     thread.join(5)
-    assert done.wait(5) and len(seen) == 1
+    grader._prelude_after = 0.0
+    grader._run_once()
+    assert len(seen) == 1
 
 
 def _hold_bound():
