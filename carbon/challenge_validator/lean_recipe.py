@@ -1044,7 +1044,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         start, so a pass skips them before the owner check and the read (`get_research_result` verifies a SUCCEEDED
         task's evidence from disk; `owner` reads the ledger and hashes every served source, `_source_identity`). Live
         116, 18 Nov 2026: the first pass after every restart did that for every finished task the door ever took (~84
-        GB read, ~25 min before the first build), its ledger reads queued with every grade's. The views are the ones `get_research_result` returns, read with no
+        GB read, ~25 min before the first build), its ledger reads queued with every grade's. The views are the ones
+        `get_research_result` returns, read with no
         ledger access; a task not here (no open provider, no view) is read as before.
         """
         from carbon.research import DirectTaskStateV3
