@@ -297,7 +297,9 @@ class AutoGrader:
         `STRANDED_GRADE_HOLD_SECONDS` and `UPKEEP_DEFER_MAX_SECONDS` grading goes on, with ONE alert line
         ``stranded_filing_overdue``; the filing is still tried every round it is due (`STRANDED_RETRY_SECONDS`).
         """
-        if getattr(self, "_stranded_filed", False) or self.pool_store is None:
+        # a grader built without a pool store (one-shot tools, test doubles) files nothing and holds nothing
+        filed = getattr(self, "_stranded_filed", False)
+        if filed or getattr(self, "pool_store", None) is None:
             return False
         now = time.monotonic()
         since = self.__dict__.setdefault("_stranded_hold_since", now)
