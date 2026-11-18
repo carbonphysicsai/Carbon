@@ -308,6 +308,59 @@ def _settle_dead_numerical(ledger, *, owner, keep):
     return settled
 
 
+def settle_previous_runs(ledger, *, owner, before):
+    """At receiver start (`OwnerProviders.restore`): settle this owner's operations still RESERVED by a PREVIOUS
+    receiver process (V2's code item, live 116 21:35Z, 18 Nov 2026: the dead-RESERVED settle keeps an op whose worker
+    container is still ALIVE, and a container a dead receiver started stays alive, so the owner is blocked with "one
+    numerical worker; reconcile active operation"). An op created before ``before`` (this start's wall time) cannot have
+    a supervisor in this process; under the owner's numerical lease (so none anywhere), its exact worker container is
+    stopped by name and launch label and it is settled FAILED_INFRA (Carbon's, owed; the reservation kept as
+    conservative consumption) by `reconcile_worker`'s own settle. An op created at or after ``before`` (this process's)
+    and every finished op are never touched; any doubt (no exact intent, a daemon that does not answer, cleanup not
+    observed) keeps the op as it was. Never raises. Returns how many were settled; one logged line each
+    (``op_settled_previous_run``), or ``op_previous_run_kept`` with why one was left.
+    """
+    import hashlib
+
+    from carbon.battery.intake import log
+
+    who = hashlib.sha256(owner.encode()).hexdigest()
+    try:
+        with ledger.db() as db:
+            rows = db.execute(
+                "SELECT id, phase FROM operations WHERE owner=? AND state='RESERVED' AND created<?",
+                (owner, float(before)),
+            ).fetchall()
+    except Exception:  # noqa: BLE001 - an unreadable ledger is the normal path's to report
+        return 0
+    if not rows:
+        return 0
+    settled = 0
+    try:
+        with _numerical_lease(ledger):
+            for identity, phase in rows:
+                try:
+                    _reconcile_locked(ledger, owner=owner, identity=identity)
+                except Exception as kept:  # noqa: BLE001 - any doubt keeps the op
+                    log(
+                        "op_previous_run_kept",
+                        owner_sha256=who,
+                        phase=phase,
+                        reason=(
+                            str(kept)[:120]
+                            if isinstance(kept, ValueError)
+                            else type(kept).__name__
+                        ),
+                    )
+                    continue
+                settled += 1
+                log("op_settled_previous_run", owner_sha256=who, phase=phase)
+    except ValueError:
+        # the lease is held: a live supervisor exists after all, so nothing is touched
+        log("op_previous_run_kept", owner_sha256=who, reason="lease_held")
+    return settled
+
+
 @contextmanager
 def _numerical_lease(ledger):
     import fcntl

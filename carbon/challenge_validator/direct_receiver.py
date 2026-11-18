@@ -2448,6 +2448,8 @@ class OwnerProviders:
 
         first = None
         began = time.monotonic()
+        #: this start's wall time: an op RESERVED before it is a previous receiver process's (`settle_previous_runs`)
+        started = time.time()
         took = []
         for directory in sorted(self.root.iterdir()):
             name = directory.name
@@ -2473,7 +2475,15 @@ class OwnerProviders:
                         self._lazy[name] = owner["hotkey"]
                         self._lazy_index[name] = found[1]
                     continue
-                self._open(owner["hotkey"], restoring=True, host=host)
+                provider = self._open(owner["hotkey"], restoring=True, host=host)
+                # its ops a previous receiver process left RESERVED: container stopped, settled FAILED_INFRA (V2)
+                from carbon.development_session.research_carrier import (
+                    settle_previous_runs,
+                )
+
+                ledger = getattr(provider, "ledger", None)
+                if ledger is not None:
+                    settle_previous_runs(ledger, owner=owner["hotkey"], before=started)
             except Exception as failure:
                 opened = any(
                     hashlib.sha256(hotkey.encode()).hexdigest() == name
