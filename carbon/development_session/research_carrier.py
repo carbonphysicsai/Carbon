@@ -267,7 +267,10 @@ ONE_NUMERICAL_WORKER = "one numerical worker; reconcile active operation"
 def _settle_dead_numerical(ledger, *, owner, keep):
     """Settle this owner's RESERVED numerical ops left by a dead run (the caller holds the owner's numerical lease, so
     none of them has a live supervisor), each through `reconcile_worker`'s own settle (FAILED_INFRA, the reservation
-    kept as conservative consumption, never a retry), and ONLY when its worker container is gone (`only_if_gone`).
+    kept as conservative consumption, never a retry). A worker container still present is an ORPHAN of a dead
+    process (the lease is an flock the dead holder lost; Deploy, live 116 18 Nov 2026 21:35Z: a restart without a drain
+    left remote containers running and every later grade of those owners failed): it is removed by its exact name and
+    the op settled; a container that cannot be confirmed gone keeps the op (`reconcile_worker`'s own check).
     ``keep`` (the op about to run) is never touched. Returns how many were settled; one logged line each
     (``op_settled_dead_reserved``), or ``op_dead_reserved_kept`` with why one was left.
     """
@@ -286,7 +289,7 @@ def _settle_dead_numerical(ledger, *, owner, keep):
         ):
             continue
         try:
-            _reconcile_locked(ledger, owner=owner, identity=op["id"], only_if_gone=True)
+            _reconcile_locked(ledger, owner=owner, identity=op["id"])
         except Exception as kept:  # noqa: BLE001
             # any doubt (ssh, docker, a timeout) keeps the op as it was
             log(

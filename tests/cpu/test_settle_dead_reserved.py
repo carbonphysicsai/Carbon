@@ -1,7 +1,7 @@
 """Lead (18 Nov 2026): live 116 had 8 RESERVED numerical ops left by dead runs, each refusing every later build of its
 owner with "one numerical worker; reconcile active operation" until a door stop and a manual `reconcile_worker`. A
 round that holds the owner's numerical lease (so no live supervisor of that owner runs) now settles such an op itself
-through `reconcile_worker`'s own settle, ONLY when its worker container is gone, and reserves once more.
+through `reconcile_worker`'s own settle (an orphan container of the dead run removed first), and reserves once more.
 """
 
 from __future__ import annotations
@@ -65,18 +65,43 @@ def test_a_dead_reserved_op_whose_worker_is_gone_is_settled_and_the_next_op_rese
     assert len(removed) == 1
 
 
-def test_a_worker_container_still_present_is_never_settled(tmp_path, monkeypatch):
+def test_an_orphan_container_of_a_dead_run_is_removed_and_its_op_settled(tmp_path, monkeypatch):
+    """Deploy (live 116, 18 Nov 2026 21:35Z): a restart without a drain left the op's remote container running. Under
+    the owner's lease no live supervisor exists, so the container is an orphan: removed by its exact name, the op
+    settled, and the next op reserves."""
     ledger, _directory = setup(tmp_path)
-    removed = _docker(monkeypatch, listed="c0ffee\n")
+    present = ["c0ffee"]
+    removed = []
+
+    def remove(**kwargs):
+        removed.append(kwargs)
+        present[0] = ""
+
+    monkeypatch.setattr(carrier, "remove_exact_container", remove)
+    monkeypatch.setattr(
+        carrier,
+        "DockerCLI",
+        lambda: SimpleNamespace(run=lambda *a, **k: SimpleNamespace(stdout=present[0])),
+    )
+    lines = _logged(monkeypatch)
+    with carrier._numerical_lease(ledger):
+        assert carrier._settle_dead_numerical(ledger, owner="one", keep="next") == 1
+        assert _reserve_next(ledger)["dispatch"] is True
+    assert len(removed) == 1
+    assert [event for event, _ in lines] == ["op_settled_dead_reserved"]
+
+
+def test_a_container_that_cannot_be_confirmed_gone_keeps_the_op(tmp_path, monkeypatch):
+    ledger, _directory = setup(tmp_path)
+    _docker(monkeypatch, listed="c0ffee")  # still listed after the removal
     lines = _logged(monkeypatch)
     with carrier._numerical_lease(ledger):
         assert carrier._settle_dead_numerical(ledger, owner="one", keep="next") == 0
         with pytest.raises(ValueError, match="one numerical worker"):
             _reserve_next(ledger)
     assert ledger.status(owner="one")["operations"][0]["state"] == "RESERVED"
-    assert removed == []  # nothing removed: it is left as it was
     assert lines[0][0] == "op_dead_reserved_kept"
-    assert "worker container present" in lines[0][1]["reason"]
+    assert "cleanup uncertain" in lines[0][1]["reason"]
 
 
 def test_the_op_about_to_run_is_never_settled(tmp_path, monkeypatch):
