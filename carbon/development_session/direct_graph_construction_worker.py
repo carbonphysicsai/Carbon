@@ -1289,13 +1289,21 @@ def reconstruct_and_infer_graph_public(
     binding = _checked_binding(recipe, challenge_binding)
     policy_digest = verify_direct_resource_policy(binding, limits_document)
     policy = limits_document["reconstruction_resource_policy"]
+    from carbon.reconstruction import grade_lanes
+
     started = time.monotonic()
     deadline = started + policy["total_reconstruction_wall_seconds_max"]
     build_identity = direct_child_identity(identity, "build")
     inference_identity = direct_child_identity(identity, "inference")
+    waited_at_start = grade_lanes.waited_seconds()
+
+    def queued() -> float:
+        # Carbon's queue since the start (a lane re-take, a build machine's slot), never the miner's time: added back to
+        # the total deadline (live 116, 18 Nov 2026); each phase keeps its own registered cap
+        return grade_lanes.waited_seconds() - waited_at_start
 
     def phase_seconds(name: str) -> int:
-        remaining = int(deadline - time.monotonic())
+        remaining = int(deadline + queued() - time.monotonic())
         if remaining < 40:
             raise RecipeRefused("construction_total_deadline_reached")
         return min(policy[name], remaining)
@@ -1395,7 +1403,7 @@ def reconstruct_and_infer_graph_public(
         and timed.state_digest != build.state_digest
     ):
         timed = None
-    if elapsed > policy["total_reconstruction_wall_seconds_max"]:
+    if elapsed - queued() > policy["total_reconstruction_wall_seconds_max"]:
         raise RecipeRefused("construction_total_deadline_reached")
     if build.state_digest != inference.state_digest or (
         timed is not None and timed.state_digest != build.state_digest

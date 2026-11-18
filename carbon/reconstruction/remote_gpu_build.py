@@ -1270,17 +1270,20 @@ def op(
     pause = time.sleep if sleep is None else sleep
     poll = POLL_S if poll_s is None else poll_s
     deadline = time.monotonic() + SLOT_WAIT_SECONDS
+    from carbon.reconstruction import grade_lanes
+
     with ExitStack() as held:
-        binding = _take(
-            offer,
-            identity,
-            key,
-            held=held,
-            check=check,
-            pause=pause,
-            poll=poll,
-            deadline=deadline,
-        )
+        with grade_lanes.timed_wait():  # a slot wait is Carbon's queue (`grade_lanes.waited_seconds`)
+            binding = _take(
+                offer,
+                identity,
+                key,
+                held=held,
+                check=check,
+                pause=pause,
+                poll=poll,
+                deadline=deadline,
+            )
         token = _OP.set(binding)
         try:
             yield binding

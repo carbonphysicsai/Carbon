@@ -312,6 +312,33 @@ _RELEASER: ContextVar = ContextVar("carbon_grade_lane_releaser", default=None)
 #: What must happen just before a round gives its lane back for its commit-turn wait (`before_give_back`): the grade's
 #: own sampler takes its stop sample on the lane it ran on.
 _GIVE_BACK: ContextVar = ContextVar("carbon_grade_lane_give_back", default=())
+#: Per thread: the seconds it has spent waiting for a lane re-take or a build machine's slot (`timed_wait`), ever
+#: increasing. A construction's total deadline adds back the part spent since it started (`waited_seconds`): Carbon's
+#: queue, never the miner's time (live 116, 18 Nov 2026: 18 builds SUCCEEDED, then construction_total_deadline_reached
+#: after a 51 min lane re-take).
+_WAITED = threading.local()
+
+
+def waited_seconds():
+    """The calling thread's seconds spent waiting for a lane or a slot so far (`timed_wait`)."""
+    return getattr(_WAITED, "total", 0.0)
+
+
+@contextmanager
+def timed_wait():
+    """Around a wait for a lane or a build machine's slot: its seconds go into `waited_seconds`."""
+    import time
+
+    began = time.monotonic()
+    try:
+        yield
+    finally:
+        _WAITED.total = waited_seconds() + (time.monotonic() - began)
+
+
+def _retake(releaser):
+    with timed_wait():
+        return releaser.retake()
 
 
 def offer_releaser(releaser):
@@ -353,7 +380,7 @@ def released():
         yield
     finally:
         # `retake` never returns without a lane held (V2 B1): the round never goes on bound to the lane it gave back
-        _BOUND.set(releaser.retake())
+        _BOUND.set(_retake(releaser))
 
 
 def _laneless(releaser, lane):
@@ -373,7 +400,7 @@ def take_lane_if_laneless():
     laneless build round ever lands on cores a grade lane holds."""
     releaser = _RELEASER.get()
     if _laneless(releaser, _BOUND.get()):
-        _BOUND.set(releaser.retake())
+        _BOUND.set(_retake(releaser))
     return _BOUND.get()
 
 
