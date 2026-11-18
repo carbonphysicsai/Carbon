@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import math
 import os
 import re
 import threading
@@ -629,12 +630,26 @@ class AutoGrader:
         limit = GRADE_HUNG_SECONDS
         if limit is None:
             return
+        from . import infra_requeue
+
         for ticket, submission_id in sequencer.overdue(limit):
             sequencer.abandon(ticket)
+            # V2 (18 Nov 2026): the hung grade's create-only evaluation files (its pack binding first) are set aside
+            # NOW, whatever their age (`started` = infinity: this process wrote them), else `_fail`'s automatic retry, in
+            # this same process, meets them and burns its one retry on `evaluation_pack_binding_unavailable`. The kept
+            # copy also bumps the retry's regrade generation, so it never meets the hung thread's op identities. The
+            # hung thread's open files stay valid across the rename, and it never commits.
+            kept = None
+            try:
+                kept = infra_requeue.set_aside_interrupted(
+                    self.root, submission_id, started=math.inf
+                )
+            except (OSError, ValueError):
+                pass  # left in place: the retry meets its conflict as before (FAILED, Carbon's)
             try:
                 from carbon.battery.intake import log
 
-                log("grade_hung_ended", task=submission_id, seconds=limit)
+                log("grade_hung_ended", task=submission_id, seconds=limit, kept=kept)
             except Exception:  # noqa: BLE001, S110 - a log line never stops this
                 pass
             self._fail(submission_id, GRADE_HUNG)

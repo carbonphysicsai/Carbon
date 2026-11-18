@@ -204,3 +204,37 @@ def test_a_directory_this_grader_process_wrote_is_left_alone(tmp_path):
         infra_requeue.set_aside_interrupted(tmp_path / "y", TASK, started=None) is None
     )
     assert infra_requeue.set_aside_interrupted(tmp_path / "y", TASK, started=started)
+
+
+def test_a_grade_ended_as_hung_has_its_evaluation_set_aside_for_a_fresh_retry(tmp_path):
+    """V2 (18 Nov 2026): a grade ended as hung (`AutoGrader._end_hung_grades`) wrote its evaluation in THIS process, so
+    the start-time rule alone would leave it. It is set aside before `_fail`, whatever its age: the automatic retry
+    binds a fresh evaluation and takes a fresh regrade generation (never the hung thread's op identities)."""
+    from carbon.challenge_validator import grade_sequencer
+
+    evaluation = tmp_path / "auto-grade" / "artifacts" / (TASK + ".evaluation")
+    evaluation.mkdir(parents=True)
+    (evaluation / "evaluation-pack-binding.json").write_bytes(b'{"entry_id": "e1"}')
+    base = tmp_path / "auto-grade" / "artifacts"
+    assert retention._regrade_generation(base, TASK) == 0
+    sequencer = grade_sequencer.Sequencer()
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.root = tmp_path
+    failed = []
+
+    def fail(sid, code):
+        assert not evaluation.exists()  # set aside BEFORE the retry is armed
+        failed.append((sid, code))
+
+    grader._fail = fail
+    with sequencer.task() as task:
+        task.bind(TASK, "h:x")
+        old, auto_grade.GRADE_HUNG_SECONDS = auto_grade.GRADE_HUNG_SECONDS, -1
+        try:
+            grader._end_hung_grades(sequencer)
+        finally:
+            auto_grade.GRADE_HUNG_SECONDS = old
+    assert failed == [(TASK, auto_grade.GRADE_HUNG)]
+    kept = tmp_path / "auto-grade" / "requeued" / (TASK + ".interrupted-1.evaluation")
+    assert (kept / "evaluation-pack-binding.json").read_bytes() == b'{"entry_id": "e1"}'
+    assert retention._regrade_generation(base, TASK) == 1  # the retry's regrade id differs
