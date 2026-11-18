@@ -287,12 +287,17 @@ def _settle_dead_numerical(ledger, *, owner, keep):
             continue
         try:
             _reconcile_locked(ledger, owner=owner, identity=op["id"], only_if_gone=True)
-        except (ValueError, OSError) as kept:
+        except Exception as kept:  # noqa: BLE001
+            # any doubt (ssh, docker, a timeout) keeps the op as it was
             log(
                 "op_dead_reserved_kept",
                 owner_sha256=who,
                 phase=op.get("phase"),
-                reason=str(kept)[:120],
+                reason=(
+                    str(kept)[:120]
+                    if isinstance(kept, ValueError)
+                    else type(kept).__name__
+                ),
             )
             continue
         settled += 1

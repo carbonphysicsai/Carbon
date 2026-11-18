@@ -96,3 +96,24 @@ def test_the_manual_settle_is_unchanged(tmp_path, monkeypatch):
     assert len(removed) == 1
     with carrier._numerical_lease(ledger), pytest.raises(ValueError, match="active"):
         carrier.reconcile_worker(ledger, owner="one", identity="worker")
+
+
+def test_a_docker_or_ssh_failure_keeps_the_op_and_the_plain_refusal(tmp_path, monkeypatch):
+    """V2: a `cli.run` that raises (ssh, docker, a timeout) never fails the round: the op stays RESERVED, the line says
+    why, and the round's reservation refuses exactly as before."""
+    ledger, _directory = setup(tmp_path)
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("ssh: connect to host timed out")
+
+    monkeypatch.setattr(carrier, "remove_exact_container", lambda **kwargs: None)
+    monkeypatch.setattr(carrier, "DockerCLI", lambda: SimpleNamespace(run=broken))
+    lines = _logged(monkeypatch)
+    with carrier._numerical_lease(ledger):
+        assert carrier._settle_dead_numerical(ledger, owner="one", keep="next") == 0
+        with pytest.raises(ValueError) as refused:
+            _reserve_next(ledger)
+    assert str(refused.value) == carrier.ONE_NUMERICAL_WORKER
+    assert ledger.status(owner="one")["operations"][0]["state"] == "RESERVED"
+    assert [event for event, _ in lines] == ["op_dead_reserved_kept"]
+    assert lines[0][1]["reason"] == "RuntimeError"
