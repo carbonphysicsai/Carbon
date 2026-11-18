@@ -314,3 +314,36 @@ def test_a_king_admitted_under_an_earlier_pack_resolves_through_the_ledger():
     assert states == [
         (False, False)
     ]  # narrowed, and the king's owner is held by the steps
+
+
+def test_a_grade_in_flight_holding_a_steps_owner_never_hangs_the_steps_they_run_after_it():
+    """V2's ruling (18 Nov 2026): the steps take the sequencer's exclusive FIRST, then their owners without waiting. A
+    grade in flight that holds one of their owners: the steps wait for it to end (the crown CAS), never while holding
+    owner claims, and then run."""
+    claims = grade_sequencer.OwnerClaims()
+    seen = []
+    grader = _grader(claims, seen)
+    sequencer = grader.sequencer
+    grading, finish = threading.Event(), threading.Event()
+
+    def grade():
+        with sequencer.task() as task:
+            task.bind("rtsk_" + "g" * 64)
+            assert claims.try_claim(KING_OWNER)  # the king's own miner's grade
+            grading.set()
+            assert finish.wait(5)
+            claims.release(KING_OWNER)
+
+    thread = threading.Thread(target=grade, daemon=True)
+    thread.start()
+    assert grading.wait(5)
+    done = threading.Event()
+    threading.Thread(
+        target=lambda: (grader._run_once(), done.set()), daemon=True
+    ).start()
+    assert not done.wait(0.3) and seen == []
+    # waiting for the grade in flight, the steps hold no owner claim
+    assert claims.held() == {KING_OWNER}
+    finish.set()
+    thread.join(5)
+    assert done.wait(5) and len(seen) == 1

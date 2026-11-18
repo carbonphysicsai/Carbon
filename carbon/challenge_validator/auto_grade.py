@@ -624,10 +624,12 @@ class AutoGrader:
                     # V2's ruling B (17 Nov 2026): only the owners whose ledgers the steps touch, never every owner, so
                     # every other miner's builds keep running (live 116: building_now 1 while they waited); no grade is
                     # in flight meanwhile (`sequencer.exclusive`, the integrity guard), as before
-                    with self._prelude_owners_held(claims) as held:
+                    # V2's ruling (18 Nov 2026): the sequencer's exclusive FIRST (no grade in flight: the crown
+                    # CAS), then the steps' owners without waiting; one busy leaves at once and the steps are
+                    # deferred. Never a wait on the exclusive while this round holds owner claims.
+                    with sequencer.exclusive(), self._prelude_owners_held(claims) as held:
                         if held:
-                            with sequencer.exclusive():
-                                self._run_prelude()
+                            self._run_prelude()
                 finally:
                     prelude.release()
         skipped = set()
