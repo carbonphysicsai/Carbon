@@ -192,6 +192,10 @@ def decide(
     The order and the activation point are read in one transaction; each recipe digest is then read (and, the first
     time, stored) outside it (`recipe_digest`), and each earlier first's slot state in its own short transaction.
     """
+    # Live 116, 18 Nov 2026 (stack 20:24:26Z): one BEGIN IMMEDIATE per earlier submission, under the grade claim, queued
+    # behind the advance rounds and stopped every grade. The order, the activation point, every stored digest and every
+    # earlier first's slot state are now read in this ONE transaction; only a digest never stored is computed (and
+    # stored, once ever) outside it. Same decisions in the same order.
     with _db(ledger) as db:
         _prepare(db)
         ordered = _admitted(db, adapter.contract_digest)
@@ -199,9 +203,26 @@ def decide(
         if own is None:
             return GRADE, None  # no admission row: nothing to order it by
         start = _activation(db, adapter.contract_digest)
+        stored = dict(
+            db.execute(
+                "SELECT submission_id, recipe_digest FROM recipe_copy_digests"
+            ).fetchall()
+        )
+        states = dict(
+            db.execute(
+                "SELECT submission_id, state FROM exam_graded WHERE challenge_id=? AND challenge_version=? "
+                "AND exam_key=? AND kind='GRADED'",
+                (challenge_id, challenge_version, exam_key),
+            ).fetchall()
+        )
     if own <= start:
         return GRADE, None  # admitted before the rule: never matched
-    digest = recipe_digest(adapter, submission_id, ledger)
+
+    def digest_of(task):
+        known = stored.get(task)
+        return known if known is not None else recipe_digest(adapter, task, ledger)
+
+    digest = digest_of(submission_id)
     if digest is None:
         return GRADE, None
     for earlier, seq in ordered:
@@ -209,14 +230,10 @@ def decide(
             continue  # before the rule: never a first
         if seq >= own:
             break
-        if recipe_digest(adapter, earlier, ledger) != digest:
+        if digest_of(earlier) != digest:
             continue
-        with _db(ledger) as db:
-            row = db.execute(
-                "SELECT state FROM exam_graded WHERE challenge_id=? AND challenge_version=? AND exam_key=? "
-                "AND submission_id=? AND kind='GRADED'",
-                (challenge_id, challenge_version, exam_key, earlier),
-            ).fetchone()
+        state = states.get(earlier)
+        row = None if state is None else (state,)
         if row is not None and row[0] == "COUNTED":
             return COPY, earlier
         if row is not None and row[0] == "RESERVED":

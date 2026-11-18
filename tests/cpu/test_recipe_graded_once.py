@@ -646,3 +646,35 @@ def test_the_real_lean_recipe_owner_on_a_rollback_journal_ledger_never_locks(doo
     assert door.grader.run_once() == (T[0], "GRADED")
     assert door.grader.run_once() == (T[1], "DUPLICATE")
     assert door.graded == [T[0]]
+
+
+def test_a_decision_over_many_earlier_submissions_opens_one_ledger_transaction(door, monkeypatch):
+    """Live 116, 18 Nov 2026 (stack 20:24:26Z): `decide` opened a BEGIN IMMEDIATE per earlier submission under the
+    grade claim and every grade stopped behind the build rounds' ledger reads. With every digest already stored, a
+    decision over many earlier submissions now opens exactly one ledger transaction, and decides the same."""
+    many = [f"rtsk_{n:064x}" for n in range(100, 140)]
+    for n, sid in enumerate(many):
+        door.submit(sid, HOTKEYS[n % len(HOTKEYS)], _recipe(setting=1000 + n))
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    for sid in [*many, T[0], T[1]]:
+        recipe_copies.recipe_digest(door.adapter, sid, door.ledger)  # stored, as at admission
+    opened = []
+    real = door.ledger._db
+
+    def counted():
+        opened.append(1)
+        return real()
+
+    monkeypatch.setattr(door.ledger, "_db", counted)
+    decision = recipe_copies.decide(
+        adapter=door.adapter,
+        ledger=door.ledger,
+        marker=door.grader.marker,
+        submission_id=T[1],
+        challenge_id=CHALLENGE.challenge_id,
+        challenge_version=CHALLENGE.version,
+        exam_key=EXAM,
+    )
+    assert decision == (recipe_copies.WAIT, T[0])  # T0 is unsettled: same decision as before
+    assert len(opened) == 1
