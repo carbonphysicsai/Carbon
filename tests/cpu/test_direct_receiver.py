@@ -2169,7 +2169,8 @@ def test_an_owner_the_restore_refuses_is_named_in_the_journal(
     tmp_path, monkeypatch, capsys
 ):
     """Switch 3 (18 Nov 2026): the restore refused at one owner and nothing said which. It logs the owner's directory
-    (its sha256) and the reason; with no other owner to open, the start refuses as before."""
+    (its sha256) and the reason; with no other owner to open, the start refuses as before.
+    """
     name = hashlib.sha256(OWNER.encode()).hexdigest()
     (tmp_path / name).mkdir()
     monkeypatch.setattr(receiver, "_private_directory", lambda path: path)
@@ -2275,7 +2276,9 @@ def test_a_start_that_can_open_no_owner_refuses_as_before(tmp_path, monkeypatch)
         pool.restore()
 
 
-def test_the_crown_host_owner_is_never_set_aside_the_start_refuses(tmp_path, monkeypatch):
+def test_the_crown_host_owner_is_never_set_aside_the_start_refuses(
+    tmp_path, monkeypatch
+):
     """V2 (18 Nov 2026): the crown average's host owner decides the crown's derived rebuilds; a start that cannot
     reopen it refuses as before, whatever else opened."""
     from carbon.challenge_validator import crown_average

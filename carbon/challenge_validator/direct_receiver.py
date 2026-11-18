@@ -2133,16 +2133,20 @@ class OwnerProviders:
                     hashlib.sha256(hotkey.encode()).hexdigest() == name
                     for hotkey in self._providers
                 )
-                host = name == hashlib.sha256(crown_average.HOST_OWNER.encode()).hexdigest()
+                host = name == _owner_name(crown_average.HOST_OWNER)
                 if opened or host:
                     # its provider holds work (never left half-open behind a set-aside), or it is the crown average's
                     # host owner (V2 18 Nov: the crown is never decided without it)
-                    _log_start_failure("owner_restore_failed", failure, owner_sha256=name)
+                    _log_start_failure(
+                        "owner_restore_failed", failure, owner_sha256=name
+                    )
                     raise
                 code = getattr(failure, "code", None) or type(failure).__name__
                 with self._lock:
                     self._set_aside[name] = code
-                _log_start_failure("owner_restore_set_aside", failure, owner_sha256=name)
+                _log_start_failure(
+                    "owner_restore_set_aside", failure, owner_sha256=name
+                )
                 first = failure if first is None else first
         if first is not None and not self._providers:
             # no owner could be reopened: a whole-door failure, never one owner's
@@ -2222,6 +2226,11 @@ def _stop_providers(providers, *, cancel):
             if first is None:
                 raise
             _log_start_failure("receiver_close_refused", late, first=first)
+
+
+def _owner_name(hotkey):
+    """An owner's directory name under the receiver's owners/ (the hotkey's sha256)."""
+    return hashlib.sha256(hotkey.encode()).hexdigest()
 
 
 def _log_start_failure(event, failure, **fields):

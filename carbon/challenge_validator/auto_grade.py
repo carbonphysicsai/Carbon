@@ -412,7 +412,7 @@ class AutoGrader:
         return held
 
     def _crown_steps(self):
-        """The incumbent's crown steps, in the round's order, unless they hold (`_crown_held`)."""
+        """The incumbent's crown steps in the round's order, unless held (`_crown_held`)."""
         if self._crown_held():
             return
         self.activity = "king"
