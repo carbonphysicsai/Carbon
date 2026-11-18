@@ -1604,6 +1604,10 @@ def _checked_path(value, reason):
     return value
 
 
+#: Under the door user's HOME: the lane key a box link uses when its box file names none (Lead, 18 Nov 2026).
+DEFAULT_LANE_KEY = ".ssh/remote_lane_ed25519"
+
+
 def known_hosts_path(lane) -> Path:
     return Path(lane.lane_dir) / "known_hosts"
 
@@ -1615,8 +1619,13 @@ def pinned_ssh_options(lane):
     """
     known = _checked_path(str(known_hosts_path(lane)), b"remote_gpu_build_box_dir")
     identity = []
-    if lane.spec.ssh_key is not None:
-        key = _checked_path(lane.spec.ssh_key, b"remote_gpu_build_box_ssh_key")
+    key = lane.spec.ssh_key
+    if key is None:
+        # a box file without ``ssh_key`` (admitted before it): the door's lane key (`DEFAULT_LANE_KEY`) when present
+        default = os.path.join(os.environ.get("HOME", "/"), DEFAULT_LANE_KEY)
+        key = default if os.path.isfile(default) else None
+    if key is not None:
+        key = _checked_path(key, b"remote_gpu_build_box_ssh_key")
         identity = ["-i", key, "-o", "IdentitiesOnly=yes"]
     return [*identity,
         "-o",

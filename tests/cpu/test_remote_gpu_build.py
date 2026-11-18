@@ -2148,7 +2148,7 @@ def test_a_box_admitted_with_another_image_is_skipped_never_refused(host):
     assert (_boxes_dir(host) / f"{BOX}.json").exists()
 
 
-def test_a_box_link_uses_the_key_its_box_file_names_and_only_it(host):
+def test_a_box_link_uses_the_key_its_box_file_names_and_only_it(host, monkeypatch):
     """Live 116, 18 Nov 2026: a replacement box at a new address got "Permission denied (publickey)" for hours (only a
     hand-written ssh config block named the old address's key). A box file's ``ssh_key`` goes into every link to it,
     with IdentitiesOnly; a box file without one is linked as before; a malformed one is no box.
@@ -2160,9 +2160,17 @@ def test_a_box_link_uses_the_key_its_box_file_names_and_only_it(host):
     (box,) = remote_gpu_build.boxes(_pool(host, values))
     shim = remote_gpu_build.ssh_shim_text(box, "/usr/bin/ssh")
     assert f"-i {key} -o IdentitiesOnly=yes" in shim
+    home = host / "home"
+    monkeypatch.setenv("HOME", str(home))
     write_box(host, box_document())
     (box,) = remote_gpu_build.boxes(_pool(host, values))
     assert "-i " not in remote_gpu_build.ssh_shim_text(box, "/usr/bin/ssh")
+    # a box file without one: the door's lane key when present (Lead, 18 Nov 2026)
+    default = home / remote_gpu_build.DEFAULT_LANE_KEY
+    default.parent.mkdir(parents=True)
+    default.write_text("key")
+    shim = remote_gpu_build.ssh_shim_text(box, "/usr/bin/ssh")
+    assert f"-i {default} -o IdentitiesOnly=yes" in shim
     write_box(host, {**box_document(), "ssh_key": "relative/key"})
     assert remote_gpu_build.boxes(_pool(host, values)) == ()
 
