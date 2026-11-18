@@ -526,9 +526,8 @@ def _ledger_with(tmp_path, reserved):
 
 
 def test_only_a_running_task_holding_a_build_slot_counts_as_building(tmp_path):
-    """Live ops' queue truth audit (18 Nov 2026): 12 shown building, 2 really building. A RUNNING task is building only
-    while one of its own operations is RESERVED (it holds a slot); the rest still wait to build, counted and labelled
-    so."""
+    """Live ops' queue truth audit (18 Nov 2026): 12 shown building, 2 really building. A RUNNING task's ROW says
+    building only while one of its own operations is RESERVED (it holds a slot); else "waiting to build"."""
     from carbon.development_session.bundle_construction_worker import (
         direct_child_identity,
     )
@@ -544,7 +543,8 @@ def test_only_a_running_task_holding_a_build_slot_counts_as_building(tmp_path):
         tmp_path, [direct_child_identity(TASKS[0], "build")]
     )
     snap = view._read()
-    assert (snap["building_now"], snap["waiting_to_build"]) == (1, 2)
+    # the counts are as before (the A100 autoscaler's input); the rows tell building from waiting
+    assert (snap["building_now"], snap["waiting_to_build"]) == (2, 1)
     rows = view._read_rows(NOW)
     assert [row["state"] for row in rows] == [
         queue_public.BUILDING,

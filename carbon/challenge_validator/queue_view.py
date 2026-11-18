@@ -11,10 +11,12 @@ this door already keeps. Reads; writes nothing.
   (dict reads, no lock taken, no provider opened, no `owner()` / `_provider()` call, so no source-identity hashing and no
   registration read). A provider being changed mid-read is skipped for that one snapshot (its tasks drop out of the
   counts until the next read, 30 s later: a brief undercount, never an inflated queue).
-- **what actually runs (Live ops' queue truth audit, 18 Nov 2026):** a RUNNING task is BUILDING only while one of its
+- **what actually runs, in the ROWS (Live ops' queue truth audit, 18 Nov 2026):** a RUNNING task is BUILDING only
+  while one of its
   own operations (prep, build, practice inference or timing, `direct_child_identity`; or its remote GPU build's
   shadow) is RESERVED in its owner's campaign ledger, which happens only once it holds a build slot;
-  a RUNNING task with none is still WAITING TO BUILD (its round waits for a slot). The
+  a RUNNING task with none is still WAITING TO BUILD (its round waits for a slot). The counts keep RUNNING as building
+  (the A100 autoscaler sizes on ``waiting_to_build``, and such a task may wait for a CPU lane, not an A100). The
   ledger is read on a read-only connection (``mode=ro``: no write lock, never blocks a build or a grade); an unreadable
   ledger counts its RUNNING tasks as building, as before. A SUCCEEDED task whose grade is already claimed (in flight,
   `grade_sequencer`) is no longer waiting to grade.
@@ -246,11 +248,12 @@ class QueueView:
         now = self.clock()
         index = self._index()
         counts = {"waiting_to_build": 0, "building_now": 0, "waiting_to_grade": 0}
-        slotless = self._waiting_for_slot(index)
         claimed = self._claimed_grades()
         for submission_id in self.grader.pending():
             state, _created = index.get(submission_id, (None, None))
-            if state == "QUEUED" or submission_id in slotless:
+            # the COUNTS keep RUNNING as building (V2, 18 Nov 2026): the A100 autoscaler sizes on `waiting_to_build`,
+            # and a RUNNING task waiting for a slot may wait for a CPU lane, not an A100; only the rows tell them apart
+            if state == "QUEUED":
                 counts["waiting_to_build"] += 1
             elif state in _BUILDING:
                 counts["building_now"] += 1
