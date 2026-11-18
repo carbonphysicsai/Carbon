@@ -1,6 +1,7 @@
 """V2 (18 Nov 2026): a busy owner holds back only its OWN tasks, never its allowance group's other owners; an in-flight
 grade whose group cannot be read holds nothing. A cap refusal of a task that went ahead of a passed-over earlier
-group-mate (or while an unknown-group grade is in flight) is "not yet": no final GRADED marker, it stays pending."""
+group-mate (or while an unknown-group grade is in flight) is "not yet": no final GRADED marker, it stays pending.
+"""
 
 from __future__ import annotations
 
@@ -70,7 +71,9 @@ def test_a_cap_refusal_after_passing_an_earlier_group_mate_is_not_yet_never_fina
     grader, _graded, soft, markers = _grader([EARLY, LATE], refuse={LATE})
     sequencer, claims = grade_sequencer.Sequencer(), grade_sequencer.OwnerClaims()
     assert claims.try_claim(OWNERS[EARLY])
-    assert _round(grader, sequencer, claims) is None  # LATE refused "not yet"; nothing else to grade
+    assert (
+        _round(grader, sequencer, claims) is None
+    )  # LATE refused "not yet"; nothing else to grade
     assert soft == {LATE: True}
     assert markers == []  # no final GRADED cap-refusal marker
     # the passed-over earlier task gets the slot next round and grades
@@ -94,7 +97,9 @@ def test_an_unknown_group_in_flight_holds_nothing_and_makes_a_refusal_not_yet():
     thread = threading.Thread(target=in_flight, daemon=True)
     thread.start()
     assert started.wait(5)
-    assert _round(grader, sequencer, claims) is None  # claimed (not held), refused "not yet"
+    assert (
+        _round(grader, sequencer, claims) is None
+    )  # claimed (not held), refused "not yet"
     assert soft == {OTHER: True} and markers == []
     # once it RELEASES (no unknown group in flight) the same refusal is final, as before
     finish.set()

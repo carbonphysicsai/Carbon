@@ -375,7 +375,6 @@ def test_only_a_box_slot_wait_marks_an_op_waiting_a_lane_retake_does_not():
 
         def retake(self):
             self.seen = grade_lanes.waiting_ops()
-            return None
 
     releaser = Releaser()
     with grade_lanes.running_op("rtsk_x-build"):

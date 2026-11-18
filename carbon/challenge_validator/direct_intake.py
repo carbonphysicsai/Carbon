@@ -1392,7 +1392,9 @@ def _remote_box_up(intake):
             getattr(challenge, "challenge_id", None),
             getattr(challenge, "version", None),
         )
-    except Exception:  # noqa: BLE001 - a hint for where a build round starts, never a failure
+    except (
+        Exception
+    ):  # noqa: BLE001 - a hint for where a build round starts, never a failure
         return True
 
 

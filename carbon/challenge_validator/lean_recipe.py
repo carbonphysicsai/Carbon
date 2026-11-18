@@ -1062,7 +1062,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     def _grade_first_holds(self, owner):
         """Whether grade first holds ``owner``'s next build now (`_built_waits_to_grade`), bounded per owner by
-        `GRADE_FIRST_MAX_SECONDS` from the first skip; the bound resets once nothing of the owner waits."""
+        `GRADE_FIRST_MAX_SECONDS` from the first skip; the bound resets once nothing of the owner waits.
+        """
         import time
 
         since = self.__dict__.setdefault("_grade_first_since", {})
@@ -1075,7 +1076,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     def _built_waits_to_grade(self, owner):
         """Whether ``owner``'s open provider holds a SUCCEEDED (built) task with no grade marker yet (`grade_marked`, set
-        by the door's grader). False without that hook, or without an open provider for ``owner`` (unchanged)."""
+        by the door's grader). False without that hook, or without an open provider for ``owner`` (unchanged).
+        """
         marked = getattr(self, "grade_marked", None)
         opened = getattr(getattr(self, "provider_for", None), "_providers", None)
         if marked is None or type(opened) is not dict:

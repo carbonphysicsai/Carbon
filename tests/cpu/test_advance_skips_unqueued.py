@@ -88,7 +88,8 @@ def _grade_first(views, marked):
 
 def test_a_new_build_never_takes_an_owner_whose_built_task_waits_to_grade():
     """Grade first (Lead + owner, 18 Nov 2026): a build holds its owner for its whole run, so an owner's next build
-    starts only once its built task is graded (marker written); an owner with nothing waiting builds as before."""
+    starts only once its built task is graded (marker written); an owner with nothing waiting builds as before.
+    """
     views = {DONE: DirectTaskStateV3.SUCCEEDED, WAITING: DirectTaskStateV3.QUEUED}
     adapter, built = _grade_first(views, marked=set())
     assert adapter.advance() == 0 and built == []

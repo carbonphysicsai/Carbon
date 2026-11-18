@@ -532,11 +532,12 @@ MAX_BOXES = 3
 
 def door_box_up(challenge_id, version, *, root=None, values=None):
     """Whether the door's box pool (`door_pool`) has a box that is not down now, so a build round may start laneless
-    for it (`direct_intake._Taking._enter_laneless`). True without a pool, or with a local slot lane (unchanged)."""
+    for it (`direct_intake._Taking._enter_laneless`). True without a pool, or with a local slot lane (unchanged).
+    """
     pool = door_pool(challenge_id, version, root=root, values=values)
     if pool is None or pool.local is not None:
         return True
-    return any([not is_down(box) for box in boxes(pool)])
+    return any(not is_down(box) for box in boxes(pool))
 
 
 def door_build_slots(challenge_id, version, *, root=None, values=None):
@@ -739,7 +740,8 @@ _SKIPPED: dict = {}
 def _note_skip(name, reason):
     """Log ``remote_gpu_build_box_skipped`` (``reason`` set) or ``remote_gpu_build_box_kept`` (None, after a skip)
     once per change of ``name``'s reason (live 116, 18 Nov 2026: an admitted A100 ran no build for hours and nothing said
-    why). Diagnostics only: it never changes which machine an op takes, and a failed log is ignored."""
+    why). Diagnostics only: it never changes which machine an op takes, and a failed log is ignored.
+    """
     if _SKIPPED.get(name) == reason:
         return
     previous = _SKIPPED.get(name)
@@ -754,7 +756,7 @@ def _note_skip(name, reason):
         else:
             log("remote_gpu_build_box_skipped", box=name, reason=reason)
     except Exception:  # noqa: BLE001 - a diagnostic line never fails an op
-        pass
+        return
 
 
 def boxes(pool):
@@ -1120,7 +1122,9 @@ def no_machine():
     pool = offer.pool
     if pool.local is not None:
         return False
-    return not any([_usable_box(offer, box) for box in boxes(pool)])
+    # every box checked, none short-circuited: each skip is logged with its reason (`_usable_box`)
+    usable = [_usable_box(offer, box) for box in boxes(pool)]
+    return not any(usable)
 
 
 def current_op():

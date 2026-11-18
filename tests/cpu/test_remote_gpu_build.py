@@ -2173,6 +2173,8 @@ def test_a_box_link_uses_the_key_its_box_file_names_and_only_it(host, monkeypatc
     assert f"-i {default} -o IdentitiesOnly=yes" in shim
     write_box(host, {**box_document(), "ssh_key": "relative/key"})
     assert remote_gpu_build.boxes(_pool(host, values)) == ()
+
+
 def test_a_box_passed_over_is_logged_with_why_once_per_change(host, monkeypatch):
     """Live 116, 18 Nov 2026: an admitted A100 ran no build for hours and nothing said why. Each box passed over is
     logged with its reason once per change (diagnostics only: the op's machine is unchanged), and logged kept again.
@@ -2180,7 +2182,9 @@ def test_a_box_passed_over_is_logged_with_why_once_per_change(host, monkeypatch)
     from carbon.battery import intake
 
     lines = []
-    monkeypatch.setattr(intake, "log", lambda event, **fields: lines.append((event, fields)))
+    monkeypatch.setattr(
+        intake, "log", lambda event, **fields: lines.append((event, fields))
+    )
     monkeypatch.setattr(remote_gpu_build, "_SKIPPED", {})
     values = _install(host)
     admitted = _lane_named(host, values, BOX).spec.images
@@ -2192,11 +2196,13 @@ def test_a_box_passed_over_is_logged_with_why_once_per_change(host, monkeypatch)
             assert remote_gpu_build.no_machine() is True
     skipped = [f for e, f in lines if e == "remote_gpu_build_box_skipped"]
     assert skipped == [{"box": BOX, "reason": "image_not_admitted"}]
-    with remote_gpu_build.offered_for(
-        "electric-motor-magnetics", "1.8", values=values, image_id=admitted[0]
+    with (
+        remote_gpu_build.offered_for(
+            "electric-motor-magnetics", "1.8", values=values, image_id=admitted[0]
+        ),
+        _op() as binding,
     ):
-        with _op() as binding:
-            assert binding.lane.spec.name == BOX
+        assert binding.lane.spec.name == BOX
     assert ("remote_gpu_build_box_kept", {"box": BOX}) in lines
     # a malformed box file is named, never silently dropped
     (_boxes_dir(host) / "broken.json").write_text("{}")
@@ -2872,9 +2878,18 @@ def test_door_box_up_is_false_only_while_every_box_is_down(host):
     host.mkdir(parents=True)
     _boxes_dir(host).mkdir(mode=0o700)
     values = _values(host)
-    assert remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values) is False
+    assert (
+        remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values)
+        is False
+    )
     write_box(host)
-    assert remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values) is True
+    assert (
+        remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values)
+        is True
+    )
     (box,) = remote_gpu_build.boxes(_pool(host, values))
     remote_gpu_build.mark_down(box, b"test")
-    assert remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values) is False
+    assert (
+        remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values)
+        is False
+    )
