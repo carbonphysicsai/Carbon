@@ -1556,6 +1556,23 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
 SLOT_RETURNS = "slot-returns.jsonl"
 
 
+def _log_lines_any(root, name):
+    """Every parsed line of ``requeued/<name>`` (any task)."""
+    log = Path(root) / "auto-grade" / "requeued" / name
+    found = []
+    try:
+        for line in log.read_text().splitlines():
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            if type(record) is dict:
+                found.append(record)
+    except OSError:
+        pass
+    return found
+
+
 def _owed_resubmits(root, db, door, failed_task):
     """The resubmits owed a returned slot for a build that never graded: every LATER task of the same hotkey with the
     SAME recipe in its owner's store (a miner's resubmit, or the door's own next generation of it), oldest first.
@@ -1610,8 +1627,16 @@ def return_slot(
         if not resubmits_of:
             targets.append((task, None))
             continue
+        # D14 owes each failed build ONE uncharged resubmit (Validator-2, 17 Nov): its OLDEST later same-recipe task only,
+        # and a failed build whose slot was already returned is never returned again
+        if any(
+            line.get("resubmit_of") == task
+            for line in _log_lines_any(root, SLOT_RETURNS)
+        ):
+            out["refused"][task] = "already_returned_for_this_build"
+            continue
         with ledger._db() as db:
-            owed = _owed_resubmits(root, db, door, task)
+            owed = _owed_resubmits(root, db, door, task)[:1]
         if not owed:
             out["waiting"][task] = []
         for resubmit in owed:

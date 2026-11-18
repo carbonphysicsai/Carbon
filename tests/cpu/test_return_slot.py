@@ -85,16 +85,64 @@ def test_a_build_that_never_graded_returns_its_owed_resubmits_slot(tmp_path):
         root, [FAILED_BUILD], ruling=RULING, apply=True, resubmits_of=True
     )
     assert out["returned"] == [RESUBMIT]
-    assert out["waiting"] == {FAILED_BUILD: [PENDING]}
+    assert (
+        out["waiting"] == {}
+    )  # only the oldest owed resubmit counts: PENDING is never taken
     assert _rows(ledger, RESUBMIT) == [("RELEASED", "SLOT_RETURNED")]
     assert _log(root)[0]["resubmit_of"] == FAILED_BUILD
-    # once the pending one grades COUNTED, the same command returns it too, and never RESUBMIT again
+    # the failed build's one owed resubmit is returned: a later one is never touched, and no second return for it
     _row(ledger, PENDING, "COUNTED", "GRADED")
     again = infra_requeue.return_slot(
         root, [FAILED_BUILD], ruling=RULING, apply=True, resubmits_of=True
     )
-    assert again["returned"] == [PENDING]
-    assert again["refused"] == {RESUBMIT: "already_returned"}
+    assert again["returned"] == []
+    assert again["refused"] == {FAILED_BUILD: "already_returned_for_this_build"}
+    assert _rows(ledger, PENDING) == [("COUNTED", "GRADED")]
+
+
+def test_only_the_oldest_owed_resubmit_is_returned_even_when_several_graded(tmp_path):
+    """Validator-2 (17 Nov): D14 owes each failed build ONE uncharged resubmit; a miner who resubmitted the recipe twice,
+    both graded COUNTED, gets the OLDEST one's slot back and the later one stays charged.
+    """
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("twice")
+    _arrived(ledger, FAILED_BUILD, at_ns=SPLIT_NS + 10**9)
+    _store(root, FAILED_BUILD, recipe)
+    _arrived(ledger, RESUBMIT, at_ns=SPLIT_NS + 2 * 10**9)
+    _store(root, RESUBMIT, recipe)
+    _row(ledger, RESUBMIT, "COUNTED", "GRADED")
+    _arrived(ledger, PENDING, at_ns=SPLIT_NS + 3 * 10**9)
+    _store(root, PENDING, recipe)
+    _row(ledger, PENDING, "COUNTED", "GRADED")
+    out = infra_requeue.return_slot(
+        root, [FAILED_BUILD], ruling=RULING, apply=True, resubmits_of=True
+    )
+    assert out["returned"] == [RESUBMIT]
+    assert _rows(ledger, RESUBMIT) == [("RELEASED", "SLOT_RETURNED")]
+    assert _rows(ledger, PENDING) == [("COUNTED", "GRADED")]
+
+
+def test_the_oldest_owed_resubmit_not_graded_yet_waits_and_a_later_one_is_never_taken(
+    tmp_path,
+):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("oldest pending")
+    _arrived(ledger, FAILED_BUILD, at_ns=SPLIT_NS + 10**9)
+    _store(root, FAILED_BUILD, recipe)
+    _arrived(ledger, PENDING, at_ns=SPLIT_NS + 2 * 10**9)
+    _store(root, PENDING, recipe)  # the oldest owed one: not graded yet
+    _arrived(ledger, RESUBMIT, at_ns=SPLIT_NS + 3 * 10**9)
+    _store(root, RESUBMIT, recipe)
+    _row(ledger, RESUBMIT, "COUNTED", "GRADED")
+    out = infra_requeue.return_slot(
+        root, [FAILED_BUILD], ruling=RULING, apply=True, resubmits_of=True
+    )
+    assert out["returned"] == [] and out["waiting"] == {FAILED_BUILD: [PENDING]}
+    assert _rows(ledger, RESUBMIT) == [("COUNTED", "GRADED")]
 
 
 def test_a_build_with_no_resubmit_yet_waits(tmp_path):
