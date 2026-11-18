@@ -1516,7 +1516,9 @@ def construction_parents(parent, implementation):
     return DirectParents({"torch-cpu-py311": parent, "python-cpu-py311": cpu})
 
 
-def gpu_construction_parents(cfg, implementation, parents, chain_network):
+def gpu_construction_parents(
+    cfg, implementation, parents, chain_network, challenge_id=None, version=None
+):
     """`parents` plus the configured GPU workers as the parents of their GPU build runtimes
     (``jax-cuda13-py311`` / ``torch-cu130-py311``): ``(DirectParents, host device record)``.
 
@@ -1524,7 +1526,12 @@ def gpu_construction_parents(cfg, implementation, parents, chain_network):
     non-repeating build) rebuilds on the CPU parent of its own runtime. Each worker is
     verified as the receiver's other workers are, must be eligible on this host, and its
     backend's accelerator profile must have the owner's hardware acceptance for the host's
-    GPU class on this chain network, or the receiver refuses to start."""
+    GPU class on this chain network, or the receiver refuses to start.
+
+    A host with NO GPU device record whose door builds on a GPU box pool (`remote_gpu_build.door_pool` for
+    ``challenge_id version``) binds the pool's CLASS instead (`remote_gpu_build.GpuClass`), as `graph_gpu_lane` does:
+    the autoscaler may have released every box, and a start must not fail for it (V2, 17 Nov 2026); builds wait for a
+    box or run on the CPU parent meanwhile. A host with a record binds it exactly as before."""
     from carbon.development_session import research_carrier
     from carbon.development_session.gpu_practice import (
         gpu_image_backend,
@@ -1543,7 +1550,19 @@ def gpu_construction_parents(cfg, implementation, parents, chain_network):
         load_image_identity(Path(item)) for item in cfg["gpu_construction_images"]
     )
     gpu_images(images)  # one registered GPU worker per backend
-    device = research_carrier._gpu_device()
+    try:
+        device = research_carrier._gpu_device()
+    except ValueError:
+        from carbon.reconstruction import remote_gpu_build
+
+        pool = (
+            None
+            if challenge_id is None
+            else remote_gpu_build.door_pool(challenge_id, version)
+        )
+        if pool is None:
+            raise
+        device = remote_gpu_build.GpuClass(pool.kind)
     profiles = {
         "jax": research_carrier._gpu_profile_id(),
         "pytorch": torch_profile.GPU_PROFILE_ID,
@@ -2286,7 +2305,12 @@ def serve(
     gpu_device = None
     if "gpu_construction_images" in cfg:
         parents, gpu_device = gpu_construction_parents(
-            cfg, implementation, parents, network.context.network
+            cfg,
+            implementation,
+            parents,
+            network.context.network,
+            cfg.get("challenge", {}).get("id"),
+            cfg.get("challenge", {}).get("version"),
         )
     if (
         build_accelerator is not None or gpu_device is not None
@@ -2449,10 +2473,12 @@ def serve(
         if parents is not None:
             immutable["construction_parents"] = parents.identities()
         if gpu_device is not None:
-            immutable["gpu_construction_device"] = {
-                "kind": gpu_device.device_kind,
-                "record": gpu_device.digest,
-            }
+            # a host with its own record binds it, as before; one with none binds the box pool's CLASS
+            immutable["gpu_construction_device"] = (
+                gpu_device.door_binding()
+                if hasattr(gpu_device, "door_binding")
+                else {"kind": gpu_device.device_kind, "record": gpu_device.digest}
+            )
         if "material_cache_bytes" in cfg:
             immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
         if pack_digest is not None:

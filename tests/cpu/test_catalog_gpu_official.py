@@ -360,3 +360,30 @@ def test_a_non_gpu_worker_or_two_of_one_backend_is_refused(monkeypatch, tmp_path
     )
     with pytest.raises(ValueError, match="one registered GPU worker per backend"):
         receiver.gpu_construction_parents(cfg, {}, cpu, "testnet")
+
+
+def test_a_host_with_no_gpu_record_binds_its_box_pool_class(monkeypatch, tmp_path):
+    """V2 (17 Nov 2026): with every A100 released by the autoscaler and no host GPU record, a door start failed "no GPU
+    device record". A door whose builds use a box pool binds the pool's CLASS instead; a host with no record and no
+    pool still refuses, and a host WITH a record binds it as before (its door binding never moves)."""
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction import remote_gpu_build
+
+    receiver, cfg = _gpu_setup(monkeypatch, tmp_path, [JAX_GPU])
+
+    def no_record():
+        raise ValueError("no GPU device record is installed on this host")
+
+    monkeypatch.setattr(research_carrier, "_gpu_device", no_record)
+    pool = SimpleNamespace(kind="NVIDIA A100-SXM4-40GB")
+    monkeypatch.setattr(remote_gpu_build, "door_pool", lambda c, v: pool)
+    cpu = gpu_practice.DirectParents.from_torch(torch_image())
+    _parents, device = receiver.gpu_construction_parents(
+        cfg, {}, cpu, "finney", "electric-motor-magnetics", "1.8"
+    )
+    assert device.door_binding() == {"kind": "NVIDIA A100-SXM4-40GB", "class": True}
+    monkeypatch.setattr(remote_gpu_build, "door_pool", lambda c, v: None)
+    with pytest.raises(ValueError, match="no GPU device record"):
+        receiver.gpu_construction_parents(
+            cfg, {}, cpu, "finney", "electric-motor-magnetics", "1.8"
+        )
