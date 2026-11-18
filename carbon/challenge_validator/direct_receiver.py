@@ -1532,7 +1532,8 @@ def gpu_construction_parents(
     A host with NO GPU device record whose door builds on a GPU box pool (`remote_gpu_build.door_pool` for
     ``challenge_id version``) binds the pool's CLASS instead (`remote_gpu_build.GpuClass`), as `graph_gpu_lane` does:
     the autoscaler may have released every box, and a start must not fail for it (V2, 17 Nov 2026); builds wait for a
-    box or run on the CPU parent meanwhile. A host with a record binds it exactly as before."""
+    box or run on the CPU parent meanwhile. A host with a record binds it exactly as before.
+    """
     from carbon.development_session import research_carrier
     from carbon.development_session.gpu_practice import (
         gpu_image_backend,

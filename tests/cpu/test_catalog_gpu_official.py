@@ -365,7 +365,8 @@ def test_a_non_gpu_worker_or_two_of_one_backend_is_refused(monkeypatch, tmp_path
 def test_a_host_with_no_gpu_record_binds_its_box_pool_class(monkeypatch, tmp_path):
     """V2 (17 Nov 2026): with every A100 released by the autoscaler and no host GPU record, a door start failed "no GPU
     device record". A door whose builds use a box pool binds the pool's CLASS instead; a host with no record and no
-    pool still refuses, and a host WITH a record binds it as before (its door binding never moves)."""
+    pool still refuses, and a host WITH a record binds it as before (its door binding never moves).
+    """
     from carbon.development_session import research_carrier
     from carbon.reconstruction import remote_gpu_build
 
