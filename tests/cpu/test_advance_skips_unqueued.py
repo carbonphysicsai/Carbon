@@ -1,12 +1,11 @@
 """Live 116, 18 Nov 2026: the first advance round after every restart read every finished task the door ever took
 (`get_research_result` verifies a SUCCEEDED task's evidence from disk), ~25 min before the first build. A task whose
-view, held by its owner's already-open provider, is not QUEUED is skipped before the owner check and the read."""
+view, held by its owner's already-open provider, is not QUEUED is skipped before the owner check and the read.
+"""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
-
-import pytest
 
 from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
 from carbon.research import DirectTaskStateV3
@@ -31,8 +30,8 @@ def _adapter(views, *, opened=True):
     seen = []
 
     def active_owner(task):
+        # no owner: the pass stops here, and the test reads which tasks reached the owner check
         seen.append(task)
-        return None  # stop here: the test reads which tasks reached the owner check
 
     adapter._active_owner = active_owner
     return adapter, seen
@@ -67,38 +66,3 @@ def test_the_skip_reads_no_ledger():
     adapter.ledger.owned_outcome = no_read
     assert adapter.advance() == 0
     assert seen == [WAITING, UNKNOWN]
-
-
-def test_a_source_file_is_hashed_again_only_when_its_stat_moves(
-    tmp_path, monkeypatch
-):
-    """Live 116 (18 Nov 2026): `_source_identity` hashed every served source file on every owner check, ~84 GB read
-    at one start. A file is re-read only when its stat (inode, size, mtime, ctime) moves: a changed source is still
-    seen (`served_recipe_source_changed`), an unchanged one costs one stat."""
-    import os
-
-    from carbon.challenge_validator import lean_recipe
-
-    monkeypatch.setattr(lean_recipe, "_SOURCE_HASHES", {})
-    path = tmp_path / "module.py"
-    path.write_bytes(b"one")
-    reads = []
-    real = type(path).read_bytes
-
-    def counted(self):
-        reads.append(str(self))
-        return real(self)
-
-    monkeypatch.setattr(type(path), "read_bytes", counted)
-    first = lean_recipe._file_sha256(path)
-    assert lean_recipe._file_sha256(path) == first
-    assert reads == [str(path)]  # the second call read nothing
-    path.write_bytes(b"two!")
-    stat = os.stat(path)
-    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 10**9))
-    assert lean_recipe._file_sha256(path) != first
-    assert len(reads) == 2
-    link = tmp_path / "link.py"
-    link.symlink_to(path)
-    with pytest.raises(ValueError, match="served recipe source unavailable"):
-        lean_recipe._file_sha256(link)

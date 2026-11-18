@@ -12,9 +12,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
-import os
 import re
-import stat as _stat
 from collections.abc import Callable
 from pathlib import Path
 
@@ -100,30 +98,11 @@ def _source_identity() -> str:
         for module in (*BUNDLE_STAGED_MODULES, *GRAPH_STAGED_MODULES)
     }
     for name in sorted(set(_SOURCE_PATHS) | staged):
-        observed[name] = _file_sha256(root / name)
+        path = root / name
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("served recipe source unavailable")
+        observed[name] = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
     return digest({"schema": "carbon.lean-recipe-source-binding.v1", "files": observed})
-
-
-#: path -> ((device, inode, size, mtime_ns, ctime_ns), sha256): a source file is hashed again only when its stat moved
-#: (live 116, 18 Nov 2026: `_source_identity` ran on every owner check, ~84 GB read at one start)
-_SOURCE_HASHES = {}
-
-
-def _file_sha256(path):
-    """``sha256:<hex>`` of a served source file (a regular file, never a link), re-read only when its stat moved."""
-    try:
-        stat = os.lstat(path)
-    except OSError:
-        raise ValueError("served recipe source unavailable") from None
-    if not _stat.S_ISREG(stat.st_mode):
-        raise ValueError("served recipe source unavailable")
-    key = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
-    cached = _SOURCE_HASHES.get(str(path))
-    if cached is not None and cached[0] == key:
-        return cached[1]
-    value = "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    _SOURCE_HASHES[str(path)] = (key, value)
-    return value
 
 
 def _implementation_identity() -> str:
@@ -1063,14 +1042,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
     def _not_queued_views(self):
         """The task ids the door's already-open providers hold in a state other than QUEUED: nothing for `advance` to
         start, so a pass skips them before the owner check and the read (`get_research_result` verifies a SUCCEEDED
-        task's evidence from disk, and `owner` reads the ledger and the source identity). Live 116, 18 Nov 2026: the
-        first pass after every restart read every finished task the door ever took, ~25 min before the first build,
-        its ledger reads queued with every grade's. The views are the ones `get_research_result` returns, read with no
+        task's evidence from disk; `owner` reads the ledger and hashes every served source, `_source_identity`). Live
+        116, 18 Nov 2026: the first pass after every restart did that for every finished task the door ever took (~84
+        GB read, ~25 min before the first build), its ledger reads queued with every grade's. The views are the ones `get_research_result` returns, read with no
         ledger access; a task not here (no open provider, no view) is read as before.
         """
         from carbon.research import DirectTaskStateV3
 
-        opened = getattr(self.provider_for, "_providers", None)
+        opened = getattr(getattr(self, "provider_for", None), "_providers", None)
         if type(opened) is not dict:
             return frozenset()
         skipped = set()
