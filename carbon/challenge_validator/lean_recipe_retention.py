@@ -5441,6 +5441,25 @@ def _entry_origin_task(entry_directory, entry_id):
     return match.group(1)
 
 
+def _regrade_generation(base, origin):
+    """How many earlier attempts of ``origin``'s grade left an evaluation directory: kept by a hand-back
+    (``<origin>.attempt-<n>.evaluation``) or set aside after an interruption (``<origin>.interrupted-<k>.evaluation``),
+    both in the grader's ``auto-grade/requeued`` beside ``artifacts`` (`infra_requeue`). 0 for a first attempt.
+    """
+    try:
+        names = [path.name for path in (Path(base).parent / "requeued").iterdir()]
+    except OSError:
+        return 0
+    prefix = origin + "."
+    return sum(
+        1
+        for name in names
+        if name.startswith(prefix)
+        and name.endswith(".evaluation")
+        and (".attempt-" in name or ".interrupted-" in name)
+    )
+
+
 def regrade_retained_entry(
     adapter,
     entry_id: str,
@@ -5535,6 +5554,14 @@ def regrade_retained_entry(
         and kind == "graph"
         and inference_image.image_id != _parents(kind, files, provider, recipe)[0]
     )
+    # A RE-RUN of a miner's counted grade (an earlier attempt of it was interrupted mid-grade or handed back, so its
+    # evaluation directory was set aside or kept: `infra_requeue`): a fresh generation, so this attempt's inference ops
+    # never meet an earlier attempt's identities (one left RESERVED raised "research operation ambiguous"; one settled
+    # FAILED_INFRA replayed as Carbon's failure for ever; switch-2 copy, 17 Nov). A first attempt, and every crown
+    # repeat or incumbent regrade, keeps its id byte for byte.
+    generation = (
+        _regrade_generation(base, origin) if counted and not repeat_index else 0
+    )
     regrade_id = (
         "rtsk_"
         + hashlib.sha256(
@@ -5544,6 +5571,7 @@ def regrade_retained_entry(
                 + snapshot.manifest_digest
                 + (f"\0REPEAT\0{repeat_index}" if repeat_index else "")
                 + (f"\0IMAGE\0{inference_image.image_id}" if moved else "")
+                + (f"\0ATTEMPT\0{generation}" if generation else "")
             ).encode()
         ).hexdigest()
     )

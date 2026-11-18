@@ -94,6 +94,9 @@ class AutoGrader:
         self.gpu = host_quiet.foreign_gpu_compute if gpu is None else gpu
         self.sample_seconds = sample_seconds
         self.root = Path(root)
+        #: when this grader process started: an evaluation directory older than this is an interrupted attempt's
+        #: (`infra_requeue.set_aside_interrupted`)
+        self.process_started = time.time()
         base = self.root / "auto-grade"
         self.artifacts = base / "artifacts"
         self.entries = base / "entries"
@@ -747,6 +750,22 @@ class AutoGrader:
         lane back for its commit turn), never a value."""
         from carbon.reconstruction import grade_lanes
 
+        from . import infra_requeue
+
+        # An attempt stopped mid-grade (a crash, a kill, an unplanned restart) left its create-only evaluation files
+        # with no marker: they are set aside (moved, never deleted, logged) before this grade, else its pack binding
+        # conflicts and the grade fails on Carbon's side, burning the one automatic retry (switch-2 copy, 17 Nov). The
+        # task is this round's own here: claimed by it (in flight in this process, never taken by another round).
+        # A grader with no root or no recorded start (a partial test double) sets nothing aside.
+        root = getattr(self, "root", None)
+        process_started = getattr(self, "process_started", None)
+        if root is not None and process_started is not None:
+            try:
+                infra_requeue.set_aside_interrupted(
+                    root, submission_id, started=process_started
+                )
+            except (OSError, ValueError):
+                pass  # left in place: the grade meets its conflict as before (FAILED, Carbon's)
         started, started_ns, outcome = grade_lanes.current(), time.time_ns(), None
         try:
             outcome = self._grade_on_lane(submission_id, turn)

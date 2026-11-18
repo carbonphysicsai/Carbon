@@ -70,13 +70,21 @@ def test_a_fresh_wall_stop_is_still_counted_as_before(tmp_path):
 
 
 def test_the_carrier_marks_only_a_replay(tmp_path):
-    """The carrier sets the mark where it re-raises a settled FAILED_MINER operation, and nowhere else."""
+    """The carrier sets the mark only where it re-raises a SETTLED operation (nothing ran this time): a settled
+    FAILED_MINER (the candidate's earlier observation) and, since 17 Nov, a settled FAILED_INFRA (Carbon's); both
+    inside the reservation's no-dispatch branch, and nowhere else."""
     import inspect
 
     from carbon.development_session import research_carrier as carrier
 
     source = inspect.getsource(carrier)
-    assert source.count("replay.replayed = True") == 1
+    assert source.count("replay.replayed = True") == 2
+    start = source.index('    if not admission["dispatch"]:')
+    end = source.index('        return admission["result"]', start)
+    settled = source[start:end]
+    assert settled.count("replay.replayed = True") == 2
+    assert 'admission["state"] == "FAILED_MINER"' in settled
+    assert 'admission["state"] == "FAILED_INFRA"' in settled
     assert "self.replayed = False" in inspect.getsource(carrier.MinerProgramFailure)
 
 

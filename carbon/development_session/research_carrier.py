@@ -2291,6 +2291,14 @@ def _run_locked(
             replay = MinerProgramFailure(admission["result"])
             replay.replayed = True
             raise replay
+        if admission["state"] == "FAILED_INFRA":
+            # A settled infrastructure failure (its own run's, or `reconcile_worker`'s after an interruption) is never a
+            # worker result: returned as one, every later attempt under this identity read the reconciliation document
+            # as its output (switch-2 copy, 17 Nov, rtsk_a6b1490a). Typed as Carbon's and as a replay (nothing ran this
+            # time): the grader writes REPLAYED_NOT_RERUN, a re-run takes a fresh identity (lean_recipe_retention).
+            replay = WorkerFailure(WorkerCode.UNAVAILABLE)
+            replay.replayed = True
+            raise replay
         return admission["result"]
     started = time.monotonic()
     started_unix = time.time()

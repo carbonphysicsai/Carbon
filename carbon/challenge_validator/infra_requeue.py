@@ -171,6 +171,72 @@ def _evaluation_refusal(paths):
     return None
 
 
+#: Where an interrupted attempt's private evaluation files go (`set_aside_interrupted`), and its log.
+INTERRUPTED = "interrupted.jsonl"
+_INTERRUPTED_LIMIT = 64
+#: Seconds a directory must predate this grader process to be an earlier process's (an interrupted attempt). The kernel
+#: stamps files from a coarse clock that can lag `time.time()` by milliseconds, so a file this process wrote just after
+#: it started may read as a hair older than the start (Runner g8730, 17 Nov). A real interruption predates the restart
+#: by at least the restart itself.
+_OWN_PROCESS_MARGIN = 2.0
+
+
+def set_aside_interrupted(root, task, *, started, clock=time.time_ns):
+    """Before the grader takes a PENDING task (no marker): an ``artifacts/<task>.evaluation`` directory there can only be
+    an attempt that was stopped mid-grade (a crash, a kill, an unplanned restart). Every hand-back (``requeue``,
+    ``restore-platform``, ``rearm``, the automatic retry) moves the directory aside before the grader can see the task,
+    and a finished grade writes a marker. Its create-only files (the pack binding first) would make this grade fail
+    ``evaluation_pack_binding_unavailable`` on Carbon's side and burn the one automatic retry (switch-2 copy, 17 Nov:
+    rtsk_34ff589c, c276992f, ca1df3a8). They are moved, never deleted, to ``requeued/<task>.interrupted-<k>.evaluation``
+    and one line goes to ``requeued/interrupted.jsonl``. Returns the kept name, or None when there was nothing to set
+    aside (a task with a marker is never touched).
+
+    ``started`` (door-code review): the unix time this grader PROCESS started. Only a directory whose every entry is
+    older than that is an interrupted attempt (a crash or a kill always means a new process). One this process wrote
+    itself (a tick that ended `_NEXT` or None after the binding, before a marker) is left alone, so the generation
+    never climbs tick by tick."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return None
+    paths = _paths(root, task)
+    if paths["marker"].exists() or paths["marker"].is_symlink():
+        return None
+    evaluation = paths["evaluation"]
+    if evaluation.is_symlink() or not evaluation.is_dir():
+        return None
+    if type(started) not in (int, float):
+        return None
+    newest = max(
+        [evaluation.stat().st_mtime]
+        + [path.stat().st_mtime for path in evaluation.rglob("*")]
+    )
+    if newest >= started - _OWN_PROCESS_MARGIN:
+        return None
+    kept = paths["kept_marker"].parent
+    kept.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for k in range(1, _INTERRUPTED_LIMIT + 1):
+        target = kept / f"{task}.interrupted-{k}.evaluation"
+        if not target.exists() and not target.is_symlink():
+            break
+    else:
+        raise ValueError("interrupted evaluations exhausted")
+    files = sum(1 for path in evaluation.rglob("*") if path.is_file())
+    os.replace(evaluation, target)
+    with open(kept / INTERRUPTED, "a", encoding="utf-8") as log:
+        log.write(
+            json.dumps(
+                {
+                    "task": task,
+                    "kept": target.name,
+                    "files": files,
+                    "at_ns": int(clock()),
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+    return target.name
+
+
 def _keep_evaluation(paths):
     """Move attempt 1's private evaluation files aside (one rename, same filesystem); True when there were any."""
     if not paths["evaluation"].is_dir():
@@ -1485,6 +1551,104 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     return out
 
 
+#: ``return-slot`` (owner D14, 17 Nov, via Validator-2: "approved: return the exam slot for the 18 counted wall-stop tasks
+#: and the 4 build failures in V2_RULING.md; their resubmits run uncharged"): the record of each slot returned.
+SLOT_RETURNS = "slot-returns.jsonl"
+
+
+def _owed_resubmits(root, db, door, failed_task):
+    """The resubmits owed a returned slot for a build that never graded: every LATER task of the same hotkey with the
+    SAME recipe in its owner's store (a miner's resubmit, or the door's own next generation of it), oldest first.
+    """
+    arrival = _arrival(db, failed_task)
+    if arrival is None or type(arrival[2]) is not str:
+        return []
+    store = door.store(arrival[2])
+    if store is None or failed_task not in store[1]:
+        return []
+    recipe = store[1][failed_task]
+    later = []
+    for other, other_recipe in store[1].items():
+        if other == failed_task or other_recipe != recipe:
+            continue
+        other_arrival = _arrival(db, other)
+        if other_arrival is not None and other_arrival[0] > arrival[0]:
+            later.append((other_arrival[0], other))
+    return [task for _at, task in sorted(later)]
+
+
+def return_slot(
+    root, tasks, *, ruling, apply=False, resubmits_of=False, clock=time.time_ns
+):
+    """``{"returned": [...], "rows": {task: [[state, status], ...]}, "refused": {task: code}}``: each listed task's ONE
+    COUNTED graded row is given back through `ExamCap.return_promised_slot` (RELEASED / ``SLOT_RETURNED``: its grade
+    stands, never rescored, no limit counts it), once per task, logged in ``requeued/slot-returns.jsonl`` with the
+    receipt id and the row as it was. ``resubmits_of``: the ids are builds that never graded (owner D14's 4 build
+    failures); each one's owed resubmits (`_owed_resubmits`: same hotkey, same recipe, arrived later) are taken instead,
+    once each one has graded COUNTED (a resubmit not graded yet is listed under ``waiting``; run again after it grades).
+    Dry run unless ``apply``: it lists every task's current exam rows."""
+    out = {
+        "schema": SCHEMA,
+        "action": "return-slot",
+        "apply": apply,
+        "ruling": ruling,
+        "returned": [],
+        "rows": {},
+        "waiting": {},
+        "refused": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    ledger, cap = _ledger(root)
+    door = _Door(root)
+    done = set()
+    targets = []
+    for task in tasks:
+        if type(task) is not str or not _TASK.fullmatch(task):
+            out["refused"][task] = "not_a_task_id"
+            continue
+        if not resubmits_of:
+            targets.append((task, None))
+            continue
+        with ledger._db() as db:
+            owed = _owed_resubmits(root, db, door, task)
+        if not owed:
+            out["waiting"][task] = []
+        for resubmit in owed:
+            targets.append((resubmit, task))
+    for task, failed in targets:
+        with ledger._db() as db:
+            rows = [[state, status] for _id, state, status, *_rest in _rows(db, task)]
+        out["rows"][task] = rows
+        if task in done or _log_lines(root, SLOT_RETURNS, task):
+            out["refused"][task] = "already_returned"
+            continue
+        counted = [row for row in rows if row[0] == "COUNTED"]
+        if len(counted) != 1:
+            if failed is not None and not rows:
+                out["waiting"].setdefault(failed, []).append(task)
+                continue
+            out["refused"][task] = "no_single_counted_row"
+            continue
+        if apply:
+            prior = cap.return_promised_slot(task)
+            directory = Path(root) / "auto-grade" / "requeued"
+            directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            line = {
+                "task": task,
+                "ruling": ruling,
+                "prior_state": prior["prior_state"],
+                "prior_status": prior["prior_status"],
+                "at_ns": int(clock()),
+                **({"resubmit_of": failed} if failed is not None else {}),
+            }
+            with open(directory / SLOT_RETURNS, "a", encoding="utf-8") as log:
+                log.write(json.dumps(line, sort_keys=True) + "\n")
+        done.add(task)
+        out["returned"].append(task)
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -1547,6 +1711,18 @@ def main(argv=None):
         "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
     )
     seven.add_argument("--apply", action="store_true")
+    nine = sub.add_parser("return-slot")
+    nine.add_argument("--root", type=Path, required=True)
+    nine.add_argument("--ids", type=Path, required=True, help="the task ids")
+    nine.add_argument(
+        "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
+    )
+    nine.add_argument(
+        "--resubmits-of",
+        action="store_true",
+        help="the ids are builds that never graded: return their owed resubmits' slots",
+    )
+    nine.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -1611,6 +1787,17 @@ def main(argv=None):
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
         ]
         out = rearm(args.root, tasks, ruling=args.ruling, apply=args.apply)
+    elif args.cmd == "return-slot":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = return_slot(
+            args.root,
+            tasks,
+            ruling=args.ruling,
+            apply=args.apply,
+            resubmits_of=args.resubmits_of,
+        )
     elif args.cmd == "reclass":
         out = reclass(args.root, args.id, ruling=args.ruling, apply=args.apply)
     else:
