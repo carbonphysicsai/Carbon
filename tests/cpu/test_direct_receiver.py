@@ -915,8 +915,10 @@ def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop
         **authority,
     )
     restarted.restore()
+    # neither owner holds work: both are lazy (restart speed, 18 Nov 2026), opened on their first touch
+    assert restarted._providers == {} and len(restarted._lazy) == 2
     assert restarted(OWNER).ledger.root == first_root
-    assert len(restarted._providers) == 2
+    assert set(restarted._providers) == {OWNER} and len(restarted._lazy) == 1
     restarted.cancel()
     restarted.close()
 

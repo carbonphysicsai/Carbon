@@ -133,6 +133,11 @@ class QueueView:
                     raise qp.QueuePublicRefused(
                         "queue_provider_state_invalid"
                     ) from None
+        # the lazy owners' tasks (`OwnerProviders.restore`: not opened yet, every one terminal), from the start's scan
+        lazy = getattr(self.intake.adapter.provider_for, "lazy_index", None)
+        if callable(lazy):
+            for task, entry in lazy().items():
+                index.setdefault(task, entry)
         self._owners = owners
         return index
 

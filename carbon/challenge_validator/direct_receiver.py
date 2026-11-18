@@ -1792,6 +1792,16 @@ class OwnerProviders:
         self._unobserved = set()
         #: owner directory name (the owner's sha256) -> why `restore` set it aside (see `restore`)
         self._set_aside = {}
+        #: LAZY owners (restart speed, owner 18 Nov 2026): directory name -> hotkey of each retained owner `restore` found
+        #: with no work (`_has_work`), opened by the same restoring path on its first touch (`_restore_lazy`)
+        self._lazy = {}
+        #: directory name -> ``{task id: (state name, created unix seconds)}`` of a lazy owner, read by `restore`'s scan:
+        #: every one terminal, so the readers of the open providers' views see them too (`lazy_index`)
+        self._lazy_index = {}
+        #: directory name -> the lock one lazy owner's first open holds (never the receiver's own lock)
+        self._lazy_gates = {}
+        #: the grader's verdict marker directory (``<state>/auto-grade/markers``) when this door grades, else None
+        self.markers_dir = None
         self._closing = False
 
     def gpu_runtimes(self):
@@ -2004,13 +2014,82 @@ class OwnerProviders:
             candidate["admission"], admission
         )
 
-    def _open(self, hotkey, *, restoring, host=False):
-        from carbon.challenge_validator import crown_average
+    def _build(self, hotkey, *, restoring, host):
+        """A not-yet-open owner's provider, its campaign control and its frozen admission (`_open`): the ledger, the
+        campaign manifest (migrated only when ``restoring``), the task store and the control's acquisition. Touches
+        only this owner's files; `_open` holds the receiver's lock around it, `_restore_lazy` only the owner's gate.
+        Returns ``(provider, control, frozen_admission, live)``."""
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.research_control import CampaignControl
         from carbon.development_session.research_ledger import CampaignLedger
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
         from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
+
+        directory = _private_directory(
+            self.root / hashlib.sha256(hotkey.encode()).hexdigest()
+        )
+        ledger = CampaignLedger(directory / "ledger")
+        frozen_admission, live = self._manifest(
+            hotkey, ledger, restoring=restoring, host=host
+        )
+        if not restoring and not live:
+            raise Unavailable("direct_provider_registration_unavailable")
+        write_once(directory / "owner.json", canonical({"hotkey": hotkey}))
+        provider = DirectDevelopmentTasksV3(
+            root=directory / "tasks",
+            requester=hotkey,
+            owner=hotkey,
+            ledger=ledger,
+            discovery=self.discovery,
+            image=None,
+            inference_image=self.inference_image,
+            **(
+                {"construction_parent": self.parent}
+                if self.parents is None
+                else {"construction_parents": self.parents}
+            ),
+            evaluation_pack_digest=self.evaluation_pack_digest,
+            binding_migrated=getattr(self, "binding_migrated", False),
+            migrated_image_bindings=getattr(
+                self, "migrated_image_bindings", frozenset()
+            ),
+            migrated_graph_gpu_images=getattr(
+                self, "migrated_graph_gpu_images", {}
+            ),
+            migrated_bundle_images=getattr(self, "migrated_bundle_images", {}),
+            **(
+                {}
+                if self.graph_gpu_image is None
+                else {
+                    "graph_gpu_image": self.graph_gpu_image,
+                    "graph_gpu_ops": self.graph_gpu_ops,
+                }
+            ),
+            image_resolver=DirectOwnerImageResolver(
+                self.cache_root,
+                **(
+                    {"parent": self.parent}
+                    if self.parents is None
+                    else {"parents": self.parents}
+                ),
+                **(
+                    {"material_cache_bytes": self.material_cache_bytes}
+                    if self.material_cache_bytes is not None
+                    else {}
+                ),
+            ),
+        )
+        try:
+            control = CampaignControl(ledger)
+            ledger.generation = control.acquire()
+        except BaseException:
+            provider.close()
+            raise
+        return provider, control, frozen_admission, live
+
+    def _open(self, hotkey, *, restoring, host=False):
+        from carbon.challenge_validator import crown_average
+        from carbon.challenge_validator.interface import Unavailable
 
         if host:
             # ONLY the host owner of the crown average's derived rebuilds, by exact equality: a miner's owner
@@ -2019,6 +2098,9 @@ class OwnerProviders:
                 raise Unavailable("direct_provider_owner_invalid")
         elif type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
             raise Unavailable("direct_provider_owner_invalid")
+        if not restoring and not host:
+            # a lazy owner (`restore`) is reopened first, exactly as `restore` would have, under its own gate only
+            self._restore_lazy(hotkey)
         with self._lock:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
@@ -2030,90 +2112,12 @@ class OwnerProviders:
             if hotkey not in self._providers:
                 if not restoring and not host and self._admission(hotkey) is None:
                     raise Unavailable("direct_provider_registration_unavailable")
-                directory = _private_directory(
-                    self.root / hashlib.sha256(hotkey.encode()).hexdigest()
+                provider, control, frozen_admission, live = self._build(
+                    hotkey, restoring=restoring, host=host
                 )
-                ledger = CampaignLedger(directory / "ledger")
-                frozen_admission, live = self._manifest(
-                    hotkey, ledger, restoring=restoring, host=host
+                self._register(
+                    hotkey, provider, control, frozen_admission, live, restoring=restoring
                 )
-                if not restoring and not live:
-                    raise Unavailable("direct_provider_registration_unavailable")
-                write_once(directory / "owner.json", canonical({"hotkey": hotkey}))
-                provider = DirectDevelopmentTasksV3(
-                    root=directory / "tasks",
-                    requester=hotkey,
-                    owner=hotkey,
-                    ledger=ledger,
-                    discovery=self.discovery,
-                    image=None,
-                    inference_image=self.inference_image,
-                    **(
-                        {"construction_parent": self.parent}
-                        if self.parents is None
-                        else {"construction_parents": self.parents}
-                    ),
-                    evaluation_pack_digest=self.evaluation_pack_digest,
-                    binding_migrated=getattr(self, "binding_migrated", False),
-                    migrated_image_bindings=getattr(
-                        self, "migrated_image_bindings", frozenset()
-                    ),
-                    migrated_graph_gpu_images=getattr(
-                        self, "migrated_graph_gpu_images", {}
-                    ),
-                    migrated_bundle_images=getattr(self, "migrated_bundle_images", {}),
-                    **(
-                        {}
-                        if self.graph_gpu_image is None
-                        else {
-                            "graph_gpu_image": self.graph_gpu_image,
-                            "graph_gpu_ops": self.graph_gpu_ops,
-                        }
-                    ),
-                    image_resolver=DirectOwnerImageResolver(
-                        self.cache_root,
-                        **(
-                            {"parent": self.parent}
-                            if self.parents is None
-                            else {"parents": self.parents}
-                        ),
-                        **(
-                            {"material_cache_bytes": self.material_cache_bytes}
-                            if self.material_cache_bytes is not None
-                            else {}
-                        ),
-                    ),
-                )
-                try:
-                    control = CampaignControl(ledger)
-                    ledger.generation = control.acquire()
-                except BaseException:
-                    provider.close()
-                    raise
-                self._providers[hotkey] = provider
-                self._controls[hotkey] = control
-                self._admissions[hotkey] = frozen_admission
-                observed = self._observed() if restoring and not live else None
-                if restoring and not live and observed is None:
-                    self._unobserved.add(hotkey)
-                elif (
-                    restoring
-                    and not live
-                    and not self._same_registration(
-                        frozen_admission, self._record_in(observed, hotkey)
-                    )
-                ):
-                    # A revoked/recycled miner retains cleanup custody, never
-                    # the right to launch a queued child from old authority.
-                    # Only when a FRESH snapshot positively shows a different (or no) registration: with NO usable
-                    # snapshot the registration is unknown, not revoked (the start snapshot ages past 60 s during start-up,
-                    # before the intake's refresher runs: 14 Nov, 112 live queued tasks of 80 owners cancelled), so the queue
-                    # stays QUEUED, the owner cannot launch from old authority (the registration re-check below refuses while
-                    # there is no snapshot) and the first fresh snapshot decides.
-                    for task_id in provider.queued_tasks():
-                        provider.cancel_observed_task(
-                            task_id, self.discovery.info.challenge_key
-                        )
             if (
                 not restoring
                 and not host
@@ -2123,6 +2127,34 @@ class OwnerProviders:
             ):
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
+
+    def _register(self, hotkey, provider, control, frozen_admission, live, *, restoring):
+        """Hold a just-built provider (`_build`) as this receiver's: called under the receiver's lock. A restored owner
+        whose registration a FRESH snapshot shows revoked keeps cleanup custody only (its queued tasks cancelled)."""
+        self._providers[hotkey] = provider
+        self._controls[hotkey] = control
+        self._admissions[hotkey] = frozen_admission
+        observed = self._observed() if restoring and not live else None
+        if restoring and not live and observed is None:
+            self._unobserved.add(hotkey)
+        elif (
+            restoring
+            and not live
+            and not self._same_registration(
+                frozen_admission, self._record_in(observed, hotkey)
+            )
+        ):
+            # A revoked/recycled miner retains cleanup custody, never
+            # the right to launch a queued child from old authority.
+            # Only when a FRESH snapshot positively shows a different (or no) registration: with NO usable
+            # snapshot the registration is unknown, not revoked (the start snapshot ages past 60 s during start-up,
+            # before the intake's refresher runs: 14 Nov, 112 live queued tasks of 80 owners cancelled), so the queue
+            # stays QUEUED, the owner cannot launch from old authority (the registration re-check below refuses while
+            # there is no snapshot) and the first fresh snapshot decides.
+            for task_id in provider.queued_tasks():
+                provider.cancel_observed_task(
+                    task_id, self.discovery.info.challenge_key
+                )
 
     def _settle_unobserved(self):
         """The FIRST fresh snapshot decides every owner restored while its registration was unknown: the same registration
@@ -2164,8 +2196,135 @@ class OwnerProviders:
             hotkey, restoring=False, host=hotkey == crown_average.HOST_OWNER
         )
 
+    def lazy_tasks(self):
+        """The task ids every lazy owner holds (all terminal): what the advance pass skips before any owner check, as it
+        skips an open provider's non-QUEUED tasks (`LeanRecipeAdapter._advance_skip`)."""
+        with self._lock:
+            return frozenset(task for index in self._lazy_index.values() for task in index)
+
+    def lazy_index(self):
+        """``{task id: (state name, created unix seconds)}`` over every lazy owner, read by `restore`'s scan (the public
+        queue's index of the providers not open yet, `QueueView._index`)."""
+        with self._lock:
+            return {
+                task: entry
+                for index in self._lazy_index.values()
+                for task, entry in index.items()
+            }
+
+    def _has_work(self, directory):
+        """Whether ``directory``'s owner may hold work, from a READ-ONLY look at its two stores, or None when it cannot
+        be read (then the owner is opened at start, as before: doubt never makes an owner lazy). Work (V2, 18 Nov 2026):
+        a task not terminal (QUEUED, RUNNING, CANCEL_REQUESTED), a SUCCEEDED task with no grade marker yet on a door
+        that grades, or an operation of its ledger with no finish row (RESERVED included). Returns ``(work, index)``,
+        ``index`` = ``{task id: (state name, created unix seconds)}``.
+        """
+        import sqlite3
+
+        from carbon.research import DirectTaskStateV3, DirectTaskViewV3, load_canonical
+
+        waiting = (
+            DirectTaskStateV3.QUEUED,
+            DirectTaskStateV3.RUNNING,
+            DirectTaskStateV3.CANCEL_REQUESTED,
+        )
+        tasks_path = directory / "tasks" / "direct-tasks.sqlite3"
+        ledger_path = directory / "ledger" / "campaign.sqlite3"
+        if not tasks_path.is_file() or not ledger_path.is_file():
+            return None
+        index = {}
+        try:
+            db = sqlite3.connect(f"file:{tasks_path}?mode=ro", uri=True, timeout=5)
+            try:
+                rows = db.execute("SELECT id, view FROM direct_tasks").fetchall()
+            finally:
+                db.close()
+            for identity, raw in rows:
+                view = load_canonical(raw, DirectTaskViewV3)
+                if view.task_id.value != identity:
+                    return None
+                if view.state in waiting:
+                    return True, {}
+                if (
+                    view.state is DirectTaskStateV3.SUCCEEDED
+                    and self.markers_dir is not None
+                    and not (self.markers_dir / f"{identity}.json").exists()
+                ):
+                    return True, {}
+                index[identity] = (view.state.value, view.created_at_micros / 1e6)
+            db = sqlite3.connect(f"file:{ledger_path}?mode=ro", uri=True, timeout=5)
+            try:
+                open_ops = db.execute(
+                    "SELECT COUNT(*) FROM operations o LEFT JOIN operation_finished f ON f.id = o.id "
+                    "WHERE f.id IS NULL"
+                ).fetchone()[0]
+            finally:
+                db.close()
+        except Exception:  # noqa: BLE001 - unreadable: opened at start, as before
+            return None
+        return bool(open_ops), index
+
+    def _restore_lazy(self, hotkey):
+        """Open a lazy owner (`restore`) on its first touch by the SAME restoring path `restore` takes (its campaign
+        manifest migrated under this start's declared migration, its interrupted work reconciled), holding only that
+        owner's gate: any other owner's request goes on meanwhile. A failure sets it aside exactly as `restore` does
+        (``owner_restore_set_aside``; its requests refused ``direct_provider_owner_set_aside``; `set_aside` names it),
+        never an error of the request that touched it. Nothing for an owner that is not lazy."""
+        name = hashlib.sha256(hotkey.encode()).hexdigest()
+        with self._lock:
+            if self._lazy.get(name) != hotkey:
+                return
+            gate = self._lazy_gates.setdefault(name, threading.Lock())
+        with gate:
+            with self._lock:
+                if self._lazy.get(name) != hotkey:
+                    return  # opened (or set aside) by the touch that held the gate first
+            began = time.monotonic()
+            try:
+                built = self._build(hotkey, restoring=True, host=False)
+            except Exception as failure:
+                with self._lock:
+                    self._lazy.pop(name, None)
+                    self._lazy_index.pop(name, None)
+                    self._set_aside[name] = (
+                        getattr(failure, "code", None) or type(failure).__name__
+                    )
+                _log_start_failure(
+                    "owner_restore_set_aside", failure, owner_sha256=name, lazy=True
+                )
+                return
+            provider, control, frozen_admission, live = built
+            with self._lock:
+                if self._closing:
+                    provider.close()
+                    return
+                self._lazy.pop(name, None)
+                self._lazy_index.pop(name, None)
+                self._register(
+                    hotkey, provider, control, frozen_admission, live, restoring=True
+                )
+            print(
+                json.dumps(
+                    {
+                        "event": "owner_lazy_restored",
+                        "owner_sha256": name,
+                        "s": round(time.monotonic() - began, 2),
+                    },
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+                flush=True,
+            )
+
     def restore(self):
-        """Reopen every retained owner before listening, including interrupted work.
+        """Reopen every retained owner that may hold work before listening, including interrupted work.
+
+        Restart speed (owner, 18 Nov 2026: a restart reopened all 388 owners one by one, ~10 min before listening, while
+        2 had a live task and 10 an unfinished operation): an owner whose stores show NO work (`_has_work`: every task
+        terminal, every SUCCEEDED one graded, no unfinished operation) is LAZY, not opened here; its first touch opens it
+        by this same restoring path (`_restore_lazy`), and its tasks are read meanwhile from this start's scan
+        (`lazy_tasks`, `lazy_index`). Doubt (a store that cannot be read) opens it here. The crown average's host owner is
+        always opened here, and the crown's owners before listening (`_open_crown_owners`).
 
         An owner this start cannot reopen (its campaign manifest cannot be migrated to this revision, its directory or
         owner binding is unreadable, ...) is SET ASIDE, not the whole door (Lead R2, owner G4, 18 Nov 2026: an in-place
@@ -2198,11 +2357,15 @@ class OwnerProviders:
                     or hashlib.sha256(owner["hotkey"].encode()).hexdigest() != name
                 ):
                     raise ValueError("retained receiver owner binding differs")
-                self._open(
-                    owner["hotkey"],
-                    restoring=True,
-                    host=owner["hotkey"] == crown_average.HOST_OWNER,
-                )
+                host = owner["hotkey"] == crown_average.HOST_OWNER
+                found = None if host else self._has_work(directory)
+                if found is not None and not found[0]:
+                    # no work (restart speed, owner 18 Nov 2026): opened on its first touch (`_restore_lazy`)
+                    with self._lock:
+                        self._lazy[name] = owner["hotkey"]
+                        self._lazy_index[name] = found[1]
+                    continue
+                self._open(owner["hotkey"], restoring=True, host=host)
             except Exception as failure:
                 opened = any(
                     hashlib.sha256(hotkey.encode()).hexdigest() == name
@@ -2225,10 +2388,21 @@ class OwnerProviders:
                 first = failure if first is None else first
             finally:
                 took.append((time.monotonic() - started, name))
-        _log_restore_timing(time.monotonic() - began, took)
-        if first is not None and not self._providers:
+        _log_restore_timing(time.monotonic() - began, took, lazy=len(self._lazy))
+        if first is not None and not self._providers and not self._lazy:
             # no owner could be reopened: a whole-door failure, never one owner's
             raise first
+
+    def log_open_counts(self):
+        """One stderr line before listening: how many owners are open and how many are lazy (`restore`)."""
+        with self._lock:
+            record = {
+                "event": "owners_open_at_listening",
+                "open": len(self._providers),
+                "lazy": len(self._lazy),
+                "set_aside": len(self._set_aside),
+            }
+        print(json.dumps(record, sort_keys=True), file=sys.stderr, flush=True)
 
     def set_aside(self):
         """``{owner sha256: code}`` of the owners this start set aside (`restore`)."""
@@ -2285,6 +2459,17 @@ class OwnerProviders:
             provider.close()
 
 
+def _open_crown_owners(grader):
+    """Before listening, open the owners the incumbent's steps take (`AutoGrader._prelude_owners`: the king's, the
+    crown host's, each paused crown's and each due retry's): resolving each one opens it (`LeanRecipeAdapter.owner`), so
+    a crown owner is never lazy (V2 / Lead, 18 Nov 2026). An owner that cannot be resolved is opened on its first touch,
+    as any lazy owner; never a reason not to start."""
+    try:
+        grader._prelude_owners()
+    except Exception:  # noqa: BLE001 - `_prelude_owners` already reads doubt as "every owner", taken on first touch
+        pass
+
+
 def _stop_providers(providers, *, cancel):
     """serve's last step: cancel (unless retaining) then close the owner providers.
 
@@ -2311,7 +2496,7 @@ def _owner_name(hotkey):
     return hashlib.sha256(hotkey.encode()).hexdigest()
 
 
-def _log_restore_timing(total, took):
+def _log_restore_timing(total, took, lazy=0):
     """One stderr line (the unit's journal, operator-only): how long the owner restore took, how many owners, and the
     five slowest by sha256 (Lead, 18 Nov 2026: a restart's ~10 min restore, to aim its next speed-up at real data).
     """
@@ -2319,6 +2504,8 @@ def _log_restore_timing(total, took):
     record = {
         "event": "owner_restore_timing",
         "owners": len(took),
+        # of them: opened now (``owners - lazy``) and left LAZY, opened on their first touch (`_restore_lazy`)
+        "lazy": lazy,
         "total_s": round(total, 1),
         "slowest": [{"owner_sha256": name, "s": round(s, 2)} for s, name in slowest],
     }
@@ -2729,6 +2916,9 @@ def serve(
             migrated_graph_gpu_images=migrated_graph_gpu_images(root),
             migrated_bundle_images=migrated_bundle_images(root),
         )
+        if "auto_grade" in cfg:
+            # a SUCCEEDED task with no grade marker is work: its owner is opened at start (`OwnerProviders._has_work`)
+            providers.markers_dir = root / "auto-grade" / "markers"
         # A service (no lifetime) runs until it is stopped.
         timer = (
             None
@@ -2976,6 +3166,9 @@ def serve(
                     intake.challenge.challenge_id,
                     cfg.get("launch_board_key"),
                 )
+            if grader is not None:
+                _open_crown_owners(grader)
+            providers.log_open_counts()
             serve_loopback(
                 intake,
                 {"host": cfg["host"], "port": cfg["port"]},

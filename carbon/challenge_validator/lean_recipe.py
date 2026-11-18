@@ -1073,6 +1073,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
             for task, view in tuple(views.items()):
                 if getattr(view, "state", None) is not DirectTaskStateV3.QUEUED:
                     skipped.add(task)
+        # a lazy owner's tasks (not opened yet, every one terminal: `OwnerProviders.restore`) are never QUEUED either
+        lazy = getattr(self.provider_for, "lazy_tasks", None)
+        if callable(lazy):
+            skipped |= lazy()
         return frozenset(skipped)
 
     #: A19: this adapter's advance takes owners through `owner_claims`, so a door may run one advance round per lane.
