@@ -109,7 +109,9 @@ def test_a_docker_failure_keeps_the_op(tmp_path, monkeypatch):
     monkeypatch.setattr(carrier, "DockerCLI", lambda: SimpleNamespace(run=broken))
     monkeypatch.setattr(carrier, "remove_exact_container", broken)
     lines = _logged(monkeypatch)
-    assert carrier.settle_previous_runs(ledger, owner="one", before=time.time() + 1) == 0
+    assert (
+        carrier.settle_previous_runs(ledger, owner="one", before=time.time() + 1) == 0
+    )
     assert _states(ledger) == {"worker": "RESERVED"}
     assert lines[0][0] == "op_previous_run_kept"
 

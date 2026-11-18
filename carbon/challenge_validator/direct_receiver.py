@@ -2449,7 +2449,7 @@ class OwnerProviders:
         first = None
         began = time.monotonic()
         #: this start's wall time: an op RESERVED before it is a previous receiver process's (`settle_previous_runs`)
-        started = time.time()
+        start_wall = time.time()
         took = []
         for directory in sorted(self.root.iterdir()):
             name = directory.name
@@ -2483,7 +2483,9 @@ class OwnerProviders:
 
                 ledger = getattr(provider, "ledger", None)
                 if ledger is not None:
-                    settle_previous_runs(ledger, owner=owner["hotkey"], before=started)
+                    settle_previous_runs(
+                        ledger, owner=owner["hotkey"], before=start_wall
+                    )
             except Exception as failure:
                 opened = any(
                     hashlib.sha256(hotkey.encode()).hexdigest() == name

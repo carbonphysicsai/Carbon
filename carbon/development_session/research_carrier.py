@@ -331,7 +331,7 @@ def settle_previous_runs(ledger, *, owner, before):
                 "SELECT id, phase FROM operations WHERE owner=? AND state='RESERVED' AND created<?",
                 (owner, float(before)),
             ).fetchall()
-    except Exception:  # noqa: BLE001 - an unreadable ledger is the normal path's to report
+    except Exception:  # noqa: BLE001 - unreadable: the normal path reports
         return 0
     if not rows:
         return 0
