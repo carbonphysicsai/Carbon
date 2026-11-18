@@ -398,3 +398,41 @@ def test_the_official_seed_stays_refused():
     provider._views, provider._task_seeds = {}, {}
     with pytest.raises(ValueError, match="rebuild seed invalid"):
         provider.set_rebuild_seed("rtsk_" + "c" * 64, 0)
+
+
+def test_a_miners_graph_rerun_starts_from_its_failed_tasks_retained_source(
+    graph_case, no_workspace, tmp_path
+):
+    """V2 on 4c074a3a (live 116, 18 Nov 2026): the door's re-run of a miner's graph build (`rebuild_of`, never a
+    crown-derived rebuild) is admitted from the FAILED task's own retained bytes, never the workspace (which the miner
+    may have replaced), and the crown-only graph_source refusal never fires on it."""
+    recipe, envelope, _ = graph_case
+    provider, request = _provider("5Fminer", recipe, seeded=False, tmp_path=tmp_path)
+    failed = "rtsk_" + "f" * 64
+    provider._requests[failed] = request  # the failed task: exactly the same recipe
+    read = []
+    provider._source_envelope = lambda identity, recipe: (
+        read.append(identity) or envelope
+    )
+    with pytest.raises(_Admitted):
+        provider.start_research_task(request, rebuild_of=failed)
+    assert read == [failed] and provider.retained == [envelope]
+
+
+def test_a_rerun_whose_retained_source_differs_is_refused(
+    graph_case, no_workspace, tmp_path
+):
+    recipe, _envelope, _ = graph_case
+    provider, request = _provider("5Fminer", recipe, seeded=False, tmp_path=tmp_path)
+    failed = "rtsk_" + "f" * 64
+    provider._requests[failed] = request
+
+    def differs(identity, recipe):
+        raise ValueError("retained direct graph source differs")
+
+    provider._source_envelope = differs
+    assert (
+        _code(lambda: provider.start_research_task(request, rebuild_of=failed))
+        is ResearchServiceErrorCode.REFERENCE_MISMATCH
+    )
+    assert provider.retained == []
