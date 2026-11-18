@@ -533,7 +533,8 @@ def test_a_grade_waiting_its_commit_turn_is_never_ended_as_hung(monkeypatch):
 
 def test_a_bounded_exclusive_gives_up_behind_a_stuck_grade_and_lets_grades_claim():
     """Live 116, 18 Nov 2026: the incumbent's steps drained behind one stuck grade while holding the claim lock, and
-    the door graded nothing for 30 min. `exclusive_within` waits at most its bound, then lets the claim lock go."""
+    the door graded nothing for 30 min. `exclusive_within` waits at most its bound, then lets the claim lock go.
+    """
     import threading
     import time
 

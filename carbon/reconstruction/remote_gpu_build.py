@@ -670,7 +670,9 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
     ):
         raise ValueError("remote_gpu_build_box_images")
     ssh_key = document.get("ssh_key")
-    if ssh_key is not None and (type(ssh_key) is not str or not _HOME.fullmatch(ssh_key)):
+    if ssh_key is not None and (
+        type(ssh_key) is not str or not _HOME.fullmatch(ssh_key)
+    ):
         raise ValueError("remote_gpu_build_box_ssh_key")
     device = _box_device(document.get("device"), document.get("device_digest"))
     if kind is not None and device.device_kind != kind:
@@ -1627,7 +1629,8 @@ def pinned_ssh_options(lane):
     if key is not None:
         key = _checked_path(key, b"remote_gpu_build_box_ssh_key")
         identity = ["-i", key, "-o", "IdentitiesOnly=yes"]
-    return [*identity,
+    return [
+        *identity,
         "-o",
         "StrictHostKeyChecking=yes",
         "-o",

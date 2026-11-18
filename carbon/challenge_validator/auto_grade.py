@@ -716,7 +716,10 @@ class AutoGrader:
                                 if not drained:
                                     from carbon.battery.intake import log
 
-                                    log("prelude_drain_busy", in_flight=len(sequencer.in_flight()))
+                                    log(
+                                        "prelude_drain_busy",
+                                        in_flight=len(sequencer.in_flight()),
+                                    )
                                     self._prelude_after = (
                                         time.monotonic() + self.PRELUDE_REASK_SECONDS
                                     )
