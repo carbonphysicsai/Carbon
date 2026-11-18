@@ -20,6 +20,56 @@ from .models import (
 )
 
 
+#: Prune old unreferenced receipts once the table holds this share of its capacity (and alert).
+PRUNE_AT = 0.8
+#: A receipt older than this (by its received time) may be pruned when no journal extension table names it.
+PRUNE_AGE_NS = 3600 * 1_000_000_000
+#: At most this many receipts go in one admission (bounded work in the admission's transaction).
+PRUNE_BATCH = 20_000
+#: The columns of a journal extension table that name a receipt by its sequence (`candidates`, `miner_mcp`).
+_REFERENCE_COLUMNS = ("receipt_sequence", "receipt")
+_TRANSPORT_TABLES = frozenset({"receipt", "nonce", "transport_meta", "sqlite_sequence"})
+
+
+def _references(connection):
+    """``[(table, column)]`` of every journal extension table column that names a receipt sequence."""
+    found = []
+    for (table,) in connection.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall():
+        if table in _TRANSPORT_TABLES or not table.replace("_", "").isalnum():
+            continue
+        columns = {row[1] for row in connection.execute(f'PRAGMA table_info("{table}")')}
+        found.extend((table, column) for column in _REFERENCE_COLUMNS if column in columns)
+    return found
+
+
+def _prune(connection, cutoff_ns):
+    """Delete up to `PRUNE_BATCH` receipts received before ``cutoff_ns`` that no extension table names; returns
+    how many went."""
+    keep = " ".join(
+        f'AND sequence NOT IN (SELECT "{column}" FROM "{table}" WHERE "{column}" IS NOT NULL)'
+        for table, column in _references(connection)
+    )
+    return connection.execute(
+        "DELETE FROM receipt WHERE sequence IN (SELECT sequence FROM receipt "
+        f"WHERE received_ns < ? {keep} ORDER BY received_ns LIMIT ?)",
+        (cutoff_ns, PRUNE_BATCH),
+    ).rowcount
+
+
+def _near_cap(held, capacity):
+    """An alert line while the journal stays at or above `PRUNE_AT` of its capacity after pruning."""
+    if held < capacity * PRUNE_AT:
+        return
+    try:
+        from carbon.battery.intake import log
+
+        log("transport_journal_near_cap", alert=True, held=held, capacity=capacity)
+    except Exception:  # noqa: BLE001 - an alert line never refuses intake
+        return
+
+
 class _NonceTransaction:
     def __init__(self, connection):
         self.connection = connection
@@ -64,6 +114,7 @@ class ReceiptJournal:
                     record TEXT NOT NULL, digest TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS receipt_rate ON receipt(hotkey, received_ns);
+                CREATE INDEX IF NOT EXISTS receipt_age ON receipt(received_ns);
             """)
             encoded_context = canonical(asdict(context)).decode()
             connection.execute(
@@ -179,10 +230,15 @@ class ReceiptJournal:
                     else TransportCode.CONFLICT
                 )
                 raise TransportFailure(code)
-            if (
-                connection.execute("SELECT COUNT(*) FROM receipt").fetchone()[0]
-                >= self.capacity
-            ):
+            held = connection.execute("SELECT COUNT(*) FROM receipt").fetchone()[0]
+            if held >= self.capacity * PRUNE_AT:
+                # V2 (18 Nov 2026): the receipt table is per-request dedupe only (the replay window is the 10 s nonce
+                # and the -2..+60 s clock window): unreferenced receipts older than `PRUNE_AGE_NS` go, in this same
+                # transaction, so intake never closes on capacity while old poll rows fill the journal (live 116,
+                # 12 and 18 Nov). A receipt any journal extension table names is kept.
+                held -= _prune(connection, now_ns - PRUNE_AGE_NS)
+                _near_cap(held, self.capacity)
+            if held >= self.capacity:
                 raise TransportFailure(TransportCode.CAPACITY)
             count = connection.execute(
                 "SELECT COUNT(*) FROM receipt WHERE hotkey=? AND received_ns>?",

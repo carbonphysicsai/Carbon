@@ -381,3 +381,51 @@ def test_authenticated_request_dispatches_through_existing_mcp(tmp_path):
     ref, result = asyncio.run(gate.dispatch(body, headers(body), service))
     assert type(result) is DryValidateResponse
     assert gate.journal.resolve(ref).body_digest == digest(body)
+
+
+def _fill_old(journal, count, *, age_ns):
+    import sqlite3
+
+    db = sqlite3.connect(journal.path)
+    db.executemany(
+        "INSERT INTO receipt(request_key,body_digest,hotkey,received_ns,record,digest) VALUES (?,?,?,?,?,?)",
+        (
+            (f"old-{n}", "b", "miner", NOW - age_ns, "{}", "d")
+            for n in range(count)
+        ),
+    )
+    db.commit()
+    db.close()
+
+
+def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_request(
+    tmp_path, monkeypatch
+):
+    """Live 116 (12 and 18 Nov 2026): the journal at its 100k cap closed intake. V2: the receipt table is per-request
+    dedupe only, so unreferenced receipts older than an hour are pruned in the admission's own transaction (an alert at
+    80%), a receipt a journal extension table names is kept, and a journal of FRESH receipts still refuses."""
+    import sqlite3
+
+    from carbon.battery import intake
+    from carbon.transport import store
+
+    lines = []
+    monkeypatch.setattr(intake, "log", lambda event, **f: lines.append((event, f)))
+    monkeypatch.setattr(store, "PRUNE_BATCH", 1000)
+    gate = gateway(tmp_path, capacity=1000)
+    _fill_old(gate.journal, 1000, age_ns=2 * 3600 * 1_000_000_000)
+    db = sqlite3.connect(gate.journal.path)
+    db.execute("CREATE TABLE c08_submit_v1 (receipt_sequence INTEGER PRIMARY KEY)")
+    db.execute("INSERT INTO c08_submit_v1 VALUES (7)")  # an extension names receipt 7
+    db.commit()
+    receive(gate)  # accepted: the old unreferenced receipts went
+    left = {row[0] for row in db.execute("SELECT sequence FROM receipt")}
+    assert 7 in left and len(left) == 2  # the referenced one and the new one
+    db.close()
+    # a journal of fresh receipts still refuses at the cap, with an alert
+    (tmp_path / "fresh").mkdir()
+    fresh = gateway(tmp_path / "fresh", capacity=1000)
+    _fill_old(fresh.journal, 1000, age_ns=60 * 1_000_000_000)
+    with pytest.raises(TransportFailure, match="CAPACITY"):
+        receive(fresh)
+    assert ("transport_journal_near_cap", {"alert": True, "held": 1000, "capacity": 1000}) in lines
