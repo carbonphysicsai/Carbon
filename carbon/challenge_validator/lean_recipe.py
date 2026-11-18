@@ -365,7 +365,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         """The served sources this door was started with (its ``implementation_digest``, computed at start) are still
         byte-for-byte the installed ones, else ``served_recipe_source_changed``. V2's ruling (18 Nov 2026): checked at
         door start and right before a build or a grade runs (`_advance_one`, `lean_recipe_retention`'s grade entries),
-        never on a lookup (`owner`, `_provider`, the claim and advance scans, status reads): those run no code."""
+        never on a lookup (`owner`, `_provider`, the claim and advance scans, status reads): those run no code.
+        """
         if self._identities["implementation_digest"] != _implementation_identity():
             raise Unavailable("served_recipe_source_changed")
 

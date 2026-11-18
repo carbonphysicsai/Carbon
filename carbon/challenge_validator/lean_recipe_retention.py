@@ -91,11 +91,11 @@ EARLY_WALL_STOP_SCHEMA = "carbon.exam.early-wall-stop.v1"
 _EARLY_ROW_KEYS = {"enabled", "s_max_seconds", "margin", "evidence_sha256"}
 
 
-
 def _served_source_checked(adapter):
     """At a grade's start, right before its work runs (V2's ruling, 18 Nov 2026): the served sources this door was
     started with are still byte-for-byte the ones installed (`LeanRecipeAdapter.check_served_source`, refused
-    ``served_recipe_source_changed``). Lookups never hash. An adapter without the check (a test double): nothing."""
+    ``served_recipe_source_changed``). Lookups never hash. An adapter without the check (a test double): nothing.
+    """
     check = getattr(adapter, "check_served_source", None)
     if callable(check):
         check()
