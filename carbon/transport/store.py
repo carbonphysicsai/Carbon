@@ -19,9 +19,7 @@ from .models import (
     digest,
 )
 
-
-#: Prune old unreferenced receipts once the table holds this share of its capacity (and alert).
-PRUNE_AT = 0.8
+PRUNE_AT = 0.8  # prune old unreferenced receipts at this share of the capacity (and alert)
 #: A receipt older than this (by its received time) may be pruned when no journal extension table names it.
 PRUNE_AGE_NS = 3600 * 1_000_000_000
 #: At most this many receipts go in one admission (bounded work in the admission's transaction).
@@ -39,8 +37,12 @@ def _references(connection):
     ).fetchall():
         if table in _TRANSPORT_TABLES or not table.replace("_", "").isalnum():
             continue
-        columns = {row[1] for row in connection.execute(f'PRAGMA table_info("{table}")')}
-        found.extend((table, column) for column in _REFERENCE_COLUMNS if column in columns)
+        columns = {
+            row[1] for row in connection.execute(f'PRAGMA table_info("{table}")')
+        }
+        found.extend(
+            (table, column) for column in _REFERENCE_COLUMNS if column in columns
+        )
     return found
 
 

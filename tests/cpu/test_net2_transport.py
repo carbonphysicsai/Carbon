@@ -389,10 +389,7 @@ def _fill_old(journal, count, *, age_ns):
     db = sqlite3.connect(journal.path)
     db.executemany(
         "INSERT INTO receipt(request_key,body_digest,hotkey,received_ns,record,digest) VALUES (?,?,?,?,?,?)",
-        (
-            (f"old-{n}", "b", "miner", NOW - age_ns, "{}", "d")
-            for n in range(count)
-        ),
+        ((f"old-{n}", "b", "miner", NOW - age_ns, "{}", "d") for n in range(count)),
     )
     db.commit()
     db.close()
@@ -403,7 +400,8 @@ def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_requ
 ):
     """Live 116 (12 and 18 Nov 2026): the journal at its 100k cap closed intake. V2: the receipt table is per-request
     dedupe only, so unreferenced receipts older than an hour are pruned in the admission's own transaction (an alert at
-    80%), a receipt a journal extension table names is kept, and a journal of FRESH receipts still refuses."""
+    80%), a receipt a journal extension table names is kept, and a journal of FRESH receipts still refuses.
+    """
     import sqlite3
 
     from carbon.battery import intake
@@ -428,4 +426,7 @@ def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_requ
     _fill_old(fresh.journal, 1000, age_ns=60 * 1_000_000_000)
     with pytest.raises(TransportFailure, match="CAPACITY"):
         receive(fresh)
-    assert ("transport_journal_near_cap", {"alert": True, "held": 1000, "capacity": 1000}) in lines
+    assert (
+        "transport_journal_near_cap",
+        {"alert": True, "held": 1000, "capacity": 1000},
+    ) in lines
