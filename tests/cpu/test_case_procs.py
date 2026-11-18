@@ -124,7 +124,10 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
     for function in (case_procs.case_procs_count, case_procs.case_procs_deadline):
         assert case_procs._indented_source(function) in procs
     assert "rows, len(sample), case_wall_end,\n" in procs
-    assert "                                       4.0, 1.25)\n" in procs
+    assert "                                       4.0, 1.25, 10.0)\n" in procs
+    # the parent times a row pinned to ONE core (as a worker runs) and gives the whole cpuset back after
+    assert "os.sched_setaffinity(int(task), {cores[0]})" in procs
+    assert "os.sched_setaffinity(int(task), set(cores))" in procs
     assert "case_wall_end = case_start + 648 - 135\n" in procs
     assert "time.monotonic() + 1.25 * per_row * left > case_wall_end" in procs
     for placeholder in (
@@ -138,6 +141,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
         "__WALL_SECONDS__",
         "__WALL_MARGIN__",
         "__FALLBACK_SLACK__",
+        "__KILL__",
     ):
         assert placeholder not in procs
     compile(procs, "case-procs", "exec")
@@ -150,7 +154,9 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
     for changed in (
         procs.replace("def case_block(index):", "x", 1),
         procs.replace("same(answer[-1:], sample[high - 1])", "True", 1),
-        procs.replace("  4.0, 1.25)\n", "  40.0, 1.25)\n", 1),
+        procs.replace("  4.0, 1.25, 10.0)\n", "  40.0, 1.25, 10.0)\n", 1),
+        procs.replace("  4.0, 1.25, 10.0)\n", "  4.0, 1.25, 0.0)\n", 1),
+        procs.replace("{cores[0]})", "set(cores))", 1),
         procs.replace("case_start + 648 - 135", "case_start + 648 - 3", 1),
         procs.replace(
             "if fell_back and time.monotonic() + 1.25 * row_time > case_wall_end:",
@@ -245,9 +251,17 @@ def _rows(artifact, count=ROWS):
     return rows
 
 
-def _file_runner(ledger, seen, change=lambda source: source):
+#: The deadline's "workers must beat one process" gate, as the program carries it. The fixture graph is far too small
+#: for workers to beat one process, so `_file_runner` drops it (test variants only) unless a test keeps it.
+_BEATS_ONE_PROCESS = (
+    "        if need >= per_row * (rows - sampled):\n            return None\n"
+)
+
+
+def _file_runner(ledger, seen, change=lambda source: source, gate=False):
     """The local runner, but the program runs from a FILE as the carrier runs /input/program.py (so its workers can
-    re-run it); ``change`` edits the program text (test variants only)."""
+    re-run it); ``change`` edits the program text (test variants only); ``gate`` keeps the deadline's
+    `_BEATS_ONE_PROCESS` gate (else dropped: the fixture graph is too small for workers to win)."""
     count = itertools.count()
 
     def runner(current_ledger, *, source, files, output_validator, identity, **_kw):
@@ -259,7 +273,11 @@ def _file_runner(ledger, seen, change=lambda source: source):
         for filename, body in files.items():
             (work / filename).write_bytes(body)
         program = home / "program.py"
-        program.write_text(change(source), encoding="utf-8")
+        text = change(source)
+        if not gate and case_procs.is_procs_program(text):
+            assert text.count(_BEATS_ONE_PROCESS) == 1
+            text = text.replace(_BEATS_ONE_PROCESS, "")
+        program.write_text(text, encoding="utf-8")
         # as the carrier runs it: an isolated interpreter over a program file
         done = subprocess.run(
             [sys.executable, "-I", str(program)],
@@ -623,55 +641,74 @@ def test_the_wall_margin_lies_before_the_hosts_own_program_wall():
 
 def test_workers_when_the_worst_case_fits_or_one_process_cannot_end_in_the_wall():
     """`case_procs_deadline` (the program carries its source). Validator-2 F1: workers when every worker stopped at its
-    deadline and then every row made by the parent alone still ends by the wall margin; the deadline is capped there.
-    G2 (Lead, 17 Nov): also when the one-process pass cannot end by the wall margin anyway but one worker's own need
-    (start + first call + its slice at the parent's per-row time) fits: workers until the wall margin. Else no workers.
+    deadline, the kill allowance, and then every row made by the parent alone still ends by the wall margin; the
+    deadline is capped there. G2 (Lead, 17 Nov): also when the one-process pass cannot end by the wall margin anyway
+    but one worker's own need fits: workers until the wall margin. A worker's need is planned at ITS speed (live 116,
+    18 Nov): its slice at the one-core per-row time; workers only when that need beats the one-process rows left. Else no workers.
     """
     deadline = case_procs.case_procs_deadline
     end = MOTOR_18_WALL - case_procs.CASE_PROCS_WALL_MARGIN_SECONDS
+    kill = case_procs.CASE_PROCS_KILL_SECONDS
 
-    def plan(per_row, rows=1000, now=10.0, startup=5.0, first=2.0, cores=4):
+    def plan(per_row, rows=1000, now=10.0, startup=5.0, first=2.0, cores=4, one=None):
         return deadline(
             now,
             startup,
             first,
             per_row,
+            per_row if one is None else one,
             -(-rows // cores),
             rows,
             2 * cores,
             end,
             case_procs.CASE_PROCS_DEADLINE_SLACK,
             case_procs.CASE_PROCS_FALLBACK_SLACK,
+            kill,
         )
 
-    # 10 s of rows: zone A, deadline = now + 4 x (5 + 2 + 0.01 x 250)
+    # loop-bound rows (one core as fast as the cpuset): 10 s of rows, zone A, deadline = now + 4 x (5 + 2 + 0.01 x 250)
     assert plan(0.01) == pytest.approx(10.0 + 4.0 * (5 + 2 + 0.01 * 250))
-    # 200 s of rows on 4 cores: zone A (F1 gave none), deadline = now + 4 x (5 + 2 + 0.2 x 250)
+    # 200 s of rows on 4 cores: zone A, deadline = now + 4 x (5 + 2 + 0.2 x 250)
     assert plan(0.2) == pytest.approx(10.0 + 4.0 * (5 + 2 + 0.2 * 250))
-    # 260 s of rows: zone A, the allowance capped at the latest worst-case deadline
-    assert plan(0.26) == pytest.approx(end - 1.25 * 0.26 * 1000)
+    # 260 s of rows: zone A, the allowance capped at the latest worst-case deadline, which keeps the kill allowance
+    assert plan(0.26) == pytest.approx(end - kill - 1.25 * 0.26 * 1000)
     # 400 s of rows: fits one process but not the worst case, and one process can end in the wall: no workers
     assert 10.0 + 0.4 * 1000 < end and plan(0.4) is None
-    # rtsk_90112009-class (0.23 s x 2564 rows ~ 590 s) and MGN-class (~528 s): one process cannot end in the wall,
-    # a worker's quarter (~148 s / ~132 s) can: zone B, workers until the wall margin
+    # rtsk_90112009-class (0.23 s x 2564 rows ~ 590 s) and MGN-class (~528 s), loop-bound: one process cannot end in
+    # the wall, a worker's quarter can: zone B, workers until the wall margin
     assert plan(0.23, rows=2564) == end
     assert plan(528 / 2564, rows=2564) == end
     # zone B needs one worker's own need to fit: a pass far past the wall gets none (its wall stop as before)
     assert plan(4.0, rows=2564) is None
+    # live 116, 18 Nov (2611 rows, every worker missed): a DENSE row, 4 x slower on one core, never gets workers, in
+    # either zone: 4 workers on one core each are no faster than one process on the four
+    assert plan(0.2, rows=2611, one=0.8) is None
+    assert plan(0.23, rows=2564, one=0.92) is None
+    assert plan(0.01, one=0.04) is None
+    # partly dense (2 x slower on one core) still gains: workers
+    assert plan(0.23, rows=2564, one=0.46) == end
+    # a row that could not be timed on one core: no workers
+    assert plan(0.2, one=float("inf")) is None
+    # too few rows to pay a worker's own start: no workers
+    assert plan(0.001, rows=64) is None
     for per_row in (0.001, 0.01, 0.05, 0.1, 0.2, 0.23, 0.4, 1.0, 4.0):
-        for rows in (10, 100, 1000, 2564):
-            for now in (1.0, 50.0, 300.0):
-                got = plan(per_row, rows=rows, now=now)
-                if got is None:
-                    continue
-                if now + per_row * (rows - 8) <= end:
-                    # the one-process pass can end in the wall: the worst case always fits when workers start
-                    assert got + 1.25 * per_row * rows <= end + 1e-9
-                else:
-                    assert got == end
-                assert got > now
+        for ratio in (1.0, 2.0, 4.0):
+            for rows in (10, 100, 1000, 2564):
+                for now in (1.0, 50.0, 300.0):
+                    got = plan(per_row, rows=rows, now=now, one=ratio * per_row)
+                    if got is None:
+                        continue
+                    need = 7.0 + ratio * per_row * -(-rows // 4)
+                    # workers only when their plan beats the one-process rows left
+                    assert need < per_row * (rows - 8)
+                    if now + per_row * (rows - 8) <= end:
+                        # the one-process pass can end in the wall: the worst case, with the kill allowance, fits
+                        assert got + kill + 1.25 * per_row * rows <= end + 1e-9
+                    else:
+                        assert got == end
+                    assert got > now
     # the sample already made every row: no workers
-    assert deadline(0.0, 1.0, 1.0, 0.01, 2, 8, 8, end, 4.0, 1.25) is None
+    assert deadline(0.0, 1.0, 1.0, 0.01, 0.01, 2, 8, 8, end, 4.0, 1.25, kill) is None
 
 
 def _ledger(root):
@@ -808,6 +845,46 @@ def test_a_candidate_too_slow_for_the_wall_in_one_process_gets_no_workers(
         )
     finally:
         ledger.connection.close()
+    assert all("case_procs:" not in call["stderr"] for call in seen)
+    assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
+
+
+_ONE_CORE = "            per_row_one = time.perf_counter() - clock\n"
+
+
+@posix
+@pytest.mark.skipif(_cores() < 2, reason="needs at least two cores in the cpuset")
+def test_a_dense_pass_slow_on_one_core_gets_no_workers(motor18, tmp_path):
+    """Live 116, 18 Nov 2026: a dense graph is ~cores x slower per row on ONE core, so workers (one core each) are no
+    faster than one process and every worker missed its deadline (all 2611 rows twice). The parent times a row pinned
+    to one core; slow there (forced here, with the real gate kept), no worker starts, no fallback line is written, and
+    the pass is the one-process pass with the one-process answers."""
+    from test_paired_inference import FixtureLedger
+
+    rows = _rows(motor18, 40)
+    serial = _serial(motor18, tmp_path, rows)
+
+    def variant(source):
+        assert source.count(_ONE_CORE) == 1 and source.count(_WORKER_START) == 1
+        return source.replace(
+            _ONE_CORE, _ONE_CORE + "            per_row_one = 10**6.0\n"
+        ).replace(
+            _WORKER_START,
+            _WORKER_START + "        raise SystemExit('no worker may start')\n",
+        )
+
+    ledger, seen = FixtureLedger(tmp_path / "dense"), []
+    try:
+        primary, repeat = _graded(
+            motor18,
+            ledger,
+            _file_runner(ledger, seen, variant, gate=True),
+            "dense",
+            rows,
+        )
+    finally:
+        ledger.connection.close()
+    assert len(seen) == 2 and all(call["code"] == 0 for call in seen)
     assert all("case_procs:" not in call["stderr"] for call in seen)
     assert primary.tobytes() == repeat.tobytes() == serial.tobytes()
 
