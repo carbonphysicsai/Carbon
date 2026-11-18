@@ -637,3 +637,20 @@ def test_a_failure_after_the_counted_settle_gives_the_slot_back(
         assert result["private_evaluation_state"] == "UNAVAILABLE"
     rows = _cap_rows(fixture)
     assert [(row[2], row[3]) for row in rows] == [("RELEASED", "FAILED_INFRA")]
+
+
+def test_a_receiver_stop_after_the_counted_settle_gives_the_slot_back(case, tmp_path, monkeypatch):
+    """Live 116, 18 Nov 2026 21:53Z: three grades were settled COUNTED, then a receiver stop
+    (`Unavailable("direct_receiver_stopping")`, not a ValueError) ended them FAILED with the slot kept."""
+    from carbon.challenge_validator.interface import Unavailable
+    from carbon.scoring import private_evaluation_evidence
+
+    fixture = _setup(case, tmp_path, monkeypatch)
+
+    def stops(**kwargs):
+        raise Unavailable("direct_receiver_stopping")
+
+    monkeypatch.setattr(private_evaluation_evidence, "bind_private_evaluation_evidence", stops)
+    with pytest.raises(Unavailable):
+        _grade(fixture, counted=True)
+    assert [(row[2], row[3]) for row in _cap_rows(fixture)] == [("RELEASED", "FAILED_INFRA")]

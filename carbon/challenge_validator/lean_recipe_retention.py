@@ -2749,6 +2749,12 @@ def _retain_selected_pack_evaluation(
             "private_evaluation_reason": reason,
             **_limit_message(adapter, submission_id, reason),
         }
+    except BaseException:
+        # any other ending after the COUNTED settle (a receiver stop: `Unavailable("direct_receiver_stopping")`, live 116
+        # 18 Nov 2026 21:53Z) also never reached the miner: the slot goes back, then the ending goes on as before
+        if counted is not None:
+            cap.give_back_unfinished(counted)
+        raise
     return {
         **result,
         "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
