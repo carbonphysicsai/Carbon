@@ -611,11 +611,15 @@ def test_v4_counts_what_runs_and_v1_keeps_the_task_counts(tmp_path):
     provider = next(iter(grader.intake.adapter.provider_for._providers.values()))
     provider.ledger = _ledger_with(tmp_path, [direct_child_identity(TASKS[0], "build")])
     grader.sequencer = grade_sequencer.Sequencer()
-    with grader.sequencer.task() as first, grader.sequencer.task() as second:
+    # two grades claimed on two lanes: each claim is released once bound (the claim lock is one at a time)
+    with grader.sequencer.task() as first:
         first.bind(TASKS[3])
-        second.bind(TASKS[4])
-        status, v1 = queue_public.serve(view, CHALLENGE)
-        status4, v4 = queue_public.serve_v4(view, CHALLENGE)
+        first.release_claim()
+        with grader.sequencer.task() as second:
+            second.bind(TASKS[4])
+            second.release_claim()
+            status, v1 = queue_public.serve(view, CHALLENGE)
+            status4, v4 = queue_public.serve_v4(view, CHALLENGE)
     assert status == 200 and set(v1) == queue_public.FIELDS
     assert (v1["building_now"], v1["waiting_to_build"], v1["waiting_to_grade"], v1["grading_now"]) == (2, 1, 3, 1)
     assert status4 == 200 and set(v4) == queue_public.FIELDS_V4
@@ -624,14 +628,25 @@ def test_v4_counts_what_runs_and_v1_keeps_the_task_counts(tmp_path):
     assert "rtsk_" not in json.dumps(v4)
 
 
+class _ViewV3(_View):
+    def snapshot_v3(self):
+        return self.snapshot()
+
+
 def test_v4_is_unavailable_when_its_counts_cannot_be_read_and_v1_still_serves():
     snapshot = {**_snapshot(), "held_for_review": None, "rows": {"rows": [], "as_of_unix": NOW - 300}}
-    assert queue_public.serve_v4(_View({**snapshot, "running": None}), CHALLENGE) == (
+    assert queue_public.serve_v4(_ViewV3({**snapshot, "running": None}), CHALLENGE) == (
         503,
         {"refused": "queue_running_invalid"},
     )
     bad = {"waiting_to_build": 0, "building_now": 0, "waiting_to_grade": 0, "grading_now": -1}
-    assert queue_public.serve_v4(_View({**snapshot, "running": bad}), CHALLENGE)[0] == 503
+    assert queue_public.serve_v4(_ViewV3({**snapshot, "running": bad}), CHALLENGE) == (
+        503,
+        {"refused": "queue_running_invalid"},
+    )
+    good = {"waiting_to_build": 2, "building_now": 1, "waiting_to_grade": 3, "grading_now": 8}
+    status, body = queue_public.serve_v4(_ViewV3({**snapshot, "running": good}), CHALLENGE)
+    assert status == 200 and body["grading_now"] == 8 and body["schema"] == queue_public.SCHEMA_V4
     assert queue_public.serve(_View({**_snapshot(), "running": None}), CHALLENGE)[0] == 200
 
 
