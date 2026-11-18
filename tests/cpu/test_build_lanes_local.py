@@ -345,3 +345,42 @@ def test_a_laneless_builds_unsized_doctor_gets_the_reserved_lane_never_policy(ho
     with work.taking("advance"):
         assert host_execution.resolve_cpuset(logical_cpus=16, count=CPU_COUNT) == "0-3"
         assert grade_lanes.current().index == 0
+
+
+def test_with_no_box_up_a_new_build_round_starts_on_a_local_lane(host):
+    """Lead, 18 Nov 2026: with the remote GPU box down, every laneless build round queued on the one reserved lane and
+    the board showed them building. While no box is up, a NEW build round starts on a local lane with a build slot
+    (at most one build per local lane is started); once a box is up again, builds start laneless as before.
+    """
+    work, _ = _door(host, extra=4)
+    work.box_up = lambda: False
+    with work.taking("advance"):
+        lane = grade_lanes.current()
+        assert lane is not None and lane.docker_host is None
+    work.box_up = lambda: True
+    with work.taking("advance"):
+        assert grade_lanes.current() is None
+
+
+def test_an_op_waiting_for_its_lane_is_waiting_never_building():
+    """The op named by `running_op` is in `waiting_ops` while its round re-takes a lane, and leaves it after."""
+
+    class Releaser:
+        _released = True
+        any_lane = False
+
+        def __init__(self):
+            self.seen = None
+
+        def retake(self):
+            self.seen = grade_lanes.waiting_ops()
+            return None
+
+    releaser = Releaser()
+    with grade_lanes.running_op("rtsk_x-build"):
+        grade_lanes._retake(releaser)
+    assert releaser.seen == frozenset({"rtsk_x-build"})
+    assert grade_lanes.waiting_ops() == frozenset()
+    with grade_lanes.waiting_for("a"), grade_lanes.waiting_for("a"):
+        assert grade_lanes.waiting_ops() == frozenset({"a"})
+    assert grade_lanes.waiting_ops() == frozenset()

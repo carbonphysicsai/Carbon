@@ -1208,6 +1208,8 @@ def serve_loopback(
         # BUILD LANES (Lead 17 Nov 2026): builds take the LOCAL lanes only, one build round per local lane plus one per
         # remote GPU build slot (those wait on the remote box with their lane given back); the remote lanes grade
         advance_rounds = work.local_builds(_remote_build_slots(intake))
+        if work.builds_laneless:
+            work.box_up = lambda: _remote_box_up(intake)
         log(
             "direct_build_rounds",
             rounds=advance_rounds,
@@ -1364,6 +1366,21 @@ def _door_remote_only(intake, grading_lock_dir, state_dir):
     return grade_lanes.door_remote_only(state_dir)
 
 
+def _remote_box_up(intake):
+    """Whether this door's remote GPU build pool has a box not down now (`remote_gpu_build.door_box_up`); an unreadable
+    pool counts as up (a build round then starts laneless, as before)."""
+    challenge = getattr(intake, "challenge", None)
+    try:
+        from carbon.reconstruction import remote_gpu_build
+
+        return remote_gpu_build.door_box_up(
+            getattr(challenge, "challenge_id", None),
+            getattr(challenge, "version", None),
+        )
+    except Exception:  # noqa: BLE001 - a hint for where a build round starts, never a failure
+        return True
+
+
 def _remote_build_slots(intake):
     """How many build rounds this door's REMOTE GPU build boxes may keep busy (`remote_gpu_build.door_build_slots`: a
     box pool's slots per box times its most boxes): 0 without a pool, for a local slot lane (its builds hold their
@@ -1515,6 +1532,10 @@ class _WorkLock:
         #: holding one of `_build_slots` (one per local lane) beside its round slot; None: builds take any lane.
         self.builds_local = False
         self._build_slots = None
+        #: Under `builds_laneless`: whether a remote GPU build box is up now (`_remote_box_up`); while none is, a NEW build
+        #: round starts on a local lane with a build slot like any build (`_Taking.__enter__`), so at most one build per
+        #: local lane is started (Lead, 18 Nov 2026: with the A100 down, 9 laneless rounds queued on one lane). None: up.
+        self.box_up = None
         if network is None:
             from carbon.chain import models
 
@@ -1912,6 +1933,15 @@ class _WorkLock:
                 self._kind_waiters[kind] -= 1
                 self._kinds.notify_all()
 
+    def _box_is_up(self):
+        probe = getattr(self, "box_up", None)
+        if probe is None:
+            return True
+        try:
+            return probe() is not False
+        except Exception:  # noqa: BLE001 - unknown: laneless, as before
+            return True
+
     def _remote_lane_free(self):
         return self._lane_free(local=False)
 
@@ -2199,6 +2229,7 @@ class _Taking:
             and self.kind == "advance"
             and getattr(work, "builds_laneless", False)
             and getattr(work, "overlap_kinds", False)
+            and (getattr(work, "_box_is_up", None) is None or work._box_is_up())
         ):
             return self._enter_laneless()
         if self._parallel:

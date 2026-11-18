@@ -422,6 +422,8 @@ def _run(ledger, **kwargs):
     from carbon.reconstruction import grade_lanes
 
     with (
+        # the op named, so its lane or slot waits show as waiting, never building (`grade_lanes.waiting_for`)
+        grade_lanes.running_op(identity),
         # an op on this host: a build round that started laneless holds a local lane first (`grade_lanes.laned`)
         grade_lanes.released() if off_host else grade_lanes.laned(),
         remote_gpu_build.op(

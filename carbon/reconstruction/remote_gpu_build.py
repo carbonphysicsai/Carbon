@@ -530,6 +530,15 @@ def door_pool(challenge_id, version, *, root=None, values=None):
 MAX_BOXES = 3
 
 
+def door_box_up(challenge_id, version, *, root=None, values=None):
+    """Whether the door's box pool (`door_pool`) has a box that is not down now, so a build round may start laneless
+    for it (`direct_intake._Taking._enter_laneless`). True without a pool, or with a local slot lane (unchanged)."""
+    pool = door_pool(challenge_id, version, root=root, values=values)
+    if pool is None or pool.local is not None:
+        return True
+    return any([not is_down(box) for box in boxes(pool)])
+
+
 def door_build_slots(challenge_id, version, *, root=None, values=None):
     """How many build rounds a door's REMOTE GPU build boxes may keep busy at once (its extra build rounds,
     `direct_intake._remote_build_slots`): ``slots`` per box times `MAX_BOXES` for a box pool (boxes come and go without
@@ -1316,9 +1325,12 @@ def op(
     from carbon.reconstruction import grade_lanes
 
     with ExitStack() as held:
+        # a slot wait is Carbon's queue (`grade_lanes.waited_seconds`), and the op shows as waiting, never building
+        # (`grade_lanes.waiting_for`)
         with (
-            grade_lanes.timed_wait()
-        ):  # a slot wait is Carbon's queue (`grade_lanes.waited_seconds`)
+            grade_lanes.timed_wait(),
+            grade_lanes.waiting_for(identity if type(identity) is str else None),
+        ):
             binding = _take(
                 offer,
                 identity,

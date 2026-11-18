@@ -2866,3 +2866,15 @@ def test_a_box_set_up_before_the_seven_slots_is_still_read_with_its_own_four(hos
     )
     assert lane.spec.slot_cpusets == remote_gpu_build.BOX_SLOT_CPUSETS
     assert lane.slots == 7
+
+
+def test_door_box_up_is_false_only_while_every_box_is_down(host):
+    host.mkdir(parents=True)
+    _boxes_dir(host).mkdir(mode=0o700)
+    values = _values(host)
+    assert remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values) is False
+    write_box(host)
+    assert remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values) is True
+    (box,) = remote_gpu_build.boxes(_pool(host, values))
+    remote_gpu_build.mark_down(box, b"test")
+    assert remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values) is False

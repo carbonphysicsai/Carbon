@@ -168,7 +168,11 @@ class QueueView:
         opened = getattr(self.intake.adapter.provider_for, "_providers", None)
         if not isinstance(opened, dict):
             return set()
+        from carbon.reconstruction import grade_lanes
+
         reserved, waiting = {}, set()
+        # RESERVED but waiting for a lane re-take or a build machine's slot: not running (Lead, 18 Nov 2026)
+        idle = grade_lanes.waiting_ops()
         for task, (state, _created) in index.items():
             if state != "RUNNING":
                 continue
@@ -184,7 +188,7 @@ class QueueView:
             # any of the task's own operations (`direct_child_identity`: prep, build, practice inference, timing, or
             # its remote GPU build shadow) RESERVED: it holds a slot and runs
             own = direct_child_identity(task, "build")[: -len("build")]
-            if not any(op.startswith((own, task)) for op in held):
+            if not any(op.startswith((own, task)) and op not in idle for op in held):
                 waiting.add(task)
         return waiting
 

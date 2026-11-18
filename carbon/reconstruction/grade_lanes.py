@@ -336,6 +336,50 @@ def timed_wait():
         _WAITED.total = waited_seconds() + (time.monotonic() - began)
 
 
+#: The ledger operation the calling context runs (`running_op`), or None.
+_OP_IDENTITY: ContextVar = ContextVar("carbon_grade_lane_op", default=None)
+#: This process's operations waiting for a lane re-take or a build machine's slot, with how many waits each
+#: (`waiting_for`): RESERVED in the ledger, but not running (Lead, 18 Nov 2026: the board counted them as building).
+#: V2 (18 Nov 2026): only box-SLOT waits mark an op waiting (a lane re-take does not; it only stops its deadline clock).
+_WAITING_OPS: dict = {}
+_WAITING_LOCK = threading.Lock()
+
+
+@contextmanager
+def running_op(identity):
+    """Name the ledger operation the calling context runs, for `waiting_for` (research_carrier's op)."""
+    token = _OP_IDENTITY.set(identity if type(identity) is str else None)
+    try:
+        yield
+    finally:
+        _OP_IDENTITY.reset(token)
+
+
+@contextmanager
+def waiting_for(identity=None):
+    """Around a wait of operation ``identity`` (default: the calling context's `running_op`) for a lane or a slot:
+    it is in `waiting_ops` meanwhile. Nothing outside a named operation."""
+    identity = _OP_IDENTITY.get() if identity is None else identity
+    if type(identity) is not str:
+        yield
+        return
+    with _WAITING_LOCK:
+        _WAITING_OPS[identity] = _WAITING_OPS.get(identity, 0) + 1
+    try:
+        yield
+    finally:
+        with _WAITING_LOCK:
+            left = _WAITING_OPS.pop(identity, 1) - 1
+            if left > 0:
+                _WAITING_OPS[identity] = left
+
+
+def waiting_ops():
+    """The operations of this process now waiting for a lane re-take or a build machine's slot (`waiting_for`)."""
+    with _WAITING_LOCK:
+        return frozenset(_WAITING_OPS)
+
+
 def _retake(releaser):
     with timed_wait():
         return releaser.retake()
