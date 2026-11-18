@@ -1608,9 +1608,7 @@ class Session:
         try:
             try:
                 wrapper = door_link_files(self.cfg, host_key, directory)
-            except (
-                Exception
-            ) as error:  # noqa: BLE001 - a link the door cannot write is a refusal
+            except Exception as error:  # noqa: BLE001 - unwritable link refuses
                 raise Refused(
                     "door_link_failed", f"{type(error).__name__}: {error}"[:300]
                 ) from None
