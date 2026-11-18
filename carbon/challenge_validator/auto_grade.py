@@ -765,8 +765,8 @@ class AutoGrader:
 
     def _building_views(self):
         """The task ids the door's already-open providers hold as QUEUED, RUNNING or CANCEL_REQUESTED: nothing to grade
-        yet (their grade is `task_not_succeeded`, skipped), so the claim scan skips them before the owner check, while it
-        holds the claim. Live 116 stacks (18 Nov 2026, 14:27Z): that scan ran the owner check (the served-source hash)
+        yet (their grade is `task_not_succeeded`, skipped), so the claim scan skips them before the owner check, while
+        it holds the claim. Live 116 stacks (18 Nov 2026, 14:27Z): that scan ran the owner check (the served-source hash)
         for every unbuilt submission while every grade and the incumbent's steps waited on the claim. Read from the
         views alone (no ledger); a task not here is scanned as before."""
         from carbon.research import DirectTaskStateV3

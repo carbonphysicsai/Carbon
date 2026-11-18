@@ -1,5 +1,5 @@
-"""Live 116 stacks (18 Nov 2026, 14:27Z): one grade thread held the sequencer's claim while its candidate scan ran the
-owner check (`LeanRecipeAdapter.owner` → `_provider` → a full served-source hash) for every pending submission, built
+"""Live 116 stacks (18 Nov 2026, 14:27Z): one grade thread held the sequencer's claim while its candidate scan ran
+the owner check (`LeanRecipeAdapter.owner` → `_provider` → a full served-source hash) for every pending submission, built
 or not; every other grade and the incumbent's steps waited on that claim. Now the scan skips the submissions the open
 providers hold as still building, and the owner check re-hashes the served sources at most once per
 `IDENTITY_RECHECK_SECONDS` (V2's option (a): a byte edit is still refused within that interval)."""
