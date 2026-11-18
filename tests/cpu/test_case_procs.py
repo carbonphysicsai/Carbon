@@ -263,7 +263,8 @@ _BEATS_ONE_PROCESS = (
 def _file_runner(ledger, seen, change=lambda source: source, gate=False):
     """The local runner, but the program runs from a FILE as the carrier runs /input/program.py (so its workers can
     re-run it); ``change`` edits the program text (test variants only); ``gate`` keeps the deadline's
-    `_BEATS_ONE_PROCESS` gate (else dropped: the fixture graph is too small for workers to win)."""
+    `_BEATS_ONE_PROCESS` gate (else dropped: the fixture graph is too small for workers to win).
+    """
     count = itertools.count()
 
     def runner(current_ledger, *, source, files, output_validator, identity, **_kw):
@@ -714,7 +715,9 @@ def test_workers_when_the_worst_case_fits_or_one_process_cannot_end_in_the_wall(
                         assert got == end
                     assert got > now
     # the sample already made every row: no workers
-    assert deadline(0.0, 1.0, 1.0, 0.01, 0.01, 2, 8, 8, end, 4.0, 1.25, kill, 1.5) is None
+    assert (
+        deadline(0.0, 1.0, 1.0, 0.01, 0.01, 2, 8, 8, end, 4.0, 1.25, kill, 1.5) is None
+    )
 
 
 def _ledger(root):
