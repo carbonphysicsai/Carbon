@@ -263,9 +263,11 @@ def _prelude_grader(claims, ran):
     return grader
 
 
-def test_a_second_prelude_never_waits_behind_the_first_on_its_lane():
-    """Two grade rounds find the king's upkeep due while a build round (its lane given back) holds an owner: the first
-    waits for that owner; the second goes on at once (it would otherwise hold the other lane the build needs back).
+def test_a_second_round_waits_while_the_first_holds_the_steps_exclusive_then_both_go_on():
+    """V2's ruling (18 Nov 2026): the incumbent's steps take the sequencer's exclusive FIRST, then their owners. Here the
+    owners cannot be read (this grader has no intake), so the steps wait, bounded (`PRELUDE_OWNER_WAIT_SECONDS`), for
+    every owner a build round holds; no grade starts meanwhile (the crown CAS). Once the build's owner is free the steps
+    run and the second round goes on. (Before the ruling the second round went on at once.)
     """
     claims = grade_sequencer.OwnerClaims()
     assert claims.try_claim("builder")
@@ -282,7 +284,8 @@ def test_a_second_prelude_never_waits_behind_the_first_on_its_lane():
         target=lambda: (grader._run_once(), second_done.set()), daemon=True
     )
     second.start()
-    assert second_done.wait(2) and ran == []
+    assert not second_done.wait(0.5) and ran == []  # no grade while the steps hold the exclusive
     claims.release("builder")
     first.join(5)
     assert ran == ["places", "king"]
+    assert second_done.wait(5)
