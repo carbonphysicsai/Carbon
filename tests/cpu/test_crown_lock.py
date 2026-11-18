@@ -1,6 +1,7 @@
 """V2 (18 Nov 2026), replacing the door-wide `Sequencer.exclusive`: every crown decision reads the king's CURRENT
 standing under `grade_sequencer.CROWN_LOCK`. A re-measure that changes the king's stored mean (same model id) while a
-grade waits for the lock is what the decision then reads; nothing about the king is read before the lock."""
+grade waits for the lock is what the decision then reads; nothing about the king is read before the lock.
+"""
 
 from __future__ import annotations
 
@@ -34,14 +35,18 @@ class _Promotion:
 
     def consider_private(self, submission_id, key, comparator, **kwargs):
         # the king's standing as the store holds it NOW, and whether the crown lock is held by this thread
-        assert "average" not in kwargs  # no king value is passed in from before the lock
+        assert (
+            "average" not in kwargs
+        )  # no king value is passed in from before the lock
         self.seen.append(
             (self.store.crown_mean("king", key), grade_sequencer.CROWN_LOCK._is_owned())
         )
         return {"outcome": "INCUMBENT_KEEPS", "reason": "test"}
 
 
-def test_a_remeasure_while_a_grade_waits_for_the_crown_lock_is_what_the_decision_reads(monkeypatch):
+def test_a_remeasure_while_a_grade_waits_for_the_crown_lock_is_what_the_decision_reads(
+    monkeypatch,
+):
     from carbon.challenge_validator import koth_registry
 
     monkeypatch.setattr(retention, "_pool_admit", lambda *a, **k: None)
@@ -80,7 +85,9 @@ def test_a_remeasure_while_a_grade_waits_for_the_crown_lock_is_what_the_decision
     result = {}
     grade = threading.Thread(
         target=lambda: result.update(
-            retention._contend(adapter, promotion, TASK, {}, inputs, "sha256:" + "f" * 64)
+            retention._contend(
+                adapter, promotion, TASK, {}, inputs, "sha256:" + "f" * 64
+            )
         ),
         daemon=True,
     )

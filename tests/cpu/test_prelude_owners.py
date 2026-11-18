@@ -122,7 +122,9 @@ def test_a_touched_owner_in_flight_skips_the_steps_until_it_is_free(monkeypatch)
     assert len(seen) == 1  # asked again next round: it runs
 
 
-def test_overdue_steps_never_wait_and_run_on_a_later_round_once_the_owner_is_free(monkeypatch):
+def test_overdue_steps_never_wait_and_run_on_a_later_round_once_the_owner_is_free(
+    monkeypatch,
+):
     """Owner (18 Nov 2026): no step waits for an owner, even overdue; it runs on a round after the owner is free."""
     now = [1000.0]
     monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
@@ -478,18 +480,23 @@ def test_a_filing_stuck_on_retry_does_not_block_grading_past_the_bound(monkeypat
 
 def test_an_overdue_busy_owner_is_never_waited_for(monkeypatch):
     """Owner (18 Nov 2026, "this lock is insane"): even past `UPKEEP_DEFER_MAX_SECONDS` the steps never wait for an
-    owner a running build holds: they log ``prelude_owners_overdue``, run nothing, hold nothing, and are asked again."""
+    owner a running build holds: they log ``prelude_owners_overdue``, run nothing, hold nothing, and are asked again.
+    """
     now = [1000.0]
     monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
     lines = _logged(monkeypatch)
     claims = grade_sequencer.OwnerClaims()
-    assert claims.try_claim(KING_OWNER)  # an A100 build of the king's miner, for its whole build
+    assert claims.try_claim(
+        KING_OWNER
+    )  # an A100 build of the king's miner, for its whole build
     seen = []
     grader = _grader(claims, seen)
     grader._run_once()  # skipped: the deferral clock starts
     now[0] += auto_grade.UPKEEP_DEFER_MAX_SECONDS
     done = threading.Event()
-    threading.Thread(target=lambda: (grader._run_once(), done.set()), daemon=True).start()
+    threading.Thread(
+        target=lambda: (grader._run_once(), done.set()), daemon=True
+    ).start()
     assert done.wait(5) and seen == []
     assert claims.held() == {KING_OWNER} and not claims._exclusive
     assert "prelude_owners_overdue" in [event for event, _ in lines]
@@ -498,7 +505,8 @@ def test_an_overdue_busy_owner_is_never_waited_for(monkeypatch):
 
 def test_prelude_due_while_ten_builds_hold_owners_grading_goes_on():
     """Lead (18 Nov 2026): with the steps due and 10 build rounds holding owners (the king's among them), a grade
-    round neither waits nor blocks claims: the sequencer's claim lock is free and no owner is taken exclusively."""
+    round neither waits nor blocks claims: the sequencer's claim lock is free and no owner is taken exclusively.
+    """
     claims = grade_sequencer.OwnerClaims()
     builders = [KING_OWNER] + [f"5builder{i}" for i in range(9)]
     for owner in builders:
@@ -506,7 +514,9 @@ def test_prelude_due_while_ten_builds_hold_owners_grading_goes_on():
     seen = []
     grader = _grader(claims, seen)
     done = threading.Event()
-    threading.Thread(target=lambda: (grader._run_once(), done.set()), daemon=True).start()
+    threading.Thread(
+        target=lambda: (grader._run_once(), done.set()), daemon=True
+    ).start()
     assert done.wait(5) and seen == []
     assert not claims._exclusive
     assert grader.sequencer._claim.acquire(blocking=False)  # grades can claim

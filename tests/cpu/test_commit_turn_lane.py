@@ -102,7 +102,8 @@ def _two_tickets(monkeypatch, gone=True):
 @pytest.mark.parametrize("gone", [True, False])
 def test_the_commit_turn_wait_keeps_the_lane(monkeypatch, gone):
     """Lead (18 Nov 2026, live 116 deadlock, STACKS #4): a grade waiting for its commit turn KEEPS its lane (a lane given
-    back had to be re-taken behind every queued round while those rounds waited for this ticket)."""
+    back had to be re-taken behind every queued round while those rounds waited for this ticket).
+    """
     sequencer, first_go, thread = _two_tickets(monkeypatch, gone)
     releaser = _Releaser()
     during = []
@@ -458,7 +459,8 @@ def test_the_live_deadlock_shape_clears(monkeypatch):
     """Live 116, 18 Nov 2026 (STACKS #4): the incumbent's steps due, a slow first grade open, the head-after-it at its
     commit turn, and new grade rounds waiting to claim. Before: the steps held the claim lock draining every open
     grade, the waiting grade had given its lane back and could not re-take one, and nothing graded. Now: the steps
-    never take the claim lock, the waiting grade keeps its lane, a new grade claims at once, and all finish."""
+    never take the claim lock, the waiting grade keeps its lane, a new grade claims at once, and all finish.
+    """
     from carbon.challenge_validator import auto_grade
 
     sequencer, first_go, thread = _two_tickets(monkeypatch)
@@ -492,7 +494,9 @@ def test_the_live_deadlock_shape_clears(monkeypatch):
     grader._apply_due_retries = lambda idle: None
     grader._stranded_filed = True
     done = threading.Event()
-    threading.Thread(target=lambda: (grader._run_once(), done.set()), daemon=True).start()
+    threading.Thread(
+        target=lambda: (grader._run_once(), done.set()), daemon=True
+    ).start()
     assert done.wait(5)  # the steps never waited on the open grades
     assert ran[:2] == ["places", "king"]
     # a new grade claims at once: the claim lock is free

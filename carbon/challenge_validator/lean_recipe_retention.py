@@ -3290,7 +3290,6 @@ def reconsider_paused_pack(
     no Ladder document. Its repeat grade is the only extra grade, uncounted, as in `repeat_grade`.
     """
     _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
-    from carbon.challenge_validator import koth_registry
     from carbon.challenge_validator.bank_promotion import BankPromotion
 
     discovery = adapter.discovery
@@ -3319,11 +3318,17 @@ def reconsider_paused_pack(
     )
     from carbon.challenge_validator.grade_sequencer import CROWN_LOCK
 
-    with CROWN_LOCK:  # the crown's read and write, as every crown commit (V2, 18 Nov 2026)
-        return _consider_watched(watched, promotion, record, adapter, score_pack, accuracy, discovery)
+    with (
+        CROWN_LOCK
+    ):  # the crown's read and write, as every crown commit (V2, 18 Nov 2026)
+        return _consider_watched(
+            watched, promotion, record, adapter, score_pack, accuracy, discovery
+        )
 
 
-def _consider_watched(watched, promotion, record, adapter, score_pack, accuracy, discovery):
+def _consider_watched(
+    watched, promotion, record, adapter, score_pack, accuracy, discovery
+):
     from carbon.challenge_validator import koth_registry
 
     # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's

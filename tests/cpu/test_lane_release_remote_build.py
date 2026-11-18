@@ -264,7 +264,8 @@ def _prelude_grader(claims, ran):
 
 def test_unreadable_step_owners_defer_the_steps_and_no_round_waits():
     """Owner (18 Nov 2026): no door-wide exclusive. When the steps' owners cannot be read (this grader has no intake)
-    the steps are deferred, holding nothing: both rounds go on at once while a build holds an owner."""
+    the steps are deferred, holding nothing: both rounds go on at once while a build holds an owner.
+    """
     claims = grade_sequencer.OwnerClaims()
     assert claims.try_claim("builder")
     ran = []

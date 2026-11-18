@@ -182,6 +182,7 @@ class _Task:
             self._turned = True
             return
         from carbon.development_session.research_carrier import yield_grade_session
+
         # best effort itself: a removal that cannot be confirmed means no later op joins it, and the grade session's
         # own exit removes (and reports) it again
         yield_grade_session()
