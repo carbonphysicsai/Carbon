@@ -220,22 +220,25 @@ class OwnerClaims:
     def within(self, owners, seconds, poll=1.0):
         """Hold ``owners`` (None: every owner, `exclusive`), waiting at most ``seconds`` for the rounds holding them;
         yields whether they are held. Not held in time: nothing is kept and no later claim is refused (V2, 18 Nov 2026:
-        the incumbent's steps wait inside the sequencer's exclusive, never unboundedly behind a running build)."""
+        the incumbent's steps wait inside the sequencer's exclusive, never unboundedly behind a running build).
+        """
         import time
 
         deadline = time.monotonic() + seconds
         if owners is None:
             with self._cond:
                 while self._exclusive:
-                    if not self._cond.wait(max(0.0, min(poll, deadline - time.monotonic()))):
-                        if time.monotonic() >= deadline:
-                            break
+                    left = deadline - time.monotonic()
+                    if not self._cond.wait(max(0.0, min(poll, left))) and left <= poll:
+                        break
                 if self._exclusive:
                     got = False
                 else:
                     self._exclusive = True
                     while self._held and time.monotonic() < deadline:
-                        self._cond.wait(max(0.0, min(poll, deadline - time.monotonic())))
+                        self._cond.wait(
+                            max(0.0, min(poll, deadline - time.monotonic()))
+                        )
                     got = not self._held
                     if not got:
                         self._exclusive = False
@@ -253,7 +256,11 @@ class OwnerClaims:
             with self._cond:
                 while True:
                     for owner in wanted:
-                        if owner not in taken and not self._exclusive and owner not in self._held:
+                        if (
+                            owner not in taken
+                            and not self._exclusive
+                            and owner not in self._held
+                        ):
                             self._held.add(owner)
                             taken.append(owner)
                     if len(taken) == len(wanted) or time.monotonic() >= deadline:

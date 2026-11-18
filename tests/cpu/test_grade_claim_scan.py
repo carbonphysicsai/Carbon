@@ -2,7 +2,8 @@
 the owner check (`LeanRecipeAdapter.owner` → `_provider` → a full served-source hash) for every pending submission, built
 or not; every other grade and the incumbent's steps waited on that claim. Now the scan skips the submissions the open
 providers hold as still building, and the owner check re-hashes the served sources at most once per
-`IDENTITY_RECHECK_SECONDS` (V2's option (a): a byte edit is still refused within that interval)."""
+`IDENTITY_RECHECK_SECONDS` (V2's option (a): a byte edit is still refused within that interval).
+"""
 
 from __future__ import annotations
 
@@ -21,7 +22,9 @@ def _grader(views):
         _views={task: SimpleNamespace(state=state) for task, state in views.items()}
     )
     grader.intake = SimpleNamespace(
-        adapter=SimpleNamespace(provider_for=SimpleNamespace(_providers={"5O": provider}))
+        adapter=SimpleNamespace(
+            provider_for=SimpleNamespace(_providers={"5O": provider})
+        )
     )
     grader.pending = lambda: [QUEUED, RUNNING, BUILT, UNKNOWN]
     grader._allowance_group = lambda task: "g-" + task
@@ -64,7 +67,9 @@ def test_the_claim_scan_skips_submissions_still_building_before_the_owner_check(
 
 def test_without_open_providers_every_pending_submission_is_scanned_as_before():
     grader, asked, _graded = _grader({})
-    grader.intake = SimpleNamespace(adapter=SimpleNamespace())  # no provider view at all
+    grader.intake = SimpleNamespace(
+        adapter=SimpleNamespace()
+    )  # no provider view at all
     sequencer = grade_sequencer.Sequencer()
     with sequencer.task() as task:
         grader._claim_and_grade(

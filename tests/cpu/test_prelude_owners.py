@@ -396,7 +396,8 @@ def test_a_start_up_filing_that_never_runs_holds_grades_only_up_to_its_bound(
     monkeypatch,
 ):
     """V2's condition (18 Nov 2026): the filing's hold on grades is bounded. Its owners stay busy, so it is skipped
-    every round; past the bound grading goes on, with ONE ``stranded_filing_overdue`` alert."""
+    every round; past the bound grading goes on, with ONE ``stranded_filing_overdue`` alert.
+    """
     now = [1000.0]
     monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
     lines = _logged(monkeypatch)
@@ -457,12 +458,15 @@ def test_a_filing_stuck_on_retry_does_not_block_grading_past_the_bound(monkeypat
 
 def test_the_overdue_wait_for_a_busy_owner_is_bounded_and_defers_again(monkeypatch):
     """V2's ruling (18 Nov 2026): inside the sequencer's exclusive the steps never wait unboundedly for an owner a
-    running build holds: past `PRELUDE_OWNER_WAIT_SECONDS` they let go, log ``prelude_owners_busy`` and defer."""
+    running build holds: past `PRELUDE_OWNER_WAIT_SECONDS` they let go, log ``prelude_owners_busy`` and defer.
+    """
     now = [1000.0]
     monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
     lines = _logged(monkeypatch)
     claims = grade_sequencer.OwnerClaims()
-    assert claims.try_claim(KING_OWNER)  # an A100 build of the king's miner, for its whole build
+    assert claims.try_claim(
+        KING_OWNER
+    )  # an A100 build of the king's miner, for its whole build
     seen = []
     grader = _grader(claims, seen)
     grader._run_once()  # skipped: the deferral clock starts

@@ -668,7 +668,10 @@ class AutoGrader:
                     # V2's ruling (18 Nov 2026): the sequencer's exclusive FIRST (no grade in flight: the crown
                     # CAS), then the steps' owners without waiting; one busy leaves at once and the steps are
                     # deferred. Never a wait on the exclusive while this round holds owner claims.
-                    with sequencer.exclusive(), self._prelude_owners_held(claims) as held:
+                    with (
+                        sequencer.exclusive(),
+                        self._prelude_owners_held(claims) as held,
+                    ):
                         if held:
                             self._run_prelude()
                 finally:

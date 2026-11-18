@@ -384,7 +384,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
     def _provider(self, hotkey):
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
 
-        if self._identities["implementation_digest"] != _implementation_identity_recent():
+        if (
+            self._identities["implementation_digest"]
+            != _implementation_identity_recent()
+        ):
             raise Unavailable("served_recipe_source_changed")
         provider = self.provider_for(hotkey)
         if (
