@@ -60,3 +60,47 @@ def test_an_unreadable_owner_holds_only_its_own_task_in_the_grade_scan():
             "GRADED",
         )
     assert graded == [LIVE]
+
+
+def test_one_set_aside_owner_never_stops_five_healthy_ones_building_or_grading():
+    """Lead (18 Nov 2026): one owner set aside first in the queue, five healthy ones after it; every healthy task is
+    built (one per advance pass) and graded (one per claim), the set-aside one never."""
+    healthy = [f"rtsk_{n:064x}" for n in range(1, 6)]
+    queue = [ASIDE, *healthy]
+
+    adapter = LeanRecipeAdapter.__new__(LeanRecipeAdapter)
+    adapter.contract_digest = "sha256:" + "c" * 64
+    built = []
+    adapter.ledger = SimpleNamespace(
+        submitted_outcomes=lambda contract: [t for t in queue if t not in built]
+    )
+    adapter.provider_for = SimpleNamespace(_providers={})
+
+    def owner(task):
+        if task == ASIDE:
+            raise Unavailable("direct_provider_owner_set_aside")
+        return "5Owner-" + task
+
+    adapter.owner = owner
+    adapter._advance_one = lambda owner, task: built.append(task) or 1
+    for _ in healthy:
+        assert adapter.advance() == 1
+    assert built == healthy and adapter.advance() == 0
+
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.intake = SimpleNamespace(adapter=SimpleNamespace())
+    graded = []
+    grader.pending = lambda: [t for t in queue if t not in graded]
+    grader._allowance_group = lambda task: None if task == ASIDE else "c:" + task
+    grader._owner_of = lambda task: None if task == ASIDE else "5Owner-" + task
+    grader._withdrawn_pending = lambda task: False
+    grader._copy_decision = lambda task: None
+    grader._grade_one = lambda task, *, turn: graded.append(task) or (task, "GRADED")
+    sequencer, claims = grade_sequencer.Sequencer(), grade_sequencer.OwnerClaims()
+    for _ in healthy:
+        with sequencer.task() as task:
+            taken = []
+            grader._claim_and_grade(sequencer, task, set(), claims, taken)
+            for held_owner in taken:
+                claims.release(held_owner)
+    assert graded == healthy
