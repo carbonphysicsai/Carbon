@@ -1411,11 +1411,14 @@ def _hand_back_once(paths, task, attempt, cap, *, log_name, kind, cause, ruling,
 
 #: ``restore-allowance`` (Validator-2's ruling, 18 Nov 2026, V2_RULING.md in A100_INFER_STREAM_TIMEOUT_20261117): a
 #: task that waited in OUR queue and was then refused ``exam_daily_allowance_reached`` at its reservation is Carbon's
-#: (the wait spent the miner's day, not the miner). The grader records it as a GRADED marker keeping that code, with NO
-#: exam row (nothing was ever reserved). Such a task is handed back ONCE, under a recorded ruling id and an explicit id
-#: list, with every ``requeue`` door check: its next grade spends nothing of the miner's round or day and stays on its
-#: ORIGINAL arrival epoch (`ExamCap.mark_requeued`); its first signed OUTCOME (its queue place) is never touched. The root
-#: fix (the allowance binds at admission) is a separate change.
+#: (the wait spent the miner's day, not the miner). The grader records it as a GRADED marker keeping that code. Its exam
+#: rows (`_allowance_rows_refusal`, V2's ruling (a), 18 Nov): none (nothing was ever reserved), or only rows RELEASED /
+#: FAILED_INFRA (given back on Carbon's infrastructure, never charged) with at most its one earlier bypass, SPENT on that
+#: FAILED_INFRA attempt (rtsk_c177bae9: requeued, its re-grade given back at 02:28Z, then refused on the day). Such a task
+#: is handed back ONCE, under a recorded ruling id and an explicit id list, with every ``requeue`` door check: its one
+#: round/day bypass is armed (re-armed when spent: `ExamCap.mark_requeued`), so its next grade spends nothing of the
+#: miner's round or day and stays on its ORIGINAL arrival epoch; its first signed OUTCOME (its queue place) is never
+#: touched. The root fix (the allowance binds at admission; a spent bypass re-arms) is a separate change.
 ALLOWANCE_CAUSE = "exam_daily_allowance_reached"
 ALLOWANCE_RESTORES = "allowance_restores.jsonl"
 
@@ -1427,6 +1430,30 @@ def _arrival_seq(db, task):
         (task,),
     ).fetchone()
     return None if row is None else row[0]
+
+
+def _allowance_rows_refusal(db, task, attempt):
+    """None when the task's exam rows are the shape ``restore_allowance`` takes (see ``ALLOWANCE_CAUSE``), else the
+    code. ``attempt``: the attempt its current marker records (its bypass is armed for ``attempt + 1``)."""
+    rows = _rows(db, task)
+    if any(
+        (row_state, status) != ("RELEASED", "FAILED_INFRA")
+        for _id, row_state, status, *_rest in rows
+    ):
+        # a COUNTED / RESERVED row, or a RELEASED one that was charged or graded: not this case
+        return "exam_row_present"
+    requeue = db.execute(
+        "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (task,)
+    ).fetchone()
+    if requeue is None:
+        return None
+    if not rows:
+        return "exam_row_present"  # a bypass with no row it was spent on: not this case
+    if requeue[1] is None:
+        return "bypass_still_armed"  # unspent: its next grade already draws no allowance
+    if requeue[0] >= attempt + 1:
+        return "bypass_attempt_ahead"  # `mark_requeued` could not re-arm it
+    return None
 
 
 def _allowance_refusal(root, db, door, task):
@@ -1449,10 +1476,11 @@ def _allowance_refusal(root, db, door, task):
         return None, "marker_" + str(state).lower()
     if code != ALLOWANCE_CAUSE:
         return None, "cause_not_allowance"
-    if _rows(db, task):
-        # refused at its reservation, nothing reserved: a task with ANY exam row is not this case
-        return None, "exam_row_present"
-    refusal = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
+    refusal = (
+        _allowance_rows_refusal(db, task, attempt)
+        or _evaluation_refusal(paths)
+        or _door_refusal(root, db, door, task)
+    )
     return (attempt, None) if refusal is None else (None, refusal)
 
 
@@ -1479,6 +1507,14 @@ def restore_allowance(root, tasks, *, ruling, apply=False, clock=time.time_ns):
             attempt, code = _allowance_refusal(root, db, door, task)
             arrival = None if code is not None else _arrival(db, task)
             seq = None if code is not None else _arrival_seq(db, task)
+            rearm = (
+                code is None
+                and db.execute(
+                    "SELECT 1 FROM exam_requeues WHERE submission_id=?", (task,)
+                ).fetchone()
+                is not None
+            )
+            given_back_rows = 0 if code is not None else len(_rows(db, task))
         if code is not None:
             out["refused"][task] = code
             continue
@@ -1489,6 +1525,9 @@ def restore_allowance(root, tasks, *, ruling, apply=False, clock=time.time_ns):
             "original_arrival": _iso(arrival[0]),
             "original_outcome_seq": seq,
             "bypass_attempt": attempt + 1,
+            # V2 (a): its earlier bypass was spent on a FAILED_INFRA attempt, re-armed here
+            "bypass": "re-armed" if rearm else "new",
+            "given_back_rows": given_back_rows,
         }
         if apply:
             _hand_back_once(

@@ -111,7 +111,7 @@ def test_only_an_allowance_refusal_with_no_exam_row_is_taken(tmp_path):
     _refused_on_allowance(root, ledger, C)
     _row(ledger, C, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
     _refused_on_allowance(root, ledger, D)
-    _row(ledger, D, "RELEASED", "FAILED_INFRA")
+    _row(ledger, D, "RELEASED", "SCORED_DEVELOPMENT_CANDIDATE")  # charged
     out = infra_requeue.restore_allowance(
         root, [A, B, C, D, "nope"], ruling=RULING, apply=True
     )
@@ -165,3 +165,83 @@ def test_the_command_takes_an_explicit_id_list(tmp_path, capsys):
     assert infra_requeue.main([*args, "--apply"]) == 0
     assert json.loads(capsys.readouterr().out)["restored"] == [A]
     assert not (root / "auto-grade" / "markers" / (A + ".json")).exists()
+
+
+def _spent_bypass(ledger, task, *, attempt=2, reserved_ns=5):
+    with ledger._db() as db:
+        db.execute(
+            "INSERT INTO exam_requeues(submission_id, attempt, queued_ns, reserved_ns) VALUES(?,?,1,?)",
+            (task, attempt, reserved_ns),
+        )
+
+
+def _kept_first_attempt(root, task):
+    kept = root.joinpath(*KEPT)
+    kept.mkdir(mode=0o700, parents=True, exist_ok=True)
+    (kept / f"{task}.attempt-1.marker.json").write_text("{}")
+
+
+def test_a_task_whose_spent_bypass_went_on_a_given_back_attempt_is_re_armed_and_grades(
+    tmp_path,
+):
+    """V2's ruling (a), rtsk_c177bae9's shape: requeued once (attempt 1 kept, its bypass spent), the re-grade given
+    back on infrastructure (RELEASED / FAILED_INFRA), then refused on the day. The bypass is re-armed for attempt 3."""
+    root, ledger = _root(tmp_path)
+    _refused_on_allowance(root, ledger, A)
+    _row(ledger, A, "RELEASED", "FAILED_INFRA")
+    _spent_bypass(ledger, A)
+    _kept_first_attempt(root, A)
+    dry = infra_requeue.restore_allowance(root, [A], ruling=RULING)
+    assert dry["refused"] == {} and dry["restored"] == [A]
+    plan = dry["plan"][A]
+    assert (plan["bypass"], plan["bypass_attempt"], plan["given_back_rows"]) == (
+        "re-armed",
+        3,
+        1,
+    )
+    out = infra_requeue.restore_allowance(root, [A], ruling=RULING, apply=True)
+    assert out["restored"] == [A]
+    kept = root.joinpath(*KEPT)
+    assert json.loads((kept / f"{A}.attempt-2.marker.json").read_text())["code"] == (
+        ALLOWANCE
+    )
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchall() == [(3, None)]
+    # its own row stays uncharged and no longer reads as a give-back (no fresh resubmit runs beside it)
+    assert _rows(ledger, A) == [("RELEASED", "REQUEUED")]
+    (root / "auto-grade" / "artifacts" / A).mkdir(mode=0o700, parents=True)
+    intake = _DoorIntake(root, ledger, "sha256:" + "3" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
+    assert intake.graded == [A]
+
+
+def test_any_other_row_or_bypass_shape_is_refused(tmp_path):
+    root, ledger = _root(tmp_path)
+    # a COUNTED row beside a given-back one
+    _refused_on_allowance(root, ledger, A)
+    _row(ledger, A, "RELEASED", "FAILED_INFRA")
+    _row(ledger, A, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+    _spent_bypass(ledger, A)
+    # a charged RELEASED row
+    _refused_on_allowance(root, ledger, B)
+    _row(ledger, B, "RELEASED", "SLOT_RETURNED")
+    # its bypass still armed (unspent)
+    _refused_on_allowance(root, ledger, C)
+    _row(ledger, C, "RELEASED", "FAILED_INFRA")
+    _spent_bypass(ledger, C, reserved_ns=None)
+    _kept_first_attempt(root, C)
+    # a bypass row with no exam row it was spent on
+    _refused_on_allowance(root, ledger, D)
+    _spent_bypass(ledger, D)
+    out = infra_requeue.restore_allowance(
+        root, [A, B, C, D], ruling=RULING, apply=True
+    )
+    assert out["restored"] == []
+    assert out["refused"] == {
+        A: "exam_row_present",
+        B: "exam_row_present",
+        C: "bypass_still_armed",
+        D: "exam_row_present",
+    }
