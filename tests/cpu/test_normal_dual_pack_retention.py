@@ -260,9 +260,9 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
     artifacts["inference-receipt.json"] = _raw(graded)
     artifacts["timed-query-receipt.json"] = _raw(measured)
     artifacts["worker-evidence.json"] = _raw(worker)
-    artifacts[
-        "task-receipt.json"
-    ] = b"inert fixture terminal receipt; never network evidence"
+    artifacts["task-receipt.json"] = (
+        b"inert fixture terminal receipt; never network evidence"
+    )
     monkeypatch.setattr(retention, "_collect_graph_artifacts", lambda *_args: artifacts)
     # The paired repeat a graph recipe now carries too (the inert producer ignores it).
     monkeypatch.setattr(
@@ -484,7 +484,8 @@ def test_a_locked_ledger_at_settle_leaves_the_grade_to_the_graders_retryable_giv
 ):
     """V2 (18 Nov 2026): a ledger still locked when the graded outcome settles its exam-cap slot is Carbon's: the
     error leaves `retain_result` (never an UNAVAILABLE evaluation filed GRADED, the miner's grade lost), so the grader
-    gives the slot back FAILED_INFRA (`auto_grade._fail`) with its one automatic retry."""
+    gives the slot back FAILED_INFRA (`auto_grade._fail`) with its one automatic retry.
+    """
     from carbon.challenge_validator import auto_retry, exam_cap
 
     fixture = _fixture(tmp_path, monkeypatch)
