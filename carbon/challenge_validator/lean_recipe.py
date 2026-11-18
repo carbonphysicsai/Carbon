@@ -1017,6 +1017,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # whose owner no other round holds (`grade_sequencer.OwnerClaims`: one owner's ledger lease is non-blocking).
         claims = getattr(self, "owner_claims", None)
         for submission_id in self.ledger.submitted_outcomes(self.contract_digest):
+            if self._held_not_queued(submission_id):
+                continue
             owner = self._active_owner(submission_id)
             if owner is None:
                 continue
@@ -1035,6 +1037,24 @@ class LeanRecipeAdapter(ChallengeAdapter):
             # this adapter never fans out a backlog on one call.
             break
         return moved
+
+    def _held_not_queued(self, submission_id):
+        """Whether the task's owner's provider, already open at this door, holds its view in a state other than QUEUED:
+        nothing for `advance` to start, so the round skips it before the owner check and the read
+        (`get_research_result` verifies a SUCCEEDED task's evidence from disk). Live 116, 18 Nov 2026: the first round
+        after every restart read every finished task the door ever took, ~25 min before the first build. The view is
+        the same one `get_research_result` returns. Anything not known here (no open provider, no view): False, the
+        round reads it as before."""
+        from carbon.research import DirectTaskStateV3
+
+        opened = getattr(self.provider_for, "_providers", None)
+        if type(opened) is not dict:
+            return False
+        hotkey = self.ledger.owned_outcome(self.contract_digest, submission_id)
+        provider = opened.get(hotkey) if type(hotkey) is str else None
+        views = getattr(provider, "_views", None)
+        view = views.get(submission_id) if type(views) is dict else None
+        return view is not None and view.state is not DirectTaskStateV3.QUEUED
 
     #: A19: this adapter's advance takes owners through `owner_claims`, so a door may run one advance round per lane.
     PARALLEL_ADVANCE = True
