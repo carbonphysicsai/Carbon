@@ -2173,6 +2173,38 @@ def test_a_box_link_uses_the_key_its_box_file_names_and_only_it(host, monkeypatc
     assert f"-i {default} -o IdentitiesOnly=yes" in shim
     write_box(host, {**box_document(), "ssh_key": "relative/key"})
     assert remote_gpu_build.boxes(_pool(host, values)) == ()
+def test_a_box_passed_over_is_logged_with_why_once_per_change(host, monkeypatch):
+    """Live 116, 18 Nov 2026: an admitted A100 ran no build for hours and nothing said why. Each box passed over is
+    logged with its reason once per change (diagnostics only: the op's machine is unchanged), and logged kept again.
+    """
+    from carbon.battery import intake
+
+    lines = []
+    monkeypatch.setattr(intake, "log", lambda event, **fields: lines.append((event, fields)))
+    monkeypatch.setattr(remote_gpu_build, "_SKIPPED", {})
+    values = _install(host)
+    admitted = _lane_named(host, values, BOX).spec.images
+    other = "sha256:" + "e" * 64
+    for _ in range(2):
+        with remote_gpu_build.offered_for(
+            "electric-motor-magnetics", "1.8", values=values, image_id=other
+        ):
+            assert remote_gpu_build.no_machine() is True
+    skipped = [f for e, f in lines if e == "remote_gpu_build_box_skipped"]
+    assert skipped == [{"box": BOX, "reason": "image_not_admitted"}]
+    with remote_gpu_build.offered_for(
+        "electric-motor-magnetics", "1.8", values=values, image_id=admitted[0]
+    ):
+        with _op() as binding:
+            assert binding.lane.spec.name == BOX
+    assert ("remote_gpu_build_box_kept", {"box": BOX}) in lines
+    # a malformed box file is named, never silently dropped
+    (_boxes_dir(host) / "broken.json").write_text("{}")
+    (_boxes_dir(host) / "broken.json").chmod(0o600)
+    remote_gpu_build.boxes(_pool(host, values))
+    assert any(
+        e == "remote_gpu_build_box_skipped" and f["box"] == "broken" for e, f in lines
+    )
 
 
 class _Stop(Exception):

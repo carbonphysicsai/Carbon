@@ -723,12 +723,41 @@ def _box_device(document, device_digest):
         raise ValueError("remote_gpu_build_box_device") from None
 
 
+#: The last reason each box (or the boxes directory) was passed over, by name (`_note_skip`): diagnostics only.
+_SKIPPED: dict = {}
+
+
+def _note_skip(name, reason):
+    """Log ``remote_gpu_build_box_skipped`` (``reason`` set) or ``remote_gpu_build_box_kept`` (None, after a skip)
+    once per change of ``name``'s reason (live 116, 18 Nov 2026: an admitted A100 ran no build for hours and nothing said
+    why). Diagnostics only: it never changes which machine an op takes, and a failed log is ignored."""
+    if _SKIPPED.get(name) == reason:
+        return
+    previous = _SKIPPED.get(name)
+    _SKIPPED[name] = reason
+    if reason is None and previous is None:
+        return
+    try:
+        from carbon.battery.intake import log
+
+        if reason is None:
+            log("remote_gpu_build_box_kept", box=name)
+        else:
+            log("remote_gpu_build_box_skipped", box=name, reason=reason)
+    except Exception:  # noqa: BLE001 - a diagnostic line never fails an op
+        pass
+
+
 def boxes(pool):
     """Every well-formed box of ``pool``'s class, read now, by name (down boxes included: `_candidates` skips them). A
-    boxes directory that is not this user's 0700 directory holds no box."""
+    boxes directory that is not this user's 0700 directory holds no box. Each one passed over is logged (`_note_skip`).
+    """
     directory = Path(pool.root) / BOXES_DIR
     if not _private_dir(directory):
+        if os.path.lexists(directory):
+            _note_skip(BOXES_DIR, "boxes_dir_not_private")
         return ()
+    _note_skip(BOXES_DIR, None)
     found = []
     for path in sorted(directory.glob("*.json")):
         if "." in path.name[: -len(".json")]:
@@ -743,7 +772,8 @@ def boxes(pool):
                     root=pool.root,
                 )
             )
-        except ValueError:
+        except ValueError as refused:
+            _note_skip(path.stem, str(refused)[:120] or "remote_gpu_build_box_invalid")
             continue
     return tuple(found)
 
@@ -1081,7 +1111,7 @@ def no_machine():
     pool = offer.pool
     if pool.local is not None:
         return False
-    return not any(not is_down(box) and offer.serves(box) for box in boxes(pool))
+    return not any([_usable_box(offer, box) for box in boxes(pool)])
 
 
 def current_op():
@@ -1202,6 +1232,19 @@ def _wanted_by_others(directory, own):
     return any(name != own and grade_lanes._live(name) for name in names)
 
 
+def _usable_box(offer, box):
+    """Whether ``box`` may take ``offer``'s op now (not down, admitted with the build's image); a box passed over is
+    logged with why (`_note_skip`)."""
+    if is_down(box):
+        _note_skip(box.spec.name, "down")
+        return False
+    if not offer.serves(box):
+        _note_skip(box.spec.name, "image_not_admitted")
+        return False
+    _note_skip(box.spec.name, None)
+    return True
+
+
 def _candidates(offer, *, shadow):
     """The machines an op may start on now: the offer's fixed machine, or the pool's local lane and every eligible box
     (read now, down ones skipped). A shadow op: only proven ones, never the box it shadows.
@@ -1211,7 +1254,7 @@ def _candidates(offer, *, shadow):
     else:
         pool = offer.pool
         lanes = (() if pool.local is None else (pool.local,)) + tuple(
-            box for box in boxes(pool) if not is_down(box) and offer.serves(box)
+            box for box in boxes(pool) if _usable_box(offer, box)
         )
     if shadow:
         avoid = _SHADOW_OF.get()
