@@ -576,7 +576,8 @@ class AutoGrader:
 
         Read WITHOUT opening any provider first (Lead, 18 Nov 2026: after a restart the steps opened 163 lazy owners one
         at a time, 1,556 s before the first claim): the providers' own keys (`OwnerProviders.hotkey_of`), then the
-        ledger's admission rows; `adapter.owner` (which opens a lazy owner) only last."""
+        ledger's admission rows; `adapter.owner` (which opens a lazy owner) only last.
+        """
         lookup = getattr(getattr(adapter, "provider_for", None), "hotkey_of", None)
         if callable(lookup):
             try:

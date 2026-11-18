@@ -105,7 +105,8 @@ def test_a_build_requeue_refused_for_good_is_not_asked_again(monkeypatch):
 
 def test_the_steps_owner_lookup_never_opens_a_provider_when_the_ledger_knows_it():
     """Lead (18 Nov 2026): after a restart the incumbent's steps opened 163 lazy owners one at a time (1,556 s) before
-    the first claim. Their owner lookup reads the providers' keys and the ledger first; `adapter.owner` only last."""
+    the first claim. Their owner lookup reads the providers' keys and the ledger first; `adapter.owner` only last.
+    """
 
     def opens(task):
         raise AssertionError("a provider was opened")
@@ -144,7 +145,9 @@ def test_a_requeue_is_asked_at_most_once_per_interval(monkeypatch):
 
     monkeypatch.setattr(time, "monotonic", lambda: now[0])
     adapter._requeue_failed_build("5Owner", task_id, provider)
-    adapter._requeue_failed_build("5Owner", task_id, provider)  # within the interval: not asked
+    adapter._requeue_failed_build(
+        "5Owner", task_id, provider
+    )  # within the interval: not asked
     now[0] += lean_recipe.REQUEUE_ASK_SECONDS
     adapter._requeue_failed_build("5Owner", task_id, provider)
     assert reads == [1, 1]
