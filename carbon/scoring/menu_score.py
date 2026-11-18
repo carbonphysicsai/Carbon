@@ -5,7 +5,8 @@ Per task, design-optimum seals a solved POOL (~1.5 M designs: the searched optim
 limit, regime-switch strata, other basins, a spread), each design's TRUTH, and the classical arms' predictions of every
 pool design. Each epoch a custody key draws the epoch's menu (the optimum always, plus a registered quota per stratum).
 The contender's model predicts every menu design ROW-INDEPENDENTLY (`RowIndependentPredict`), the designs are ranked by
-those predictions on the limits backed off by U (Q1), with the driver's `_key` (model-feasible first by the objective,
+those predictions on the limits the version's registered ranking rule names (backed off by U, Q1, for ``backoff_u``;
+the registered limits themselves for ``original_limits``), with the driver's `_key` (model-feasible first by the objective,
 then the least predicted violation, invalid predictions last), and the top five picks are looked up in the truths:
 
     d(pick)  = 0 if the pick is truly infeasible (a true margin < 0), else clip((s - s_zero) / (s_ref - s_zero), 0, 1)
@@ -341,6 +342,12 @@ def _slots(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
     _require(set(predictions) >= set(menu), "menu_predictions_missing_a_design")
     names = set(problem.outputs)
     _require(ranking in RANKINGS, "menu_ranking_unregistered")
+    # A credit ramp (`Problem.near_limit`) would break the argument that a true margin of at least U separates a pick
+    # from the limit on the model's ranking: refuse original_limits on a menu problem that carries one.
+    _require(
+        ranking == RANKING_BACKOFF_U or problem.near_limit is None,
+        "menu_ranking_original_limits_with_near_limit",
+    )
     ranked_problem = backed_off(problem) if ranking == RANKING_BACKOFF_U else problem
     keyed = []
     for pid in menu:
@@ -368,7 +375,8 @@ def _oracle_slots(problem, record, menu):
 
 def raw_score(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
     """sum_i w_i d(pick_i) over the top five of `menu` ranked by `predictions` ({id: outputs | None}) on the
-    backed-off limits; tied keys share the mean d of their group over the slots they occupy.
+    limits the registered `ranking` names (see `_slots`); tied keys share the mean d of their group over the slots they
+    occupy.
     """
     return _weighted(_slots(problem, record, menu, predictions, ranking))
 

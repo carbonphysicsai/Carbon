@@ -190,3 +190,23 @@ def test_a_model_margin_of_exactly_zero_is_feasible_and_a_tie_shares_its_mean():
     flat = {pid: {"f": 1.0, "g": 0.1} for pid in record.pool}
     out = _score(record, flat, ms.RANKING_ORIGINAL_LIMITS)
     assert out["d"] == 0.0
+
+
+def test_original_limits_refuses_a_problem_that_carries_a_near_limit_ramp():
+    import dataclasses
+
+    from carbon.scoring import pool_grader
+
+    kind = min(pool_grader.NEAR_LIMIT_KINDS)
+    shape = min(pool_grader.NEAR_LIMIT_SHAPES)
+    ramp = dataclasses.replace(
+        base._problem(), near_limit={"kind": kind, "shape": shape}, s_low=0.0
+    )
+    record = _record()
+    preds = _model(0.0)(record)
+    menu = ms.draw_menu(record, base.KEY, epoch="2026-W45")
+    with pytest.raises(ms.MenuRefused) as err:
+        ms._slots(ramp, record, menu, preds, ms.RANKING_ORIGINAL_LIMITS)
+    assert err.value.code == "menu_ranking_original_limits_with_near_limit"
+    # the old rule is untouched by the guard
+    assert len(ms._slots(ramp, record, menu, preds, ms.RANKING_BACKOFF_U)) == ms.TOP
