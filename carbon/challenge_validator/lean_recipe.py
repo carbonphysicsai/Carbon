@@ -1035,6 +1035,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
             owner = self._active_owner(submission_id)
             if owner is None:
                 continue
+            if self._built_waits_to_grade(owner):
+                # grade first (Lead + owner, 18 Nov 2026): a build holds its owner for its whole run, and a grade of that
+                # owner (and every later grade of its commit group) waits for it; so a NEW build never takes an owner
+                # whose built task waits to grade. The grade takes it; this build comes after.
+                continue
             if claims is not None and not claims.try_claim(owner):
                 continue
             try:
@@ -1050,6 +1055,27 @@ class LeanRecipeAdapter(ChallengeAdapter):
             # this adapter never fans out a backlog on one call.
             break
         return moved
+
+    def _built_waits_to_grade(self, owner):
+        """Whether ``owner``'s open provider holds a SUCCEEDED (built) task with no grade marker yet (`grade_marked`, set
+        by the door's grader). False without that hook, or without an open provider for ``owner`` (unchanged)."""
+        marked = getattr(self, "grade_marked", None)
+        opened = getattr(getattr(self, "provider_for", None), "_providers", None)
+        if marked is None or type(opened) is not dict:
+            return False
+        views = getattr(opened.get(owner), "_views", None)
+        if type(views) is not dict:
+            return False
+        from carbon.research import DirectTaskStateV3
+
+        try:
+            return any(
+                getattr(view, "state", None) is DirectTaskStateV3.SUCCEEDED
+                and not marked(task)
+                for task, view in tuple(views.items())
+            )
+        except Exception:  # noqa: BLE001 - a hint for build order, never a failure
+            return False
 
     def _not_queued_views(self):
         """The task ids the door's already-open providers hold in a state other than QUEUED: nothing for `advance` to

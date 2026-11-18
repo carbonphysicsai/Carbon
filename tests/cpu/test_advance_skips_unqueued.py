@@ -66,3 +66,35 @@ def test_the_skip_reads_no_ledger():
     adapter.ledger.owned_outcome = no_read
     assert adapter.advance() == 0
     assert seen == [WAITING, UNKNOWN]
+
+
+def _grade_first(views, marked):
+    adapter = LeanRecipeAdapter.__new__(LeanRecipeAdapter)
+    adapter.contract_digest = "sha256:" + "c" * 64
+    adapter.ledger = SimpleNamespace(submitted_outcomes=lambda contract: [WAITING])
+    adapter.provider_for = SimpleNamespace(
+        _providers={
+            OWNER: SimpleNamespace(
+                _views={t: SimpleNamespace(state=s) for t, s in views.items()}
+            )
+        }
+    )
+    adapter._active_owner = lambda task: OWNER
+    built = []
+    adapter._advance_one = lambda owner, task: built.append(task) or 1
+    adapter.grade_marked = lambda task: task in marked
+    return adapter, built
+
+
+def test_a_new_build_never_takes_an_owner_whose_built_task_waits_to_grade():
+    """Grade first (Lead + owner, 18 Nov 2026): a build holds its owner for its whole run, so an owner's next build
+    starts only once its built task is graded (marker written); an owner with nothing waiting builds as before."""
+    views = {DONE: DirectTaskStateV3.SUCCEEDED, WAITING: DirectTaskStateV3.QUEUED}
+    adapter, built = _grade_first(views, marked=set())
+    assert adapter.advance() == 0 and built == []
+    adapter, built = _grade_first(views, marked={DONE})
+    assert adapter.advance() == 1 and built == [WAITING]
+    # no hook (a door without parallel rounds): unchanged
+    adapter, built = _grade_first(views, marked=set())
+    del adapter.grade_marked
+    assert adapter.advance() == 1 and built == [WAITING]

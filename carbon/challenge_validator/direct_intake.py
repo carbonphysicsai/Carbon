@@ -1223,6 +1223,8 @@ def serve_loopback(
         adapter.owner_claims = claims
         if grader is not None:
             grader.owner_claims = claims
+            # grade first per owner (`LeanRecipeAdapter._built_waits_to_grade`)
+            adapter.grade_marked = lambda task: grader._marker(task).exists()
         # only now may a build round run beside a grade round: every round of this door takes its owner
         work.overlap_kinds = True
     for _ in range(advance_rounds):
