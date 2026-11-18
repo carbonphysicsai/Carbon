@@ -541,9 +541,18 @@ def cmd_keyscan(cfg: Config) -> list[str]:
 
 
 def ssh(cfg: Config, known_hosts: str, command: str) -> list[str]:
-    """The one way a command reaches the box: the pinned host key, no agent, no forwarding, as the phase's user."""
+    """The one way a command reaches the box: the pinned host key, no agent, no forwarding, as the phase's user.
+
+    Never over a shared connection (``ControlPath=none``, ``ControlMaster=no``): the door's ~/.ssh/config multiplexes
+    ssh to lane boxes (GPUYard since 18 Nov 2026 02:21Z), and a reused master would skip this run's login with the lane
+    key and its pinned host key, so the door phase could "prove" a login it never made.
+    """
     argv = [
         "ssh",
+        "-o",
+        "ControlPath=none",
+        "-o",
+        "ControlMaster=no",
         "-o",
         "BatchMode=yes",
         "-o",

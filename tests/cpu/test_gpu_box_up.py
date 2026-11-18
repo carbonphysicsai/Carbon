@@ -694,6 +694,16 @@ def test_the_driver_floor_compares_versions_not_strings(tmp_path):
     assert box.driver_installs == 0
 
 
+def test_every_ssh_to_the_box_is_a_fresh_login_never_a_shared_connection(tmp_path):
+    """The door multiplexes ssh to lane boxes (GPUYard ~/.ssh/config, 18 Nov 2026): a reused master would skip the
+    lane-key login and the pinned host key this run must prove."""
+    for cfg in (_admin_config(tmp_path), _config(tmp_path)):
+        argv = box_up.ssh(cfg, "kh", "true")
+        options = [argv[i + 1] for i, a in enumerate(argv) if a == "-o"]
+        assert "ControlPath=none" in options and "ControlMaster=no" in options
+        assert argv.index("ControlPath=none") < argv.index("--")
+
+
 def test_a_host_key_that_is_not_the_operators_refuses_before_any_ssh(tmp_path):
     cfg = _admin_config(tmp_path)
     box = FakeBox(cfg, keyscan=f"{IP} ssh-ed25519 {_key_body(99)}\n")
