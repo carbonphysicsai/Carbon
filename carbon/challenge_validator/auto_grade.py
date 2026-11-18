@@ -62,6 +62,8 @@ STRANDED_GRADE_HOLD_SECONDS = 10 * 60
 #: for owners other rounds hold (the overdue path, or unreadable owners), polling each second; then they let go and
 #: are deferred again (`prelude_owners_busy`), so no running build can stop grading past it.
 PRELUDE_OWNER_WAIT_SECONDS = 10 * 60
+#: How often the overdue upkeep alert (``prelude_owners_overdue``, `_prelude_owners_held`) is written again.
+PRELUDE_ALERT_SECONDS = 10 * 60
 #: How long the incumbent's steps wait for the grades in flight to end (`Sequencer.exclusive_within`) before leaving and
 #: asking again (Lead, 18 Nov 2026: never an unbounded drain holding the claim lock).
 PRELUDE_DRAIN_SECONDS = 60
@@ -581,10 +583,12 @@ class AutoGrader:
     @contextlib.contextmanager
     def _prelude_owners_held(self, claims):
         """Hold what the incumbent's steps need; yields whether they may run now. One-lane doors (no claims), or owners
-        that cannot be read (`_prelude_owners`): every owner, exactly as before. Else ONLY those owners, each taken
+        that cannot be read (`_prelude_owners`): skipped this round, holding nothing. Else ONLY those owners, each taken
         without waiting (`OwnerClaims.try_claim`): while any is in another round (that miner's own build or grade), the
-        steps are skipped this round and asked again on the next, the door building and grading meanwhile; after
-        `UPKEEP_DEFER_MAX_SECONDS` of skips in a row every owner is taken, as before, so the steps are never starved.
+        steps are skipped this round and asked again on the next, the door building and grading meanwhile. Never a wait
+        (owner, 18 Nov 2026): after `UPKEEP_DEFER_MAX_SECONDS` of skips in a row the steps are still only retried, and an
+        ALERT line ``prelude_owners_overdue`` (``alert=True``) is written once, then every `PRELUDE_ALERT_SECONDS`, for
+        the operators' stall watch to page on (V2: the upkeep can starve while the king's owner stays busy).
         """
         if claims is None:
             # a one-lane door: no other round of it holds an owner
@@ -597,11 +601,17 @@ class AutoGrader:
         now = time.monotonic()
         since = getattr(self, "_prelude_waiting_since", None)
         overdue = since is not None and now - since >= UPKEEP_DEFER_MAX_SECONDS
-        if overdue:
+        if overdue and now >= getattr(self, "_prelude_alert_after", 0.0):
             from carbon.battery.intake import log
 
-            # still never a wait (owner, 18 Nov 2026: no step stops another owner's grading): logged, tried again
-            log("prelude_owners_overdue", seconds=round(now - since))
+            # still never a wait (owner, 18 Nov 2026: no step stops another owner's grading): an alert, tried again
+            log(
+                "prelude_owners_overdue",
+                alert=True,
+                seconds=round(now - since),
+                busy=len(claims.held()),
+            )
+            self._prelude_alert_after = now + PRELUDE_ALERT_SECONDS
         if owners is None:
             from carbon.battery.intake import log
 
