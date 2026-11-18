@@ -1742,6 +1742,10 @@ def test_only_public_material_goes_to_the_box(tmp_path):
     for argv, _ in box.calls:
         text = " ".join(argv)
         assert "PRIVATE KEY" not in text and "secret" not in text
+    # the box file names the lane key's PATH (the door's builds use exactly it), never its contents
+    document = json.loads((tmp_path / "boxes" / "a100-1.json").read_text())
+    assert document["ssh_key"] == str(tmp_path / "lane_key")
+    assert "secret" not in json.dumps(document)
 
 
 def test_the_guard_refuses_any_other_upload(tmp_path):

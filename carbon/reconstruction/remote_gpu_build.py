@@ -194,6 +194,9 @@ class GpuBuildSpec:
     box_digest: str | None = None
     #: The box document, canonical JSON (copied to `BOX_COPY` for recovery); None for a local lane.
     box_document: str | None = None
+    #: The door's private key for the box's lane user, as its box file names it (``ssh_key``: an absolute path on the
+    #: door, never the key itself); None: the door's own ssh configuration decides (a box admitted before this field).
+    ssh_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -666,6 +669,9 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         )
     ):
         raise ValueError("remote_gpu_build_box_images")
+    ssh_key = document.get("ssh_key")
+    if ssh_key is not None and (type(ssh_key) is not str or not _HOME.fullmatch(ssh_key)):
+        raise ValueError("remote_gpu_build_box_ssh_key")
     device = _box_device(document.get("device"), document.get("device_digest"))
     if kind is not None and device.device_kind != kind:
         raise ValueError("remote_gpu_build_box_device_kind")
@@ -681,6 +687,7 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         box_file,
         digest(text.encode("utf-8")),
         text,
+        ssh_key,
     )
     # a legacy 4-slot box offers at most its own 4 slots, whatever the values row asks
     return DoorLane(
@@ -1602,9 +1609,16 @@ def known_hosts_path(lane) -> Path:
 
 
 def pinned_ssh_options(lane):
-    """The ssh options every connection to ``lane``'s box carries: ITS pinned host key only, strictly."""
+    """The ssh options every connection to ``lane``'s box carries: ITS pinned host key only, strictly; and the key its
+    box file names (``ssh_key``), only that one (live 116, 18 Nov 2026: a replacement box at a new address got
+    "Permission denied (publickey)" for hours, because only a hand-written ssh config block named the old address's key).
+    """
     known = _checked_path(str(known_hosts_path(lane)), b"remote_gpu_build_box_dir")
-    return [
+    identity = []
+    if lane.spec.ssh_key is not None:
+        key = _checked_path(lane.spec.ssh_key, b"remote_gpu_build_box_ssh_key")
+        identity = ["-i", key, "-o", "IdentitiesOnly=yes"]
+    return [*identity,
         "-o",
         "StrictHostKeyChecking=yes",
         "-o",

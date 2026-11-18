@@ -2148,6 +2148,25 @@ def test_a_box_admitted_with_another_image_is_skipped_never_refused(host):
     assert (_boxes_dir(host) / f"{BOX}.json").exists()
 
 
+def test_a_box_link_uses_the_key_its_box_file_names_and_only_it(host):
+    """Live 116, 18 Nov 2026: a replacement box at a new address got "Permission denied (publickey)" for hours (only a
+    hand-written ssh config block named the old address's key). A box file's ``ssh_key`` goes into every link to it,
+    with IdentitiesOnly; a box file without one is linked as before; a malformed one is no box.
+    """
+    host.mkdir(parents=True)
+    values = _values(host)
+    key = str(host / "lane_key")
+    write_box(host, {**box_document(), "ssh_key": key})
+    (box,) = remote_gpu_build.boxes(_pool(host, values))
+    shim = remote_gpu_build.ssh_shim_text(box, "/usr/bin/ssh")
+    assert f"-i {key} -o IdentitiesOnly=yes" in shim
+    write_box(host, box_document())
+    (box,) = remote_gpu_build.boxes(_pool(host, values))
+    assert "-i " not in remote_gpu_build.ssh_shim_text(box, "/usr/bin/ssh")
+    write_box(host, {**box_document(), "ssh_key": "relative/key"})
+    assert remote_gpu_build.boxes(_pool(host, values)) == ()
+
+
 class _Stop(Exception):
     pass
 

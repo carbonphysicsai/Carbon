@@ -1828,6 +1828,9 @@ def box_document(
     }
     if cfg.admin_summary_sha256 is not None:
         document["admin_summary_sha256"] = cfg.admin_summary_sha256
+    if cfg.ssh_key:
+        # the door's lane key that passed every check above: the door's builds use exactly it (`pinned_ssh_options`)
+        document["ssh_key"] = os.path.abspath(os.path.expanduser(cfg.ssh_key))
     return document
 
 
