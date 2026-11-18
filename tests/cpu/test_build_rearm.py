@@ -243,7 +243,8 @@ def test_a_door_rerun_names_the_failed_task_so_it_starts_from_its_retained_sourc
     ledger,
 ):
     """The door's re-run starts `rebuild_of` the failed task: the provider then uses that task's own retained graph
-    source, never the owner's workspace, which the miner may have replaced with a newer graph since."""
+    source, never the owner's workspace, which the miner may have replaced with a newer graph since.
+    """
     _queue(ledger)
     door, provider = _door(ledger), _Provider({A: DirectTaskStateV3.FAILED_INFRA})
     assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) == N
@@ -252,7 +253,8 @@ def test_a_door_rerun_names_the_failed_task_so_it_starts_from_its_retained_sourc
 
 def test_one_advance_round_at_a_time_applies_the_rebuild_requests(ledger):
     """Every concurrent advance round used to walk the request list from a done-set read before any other wrote, so
-    one request was tried ~23 times: a round that finds the apply lock held does nothing."""
+    one request was tried ~23 times: a round that finds the apply lock held does nothing.
+    """
     _queue(ledger)
     door, provider = _door(ledger), _Provider({A: DirectTaskStateV3.FAILED_INFRA})
     door._active_owner = lambda sid: HOTKEYS[0]
@@ -320,7 +322,8 @@ def test_the_provider_starts_a_rerun_from_the_named_tasks_retained_source(
     )
     with pytest.raises(_Stop):
         provider.start_research_task(request, rebuild_of=A)
-    assert read == [A]  # the retained bytes of the failed task, read before anything else
+    # the retained bytes of the failed task, read before anything else
+    assert read == [A]
 
 
 def test_the_provider_refuses_a_rerun_of_another_recipe_or_with_its_own_source():
