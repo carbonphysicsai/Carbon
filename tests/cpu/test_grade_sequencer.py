@@ -262,7 +262,8 @@ def test_a_lone_task_of_an_unknown_group_is_still_graded():
 
 def test_an_unknown_group_waiting_never_holds_the_tasks_behind_it():
     """Live 116 (17 Nov 2026): one pending task of an unknown allowance group, with any owner busy, held EVERY later
-    task back. Now it waits alone; a later task of a known group is graded."""
+    task back. Now it waits alone only while a grade is in flight, and a busy owner holds back only its own tasks (V2,
+    18 Nov 2026): with nothing in flight, the unknown-group task is graded at once."""
 
     def steps(grader, sid, turn):
         grader.marked.add(sid)
@@ -274,7 +275,7 @@ def test_an_unknown_group_waiting_never_holds_the_tasks_behind_it():
     assert claims.try_claim("o:busy")  # that owner is in a build round
     grader.owner_claims = claims
     grader._owner_of = lambda sid: "o:" + sid
-    assert grader._run_once() == ("later", "GRADED")
+    assert grader._run_once() == ("unknown", "GRADED")
 
 
 def test_a_withdrawal_is_settled_in_its_commit_turn():

@@ -362,8 +362,9 @@ def test_with_no_box_up_a_new_build_round_starts_on_a_local_lane(host):
         assert grade_lanes.current() is None
 
 
-def test_an_op_waiting_for_its_lane_is_waiting_never_building():
-    """The op named by `running_op` is in `waiting_ops` while its round re-takes a lane, and leaves it after."""
+def test_only_a_box_slot_wait_marks_an_op_waiting_a_lane_retake_does_not():
+    """V2 (18 Nov 2026): a box-slot wait (`waiting_for`) shows the op as waiting to build; a lane re-take does not
+    (it only stops the construction's deadline clock, `timed_wait`)."""
 
     class Releaser:
         _released = True
@@ -379,8 +380,7 @@ def test_an_op_waiting_for_its_lane_is_waiting_never_building():
     releaser = Releaser()
     with grade_lanes.running_op("rtsk_x-build"):
         grade_lanes._retake(releaser)
-    assert releaser.seen == frozenset({"rtsk_x-build"})
-    assert grade_lanes.waiting_ops() == frozenset()
+    assert releaser.seen == frozenset()
     with grade_lanes.waiting_for("a"), grade_lanes.waiting_for("a"):
         assert grade_lanes.waiting_ops() == frozenset({"a"})
     assert grade_lanes.waiting_ops() == frozenset()

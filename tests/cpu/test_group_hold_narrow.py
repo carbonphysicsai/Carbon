@@ -67,7 +67,7 @@ def test_a_busy_owner_holds_only_its_own_tasks_and_the_passed_one_grades_next_ro
 
 
 def test_a_cap_refusal_after_passing_an_earlier_group_mate_is_not_yet_never_final():
-    grader, graded, soft, markers = _grader([EARLY, LATE], refuse={LATE})
+    grader, _graded, soft, markers = _grader([EARLY, LATE], refuse={LATE})
     sequencer, claims = grade_sequencer.Sequencer(), grade_sequencer.OwnerClaims()
     assert claims.try_claim(OWNERS[EARLY])
     assert _round(grader, sequencer, claims) is None  # LATE refused "not yet"; nothing else to grade
