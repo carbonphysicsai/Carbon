@@ -168,3 +168,25 @@ def test_a_version_registers_the_ranking_or_defaults_to_the_old_rule():
     assert new.ranking == ms.RANKING_ORIGINAL_LIMITS
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         pool_version._menu(_menu_block(ranking="nope"))
+
+
+def test_an_error_of_exactly_plus_or_minus_u_still_picks_the_optimum_under_the_new_rule():
+    # the boundary of the owner's "|e| < U" case: the sealed optimum sits at a true margin of 1.01 U, so an error of
+    # exactly +U leaves it feasible on the model (margin 0.01 U) and an error of exactly -U only widens its margin
+    record = _record()
+    for error in (-U, U):
+        preds = _model(error)(record)
+        out = _score(record, preds, ms.RANKING_ORIGINAL_LIMITS)
+        assert out["d"] == pytest.approx(1.0), error
+        assert _first_pick(record, preds, ms.RANKING_ORIGINAL_LIMITS) == 1.0
+
+
+def test_a_model_margin_of_exactly_zero_is_feasible_and_a_tie_shares_its_mean():
+    record = _record()
+    preds = _model(0.0)(record)
+    preds["opt"] = {"f": preds["opt"]["f"], "g": 0.5}  # exactly on the limit: margin 0
+    assert _first_pick(record, preds, ms.RANKING_ORIGINAL_LIMITS) == 1.0
+    # equal keys score the MEAN d of the tied group: a constant predictor is exactly the random expectation
+    flat = {pid: {"f": 1.0, "g": 0.1} for pid in record.pool}
+    out = _score(record, flat, ms.RANKING_ORIGINAL_LIMITS)
+    assert out["d"] == 0.0
