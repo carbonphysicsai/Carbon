@@ -482,3 +482,49 @@ def test_a_hung_grade_line_logs_its_claim_age(monkeypatch):
         grader._end_hung_grades(sequencer)
     ((event, fields),) = [line for line in lines if line[0] == "grade_hung_ended"]
     assert fields["task"] == "hung" and fields["claimed_s"] >= 0
+
+
+def test_a_grade_waiting_its_commit_turn_is_never_ended_as_hung(monkeypatch):
+    """V2 (18 Nov 2026): `overdue` counts from the claim, so a healthy grade waiting its commit turn behind a slow head
+    could pass the limit. A ticket inside its turn wait is skipped, and its clock starts afresh after; the head (stuck
+    outside any wait) is the one ended."""
+    monkeypatch.setattr(research_carrier, "yield_grade_session", lambda: False)
+    sequencer = grade_sequencer.Sequencer()
+    head_bound, behind_waiting, release_head = (
+        threading.Event(),
+        threading.Event(),
+        threading.Event(),
+    )
+    out = {}
+
+    def head():
+        with sequencer.task() as task:
+            task.bind("head", "h:a")
+            task.release_claim()
+            head_bound.set()
+            release_head.wait(10)
+
+    def behind():
+        head_bound.wait(10)
+        with sequencer.task() as task:
+            task.bind("behind", "h:b")
+            out["ticket"] = task.ticket
+            behind_waiting.set()
+            task.turn()
+            out["after"] = sequencer.overdue(1800, now=time.monotonic() + 1)
+
+    threads = [threading.Thread(target=head), threading.Thread(target=behind)]
+    for thread in threads:
+        thread.start()
+    behind_waiting.wait(10)
+    for _ in range(100):  # until the second ticket is inside its wait
+        with sequencer._order:
+            if out.get("ticket") in sequencer._waiting:
+                break
+        time.sleep(0.01)
+    later = time.monotonic() + 2 * 1800
+    assert [sid for _, sid in sequencer.overdue(1800, now=later)] == ["head"]
+    release_head.set()
+    for thread in threads:
+        thread.join(10)
+    assert out["after"] == []  # its clock started afresh when its turn came

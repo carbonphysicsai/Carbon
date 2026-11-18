@@ -42,6 +42,8 @@ class Sequencer:
         self._started = {}
         #: tickets ended as hung (`abandon`): their thread may never commit
         self._abandoned = set()
+        #: tickets inside their commit-turn wait (`_Task.turn`): a legitimate wait on EARLIER grades, never hung (V2)
+        self._waiting = set()
 
     def in_flight(self):
         """The submission ids claimed and not yet finished (a claim skips them)."""
@@ -76,6 +78,7 @@ class Sequencer:
                 self._groups.pop(ticket, None)
                 self._started.pop(ticket, None)
                 self._abandoned.discard(ticket)
+                self._waiting.discard(ticket)
                 self._order.notify_all()
 
     def overdue(self, seconds, now=None):
@@ -88,6 +91,7 @@ class Sequencer:
                 for ticket, sid in self._open.items()
                 if sid is not None
                 and ticket not in self._abandoned
+                and ticket not in self._waiting
                 and now - self._started.get(ticket, now) > seconds
             ]
 
@@ -158,9 +162,20 @@ class _Task:
         gone = yield_grade_session()
         # (a) (Lead 17 Nov 2026): the lane goes back to the door while this grade waits, unless its session container
         # is not confirmed gone (no round runs beside it)
-        with grade_lanes.given_back() if gone else nullcontext(), order:
-            while any(other < self.ticket for other in self.sequencer._open):
-                order.wait(1.0)
+        # V2 (18 Nov 2026): the commit-turn wait, and the lane re-take after it, are waits on EARLIER grades: `overdue`
+        # skips this ticket meanwhile, and its clock starts afresh after, so a healthy grade behind a slow head is never
+        # ended as hung (only the head, or a ticket stuck outside this wait, can be)
+        with order:
+            self.sequencer._waiting.add(self.ticket)
+        try:
+            with grade_lanes.given_back() if gone else nullcontext(), order:
+                while any(other < self.ticket for other in self.sequencer._open):
+                    order.wait(1.0)
+        finally:
+            with order:
+                self.sequencer._waiting.discard(self.ticket)
+                if self.ticket in self.sequencer._started:
+                    self.sequencer._started[self.ticket] = time.monotonic()
         if self.ticket in self.sequencer._abandoned:
             raise GradeAbandoned(self.ticket)
         self._turned = True
