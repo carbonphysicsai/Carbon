@@ -1502,6 +1502,12 @@ class _WorkLock:
         #: GRADE rounds waiting to hold a lane again after their commit-turn wait (`grade_lanes.given_back`): a NEW grade
         #: round stands back for them (`_acquire_slot`)
         self._grade_retakers = 0
+        #: GRADE re-takes after a commit-turn wait that need a LOCAL lane (`_Taking.retake`). Each is the head of the
+        #: door's commit order: every claimed grade waits on it. While one waits, BUILDS take no local lane (a NEW build
+        #: round, or a build re-take), so the head never waits behind a build's whole run (live 116, 18 Nov 2026 stall
+        #: #3: a copy grade at the head waited for a local lane 25+ min while builds re-took them). Never handed back
+        #: (unlike the new-round priority, `RETAKE_PRIORITY_SECONDS`): it ends when the head holds a lane.
+        self._turn_waiting_local = 0
         #: The live build rounds whose lane is out for an op on a remote GPU build box (`_Taking.release`): live (a drain
         #: sees them), but holding no lane, so the kind fairness never counts them (`_enter_parallel_both_kinds`).
         self._away = set()
@@ -1930,8 +1936,14 @@ class _WorkLock:
         """
         with self._kinds:
             retaking = (
-                self._retakers > 0 and (kind == "advance" or self._build_slots is None)
-            ) or (self._grade_retakers > 0 and kind != "advance")
+                (
+                    self._retakers > 0
+                    and (kind == "advance" or self._build_slots is None)
+                )
+                or (self._grade_retakers > 0 and kind != "advance")
+                # the head of the commit order waits for a local lane: no NEW build round takes one first
+                or (self._turn_waiting_local > 0 and kind == "advance")
+            )
         if retaking:
             time.sleep(self._poll)
             return False
@@ -2440,8 +2452,15 @@ class _Taking:
             return self._held[2]
         began = time.monotonic()
         counter = "_grade_retakers" if self.any_lane else "_retakers"
+        # a grade re-taking a LOCAL lane (its given-back lane is local, or unknown) is the commit order's head: builds
+        # stand back for it until it holds one (`_turn_waiting_local`)
+        head_local = self.any_lane and (
+            self._gave_back is None or self._gave_back.docker_host is None
+        )
         with work._kinds:
             setattr(work, counter, getattr(work, counter) + 1)
+            if head_local:
+                work._turn_waiting_local += 1
         # A re-take that keeps waiting is logged each minute, and after RETAKE_PRIORITY_SECONDS it stops making new
         # rounds stand back (it still waits for a lane: never on without one, V2 B1), so one stuck re-take never
         # stops the door's grading (live 116, 18 Nov 02:40Z).
@@ -2469,6 +2488,11 @@ class _Taking:
                 waiting()
             try:
                 while True:
+                    if not self.any_lane and work._turn_waiting_local > 0:
+                        # a build re-take stands back while the commit order's head waits for a local lane
+                        waiting()
+                        time.sleep(work._poll)
+                        continue
                     try:
                         held = (
                             work._take_local_lane(like=self._gave_back)
@@ -2489,10 +2513,12 @@ class _Taking:
                 work._release_slot(self.kind)
                 raise
         finally:
-            if standing[0]:
-                with work._kinds:
+            with work._kinds:
+                if standing[0]:
                     setattr(work, counter, getattr(work, counter) - 1)
-                    work._kinds.notify_all()
+                if head_local:
+                    work._turn_waiting_local -= 1
+                work._kinds.notify_all()
         self._held, self._released = held, False
         with work._kinds:
             work._away.discard(threading.get_ident())

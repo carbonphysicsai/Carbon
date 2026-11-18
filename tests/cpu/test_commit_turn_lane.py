@@ -407,3 +407,50 @@ def test_a_waiting_retake_hands_back_its_priority_but_still_waits_for_a_lane(
     lane_free.set()
     thread.join(10)
     assert back["lane"] is not None and work._grade_retakers == 0
+
+
+def test_no_new_build_round_starts_while_the_commit_orders_head_waits_for_a_local_lane(
+    tmp_path,
+):
+    """Live 116 stall #3 (18 Nov 2026): the commit order's head (a grade re-taking a local lane after its commit-turn
+    wait) waited 25+ min while builds took the local lanes; every claimed grade waited behind it. While it waits, no
+    NEW build round takes a slot; grade rounds are unaffected by this rule."""
+    work = _door(tmp_path, ("0-3", "4-7"))
+    work._turn_waiting_local = 1
+    assert work._acquire_slot("advance") is False
+    work._turn_waiting_local = 0
+    assert work._acquire_slot("advance") is True
+    work._release_slot("advance")
+
+
+def test_a_build_retake_stands_back_until_the_commit_orders_head_holds_a_local_lane(
+    tmp_path,
+):
+    import time
+
+    work = _door(tmp_path, ("0-3", "4-7"))
+    build = work.taking("advance")
+    build._released = True  # a build round whose lane is out (its remote GPU op), now re-taking a local lane
+    work._turn_waiting_local = 1
+    got = {}
+    thread = threading.Thread(
+        target=lambda: got.setdefault("lane", build.retake()), daemon=True
+    )
+    thread.start()
+    time.sleep(0.3)
+    # both local lanes are free, yet the build takes none while the head waits
+    assert "lane" not in got and thread.is_alive()
+    work._turn_waiting_local = 0
+    thread.join(5)
+    assert got["lane"] is not None and got["lane"].docker_host is None
+    work._unlock(build._held[0])
+
+
+def test_the_heads_own_retake_counts_itself_and_lets_go_once_it_holds_a_lane(tmp_path):
+    work = _door(tmp_path, ("0-3", "4-7"))
+    grade = work.taking("grade", has_work=lambda: True)
+    grade._released = True
+    grade._gave_back = grade_lanes.Lane(1, "4-7", str(work._dir))  # a LOCAL lane given back
+    lane = grade.retake()
+    assert lane.index == 1 and work._turn_waiting_local == 0
+    work._unlock(grade._held[0])
