@@ -122,7 +122,7 @@ def test_a_byte_edit_after_start_is_refused_at_the_next_build_start(monkeypatch)
         run_queued_task=lambda task_id: ran.append(task_id),
     )
     adapter._provider = lambda owner: provider
-    import carbon.research as research
+    from carbon import research
 
     # the read request is the provider double's; only the check before the run matters here
     monkeypatch.setattr(research, "DirectGetTaskRequestV3", lambda *args: None)
