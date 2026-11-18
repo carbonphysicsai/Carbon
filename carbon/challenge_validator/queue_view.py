@@ -11,13 +11,22 @@ this door already keeps. Reads; writes nothing.
   (dict reads, no lock taken, no provider opened, no `owner()` / `_provider()` call, so no source-identity hashing and no
   registration read). A provider being changed mid-read is skipped for that one snapshot (its tasks drop out of the
   counts until the next read, 30 s later: a brief undercount, never an inflated queue).
-- **grading now:** this door's in-flight record (``work-inflight.json``, `direct_intake._WorkLock`) is a GRADE round and
-  the grader is grading a submission (not its king's upkeep).
+- **what actually runs (Live ops' queue truth audit, 18 Nov 2026):** a RUNNING task is BUILDING only while one of its
+  own operations (prep, build, practice inference or timing, `direct_child_identity`; or its remote GPU build's shadow) is RESERVED in its owner's campaign ledger, which happens only
+  once it holds a build slot; a RUNNING task with none is still WAITING TO BUILD (its round waits for a slot). The
+  ledger is read on a read-only connection (``mode=ro``: no write lock, never blocks a build or a grade); an unreadable
+  ledger counts its RUNNING tasks as building, as before. A SUCCEEDED task whose grade is already claimed (in flight,
+  `grade_sequencer`) is no longer waiting to grade.
+- **grading now:** on a door grading one round per lane, 1 while any claimed grade is in flight; else this door's
+  in-flight record (``work-inflight.json``, `direct_intake._WorkLock`) is a GRADE round and the grader is grading a
+  submission (not its king's upkeep).
 - **door state:** ``draining for an update`` while the operator's per-door DRAINING flag is set; ``paused`` while the
   door's chain read is stale (it grades nothing until the chain answers, H8); ``re-measuring the king`` while the
   grader runs its king's upkeep; otherwise ``grading``.
-- **waits:** for every verdict marker written in the last 24 h: its write time minus the task's own creation time. A
-  submission its owner WITHDREW while queued (marker WITHDRAWN_BY_MINER) never waited for a verdict: it is not a sample.
+- **waits:** for every VERDICT marker (GRADED or CANDIDATE_FAILED) written in the last 24 h: its write time minus the
+  task's own creation time. Not samples (18 Nov 2026): a FAILED marker (no verdict), a withdrawal, and a task handed
+  back and graded again (a kept ``requeued/<id>.attempt-N.marker.json``: its clock runs from its first arrival, through
+  our outage, not the wait a submission now meets).
 
 - **held for review (v2):** on a door whose crown hold is on (`crown_hold.holding()`: a menu-D version whose hold the registry does not list off), the
   unresolved filed contenders (`PoolStore.paused_crowns`, all kinds, filing order). Neither that record nor the grade
@@ -48,8 +57,19 @@ from . import queue_public as qp
 CACHE_S = 30.0
 DAY_S = 86400.0
 _BUILDING = frozenset({"RUNNING", "CANCEL_REQUESTED"})
+#: The verdict markers whose write time ends a submission's wait (`auto_grade`).
+_VERDICTS = frozenset({"GRADED", "CANDIDATE_FAILED"})
 #: The one state that waits for a grade: built, no verdict yet.
 _BUILT = "SUCCEEDED"
+
+
+def _marker_state(marker):
+    """The marker's ``state``, or None when it cannot be read."""
+    try:
+        body = json.loads(marker.read_bytes())
+    except (OSError, ValueError):
+        return None
+    return body.get("state") if type(body) is dict else None
 
 
 def _withdrawn(marker):
@@ -113,6 +133,57 @@ class QueueView:
         self._owners = owners
         return index
 
+    def _reserved_ops(self, provider):
+        """The operation ids RESERVED in ``provider``'s campaign ledger, read on a read-only connection (never a write
+        lock, never a wait past a second), or None when it cannot be read."""
+        path = getattr(getattr(provider, "ledger", None), "path", None)
+        if path is None:
+            return None
+        try:
+            db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=1)
+            try:
+                rows = db.execute(
+                    "SELECT id FROM operations WHERE state='RESERVED'"
+                ).fetchall()
+            finally:
+                db.close()
+        except sqlite3.Error:
+            return None
+        return {row[0] for row in rows}
+
+    def _waiting_for_slot(self, index):
+        """The RUNNING tasks no build operation of which is RESERVED: their round is still waiting for a build slot."""
+        from carbon.development_session.bundle_construction_worker import (
+            direct_child_identity,
+        )
+
+        opened = getattr(self.intake.adapter.provider_for, "_providers", None)
+        if not isinstance(opened, dict):
+            return set()
+        reserved, waiting = {}, set()
+        for task, (state, _created) in index.items():
+            if state != "RUNNING":
+                continue
+            key = self._owners.get(task)
+            provider = opened.get(key)
+            if provider is None:
+                continue
+            if key not in reserved:
+                reserved[key] = self._reserved_ops(provider)
+            held = reserved[key]
+            if held is None:
+                continue  # unreadable: counted as building, as before
+            # any of the task's own operations (`direct_child_identity`: prep, build, practice inference, timing, or
+            # its remote GPU build shadow) RESERVED: it holds a slot and runs
+            own = direct_child_identity(task, "build")[: -len("build")]
+            if not any(op.startswith(own) or op.startswith(task) for op in held):
+                waiting.add(task)
+        return waiting
+
+    def _claimed_grades(self):
+        sequencer = getattr(self.grader, "sequencer", None)
+        return set() if sequencer is None else set(sequencer.in_flight())
+
     def held(self):
         """The held contenders' submission ids, oldest filing first, on a crown-hold door; None on every other door.
         A read of the pool store's filed contenders only (no grade, no lock)."""
@@ -151,6 +222,7 @@ class QueueView:
 
     def _waits(self, now, index):
         waits = []
+        kept = self.grader.markers.parent / "requeued"
         for marker in self.grader.markers.glob("rtsk_*.json"):
             try:
                 written = marker.stat().st_mtime
@@ -161,6 +233,10 @@ class QueueView:
             state, created = index.get(marker.stem, (None, None))
             if state == "CANCELLED" and _withdrawn(marker):
                 continue  # withdrawn by its owner while queued: no grade was waited for
+            if _marker_state(marker) not in _VERDICTS:
+                continue  # no verdict (a FAILED marker): not a wait for a grade
+            if (kept / (marker.stem + ".attempt-1.marker.json")).exists():
+                continue  # handed back and graded again: its clock runs through our outage
             if created is not None and written >= created:
                 waits.append(written - created)
         return waits
@@ -169,13 +245,15 @@ class QueueView:
         now = self.clock()
         index = self._index()
         counts = {"waiting_to_build": 0, "building_now": 0, "waiting_to_grade": 0}
+        slotless = self._waiting_for_slot(index)
+        claimed = self._claimed_grades()
         for submission_id in self.grader.pending():
             state, _created = index.get(submission_id, (None, None))
-            if state == "QUEUED":
+            if state == "QUEUED" or submission_id in slotless:
                 counts["waiting_to_build"] += 1
             elif state in _BUILDING:
                 counts["building_now"] += 1
-            elif state == _BUILT:
+            elif state == _BUILT and submission_id not in claimed:
                 counts["waiting_to_grade"] += 1
             # cancelled, a build that ended without success, or a task in no open store: closed, never waiting
         return {
@@ -192,10 +270,11 @@ class QueueView:
         (oldest first), then the graded contenders waiting for the crown sweep."""
         index = self._index()
         origins = self._place_origins()
+        slotless = self._waiting_for_slot(index)
         entries = []
         for submission_id in self.grader.pending():
             state, created = index.get(submission_id, (None, None))
-            if state == "QUEUED":
+            if state == "QUEUED" or submission_id in slotless:
                 label = qp.WAITING_TO_BUILD
             elif state in _BUILDING:
                 label = qp.BUILDING

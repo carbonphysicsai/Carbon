@@ -508,3 +508,85 @@ def test_the_public_page_for_the_rb_shape_shows_nothing_waiting_in_the_same_fiel
         body["waiting_to_grade"],
     ) == (0, 0, 0)
     assert "rtsk_" not in json.dumps(body)
+
+
+def _ledger_with(tmp_path, reserved):
+    """A campaign ledger file whose operations table holds ``reserved`` as RESERVED."""
+    import sqlite3
+
+    path = tmp_path / "campaign.sqlite3"
+    with sqlite3.connect(path) as db:
+        db.execute(
+            "CREATE TABLE operations (id TEXT PRIMARY KEY, state TEXT NOT NULL)"
+        )
+        db.executemany(
+            "INSERT INTO operations VALUES(?, 'RESERVED')", [(op,) for op in reserved]
+        )
+    return SimpleNamespace(path=path)
+
+
+def test_only_a_running_task_holding_a_build_slot_counts_as_building(tmp_path):
+    """Live ops' queue truth audit (18 Nov 2026): 12 shown building, 2 really building. A RUNNING task is building only
+    while one of its own operations is RESERVED (it holds a slot); the rest still wait to build, counted and labelled
+    so."""
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+
+    states = {
+        TASKS[0]: (DirectTaskStateV3.RUNNING, NOW - 100),  # holds a slot
+        TASKS[1]: (DirectTaskStateV3.RUNNING, NOW - 90),  # waiting for a slot
+        TASKS[2]: (DirectTaskStateV3.QUEUED, NOW - 80),
+    }
+    view, grader = _door(tmp_path, states, pending=TASKS[:3])
+    provider = next(iter(grader.intake.adapter.provider_for._providers.values()))
+    provider.ledger = _ledger_with(
+        tmp_path, [direct_child_identity(TASKS[0], "build")]
+    )
+    snap = view._read()
+    assert (snap["building_now"], snap["waiting_to_build"]) == (1, 2)
+    rows = view._read_rows(NOW)
+    assert [row["state"] for row in rows] == [
+        queue_public.BUILDING,
+        queue_public.WAITING_TO_BUILD,
+        queue_public.WAITING_TO_BUILD,
+    ]
+
+
+def test_an_unreadable_ledger_counts_running_tasks_as_building_as_before(tmp_path):
+    states = {TASKS[0]: (DirectTaskStateV3.RUNNING, NOW - 100)}
+    view, grader = _door(tmp_path, states, pending=TASKS[:1])
+    provider = next(iter(grader.intake.adapter.provider_for._providers.values()))
+    provider.ledger = SimpleNamespace(path=tmp_path / "missing.sqlite3")
+    assert view._read()["building_now"] == 1
+
+
+def test_a_claimed_grade_no_longer_waits_to_grade(tmp_path):
+    from carbon.challenge_validator import grade_sequencer
+
+    states = {task: (DirectTaskStateV3.SUCCEEDED, NOW - 100) for task in TASKS[:3]}
+    view, grader = _door(tmp_path, states, pending=TASKS[:3])
+    grader.sequencer = grade_sequencer.Sequencer()
+    with grader.sequencer.task() as task:
+        task.bind(TASKS[0])
+        snap = view._read()
+    assert snap["waiting_to_grade"] == 2 and snap["grading_now"] == 1
+
+
+def test_the_wait_counts_verdicts_only_never_a_failed_or_handed_back_task(tmp_path):
+    """The wait median: verdict markers only; a FAILED marker, and a task handed back and graded again (its clock runs
+    from its first arrival, through our outage), are no samples."""
+    states = {task: (DirectTaskStateV3.SUCCEEDED, NOW - 10_000) for task in TASKS[:7]}
+    verdicts = [(TASKS[i], NOW - 10_000 + 600 * (i + 1)) for i in range(7)]
+    view, grader = _door(tmp_path, states, pending=[], verdicts=verdicts)
+    # TASKS[5]: a FAILED marker, not a verdict
+    marker = grader._marker(TASKS[5])
+    body = json.loads(marker.read_text())
+    marker.write_text(json.dumps({**body, "state": "FAILED"}))
+    os.utime(marker, (NOW - 10_000 + 3600, NOW - 10_000 + 3600))
+    # TASKS[6]: handed back once (a kept attempt marker), then graded again
+    kept = tmp_path / "auto-grade" / "requeued"
+    kept.mkdir(parents=True, exist_ok=True)
+    (kept / (TASKS[6] + ".attempt-1.marker.json")).write_text("{}")
+    _status, body = queue_public.serve(view, CHALLENGE)
+    assert body["wait_24h"]["verdicts"] == 5
