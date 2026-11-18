@@ -695,8 +695,11 @@ class AutoGrader:
         # each group's allowance is read in that group's submission order after its earlier settles, as one at
         # a time does (None = a group not known: every later task waits behind it)
         held = sequencer.groups_in_flight()
+        building = self._building_views()
         candidates = [
-            sid for sid in self.pending() if sid not in busy and sid not in skipped
+            sid
+            for sid in self.pending()
+            if sid not in busy and sid not in skipped and sid not in building
         ]
         for submission_id in candidates:
             group = self._allowance_group(submission_id)
@@ -759,6 +762,33 @@ class AutoGrader:
                 raise _NextTask
             return outcome
         return None
+
+    def _building_views(self):
+        """The task ids the door's already-open providers hold as QUEUED, RUNNING or CANCEL_REQUESTED: nothing to grade
+        yet (their grade is `task_not_succeeded`, skipped), so the claim scan skips them before the owner check, while it
+        holds the claim. Live 116 stacks (18 Nov 2026, 14:27Z): that scan ran the owner check (the served-source hash)
+        for every unbuilt submission while every grade and the incumbent's steps waited on the claim. Read from the
+        views alone (no ledger); a task not here is scanned as before."""
+        from carbon.research import DirectTaskStateV3
+
+        waiting = (
+            DirectTaskStateV3.QUEUED,
+            DirectTaskStateV3.RUNNING,
+            DirectTaskStateV3.CANCEL_REQUESTED,
+        )
+        adapter = getattr(self.intake, "adapter", None)
+        opened = getattr(getattr(adapter, "provider_for", None), "_providers", None)
+        if type(opened) is not dict:
+            return frozenset()
+        found = set()
+        for provider in tuple(opened.values()):
+            views = getattr(provider, "_views", None)
+            if type(views) is not dict:
+                continue
+            for task, view in tuple(views.items()):
+                if getattr(view, "state", None) in waiting:
+                    found.add(task)
+        return frozenset(found)
 
     def _owner_of(self, submission_id):
         """The owner (hotkey) of ``submission_id``, or None when it cannot be read now."""
