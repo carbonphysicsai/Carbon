@@ -661,3 +661,21 @@ def test_a_receiver_stop_after_the_counted_settle_gives_the_slot_back(
     assert [(row[2], row[3]) for row in _cap_rows(fixture)] == [
         ("RELEASED", "FAILED_INFRA")
     ]
+
+
+def test_once_contention_starts_the_slot_stays_counted(case, tmp_path, monkeypatch):
+    """V2 (18 Nov 2026): a failure once `_contend` has started (the grade may already be a crown input) never gives the
+    slot back: a free grade must never be able to crown."""
+
+    class Stopped(BaseException):
+        pass
+
+    fixture = _setup(case, tmp_path, monkeypatch)
+
+    def contend(*args, **kwargs):
+        raise Stopped()
+
+    monkeypatch.setattr(retention, "_contend", contend)
+    with pytest.raises(Stopped):
+        _grade(fixture, counted=True)
+    assert [row[2] for row in _cap_rows(fixture)] == ["COUNTED"]

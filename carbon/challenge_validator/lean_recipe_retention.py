@@ -2693,6 +2693,9 @@ def _retain_selected_pack_evaluation(
             # reads under the bank's bound too: at Motor 1.8's 2611 x 240 the worker evidence is 16.8 MB and the default
             # 4 MiB refused it as benchmark_reduction_refused, which `_contend` turned into koth_comparison {"error"}
             # (nothing filed in the pool, no contention), with the grade itself bound (13 Nov, found by the whole-chain read).
+            # V2 (18 Nov 2026): from here the grade may become a crown input, so the slot is never given back after this
+            # point (a free grade that could crown)
+            counted = None
             with _sized_pair_ceiling(adapter, artifacts):
                 koth = _contend(
                     adapter,
