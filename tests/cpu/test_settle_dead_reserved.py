@@ -65,7 +65,9 @@ def test_a_dead_reserved_op_whose_worker_is_gone_is_settled_and_the_next_op_rese
     assert len(removed) == 1
 
 
-def test_an_orphan_container_of_a_dead_run_is_removed_and_its_op_settled(tmp_path, monkeypatch):
+def test_an_orphan_container_of_a_dead_run_is_removed_and_its_op_settled(
+    tmp_path, monkeypatch
+):
     """Deploy (live 116, 18 Nov 2026 21:35Z): a restart without a drain left the op's remote container running. Under
     the owner's lease no live supervisor exists, so the container is an orphan: removed by its exact name, the op
     settled, and the next op reserves."""
