@@ -23,6 +23,8 @@ import math
 import re
 import sqlite3
 
+from carbon.challenge_validator.ledger import LEDGER_BUSY_SECONDS
+
 REASONS = ("over_limit", "invalid_answer")
 KEYS = ("output", "reason")
 #: A registered output name: lower-case words with underscores or digits (a bound on what may be shown, not a policy value).
@@ -118,7 +120,9 @@ def _canonical(failures):
 
 def ensure(ledger):
     """Create the table beside the Ladder's in the receiver's ledger file (a no-op when it exists)."""
-    db = sqlite3.connect(ledger.path, isolation_level=None)
+    db = sqlite3.connect(
+        ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+    )
     try:
         db.executescript(DDL)
     finally:
