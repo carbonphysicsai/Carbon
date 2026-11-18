@@ -311,6 +311,35 @@ def test_a_chain_of_declared_hops_migrates_an_owner_two_revisions_back(monkeypat
     assert receiver._declared_change(a, c, computed[(a, c)]) is None
 
 
+def test_a_stretch_with_no_grading_change_needs_no_record_in_a_chain(monkeypatch):
+    """Live 116 (943ce2c7 -> 1f2c9282 changed no grading path, so it has no record): an owner frozen at a revision with
+    no grading change up to the next record's start, or up to NEW, still migrates by the chain."""
+    a, b, c, d = ("a" * 40, "b" * 40, "c" * 40, "d" * 40)
+    computed = {
+        (a, b): (),  # no grading change: no record exists for it
+        (b, c): ("y.py",),
+        (a, c): ("y.py",),
+        (c, d): (),
+        (a, d): ("y.py",),
+        (b, d): ("y.py",),
+    }
+    monkeypatch.setattr(receiver, "_is_ancestor", lambda old, new: True)
+    monkeypatch.setattr(
+        receiver, "_grading_change", lambda old, new: computed.get((old, new), ("?",))
+    )
+    monkeypatch.setattr(
+        receiver, "DECLARED_EXAM_CHANGE", _record(b, c, ["y.py"], "now")
+    )
+    monkeypatch.setattr(receiver, "EARLIER_DECLARED_CHANGES", ())
+    # a (unchanged up to b) -> b..c (the record): migrates
+    assert receiver._declared_change(a, c, computed[(a, c)])["reason"] == "now"
+    # ... and on to d with no grading change after the record
+    assert receiver._declared_change(a, d, computed[(a, d)])["to_revision"] == d
+    # a changed stretch with no record still refuses
+    computed[(a, b)] = ("x.py",)
+    assert receiver._declared_change(a, c, ("x.py", "y.py")) is None
+
+
 def test_the_earlier_changes_are_checked_records_one_per_revision():
     a, b = ("a" * 40, "b" * 40)
     assert receiver._check_earlier_changes([_record(a, b, ["x.py"])])

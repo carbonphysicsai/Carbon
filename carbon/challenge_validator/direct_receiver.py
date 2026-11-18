@@ -1229,17 +1229,35 @@ def _declared_change(old, new, touched):
 
     A CHAIN (live 116, 18 Nov 2026: an owner left lazy across one start is frozen one revision back): when no single
     record covers OLD..NEW, the hops OLD -> ... -> NEW must each be a declared record (`EARLIER_DECLARED_CHANGES` or the
-    current one), each hop's paths EQUAL to that hop's OWN computed changed grading paths. The answer is then one
-    record naming OLD..NEW, the computed paths, every hop's reason and the last hop's evidence."""
+    current one), each hop's paths EQUAL to that hop's OWN computed changed grading paths. A stretch with NO grading
+    change needs no record (exactly as a single-hop migration needs none): the chain steps over it to the next record's
+    revision, or to NEW, when that revision descends from where it stands and git computes no changed grading path. The
+    answer is then one record naming OLD..NEW, the computed paths, every hop's reason and the last hop's evidence."""
     record = DECLARED_EXAM_CHANGE
     if record is None or touched is None:
         return None
     if (record["from_revision"], record["to_revision"]) == (old, new):
         return record if list(record["paths"]) == list(touched) else None
     hops = {item["from_revision"]: item for item in (*EARLIER_DECLARED_CHANGES, record)}
+
+    def unchanged(start, end):
+        # no grading change from START to END: no record is needed for that stretch
+        return _is_ancestor(start, end) and _grading_change(start, end) == ()
+
     at, used = old, []
     while at != new:
+        if unchanged(at, new):
+            break
         hop = hops.get(at)
+        if hop is None:
+            hop = next(
+                (
+                    item
+                    for item in hops.values()
+                    if item not in used and unchanged(at, item["from_revision"])
+                ),
+                None,
+            )
         if hop is None or hop in used:
             return None
         own = _grading_change(hop["from_revision"], hop["to_revision"])
@@ -1247,6 +1265,8 @@ def _declared_change(old, new, touched):
             return None
         used.append(hop)
         at = hop["to_revision"]
+    if not used:
+        return None
     return {
         "from_revision": old,
         "to_revision": new,
