@@ -12,6 +12,7 @@ reserved or graded. `auto_grade._give_back` then raised as well (fixed in A1), s
     python -m carbon.challenge_validator.infra_requeue keep-evaluation --root RECEIVER_STATE --ids IDS.txt [--apply]
     python -m carbon.challenge_validator.infra_requeue reclass --root RECEIVER_STATE --id rtsk_... --ruling ID [--apply]
     python -m carbon.challenge_validator.infra_requeue rearm   --root RECEIVER_STATE --ids IDS.txt --ruling ID [--apply]
+    python -m carbon.challenge_validator.infra_requeue restore-allowance --root STATE --ids IDS.txt --ruling ID [--apply]
 
 17 Nov (Lead; owner D11): ``requeue`` also takes ``operator_bank_custody_unavailable`` (Carbon's bank custody write,
 uncharged); a given-back task's same-recipe twin that its miner WITHDREW is not a fresh rerun (it never grades);
@@ -1363,33 +1364,144 @@ def restore_platform(root, tasks, *, ruling, apply=False, clock=time.time_ns):
             continue
         if apply:
             paths = _restore_paths(root, task, attempt)
-            paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
-            line = {
-                "task": task,
-                "attempt": attempt + 1,
-                "kind": "restore",
-                "cause": PLATFORM_CAUSE,
-                "ruling": ruling,
-                "evaluation_kept": paths["evaluation"].is_dir(),
-                "at_ns": int(clock()),
-            }
-            # once per task, fail closed: the restore is on record before anything moves (a crash below leaves the
-            # task refused ``already_restored`` for the operator, never restorable twice)
-            with open(
-                paths["kept_marker"].parent / RESTORES, "a", encoding="utf-8"
-            ) as log:
-                log.write(json.dumps(line, sort_keys=True) + "\n")
-            # the one bypass of the round/day limits is on record before the grader can see the task
-            cap.mark_requeued(task, attempt=attempt + 1)
-            if paths["failure"].exists():
-                os.replace(paths["failure"], paths["kept_failure"])
-            _keep_evaluation(paths)
-            # the commit point: with no marker, the grader's next tick takes the task
-            os.replace(paths["marker"], paths["kept_marker"])
-            with open(
-                paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
-            ) as log:
-                log.write(json.dumps(line, sort_keys=True) + "\n")
+            _hand_back_once(
+                paths,
+                task,
+                attempt,
+                cap,
+                log_name=RESTORES,
+                kind="restore",
+                cause=PLATFORM_CAUSE,
+                ruling=ruling,
+                clock=clock,
+            )
+        out["restored"].append(task)
+    return out
+
+
+def _hand_back_once(paths, task, attempt, cap, *, log_name, kind, cause, ruling, clock):
+    """Hand a task back to the grader once (``restore-platform``, ``restore-allowance``): the line is on record
+    first, then its one round/day bypass, then the old attempt's files are kept and the marker moved last."""
+    paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
+    line = {
+        "task": task,
+        "attempt": attempt + 1,
+        "kind": kind,
+        "cause": cause,
+        "ruling": ruling,
+        "evaluation_kept": paths["evaluation"].is_dir(),
+        "at_ns": int(clock()),
+    }
+    # once per task, fail closed: the hand-back is on record before anything moves (a crash below leaves the
+    # task refused ``already_restored`` for the operator, never handed back twice)
+    with open(paths["kept_marker"].parent / log_name, "a", encoding="utf-8") as log:
+        log.write(json.dumps(line, sort_keys=True) + "\n")
+    # the one bypass of the round/day limits is on record before the grader can see the task
+    cap.mark_requeued(task, attempt=attempt + 1)
+    if paths["failure"].exists():
+        os.replace(paths["failure"], paths["kept_failure"])
+    _keep_evaluation(paths)
+    # the commit point: with no marker, the grader's next tick takes the task
+    os.replace(paths["marker"], paths["kept_marker"])
+    with open(
+        paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
+    ) as log:
+        log.write(json.dumps(line, sort_keys=True) + "\n")
+
+
+#: ``restore-allowance`` (Validator-2's ruling, 18 Nov 2026, V2_RULING.md in A100_INFER_STREAM_TIMEOUT_20261117): a
+#: task that waited in OUR queue and was then refused ``exam_daily_allowance_reached`` at its reservation is Carbon's
+#: (the wait spent the miner's day, not the miner). The grader records it as a GRADED marker keeping that code, with NO
+#: exam row (nothing was ever reserved). Such a task is handed back ONCE, under a recorded ruling id and an explicit id
+#: list, with every ``requeue`` door check: its next grade spends nothing of the miner's round or day and stays on its
+#: ORIGINAL arrival epoch (`ExamCap.mark_requeued`); its first signed OUTCOME (its queue place) is never touched. The root
+#: fix (the allowance binds at admission) is a separate change.
+ALLOWANCE_CAUSE = "exam_daily_allowance_reached"
+ALLOWANCE_RESTORES = "allowance_restores.jsonl"
+
+
+def _arrival_seq(db, task):
+    """The ledger seq of the task's first signed OUTCOME (its queue place), or None."""
+    row = db.execute(
+        "SELECT seq FROM attempts WHERE kind='OUTCOME' AND submission_id=? ORDER BY seq LIMIT 1",
+        (task,),
+    ).fetchone()
+    return None if row is None else row[0]
+
+
+def _allowance_refusal(root, db, door, task):
+    """``(attempt, None)`` when ``restore_allowance`` accepts the task, else ``(None, code)`` (read-only)."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return None, "not_a_task_id"
+    if _log_lines(root, ALLOWANCE_RESTORES, task) or any(
+        record.get("kind") == "restore-allowance"
+        for record in _log_lines(root, "requeues.jsonl", task)
+    ):
+        return None, "already_restored"
+    attempt = _restore_attempt(root, task)
+    if attempt is None:
+        return None, "attempts_unreadable_or_exhausted"
+    paths = _restore_paths(root, task, attempt)
+    state, code = _marker_body(paths["marker"])
+    if state is None:
+        return None, "no_marker"
+    if state != "GRADED":
+        return None, "marker_" + str(state).lower()
+    if code != ALLOWANCE_CAUSE:
+        return None, "cause_not_allowance"
+    if _rows(db, task):
+        # refused at its reservation, nothing reserved: a task with ANY exam row is not this case
+        return None, "exam_row_present"
+    refusal = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
+    return (attempt, None) if refusal is None else (None, refusal)
+
+
+def restore_allowance(root, tasks, *, ruling, apply=False, clock=time.time_ns):
+    """``{"restored": [...], "plan": {task: ...}, "refused": {task: code}}``: each listed task refused
+    ``exam_daily_allowance_reached`` after waiting in Carbon's queue, with no exam row, is handed back to the grader
+    once (see ``ALLOWANCE_CAUSE``). Dry run unless ``apply``; a second apply changes nothing (``already_restored``).
+    """
+    out = {
+        "schema": SCHEMA,
+        "action": "restore-allowance",
+        "apply": apply,
+        "ruling": ruling,
+        "restored": [],
+        "plan": {},
+        "refused": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    ledger, cap = _ledger(root)
+    door = _Door(root)
+    for task in tasks:
+        with ledger._db() as db:
+            attempt, code = _allowance_refusal(root, db, door, task)
+            arrival = None if code is not None else _arrival(db, task)
+            seq = None if code is not None else _arrival_seq(db, task)
+        if code is not None:
+            out["refused"][task] = code
+            continue
+        out["plan"][task] = {
+            "marker_before": "GRADED:" + ALLOWANCE_CAUSE,
+            "marker_after": f"kept as {task}.attempt-{attempt}.marker.json; none (the grader takes it)",
+            "charged": False,
+            "original_arrival": _iso(arrival[0]),
+            "original_outcome_seq": seq,
+            "bypass_attempt": attempt + 1,
+        }
+        if apply:
+            _hand_back_once(
+                _restore_paths(root, task, attempt),
+                task,
+                attempt,
+                cap,
+                log_name=ALLOWANCE_RESTORES,
+                kind="restore-allowance",
+                cause=ALLOWANCE_CAUSE,
+                ruling=ruling,
+                clock=clock,
+            )
         out["restored"].append(task)
     return out
 
@@ -1736,6 +1848,13 @@ def main(argv=None):
         "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
     )
     seven.add_argument("--apply", action="store_true")
+    eight = sub.add_parser("restore-allowance")
+    eight.add_argument("--root", type=Path, required=True)
+    eight.add_argument("--ids", type=Path, required=True, help="the task ids")
+    eight.add_argument(
+        "--ruling", required=True, help="Validator-2's ruling id (a closed id)"
+    )
+    eight.add_argument("--apply", action="store_true")
     nine = sub.add_parser("return-slot")
     nine.add_argument("--root", type=Path, required=True)
     nine.add_argument("--ids", type=Path, required=True, help="the task ids")
@@ -1807,6 +1926,13 @@ def main(argv=None):
                 if line.strip()
             ]
         out = restore_platform(args.root, tasks, ruling=args.ruling, apply=args.apply)
+    elif args.cmd == "restore-allowance":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = restore_allowance(
+            args.root, tasks, ruling=args.ruling, apply=args.apply
+        )
     elif args.cmd == "rearm":
         tasks = [
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
