@@ -58,6 +58,8 @@ def test_a_copy_taken_mid_write_keeps_every_committed_row(tmp_path):
         source.close()
     stop.set()
     thread.join(10)
-    keys = {row[0] for row in target.execute("SELECT key FROM meta WHERE key LIKE 'k%'")}
+    keys = {
+        row[0] for row in target.execute("SELECT key FROM meta WHERE key LIKE 'k%'")
+    }
     target.close()
     assert {f"k{n}" for n in range(before)} <= keys
