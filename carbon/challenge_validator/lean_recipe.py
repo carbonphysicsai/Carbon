@@ -323,6 +323,9 @@ def _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
         probe.verdict()  # ends the sampling thread
 
 
+#: The one build-requeue refusal that may clear in the same process (its ledger rows not all written yet); every other
+#: refusal is remembered (`_requeue_failed_build`).
+_REQUEUE_RETRYABLE = frozenset({"incomplete"})
 #: The owner refusals an advance pass skips (that task only), never the end of the pass.
 _SKIPPED_OWNER_CODES = frozenset(
     {"direct_provider_registration_unavailable", "direct_provider_owner_set_aside"}
@@ -1330,6 +1333,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
         """
         from carbon.challenge_validator.koth_journal import note
 
+        # Grade-speed (18 Nov 2026): a task whose requeue was refused for good is never asked again in this process (27
+        # tasks were re-read on every pass, each a lazy-owner touch)
+        settled = self.__dict__.setdefault("_requeue_settled", set())
+        if task_id.value in settled:
+            return None
+
+        def refused(code):
+            note("build_requeue_refused", task=task_id.value, code=code)
+            if code not in _REQUEUE_RETRYABLE:
+                settled.add(task_id.value)
+
         try:
             from carbon.research import DirectGetTaskRequestV3, DirectTaskStateV3
 
@@ -1350,7 +1364,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 return None
             retained = provider._requests.get(task_id.value)
             if retained is None:
-                note("build_requeue_refused", task=task_id.value, code="no_request")
+                refused("no_request")
                 return None
             recipe = self._retained_recipe(retained)
             requests = [
@@ -1366,11 +1380,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 (n for n, request in enumerate(requests) if request == retained), None
             )
             if rerun is None or rerun >= MAX_INFRA_RERUNS:
-                note(
-                    "build_requeue_refused",
-                    task=task_id.value,
-                    code="no_next_generation",
-                )
+                refused("no_next_generation")
                 return None
             request = requests[rerun + 1]
             new_task = provider._task_id(request).value
@@ -1399,7 +1409,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 self.contract_digest, apply=False, operator=True, **ask
             )
             if result != "requeuable":
-                note("build_requeue_refused", task=task_id.value, code=result)
+                refused(result)
                 return None
             from carbon.research import canonical_bytes
 

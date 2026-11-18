@@ -775,16 +775,50 @@ class AutoGrader:
             for sid in self.pending()
             if sid not in busy and sid not in skipped and sid not in building
         ]
+        passes = {}
+        try:
+            return self._claim_scan(
+                sequencer, task, skipped, claims, taken, candidates, busy, held,
+                unknown_in_flight, passed, passes,
+            )
+        finally:
+            self._note_passes(passes)
+
+    def _note_passes(self, passes):
+        """Grade-speed (18 Nov 2026, "use all lanes"): built tasks the claim scan passed over, by reason, logged once
+        per change (``grade_claim_passed``), so a free lane with built tasks never waits silently."""
+        key = tuple(sorted(passes.items()))
+        if key == getattr(self, "_passes_logged", ()):
+            return
+        self._passes_logged = key
+        if not passes:
+            return
+        try:
+            from carbon.battery.intake import log
+
+            log("grade_claim_passed", **dict(key))
+        except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
+            return
+
+    def _claim_scan(
+        self, sequencer, task, skipped, claims, taken, candidates, busy, held,
+        unknown_in_flight, passed, passes,
+    ):
+        def passing(reason):
+            passes[reason] = passes.get(reason, 0) + 1
+
         for submission_id in candidates:
             group = self._allowance_group(submission_id)
             if group is None:
                 if busy or held:
+                    passing("group_unknown")
                     # an unknown group waits until it is the only grade in flight; only THIS task waits: holding every
                     # later task behind it, with any owner busy, stops all grading (an unknown group in flight still
                     # holds the later ones, below)
                     continue
             elif group in held:
                 held.add(group)
+                passing("group_held")
                 continue
             if claims is not None:
                 # A19: never two rounds of one owner (an advance round may build this owner's next task now)
@@ -792,11 +826,13 @@ class AutoGrader:
                 if owner is None:
                     # an owner that cannot be read now (set aside at this start: `OwnerProviders.restore`) skips only
                     # ITS task; holding its unknown group stopped every later grade (live 116, 18 Nov 2026 21:0xZ)
+                    passing("owner_unreadable")
                     continue
                 if not claims.try_claim(owner):
                     # V2 (2): a busy owner holds back only its OWN tasks (each fails this claim); a group-mate that
                     # goes ahead is graded, and a cap refusal it meets is "not yet" (`_cap_soft`), never final
                     passed.add(group)
+                    passing("owner_busy")
                     continue
                 taken.append(owner)
             if self._withdrawn_pending(submission_id):
@@ -823,6 +859,7 @@ class AutoGrader:
                         claims.release(taken.pop())
                     # its group's later tasks keep their order behind it
                     held.add(group)
+                    passing("copy_wait")
                     continue
                 if decision == "copy":
                     task.bind(submission_id, group)
@@ -878,8 +915,28 @@ class AutoGrader:
                     found.add(task)
         return frozenset(found)
 
+    def _hotkey_of(self, submission_id):
+        """The hotkey whose open (or lazy) provider holds ``submission_id``, from the providers' own keys, never opening
+        one (`OwnerProviders.hotkey_of`); None without that view (Grade-speed, 18 Nov 2026: `adapter.owner` raises for a
+        lazy or gated owner, and its task then waited for an empty door)."""
+        lookup = getattr(
+            getattr(getattr(self.intake, "adapter", None), "provider_for", None),
+            "hotkey_of",
+            None,
+        )
+        if not callable(lookup):
+            return None
+        try:
+            hotkey = lookup(submission_id)
+        except Exception:  # noqa: BLE001
+            return None
+        return hotkey if type(hotkey) is str else None
+
     def _owner_of(self, submission_id):
         """The owner (hotkey) of ``submission_id``, or None when it cannot be read now."""
+        hotkey = self._hotkey_of(submission_id)
+        if hotkey is not None:
+            return hotkey
         try:
             return self.intake.adapter.owner(submission_id)
         except Exception:  # noqa: BLE001
@@ -900,7 +957,9 @@ class AutoGrader:
         from . import exam_cap
 
         try:
-            owner = self.intake.adapter.owner(submission_id)
+            owner = self._hotkey_of(submission_id) or self.intake.adapter.owner(
+                submission_id
+            )
             return None if owner is None else exam_cap.group_of(owner)
         except Exception:  # noqa: BLE001
             return None

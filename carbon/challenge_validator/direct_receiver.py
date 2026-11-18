@@ -2266,6 +2266,22 @@ class OwnerProviders:
             hotkey, restoring=False, host=hotkey == crown_average.HOST_OWNER
         )
 
+    def hotkey_of(self, task_id):
+        """The hotkey whose provider (open, or lazy: `restore`'s scan) holds ``task_id``, read from this receiver's own
+        keys, never opening a provider; None when none does (the grade scan's owner and allowance group)."""
+        name = task_id if type(task_id) is str else getattr(task_id, "value", None)
+        if type(name) is not str:
+            return None
+        with self._lock:
+            for hotkey, provider in self._providers.items():
+                views = getattr(provider, "_views", None)
+                if type(views) is dict and name in views:
+                    return hotkey
+            for directory, index in self._lazy_index.items():
+                if name in index:
+                    return self._lazy.get(directory)
+        return None
+
     def lazy_tasks(self):
         """The task ids every lazy owner holds (all terminal): what the advance pass skips before any owner check, as it
         skips an open provider's non-QUEUED tasks (`LeanRecipeAdapter._advance_skip`).
