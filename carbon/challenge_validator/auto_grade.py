@@ -40,6 +40,9 @@ _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _PENDING = frozenset({"task_not_succeeded"})
 #: Retention codes that mean "not gradable now" without having consumed anything.
 _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
+#: The exam-cap limit refusals that a passed-over earlier group-mate (or an unknown group in flight) makes "not yet"
+#: instead of final (V2, 18 Nov 2026; `AutoGrader._cap_soft`).
+_CAP_LIMITS = frozenset({"exam_daily_allowance_reached", "epoch_limit_reached"})
 #: A provider that could not read the owner's registration from a fresh snapshot. While the door's chain is degraded
 #: this is a chain read that failed: the task waits and is graded once the chain answers, never FAILED and never a
 #: slot given back (H8; R38, 5 Nov). With a fresh snapshot it means what it always meant (handled as before).
@@ -760,6 +763,12 @@ class AutoGrader:
         # each group's allowance is read in that group's submission order after its earlier settles, as one at
         # a time does (None = a group not known: every later task waits behind it)
         held = sequencer.groups_in_flight()
+        # V2 (18 Nov 2026) (3): an in-flight grade whose group cannot be read holds nothing; a cap refusal while one
+        # is in flight is "not yet" (`_cap_soft`)
+        unknown_in_flight = None in held
+        held.discard(None)
+        # V2 (2): the groups of tasks passed over this round because their owner is in another round
+        passed = set()
         building = self._building_views()
         candidates = [
             sid
@@ -774,14 +783,19 @@ class AutoGrader:
                     # later task behind it, with any owner busy, stops all grading (an unknown group in flight still
                     # holds the later ones, below)
                     continue
-            elif None in held or group in held:
+            elif group in held:
                 held.add(group)
                 continue
             if claims is not None:
                 # A19: never two rounds of one owner (an advance round may build this owner's next task now)
                 owner = self._owner_of(submission_id)
-                if owner is None or not claims.try_claim(owner):
+                if owner is None:
                     held.add(group)
+                    continue
+                if not claims.try_claim(owner):
+                    # V2 (2): a busy owner holds back only its OWN tasks (each fails this claim); a group-mate that
+                    # goes ahead is graded, and a cap refusal it meets is "not yet" (`_cap_soft`), never final
+                    passed.add(group)
                     continue
                 taken.append(owner)
             if self._withdrawn_pending(submission_id):
@@ -811,8 +825,16 @@ class AutoGrader:
                     continue
                 if decision == "copy":
                     task.bind(submission_id, group)
-                    return self._grade_copy(submission_id, first)
+                    self._mark_cap_soft(
+                        submission_id, group in passed or unknown_in_flight
+                    )
+                    outcome = self._grade_copy(submission_id, first)
+                    if outcome is _NEXT:
+                        skipped.add(submission_id)
+                        raise _NextTask
+                    return outcome
             task.bind(submission_id, group)
+            self._mark_cap_soft(submission_id, group in passed or unknown_in_flight)
             from .grade_sequencer import GradeAbandoned
 
             try:
@@ -861,6 +883,15 @@ class AutoGrader:
             return self.intake.adapter.owner(submission_id)
         except Exception:  # noqa: BLE001
             return None
+
+    def _mark_cap_soft(self, submission_id, soft):
+        with _STALLED_LOCK:
+            self.__dict__.setdefault("_cap_soft_ids", {})[submission_id] = bool(soft)
+
+    def _cap_soft(self, submission_id):
+        """Whether a cap refusal of ``submission_id``'s grade this round is "not yet" (`_claim_and_grade`)."""
+        with _STALLED_LOCK:
+            return self.__dict__.get("_cap_soft_ids", {}).pop(submission_id, False)
 
     def _allowance_group(self, submission_id):
         """The exam-cap allowance group of ``submission_id``'s owner (`exam_cap.group_of`), or None when it cannot be
@@ -989,6 +1020,13 @@ class AutoGrader:
                     }
             if code in _PENDING or code in _NOT_YET:
                 return _NEXT
+            if code in _CAP_LIMITS and self._cap_soft(submission_id):
+                # V2 (18 Nov 2026): an earlier group-mate was passed over this round, or a grade of an unknown group is
+                # in flight: the slot may be that one's or come back, so this refusal is "not yet" (stays pending)
+                from carbon.battery.intake import log
+
+                log("cap_refusal_not_yet", code=code)
+                return _NEXT
             if isinstance(code, str) and code in _CHAIN_CODES and self.chain_degraded():
                 # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
                 # other pending task would meet the same stale chain)
@@ -1033,6 +1071,19 @@ class AutoGrader:
                 ),
             )
             return submission_id, "FAILED"
+        if (
+            type(result) is dict
+            and result.get("private_evaluation_state") == "UNAVAILABLE"
+            and result.get("private_evaluation_reason") in _CAP_LIMITS
+            and self._cap_soft(submission_id)
+        ):
+            # V2 (18 Nov 2026): the cap refused this grade's slot while an earlier group-mate was passed over this round
+            # (its owner busy) or a grade of an unknown group is in flight: "not yet", no marker, it stays pending (the
+            # slot may be that one's, or come back), never a spent submission
+            from carbon.battery.intake import log
+
+            log("cap_refusal_not_yet", code=result["private_evaluation_reason"])
+            return _NEXT
         turn()
         entry = result.get("entry_id") if type(result) is dict else None
         if (
@@ -1140,6 +1191,8 @@ class AutoGrader:
         except exam_cap.ExamCapRefused as refused:
             from . import grade_sequencer
 
+            if refused.code in _CAP_LIMITS and self._cap_soft(submission_id):
+                return _NEXT  # V2 (18 Nov 2026): "not yet", stays pending (`_claim_and_grade`)
             grade_sequencer.turn()  # a parallel door: the refusal's marker in claim order (no-op otherwise)
             self._write(submission_id, "GRADED", code=refused.code)
             return submission_id, "GRADED"
