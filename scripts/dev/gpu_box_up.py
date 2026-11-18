@@ -20,6 +20,10 @@ THEIR OWN key. It changes the box and writes nothing on the door side (no box fi
   lane_user    ``carbon-grade`` (home /home/carbon-grade, not root, in the docker group), authorized_keys merged:
                ``restrict,from="<door ip>" <lane public key>`` first, then each ``--other-door-ip`` door's line of
                that same form already there (a box may serve two doors); any other line is dropped and counted
+  sshd         ``/etc/ssh/sshd_config.d/00-carbon-lanes.conf``: ``MaxStartups 100:30:200`` and ``MaxSessions 64``
+               (`SSHD_DROPIN_TEXT`), checked by ``sshd -t``, sshd reloaded, and refused unless ``sshd -T`` shows both:
+               the door's lanes open many ssh sessions at once, and the default 10:30:100 refused them under load
+               (carbon-a100, 18 Nov 2026 ~01:30Z)
   stage_root   ``/home/carbon`` owned carbon-grade:carbon-grade, mode 0755
   python       a Python >= 3.11 for the device record (`PYTHONS`; Ubuntu 22.04 ships 3.10 only: ``python3.11`` is
                installed from the distribution's own repository when none is present)
@@ -677,6 +681,23 @@ CMD_AUTHORIZED_KEYS_READ = sudo_sh(f"cat {_LANE_HOME}/.ssh/authorized_keys")
 CMD_AUTHORIZED_KEYS_BEFORE = sudo_sh(
     f'f={_LANE_HOME}/.ssh/authorized_keys; if [ -e "$f" ]; then cat "$f"; fi'
 )
+#: sshd for the door's lanes: one grade or build opens several ssh sessions (docker over ssh, staging), and four
+#: slots plus the door's checks at once exceeded the default ``MaxStartups 10:30:100`` (carbon-a100 refused ssh under
+#: load, 18 Nov 2026 ~01:30Z; Compute's live fix). ``00-`` sorts first in sshd_config.d, and sshd keeps the first value.
+SSHD_DROPIN = "/etc/ssh/sshd_config.d/00-carbon-lanes.conf"
+SSHD_DROPIN_TEXT = "MaxStartups 100:30:200\nMaxSessions 64\n"
+#: What ``sshd -T`` must print for the drop-in to be in force (lower-case keys, as sshd prints them).
+SSHD_EFFECTIVE = {"maxstartups": "100:30:200", "maxsessions": "64"}
+CMD_SSHD_READ = sudo_sh(f"cat {SSHD_DROPIN} 2>/dev/null || true")
+CMD_SSHD_WRITE = sudo_sh(
+    "set -eu; install -d -o root -g root -m 0755 /etc/ssh/sshd_config.d; "
+    + write_file_script(SSHD_DROPIN, SSHD_DROPIN_TEXT, mode="0644", owner="root:root")
+    + f"; /usr/sbin/sshd -t || {{ rm -f {SSHD_DROPIN}; exit 1; }}"
+)
+#: Reloaded every run (not only on a write): a run whose reload failed after the write must not leave sshd on the old
+#: values with the file already right. A reload keeps open sessions.
+CMD_SSHD_RELOAD = sudo_sh("systemctl reload ssh || systemctl reload sshd")
+CMD_SSHD_EFFECTIVE = "sudo -n /usr/sbin/sshd -T"
 CMD_STAGE_ROOT = (
     f"sudo -n install -d -o {LANE_USER} -g {LANE_USER} -m 0755 {STAGE_ROOT}"
 )
@@ -1509,6 +1530,19 @@ class Session:
                 "authorized_keys is not this door's line plus other doors' lane keys",
             )
 
+    def sshd(self):
+        if self.remote(CMD_SSHD_READ, reason="sshd_failed") != SSHD_DROPIN_TEXT:
+            self.remote(CMD_SSHD_WRITE, reason="sshd_failed")
+        self.remote(CMD_SSHD_RELOAD, reason="sshd_failed")
+        seen = {}
+        for line in self.remote(CMD_SSHD_EFFECTIVE, reason="sshd_failed").splitlines():
+            key, _, value = line.strip().partition(" ")
+            if key in SSHD_EFFECTIVE:
+                seen[key] = value.strip()
+        if seen != SSHD_EFFECTIVE:
+            raise Refused("sshd_limits_not_in_force", json.dumps(seen, sort_keys=True))
+        return SSHD_DROPIN
+
     def stage_root(self):
         self.remote(CMD_STAGE_ROOT, reason="stage_root_failed")
         self._stage_root_seen()
@@ -1711,6 +1745,7 @@ def run_admin(cfg: Config, runner, *, log=None) -> dict:
         uuid, driver = session.run_step("driver", session.driver)
         docker, containerd = session.run_step("docker", session.docker)
         session.run_step("lane_user", session.lane_user)
+        session.run_step("sshd", session.sshd)
         session.run_step("stage_root", session.stage_root)
         session.run_step("python", session.python_ready)
     except Refused as refusal:
@@ -1924,6 +1959,10 @@ def plan_admin(cfg: Config) -> list[tuple[str, str]]:
         CMD_AUTHORIZED_KEYS_READ,
     ):
         steps.append(remote("lane_user", command))
+    steps.append(remote("sshd", CMD_SSHD_READ))
+    steps.append(remote("sshd (only when it differs)", CMD_SSHD_WRITE))
+    steps.append(remote("sshd", CMD_SSHD_RELOAD))
+    steps.append(remote("sshd", CMD_SSHD_EFFECTIVE))
     steps.append(remote("stage_root", CMD_STAGE_ROOT))
     steps.append(remote("stage_root", CMD_STAGE_ROOT_STAT))
     steps.append(remote("python", CMD_PYTHON_FIND))

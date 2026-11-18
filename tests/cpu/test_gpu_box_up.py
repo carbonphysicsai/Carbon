@@ -210,6 +210,11 @@ class FakeBox:
         self.groups = ["carbon-grade"]
         self.authorized_keys = ""
         self.stage = "carbon-grade:carbon-grade 755 directory"
+        # a fresh Lambda box: no drop-in, sshd on its defaults
+        self.sshd_dropin = ""
+        self.sshd_writes = 0
+        self.sshd_reloads = 0
+        self.sshd_includes = True
         # Lambda's Ubuntu 22.04: python3 is 3.10, no newer interpreter until the admin phase installs python3.11
         self.python = ""
         self.python_installs = 0
@@ -233,6 +238,7 @@ class FakeBox:
             self.groups = ["carbon-grade", "docker"]
             self.authorized_keys = LANE_LINE + "\n"
             self.python = "/usr/bin/python3.11"
+            self.sshd_dropin = box_up.SSHD_DROPIN_TEXT
         self.__dict__.update(state)
 
     def __call__(self, argv, pipe_from=None):
@@ -347,6 +353,19 @@ class FakeBox:
             return 0, self.authorized_keys, ""
         if cmd == g.CMD_STAGE_ROOT:
             return 0, "", ""
+        if cmd == g.CMD_SSHD_READ:
+            return 0, self.sshd_dropin, ""
+        if cmd == g.CMD_SSHD_WRITE:
+            self.sshd_writes += 1
+            self.sshd_dropin = _printed_text(cmd)
+            return 0, "", ""
+        if cmd == g.CMD_SSHD_RELOAD:
+            self.sshd_reloads += 1
+            return 0, "", ""
+        if cmd == g.CMD_SSHD_EFFECTIVE:
+            on = self.sshd_includes and self.sshd_dropin == g.SSHD_DROPIN_TEXT
+            limits = ("100:30:200", "64") if on else ("10:30:100", "10")
+            return 0, f"port 22\nmaxstartups {limits[0]}\nmaxsessions {limits[1]}\n", ""
         # door phase, as carbon-grade
         self._lane_only()
         if cmd == g.DOOR_WHOAMI:
@@ -604,6 +623,30 @@ def test_a_second_admin_run_on_a_ready_box_changes_nothing(tmp_path):
     assert box_up.CMD_LANE_CREATE not in commands
     assert box_up.CMD_DOCKER_RESTART not in commands
     assert box.restarts == 1
+
+
+def test_a_fresh_box_gets_the_sshd_drop_in_for_the_lanes(tmp_path):
+    """Every box the admin phase brings up (and so every autoscaled box) gets sshd's lane limits: carbon-a100 refused
+    ssh under load on the default MaxStartups 10:30:100 (18 Nov 2026 ~01:30Z)."""
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.sshd_dropin == "MaxStartups 100:30:200\nMaxSessions 64\n"
+    assert box.sshd_writes == 1 and box.sshd_reloads == 1
+    write = box_up.CMD_SSHD_WRITE
+    assert "/etc/ssh/sshd_config.d/00-carbon-lanes.conf" in write
+    assert "/usr/sbin/sshd -t" in write and "chmod 0644" in write
+    box.calls.clear()
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box_up.CMD_SSHD_WRITE not in box.remote_commands()
+    assert box.sshd_writes == 1 and box.sshd_reloads == 2
+
+
+def test_a_box_where_sshd_does_not_show_the_limits_is_refused(tmp_path):
+    cfg = _admin_config(tmp_path)
+    outcome = _admin(cfg, FakeBox(cfg, sshd_includes=False))
+    _admin_refused(outcome, "sshd_limits_not_in_force")
+    assert outcome["step"] == "sshd"
 
 
 def test_a_wrong_device_kind_is_refused_before_anything_is_installed(tmp_path):
