@@ -24,6 +24,11 @@ import time
 from pathlib import Path
 
 SCHEMA = "carbon.challenge-validator.ledger.v1"
+#: How long a ledger connection waits for another's write lock before "database is locked" (sqlite's default is 5 s).
+#: One attempts.sqlite3 serves the door's build rounds and its grade rounds at once (switch 3, 18 Nov 2026: builds
+#: failed it 20 times in 10 min; a grade's exam-cap reserve or settle failing it ends the grade as Carbon's, burning
+#: its one retry, or settles it UNAVAILABLE). Every block is short SQL or a requeue decision: a wait, never a refusal.
+LEDGER_BUSY_SECONDS = 60.0
 #: Every attempt ends as one of these. `RECEIVED` is a submission a queueing
 #: transport (battery's intake) screened and queued for the adapter's own
 #: worker; its later outcome is the adapter's, joined by submission id.
@@ -212,7 +217,9 @@ class AttemptLedger:
                 raise LedgerUnavailable("ledger_not_owner_only")
         else:
             os.close(os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600))
-        db = sqlite3.connect(self.path, isolation_level=None)
+        db = sqlite3.connect(
+            self.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+        )
         try:
             # `executescript` commits on its own, so it runs outside `_db`.
             db.executescript(DDL)
@@ -228,7 +235,9 @@ class AttemptLedger:
 
     @contextlib.contextmanager
     def _db(self):
-        db = sqlite3.connect(self.path, isolation_level=None)
+        db = sqlite3.connect(
+            self.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+        )
         try:
             # A BEGIN that fails (e.g. 'database is locked') is raised as itself: there is no transaction to roll back,
             # and a ROLLBACK here would replace the real cause with 'cannot rollback' (RB door, 4affa5b9, 9 Nov).

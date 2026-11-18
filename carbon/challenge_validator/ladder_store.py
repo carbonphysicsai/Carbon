@@ -40,6 +40,7 @@ import math
 import os
 import sqlite3
 
+from carbon.challenge_validator.ledger import LEDGER_BUSY_SECONDS
 from carbon.scoring import grade_feedback as gf
 
 DDL = """
@@ -217,7 +218,9 @@ class LadderStore:
 
     def __init__(self, ledger):
         self.ledger = ledger
-        db = sqlite3.connect(ledger.path, isolation_level=None)
+        db = sqlite3.connect(
+            ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+        )
         try:
             db.executescript(DDL)
         finally:
