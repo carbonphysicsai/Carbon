@@ -217,6 +217,214 @@ class OwnerClaims:
             return set(self._held)
 
     @contextmanager
+    def within(self, owners, seconds, poll=1.0):
+        """Hold ``owners`` (None: every owner, `exclusive`), waiting at most ``seconds`` for the rounds holding them;
+        yields whether they are held. Not held in time: nothing is kept and no later claim is refused (V2, 18 Nov
+        2026: the incumbent's steps wait inside the sequencer's exclusive, never unboundedly behind a running build)."""
+        import time
+
+        deadline = time.monotonic() + seconds
+        if owners is None:
+            with self._cond:
+                while self._exclusive and time.monotonic() < deadline:
+                    self._cond.wait(poll)
+                got = not self._exclusive
+                if got:
+                    self._exclusive = True
+                    while self._held and time.monotonic() < deadline:
+                        self._cond.wait(poll)
+                    if self._held:
+                        self._exclusive = False
+                        self._cond.notify_all()
+                        got = False
+            try:
+                yield got
+            finally:
+                if got:
+                    with self._cond:
+                        self._exclusive = False
+                        self._cond.notify_all()
+            return
+        wanted, taken = sorted(owners), []
+        try:
+            with self._cond:
+                while True:
+                    free = not self._exclusive
+                    for owner in wanted:
+                        if free and owner not in taken and owner not in self._held:
+                            self._held.add(owner)
+                            taken.append(owner)
+                    if len(taken) == len(wanted) or time.monotonic() >= deadline:
+                        break
+                    self._cond.wait(poll)
+            got = len(taken) == len(wanted)
+            if not got:
+                for owner in taken:
+                    self.release(owner)
+                taken = []
+            yield got
+        finally:
+            for owner in taken:
+                self.release(owner)
+
+    @contextmanager
+    def exclusive(self):
+        """No grade claims, and none is in flight, while this runs (the incumbent's own steps)."""
+        with self._claim:
+            with self._order:
+                while self._open:
+                    self._order.wait(1.0)
+            yield
+
+
+class _Task:
+    def __init__(self, sequencer, ticket):
+        self.sequencer = sequencer
+        self.ticket = ticket
+        self._claim_held = True
+        self._turned = False
+
+    def bind(self, submission_id, group=None):
+        """Name the task this ticket grades, and its exam-cap allowance group (None: unknown)."""
+        with self.sequencer._order:
+            self.sequencer._open[self.ticket] = submission_id
+            self.sequencer._groups[self.ticket] = group
+
+    def release_claim(self):
+        if self._claim_held:
+            self._claim_held = False
+            self.sequencer._claim.release()
+
+    def turn(self):
+        """Wait until every earlier grade has finished (idempotent). Gives up the claim lock and this grade's session
+        container first."""
+        if self.ticket in self.sequencer._abandoned:
+            raise GradeAbandoned(self.ticket)
+        if self._turned:
+            return
+        self.release_claim()
+        order = self.sequencer._order
+        with order:
+            earlier = any(other < self.ticket for other in self.sequencer._open)
+        if not earlier:
+            self._turned = True
+            return
+        from carbon.development_session.research_carrier import yield_grade_session
+        from carbon.reconstruction import grade_lanes
+
+        # best effort itself: a removal that cannot be confirmed means no later op joins it, and the grade session's
+        # own exit removes (and reports) it again
+        gone = yield_grade_session()
+        # (a) (Lead 17 Nov 2026): the lane goes back to the door while this grade waits, unless its session container
+        # is not confirmed gone (no round runs beside it)
+        # V2 (18 Nov 2026): the commit-turn wait, and the lane re-take after it, are waits on EARLIER grades: `overdue`
+        # skips this ticket meanwhile, and its clock starts afresh after, so a healthy grade behind a slow head is never
+        # ended as hung (only the head, or a ticket stuck outside this wait, can be)
+        with order:
+            self.sequencer._waiting.add(self.ticket)
+        try:
+            with grade_lanes.given_back() if gone else nullcontext(), order:
+                while any(other < self.ticket for other in self.sequencer._open):
+                    order.wait(1.0)
+        finally:
+            with order:
+                self.sequencer._waiting.discard(self.ticket)
+                if self.ticket in self.sequencer._started:
+                    self.sequencer._started[self.ticket] = time.monotonic()
+        if self.ticket in self.sequencer._abandoned:
+            raise GradeAbandoned(self.ticket)
+        self._turned = True
+
+
+class GradeAbandoned(RuntimeError):
+    """This grade was ended as hung (`Sequencer.abandon`): it never commits."""
+
+
+class OwnerClaims:
+    """The owners (miner hotkeys) with a round in flight on this door, across BOTH kinds of round (A19, Lead 16 Nov
+    2026: N advance rounds beside N grade rounds). Each owner's work runs in that owner's own ledger, whose numerical
+    lease is NON-blocking (`research_carrier._numerical_lease`): two rounds of one owner at once would fail the second.
+    So a round takes an owner only when no other round holds it (`try_claim`), and the incumbent's own steps (the
+    king's upkeep, the crown sweep, due retries), which run in the king's owner's ledger, take every owner at once
+    (`exclusive`). Decides nothing about order: the grade commit order stays the sequencer's.
+    """
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._held = set()
+        self._exclusive = False
+
+    def try_claim(self, owner):
+        """Take ``owner`` for one round, or False (another round holds it, or the incumbent's steps run)."""
+        with self._cond:
+            if self._exclusive or owner in self._held:
+                return False
+            self._held.add(owner)
+            return True
+
+    def release(self, owner):
+        with self._cond:
+            self._held.discard(owner)
+            self._cond.notify_all()
+
+    def held(self):
+        with self._cond:
+            return set(self._held)
+
+    @contextmanager
+    def within(self, owners, seconds, poll=1.0):
+        """Hold ``owners`` (None: every owner, `exclusive`), waiting at most ``seconds`` for the rounds holding them;
+        yields whether they are held. Not held in time: nothing is kept and no later claim is refused (V2, 18 Nov 2026:
+        the incumbent's steps wait inside the sequencer's exclusive, never unboundedly behind a running build)."""
+        import time
+
+        deadline = time.monotonic() + seconds
+        if owners is None:
+            with self._cond:
+                while self._exclusive:
+                    if not self._cond.wait(max(0.0, min(poll, deadline - time.monotonic()))):
+                        if time.monotonic() >= deadline:
+                            break
+                if self._exclusive:
+                    got = False
+                else:
+                    self._exclusive = True
+                    while self._held and time.monotonic() < deadline:
+                        self._cond.wait(max(0.0, min(poll, deadline - time.monotonic())))
+                    got = not self._held
+                    if not got:
+                        self._exclusive = False
+                        self._cond.notify_all()
+            try:
+                yield got
+            finally:
+                if got:
+                    with self._cond:
+                        self._exclusive = False
+                        self._cond.notify_all()
+            return
+        wanted, taken = sorted(owners), []
+        try:
+            with self._cond:
+                while True:
+                    for owner in wanted:
+                        if owner not in taken and not self._exclusive and owner not in self._held:
+                            self._held.add(owner)
+                            taken.append(owner)
+                    if len(taken) == len(wanted) or time.monotonic() >= deadline:
+                        break
+                    self._cond.wait(max(0.0, min(poll, deadline - time.monotonic())))
+            got = len(taken) == len(wanted)
+            if not got:
+                for owner in taken:
+                    self.release(owner)
+                taken = []
+            yield got
+        finally:
+            for owner in taken:
+                self.release(owner)
+
+    @contextmanager
     def exclusive(self):
         """No owner is claimed while this runs: new claims are refused, and it waits for the held ones to end."""
         with self._cond:

@@ -54,6 +54,14 @@ WITHDRAWN_CODE = "withdrawn_by_miner"
 #: Slow-tail F2: the longest the king's upkeep step is deferred in a row while other doors wait (engineering pacing,
 #: not a scientific value; Validator-2B / owner may set it): after this the upkeep runs even with a door waiting.
 UPKEEP_DEFER_MAX_SECONDS = 30 * 60
+#: OPERATIONAL (V2's ruling, 18 Nov 2026): the longest the start-up filing of stranded challengers holds the door's
+#: grades back (`AutoGrader._stranded_holds_grades`; the shorter of this and `UPKEEP_DEFER_MAX_SECONDS`), so a filing
+#: that keeps being skipped or refused can never stop grading the way the every-owner wait did.
+STRANDED_GRADE_HOLD_SECONDS = 10 * 60
+#: OPERATIONAL (V2's ruling, 18 Nov 2026): the longest the incumbent's steps wait, INSIDE the sequencer's exclusive,
+#: for owners other rounds hold (the overdue path, or unreadable owners), polling each second; then they let go and
+#: are deferred again (`prelude_owners_busy`), so no running build can stop grading past it.
+PRELUDE_OWNER_WAIT_SECONDS = 10 * 60
 
 
 class _NextTask(Exception):
@@ -281,6 +289,30 @@ class AutoGrader:
         if getattr(self, "_stranded_filed", False):
             return False
         return time.monotonic() >= getattr(self, "_stranded_next", 0.0)
+
+    def _stranded_holds_grades(self):
+        """Whether this round claims no grade because the start-up filing of stranded challengers is not made yet
+        (ruling C's order: none graded ahead of it; a door with no pool store files nothing and holds nothing).
+        Bounded (V2, 18 Nov 2026): from the first round that found it pending, after the shorter of
+        `STRANDED_GRADE_HOLD_SECONDS` and `UPKEEP_DEFER_MAX_SECONDS` grading goes on, with ONE alert line
+        ``stranded_filing_overdue``; the filing is still tried every round it is due (`STRANDED_RETRY_SECONDS`).
+        """
+        if getattr(self, "_stranded_filed", False) or self.pool_store is None:
+            return False
+        now = time.monotonic()
+        since = self.__dict__.setdefault("_stranded_hold_since", now)
+        if now - since < min(STRANDED_GRADE_HOLD_SECONDS, UPKEEP_DEFER_MAX_SECONDS):
+            return True
+        if not getattr(self, "_stranded_overdue_logged", False):
+            from carbon.battery.intake import log
+
+            log(
+                "stranded_filing_overdue",
+                code=getattr(self, "_stranded_last", "not_run"),
+                seconds=round(now - since),
+            )
+            self._stranded_overdue_logged = True
+        return False
 
     def _upkeep_due(self):
         from . import crown_average, king_upkeep
@@ -549,23 +581,32 @@ class AutoGrader:
         steps are skipped this round and asked again on the next, the door building and grading meanwhile; after
         `UPKEEP_DEFER_MAX_SECONDS` of skips in a row every owner is taken, as before, so the steps are never starved.
         """
-        from .grade_sequencer import owner_exclusive
-
-        # the start-up filing of stranded challengers comes before the first grade (`_file_stranded`): until it is made,
-        # every owner, as before (once per start)
-        owners = (
-            None if claims is None or self._stranded_due() else self._prelude_owners()
-        )
+        if claims is None:
+            # a one-lane door: no other round of it holds an owner
+            yield True
+            return
+        # the start-up filing of stranded challengers (`_file_stranded`) writes the pool store only, no owner's ledger:
+        # it takes the steps' own owners like every other round (V2, 18 Nov 2026). It still comes before the first
+        # grade: until it is made, `_run_once_parallel` claims no grade (`_stranded_holds_grades`)
+        owners = self._prelude_owners()
         now = time.monotonic()
         since = getattr(self, "_prelude_waiting_since", None)
         overdue = since is not None and now - since >= UPKEEP_DEFER_MAX_SECONDS
         if owners is None or overdue:
-            if overdue:
-                from carbon.battery.intake import log
+            from carbon.battery.intake import log
 
+            if overdue:
                 log("prelude_owners_overdue", seconds=round(now - since))
-            self._prelude_waiting_since = None
-            with owner_exclusive(claims):
+            # inside the sequencer's exclusive: the NEEDED owners (every owner only when unreadable), waited for at most
+            # `PRELUDE_OWNER_WAIT_SECONDS`, never an unbounded wait behind a running build (V2, 18 Nov 2026)
+            with claims.within(owners, PRELUDE_OWNER_WAIT_SECONDS) as got:
+                if not got:
+                    log("prelude_owners_busy", busy=len(claims.held()))
+                    self._prelude_waiting_since = time.monotonic()
+                    self._prelude_after = time.monotonic() + self.PRELUDE_REASK_SECONDS
+                    yield False
+                    return
+                self._prelude_waiting_since = None
                 yield True
             return
         taken = []
@@ -632,6 +673,10 @@ class AutoGrader:
                             self._run_prelude()
                 finally:
                     prelude.release()
+        if self._stranded_holds_grades():
+            # the start-up filing of stranded challengers is not made yet (skipped, deferred, or another round runs
+            # it): no grade starts ahead of it (ruling C); builds go on, and the next round asks again
+            return None
         skipped = set()
         while True:
             with sequencer.task() as task:
@@ -1163,6 +1208,8 @@ class AutoGrader:
             if state == king_upkeep.STRANDED_DONE:
                 self._stranded_filed = True
             else:
+                # its refusal code is in the journal (`recontend_checked`)
+                self._stranded_last = "retry"
                 self._stranded_next = (
                     time.monotonic() + king_upkeep.STRANDED_RETRY_SECONDS
                 )

@@ -53,6 +53,7 @@ def _grader(claims, seen, owners=OWNERS):
         )
     )
     grader._prelude_due = lambda pending: True
+    grader.pool_store = "/nonexistent-pool-store"
     grader._stranded_filed = True  # the start-up filing is made (its own test below)
 
     def king():
@@ -134,11 +135,9 @@ def test_the_steps_are_never_starved_past_their_deferral(monkeypatch):
     threading.Thread(
         target=lambda: (grader._run_once(), done.set()), daemon=True
     ).start()
-    for _ in range(500):
-        if claims._exclusive:
-            break
-        done.wait(0.01)
-    assert claims._exclusive  # overdue: every owner, as before
+    # overdue: the steps now wait (bounded) for the owners they need, the king's miner's among them
+    assert not done.wait(0.3) and seen == []
+    assert not claims._exclusive  # only the needed owners, never every owner
     claims.release(KING_OWNER)
     assert done.wait(5) and len(seen) == 1
 
@@ -233,18 +232,46 @@ def test_a_missed_owner_only_collides_on_its_lease_as_carbons_never_a_crown(tmp_
     assert noted == [(KING, king_upkeep.REGRADE, out["code"])]
 
 
-def test_until_the_start_up_filing_is_made_the_steps_take_every_owner():
-    """Review of ruling C: the stranded challengers are filed before the first grade after a start; a skip must never
-    let a grade decide a crown ahead of them. Until that filing is made: every owner, as before (once per start).
+def test_the_start_up_filing_takes_only_the_steps_owners_and_no_grade_runs_before_it():
+    """Live 116 (18 Nov 2026): the start-up filing took EVERY owner, so it waited for every running build to end and
+    refused every grade and new build meanwhile. It writes the pool store only: it takes the steps' own owners, other
+    miners keep building, and ruling C holds by the round itself: until the filing is made, no grade is claimed.
     """
     claims = grade_sequencer.OwnerClaims()
+    # another miner's build in flight: never waited for
+    assert claims.try_claim("5BuildingOnTheA100")
     seen = []
     grader = _grader(claims, seen)
     grader._stranded_filed = False
     states = []
-    grader._king_upkeep = lambda: states.append(claims._exclusive)
+
+    def king():
+        states.append(claims._exclusive)
+        grader._stranded_filed = True  # the filing is made in this step
+
+    grader._king_upkeep = king
+    grader.pending = lambda: ["rtsk_" + "g" * 64]
+    claimed = []
+    grader._claim_and_grade = lambda *args: claimed.append(1)
     grader._run_once()
-    assert states == [True]
+    assert states == [False]  # narrowed: never every owner
+    assert claimed == [1]  # made: this round grades
+
+
+def test_while_the_start_up_filing_is_not_made_no_grade_is_claimed(monkeypatch):
+    now = [1000.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
+    claims = grade_sequencer.OwnerClaims()
+    # the steps' owner is busy: the steps are skipped this round
+    assert claims.try_claim(KING_OWNER)
+    seen = []
+    grader = _grader(claims, seen)
+    grader._stranded_filed = False
+    grader.pending = lambda: ["rtsk_" + "g" * 64]
+    claimed = []
+    grader._claim_and_grade = lambda *args: claimed.append(1)
+    assert grader._run_once() is None
+    assert seen == [] and claimed == []  # no grade ahead of the filing
 
 
 def test_a_skip_asks_again_soon_never_every_round_and_a_gap_resets_the_wait(
@@ -347,3 +374,114 @@ def test_a_grade_in_flight_holding_a_steps_owner_never_hangs_the_steps_they_run_
     finish.set()
     thread.join(5)
     assert done.wait(5) and len(seen) == 1
+
+
+def _hold_bound():
+    return min(
+        auto_grade.STRANDED_GRADE_HOLD_SECONDS, auto_grade.UPKEEP_DEFER_MAX_SECONDS
+    )
+
+
+def _logged(monkeypatch):
+    from carbon.battery import intake
+
+    lines = []
+    monkeypatch.setattr(
+        intake, "log", lambda event, **fields: lines.append((event, fields))
+    )
+    return lines
+
+
+def test_a_start_up_filing_that_never_runs_holds_grades_only_up_to_its_bound(
+    monkeypatch,
+):
+    """V2's condition (18 Nov 2026): the filing's hold on grades is bounded. Its owners stay busy, so it is skipped
+    every round; past the bound grading goes on, with ONE ``stranded_filing_overdue`` alert."""
+    now = [1000.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
+    lines = _logged(monkeypatch)
+    claims = grade_sequencer.OwnerClaims()
+    assert claims.try_claim(KING_OWNER)
+    seen = []
+    grader = _grader(claims, seen)
+    grader._stranded_filed = False
+    grader.pending = lambda: ["rtsk_" + "g" * 64]
+    claimed = []
+    grader._claim_and_grade = lambda *args: claimed.append(now[0])
+    bound = _hold_bound()
+    grader._run_once()
+    now[0] += bound - 1
+    grader._run_once()
+    assert claimed == []  # still inside the bound: no grade ahead of the filing
+    now[0] += 2
+    grader._run_once()
+    grader._run_once()
+    assert claimed == [now[0], now[0]]  # past it: grading goes on
+    overdue = [fields for event, fields in lines if event == "stranded_filing_overdue"]
+    assert overdue == [{"code": "not_run", "seconds": round(bound + 1)}]
+
+
+def test_a_filing_stuck_on_retry_does_not_block_grading_past_the_bound(monkeypatch):
+    from carbon.challenge_validator import king_upkeep
+
+    now = [1000.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
+    lines = _logged(monkeypatch)
+    claims = grade_sequencer.OwnerClaims()
+    seen = []
+    grader = _grader(claims, seen)
+    grader._stranded_filed = False
+    grader._upkeep_deferred = lambda: True  # the round's step is the filing alone
+    grader._pool = lambda: _Pool()
+    grader.root = "/r"
+    grader.intake.adapter.discovery = SimpleNamespace(evaluation_pack_digest="e")
+    tries = []
+
+    def refused(root, pool_store, discovery):
+        tries.append(now[0])
+        return king_upkeep.STRANDED_RETRY, 0
+
+    monkeypatch.setattr(king_upkeep, "file_stranded", refused)
+    grader.pending = lambda: ["rtsk_" + "g" * 64]
+    claimed = []
+    grader._claim_and_grade = lambda *args: claimed.append(now[0])
+    bound = _hold_bound()
+    end = now[0] + bound + 2 * king_upkeep.STRANDED_RETRY_SECONDS
+    while now[0] < end:
+        grader._run_once()
+        now[0] += king_upkeep.STRANDED_RETRY_SECONDS
+    assert len(tries) > 2  # tried again every time it was due
+    assert claimed and claimed[-1] > 1000.0 + bound  # grading goes on past the bound
+    assert [f["code"] for e, f in lines if e == "stranded_filing_overdue"] == ["retry"]
+
+
+def test_the_overdue_wait_for_a_busy_owner_is_bounded_and_defers_again(monkeypatch):
+    """V2's ruling (18 Nov 2026): inside the sequencer's exclusive the steps never wait unboundedly for an owner a
+    running build holds: past `PRELUDE_OWNER_WAIT_SECONDS` they let go, log ``prelude_owners_busy`` and defer."""
+    now = [1000.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
+    lines = _logged(monkeypatch)
+    claims = grade_sequencer.OwnerClaims()
+    assert claims.try_claim(KING_OWNER)  # an A100 build of the king's miner, for its whole build
+    seen = []
+    grader = _grader(claims, seen)
+    grader._run_once()  # skipped: the deferral clock starts
+    now[0] += auto_grade.UPKEEP_DEFER_MAX_SECONDS
+    real = grade_sequencer.OwnerClaims.within
+
+    def short(self, owners, seconds, poll=1.0):
+        import time as real_time
+
+        monkeypatch.setattr(auto_grade.time, "monotonic", real_time.perf_counter)
+        return real(self, owners, 0.2, poll=0.05)
+
+    monkeypatch.setattr(grade_sequencer.OwnerClaims, "within", short)
+    done = threading.Event()
+    threading.Thread(
+        target=lambda: (grader._run_once(), done.set()), daemon=True
+    ).start()
+    assert done.wait(5) and seen == []  # returned within the bound, the steps not run
+    assert claims.held() == {KING_OWNER}  # nothing kept
+    assert [event for event, _ in lines if event == "prelude_owners_busy"] == [
+        "prelude_owners_busy"
+    ]
