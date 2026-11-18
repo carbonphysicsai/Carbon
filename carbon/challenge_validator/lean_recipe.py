@@ -235,6 +235,12 @@ def _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
         probe.verdict()  # ends the sampling thread
 
 
+#: The owner refusals an advance pass skips (that task only), never the end of the pass.
+_SKIPPED_OWNER_CODES = frozenset(
+    {"direct_provider_registration_unavailable", "direct_provider_owner_set_aside"}
+)
+
+
 class LeanRecipeAdapter(ChallengeAdapter):
     """One registered kit; provider instances remain bound to signer owners."""
 
@@ -1018,9 +1024,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
         try:
             return self.owner(submission_id)
         except Unavailable as unavailable:
-            if unavailable.code != "direct_provider_registration_unavailable":
+            if unavailable.code not in _SKIPPED_OWNER_CODES:
                 raise
-            # Retained cleanup custody is not fresh dispatch authority.
+            # Retained cleanup custody is not fresh dispatch authority; an owner set aside at this start is skipped,
+            # never the end of the whole pass (live 116, 18 Nov 2026: every advance pass died at its first task)
             return None
 
     def advance(self):

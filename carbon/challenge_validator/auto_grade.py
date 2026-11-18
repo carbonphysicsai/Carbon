@@ -790,7 +790,8 @@ class AutoGrader:
                 # A19: never two rounds of one owner (an advance round may build this owner's next task now)
                 owner = self._owner_of(submission_id)
                 if owner is None:
-                    held.add(group)
+                    # an owner that cannot be read now (set aside at this start: `OwnerProviders.restore`) skips only
+                    # ITS task; holding its unknown group stopped every later grade (live 116, 18 Nov 2026 21:0xZ)
                     continue
                 if not claims.try_claim(owner):
                     # V2 (2): a busy owner holds back only its OWN tasks (each fails this claim); a group-mate that
