@@ -20,6 +20,7 @@ This module decides no order of its own and sets no value: the order is the door
 from __future__ import annotations
 
 import threading
+import time
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 
@@ -37,6 +38,10 @@ class Sequencer:
         self._open = {}
         #: ticket -> its task's exam-cap allowance group (`exam_cap.group_of`), None when unknown
         self._groups = {}
+        #: ticket -> when its grade was claimed (`time.monotonic`), for `overdue`
+        self._started = {}
+        #: tickets ended as hung (`abandon`): their thread may never commit
+        self._abandoned = set()
 
     def in_flight(self):
         """The submission ids claimed and not yet finished (a claim skips them)."""
@@ -58,6 +63,7 @@ class Sequencer:
             ticket = self._next
             self._next += 1
             self._open[ticket] = None
+            self._started[ticket] = time.monotonic()
         state = _Task(self, ticket)
         token = _CURRENT.set(state)
         try:
@@ -68,7 +74,32 @@ class Sequencer:
             with self._order:
                 self._open.pop(ticket, None)
                 self._groups.pop(ticket, None)
+                self._started.pop(ticket, None)
+                self._abandoned.discard(ticket)
                 self._order.notify_all()
+
+    def overdue(self, seconds, now=None):
+        """``[(ticket, submission id)]`` of the grades claimed more than ``seconds`` ago and still open (a grade stuck in
+        Carbon's own code: a model cannot run past its worker wall)."""
+        now = time.monotonic() if now is None else now
+        with self._order:
+            return [
+                (ticket, sid)
+                for ticket, sid in self._open.items()
+                if sid is not None
+                and ticket not in self._abandoned
+                and now - self._started.get(ticket, now) > seconds
+            ]
+
+    def abandon(self, ticket):
+        """End a hung grade's place in the order (`overdue`): later grades no longer wait for it, and its own thread,
+        should it ever wake, raises `GradeAbandoned` at its next commit turn instead of writing anything.
+        """
+        with self._order:
+            self._open.pop(ticket, None)
+            self._groups.pop(ticket, None)
+            self._abandoned.add(ticket)
+            self._order.notify_all()
 
     @contextmanager
     def exclusive(self):
@@ -101,6 +132,8 @@ class _Task:
     def turn(self):
         """Wait until every earlier grade has finished (idempotent). Gives up the claim lock and this grade's session
         container first."""
+        if self.ticket in self.sequencer._abandoned:
+            raise GradeAbandoned(self.ticket)
         if self._turned:
             return
         self.release_claim()
@@ -121,7 +154,13 @@ class _Task:
         with grade_lanes.given_back() if gone else nullcontext(), order:
             while any(other < self.ticket for other in self.sequencer._open):
                 order.wait(1.0)
+        if self.ticket in self.sequencer._abandoned:
+            raise GradeAbandoned(self.ticket)
         self._turned = True
+
+
+class GradeAbandoned(RuntimeError):
+    """This grade was ended as hung (`Sequencer.abandon`): it never commits."""
 
 
 class OwnerClaims:
@@ -207,6 +246,7 @@ def turn():
 
 
 __all__ = [
+    "GradeAbandoned",
     "OwnerClaims",
     "Sequencer",
     "claimed",

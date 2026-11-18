@@ -578,6 +578,7 @@ class AutoGrader:
         Same steps as `_run_once`, in the same order for each task."""
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
+        self._end_hung_grades(sequencer)
         claims = getattr(self, "owner_claims", None)
         # only throttled (asked again shortly): the steps are still due, and their deferral clock keeps running
         throttled = time.monotonic() < getattr(self, "_prelude_after", 0.0)
@@ -615,6 +616,25 @@ class AutoGrader:
                 finally:
                     for owner in taken:
                         claims.release(owner)
+
+    def _end_hung_grades(self, sequencer):
+        """A grade in flight longer than `GRADE_HUNG_SECONDS` is stuck in Carbon's own code (a model cannot run past its
+        worker wall; live 116, 17 Nov 2026: two grades parked 85 min and every later commit waited behind them). It is
+        ended as Carbon's: its place in the commit order goes (`Sequencer.abandon`), and its slot is given back as
+        FAILED_INFRA, uncharged (`_fail`). Its thread keeps what it holds (its lane, its miner) and never commits.
+        Off while the constant is None."""
+        limit = GRADE_HUNG_SECONDS
+        if limit is None:
+            return
+        for ticket, submission_id in sequencer.overdue(limit):
+            sequencer.abandon(ticket)
+            try:
+                from carbon.battery.intake import log
+
+                log("grade_hung_ended", task=submission_id, seconds=limit)
+            except Exception:  # noqa: BLE001, S110 - a log line never stops this
+                pass
+            self._fail(submission_id, GRADE_HUNG)
 
     def _claim_and_grade(self, sequencer, task, skipped, claims, taken):
         """The body of one parallel claim (`_run_once_parallel`): returns the round's outcome, or raises `_NextTask` when
@@ -1293,6 +1313,11 @@ _WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
 #: The marker code of a grade that REPLAYED a settled candidate failure instead of running (a re-queued task whose
 #: first attempt already settled FAILED_MINER): typed so, given back as infrastructure and never counted.
 REPLAYED_NOT_RERUN = "replayed_not_rerun"
+#: OPERATIONAL, set by the owner (V2, 18 Nov 2026, suggests 2x the grade's wall budget): after how many seconds in
+#: flight a grade is ended as hung (`AutoGrader._end_hung_grades`). None: off.
+GRADE_HUNG_SECONDS = None
+#: The code of a grade ended as hung: Carbon's, FAILED_INFRA, never the candidate's.
+GRADE_HUNG = "grade_hung_carbon"
 #: The carrier names every worker container it starts ``carbon-d4-<launch digest>`` (`research_carrier`).
 _WORKER_PREFIX = "carbon-d4-"
 

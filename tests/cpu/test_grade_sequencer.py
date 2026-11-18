@@ -391,3 +391,43 @@ def test_a_copy_that_waits_gives_its_owner_back_for_the_rest_of_the_round():
     assert grader._run_once() == ("b", "GRADED")
     assert seen == [{"owner-b"}]  # while b grades, a's owner is free for a build round
     assert grader.owner_claims.held() == set()
+
+
+def test_a_hung_grade_is_ended_and_never_stalls_a_later_commit(monkeypatch):
+    """Live 116 (17 Nov 2026): two grades parked 85 min and every later commit waited behind them. A grade in flight
+    past `GRADE_HUNG_SECONDS` is ended as Carbon's (FAILED_INFRA via `_fail`); a later grade's turn no longer waits for
+    it, and the hung thread, should it wake, raises `GradeAbandoned` at its turn instead of committing.
+    """
+    sequencer = grade_sequencer.Sequencer()
+    hung_in, hung_go, raised = threading.Event(), threading.Event(), []
+
+    def hung():
+        with sequencer.task() as task:
+            task.bind("rtsk_hung")
+            task.release_claim()
+            hung_in.set()
+            assert hung_go.wait(5)
+            try:
+                task.turn()
+            except grade_sequencer.GradeAbandoned:
+                raised.append(True)
+
+    thread = threading.Thread(target=hung, daemon=True)
+    thread.start()
+    assert hung_in.wait(5)
+    failed = []
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader._fail = lambda sid, code: failed.append((sid, code))
+    monkeypatch.setattr(auto_grade, "GRADE_HUNG_SECONDS", None)
+    grader._end_hung_grades(sequencer)
+    assert failed == []  # off while unset
+    monkeypatch.setattr(auto_grade, "GRADE_HUNG_SECONDS", 0)
+    grader._end_hung_grades(sequencer)
+    assert failed == [("rtsk_hung", auto_grade.GRADE_HUNG)]
+    assert sequencer.in_flight() == set()
+    with sequencer.task() as later:
+        later.bind("rtsk_later")
+        later.turn()  # never waits for the hung ticket
+    hung_go.set()
+    thread.join(5)
+    assert raised == [True]
