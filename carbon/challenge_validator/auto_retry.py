@@ -154,10 +154,24 @@ def used(root, task, ledger=None, *, code=None) -> bool:
 
 def schedule(root, task, code, *, ledger=None, clock=time.time_ns) -> bool:
     """Schedule an automatic retry of the task; False when its code is not retryable, a retry of it is still pending,
-    or its retries for this cause (or in all) are spent."""
+    or its retries for this cause (or in all) are spent. A spent cap writes an ``auto_retry_cap_spent`` line to the
+    alert log (`ALERT_NAME`): the task then goes on the owed list (owner D16, 18 Nov: "capped at 3 per failure code and
+    5 per task, then the owed list")."""
     if type(task) is not str or not _TASK.fullmatch(task) or not retryable(code):
         return False
-    if task in _pending(root) or used(root, task, ledger, code=code):
+    if task in _pending(root):
+        return False
+    if used(root, task, ledger, code=code):
+        _append(
+            _dir(root) / ALERT_NAME,
+            {
+                "task": task,
+                "event": "auto_retry_cap_spent",
+                "reason": "owed_list",
+                "code": code,
+                "at_ns": int(clock()),
+            },
+        )
         return False
     _append(
         _dir(root) / LOG_NAME,

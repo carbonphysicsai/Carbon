@@ -120,6 +120,15 @@ def test_retries_are_bounded_per_cause_and_per_task(tmp_path):
         root, A, "single_call_evidence_unavailable"
     )  # task spent
     assert auto_retry.used(root, A)
+    # owner D16: a spent cap puts the task on the owed list, one alert line each time (cause spent, then task spent)
+    owed = [
+        (r["task"], r["event"], r["reason"], r["code"])
+        for r in _log(root, auto_retry.ALERT_NAME)
+    ]
+    assert owed == [
+        (A, "auto_retry_cap_spent", "owed_list", "inference_pair_incomplete"),
+        (A, "auto_retry_cap_spent", "owed_list", "single_call_evidence_unavailable"),
+    ]
     assert auto_retry.schedule(root, B, "speed_outputs_disagree")
     _close(root, B, next(at))
     assert not auto_retry.schedule(root, B, "speed_outputs_disagree")
