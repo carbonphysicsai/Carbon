@@ -234,3 +234,103 @@ def test_the_rebuild_command_requests_once_on_a_ruling(tmp_path):
     assert infra_requeue.rebuild(root, [task], ruling="V2-REBUILD-3", apply=True)[
         "refused"
     ] == {task: "already_requested"}
+
+
+# --- live 116, 18 Nov 2026 (V2-RB33): changed workspaces and concurrent advance rounds -------------------------------
+
+
+def test_a_door_rerun_names_the_failed_task_so_it_starts_from_its_retained_source(
+    ledger,
+):
+    """The door's re-run starts `rebuild_of` the failed task: the provider then uses that task's own retained graph
+    source, never the owner's workspace, which the miner may have replaced with a newer graph since."""
+    _queue(ledger)
+    door, provider = _door(ledger), _Provider({A: DirectTaskStateV3.FAILED_INFRA})
+    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) == N
+    assert provider.rebuilt_from == [A]
+
+
+def test_one_advance_round_at_a_time_applies_the_rebuild_requests(ledger):
+    """Every concurrent advance round used to walk the request list from a done-set read before any other wrote, so
+    one request was tried ~23 times: a round that finds the apply lock held does nothing."""
+    _queue(ledger)
+    door, provider = _door(ledger), _Provider({A: DirectTaskStateV3.FAILED_INFRA})
+    door._active_owner = lambda sid: HOTKEYS[0]
+    door._provider = lambda owner: provider
+    directory = _requests(ledger, {"task": A, "ruling": "V2-REBUILD-3"})
+    assert lean_recipe._REBUILD_APPLY.acquire(blocking=False)
+    try:
+        door._apply_rebuild_requests()  # another round holds it: nothing applied
+    finally:
+        lean_recipe._REBUILD_APPLY.release()
+    assert provider.started == []
+    assert not (directory / lean_recipe.REBUILD_APPLIED).exists()
+    door._apply_rebuild_requests()
+    door._apply_rebuild_requests()
+    assert len(provider.started) == 1
+
+
+def _bare_provider(requests):
+    from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
+
+    provider = object.__new__(DirectDevelopmentTasksV3)
+    provider._lock = __import__("threading").RLock()
+    provider._requests = dict(requests)
+    return provider
+
+
+class _Stop(Exception):
+    pass
+
+
+def _graph_request(digest="sha256:" + "1" * 64):
+    from carbon.research import DirectStartTaskRequestV3
+
+    request = object.__new__(DirectStartTaskRequestV3)
+    object.__setattr__(
+        request, "recipe", {"source": {"kind": "graph", "submission_digest": digest}}
+    )
+    return request
+
+
+def test_the_provider_starts_a_rerun_from_the_named_tasks_retained_source(
+    monkeypatch,
+):
+    from carbon.development_session import research_tasks
+
+    request = _graph_request()
+    provider = _bare_provider({A: _graph_request()})
+    read = []
+    monkeypatch.setattr(
+        research_tasks.ConstructionRecipe, "from_dict", staticmethod(lambda d: d)
+    )
+    monkeypatch.setattr(
+        provider,
+        "_source_envelope",
+        lambda identity, recipe: read.append(identity) or b"retained",
+        raising=False,
+    )
+
+    def stop(_request):
+        raise _Stop
+
+    monkeypatch.setattr(provider, "_bindings", stop, raising=False)
+    monkeypatch.setattr(
+        research_tasks, "DirectStartTaskRequestV3", type(request), raising=False
+    )
+    with pytest.raises(_Stop):
+        provider.start_research_task(request, rebuild_of=A)
+    assert read == [A]  # the retained bytes of the failed task, read before anything else
+
+
+def test_the_provider_refuses_a_rerun_of_another_recipe_or_with_its_own_source():
+    from carbon.research.errors import ResearchServiceErrorCode
+    from carbon.research.lifecycle import ResearchTaskProviderError
+
+    request = _graph_request()
+    other = _graph_request("sha256:" + "2" * 64)
+    provider = _bare_provider({A: other})
+    for kwargs in ({"rebuild_of": A}, {"rebuild_of": "rtsk_" + "9" * 64}):
+        with pytest.raises(ResearchTaskProviderError) as refused:
+            provider.start_research_task(request, **kwargs)
+        assert refused.value.code is ResearchServiceErrorCode.REQUEST_TYPE_INVALID

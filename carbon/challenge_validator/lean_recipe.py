@@ -13,6 +13,7 @@ import contextlib
 import hashlib
 import json
 import re
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -73,6 +74,10 @@ def _jsonl(path):
         if type(line) is dict:
             out.append(line)
     return out
+
+
+#: Held by the one advance round applying the operator's rebuild requests (`_apply_rebuild_requests`).
+_REBUILD_APPLY = threading.Lock()
 
 
 def _append_line(path, line):
@@ -1276,6 +1281,16 @@ class LeanRecipeAdapter(ChallengeAdapter):
         only for the CPU worker wall, re-run as its next generation even when it was itself the door's requeue). Fresh
         task id, fresh ops: no settled op is ever cleared. The outcome (the new task, or None) is logged beside the request.
         Never raises: the advance round goes on."""
+        # one applier at a time (live 116, 18 Nov 2026: every concurrent advance round walked the list from a done-set read
+        # before any other round wrote, so each request was tried up to ~23 times): a round that finds it held skips
+        if not _REBUILD_APPLY.acquire(blocking=False):
+            return
+        try:
+            self._apply_rebuild_requests_locked()
+        finally:
+            _REBUILD_APPLY.release()
+
+    def _apply_rebuild_requests_locked(self):
         try:
             directory = Path(self.ledger.path).parent / "auto-grade" / "requeued"
             requests = _jsonl(directory / REBUILD_REQUESTS)
@@ -1439,7 +1454,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 self.ledger.record_catalog_submission(
                     self.contract_digest, new_task, catalog
                 )
-            provider.start_research_task(request, measure_query=self._measure_query)
+            # from the failed task's own retained source, never the live workspace (`start_research_task`)
+            provider.start_research_task(
+                request, measure_query=self._measure_query, rebuild_of=task_id.value
+            )
             result = self.ledger.requeue_failed_build(
                 self.contract_digest, operator=True, **ask
             )

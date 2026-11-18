@@ -1396,11 +1396,19 @@ class DirectDevelopmentTasksV3:
         )
         return sum(view.state in live for view in self._views.values()) >= 256
 
-    def start_research_task(self, request, *, measure_query=False, graph_source=None):
+    def start_research_task(
+        self, request, *, measure_query=False, graph_source=None, rebuild_of=None
+    ):
         """Admit and queue one task. ``graph_source`` is the ORIGIN task's retained graph source envelope, for a
         crown-average derived rebuild only (`_derived_rebuild`): the host owner has no workspace, so the bytes come
         from the origin and are checked against the recipe's submission digest like any intake. Any other task
-        passing it is refused, and a miner's task always reads its own workspace."""
+        passing it is refused, and a miner's task always reads its own workspace.
+
+        ``rebuild_of`` (the door's re-run of a build that ended on Carbon's side, `LeanRecipeAdapter.
+        _requeue_failed_build`; live 116, 18 Nov 2026): a task THIS provider retains with exactly the same recipe. A graph
+        task then starts from that task's own retained source bytes (`_source_envelope`: the charged immutable copy,
+        checked against the recipe's submission digest like any intake), never the owner's workspace, which the miner
+        may have replaced with a newer graph since. Anything else named is refused."""
         from carbon.research.refs import ResearchTaskId
 
         from .gpu_practice import DirectParentRefused
@@ -1422,6 +1430,26 @@ class DirectDevelopmentTasksV3:
                 raise ResearchTaskProviderError(
                     ResearchServiceErrorCode.REQUEST_TYPE_INVALID
                 )
+            if rebuild_of is not None:
+                retained = self._requests.get(rebuild_of)
+                if (
+                    graph_source is not None
+                    or type(rebuild_of) is not str
+                    or retained is None
+                    or retained.recipe != request.recipe
+                ):
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+                    )
+                if request.recipe["source"]["kind"] == "graph":
+                    try:
+                        graph_source = self._source_envelope(
+                            rebuild_of, ConstructionRecipe.from_dict(request.recipe)
+                        )
+                    except ValueError:
+                        raise ResearchTaskProviderError(
+                            ResearchServiceErrorCode.REFERENCE_MISMATCH
+                        ) from None
             bindings = self._bindings(request)
             if measure_query:
                 from carbon.challenge_kit.interface_dtype import output_dtype

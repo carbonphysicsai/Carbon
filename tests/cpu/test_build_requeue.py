@@ -133,8 +133,9 @@ class _Provider:
     def _task_id(request):
         return ResearchTaskId({0: A, 1: N}.get(request[2], "rtsk_" + "f" * 64))
 
-    def start_research_task(self, request, *, measure_query):
+    def start_research_task(self, request, *, measure_query, rebuild_of=None):
         self.started.append((request, measure_query))
+        self.rebuilt_from = getattr(self, "rebuilt_from", []) + [rebuild_of]
 
 
 def _door(ledger):
