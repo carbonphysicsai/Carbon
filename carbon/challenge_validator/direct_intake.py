@@ -1239,7 +1239,7 @@ def serve_loopback(
         if getattr(grader, "others_waiting", None) is None:
             # slow-tail F2: the king's upkeep waits while another door waits for the host lock
             grader.others_waiting = getattr(work, "_others_waiting", None)
-        rounds = lanes_rounds
+        rounds = grade_rounds(lanes_rounds)
         if rounds > 1:
             # PARALLEL ROUNDS (owner's order 16 Nov, via the Lead): one grade thread per lane, committing in claim order
             from .grade_sequencer import Sequencer
@@ -2528,6 +2528,16 @@ def _advance_loop(intake, stop, work=None, since=None, idle_s=1):
                 site=_keep_failure(intake, "advance", failure),
             )
         stop.wait(wait)
+
+
+def grade_rounds(lanes):
+    """How many grade threads a door with ``lanes`` lanes runs. A parallel door (more than one lane) runs TWO per lane:
+    a grade waiting its commit turn gives its lane and round slot back (`grade_lanes.given_back`) but its thread waits
+    there, so with one thread per lane a slow grade at the head of the commit order left every lane free and nothing
+    started (live 116, 18 Nov 2026 00:12-00:26Z: 10 grades reserved, 2 running, 8 waiting behind a ~12-min head pair;
+    Lead). The extra threads start a grade only on a free round slot (still one per lane), so at most one grade RUNS
+    per lane, and only the commits stay in claim order. A single-lane door keeps its one."""
+    return 2 * lanes if lanes > 1 else 1
 
 
 def _grade_loop(grader, stop, work):
