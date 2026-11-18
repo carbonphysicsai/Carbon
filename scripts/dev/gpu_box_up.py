@@ -1608,8 +1608,12 @@ class Session:
         try:
             try:
                 wrapper = door_link_files(self.cfg, host_key, directory)
-            except Exception as error:  # noqa: BLE001 - a link the door cannot write is a refusal
-                raise Refused("door_link_failed", f"{type(error).__name__}: {error}"[:300]) from None
+            except (
+                Exception
+            ) as error:  # noqa: BLE001 - a link the door cannot write is a refusal
+                raise Refused(
+                    "door_link_failed", f"{type(error).__name__}: {error}"[:300]
+                ) from None
             rc, out, err = self.call(cmd_door_link(wrapper, self.cfg))
             seen = out.split()
             wanted = list(self.cfg.images)
@@ -1822,7 +1826,9 @@ def door_link_files(cfg, host_key: str, directory: str) -> str:
 
     from carbon.reconstruction import remote_gpu_build as rgb
 
-    lane = SimpleNamespace(lane_dir=directory, spec=SimpleNamespace(ssh_key=box_ssh_key(cfg)))
+    lane = SimpleNamespace(
+        lane_dir=directory, spec=SimpleNamespace(ssh_key=box_ssh_key(cfg))
+    )
     bin_dir = os.path.join(directory, "bin")
     os.makedirs(bin_dir, mode=0o700, exist_ok=True)
     ssh_binary = shutil.which("ssh") or "/usr/bin/ssh"

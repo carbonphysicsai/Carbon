@@ -2005,7 +2005,8 @@ def test_the_class_check_dir_is_purged_as_the_container_uid_before_and_after(tmp
 
 def test_a_box_the_doors_own_build_link_cannot_reach_is_never_admitted(tmp_path):
     """Live 116, 18 Nov 2026: the replacement A100 passed every check over this phase's ssh and was ADMITTED at 15:01Z,
-    but the door's own link got "Permission denied (publickey)" and no build ran for three hours."""
+    but the door's own link got "Permission denied (publickey)" and no build ran for three hours.
+    """
     cfg = _config(tmp_path)
     box = FakeBox(cfg, door_link_ok=False)
     outcome = _run(cfg, box)
@@ -2015,7 +2016,9 @@ def test_a_box_the_doors_own_build_link_cannot_reach_is_never_admitted(tmp_path)
     assert _no_box_file(tmp_path)
 
 
-def test_the_door_link_is_the_doors_own_generated_wrapper_with_the_recorded_key(tmp_path):
+def test_the_door_link_is_the_doors_own_generated_wrapper_with_the_recorded_key(
+    tmp_path,
+):
     key = tmp_path / "lane_key"
     key.write_text("not a real key\n")
     cfg = _config(tmp_path, "--ssh-key", str(key))
