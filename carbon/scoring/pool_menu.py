@@ -94,10 +94,14 @@ class MenuRule:
     tasks_per_epoch: int | None = (
         None  # k of the registered tasks scored per epoch (the owner's number); None = every task
     )
+    ranking: str = (
+        menu_score.RANKING_BACKOFF_U  # registered ranking rule: backoff_u (menu_top5_v1) or original_limits (menu_top5_v2)
+    )
 
 
 def check_rule(rule):
     _require(isinstance(rule, MenuRule), "menu_rule_required")
+    _require(rule.ranking in menu_score.RANKINGS, "menu_ranking_unregistered")
     _require(
         type(rule.records_sha256) is tuple
         and rule.records_sha256
@@ -504,7 +508,12 @@ def rescore(tasks, rule, predictions, *, key, epochs):
             try:
                 ds.append(
                     menu_score.score_task(
-                        task.problem, task.record, stored, key=key, epoch=epoch
+                        task.problem,
+                        task.record,
+                        stored,
+                        key=key,
+                        epoch=epoch,
+                        ranking=rule.ranking,
                     )["d"]
                 )
             except menu_score.MenuRefused as exc:
@@ -687,7 +696,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
             "D": 0.0,
             "record": {
                 "schema": "carbon.menu-grade.v1",
-                "metric": menu_score.METRIC,
+                "metric": menu_score.metric_for(rule.ranking),
                 "epoch": rule.epoch,
                 "aggregate": rule.aggregate,
                 **drawn_note,
@@ -728,7 +737,12 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
             continue  # answered and kept (a later epoch may draw it), not scored this epoch
         try:
             result = menu_score.score_task(
-                task.problem, task.record, merged, key=key, epoch=rule.epoch
+                task.problem,
+                task.record,
+                merged,
+                key=key,
+                epoch=rule.epoch,
+                ranking=rule.ranking,
             )
         except menu_score.MenuRefused as exc:
             _refuse(exc.code)
@@ -746,7 +760,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
         "D": d,
         "record": {
             "schema": "carbon.menu-grade.v1",
-            "metric": menu_score.METRIC,
+            "metric": menu_score.metric_for(rule.ranking),
             "epoch": rule.epoch,
             "aggregate": rule.aggregate,
             **drawn_note,
