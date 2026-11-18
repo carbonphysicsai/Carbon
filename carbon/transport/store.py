@@ -24,8 +24,14 @@ PRUNE_AT = 0.8  # prune old receipts (and alert) at this share of capacity
 PRUNE_AGE_NS = 3600 * 1_000_000_000
 #: At most this many receipts go in one admission (bounded work in the admission's transaction).
 PRUNE_BATCH = 20_000
-#: The columns of a journal extension table that name a receipt by its sequence (`candidates`, `miner_mcp`).
+#: The columns of a journal extension table that name a receipt by its sequence (`candidates`: ``receipt``,
+#: `miner_mcp`: ``receipt_sequence``; any ``*_receipt_sequence`` too). V2 (18 Nov 2026): a receipt a ReceiptRef names
+#: (`resolve`) is never pruned.
 _REFERENCE_COLUMNS = ("receipt_sequence", "receipt")
+
+
+def _is_reference(column):
+    return column in _REFERENCE_COLUMNS or column.endswith("_receipt_sequence")
 _TRANSPORT_TABLES = frozenset({"receipt", "nonce", "transport_meta", "sqlite_sequence"})
 
 
@@ -40,16 +46,18 @@ def _references(connection):
         columns = {
             row[1] for row in connection.execute(f'PRAGMA table_info("{table}")')
         }
-        found.extend(
-            (table, column) for column in _REFERENCE_COLUMNS if column in columns
-        )
+        found.extend((table, column) for column in sorted(columns) if _is_reference(column))
     return found
 
 
-def _prune(connection, cutoff_ns):
+def _prune(connection, cutoff_ns, keep_from=None):
     """Delete up to `PRUNE_BATCH` receipts received before ``cutoff_ns`` that no extension table names; returns
-    how many went."""
-    keep = " ".join(
+    how many went. V2's keep rules (18 Nov 2026): (a) every sequence above ``keep_from`` (a consumer's processed
+    watermark, when one is installed: `ReceiptJournal.keep_from`); (b) every sequence an extension table names;
+    (c) the highest row (`highest_receipt` never goes back)."""
+    top = connection.execute("SELECT COALESCE(MAX(sequence),0) FROM receipt").fetchone()[0]
+    limit = top - 1 if keep_from is None else min(top - 1, int(keep_from))
+    keep = f"AND sequence <= {int(limit)} " + " ".join(
         f'AND sequence NOT IN (SELECT "{column}" FROM "{table}" WHERE "{column}" IS NOT NULL)'
         for table, column in _references(connection)
     )
@@ -96,6 +104,9 @@ class ReceiptJournal:
         self.path = Path(path)
         self.context = context
         self.capacity = capacity
+        #: Optional: a consumer's processed watermark (a callable returning a sequence); receipts above it are never
+        #: pruned (V2 keep rule (a)). None today: the direct intake handles each request inside its own admission.
+        self.keep_from = None
         with self._connection() as connection:
             connection.executescript("""
                 CREATE TABLE IF NOT EXISTS transport_meta (
@@ -238,7 +249,11 @@ class ReceiptJournal:
                 # and the -2..+60 s clock window): unreferenced receipts older than `PRUNE_AGE_NS` go, in this same
                 # transaction, so intake never closes on capacity while old poll rows fill the journal (live 116,
                 # 12 and 18 Nov). A receipt any journal extension table names is kept.
-                held -= _prune(connection, now_ns - PRUNE_AGE_NS)
+                held -= _prune(
+                    connection,
+                    now_ns - PRUNE_AGE_NS,
+                    None if self.keep_from is None else self.keep_from(),
+                )
                 _near_cap(held, self.capacity)
             if held >= self.capacity:
                 raise TransportFailure(TransportCode.CAPACITY)

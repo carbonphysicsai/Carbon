@@ -430,3 +430,28 @@ def test_a_full_journal_of_old_unreferenced_receipts_still_accepts_the_next_requ
         "transport_journal_near_cap",
         {"alert": True, "held": 1000, "capacity": 1000},
     ) in lines
+
+
+def test_the_prune_keeps_the_highest_row_and_everything_above_a_watermark(tmp_path, monkeypatch):
+    """V2's keep rules (18 Nov 2026): (c) the highest receipt is never pruned (`highest_receipt` never goes back);
+    (a) nothing above an installed processed watermark goes."""
+    import sqlite3
+
+    from carbon.transport import store
+
+    monkeypatch.setattr(store, "PRUNE_BATCH", 1000)
+    old = 2 * 3600 * 1_000_000_000
+    gate = gateway(tmp_path, capacity=100)
+    _fill_old(gate.journal, 100, age_ns=old)
+    db = sqlite3.connect(gate.journal.path)
+    with db:
+        db.execute("BEGIN")
+        assert store._prune(db, NOW) == 99  # every old row but the highest
+    assert [row[0] for row in db.execute("SELECT sequence FROM receipt")] == [100]
+    (tmp_path / "w").mkdir()
+    marked = gateway(tmp_path / "w", capacity=100)
+    _fill_old(marked.journal, 100, age_ns=old)
+    marked.journal.keep_from = lambda: 40
+    receive(marked)
+    left = {row[0] for row in sqlite3.connect(marked.journal.path).execute("SELECT sequence FROM receipt")}
+    assert set(range(41, 102)) <= left and not left & set(range(1, 41))
