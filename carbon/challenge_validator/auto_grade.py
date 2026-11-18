@@ -386,14 +386,35 @@ class AutoGrader:
         except Exception:  # noqa: BLE001 - asked again later, within the bound
             return
 
-    def _run_once(self):
-        sequencer = getattr(self, "sequencer", None)
-        if sequencer is not None:
-            # a door grading one round per lane (`grade_sequencer`)
-            return self._run_once_parallel(sequencer)
-        if self.chain_degraded():
-            return None  # (H8) a stale chain: grade nothing, mark nothing
-        self._settle_queue_places()
+    def _crown_held(self):
+        """Whether the incumbent's crown steps (the stranded filing, the king's upkeep, the paused-crown sweep) hold this
+        round: an owner they need was set aside at this start (`OwnerProviders.restore`; V2 18 Nov 2026: a crown is
+        never decided on an incomplete set). The owners they need are `_prelude_owners`; when those cannot be read,
+        ANY set-aside owner holds them (doubt never narrows it). Held steps never dethrone: they wait for a start that
+        reopens the owner. Grading goes on."""
+        import hashlib
+
+        try:
+            set_aside = self.intake.adapter.provider_for.set_aside()
+        except Exception:  # noqa: BLE001 - no set-aside view (a test double, a one-shot): nothing held
+            return False
+        if not set_aside:
+            return False
+        owners = self._prelude_owners()
+        held = owners is None or any(
+            hashlib.sha256(owner.encode()).hexdigest() in set_aside for owner in owners
+        )
+        if held and not getattr(self, "_crown_held_logged", False):
+            from carbon.battery.intake import log
+
+            log("crown_steps_held", reason="owner_set_aside", owners=len(set_aside))
+            self._crown_held_logged = True
+        return held
+
+    def _crown_steps(self):
+        """The incumbent's crown steps, in the round's order, unless they hold (`_crown_held`)."""
+        if self._crown_held():
+            return
         self.activity = "king"
         try:
             if self._upkeep_deferred():
@@ -403,6 +424,16 @@ class AutoGrader:
         finally:
             self.activity = None
         self._resume_paused_crowns()
+
+    def _run_once(self):
+        sequencer = getattr(self, "sequencer", None)
+        if sequencer is not None:
+            # a door grading one round per lane (`grade_sequencer`)
+            return self._run_once_parallel(sequencer)
+        if self.chain_degraded():
+            return None  # (H8) a stale chain: grade nothing, mark nothing
+        self._settle_queue_places()
+        self._crown_steps()
         pending = self.pending()
         if self._apply_due_retries(idle=not pending):
             pending = self.pending()  # a retry handed back is graded in this round
@@ -562,15 +593,7 @@ class AutoGrader:
     def _run_prelude(self):
         """The incumbent's own steps of a parallel round (`_run_once_parallel`), in the serial round's order."""
         self._settle_queue_places()
-        self.activity = "king"
-        try:
-            if self._upkeep_deferred():
-                self._file_stranded()
-            else:
-                self._king_upkeep()
-        finally:
-            self.activity = None
-        self._resume_paused_crowns()
+        self._crown_steps()
         self._apply_due_retries(idle=not self.pending())
 
     def _run_once_parallel(self, sequencer):

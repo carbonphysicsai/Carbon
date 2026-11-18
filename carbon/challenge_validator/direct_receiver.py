@@ -2099,11 +2099,14 @@ class OwnerProviders:
 
         An owner this start cannot reopen (its campaign manifest cannot be migrated to this revision, its directory or
         owner binding is unreadable, ...) is SET ASIDE, not the whole door (Lead R2, owner G4, 18 Nov 2026: an in-place
-        restart runs this migration on live state, and switch 3's start refused 343 owners for one). Nothing of it is
-        opened, changed or cancelled: its files stay as they are for the next start, every request of it is refused
-        ``direct_provider_owner_set_aside`` (fail closed, a grade of it given back as Carbon's), and the journal names
-        it (``owner_restore_set_aside``: its sha256 and why). An owner whose provider was already opened when the
-        failure came refuses the start as before (it holds work), and so does a start that could open NO owner.
+        restart runs this migration on live state, and switch 3's start refused 343 owners for one). It is not opened
+        and nothing of it is cancelled; every request of it is refused ``direct_provider_owner_set_aside`` (fail closed,
+        a grade of it given back as Carbon's), and the journal names it (``owner_restore_set_aside``: its sha256 and
+        why). Its files are as the failure left them: a failure AFTER its campaign manifest was migrated
+        (`_migrate_owner_manifest` commits the row first) leaves that row on the new revision, which a rollback's row
+        revert covers. While any owner the crown steps need is set aside, those steps hold (`AutoGrader._crown_held`,
+        V2 18 Nov). The start still refuses, as before, when the owner is the crown average's host owner (its derived
+        rebuilds decide the crown), when its provider was already opened (it holds work), or when NO owner opened.
         """
         from carbon.challenge_validator import crown_average
 
@@ -2130,8 +2133,10 @@ class OwnerProviders:
                     hashlib.sha256(hotkey.encode()).hexdigest() == name
                     for hotkey in self._providers
                 )
-                if opened:
-                    # its provider holds work: never left half-open behind a set-aside
+                host = name == hashlib.sha256(crown_average.HOST_OWNER.encode()).hexdigest()
+                if opened or host:
+                    # its provider holds work (never left half-open behind a set-aside), or it is the crown average's
+                    # host owner (V2 18 Nov: the crown is never decided without it)
                     _log_start_failure("owner_restore_failed", failure, owner_sha256=name)
                     raise
                 code = getattr(failure, "code", None) or type(failure).__name__

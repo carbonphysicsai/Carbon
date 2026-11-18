@@ -2273,3 +2273,23 @@ def test_a_start_that_can_open_no_owner_refuses_as_before(tmp_path, monkeypatch)
     monkeypatch.setattr(pool, "_open", refused)
     with pytest.raises(ValueError, match="binding changed"):
         pool.restore()
+
+
+def test_the_crown_host_owner_is_never_set_aside_the_start_refuses(tmp_path, monkeypatch):
+    """V2 (18 Nov 2026): the crown average's host owner decides the crown's derived rebuilds; a start that cannot
+    reopen it refuses as before, whatever else opened."""
+    from carbon.challenge_validator import crown_average
+
+    other = "5" + "2" * 47
+    _owner_dirs(tmp_path, monkeypatch, [crown_average.HOST_OWNER, other])
+    pool = receiver.OwnerProviders(tmp_path, None, None, None)
+
+    def opening(hotkey, *, restoring, host=False):
+        if hotkey == crown_average.HOST_OWNER:
+            raise ValueError("retained direct owner campaign binding changed")
+        pool._providers[hotkey] = SimpleNamespace(_views={})
+
+    monkeypatch.setattr(pool, "_open", opening)
+    with pytest.raises(ValueError, match="binding changed"):
+        pool.restore()
+    assert pool.set_aside() == {}
