@@ -481,7 +481,7 @@ def test_a_hung_grade_line_logs_its_claim_age(monkeypatch):
         task.bind("hung", "h:x")
         assert sequencer.age(task.ticket) >= 0
         grader._end_hung_grades(sequencer)
-    ((event, fields),) = [line for line in lines if line[0] == "grade_hung_ended"]
+    ((_event, fields),) = [line for line in lines if line[0] == "grade_hung_ended"]
     assert fields["task"] == "hung" and fields["claimed_s"] >= 0
 
 
