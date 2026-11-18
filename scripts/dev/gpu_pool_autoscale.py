@@ -11,21 +11,29 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
 1. **Read.** The door's PUBLIC queue (``GET /carbon/v1/queue/<challenge>``: ``waiting_to_build``) and, read-only on
    the door, each box file and whether any of the box's slots is busy, and when one last was (`DOOR_PROBE`). The
    Lambda account's instances and the instance type's live price.
-2. **Scale up.** When ``waiting_to_build > N`` in every sample of the last `UP_WINDOW_S` (15 min, at least 3
-   samples), N = `BUILDS_PER_BOX_HOUR` x max(1, boxes up) (the measured hourly builds of one box: the queue is more
-   than the boxes up can clear in an hour), no box up has all its slots free (then the door, not the box count, holds
-   the queue), no box was released idle in the last ``idle_release_s``, nothing is being brought up, the account holds fewer than ``max_boxes``
-   instances and one more keeps the hourly total within ``max_usd_per_hour``: launch ONE instance, then bring it up
-   (`bring_up`, detached): pin its host key, ``gpu_box_up.py admin`` here with the admin key, ``gpu_box_up.py door``
-   on the door with the lane key. A failed bring-up terminates the instance at once (never paid for idle).
-3. **Scale down.** A box THIS tool launched whose slots have all been free for more than ``idle_release_s`` (1 h)
-   is drained first (its box file renamed ``<name>.json.drained``); once no slot is busy it is terminated. The idle
-   clock runs only while the door can use the box: a tick whose queue is unreadable (the door down, restarting or
-   moved) or shows ``waiting_to_build > 0`` stamps every box ``held_at`` = now, and idle counts from the latest of that
-   stamp, the box's last busy slot and its admission. A box file put back with an old admission time therefore does
-   not start out idle (carbon-a100 was released 18 Nov 2026 13:51Z, 6 min after a rollback restored its file, with
-   builds queued). The LAST box is never drained or released while builds wait: a draining last box gets its file
-   back (``undrain``) when a tick sees ``waiting_to_build > 0`` (Lead, 18 Nov 2026).
+2. **Scale up** (policy v2, Lead 18 Nov 2026; values from live 116's data, see `RENT_MANY`). When `RENT_MANY`
+   builds wait in every sample across `RENT_MANY_S` (5 min), or any build waits across `RENT_ANY_S` (10 min), no
+   box up has all its slots free (then the door, not the box count, holds the queue), nothing is being brought up,
+   no bring-up failed in the last `FAIL_BACKOFF_S`, the account holds fewer than ``max_boxes`` instances, one more
+   keeps the hourly total within ``max_usd_per_hour`` and today's spend leaves room under ``max_usd_per_day``: launch
+   ONE instance, then bring it up (`bring_up`, detached): pin its host key, ``gpu_box_up.py admin`` here with the
+   admin key, ``gpu_box_up.py door`` on the door with the lane key (whose door_link step proves the door's own build
+   wrapper reaches the box before it is ADMITTED). A failed bring-up terminates the instance at once (never paid for
+   idle) and pages. Inside a ``prewarm_utc`` window one box is kept up (a hook; no window is set yet).
+3. **Scale down.** A box THIS tool launched or adopted whose slots have all been free for more than
+   ``idle_release_s`` (30 min) is drained first (its box file renamed ``<name>.json.drained``); once no slot is busy
+   it is terminated. The idle clock runs only while the door can use the box: a tick whose queue is unreadable (the
+   door down, restarting or moved), whose ``door_state`` is ``draining``, or that shows ``waiting_to_build > 0``
+   stamps every box ``held_at`` = now, and idle counts from the latest of that stamp, the box's last busy slot and
+   its admission. A box file put back with an old admission time therefore does not start out idle (carbon-a100 was
+   released 18 Nov 2026 13:51Z, 6 min after a rollback restored its file, with builds queued). The LAST box is never
+   drained or released while builds wait: a draining last box gets its file back (``undrain``) when a tick sees
+   ``waiting_to_build > 0`` (Lead, 18 Nov 2026). The one exception is the daily cap: once today's spend reaches
+   ``max_usd_per_day`` every box of this tool drains and is released, nothing is rented until 00:00Z, and a page
+   goes out if builds wait.
+
+Pages are ALERT lines in the door's pager outbox (``page_outbox``; the pager dedupes and sends them): a failed
+bring-up, a failed release, the daily cap reached while builds wait. They name boxes, counts and USD only.
 
 Every launch, failure and release is a line in ``<state_dir>/log.jsonl`` with its price, hours and cost. Instances
 this tool did not launch (``name_prefix``) count toward the box and dollar caps but are never touched, unless ADOPTED
@@ -52,13 +60,17 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-#: One A100 box's measured builds per hour (HEALTH 17 Nov 2026 13:38Z: 12 in the last 60 min, all on the one A100,
-#: 4 slots). An operational value: re-measure it as the per-box rate changes. That hour was starved (builds waited on
-#: 2 grade lanes), so 12 is a floor: to be replaced from the door journal's build rate after switch 3 (owner C8).
-BUILDS_PER_BOX_HOUR = 12
-#: How long the queue must stay above N before a box is rented (the brief: 15 min).
-UP_WINDOW_S = 900
-MIN_UP_SAMPLES = 3
+#: Policy v2 (Lead 18 Nov 2026, owner "yea something like that"), set from live 116's own data, 17 Nov 00:03Z -
+#: 18 Nov 20:55Z (550 build ops, read-only from the door's ledgers): one 7-slot A100 finishes up to 64-66 builds in
+#: its busiest hour (the old N = 12 builds/box-hour was 5x low, so a backlog the box could clear in minutes rented and
+#: a real one waited 15 min); A100 build wall p50 156 s, p90 353 s; local CPU p50 104 s. Builds arrive in bursts:
+#: split at 10 idle min, 57 bursts, size p50 5 / p90 20, gaps p50 16.6 min / p90 81 min. Cold start (the replacement
+#: A100, 18 Nov): rent 14:37Z -> admin PASS 14:46Z -> door phase 790 s -> ADMITTED 15:01:50Z, about 25 min.
+#: Rent when RENT_MANY builds wait through RENT_MANY_S, or any build waits through RENT_ANY_S: a build that waits that
+#: long found every local lane and box slot full (the door builds on the CPU first when no box is free).
+RENT_MANY = 3
+RENT_MANY_S = 300
+RENT_ANY_S = 600
 #: Samples kept (2 h at the 5-minute timer).
 KEEP_SAMPLES = 24
 #: A bring-up that has not finished in this long is failed (gpu_box_up: under 20 min).
@@ -149,8 +161,15 @@ class Config:
     name_prefix: str = "carbon-pool-"
     max_boxes: int = 3
     max_usd_per_hour: float = 6.0
-    idle_release_s: int = 3600
+    #: the burst gaps above: p50 16.6 min is bridged, the long gaps (p90 81 min) are not paid for
+    idle_release_s: int = 1800
     regions: tuple = ()
+    #: USD per UTC day over this tool's boxes (launched or adopted); no default: the owner/Lead sets it
+    max_usd_per_day: float | None = None
+    #: the door's pager outbox (relative to the door user's home); "" pages nothing
+    page_outbox: str = "ops-watch/outbox.jsonl"
+    #: [[start_hour, end_hour], ...] UTC: keep one box warm inside a window (a hook; empty until 24 h+ of G7 data)
+    prewarm_utc: tuple = ()
 
     @property
     def boxes_dir(self):
@@ -163,10 +182,22 @@ def load_config(path) -> Config:
     for key in ("door_ssh_options", "door_phase_args", "regions"):
         if key in raw:
             raw[key] = tuple(raw[key])
+    if "prewarm_utc" in raw:
+        raw["prewarm_utc"] = tuple(tuple(w) for w in raw["prewarm_utc"])
     config = Config(**raw)
     if not (0 < config.max_boxes <= 3) or not (0 < config.max_usd_per_hour <= 6.0):
         # the owner's line is the ceiling; a config may only lower it
         raise SystemExit("config exceeds the owner's line (<= 3 boxes, <= USD 6/h)")
+    if config.max_usd_per_day is None or not (
+        0 < config.max_usd_per_day <= 24 * config.max_usd_per_hour
+    ):
+        raise SystemExit(
+            "max_usd_per_day: set by the owner/Lead, at most 24 x max_usd_per_hour"
+        )
+    if any(len(w) != 2 or not (0 <= w[0] < w[1] <= 24) for w in config.prewarm_utc):
+        raise SystemExit(
+            "prewarm_utc: [[start_hour, end_hour], ...], 0 <= start < end <= 24"
+        )
     if not config.name_prefix or not _NAME.fullmatch(
         config.name_prefix.rstrip("-") or "x"
     ):
@@ -177,23 +208,53 @@ def load_config(path) -> Config:
 # -- the policy (pure) ------------------------------------------------------------------------------------------------
 
 
-def threshold(boxes_up: int) -> int:
-    """N: more waiting builds than the boxes up clear in an hour (one box's rate when none is up)."""
-    return BUILDS_PER_BOX_HOUR * max(1, boxes_up)
-
-
-def want_box(samples, now, boxes_up) -> bool:
-    """Whether the queue stayed above N for the whole window: every sample of the last `UP_WINDOW_S`, at least
-    `MIN_UP_SAMPLES` of them, and the oldest at least the window ago (so a gap in the timer never counts as 15 min).
+def _held(samples, now, span, least) -> bool:
+    """Every sample of the last ``span`` s showed at least ``least`` builds waiting, with one sample per 5-minute tick
+    across it and the oldest at least ``span`` ago (a gap in the timer, or an unreadable queue, never counts).
     """
-    n = threshold(boxes_up)
-    window = [s for s in samples if now - s["t"] <= UP_WINDOW_S + 60]
-    if (
-        len(window) < MIN_UP_SAMPLES
-        or now - min(s["t"] for s in window) < UP_WINDOW_S - 60
-    ):
+    window = [s for s in samples if now - s["t"] <= span + 60]
+    if len(window) < 1 + span // 300 or now - min(s["t"] for s in window) < span - 60:
         return False
-    return all(s["waiting"] is not None and s["waiting"] > n for s in window)
+    return all(s["waiting"] is not None and s["waiting"] >= least for s in window)
+
+
+def want_box(samples, now) -> str | None:
+    """Why one more box is wanted: ``many`` (`RENT_MANY` builds waited through `RENT_MANY_S`), ``any`` (a build waited
+    through `RENT_ANY_S`), else None."""
+    if _held(samples, now, RENT_MANY_S, RENT_MANY):
+        return "many"
+    if _held(samples, now, RENT_ANY_S, 1):
+        return "any"
+    return None
+
+
+def prewarm(config, now) -> int:
+    """Boxes to keep warm now: 1 inside a `Config.prewarm_utc` window, else 0 (the hook; no window is set yet)."""
+    hour = (now % 86400) / 3600
+    return int(any(start <= hour < end for start, end in config.prewarm_utc))
+
+
+def _day(now):
+    return time.strftime("%Y-%m-%d", time.gmtime(now))
+
+
+def _cost_today(record, now) -> float:
+    """USD the box has cost since the UTC day began (its launch or adoption, if later)."""
+    start = max(record["launched"], now - now % 86400)
+    return max(0.0, now - start) / 3600 * record["price_usd_h"]
+
+
+def spent_today(state, now) -> float:
+    """USD this tool's boxes cost today: the released ones (``state["spent"]``) and the ones it holds now."""
+    closed = state.get("spent", {}).get(_day(now), 0.0)
+    return closed + sum(_cost_today(r, now) for r in state["boxes"].values())
+
+
+def _close_cost(state, record, now):
+    spent = state.setdefault("spent", {})
+    spent[_day(now)] = round(spent.get(_day(now), 0.0) + _cost_today(record, now), 4)
+    for day in sorted(spent)[:-7]:
+        spent.pop(day)
 
 
 def may_rent(instances, price_usd_h, config) -> bool:
@@ -318,7 +379,11 @@ def read_door(config):
     boxes = json.loads(probe.stdout)["boxes"] if probe.returncode == 0 else None
     queue = _door(config, ["curl", "-sf", "--max-time", "20", config.door_queue_url])
     try:
-        waiting = int(json.loads(queue.stdout)["waiting_to_build"])
+        public = json.loads(queue.stdout)
+        waiting = int(public["waiting_to_build"])
+        if public.get("door_state") == "draining":
+            # a draining door builds nothing new: as unreadable (no idle clock, no drain, release or rent)
+            waiting = None
     except (ValueError, KeyError, TypeError):
         waiting = None
     return waiting, boxes
@@ -357,6 +422,36 @@ def log(config, **fields):
     print(json.dumps(fields, sort_keys=True))
 
 
+def page(config, state, key, text, *, now, once=False):
+    """An ALERT line in the door's pager outbox (`carbon_pager` reads it, dedupes per ``key`` and sends it). The text
+    carries box names, counts and USD only. ``once``: at most one line per key (kept in ``state["paged"]``).
+    """
+    if not config.page_outbox or (once and key in state.get("paged", {})):
+        return
+    line = {
+        "iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        "key": key,
+        "sev": "ALERT",
+        "text": text,
+        "to": "Lead, Compute",
+        "ts": int(now),
+    }
+    if DRY[0]:
+        log(config, action="would_page", key=key, text=text)
+        return
+    sent = _door(
+        config,
+        ["sh", "-c", f'cat >> "$HOME"/{shlex.quote(config.page_outbox)}'],
+        stdin=(json.dumps(line, sort_keys=True) + "\n").encode(),
+    )
+    log(config, action="page", key=key, ok=sent.returncode == 0)
+    if sent.returncode == 0 and once:
+        paged = state.setdefault("paged", {})
+        paged[key] = int(now)
+        for old in sorted(paged, key=paged.get)[:-20]:
+            paged.pop(old)
+
+
 def _hours(record, now):
     return round((now - record["launched"]) / 3600, 3)
 
@@ -375,7 +470,15 @@ def _released(config, state, name, record, client, now, why):
             id=record["id"],
             error=type(error).__name__,
         )
+        page(
+            config,
+            state,
+            f"autoscale_release_failed:{name}",
+            f"GPU POOL: release of {name} failed ({type(error).__name__}); still paid, the next tick retries",
+            now=now,
+        )
         return
+    _close_cost(state, record, now)
     hours = _hours(record, now)
     log(
         config,
@@ -388,15 +491,25 @@ def _released(config, state, name, record, client, now, why):
         cost_usd=round(hours * record["price_usd_h"], 2),
     )
     state["boxes"].pop(name, None)
-    if why == "idle":
-        # a box just sat idle a whole idle period with builds waiting: boxes were not what held the queue (owner C8,
-        # no overpay), so the next rent waits one more idle period of backlog
-        state["backoff_until"] = max(
-            state.get("backoff_until", 0), now + config.idle_release_s
-        )
 
 
 # -- one tick ---------------------------------------------------------------------------------------------------------
+
+
+def _drain(config, name, record, why, **fields):
+    moved = _door(
+        config,
+        [
+            "mv",
+            "-n",
+            f"{config.boxes_dir}/{name}.json",
+            f"{config.boxes_dir}/{name}.json.drained",
+        ],
+    )
+    if moved.returncode == 0:
+        record["phase"] = "DRAINING"
+        record["drain_why"] = why
+        log(config, action="drain", box=name, id=record["id"], why=why, **fields)
 
 
 def tick(config, *, client=None, door=None, now=None, spawn=None):
@@ -411,7 +524,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
     by_id = {i["id"]: i for i in instances}
     ours = state["boxes"]
     if waiting is None or waiting > 0:
-        # the door cannot use an idle box now (down, restarting, moved) or builds wait for one: no box is idle
+        # the door cannot use an idle box now (down, restarting, draining, moved) or builds wait for one: not idle
         for record in ours.values():
             record["held_at"] = now
 
@@ -420,6 +533,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
         if record["id"] not in by_id or by_id[record["id"]]["status"] in (
             "terminated",
         ):
+            _close_cost(state, record, now)
             hours = _hours(record, now)
             log(
                 config,
@@ -448,52 +562,72 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 or now - record["launched"] > BRING_UP_LIMIT_S
             ):
                 state["backoff_until"] = now + FAIL_BACKOFF_S
+                reason = record.get("reason", "timeout")
                 log(
                     config,
                     action="bring_up_failed",
                     box=name,
                     id=record["id"],
-                    reason=record.get("reason", "timeout"),
+                    reason=reason,
+                )
+                page(
+                    config,
+                    state,
+                    f"autoscale_bring_up_failed:{name}",
+                    f"GPU POOL: bring-up of {name} failed ({reason}); released, no new rent for "
+                    f"{FAIL_BACKOFF_S // 60} min; builds waiting {waiting}",
+                    now=now,
                 )
                 _released(config, state, name, record, client, now, "bring_up_failed")
 
+    spent = spent_today(state, now)
+    at_day_cap = spent >= config.max_usd_per_day
+    if at_day_cap and waiting:
+        page(
+            config,
+            state,
+            f"autoscale_day_cap:{_day(now)}",
+            f"GPU POOL: daily cap USD {config.max_usd_per_day:g} reached (spent {spent:.2f}) with {waiting} builds "
+            "waiting; no rent until 00:00Z, boxes drain",
+            now=now,
+            once=True,
+        )
+
     if boxes is not None and waiting is not None:
-        # an unreadable queue (a door switch, the door down or moved) changes nothing: no drain, no release (V2,
-        # 17 Nov 2026); a failed bring-up above is still released (never paid for idle)
-        # scale down: idle > idle_release_s -> drain (rename the box file), then release once no slot is busy
+        # an unreadable queue or a draining door (a switch, the door down or moved) changes nothing: no drain, no
+        # release (V2, 17 Nov 2026); a failed bring-up above is still released (never paid for idle)
+        filed = [n for n, e in boxes.items() if e.get("file")]
         for name, record in list(ours.items()):
             entry = boxes.get(name)
             if record["phase"] == "ACTIVE" and entry is not None and entry.get("file"):
-                if idle_for(entry, now, record) > config.idle_release_s and DRY[0]:
+                idle = idle_for(entry, now, record)
+                why = (
+                    "day_cap"
+                    if at_day_cap
+                    else (
+                        "idle"
+                        if idle > config.idle_release_s
+                        and len(filed) > prewarm(config, now)
+                        else None
+                    )
+                )
+                if why and DRY[0]:
                     log(
                         config,
                         action="would_drain",
                         box=name,
                         id=record["id"],
-                        idle_min=round(idle_for(entry, now, record) / 60, 1),
+                        why=why,
+                        idle_min=round(idle / 60, 1),
                     )
-                elif idle_for(entry, now, record) > config.idle_release_s:
-                    moved = _door(
-                        config,
-                        [
-                            "mv",
-                            "-n",
-                            f"{config.boxes_dir}/{name}.json",
-                            f"{config.boxes_dir}/{name}.json.drained",
-                        ],
-                    )
-                    if moved.returncode == 0:
-                        record["phase"] = "DRAINING"
-                        log(
-                            config,
-                            action="drain",
-                            box=name,
-                            id=record["id"],
-                            idle_min=round(idle_for(entry, now, record) / 60, 1),
-                        )
+                elif why:
+                    _drain(config, name, record, why, idle_min=round(idle / 60, 1))
+                    if record["phase"] == "DRAINING":
+                        filed.remove(name)
             elif (
                 record["phase"] == "DRAINING"
                 and waiting > 0
+                and not at_day_cap
                 and not any(
                     e.get("file") for other, e in boxes.items() if other != name
                 )
@@ -523,7 +657,15 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
             elif record["phase"] == "DRAINING" and (
                 entry is None or not entry.get("busy")
             ):
-                _released(config, state, name, record, client, now, "idle")
+                _released(
+                    config,
+                    state,
+                    name,
+                    record,
+                    client,
+                    now,
+                    record.get("drain_why", "idle"),
+                )
 
     # scale up
     up = sum(1 for r in ours.values() if r["phase"] == "ACTIVE")
@@ -531,25 +673,37 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
         1 for name, e in (boxes or {}).items() if e.get("file") and name not in ours
     )
     bringing = any(r["phase"] == "UP" for r in ours.values())
-    # a box up with every slot free: more boxes would sit free too (the door, not box count, holds the queue)
+    # a box up with every slot free while builds wait: more boxes would sit free too (the door holds the queue)
     idle_box = any(e.get("file") and not e.get("busy") for e in (boxes or {}).values())
+    why = want_box(state["samples"], now)
+    if why is None and waiting is not None and up < prewarm(config, now):
+        why = "prewarm"
     if (
         boxes is not None
+        and why is not None
         and not bringing
-        and not idle_box
+        and not (idle_box and why != "prewarm")
         and now >= state.get("backoff_until", 0)
-        and want_box(state["samples"], now, up)
     ):
         offer = client.offer(config.instance_type, config.regions)
         if offer is None or offer[1] is None:
-            log(config, action="no_capacity", waiting=waiting, n=threshold(up))
+            log(config, action="no_capacity", waiting=waiting, rule=why)
         elif not may_rent(instances, offer[0], config):
             log(
                 config,
                 action="at_cap",
                 waiting=waiting,
-                n=threshold(up),
+                rule=why,
                 instances=len(instances),
+            )
+        elif spent + offer[0] / 2 > config.max_usd_per_day:
+            # a new box costs at least its ~25 min bring-up and the first builds
+            log(
+                config,
+                action="at_day_cap",
+                waiting=waiting,
+                rule=why,
+                spent_usd=round(spent, 2),
             )
         elif DRY[0]:
             log(
@@ -558,7 +712,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 price_usd_h=offer[0],
                 region=offer[1],
                 waiting=waiting,
-                n=threshold(up),
+                rule=why,
             )
         else:
             price, region = offer
@@ -584,7 +738,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 region=region,
                 price_usd_h=price,
                 waiting=waiting,
-                n=threshold(up),
+                rule=why,
             )
             save_state(config, state)
             (spawn or _spawn_bring_up)(config, name)
@@ -595,18 +749,12 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 {
                     "dry": True,
                     "waiting_to_build": waiting,
-                    "n": threshold(up),
                     "boxes_up": up,
-                    "want_box": want_box(state["samples"], now, up),
+                    "want_box": why,
                     "idle_box_up": idle_box,
+                    "spent_today_usd": round(spent, 2),
+                    "max_usd_per_day": config.max_usd_per_day,
                     "backoff_until": state.get("backoff_until", 0),
-                    "samples_in_window": len(
-                        [
-                            x
-                            for x in state["samples"]
-                            if now - x["t"] <= UP_WINDOW_S + 60
-                        ]
-                    ),
                     "door_boxes": boxes,
                     "ours": ours,
                     "account_instances": [

@@ -1,5 +1,6 @@
-"""The on-demand A100 autoscaler (`scripts/dev/gpu_pool_autoscale.py`): rent when builds back up, drain then release a
-box idle more than an hour, never past the owner's line (3 boxes, USD 6/h), every rent and release logged with cost.
+"""The on-demand A100 autoscaler (`scripts/dev/gpu_pool_autoscale.py`): rent when builds back up (policy v2: 3 waiting
+through 5 min, or any through 10 min), drain then release a box idle 30 min, never past the owner's line (3 boxes,
+USD 6/h) or the daily cap, every rent and release logged with cost, failures paged.
 """
 
 from __future__ import annotations
@@ -41,6 +42,8 @@ def _config(tmp_path, **overrides):
         "lane_pubkey": "/k/lane.pub",
         "box_up_script": "/vm/carbon/scripts/dev/gpu_box_up.py",
         "state_dir": str(tmp_path / "state"),
+        "max_usd_per_day": 48.0,
+        "page_outbox": "",
     }
     values.update(overrides)
     (tmp_path / "state").mkdir(exist_ok=True)
@@ -105,24 +108,39 @@ def _log(config):
     ]
 
 
-def test_n_is_one_box_hour_of_builds_per_box_up():
-    assert scale.threshold(0) == scale.BUILDS_PER_BOX_HOUR == 12
-    assert scale.threshold(2) == 24
+def _samples(*waiting, every=300):
+    return [{"t": T0 + k * every, "waiting": w} for k, w in enumerate(waiting)]
 
 
-def test_a_backlog_above_n_for_15_minutes_rents_one_box(tmp_path):
+def test_rent_when_three_wait_five_minutes_or_any_waits_ten():
+    end = lambda samples: samples[-1]["t"]
+    s = _samples(3, 3)
+    assert scale.want_box(s, end(s)) == "many"
+    s = _samples(2, 3)
+    assert scale.want_box(s, end(s)) is None  # only one sample at >= 3
+    s = _samples(1, 2, 1)
+    assert scale.want_box(s, end(s)) == "any"
+    s = _samples(1, 0, 1)
+    assert scale.want_box(s, end(s)) is None
+    s = _samples(5, None, 5)
+    assert scale.want_box(s, end(s)) is None  # an unreadable queue never counts
+    # a gap in the timer is not five minutes of waiting
+    s = [{"t": T0, "waiting": 9}]
+    assert scale.want_box(s, T0 + 300) is None
+
+
+def test_three_builds_waiting_five_minutes_rents_one_box(tmp_path):
     config = _config(tmp_path)
     client, spawned = _Client(), []
-    _ticks(config, client, 13, count=3, spawned=spawned)
-    # three samples over 10 minutes: not yet 15 minutes
+    _ticks(config, client, 3, count=1, spawned=spawned)
     assert client.launched == []
-    _ticks(config, client, 13, start=T0 + 900, count=1, spawned=spawned)
+    _ticks(config, client, 3, start=T0 + 300, count=1, spawned=spawned)
     assert len(client.launched) == 1 and spawned == client.launched
     rent = [e for e in _log(config) if e["action"] == "rent"]
     assert (
         rent[0]["price_usd_h"] == PRICE
-        and rent[0]["n"] == 12
-        and rent[0]["waiting"] == 13
+        and rent[0]["rule"] == "many"
+        and rent[0]["waiting"] == 3
     )
     # while it is brought up, no second rent
     _ticks(config, client, 80, start=T0 + 1200, count=4, spawned=spawned)
@@ -132,7 +150,7 @@ def test_a_backlog_above_n_for_15_minutes_rents_one_box(tmp_path):
 def test_a_backlog_that_dips_or_is_unreadable_rents_nothing(tmp_path):
     config = _config(tmp_path)
     client = _Client()
-    for k, waiting in enumerate((40, 40, 5, 40, 40)):
+    for k, waiting in enumerate((40, 0, 40, 0, 40)):
         _ticks(config, client, waiting, start=T0 + 300 * k, count=1)
     assert client.launched == []
     _ticks(config, client, None, start=T0 + 1500, count=4)
@@ -427,8 +445,9 @@ def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
     tmp_path, monkeypatch
 ):
     """Owner C8 (no overpay): a long queue with a box up and all its slots free means the door, not the box count,
-    holds the queue (the rs116c lane starvation, 17 Nov 2026 22:38Z): no rent. After that box is released idle, the
-    next rent waits one more idle period of backlog."""
+    holds the queue (the rs116c lane starvation, 17 Nov 2026 22:38Z): no rent. After that box is released idle, a new
+    backlog rents again on the policy's own 5 minutes (policy v2: no idle-release backoff).
+    """
     config = _config(tmp_path)
     client = _Client([A100])
     idle = {"carbon-a100": {"file": True, "busy": False, "last": T0, "admitted": 0.0}}
@@ -453,9 +472,9 @@ def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
     released = held + 4000
     _ticks(config, client, 0, boxes=gone, start=released, count=1)
     assert client.terminated == ["i-a100"]
-    _ticks(config, client, 80, boxes=gone, start=released + 300, count=10)
-    assert client.launched == []  # within the idle period after the release
-    _ticks(config, client, 80, boxes=gone, start=released + 3600, count=1)
+    _ticks(config, client, 80, boxes=gone, start=released + 300, count=1)
+    assert client.launched == []
+    _ticks(config, client, 80, boxes=gone, start=released + 600, count=1)
     assert len(client.launched) == 1
     # and a busy box up does not block a rent
     (tmp_path / "b").mkdir()
@@ -562,3 +581,166 @@ def test_the_last_box_is_never_released_while_builds_wait(
         assert moved[-1][-2].endswith("carbon-a100.json.drained")
         assert moved[-1][-1].endswith("carbon-a100.json")
         assert any(e["action"] == "undrain" for e in _log(config))
+
+
+def _recording_door(calls):
+    def door(c, argv, **k):
+        calls.append((argv, k.get("stdin")))
+        return type("R", (), {"returncode": 0})()
+
+    return door
+
+
+def test_an_idle_box_is_released_after_30_minutes_not_before(tmp_path, monkeypatch):
+    """Policy v2: the burst gaps on live 116 (p50 16.6 min) stay bridged; a box free for 30 min is drained."""
+    config = _config(tmp_path)
+    assert config.idle_release_s == 1800
+    client = _Client([A100])
+    calls = []
+    _adopted(config, client, {"file": True, "busy": True, "last": T0, "admitted": T0})
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    idle = {"carbon-a100": {"file": True, "busy": False, "last": T0, "admitted": T0}}
+    _ticks(config, client, 0, boxes=idle, start=T0 + 1740, count=1)
+    assert calls == []
+    _ticks(config, client, 0, boxes=idle, start=T0 + 1860, count=1)
+    assert calls[0][0][-1].endswith("carbon-a100.json.drained")
+
+
+def test_a_draining_door_is_read_as_unreadable(monkeypatch):
+    """The idle clock counts only while the door is up AND undrained: a ``door_state`` of draining reads as no queue."""
+    config = scale.Config(**_CFG_MIN)
+    out = {"probe": json.dumps({"boxes": {}}).encode()}
+
+    def door(c, argv, **k):
+        stdout = out["probe"] if argv[0] == "python3" else out["queue"]
+        return type("R", (), {"returncode": 0, "stdout": stdout})()
+
+    monkeypatch.setattr(scale, "_door", door)
+    out["queue"] = json.dumps({"waiting_to_build": 4, "door_state": "grading"}).encode()
+    assert scale.read_door(config) == (4, {})
+    out["queue"] = json.dumps(
+        {"waiting_to_build": 4, "door_state": "draining"}
+    ).encode()
+    assert scale.read_door(config) == (None, {})
+
+
+_CFG_MIN = {
+    "lambda_key_file": "/k/lambda",
+    "instance_type": "gpu_1x_a100_sxm4",
+    "ssh_key_name": "Carbon Fresh Miner",
+    "admin_key": "/k/admin",
+    "device_kind": "NVIDIA A100-SXM4-40GB",
+    "door_ssh": "carbon@door.example",
+    "door_ssh_options": (),
+    "door_ip": "198.51.100.2",
+    "door_queue_url": "http://127.0.0.1:1/q",
+    "door_host_root": "/var/lib/carbon/accelerators",
+    "door_phase_args": ("/door/gpu_box_up.py",),
+    "lane_pubkey": "/k/lane.pub",
+    "box_up_script": "/vm/gpu_box_up.py",
+    "state_dir": "/nonexistent",
+    "max_usd_per_day": 48.0,
+}
+
+
+def test_the_daily_cap_drains_releases_pages_once_and_rents_nothing(
+    tmp_path, monkeypatch
+):
+    """Today's spend at ``max_usd_per_day``: every box of this tool drains (even the last one, builds waiting), is
+    released once its builds finish, nothing is rented until 00:00Z, and one page goes out.
+    """
+    day0 = T0 - T0 % 86400
+    config = _config(
+        tmp_path, max_usd_per_day=10.0, page_outbox="ops-watch/outbox.jsonl"
+    )
+    client = _Client([A100])
+    busy = {"file": True, "busy": True, "last": day0 + 3600, "admitted": day0}
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, {"carbon-a100": busy}),
+        now=day0 + 3600,
+    )
+    calls = []
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    # 4 h at USD 1.99 = 7.96: under the cap, nothing happens
+    _ticks(
+        config,
+        client,
+        9,
+        boxes={"carbon-a100": busy},
+        start=day0 + 4 * 3600 + 3600,
+        count=1,
+    )
+    assert calls == []
+    # 5 h = 9.95; + 1 tick = over 10
+    late = day0 + 6 * 3600 + 300
+    _ticks(config, client, 9, boxes={"carbon-a100": busy}, start=late, count=3)
+    moves = [a for a, _ in calls if a[0] == "mv"]
+    pages = [json.loads(s) for a, s in calls if a[0] == "sh"]
+    assert len(moves) == 1 and moves[0][-1].endswith("carbon-a100.json.drained")
+    assert len(pages) == 1 and pages[0]["sev"] == "ALERT"
+    assert pages[0]["key"] == "autoscale_day_cap:" + scale._day(late)
+    assert "9 builds waiting" in pages[0]["text"]
+    record = scale.load_state(config)["boxes"]["carbon-a100"]
+    assert (
+        record["phase"] == "DRAINING"
+    )  # never undrained at the cap, builds waiting or not
+    gone = {"carbon-a100": dict(busy, file=False, busy=False)}
+    _ticks(config, client, 9, boxes=gone, start=late + 900, count=4)
+    assert client.terminated == ["i-a100"] and client.launched == []
+    assert any(e["action"] == "at_day_cap" for e in _log(config))
+    release = next(e for e in _log(config) if e["action"] == "release")
+    assert release["why"] == "day_cap"
+    assert scale.load_state(config)["spent"][scale._day(late)] >= 10.0
+    # the next UTC day starts from zero: the backlog rents again
+    _ticks(config, client, 9, boxes={}, start=day0 + 86400 + 60, count=2)
+    assert len(client.launched) == 1
+
+
+def test_a_failed_bring_up_pages(tmp_path, monkeypatch):
+    config = _config(tmp_path, page_outbox="ops-watch/outbox.jsonl")
+    client = _Client()
+    calls = []
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    _ticks(config, client, 50, count=2)
+    (name,) = client.launched
+    state = scale.load_state(config)
+    state["boxes"][name].update(result="FAILED", reason="door:door_link_failed")
+    scale.save_state(config, state)
+    _ticks(config, client, 50, start=T0 + 900, count=1)
+    ((argv, stdin),) = [c for c in calls if c[0][0] == "sh"]
+    assert argv[-1] == 'cat >> "$HOME"/ops-watch/outbox.jsonl'
+    line = json.loads(stdin)
+    assert line["sev"] == "ALERT" and line["key"] == f"autoscale_bring_up_failed:{name}"
+    assert "door:door_link_failed" in line["text"] and client.terminated == ["i-0"]
+
+
+def test_the_prewarm_hook_keeps_one_box_inside_its_window(tmp_path, monkeypatch):
+    """The hook (no window is configured yet): inside a ``prewarm_utc`` window one box is rented with no backlog and
+    the last box is not released idle; outside it nothing changes."""
+    hour = (T0 % 86400) // 3600
+    config = _config(tmp_path, prewarm_utc=((hour, hour + 1),))
+    assert scale.prewarm(config, T0) == 1 and scale.prewarm(config, T0 + 3600) == 0
+    client = _Client()
+    _ticks(config, client, 0, count=1)
+    assert len(client.launched) == 1
+    assert [e["rule"] for e in _log(config) if e["action"] == "rent"] == ["prewarm"]
+    assert scale.prewarm(_config(tmp_path), T0) == 0
+
+
+def test_config_refuses_a_missing_or_too_high_daily_cap(tmp_path):
+    raw = {k: list(v) if type(v) is tuple else v for k, v in _CFG_MIN.items()}
+    path = tmp_path / "c.json"
+    for bad in (
+        {"max_usd_per_day": None},
+        {"max_usd_per_day": 145.0},
+        {"prewarm_utc": [[5, 3]]},
+    ):
+        path.write_text(json.dumps({**raw, **bad}))
+        with pytest.raises(SystemExit):
+            scale.load_config(path)
+    path.write_text(json.dumps({**raw, "prewarm_utc": [[6, 9]]}))
+    assert scale.load_config(path).prewarm_utc == ((6, 9),)
