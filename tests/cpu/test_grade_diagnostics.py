@@ -174,3 +174,17 @@ def test_only_reserved_operations_are_listed_for_reconciliation():
         "regrade-timed-2",
         "regrade-timed-9",
     ]
+
+
+def test_the_owner_ledger_is_found_under_the_receivers_owners_directory():
+    """Live ops, 18 Nov 2026: the receiver keeps each owner at ``<root>/owners/<sha256(owner)>``
+    (`OwnerProviders(root / "owners")`); the reconcile looked one level up and always refused."""
+    import hashlib
+
+    reconcile = _script("reconcile_dead_operation")
+    owner = "5" + "A" * 47
+    digest = hashlib.sha256(owner.encode()).hexdigest()
+    root = Path("/var/lib/carbon-val/state")
+    assert reconcile.owner_ledger_root(root, owner) == (
+        root / "owners" / digest / "ledger"
+    )

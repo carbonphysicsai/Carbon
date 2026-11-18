@@ -40,6 +40,13 @@ def open_operations(operations):
     )
 
 
+def owner_ledger_root(root, owner):
+    """The owner's campaign ledger directory in a receiver's state: ``<root>/owners/<sha256(owner)>/ledger`` (the
+    receiver's `OwnerProviders` keep every owner under ``<root>/owners``). Live ops, 18 Nov 2026: the path without
+    ``owners`` always refused "no campaign ledger" on live 116."""
+    return Path(root) / "owners" / hashlib.sha256(owner.encode()).hexdigest() / "ledger"
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--config", type=Path, required=True)
@@ -55,9 +62,7 @@ def main(argv=None):
 
     try:
         with owner_lock(root):
-            ledger_root = (
-                root / hashlib.sha256(args.owner.encode()).hexdigest() / "ledger"
-            )
+            ledger_root = owner_ledger_root(root, args.owner)
             if not (ledger_root / "campaign.sqlite3").is_file():
                 print(json.dumps({"refused": "no campaign ledger for this owner"}))
                 return 1
