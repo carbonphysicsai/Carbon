@@ -500,7 +500,9 @@ def test_an_overdue_busy_owner_is_never_waited_for(monkeypatch):
     assert done.wait(5) and seen == []
     assert claims.held() == {KING_OWNER} and not claims._exclusive
     alerts = [fields for event, fields in lines if event == "prelude_owners_overdue"]
-    assert len(alerts) == 1 and alerts[0]["alert"] is True  # loud, once per PRELUDE_ALERT_SECONDS (V2)
+    assert (
+        len(alerts) == 1 and alerts[0]["alert"] is True
+    )  # loud, once per PRELUDE_ALERT_SECONDS (V2)
     claims.release(KING_OWNER)
 
 
