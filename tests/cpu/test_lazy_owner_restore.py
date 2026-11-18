@@ -89,7 +89,7 @@ def _events(capsys, name):
 def test_owners_with_no_work_are_lazy_and_the_first_touch_opens_them_as_restore_would(
     tmp_path, capsys
 ):
-    root, pool = _pools(tmp_path)
+    _root, pool = _pools(tmp_path)
     eager = pool()
     expected = {
         hotkey: eager._open(hotkey, restoring=True) for hotkey in (OWNER, OTHER)
@@ -128,7 +128,7 @@ def test_owners_with_no_work_are_lazy_and_the_first_touch_opens_them_as_restore_
 
 @POSIX
 def test_an_owner_that_may_hold_work_is_opened_at_start(tmp_path, monkeypatch):
-    root, pool = _pools(tmp_path)
+    _root, pool = _pools(tmp_path)
     restarted = pool()
     real = restarted._has_work
     owner_name = hashlib.sha256(OWNER.encode()).hexdigest()
@@ -147,11 +147,9 @@ def test_an_owner_that_may_hold_work_is_opened_at_start(tmp_path, monkeypatch):
 
 
 @POSIX
-def test_an_owner_whose_stores_cannot_be_read_is_opened_at_start(
-    tmp_path, monkeypatch
-):
+def test_an_owner_whose_stores_cannot_be_read_is_opened_at_start(tmp_path, monkeypatch):
     """Doubt never makes an owner lazy: an unreadable store opens the owner at start, as before."""
-    root, pool = _pools(tmp_path)
+    _root, pool = _pools(tmp_path)
     restarted = pool()
     monkeypatch.setattr(restarted, "_has_work", lambda directory: None)
     restarted.restore()
@@ -169,7 +167,7 @@ def test_a_lazy_owner_that_cannot_reopen_is_set_aside_at_its_first_touch(
     that touched it; the other owners are unaffected."""
     from carbon.challenge_validator.interface import Unavailable
 
-    root, pool = _pools(tmp_path)
+    _root, pool = _pools(tmp_path)
     restarted = pool()
     restarted.restore()
     build = restarted._build
@@ -199,7 +197,7 @@ def test_a_lazy_owner_that_cannot_reopen_is_set_aside_at_its_first_touch(
 def test_the_lazy_owners_tasks_are_read_from_the_starts_scan(tmp_path, monkeypatch):
     """The advance pass skips a lazy owner's tasks (all terminal) before any owner check, and the public queue indexes
     them, from the start's scan; once the owner is open its own views take over."""
-    root, pool = _pools(tmp_path)
+    _root, pool = _pools(tmp_path)
     restarted = pool()
     names = {h: hashlib.sha256(h.encode()).hexdigest() for h in (OWNER, OTHER)}
     scanned = {
@@ -257,14 +255,19 @@ def test_the_crown_owners_are_opened_before_listening():
 @POSIX
 def test_an_unfinished_ledger_operation_is_work(tmp_path):
     """An operation of the owner's ledger with no finish row (RESERVED included) is work: its owner is opened at start
-    (its dead-op settle needs it). An owner with only finished tasks and operations is not."""
+    (its dead-op settle needs it). An owner with only finished tasks and operations is not.
+    """
     root, pool = _pools(tmp_path)
     live = pool()
     directory = root / hashlib.sha256(OWNER.encode()).hexdigest()
     assert live._has_work(directory) == (False, {})
     provider = live(OWNER)
     provider.ledger.reserve(
-        "open-op", owner=OWNER, phase="research", request={"kind": "direct"}, resources={}
+        "open-op",
+        owner=OWNER,
+        phase="research",
+        request={"kind": "direct"},
+        resources={},
     )
     found = live._has_work(directory)
     assert found is not None and found[0] is True

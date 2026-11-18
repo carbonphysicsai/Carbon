@@ -2053,9 +2053,7 @@ class OwnerProviders:
             migrated_image_bindings=getattr(
                 self, "migrated_image_bindings", frozenset()
             ),
-            migrated_graph_gpu_images=getattr(
-                self, "migrated_graph_gpu_images", {}
-            ),
+            migrated_graph_gpu_images=getattr(self, "migrated_graph_gpu_images", {}),
             migrated_bundle_images=getattr(self, "migrated_bundle_images", {}),
             **(
                 {}
@@ -2116,7 +2114,12 @@ class OwnerProviders:
                     hotkey, restoring=restoring, host=host
                 )
                 self._register(
-                    hotkey, provider, control, frozen_admission, live, restoring=restoring
+                    hotkey,
+                    provider,
+                    control,
+                    frozen_admission,
+                    live,
+                    restoring=restoring,
                 )
             if (
                 not restoring
@@ -2128,9 +2131,12 @@ class OwnerProviders:
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
 
-    def _register(self, hotkey, provider, control, frozen_admission, live, *, restoring):
+    def _register(
+        self, hotkey, provider, control, frozen_admission, live, *, restoring
+    ):
         """Hold a just-built provider (`_build`) as this receiver's: called under the receiver's lock. A restored owner
-        whose registration a FRESH snapshot shows revoked keeps cleanup custody only (its queued tasks cancelled)."""
+        whose registration a FRESH snapshot shows revoked keeps cleanup custody only (its queued tasks cancelled).
+        """
         self._providers[hotkey] = provider
         self._controls[hotkey] = control
         self._admissions[hotkey] = frozen_admission
@@ -2198,9 +2204,12 @@ class OwnerProviders:
 
     def lazy_tasks(self):
         """The task ids every lazy owner holds (all terminal): what the advance pass skips before any owner check, as it
-        skips an open provider's non-QUEUED tasks (`LeanRecipeAdapter._advance_skip`)."""
+        skips an open provider's non-QUEUED tasks (`LeanRecipeAdapter._advance_skip`).
+        """
         with self._lock:
-            return frozenset(task for index in self._lazy_index.values() for task in index)
+            return frozenset(
+                task for index in self._lazy_index.values() for task in index
+            )
 
     def lazy_index(self):
         """``{task id: (state name, created unix seconds)}`` over every lazy owner, read by `restore`'s scan (the public
@@ -2269,7 +2278,8 @@ class OwnerProviders:
         manifest migrated under this start's declared migration, its interrupted work reconciled), holding only that
         owner's gate: any other owner's request goes on meanwhile. A failure sets it aside exactly as `restore` does
         (``owner_restore_set_aside``; its requests refused ``direct_provider_owner_set_aside``; `set_aside` names it),
-        never an error of the request that touched it. Nothing for an owner that is not lazy."""
+        never an error of the request that touched it. Nothing for an owner that is not lazy.
+        """
         name = hashlib.sha256(hotkey.encode()).hexdigest()
         with self._lock:
             if self._lazy.get(name) != hotkey:
@@ -2282,7 +2292,7 @@ class OwnerProviders:
             began = time.monotonic()
             try:
                 built = self._build(hotkey, restoring=True, host=False)
-            except Exception as failure:
+            except Exception as failure:  # noqa: BLE001 - any failure sets the owner aside, as `restore` does
                 with self._lock:
                     self._lazy.pop(name, None)
                     self._lazy_index.pop(name, None)
@@ -2466,7 +2476,7 @@ def _open_crown_owners(grader):
     as any lazy owner; never a reason not to start."""
     try:
         grader._prelude_owners()
-    except Exception:  # noqa: BLE001 - `_prelude_owners` already reads doubt as "every owner", taken on first touch
+    except Exception:  # noqa: BLE001, S110 - doubt: those owners open on their first touch
         pass
 
 
