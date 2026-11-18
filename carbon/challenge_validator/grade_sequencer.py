@@ -91,6 +91,13 @@ class Sequencer:
                 and now - self._started.get(ticket, now) > seconds
             ]
 
+    def age(self, ticket, now=None):
+        """Seconds since ``ticket``'s grade was claimed (None when unknown)."""
+        now = time.monotonic() if now is None else now
+        with self._order:
+            started = self._started.get(ticket)
+        return None if started is None else now - started
+
     def abandon(self, ticket):
         """End a hung grade's place in the order (`overdue`): later grades no longer wait for it, and its own thread,
         should it ever wake, raises `GradeAbandoned` at its next commit turn instead of writing anything.

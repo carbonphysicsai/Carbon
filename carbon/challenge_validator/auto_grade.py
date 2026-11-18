@@ -633,6 +633,8 @@ class AutoGrader:
         from . import infra_requeue
 
         for ticket, submission_id in sequencer.overdue(limit):
+            # its claim age goes in the log line (V2): the first real use shows whether the limit cut a healthy grade
+            age = sequencer.age(ticket)
             sequencer.abandon(ticket)
             # V2 (18 Nov 2026): the hung grade's create-only evaluation files (its pack binding first) are set aside
             # NOW, whatever their age (`started` = infinity: this process wrote them), else `_fail`'s automatic retry, in
@@ -649,7 +651,13 @@ class AutoGrader:
             try:
                 from carbon.battery.intake import log
 
-                log("grade_hung_ended", task=submission_id, seconds=limit, kept=kept)
+                log(
+                    "grade_hung_ended",
+                    task=submission_id,
+                    seconds=limit,
+                    claimed_s=None if age is None else round(age, 1),
+                    kept=kept,
+                )
             except Exception:  # noqa: BLE001, S110 - a log line never stops this
                 pass
             self._fail(submission_id, GRADE_HUNG)

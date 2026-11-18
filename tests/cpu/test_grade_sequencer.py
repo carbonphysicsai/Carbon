@@ -462,3 +462,23 @@ def test_a_parallel_door_runs_two_grade_threads_per_lane_so_a_commit_wait_never_
     assert direct_intake.grade_rounds(1) == 1
     assert direct_intake.grade_rounds(2) == 4
     assert direct_intake.grade_rounds(10) == 20
+
+
+def test_a_hung_grade_line_logs_its_claim_age(monkeypatch):
+    """V2 (18 Nov 2026): `grade_hung_ended` carries the grade's claim age, so the first real use shows whether the
+    limit cut a healthy grade."""
+    from carbon.battery import intake
+
+    lines = []
+    monkeypatch.setattr(intake, "log", lambda event, **kw: lines.append((event, kw)))
+    monkeypatch.setattr(auto_grade, "GRADE_HUNG_SECONDS", -1)
+    sequencer = grade_sequencer.Sequencer()
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.root = None
+    grader._fail = lambda sid, code: None
+    with sequencer.task() as task:
+        task.bind("hung", "h:x")
+        assert sequencer.age(task.ticket) >= 0
+        grader._end_hung_grades(sequencer)
+    ((event, fields),) = [line for line in lines if line[0] == "grade_hung_ended"]
+    assert fields["task"] == "hung" and fields["claimed_s"] >= 0
