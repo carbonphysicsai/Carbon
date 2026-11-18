@@ -10,7 +10,8 @@ calls the real `_counted_bank_grade`. Its Motor 1.5 pool fixture is registered a
   that retry REALLY times again (a fresh single-call identity, the graded bytes reused), and a second disagreement
   stays FAILED for the operator;
 - graded bytes retained by another inference (no record, or a different program text, staged module or worker image)
-  are refused as `graded_program_changed` before any pair, never compared, the slot released, never retried; a
+  are refused as `graded_program_changed` before any pair, never compared, the slot released; its automatic retry
+  (switch 5) takes a fresh regrade generation, so the graded pass runs again under the current program and grades; a
   same-everything retry grades;
 - a vmap-64 grade off its sealed pack is refused, typed and never retried;
 - an unset speed-match row stops the grade before any exam read or inference.
@@ -28,7 +29,13 @@ import pytest
 import test_graph_pool_counted_e2e as e2e
 from test_pool_dual_e2e import MOTOR, VERSION, case  # noqa: F401
 
-from carbon.challenge_validator import auto_grade, auto_retry, exam_cap, speed_match
+from carbon.challenge_validator import (
+    auto_grade,
+    auto_retry,
+    exam_cap,
+    infra_requeue,
+    speed_match,
+)
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.development_session import (
     bundle_construction_worker,
@@ -263,15 +270,27 @@ def test_graded_bytes_of_another_inference_are_never_compared(
         return
     assert outcome == (e2e.TASK, "FAILED")
     assert marker["code"] == retention.GRADED_PROGRAM_CHANGED
-    assert (
-        marker["next_step"] == "resubmit_program_changed"
-    )  # never an automatic retry into the same record
-    assert auto_retry.retryable(retention.GRADED_PROGRAM_CHANGED) is False
+    assert marker["next_step"] == "retry_scheduled"
+    assert auto_retry.retryable(retention.GRADED_PROGRAM_CHANGED) is True
     assert fixture.calls == [
         "bank"
     ]  # no pair, no single call, no new graded pass: nothing compared
     assert all(row[2] == "RELEASED" for row in e2e._cap_rows(fixture))
     assert fixture.store.incumbent() is None
+    # the retry, as `infra_requeue.requeue` hands it back: the `.regenerate` mark beside the grader's artifacts, so the
+    # regrade takes generation 1 and its graded pass runs afresh under the current program, then pair and single calls
+    kept = fixture.base.parent / "requeued"
+    assert infra_requeue._mark_regenerate(
+        {"marker": _marker_path(root), "kept_marker": kept / "kept-marker.json"},
+        e2e.TASK,
+        1,
+    )
+    assert retention._regrade_generation(fixture.base, e2e.TASK) == 1
+    _requeue(fixture, root)
+    outcome, marker = _graded_by(auto_grade.AutoGrader(_Intake(fixture), root), root)
+    assert outcome == (e2e.TASK, "GRADED"), marker
+    assert fixture.calls == ["bank", "bank", "pair", "single"]
+    assert e2e._cap_rows(fixture)[-1][2] == "COUNTED"
 
 
 def test_a_vmap64_grade_off_its_sealed_pack_is_refused_typed_and_not_retried(

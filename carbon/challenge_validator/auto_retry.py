@@ -38,12 +38,13 @@ NEXT_STEPS = {
     "resubmit_program_changed": "Carbon's grading program changed while this grade was in progress; no slot was charged "
     "for it; resubmit it and it is built and graded again from the start under the current program.",
 }
-#: Carbon codes an automatic retry cannot fix (review of 15 Nov, findings 2b and 3): a vmap-64 grade whose retained
-#: graded bytes were made by another inference (`lean_recipe_retention.GRADED_PROGRAM_CHANGED`: its write-once regrade
-#: would meet the same record) and a vmap-64 grade off its sealed pack (`VMAP64_NEEDS_SEALED_PACK`). Never retried.
-_NOT_RETRIED = frozenset({"graded_program_changed", "vmap64_grade_needs_sealed_pack"})
+#: Carbon codes an automatic retry cannot fix (review of 15 Nov, finding 3): a vmap-64 grade off its sealed pack
+#: (`VMAP64_NEEDS_SEALED_PACK`). Never retried. (``graded_program_changed`` IS retried since switch 5: its hand-back
+#: leaves a ``.regenerate`` mark, `infra_requeue.REGENERATE_CAUSES`, so the retry's graded pass runs afresh.)
+_NOT_RETRIED = frozenset({"vmap64_grade_needs_sealed_pack"})
 #: The next step a FAILED marker shows for a code that names its own (the operator's plain line), else the usual rule.
-OWN_NEXT_STEPS = {"graded_program_changed": "resubmit_program_changed"}
+#: ``resubmit_program_changed`` stays a closed code for markers written before switch 5; no code chooses it now.
+OWN_NEXT_STEPS = {}
 #: Spacing of the one retry after its failure (the crown sweep's own retry spacing), and when a retry that waited for
 #: an idle tick is applied anyway.
 RETRY_SECONDS = 15 * 60

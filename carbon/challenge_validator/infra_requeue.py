@@ -247,6 +247,25 @@ def _keep_evaluation(paths):
     return True
 
 
+#: Failure codes whose re-run must not read back the earlier attempt's regrade (its retained graded bytes were made by
+#: another inference, `lean_recipe_retention.GRADED_PROGRAM_CHANGED`): the hand-back leaves a ``.regenerate`` mark and
+#: the re-run's regrade takes the next generation (`lean_recipe_retention._regrade_generation`), so its graded pass runs
+#: afresh under the current program, uncharged on the task's own row.
+REGENERATE_CAUSES = frozenset({"graded_program_changed"})
+
+
+def _mark_regenerate(paths, task, attempt):
+    """Before a FAILED attempt's marker is moved aside: when its code is a `REGENERATE_CAUSES` one, leave
+    ``requeued/<task>.attempt-<attempt>.regenerate``. True when the mark is there."""
+    _state, code = _marker_body(paths["marker"])
+    if type(code) is not str or code.split(":", 1)[0] not in REGENERATE_CAUSES:
+        return False
+    mark = paths["kept_marker"].parent / f"{task}.attempt-{attempt}.regenerate"
+    mark.parent.mkdir(mode=0o700, exist_ok=True)
+    mark.touch(mode=0o600, exist_ok=True)
+    return True
+
+
 def _marker(path):
     """The marker's state, None when there is none, or UNREADABLE."""
     from .auto_grade import SCHEMA as MARKER_SCHEMA
@@ -607,6 +626,7 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns, auto=False):
                 os.replace(paths["failure"], paths["kept_failure"])
             # Attempt 1's create-only evaluation files too, so attempt 2 binds and grades under its own entry.
             kept_evaluation = _keep_evaluation(paths)
+            _mark_regenerate(paths, task, attempt)
             # The commit point: with no marker, the grader's next tick takes the task.
             os.replace(paths["marker"], paths["kept_marker"])
             with open(
@@ -1402,6 +1422,7 @@ def _hand_back_once(paths, task, attempt, cap, *, log_name, kind, cause, ruling,
     if paths["failure"].exists():
         os.replace(paths["failure"], paths["kept_failure"])
     _keep_evaluation(paths)
+    _mark_regenerate(paths, task, attempt)
     # the commit point: with no marker, the grader's next tick takes the task
     os.replace(paths["marker"], paths["kept_marker"])
     with open(
@@ -1694,6 +1715,7 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
             if paths["failure"].exists():
                 os.replace(paths["failure"], paths["kept_failure"])
             _keep_evaluation(paths)
+            _mark_regenerate(paths, task, attempt)
             # the commit point: with no marker, the grader's next tick takes the task
             os.replace(paths["marker"], paths["kept_marker"])
             with open(

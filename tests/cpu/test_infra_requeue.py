@@ -287,6 +287,31 @@ def test_requeue_hands_back_once_and_the_real_auto_grader_takes_it(tmp_path):
     assert again["refused"] == {A: "already_requeued"}
 
 
+def test_a_graded_program_change_hands_back_with_a_regenerate_mark_and_no_other_code_does(
+    tmp_path,
+):
+    """Switch 5: a `graded_program_changed` grade's re-run must not read back the earlier regrade's graded bytes, so its
+    hand-back leaves ``<task>.attempt-1.regenerate`` (the regrade then takes the next generation); any other code does
+    not, so its re-run keeps reusing what it may."""
+    from carbon.challenge_validator import infra_requeue
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    _failed(root, ledger, B)
+    marker = root / "auto-grade" / "markers" / (A + ".json")
+    body = json.loads(marker.read_text())
+    marker.write_text(json.dumps({**body, "code": "graded_program_changed"}))
+    out = infra_requeue.requeue(root, [A, B], apply=True)
+    assert out["requeued"] == [A, B], out
+    kept = root / "auto-grade" / "requeued"
+    assert (kept / f"{A}.attempt-1.regenerate").is_file()
+    assert not (kept / f"{B}.attempt-1.regenerate").exists()
+    base = root / "auto-grade" / "artifacts"
+    assert retention._regrade_generation(base, A) == 1
+    assert retention._regrade_generation(base, B) == 0
+
+
 @pytest.mark.parametrize(
     "marker, row, code",
     [

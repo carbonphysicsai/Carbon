@@ -274,7 +274,9 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False, ensemble=Fal
             # A fresh source-free bank inference. The real caller snapshots and
             # authenticates these originals, and regenerates graph evidence.
             calls.append("bank")
-            operation = "operation-" + "c" * 64
+            # each graded pass its own operation (a second one: a retry under a fresh regrade generation)
+            passes = calls.count("bank")
+            operation = "operation-" + ("c" * 64 if passes == 1 else f"{passes:064x}")
             snapshot = campaign.root / operation / "snapshot"
             snapshot.mkdir(parents=True)
             raw = artifacts["predictions.json"]

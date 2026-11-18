@@ -384,3 +384,9 @@ def test_each_next_step_has_its_one_sentence():
     }
     assert all(type(s) is str and s for s in auto_retry.NEXT_STEPS.values())
     assert set(auto_retry.OWN_NEXT_STEPS.values()) <= set(auto_retry.NEXT_STEPS)
+
+
+def test_a_graded_program_change_is_retried_like_any_transient_carbon_code():
+    assert auto_retry.retryable("graded_program_changed") is True
+    assert auto_retry.retryable("vmap64_grade_needs_sealed_pack") is False
+    assert "graded_program_changed" not in auto_retry.OWN_NEXT_STEPS

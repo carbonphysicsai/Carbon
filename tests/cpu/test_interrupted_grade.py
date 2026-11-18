@@ -140,6 +140,11 @@ def test_a_rerun_of_a_counted_grade_counts_its_earlier_attempts(tmp_path):
         )
     assert retention._regrade_generation(base, TASK) == 2
     assert retention._regrade_generation(base, OTHER) == 1
+    # a hand-back of a graded_program_changed failure (`infra_requeue._mark_regenerate`) counts as an attempt too
+    (kept / f"{TASK}.attempt-2.regenerate").write_text("")
+    (kept / f"{OTHER}.interrupted-1.regenerate").write_text("")  # not a hand-back mark
+    assert retention._regrade_generation(base, TASK) == 3
+    assert retention._regrade_generation(base, OTHER) == 1
 
 
 def test_a_settled_infrastructure_failure_is_never_returned_as_a_worker_result(

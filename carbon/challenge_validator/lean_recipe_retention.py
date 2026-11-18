@@ -2244,8 +2244,9 @@ def _speed_run(kind, stage, ceiling, identity):
 
 #: The retained graded predictions were produced by a different inference (program text, staged modules or worker
 #: image) than the one a comparison against them would run now (review of 15 Nov, findings 1 and 1b): Carbon's, never
-#: the candidate's (FAILED_INFRA, slot released). NOT retried automatically (`auto_retry`): the regrade's graded bytes
-#: are write-once, so a retry meets the same record; the drain at a switch prevents it, a resubmit is graded afresh.
+#: the candidate's (FAILED_INFRA, slot released). Retried automatically (`auto_retry`), uncharged on the task's own row:
+#: the hand-back leaves a ``.regenerate`` mark (`infra_requeue.REGENERATE_CAUSES`), so the retry's regrade takes a fresh
+#: generation and its graded pass runs again under the current program (a switch needs no drain to idle for it).
 GRADED_PROGRAM_CHANGED = "graded_program_changed"
 #: A vmap-64 version graded without a regrade's record: the task's own inference on a NON-SEALED pack (regrade None).
 #: Motor 1.8 is only ever graded on its sealed pool pack (`_counted_bank_grade`), so this is never its path; typed,
@@ -5508,7 +5509,9 @@ def _uncounted_generation(base, regrade_id_at):
 def _regrade_generation(base, origin):
     """How many earlier attempts of ``origin``'s grade left an evaluation directory: kept by a hand-back
     (``<origin>.attempt-<n>.evaluation``) or set aside after an interruption (``<origin>.interrupted-<k>.evaluation``),
-    both in the grader's ``auto-grade/requeued`` beside ``artifacts`` (`infra_requeue`). 0 for a first attempt.
+    both in the grader's ``auto-grade/requeued`` beside ``artifacts`` (`infra_requeue`), plus each hand-back of a
+    ``graded_program_changed`` failure (``<origin>.attempt-<n>.regenerate``, `infra_requeue.REGENERATE_CAUSES`: its
+    regrade's graded bytes are another inference's, so the re-run never reads them back). 0 for a first attempt.
     """
     try:
         names = [path.name for path in (Path(base).parent / "requeued").iterdir()]
@@ -5519,8 +5522,13 @@ def _regrade_generation(base, origin):
         1
         for name in names
         if name.startswith(prefix)
-        and name.endswith(".evaluation")
-        and (".attempt-" in name or ".interrupted-" in name)
+        and (
+            (
+                name.endswith(".evaluation")
+                and (".attempt-" in name or ".interrupted-" in name)
+            )
+            or (name.endswith(".regenerate") and ".attempt-" in name)
+        )
     )
 
 
