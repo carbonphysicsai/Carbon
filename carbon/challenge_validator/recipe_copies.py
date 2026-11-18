@@ -79,7 +79,8 @@ _PREPARED: set = set()
 
 def _prepared_once(ledger, contract_digest):
     """The tables and this contract's activation point (`_activation` writes it on its first call), made once per
-    process on the write lock; every later decision reads them on a read-only snapshot."""
+    process on the write lock; every later decision reads them on a read-only snapshot.
+    """
     key = (str(getattr(ledger, "path", id(ledger))), contract_digest)
     if key in _PREPARED:
         return
@@ -231,7 +232,8 @@ def decide(
         # every task with a stored digest, and those sharing this one's (`recipe_copy_by_digest`): cross-account,
         # matched by digest only (V2)
         known = {
-            row[0] for row in db.execute("SELECT submission_id FROM recipe_copy_digests")
+            row[0]
+            for row in db.execute("SELECT submission_id FROM recipe_copy_digests")
         }
         mine = _stored(db, submission_id)
         same = (

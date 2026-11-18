@@ -667,17 +667,24 @@ def _many(door, count):
     door.submit(T[0], HOTKEYS[0], _recipe())
     door.submit(T[1], HOTKEYS[1], _recipe())
     for sid in [*many, T[0], T[1]]:
-        recipe_copies.recipe_digest(door.adapter, sid, door.ledger)  # stored, as at admission
+        recipe_copies.recipe_digest(
+            door.adapter, sid, door.ledger
+        )  # stored, as at admission
     return many
 
 
-def test_a_decision_takes_no_write_lock_and_opens_no_owner_for_stored_digests(door, monkeypatch):
+def test_a_decision_takes_no_write_lock_and_opens_no_owner_for_stored_digests(
+    door, monkeypatch
+):
     """Live 116, 18 Nov 2026 (stack 20:24:26Z): `decide` opened a BEGIN IMMEDIATE per earlier submission under the
     grade claim and every grade stopped behind the build rounds' ledger reads. Now, with every digest stored, a decision
     over many earlier submissions takes NO write transaction (one read-only snapshot) and opens no owner, and decides
     the same, cross-account, by digest only."""
     _many(door, 40)
-    assert _decide(door, T[1]) == (recipe_copies.WAIT, T[0])  # warm: the tables + activation made once
+    assert _decide(door, T[1]) == (
+        recipe_copies.WAIT,
+        T[0],
+    )  # warm: the tables + activation made once
     writes = []
     real = door.ledger._db
 
@@ -691,13 +698,17 @@ def test_a_decision_takes_no_write_lock_and_opens_no_owner_for_stored_digests(do
         raise AssertionError("an owner was opened for a stored digest")
 
     monkeypatch.setattr(door.adapter, "owner", no_owner)
-    assert _decide(door, T[1]) == (recipe_copies.WAIT, T[0])  # T0 unsettled, from another account: same decision
+    assert _decide(door, T[1]) == (
+        recipe_copies.WAIT,
+        T[0],
+    )  # T0 unsettled, from another account: same decision
     assert writes == []
 
 
 def test_a_claim_over_400_earlier_submissions_with_6_concurrent_readers_is_quick(door):
     """Lead (18 Nov 2026): a claim with 400 earlier submissions while 6 advance rounds read the ledger finishes in
-    well under a second's worth of ledger work per claim (it used to queue a write lock per earlier submission)."""
+    well under a second's worth of ledger work per claim (it used to queue a write lock per earlier submission).
+    """
     import threading
     import time
 
