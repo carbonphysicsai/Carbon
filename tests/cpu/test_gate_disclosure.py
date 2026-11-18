@@ -1,6 +1,7 @@
 """Owner G14 (18 Nov 2026; V2's spec GATE_DISCLOSURE_20261118): the miner's own grade shows, per registered gate, its
 published rule, its result, a closed reason code and the plain-language reason (Ladder feedback v5), and nothing else
-from the exam: no case, count, value, margin, unpublished threshold, timing, partial score, digest or other hotkey."""
+from the exam: no case, count, value, margin, unpublished threshold, timing, partial score, digest or other hotkey.
+"""
 
 from __future__ import annotations
 
@@ -39,7 +40,11 @@ def _graded(status="MANDATORY_GATE_FAILED", gates=None):
         "score": SENTINELS["partial"],
         "legs": {"A": SENTINELS["value"], "D": SENTINELS["partial"]},
         "gates": (
-            {"native_motor_valid": "PASS", "complete_fixed_coverage": "PASS", "physics_pool": "FAIL"}
+            {
+                "native_motor_valid": "PASS",
+                "complete_fixed_coverage": "PASS",
+                "physics_pool": "FAIL",
+            }
             if gates is None
             else gates
         ),
@@ -70,7 +75,9 @@ def _document(graded, rules=RULES):
 def test_a_failed_gate_shows_its_published_rule_result_and_plain_reason():
     document = _document(_graded())
     assert document["schema"] == gf.SCHEMA_V5 and document["stage"] == "grading"
-    assert document["status"] == "GATE_FAILED" and document["gate_names"] == ["physics_pool"]
+    assert document["status"] == "GATE_FAILED" and document["gate_names"] == [
+        "physics_pool"
+    ]
     report = {entry["name"]: entry for entry in document["gate_report"]}
     assert set(report) == set(GATES)
     assert report["physics_pool"] == {
