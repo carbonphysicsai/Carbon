@@ -251,6 +251,24 @@ class AttemptLedger:
         finally:
             db.close()
 
+    @contextlib.contextmanager
+    def _read(self):
+        """A read-only connection: one DEFERRED transaction (a consistent snapshot), never the write lock, so readers
+        never queue behind each other or hold a writer back while they read. Live 116, 18 Nov 2026: the advance pass's
+        per-task owner reads (`BEGIN IMMEDIATE` each) queued 17 threads on the write lock, the grade claimer's write
+        among them."""
+        db = sqlite3.connect(
+            self.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+        )
+        try:
+            db.execute("BEGIN")
+            try:
+                yield db
+            finally:
+                db.execute("ROLLBACK")
+        finally:
+            db.close()
+
     def record(self, submission, *, kind, code=None, submission_id=None, state=None):
         if kind not in KINDS:
             raise ValueError("unknown attempt kind")
@@ -323,7 +341,7 @@ class AttemptLedger:
         A recipe intent is committed before the direct task, closing the
         cross-ledger crash gap. Ambiguous ownership fails closed.
         """
-        with self._db() as db:
+        with self._read() as db:
             rows = db.execute(
                 "SELECT DISTINCT hotkey FROM ("
                 "SELECT hotkey FROM attempts WHERE kind='OUTCOME' "
@@ -430,7 +448,7 @@ class AttemptLedger:
         (`AutoGrader.pending`) both walk this order, so no newer submission is rebuilt or graded before an older one
         of the same door. (It was by id, random hex, so an older task could be jumped again and again.)
         """
-        with self._db() as db:
+        with self._read() as db:
             rows = db.execute(
                 "SELECT t.submission_id FROM ("
                 "SELECT submission_id, MIN(seq) AS first FROM attempts WHERE kind='OUTCOME' "
@@ -627,7 +645,7 @@ class AttemptLedger:
 
     def first_outcome_ns(self, contract_digest, submission_id):
         """When the task's submission was accepted (its first OUTCOME row's ``at_ns``), or None."""
-        with self._db() as db:
+        with self._read() as db:
             row = db.execute(
                 "SELECT at_ns FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=? "
                 "ORDER BY seq LIMIT 1",

@@ -12,7 +12,9 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import os
 import re
+import stat as _stat
 from collections.abc import Callable
 from pathlib import Path
 
@@ -98,11 +100,30 @@ def _source_identity() -> str:
         for module in (*BUNDLE_STAGED_MODULES, *GRAPH_STAGED_MODULES)
     }
     for name in sorted(set(_SOURCE_PATHS) | staged):
-        path = root / name
-        if path.is_symlink() or not path.is_file():
-            raise ValueError("served recipe source unavailable")
-        observed[name] = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        observed[name] = _file_sha256(root / name)
     return digest({"schema": "carbon.lean-recipe-source-binding.v1", "files": observed})
+
+
+#: path -> ((device, inode, size, mtime_ns, ctime_ns), sha256): a source file is hashed again only when its stat moved
+#: (live 116, 18 Nov 2026: `_source_identity` ran on every owner check, ~84 GB read at one start)
+_SOURCE_HASHES = {}
+
+
+def _file_sha256(path):
+    """``sha256:<hex>`` of a served source file (a regular file, never a link), re-read only when its stat moved."""
+    try:
+        stat = os.lstat(path)
+    except OSError:
+        raise ValueError("served recipe source unavailable") from None
+    if not _stat.S_ISREG(stat.st_mode):
+        raise ValueError("served recipe source unavailable")
+    key = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    cached = _SOURCE_HASHES.get(str(path))
+    if cached is not None and cached[0] == key:
+        return cached[1]
+    value = "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    _SOURCE_HASHES[str(path)] = (key, value)
+    return value
 
 
 def _implementation_identity() -> str:
@@ -1016,8 +1037,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # A19 (Lead, 16 Nov 2026): a door with N lanes runs N advance rounds at once; each takes the first queued task
         # whose owner no other round holds (`grade_sequencer.OwnerClaims`: one owner's ledger lease is non-blocking).
         claims = getattr(self, "owner_claims", None)
+        not_queued = self._not_queued_views()
         for submission_id in self.ledger.submitted_outcomes(self.contract_digest):
-            if self._held_not_queued(submission_id):
+            if submission_id in not_queued:
                 continue
             owner = self._active_owner(submission_id)
             if owner is None:
@@ -1038,23 +1060,28 @@ class LeanRecipeAdapter(ChallengeAdapter):
             break
         return moved
 
-    def _held_not_queued(self, submission_id):
-        """Whether the task's owner's provider, already open at this door, holds its view in a state other than QUEUED:
-        nothing for `advance` to start, so the round skips it before the owner check and the read
-        (`get_research_result` verifies a SUCCEEDED task's evidence from disk). Live 116, 18 Nov 2026: the first round
-        after every restart read every finished task the door ever took, ~25 min before the first build. The view is
-        the same one `get_research_result` returns. Anything not known here (no open provider, no view): False, the
-        round reads it as before."""
+    def _not_queued_views(self):
+        """The task ids the door's already-open providers hold in a state other than QUEUED: nothing for `advance` to
+        start, so a pass skips them before the owner check and the read (`get_research_result` verifies a SUCCEEDED
+        task's evidence from disk, and `owner` reads the ledger and the source identity). Live 116, 18 Nov 2026: the
+        first pass after every restart read every finished task the door ever took, ~25 min before the first build,
+        its ledger reads queued with every grade's. The views are the ones `get_research_result` returns, read with no
+        ledger access; a task not here (no open provider, no view) is read as before.
+        """
         from carbon.research import DirectTaskStateV3
 
         opened = getattr(self.provider_for, "_providers", None)
         if type(opened) is not dict:
-            return False
-        hotkey = self.ledger.owned_outcome(self.contract_digest, submission_id)
-        provider = opened.get(hotkey) if type(hotkey) is str else None
-        views = getattr(provider, "_views", None)
-        view = views.get(submission_id) if type(views) is dict else None
-        return view is not None and view.state is not DirectTaskStateV3.QUEUED
+            return frozenset()
+        skipped = set()
+        for provider in tuple(opened.values()):
+            views = getattr(provider, "_views", None)
+            if type(views) is not dict:
+                continue
+            for task, view in tuple(views.items()):
+                if getattr(view, "state", None) is not DirectTaskStateV3.QUEUED:
+                    skipped.add(task)
+        return frozenset(skipped)
 
     #: A19: this adapter's advance takes owners through `owner_claims`, so a door may run one advance round per lane.
     PARALLEL_ADVANCE = True
