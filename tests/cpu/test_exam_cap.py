@@ -1818,6 +1818,8 @@ def test_an_unfinished_counted_grade_gives_its_slot_back(cap):
     cap.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE")
     assert cap.give_back_unfinished(slot) is True
     with cap.ledger._db() as db:
-        row = db.execute("SELECT state, status FROM exam_graded WHERE id=?", (slot,)).fetchone()
+        row = db.execute(
+            "SELECT state, status FROM exam_graded WHERE id=?", (slot,)
+        ).fetchone()
     assert row == ("RELEASED", "FAILED_INFRA")
     assert cap.give_back_unfinished(slot) is False  # once

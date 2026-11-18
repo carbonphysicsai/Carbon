@@ -615,7 +615,7 @@ def test_a_failure_after_the_counted_settle_gives_the_slot_back(
     as Carbon's (raised) or returned UNAVAILABLE."""
     fixture = _setup(case, tmp_path, monkeypatch)
     code = (
-        sorted(retention._propagated_carbon_failures())[0]
+        min(retention._propagated_carbon_failures())
         if propagated
         else "binding_failed_after_settle"
     )
@@ -626,7 +626,9 @@ def test_a_failure_after_the_counted_settle_gives_the_slot_back(
     from carbon.scoring import private_evaluation_evidence
 
     # imported inside the retention function: patched where it is defined
-    monkeypatch.setattr(private_evaluation_evidence, "bind_private_evaluation_evidence", fails)
+    monkeypatch.setattr(
+        private_evaluation_evidence, "bind_private_evaluation_evidence", fails
+    )
     if propagated:
         with pytest.raises(retention.RetentionUnavailable):
             _grade(fixture, counted=True)
