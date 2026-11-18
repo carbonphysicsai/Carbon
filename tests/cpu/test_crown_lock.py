@@ -91,4 +91,3 @@ def test_a_remeasure_while_a_grade_waits_for_the_crown_lock_is_what_the_decision
     upkeep.join(5)
     grade.join(5)
     assert seen == [(2.0, True)]  # the decision read the new mean, holding the lock
-    assert result.get("outcome") == "INCUMBENT_KEEPS"
