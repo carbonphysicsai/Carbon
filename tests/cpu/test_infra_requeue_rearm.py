@@ -398,7 +398,8 @@ def test_the_automatic_retry_never_hands_back_a_later_attempt_after_a_candidate_
     root, ledger = _root(tmp_path)
     _custody_task(root, ledger, A, _recipe("cand"))
     infra_requeue.requeue(root, [A], apply=True, auto=True)
-    _rerun_failed_again(root, ledger, A, code="MinerProgramFailure")
+    # the candidate's own crash (not the contended wall-stop evidence, which is Carbon's and IS handed back)
+    _rerun_failed_again(root, ledger, A, code="MinerProgramFailure", evidence=CRASH)
     assert infra_requeue.requeue(root, [A], apply=True, auto=True)["refused"] == {
         A: "candidate_program_failure"
     }

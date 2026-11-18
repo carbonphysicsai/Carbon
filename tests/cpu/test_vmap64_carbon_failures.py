@@ -290,7 +290,14 @@ def test_graded_bytes_of_another_inference_are_never_compared(
     outcome, marker = _graded_by(auto_grade.AutoGrader(_Intake(fixture), root), root)
     assert outcome == (e2e.TASK, "GRADED"), marker
     assert fixture.calls == ["bank", "bank", "pair", "single"]
-    assert e2e._cap_rows(fixture)[-1][2] == "COUNTED"
+    rows = e2e._cap_rows(fixture)
+    if switch == "image_id":
+        # a moved worker image: the fresh graded pass runs, then the grade cannot be computed on that image (a typed
+        # reason in the marker, the slot released: uncharged), as for any image move; never compared, never charged
+        assert marker.get("code"), (marker, rows)
+        assert all(row[2] == "RELEASED" for row in rows), (marker, rows)
+    else:
+        assert rows[-1][2] == "COUNTED", (marker, rows)
 
 
 def test_a_vmap64_grade_off_its_sealed_pack_is_refused_typed_and_not_retried(

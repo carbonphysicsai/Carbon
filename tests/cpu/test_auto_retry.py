@@ -248,7 +248,11 @@ def test_a_quiet_door_runs_the_round_that_applies_a_due_retry(tmp_path, monkeypa
     assert grader.has_work() is False  # applied once: nothing due any more
 
 
-def test_a_second_infra_failure_gets_no_second_retry(tmp_path, monkeypatch):
+def test_infra_failures_are_retried_up_to_the_cause_cap_then_owed(
+    tmp_path, monkeypatch
+):
+    """Owner D16: a Carbon failure re-runs automatically up to `PER_CAUSE_RETRIES` times for its code; then the slot
+    stays returned (uncharged) and the task goes on the owed list."""
     from carbon.challenge_validator import auto_grade
     from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
 
@@ -261,10 +265,13 @@ def test_a_second_infra_failure_gets_no_second_retry(tmp_path, monkeypatch):
 
     monkeypatch.setattr(auto_retry, "RETRY_SECONDS", 0)
     grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
-    assert grader.run_once() == (A, "FAILED")
-    assert grader.run_once() == (A, "FAILED")  # the one retry, failed again
+    for _ in range(auto_retry.PER_CAUSE_RETRIES):
+        assert grader.run_once() == (A, "FAILED")
+        assert grader.marker(A)["next_step"] == "retry_scheduled"
+    assert grader.run_once() == (A, "FAILED")  # the last retry, failed again
     assert grader.marker(A)["next_step"] == "slot_returned"
-    assert grader.run_once() is None  # never a third grade
+    assert grader.run_once() is None  # its cause cap is spent: no further grade
+    assert _log(root, auto_retry.ALERT_NAME)[-1]["event"] == "auto_retry_cap_spent"
 
 
 def test_a_version_wide_gap_is_given_back_for_a_resubmit_after_the_fix(tmp_path):
