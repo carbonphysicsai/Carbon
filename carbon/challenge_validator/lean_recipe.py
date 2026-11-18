@@ -47,6 +47,16 @@ WITHDRAWN_CODE = "withdrawn_by_miner"
 #: ``auto-grade/requeued`` beside the grade requeues.
 REBUILD_REQUESTS = "rebuild-requests.jsonl"
 REBUILD_APPLIED = "rebuild-applied.jsonl"
+#: Every build re-run the door made (`LeanRecipeAdapter._requeue_failed_build`), append-only: ``{from_task, new_task,
+#: chain_root, code, at_ns}``; the caps below count it.
+BUILD_RETRIES = "build-retries.jsonl"
+#: OWNER D16 (18 Nov 2026: "automatic re-runs of Carbon-side failures ... capped at 3 per failure code and 5 per task,
+#: then the owed list"), for builds as for grades (`auto_retry`): re-runs of one failure code within one task's chain (the
+#: miner's task and every door re-run of it), and re-runs of the chain in all.
+BUILD_CODE_RETRIES = 3
+BUILD_CHAIN_RETRIES = 5
+#: The owed-list feed a spent cap writes to (`auto_retry.ALERT_NAME`, beside it).
+BUILD_ALERTS = "auto-retry-alerts.jsonl"
 
 
 def _jsonl(path):
@@ -63,6 +73,33 @@ def _jsonl(path):
         if type(line) is dict:
             out.append(line)
     return out
+
+
+def _append_line(path, line):
+    """Append one JSON line to ``path`` (its directory made private if missing)."""
+    path = Path(path)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as log:
+        log.write(json.dumps(line, sort_keys=True) + "\n")
+
+
+def _build_failure_code(task):
+    """The failure code a build re-run is counted under: its terminal receipt's refusal code, else its state's."""
+    receipt = getattr(task, "terminal_receipt", None)
+    code = getattr(receipt, "refusal_code", None)
+    if type(code) is str and code:
+        return code
+    return "direct_task_" + task.state.value.lower()
+
+
+def _build_retry_counts(directory, task, code):
+    """``(chain_root, re-runs in the chain, re-runs of ``code`` in it)`` from `BUILD_RETRIES`: the chain is the miner's
+    task and every door re-run made from it (each line names its chain's root)."""
+    lines = _jsonl(Path(directory) / BUILD_RETRIES)
+    root = next((line.get("chain_root") for line in lines if line.get("new_task") == task), None)
+    root = task if type(root) is not str else root
+    chain = [line for line in lines if line.get("chain_root") == root]
+    return root, len(chain), sum(1 for line in chain if line.get("code") == code)
 
 
 def _cpu_wall_refusal(provider, owner, task_id):
@@ -1278,12 +1315,16 @@ class LeanRecipeAdapter(ChallengeAdapter):
             pass
 
     def _requeue_failed_build(self, owner, task_id, provider, *, operator=None):
-        """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): a build whose task ended FAILED_INFRA (Carbon's, never charged)
-        is started again ONCE, as its next generation (`_request` ``rerun`` + 1: the same task its miner's resubmit would
-        make), at the failed task's ORIGINAL queue place and epoch (`AttemptLedger.requeue_failed_build`), and its grade
-        neither spends nor is refused by the miner's round or day (`ExamCap.mark_requeued`, the operator requeue's
-        bypass). Never a requeue of a requeue, never when the miner already resubmitted, never past `MAX_INFRA_RERUNS`.
-        Never raises: anything unreadable leaves the task as today (the miner may resubmit). Logged either way.
+        """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): a build whose task ended on Carbon's side (FAILED_INFRA, or
+        UNRESOLVED: owner via the Lead and V2, 18 Nov 2026, "our failures re-run automatically, miners never resubmit"; an
+        UNRESOLVED build is Carbon's, invariant 7) is started again as its next generation (`_request` ``rerun`` + 1: the
+        same task its miner's resubmit would make), at the failed task's ORIGINAL queue place and epoch
+        (`AttemptLedger.requeue_failed_build`), and its grade neither spends nor is refused by the miner's round or day
+        (`ExamCap.mark_requeued`, the operator requeue's bypass). Bounded by owner D16, as grades are: at most
+        `BUILD_CODE_RETRIES` re-runs per failure code and `BUILD_CHAIN_RETRIES` in all within one task's chain (counted
+        in `BUILD_RETRIES`); a spent cap writes ``build_retry_cap_spent`` to the owed-list feed (`BUILD_ALERTS`). A
+        re-run of a re-run is allowed within the caps; never when the miner already resubmitted, never past
+        `MAX_INFRA_RERUNS`. Never raises: anything unreadable leaves the task as today. Logged either way.
         """
         from carbon.challenge_validator.koth_journal import note
 
@@ -1293,7 +1334,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
             task = provider.get_research_result(
                 DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
             ).task
-            if task.state is not DirectTaskStateV3.FAILED_INFRA and not (
+            if task.state not in (
+                DirectTaskStateV3.FAILED_INFRA,
+                DirectTaskStateV3.UNRESOLVED,
+            ) and not (
                 task.state is DirectTaskStateV3.REFUSED
                 and _cpu_wall_refusal(provider, owner, task_id.value)
             ):
@@ -1328,12 +1372,29 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 return None
             request = requests[rerun + 1]
             new_task = provider._task_id(request).value
+            code = _build_failure_code(task)
+            retries = Path(self.ledger.path).parent / "auto-grade" / "requeued"
+            root, chain, same = _build_retry_counts(retries, task_id.value, code)
+            if chain >= BUILD_CHAIN_RETRIES or same >= BUILD_CODE_RETRIES:
+                _append_line(
+                    retries / BUILD_ALERTS,
+                    {
+                        "task": task_id.value,
+                        "event": "build_retry_cap_spent",
+                        "reason": "owed_list",
+                        "code": code,
+                        "chain_root": root,
+                        "chain_retries": chain,
+                        "code_retries": same,
+                        "at_ns": time.time_ns(),
+                    },
+                )
+                note("build_requeue_refused", task=task_id.value, code="cap_spent")
+                return None
             ask = {"from_task": task_id.value, "new_task": new_task, "hotkey": owner}
+            # a re-run of the door's own re-run is allowed within the D16 caps above (V2, 18 Nov 2026)
             result = self.ledger.requeue_failed_build(
-                self.contract_digest,
-                apply=False,
-                operator=operator is not None,
-                **ask,
+                self.contract_digest, apply=False, operator=True, **ask
             )
             if result != "requeuable":
                 note("build_requeue_refused", task=task_id.value, code=result)
@@ -1358,7 +1419,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 )
             provider.start_research_task(request, measure_query=self._measure_query)
             result = self.ledger.requeue_failed_build(
-                self.contract_digest, operator=operator is not None, **ask
+                self.contract_digest, operator=True, **ask
             )
             if result != "requeued":
                 # the miner resubmitted it meanwhile: it runs as their resubmit, at the back, as today
@@ -1367,6 +1428,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
             from carbon.challenge_validator.exam_cap import ExamCap
 
             ExamCap(self.ledger).mark_requeued(new_task)
+            _append_line(
+                retries / BUILD_RETRIES,
+                {
+                    "from_task": task_id.value,
+                    "new_task": new_task,
+                    "chain_root": root,
+                    "code": code,
+                    "at_ns": time.time_ns(),
+                    **({} if operator is None else {"ruling": operator}),
+                },
+            )
             note(
                 "build_requeued",
                 task=task_id.value,

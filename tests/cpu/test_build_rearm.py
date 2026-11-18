@@ -117,18 +117,20 @@ def test_any_other_refusal_is_never_rerun(ledger, tmp_path, state, code):
     assert provider.started == []
 
 
-def test_a_requeue_refused_for_the_cpu_wall_is_not_rerun_automatically(
+def test_a_requeue_refused_for_the_cpu_wall_is_rerun_again_within_the_caps(
     ledger, tmp_path
 ):
-    """rtsk_af647b3b: the door's own requeue, refused for the wall: the automatic path stays once (the operator's
-    receipt is its path)."""
+    """rtsk_af647b3b: the door's own requeue, refused for the wall. Owner D16 (18 Nov 2026, V2 Y): a re-run of a re-run
+    is allowed within the caps (3 per failure code, 5 per chain), so it runs its next generation automatically."""
     _queue(ledger)
     assert _requeue(ledger) == "requeued"
     door, provider = _door(ledger), _Provider({N: DirectTaskStateV3.REFUSED})
     provider._requests[N] = ("req", HOTKEYS[0], 1)
     _inference_settled(provider, tmp_path, N, "FAILED_MINER", DEADLINE)
-    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(N), provider) is None
-    assert provider.started == []
+    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(N), provider) == (
+        "rtsk_" + "f" * 64
+    )
+    assert provider.started == [(("req", HOTKEYS[0], 2), False)]
 
 
 # --- the operator's re-arm, applied by the live door --------------------------------------------------------------------

@@ -176,7 +176,6 @@ def test_the_door_requeues_a_failed_infra_build_once_at_its_place(ledger):
         DirectTaskStateV3.SUCCEEDED,
         DirectTaskStateV3.REFUSED,
         DirectTaskStateV3.CANCELLED,
-        DirectTaskStateV3.UNRESOLVED,
     ],
 )
 def test_only_a_build_that_failed_on_carbons_side_is_requeued(ledger, state):
