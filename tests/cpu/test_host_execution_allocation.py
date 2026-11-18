@@ -84,9 +84,15 @@ def _install(root, **overrides):
 
 
 def test_an_installed_record_places_the_worker_elsewhere(tmp_path):
-    """The point of the change: a second worker can have different cores."""
+    """The point of the change: a second worker can have different cores. Switch 5 (Validator-2, row 221): a worker
+    gets exactly its CPU count of the record's cores, the lowest, since it is created with --cpus = that count and the
+    kernel check holds the quota to the cpuset's size (all of 4-7 for a 2-CPU worker would be refused at start).
+    """
     _install(tmp_path)
-    assert resolve_cpuset(logical_cpus=16, root=tmp_path) == "4-7"
+    assert resolve_cpuset(logical_cpus=16, root=tmp_path) == ",".join(
+        str(core) for core in range(4, 4 + CPU_COUNT)
+    )
+    assert resolve_cpuset(logical_cpus=16, root=tmp_path, count=4) == "4-7"
 
 
 def test_a_record_naming_cores_the_host_lacks_is_refused(tmp_path):
