@@ -354,7 +354,6 @@ def test_a_declared_door_image_migration_lets_the_manifest_adopt_the_new_images(
     )
 
 
-
 def _refusals(capsys):
     return [
         json.loads(line)
