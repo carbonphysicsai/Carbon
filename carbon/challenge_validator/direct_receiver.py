@@ -79,6 +79,11 @@ _OPTIONAL_FIELDS = {
     # evidence_sha256}. A carried owner's manifest migrates across a grading-path change ONLY when OLD..NEW is exactly
     # this record's revisions and the computed changed grading paths EQUAL its ``paths`` (`_declared_change`).
     "declared_exam_change",
+    # The EARLIER declared exam changes still needed (live 116, 18 Nov 2026: owners left lazy across a start stayed
+    # frozen one revision back): a list of records shaped like ``declared_exam_change``. A carried manifest migrates
+    # OLD..NEW also when the hops OLD -> ... -> NEW are each one of these records or the current one, each hop's paths
+    # EQUAL to that hop's own computed changed grading paths (`_declared_change`).
+    "earlier_declared_changes",
     # Absolute paths to carbon.c03.worker-image.v1 manifests of images a SITTING king was built on before this
     # receiver's parent moved (Validator 5 Nov, route (a)): his regrade may infer on his own retained parent when the
     # image store holds it with exactly that id (`lean_recipe_retention._regrade_inference_image`). Kings only.
@@ -349,6 +354,8 @@ def load_config(path: Path) -> dict:
         read_speed_sample_key(value["speed_sample_key_file"])
     if "declared_exam_change" in value:
         _check_declared_change(value["declared_exam_change"])
+    if "earlier_declared_changes" in value:
+        _check_earlier_changes(value["earlier_declared_changes"])
     if "king_retained_parents" in value:
         _king_retained_parents(value["king_retained_parents"])
     if "graded_inference_image" in value:
@@ -1107,6 +1114,8 @@ _GRADING_CHANGES = {}
 
 #: The receiver configuration's declared exam change (`install_declared_change`), or None: no grading-path change migrates.
 DECLARED_EXAM_CHANGE = None
+#: The configuration's earlier declared changes (`earlier_declared_changes`): hops a chain may take (`_declared_change`).
+EARLIER_DECLARED_CHANGES = ()
 _DECLARED_FIELDS = {
     "from_revision",
     "to_revision",
@@ -1139,6 +1148,17 @@ def _check_declared_change(record):
     ):
         raise ValueError("invalid declared_exam_change")
     return record
+
+
+def _check_earlier_changes(records):
+    """A non-empty list of declared exam change records (`_check_declared_change` each), no two from one revision."""
+    if type(records) is not list or not records:
+        raise ValueError("invalid earlier_declared_changes")
+    for record in records:
+        _check_declared_change(record)
+    if len({record["from_revision"] for record in records}) != len(records):
+        raise ValueError("invalid earlier_declared_changes")
+    return tuple(records)
 
 
 def _king_retained_parents(paths):
@@ -1194,23 +1214,46 @@ def install_graded_inference_image(cfg):
 
 def install_declared_change(cfg):
     """Set (or clear) `DECLARED_EXAM_CHANGE` from a loaded receiver configuration."""
-    global DECLARED_EXAM_CHANGE
+    global DECLARED_EXAM_CHANGE, EARLIER_DECLARED_CHANGES
     record = cfg.get("declared_exam_change")
     DECLARED_EXAM_CHANGE = None if record is None else _check_declared_change(record)
+    earlier = cfg.get("earlier_declared_changes")
+    EARLIER_DECLARED_CHANGES = (
+        () if earlier is None else _check_earlier_changes(earlier)
+    )
 
 
 def _declared_change(old, new, touched):
     """The declared record when it covers exactly this migration (its revisions are OLD and NEW, and its paths EQUAL the
-    computed changed grading paths, in order), else None."""
+    computed changed grading paths, in order), else None.
+
+    A CHAIN (live 116, 18 Nov 2026: an owner left lazy across one start is frozen one revision back): when no single
+    record covers OLD..NEW, the hops OLD -> ... -> NEW must each be a declared record (`EARLIER_DECLARED_CHANGES` or the
+    current one), each hop's paths EQUAL to that hop's OWN computed changed grading paths. The answer is then one
+    record naming OLD..NEW, the computed paths, every hop's reason and the last hop's evidence."""
     record = DECLARED_EXAM_CHANGE
-    if (
-        record is None
-        or touched is None
-        or (record["from_revision"], record["to_revision"]) != (old, new)
-        or list(record["paths"]) != list(touched)
-    ):
+    if record is None or touched is None:
         return None
-    return record
+    if (record["from_revision"], record["to_revision"]) == (old, new):
+        return record if list(record["paths"]) == list(touched) else None
+    hops = {item["from_revision"]: item for item in (*EARLIER_DECLARED_CHANGES, record)}
+    at, used = old, []
+    while at != new:
+        hop = hops.get(at)
+        if hop is None or hop in used:
+            return None
+        own = _grading_change(hop["from_revision"], hop["to_revision"])
+        if own is None or list(own) != list(hop["paths"]):
+            return None
+        used.append(hop)
+        at = hop["to_revision"]
+    return {
+        "from_revision": old,
+        "to_revision": new,
+        "paths": list(touched),
+        "reason": " | ".join(hop["reason"] for hop in used),
+        "evidence_sha256": used[-1]["evidence_sha256"],
+    }
 
 
 def _grading_change(old, new, root=None):
@@ -2273,6 +2316,37 @@ class OwnerProviders:
             return None
         return bool(open_ops), index
 
+    def _frozen_revision(self, directory):
+        """The revision ``directory``'s campaign manifest is frozen at (read-only), or None when it cannot be read."""
+        import sqlite3
+
+        path = directory / "ledger" / "campaign.sqlite3"
+        try:
+            db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
+            try:
+                row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+            finally:
+                db.close()
+            return json.loads(row[0])["implementation"]["revision"]
+        except Exception:  # noqa: BLE001 - unreadable: the migration below decides
+            return None
+
+    def _migrate_lazy_manifest(self, hotkey, directory):
+        """At start, a LAZY owner's campaign manifest frozen at another revision than this start's is migrated now by
+        the restoring path's own check (`_manifest`, restoring: `_migrate_owner_manifest` under this start's declared
+        change); one frozen at this revision is left untouched (no write). A refusal raises, as an eager restore's
+        does: `restore` sets the owner aside."""
+        from carbon.development_session.research_ledger import CampaignLedger
+
+        current = (
+            self.implementation.get("revision")
+            if type(self.implementation) is dict
+            else None
+        )
+        if current is not None and self._frozen_revision(directory) == current:
+            return
+        self._manifest(hotkey, CampaignLedger(directory / "ledger"), restoring=True)
+
     def _restore_lazy(self, hotkey):
         """Open a lazy owner (`restore`) on its first touch by the SAME restoring path `restore` takes (its campaign
         manifest migrated under this start's declared migration, its interrupted work reconciled), holding only that
@@ -2370,7 +2444,10 @@ class OwnerProviders:
                 host = owner["hotkey"] == crown_average.HOST_OWNER
                 found = None if host else self._has_work(directory)
                 if found is not None and not found[0]:
-                    # no work (restart speed, owner 18 Nov 2026): opened on its first touch (`_restore_lazy`)
+                    # no work (restart speed, owner 18 Nov 2026): opened on its first touch (`_restore_lazy`); its
+                    # manifest still moves to this start's revision NOW, so no lazy owner is ever more than this start's
+                    # declared hop behind (live 116, 18 Nov 2026)
+                    self._migrate_lazy_manifest(owner["hotkey"], directory)
                     with self._lock:
                         self._lazy[name] = owner["hotkey"]
                         self._lazy_index[name] = found[1]

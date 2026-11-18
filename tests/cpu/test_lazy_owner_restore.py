@@ -271,3 +271,91 @@ def test_an_unfinished_ledger_operation_is_work(tmp_path):
     )
     found = live._has_work(directory)
     assert found is not None and found[0] is True
+
+
+# --- live 116, 18 Nov 2026: a lazy owner was frozen one revision back; the declared chain and the start migration ----
+
+
+def _record(old, new, paths, reason="r"):
+    return {
+        "from_revision": old,
+        "to_revision": new,
+        "paths": paths,
+        "reason": reason,
+        "evidence_sha256": "sha256:" + "e" * 64,
+    }
+
+
+def test_a_chain_of_declared_hops_migrates_an_owner_two_revisions_back(monkeypatch):
+    a, b, c = ("a" * 40, "b" * 40, "c" * 40)
+    computed = {(a, b): ("x.py",), (b, c): ("y.py",), (a, c): ("x.py", "y.py")}
+    monkeypatch.setattr(
+        receiver, "_grading_change", lambda old, new: computed[(old, new)]
+    )
+    monkeypatch.setattr(
+        receiver, "DECLARED_EXAM_CHANGE", _record(b, c, ["y.py"], "now")
+    )
+    monkeypatch.setattr(
+        receiver, "EARLIER_DECLARED_CHANGES", (_record(a, b, ["x.py"], "before"),)
+    )
+    found = receiver._declared_change(a, c, computed[(a, c)])
+    assert (found["from_revision"], found["to_revision"]) == (a, c)
+    assert found["paths"] == ["x.py", "y.py"] and found["reason"] == "before | now"
+    # the single exact record still answers for its own hop
+    assert receiver._declared_change(b, c, ("y.py",))["reason"] == "now"
+    # a hop whose own computed paths differ from its record: no chain
+    computed[(a, b)] = ("x.py", "z.py")
+    assert receiver._declared_change(a, c, computed[(a, c)]) is None
+    # a missing hop: no chain
+    monkeypatch.setattr(receiver, "EARLIER_DECLARED_CHANGES", ())
+    assert receiver._declared_change(a, c, computed[(a, c)]) is None
+
+
+def test_the_earlier_changes_are_checked_records_one_per_revision():
+    a, b = ("a" * 40, "b" * 40)
+    assert receiver._check_earlier_changes([_record(a, b, ["x.py"])])
+    twice = [_record(a, b, ["x"]), _record(a, b, ["y"])]
+    for bad in ([], [{"from_revision": a}], twice):
+        with pytest.raises(ValueError, match="declared"):
+            receiver._check_earlier_changes(bad)
+
+
+@POSIX
+def test_a_lazy_owners_manifest_moves_to_the_start_revision_only_when_it_differs(
+    tmp_path, monkeypatch
+):
+    _root, pool = _pools(tmp_path)
+    restarted = pool()
+    calls = []
+    monkeypatch.setattr(
+        restarted, "_manifest", lambda hotkey, ledger, **kw: calls.append(hotkey)
+    )
+    # frozen at this start's revision: nothing migrated, nothing written
+    restarted.restore()
+    assert calls == [] and len(restarted._lazy) == 2
+    moved = pool()
+    moved.implementation = {"revision": "b" * 40}
+    monkeypatch.setattr(
+        moved, "_manifest", lambda hotkey, ledger, **kw: calls.append(hotkey)
+    )
+    moved.restore()
+    assert sorted(calls) == sorted([OWNER, OTHER]) and len(moved._lazy) == 2
+
+
+@POSIX
+def test_a_lazy_owner_whose_manifest_cannot_move_is_set_aside_at_start(
+    tmp_path, monkeypatch
+):
+    _root, pool = _pools(tmp_path)
+    moved = pool()
+    moved.implementation = {"revision": "b" * 40}
+
+    def refused(hotkey, ledger, **kw):
+        if hotkey == OWNER:
+            raise ValueError("retained direct owner campaign binding changed")
+
+    monkeypatch.setattr(moved, "_manifest", refused)
+    moved.restore()
+    name = hashlib.sha256(OWNER.encode()).hexdigest()
+    assert moved.set_aside() == {name: "ValueError"}
+    assert list(moved._lazy.values()) == [OTHER]
