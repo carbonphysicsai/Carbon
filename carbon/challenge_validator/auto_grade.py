@@ -1354,9 +1354,10 @@ _WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
 #: The marker code of a grade that REPLAYED a settled candidate failure instead of running (a re-queued task whose
 #: first attempt already settled FAILED_MINER): typed so, given back as infrastructure and never counted.
 REPLAYED_NOT_RERUN = "replayed_not_rerun"
-#: OPERATIONAL, set by the owner (V2, 18 Nov 2026, suggests 2x the grade's wall budget): after how many seconds in
-#: flight a grade is ended as hung (`AutoGrader._end_hung_grades`). None: off.
-GRADE_HUNG_SECONDS = None
+#: OPERATIONAL, set by the owner (18 Nov 2026: "approved: GRADE_HUNG_SECONDS = 1800"): after how many seconds in flight
+#: a grade is ended as hung (`AutoGrader._end_hung_grades`). 2x the longest COUNTED claim-to-commit on live 116 in the
+#: 24 h before (902 s; p90 794 s, median 305 s; Live ops). None: off.
+GRADE_HUNG_SECONDS = 1800
 #: The code of a grade ended as hung: Carbon's, FAILED_INFRA, never the candidate's.
 GRADE_HUNG = "grade_hung_carbon"
 #: The carrier names every worker container it starts ``carbon-d4-<launch digest>`` (`research_carrier`).

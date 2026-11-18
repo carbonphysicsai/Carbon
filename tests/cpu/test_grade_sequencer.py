@@ -446,3 +446,8 @@ def test_an_abandoned_grade_that_wakes_ends_its_round_quietly():
     grader._fail = lambda sid, code: failed.append((sid, code))
     assert grader._run_once() is None
     assert grader.marked == set() and failed == []
+
+
+def test_the_owner_set_the_hung_grade_limit_to_1800_seconds():
+    # owner, 18 Nov 2026: "approved: GRADE_HUNG_SECONDS = 1800" (2x the longest counted grade on live 116)
+    assert auto_grade.GRADE_HUNG_SECONDS == 1800
