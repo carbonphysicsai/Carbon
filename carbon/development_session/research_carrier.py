@@ -260,6 +260,46 @@ MINER_FAILURE_CODES = frozenset(
 )
 
 
+#: `CampaignLedger.reserve`'s refusal while another numerical op of the owner is RESERVED
+ONE_NUMERICAL_WORKER = "one numerical worker; reconcile active operation"
+
+
+def _settle_dead_numerical(ledger, *, owner, keep):
+    """Settle this owner's RESERVED numerical ops left by a dead run (the caller holds the owner's numerical lease, so
+    none of them has a live supervisor), each through `reconcile_worker`'s own settle (FAILED_INFRA, the reservation
+    kept as conservative consumption, never a retry), and ONLY when its worker container is gone (`only_if_gone`).
+    ``keep`` (the op about to run) is never touched. Returns how many were settled; one logged line each
+    (``op_settled_dead_reserved``), or ``op_dead_reserved_kept`` with why one was left.
+    """
+    import hashlib
+
+    from carbon.battery.intake import log
+
+    who = hashlib.sha256(owner.encode()).hexdigest()
+    settled = 0
+    for op in ledger.status(owner=owner)["operations"]:
+        reservation = op.get("reservation") or {}
+        if (
+            op.get("state") != "RESERVED"
+            or op.get("id") == keep
+            or not reservation.get("numerical_milliseconds", 0)
+        ):
+            continue
+        try:
+            _reconcile_locked(ledger, owner=owner, identity=op["id"], only_if_gone=True)
+        except (ValueError, OSError) as kept:
+            log(
+                "op_dead_reserved_kept",
+                owner_sha256=who,
+                phase=op.get("phase"),
+                reason=str(kept)[:120],
+            )
+            continue
+        settled += 1
+        log("op_settled_dead_reserved", owner_sha256=who, phase=op.get("phase"))
+    return settled
+
+
 @contextmanager
 def _numerical_lease(ledger):
     import fcntl
@@ -2278,9 +2318,21 @@ def _run_locked(
         "retained_bytes": reservation_bytes,
         **_one_trial_per_task(ledger, identity, extra_resources),
     }
-    admission = ledger.reserve(
-        identity, owner=owner, phase=phase, request=request, resources=resources
-    )
+    try:
+        admission = ledger.reserve(
+            identity, owner=owner, phase=phase, request=request, resources=resources
+        )
+    except ValueError as refused:
+        # Lead, 18 Nov 2026 (live 116: 8 dead RESERVED ops blocked 3 miners' builds until a door stop): this round holds
+        # the owner's numerical lease, so no live supervisor of this owner runs; a RESERVED numerical op left by a dead
+        # run is settled here (`_settle_dead_numerical`, only when its worker is gone) and the reservation tried ONCE more
+        if str(refused) != ONE_NUMERICAL_WORKER or not _settle_dead_numerical(
+            ledger, owner=owner, keep=identity
+        ):
+            raise
+        admission = ledger.reserve(
+            identity, owner=owner, phase=phase, request=request, resources=resources
+        )
     if not admission["dispatch"]:
         if admission["state"] == "RESERVED":
             raise ValueError("research operation ambiguous; reconcile, never duplicate")
@@ -3826,92 +3878,69 @@ def reconcile_worker(ledger, *, owner, identity):
     Retain the entire original reservation as conservative charged consumption.
     """
     with _numerical_lease(ledger):
-        matches = [
-            op
-            for op in ledger.status(owner=owner)["operations"]
-            if op["id"] == identity
-        ]
-        if len(matches) != 1:
-            raise ValueError("owned operation unavailable")
-        op = matches[0]
-        if op["state"] == "HELD":
-            raise ValueError(
-                "never-claimed sequence capacity requires sequence cleanup"
-            )
-        if op["state"] != "RESERVED":
-            return op["result"]
-        # Keyed on the durable intent, not the reserved milliseconds: the
-        # miner's own run with no wall allowance reserves none and is still a
-        # worker. An operation with no intent is refused below, never skipped.
-        intents = []
-        for path in ledger.root.glob("operation-*/intent.json"):
-            if path.is_symlink() or path.stat().st_size > 65536:
-                raise ValueError("invalid worker intent")
-            value = json.loads(path.read_bytes())
-            if value.get("owner") == owner and value.get("identity") == identity:
-                intents.append((path, value))
-        # An absent intent may represent another provider or a interrupted stage.
-        # Do not infer safe cleanup from absence or invent lost launch details.
-        if len(intents) != 1:
-            raise ValueError(
-                "exact durable worker intent unavailable; reservation retained"
-            )
-        path, intent = intents[0]
-        launch = digest(
-            canonical(
-                {"owner": owner, "identity": identity, "request": intent["request"]}
-            )
+        return _reconcile_locked(ledger, owner=owner, identity=identity)
+
+
+def _reconcile_locked(ledger, *, owner, identity, only_if_gone=False):
+    """`reconcile_worker`'s settle, with the owner's numerical lease ALREADY held by the caller. ``only_if_gone``
+    (`_settle_dead_numerical`): a worker container still present refuses (reservation retained), never removed.
+    """
+    matches = [
+        op
+        for op in ledger.status(owner=owner)["operations"]
+        if op["id"] == identity
+    ]
+    if len(matches) != 1:
+        raise ValueError("owned operation unavailable")
+    op = matches[0]
+    if op["state"] == "HELD":
+        raise ValueError(
+            "never-claimed sequence capacity requires sequence cleanup"
         )
-        name, label = _intent_container(intent, launch)
-        if (
-            intent["launch"] != launch
-            or intent["container"] != name
-            or path.parent.name != "operation-" + launch[7:]
-        ):
-            raise ValueError("worker intent identity conflict")
-        # the daemon the intent names: a REMOTE grade lane's, a remote GPU build slot's, or this host's
-        remote = remote_lane.recorded(intent)
-        remote_build = remote_gpu_build.recorded(intent)
-        if remote_build is not None and remote_build.gone:
-            # its box file is gone (drained or refused): the box is gone for the door and the op is Carbon's. Its
-            # container is removed through the box's copy when the box still answers, and only then is its local slot
-            # record cleared; one that cannot be reached is its watchdog's and the box's own sweep's.
-            _clear_gone_box(remote_build, name, label)
-            result = {
-                "schema": "carbon.autoresearch.worker-reconciliation.v1",
-                "operation": path.parent.name,
-                "state": "FAILED_INFRA",
-                "cleanup_observed": False,
-                "accounting": "full original reservation retained as conservative consumption",
-                "scientific_outcome": "UNRESOLVED",
-                "retry_dispatched": False,
-            }
-            ledger.finish(
-                identity,
-                owner=owner,
-                state="FAILED_INFRA",
-                actual=op["reservation"],
-                result=result,
-            )
-            return result
-        cli = remote_gpu_build.cli(remote_build) or _cli_for(remote)
-        with remote_gpu_build.bound(remote_build):
-            remove_exact_container(cli=cli, container_name=name, launch_digest=label)
-        if cli.run(
-            ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
-        ).stdout.strip():
-            raise ValueError("cleanup uncertain; reservation retained")
-        if remote is not None:
-            with suppress(remote_lane.RemoteLaneDown):
-                remote_lane.discard(path.parent / "input", remote)
-        if remote_build is not None:
-            with suppress(remote_lane.RemoteLaneDown):
-                remote_gpu_build.discard(path.parent / "input", remote_build)
+    if op["state"] != "RESERVED":
+        return op["result"]
+    # Keyed on the durable intent, not the reserved milliseconds: the
+    # miner's own run with no wall allowance reserves none and is still a
+    # worker. An operation with no intent is refused below, never skipped.
+    intents = []
+    for path in ledger.root.glob("operation-*/intent.json"):
+        if path.is_symlink() or path.stat().st_size > 65536:
+            raise ValueError("invalid worker intent")
+        value = json.loads(path.read_bytes())
+        if value.get("owner") == owner and value.get("identity") == identity:
+            intents.append((path, value))
+    # An absent intent may represent another provider or a interrupted stage.
+    # Do not infer safe cleanup from absence or invent lost launch details.
+    if len(intents) != 1:
+        raise ValueError(
+            "exact durable worker intent unavailable; reservation retained"
+        )
+    path, intent = intents[0]
+    launch = digest(
+        canonical(
+            {"owner": owner, "identity": identity, "request": intent["request"]}
+        )
+    )
+    name, label = _intent_container(intent, launch)
+    if (
+        intent["launch"] != launch
+        or intent["container"] != name
+        or path.parent.name != "operation-" + launch[7:]
+    ):
+        raise ValueError("worker intent identity conflict")
+    # the daemon the intent names: a REMOTE grade lane's, a remote GPU build slot's, or this host's
+    remote = remote_lane.recorded(intent)
+    remote_build = remote_gpu_build.recorded(intent)
+    if remote_build is not None and remote_build.gone:
+        # its box file is gone (drained or refused): the box is gone for the door and the op is Carbon's. Its
+        # container is removed through the box's copy when the box still answers, and only then is its local slot
+        # record cleared; one that cannot be reached is its watchdog's and the box's own sweep's.
+        _clear_gone_box(remote_build, name, label)
         result = {
             "schema": "carbon.autoresearch.worker-reconciliation.v1",
             "operation": path.parent.name,
             "state": "FAILED_INFRA",
-            "cleanup_observed": True,
+            "cleanup_observed": False,
             "accounting": "full original reservation retained as conservative consumption",
             "scientific_outcome": "UNRESOLVED",
             "retry_dispatched": False,
@@ -3924,3 +3953,37 @@ def reconcile_worker(ledger, *, owner, identity):
             result=result,
         )
         return result
+    cli = remote_gpu_build.cli(remote_build) or _cli_for(remote)
+    if only_if_gone and cli.run(
+        ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+    ).stdout.strip():
+        raise ValueError("worker container present; reservation retained")
+    with remote_gpu_build.bound(remote_build):
+        remove_exact_container(cli=cli, container_name=name, launch_digest=label)
+    if cli.run(
+        ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+    ).stdout.strip():
+        raise ValueError("cleanup uncertain; reservation retained")
+    if remote is not None:
+        with suppress(remote_lane.RemoteLaneDown):
+            remote_lane.discard(path.parent / "input", remote)
+    if remote_build is not None:
+        with suppress(remote_lane.RemoteLaneDown):
+            remote_gpu_build.discard(path.parent / "input", remote_build)
+    result = {
+        "schema": "carbon.autoresearch.worker-reconciliation.v1",
+        "operation": path.parent.name,
+        "state": "FAILED_INFRA",
+        "cleanup_observed": True,
+        "accounting": "full original reservation retained as conservative consumption",
+        "scientific_outcome": "UNRESOLVED",
+        "retry_dispatched": False,
+    }
+    ledger.finish(
+        identity,
+        owner=owner,
+        state="FAILED_INFRA",
+        actual=op["reservation"],
+        result=result,
+    )
+    return result
