@@ -56,7 +56,9 @@ V4_SUFFIX = "/v4"
 #: The v4 counts a view adds to its snapshot (`queue_view.QueueView`): ``{field: count}`` over `RUNNING_FIELDS`, or None when
 #: the door could not read them (v4 then answers 503; v1-v3 are never affected).
 RUNNING = "running"
-RUNNING_FIELDS = frozenset({"waiting_to_build", "building_now", "waiting_to_grade", "grading_now"})
+RUNNING_FIELDS = frozenset(
+    {"waiting_to_build", "building_now", "waiting_to_grade", "grading_now"}
+)
 ROWS = "rows"
 ROWS_QUANTUM_S = 300
 #: ALL rows (Lead 15 Nov: a miner must find their own submission; the page paginates): 1000 rows of ~85 bytes fit
@@ -162,7 +164,10 @@ def wait_summary(waits_s):
 
 def document(snapshot, challenge):
     """The public document from a view's raw snapshot, checked field by field (closed set)."""
-    if type(snapshot) is not dict or set(snapshot) - {HELD, ROWS, RUNNING} != SNAPSHOT_FIELDS:
+    if (
+        type(snapshot) is not dict
+        or set(snapshot) - {HELD, ROWS, RUNNING} != SNAPSHOT_FIELDS
+    ):
         raise QueuePublicRefused("queue_snapshot_invalid")
     if snapshot["door_state"] not in DOOR_STATES:
         raise QueuePublicRefused("queue_door_state_invalid")
@@ -281,11 +286,14 @@ def serve_v3(view, challenge):
 
 def document_v4(snapshot, challenge):
     """The v4 document: v3's fields and rows, with the four counts from what actually runs (see `SCHEMA_V4`):
-    ``grading_now`` is the number of grades in flight. Refused (503) when the view could not read them."""
+    ``grading_now`` is the number of grades in flight. Refused (503) when the view could not read them.
+    """
     running = snapshot.get(RUNNING) if type(snapshot) is dict else None
     if type(running) is not dict or set(running) != RUNNING_FIELDS:
         raise QueuePublicRefused("queue_running_invalid")
-    counts = {name: _count(running[name], "queue_running_invalid") for name in RUNNING_FIELDS}
+    counts = {
+        name: _count(running[name], "queue_running_invalid") for name in RUNNING_FIELDS
+    }
     # v3's checks on everything else (its 0/1 grading flag is replaced below by the checked count)
     body = document_v3({**snapshot, "grading_now": 0}, challenge)
     body = {**body, **counts, "schema": SCHEMA_V4}

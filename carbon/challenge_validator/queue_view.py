@@ -295,8 +295,12 @@ class QueueView:
                 elif state == _BUILT and submission_id not in claimed:
                     counts["waiting_to_grade"] += 1
             sequencer = getattr(self.grader, "sequencer", None)
-            counts["grading_now"] = len(claimed) if sequencer is not None else self._grading_now()
-        except Exception:  # noqa: BLE001 - any failure: no v4 counts (503), never a guess and never a v1-v3 change
+            counts["grading_now"] = (
+                len(claimed) if sequencer is not None else self._grading_now()
+            )
+        except (
+            Exception
+        ):  # noqa: BLE001 - any failure: no v4 counts (503), never a guess and never a v1-v3 change
             return None
         return counts
 
