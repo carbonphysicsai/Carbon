@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 
 from test_infra_requeue import (  # noqa: F401 - `served` is this module's autouse fixture too
+    HOTKEY,
     _DoorIntake,
     _failed,
     _root,
@@ -185,7 +186,8 @@ def test_a_task_whose_spent_bypass_went_on_a_given_back_attempt_is_re_armed_and_
     tmp_path,
 ):
     """V2's ruling (a), rtsk_c177bae9's shape: requeued once (attempt 1 kept, its bypass spent), the re-grade given
-    back on infrastructure (RELEASED / FAILED_INFRA), then refused on the day. The bypass is re-armed for attempt 3."""
+    back on infrastructure (RELEASED / FAILED_INFRA), then refused on the day. The bypass is re-armed for attempt 3.
+    """
     root, ledger = _root(tmp_path)
     _refused_on_allowance(root, ledger, A)
     _row(ledger, A, "RELEASED", "FAILED_INFRA")
@@ -219,10 +221,16 @@ def test_a_task_whose_spent_bypass_went_on_a_given_back_attempt_is_re_armed_and_
 
 def test_any_other_row_or_bypass_shape_is_refused(tmp_path):
     root, ledger = _root(tmp_path)
-    # a COUNTED row beside a given-back one
+    # a COUNTED row beside a given-back one (another exam key: one row per key)
     _refused_on_allowance(root, ledger, A)
     _row(ledger, A, "RELEASED", "FAILED_INFRA")
-    _row(ledger, A, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+    with ledger._db() as db:
+        db.execute(
+            "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, epoch, "
+            "submission_id, state, status, reserved_ns) "
+            "VALUES(?,'f02','2.5','other-key','GRADED',20,?,'COUNTED','SCORED_DEVELOPMENT_CANDIDATE',1)",
+            (HOTKEY, A),
+        )
     _spent_bypass(ledger, A)
     # a charged RELEASED row
     _refused_on_allowance(root, ledger, B)
@@ -235,9 +243,7 @@ def test_any_other_row_or_bypass_shape_is_refused(tmp_path):
     # a bypass row with no exam row it was spent on
     _refused_on_allowance(root, ledger, D)
     _spent_bypass(ledger, D)
-    out = infra_requeue.restore_allowance(
-        root, [A, B, C, D], ruling=RULING, apply=True
-    )
+    out = infra_requeue.restore_allowance(root, [A, B, C, D], ruling=RULING, apply=True)
     assert out["restored"] == []
     assert out["refused"] == {
         A: "exam_row_present",

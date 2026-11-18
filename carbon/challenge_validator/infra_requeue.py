@@ -1381,7 +1381,8 @@ def restore_platform(root, tasks, *, ruling, apply=False, clock=time.time_ns):
 
 def _hand_back_once(paths, task, attempt, cap, *, log_name, kind, cause, ruling, clock):
     """Hand a task back to the grader once (``restore-platform``, ``restore-allowance``): the line is on record
-    first, then its one round/day bypass, then the old attempt's files are kept and the marker moved last."""
+    first, then its one round/day bypass, then the old attempt's files are kept and the marker moved last.
+    """
     paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
     line = {
         "task": task,
@@ -1434,7 +1435,8 @@ def _arrival_seq(db, task):
 
 def _allowance_rows_refusal(db, task, attempt):
     """None when the task's exam rows are the shape ``restore_allowance`` takes (see ``ALLOWANCE_CAUSE``), else the
-    code. ``attempt``: the attempt its current marker records (its bypass is armed for ``attempt + 1``)."""
+    code. ``attempt``: the attempt its current marker records (its bypass is armed for ``attempt + 1``).
+    """
     rows = _rows(db, task)
     if any(
         (row_state, status) != ("RELEASED", "FAILED_INFRA")
@@ -1450,7 +1452,8 @@ def _allowance_rows_refusal(db, task, attempt):
     if not rows:
         return "exam_row_present"  # a bypass with no row it was spent on: not this case
     if requeue[1] is None:
-        return "bypass_still_armed"  # unspent: its next grade already draws no allowance
+        # unspent: its next grade already draws no allowance
+        return "bypass_still_armed"
     if requeue[0] >= attempt + 1:
         return "bypass_attempt_ahead"  # `mark_requeued` could not re-arm it
     return None
@@ -1969,9 +1972,7 @@ def main(argv=None):
         tasks = [
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
         ]
-        out = restore_allowance(
-            args.root, tasks, ruling=args.ruling, apply=args.apply
-        )
+        out = restore_allowance(args.root, tasks, ruling=args.ruling, apply=args.apply)
     elif args.cmd == "rearm":
         tasks = [
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
