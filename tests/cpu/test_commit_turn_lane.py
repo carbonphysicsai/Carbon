@@ -450,7 +450,9 @@ def test_the_heads_own_retake_counts_itself_and_lets_go_once_it_holds_a_lane(tmp
     work = _door(tmp_path, ("0-3", "4-7"))
     grade = work.taking("grade", has_work=lambda: True)
     grade._released = True
-    grade._gave_back = grade_lanes.Lane(1, "4-7", str(work._dir))  # a LOCAL lane given back
+    grade._gave_back = grade_lanes.Lane(
+        1, "4-7", str(work._dir)
+    )  # a LOCAL lane given back
     lane = grade.retake()
     assert lane.index == 1 and work._turn_waiting_local == 0
     work._unlock(grade._held[0])

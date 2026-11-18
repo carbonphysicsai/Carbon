@@ -284,7 +284,9 @@ def test_a_second_round_waits_while_the_first_holds_the_steps_exclusive_then_bot
         target=lambda: (grader._run_once(), second_done.set()), daemon=True
     )
     second.start()
-    assert not second_done.wait(0.5) and ran == []  # no grade while the steps hold the exclusive
+    assert (
+        not second_done.wait(0.5) and ran == []
+    )  # no grade while the steps hold the exclusive
     claims.release("builder")
     first.join(5)
     assert ran == ["places", "king"]
