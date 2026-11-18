@@ -529,3 +529,49 @@ def test_a_grade_waiting_its_commit_turn_is_never_ended_as_hung(monkeypatch):
     for thread in threads:
         thread.join(10)
     assert out["after"] == []  # its clock started afresh when its turn came
+
+
+def test_a_bounded_exclusive_gives_up_behind_a_stuck_grade_and_lets_grades_claim():
+    """Live 116, 18 Nov 2026: the incumbent's steps drained behind one stuck grade while holding the claim lock, and
+    the door graded nothing for 30 min. `exclusive_within` waits at most its bound, then lets the claim lock go."""
+    import threading
+    import time
+
+    from carbon.challenge_validator import grade_sequencer
+
+    sequencer = grade_sequencer.Sequencer()
+    stuck, done = threading.Event(), threading.Event()
+
+    def stuck_grade():
+        with sequencer.task() as task:
+            task.bind("rtsk_stuck")
+            task.release_claim()
+            stuck.set()
+            done.wait(10)
+
+    thread = threading.Thread(target=stuck_grade, daemon=True)
+    thread.start()
+    assert stuck.wait(5)
+    began = time.monotonic()
+    with sequencer.exclusive_within(0.3) as held:
+        assert held is False
+    assert time.monotonic() - began < 2
+    # the claim lock is free again: a new grade claims at once
+    claimed = threading.Event()
+    threading.Thread(
+        target=lambda: sequencer.task().__enter__() and claimed.set(), daemon=True
+    ).start()
+    assert claimed.wait(2)
+    done.set()
+    thread.join(5)
+
+
+def test_a_bounded_exclusive_is_held_once_nothing_is_in_flight():
+    from carbon.challenge_validator import grade_sequencer
+
+    sequencer = grade_sequencer.Sequencer()
+    with sequencer.exclusive_within(0.5) as held:
+        assert held is True
+        assert not sequencer._claim.acquire(blocking=False)
+    assert sequencer._claim.acquire(blocking=False)
+    sequencer._claim.release()

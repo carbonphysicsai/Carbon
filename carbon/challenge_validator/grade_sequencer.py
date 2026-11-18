@@ -121,6 +121,33 @@ class Sequencer:
                     self._order.wait(1.0)
             yield
 
+    @contextmanager
+    def exclusive_within(self, seconds):
+        """`exclusive`, waited for at most ``seconds`` (the claim lock, then every grade in flight to end); yields
+        whether it is held. Not in time: the claim lock is let go at once, and the caller asks again later (live 116, 18
+        Nov 2026: an unbounded drain behind one stuck grade held the claim lock, and the door graded nothing for 30 min).
+        """
+        deadline = time.monotonic() + seconds
+        if not self._claim.acquire(timeout=max(0.0, seconds)):
+            yield False
+            return
+        try:
+            with self._order:
+                while self._open and time.monotonic() < deadline:
+                    self._order.wait(max(0.0, min(1.0, deadline - time.monotonic())))
+                drained = not self._open
+        except BaseException:
+            self._claim.release()
+            raise
+        if not drained:
+            self._claim.release()
+            yield False
+            return
+        try:
+            yield True
+        finally:
+            self._claim.release()
+
 
 class _Task:
     def __init__(self, sequencer, ticket):

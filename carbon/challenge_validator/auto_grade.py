@@ -62,6 +62,9 @@ STRANDED_GRADE_HOLD_SECONDS = 10 * 60
 #: for owners other rounds hold (the overdue path, or unreadable owners), polling each second; then they let go and
 #: are deferred again (`prelude_owners_busy`), so no running build can stop grading past it.
 PRELUDE_OWNER_WAIT_SECONDS = 10 * 60
+#: How long the incumbent's steps wait for the grades in flight to end (`Sequencer.exclusive_within`) before leaving and
+#: asking again (Lead, 18 Nov 2026: never an unbounded drain holding the claim lock).
+PRELUDE_DRAIN_SECONDS = 60
 
 
 class _NextTask(Exception):
@@ -576,6 +579,38 @@ class AutoGrader:
         return None if admitted is None else admitted[1]
 
     @contextlib.contextmanager
+    def _prelude_overdue_owners(self, claims):
+        """The incumbent's steps' owners when they must be WAITED for (unreadable, or deferred past
+        `UPKEEP_DEFER_MAX_SECONDS`): taken here, BEFORE the sequencer's exclusive, waiting at most
+        `PRELUDE_OWNER_WAIT_SECONDS` (`OwnerClaims.within`), so no wait for an owner ever holds the claim lock. Yields
+        True (held), False (not in time: the steps are deferred), or None (not due for a wait: `_prelude_owners_held`
+        takes them without waiting inside the exclusive, as before). One-lane doors: None.
+        """
+        if claims is None:
+            yield None
+            return
+        owners = self._prelude_owners()
+        now = time.monotonic()
+        since = getattr(self, "_prelude_waiting_since", None)
+        overdue = since is not None and now - since >= UPKEEP_DEFER_MAX_SECONDS
+        if owners is not None and not overdue:
+            yield None
+            return
+        from carbon.battery.intake import log
+
+        if overdue:
+            log("prelude_owners_overdue", seconds=round(now - since))
+        with claims.within(owners, PRELUDE_OWNER_WAIT_SECONDS) as got:
+            if not got:
+                log("prelude_owners_busy", busy=len(claims.held()))
+                self._prelude_waiting_since = time.monotonic()
+                self._prelude_after = time.monotonic() + self.PRELUDE_REASK_SECONDS
+                yield False
+                return
+            self._prelude_waiting_since = None
+            yield True
+
+    @contextlib.contextmanager
     def _prelude_owners_held(self, claims):
         """Hold what the incumbent's steps need; yields whether they may run now. One-lane doors (no claims), or owners
         that cannot be read (`_prelude_owners`): every owner, exactly as before. Else ONLY those owners, each taken
@@ -599,9 +634,9 @@ class AutoGrader:
 
             if overdue:
                 log("prelude_owners_overdue", seconds=round(now - since))
-            # inside the sequencer's exclusive: the NEEDED owners (every owner only when unreadable), waited for at most
-            # `PRELUDE_OWNER_WAIT_SECONDS`, never an unbounded wait behind a running build (V2, 18 Nov 2026)
-            with claims.within(owners, PRELUDE_OWNER_WAIT_SECONDS) as got:
+            # inside the sequencer's exclusive: NEVER a wait (the wait is made before it, `_prelude_overdue_owners`);
+            # reached only when the state changed between the two reads: one try, no wait
+            with claims.within(owners, 0) as got:
                 if not got:
                     log("prelude_owners_busy", busy=len(claims.held()))
                     self._prelude_waiting_since = time.monotonic()
@@ -670,12 +705,27 @@ class AutoGrader:
                     # V2's ruling (18 Nov 2026): the sequencer's exclusive FIRST (no grade in flight: the crown
                     # CAS), then the steps' owners without waiting; one busy leaves at once and the steps are
                     # deferred. Never a wait on the exclusive while this round holds owner claims.
-                    with (
-                        sequencer.exclusive(),
-                        self._prelude_owners_held(claims) as held,
-                    ):
-                        if held:
-                            self._run_prelude()
+                    # Live 116, 18 Nov 2026 (graded nothing 17:45-18:1x): an overdue wait for the steps' owners is made
+                    # BEFORE the exclusive, never holding the claim lock; the exclusive's drain is bounded
+                    # (`PRELUDE_DRAIN_SECONDS`), else the round leaves and the steps are asked again
+                    with self._prelude_overdue_owners(claims) as early:
+                        if early is not False:
+                            with sequencer.exclusive_within(
+                                PRELUDE_DRAIN_SECONDS
+                            ) as drained:
+                                if not drained:
+                                    from carbon.battery.intake import log
+
+                                    log("prelude_drain_busy", in_flight=len(sequencer.in_flight()))
+                                    self._prelude_after = (
+                                        time.monotonic() + self.PRELUDE_REASK_SECONDS
+                                    )
+                                elif early is True:
+                                    self._run_prelude()
+                                else:
+                                    with self._prelude_owners_held(claims) as held:
+                                        if held:
+                                            self._run_prelude()
                 finally:
                     prelude.release()
         if self._stranded_holds_grades():
