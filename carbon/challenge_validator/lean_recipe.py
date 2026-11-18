@@ -117,26 +117,6 @@ def _implementation_identity() -> str:
     )
 
 
-#: V2's option (a), 18 Nov 2026: the served-source identity an owner check (`LeanRecipeAdapter._provider`) compares is
-#: re-hashed IN FULL at most once per this many seconds, so a byte edit of a served source is refused
-#: (``served_recipe_source_changed``) within one interval. Live 116 stacks (14:27Z): the grade claim scan hashed every
-#: served source once per pending submission while holding the claim, and every grade waited behind it.
-IDENTITY_RECHECK_SECONDS = 60.0
-_RECENT_IDENTITY = [None, 0.0]
-
-
-def _implementation_identity_recent() -> str:
-    """`_implementation_identity`, re-hashed in full when the last one is older than `IDENTITY_RECHECK_SECONDS`."""
-    import time
-
-    value, at = _RECENT_IDENTITY
-    now = time.monotonic()
-    if value is None or now - at >= IDENTITY_RECHECK_SECONDS:
-        value = _implementation_identity()
-        _RECENT_IDENTITY[:] = [value, now]
-    return value
-
-
 def _withdrawn_cancellation(provider, task_value):
     """Whether the provider's durable cancellation id of ``task_value`` is its owner's withdrawal (`WITHDRAW_PREFIX`)."""
     cancellation = getattr(provider, "_cancellations", {}).get(task_value)
@@ -381,14 +361,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
         found = getattr(self.provider_for, "gpu_runtimes", None)
         return tuple(found()) if callable(found) else ()
 
+    def check_served_source(self):
+        """The served sources this door was started with (its ``implementation_digest``, computed at start) are still
+        byte-for-byte the installed ones, else ``served_recipe_source_changed``. V2's ruling (18 Nov 2026): checked at
+        door start and right before a build or a grade runs (`_advance_one`, `lean_recipe_retention`'s grade entries),
+        never on a lookup (`owner`, `_provider`, the claim and advance scans, status reads): those run no code."""
+        if self._identities["implementation_digest"] != _implementation_identity():
+            raise Unavailable("served_recipe_source_changed")
+
     def _provider(self, hotkey):
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
 
-        if (
-            self._identities["implementation_digest"]
-            != _implementation_identity_recent()
-        ):
-            raise Unavailable("served_recipe_source_changed")
         provider = self.provider_for(hotkey)
         if (
             type(provider) is not DirectDevelopmentTasksV3
@@ -1112,6 +1095,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 return None
             raise
         if task.state is DirectTaskStateV3.QUEUED:
+            # a build starts here: the served sources are checked before it runs (V2, 18 Nov)
+            self.check_served_source()
             try:
                 with _build_wall_guard(getattr(self, "owner_claims", None)):
                     provider.run_queued_task(task_id)

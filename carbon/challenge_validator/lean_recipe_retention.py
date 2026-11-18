@@ -91,6 +91,16 @@ EARLY_WALL_STOP_SCHEMA = "carbon.exam.early-wall-stop.v1"
 _EARLY_ROW_KEYS = {"enabled", "s_max_seconds", "margin", "evidence_sha256"}
 
 
+
+def _served_source_checked(adapter):
+    """At a grade's start, right before its work runs (V2's ruling, 18 Nov 2026): the served sources this door was
+    started with are still byte-for-byte the ones installed (`LeanRecipeAdapter.check_served_source`, refused
+    ``served_recipe_source_changed``). Lookups never hash. An adapter without the check (a test double): nothing."""
+    check = getattr(adapter, "check_served_source", None)
+    if callable(check):
+        check()
+
+
 def early_wall_stop_rule(challenge_id, version, *, path=None):
     """The registered ``{"s_max_seconds", "margin"}`` of ``"<challenge> <version>"``, or None when the early stop is OFF for it:
     the registry is absent, malformed, has no row, or the row is not enabled. NEVER raises (fail open: the published wall
@@ -3271,6 +3281,7 @@ def reconsider_paused_pack(
     """Make a paused contender's crown decision again from its filed evaluation: no regrade, no exam-cap slot and
     no Ladder document. Its repeat grade is the only extra grade, uncounted, as in `repeat_grade`.
     """
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     from carbon.challenge_validator import koth_registry
     from carbon.challenge_validator.bank_promotion import BankPromotion
 
@@ -3363,6 +3374,7 @@ def remeasure_incumbent_pack(
     `rebuild_at_seed`; a graph king through its retained source), graded on this receiver's selected pack; only the
     private mean is filed. ``submission_id`` must be the pool store's incumbent, ``entry_id`` its retained entry and
     ``evaluation_key`` its key on this pack. Returns the outcome and reason only."""
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     from carbon.challenge_validator import crown_average, koth_registry
 
     active = crown_average.ACTIVE
@@ -4344,6 +4356,7 @@ def retain_served_result(
     an identical retry returns the existing entry. The bundle and graph source
     variants use the same create-only v5 bank; missing graph roles fail closed.
     """
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     provider, task, result, artifacts, evidence = _retain_served_artifacts(
         adapter,
         submission_id,
@@ -4651,6 +4664,7 @@ def rebuild_king(
     Returns the regrade's result. A build the image refuses raises `RetentionUnavailable` with `KING_REBUILD_GAP`;
     any other failure raises its own typed code (infrastructure: retried by the caller).
     """
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     from carbon.challenge_validator import crown_average
 
     incumbent = (pool_store.incumbent() or {}).get("model_id")
@@ -5017,6 +5031,7 @@ def repeat_grade(
     the same regrade on the same pack and class, under its own task (`repeat_index`), uncounted and filed
     nowhere. Returns that regrade's bound private evaluation evidence, or raises `RetentionUnavailable`.
     """
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     again = regrade_retained_entry(
         adapter,
         entry_id,
@@ -5225,6 +5240,7 @@ def rebuild_at_seed(
     raises `crown_average.RebuildInfra` (`host_quiet.REBUILD_HOST_CONTENDED`). On a quiet host, and outside the loop,
     a failure is exactly as before.
     """
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     from carbon.challenge_validator import crown_average, host_quiet
 
     probe = host_quiet.start()
@@ -5495,6 +5511,7 @@ def regrade_retained_entry(
     comparison looks it up. Bundle and graph recipes are supported; any other source
     kind is typed unavailable.
     """
+    _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
     import io
     from types import SimpleNamespace
 
