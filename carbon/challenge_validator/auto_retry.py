@@ -66,6 +66,10 @@ _VERSION_WIDE_PREFIXES = (
     "contract_not_served",
 )
 _VERSION_WIDE_SUFFIXES = ("_unregistered",)
+#: Per-task codes under a version-wide prefix: retried as usual. ``evaluation_pack_binding_unavailable`` is one task's
+#: write-once binding sidecar (an interrupted grade's leftover; `infra_requeue.set_aside_interrupted` moves it aside
+#: before the re-grade), never a gap of the version's pack.
+_PER_TASK_CODES = frozenset({"evaluation_pack_binding_unavailable"})
 #: Typed Carbon exception names that are version-wide (the grader writes a class name for untyped failures).
 _VERSION_WIDE_CLASSES = frozenset(
     {"PoolConstantsNotRegistered", "ExamRefused", "MenuRefused", "ExamCapRefused"}
@@ -81,7 +85,9 @@ def retryable(code) -> bool:
         return False
     if base in _VERSION_WIDE_CLASSES or base in _NOT_RETRIED:
         return False
-    if any(base.startswith(p) for p in _VERSION_WIDE_PREFIXES):
+    if base not in _PER_TASK_CODES and any(
+        base.startswith(p) for p in _VERSION_WIDE_PREFIXES
+    ):
         return False
     return not any(base.endswith(s) for s in _VERSION_WIDE_SUFFIXES)
 

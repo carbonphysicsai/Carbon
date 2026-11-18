@@ -45,7 +45,9 @@ def _log(root, name=auto_retry.LOG_NAME):
 @pytest.mark.parametrize(
     "code, expected",
     [
-        ("evaluation_pack_binding_unavailable", False),
+        ("evaluation_pack_binding_unavailable", True),
+        ("evaluation_pack_task_binding_changed", False),
+        ("evaluation_pack_missing", False),
         ("pool_constants_not_registered", False),
         ("exam_cadence_unregistered", False),
         ("menu_draw_unavailable", False),
