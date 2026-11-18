@@ -136,6 +136,12 @@ class QueueView:
         return qp.GRADING
 
     def _grading_now(self):
+        """1 while this door grades, else 0 (the public flag). A door grading one round per lane (`grade_sequencer`)
+        grades while any claimed grade is in flight (Lead, 18 Nov 2026: live 116 showed 0 with 5 grades running, because
+        its one in-flight record and one activity field are a single-round door's)."""
+        sequencer = getattr(self.grader, "sequencer", None)
+        if sequencer is not None:
+            return int(bool(sequencer.in_flight()))
         try:
             record = json.loads((self.state / "work-inflight.json").read_bytes())
         except (OSError, ValueError):

@@ -2296,3 +2296,21 @@ def test_the_crown_host_owner_is_never_set_aside_the_start_refuses(
     with pytest.raises(ValueError, match="binding changed"):
         pool.restore()
     assert pool.set_aside() == {}
+
+
+def test_the_restore_logs_its_time_and_its_slowest_owners(tmp_path, monkeypatch, capsys):
+    """Lead (18 Nov 2026): one line with how long the owner restore took and its slowest owners (by sha256), so the
+    next speed-up aims at real data. Log only: the restore itself is unchanged."""
+    other = "5" + "2" * 47
+    names = _owner_dirs(tmp_path, monkeypatch, [OWNER, other])
+    pool = receiver.OwnerProviders(tmp_path, None, None, None)
+
+    def opening(hotkey, *, restoring, host=False):
+        pool._providers[hotkey] = SimpleNamespace(_views={})
+
+    monkeypatch.setattr(pool, "_open", opening)
+    pool.restore()
+    lines = [json.loads(x) for x in capsys.readouterr().err.strip().splitlines()]
+    (timing,) = [x for x in lines if x.get("event") == "owner_restore_timing"]
+    assert timing["owners"] == 2 and timing["total_s"] >= 0
+    assert {row["owner_sha256"] for row in timing["slowest"]} == set(names.values())

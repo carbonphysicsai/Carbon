@@ -226,6 +226,23 @@ def test_grading_now_needs_this_doors_grade_round_and_a_graded_submission(tmp_pa
     assert view._read()["grading_now"] == 0
 
 
+def test_a_parallel_door_is_grading_while_any_claimed_grade_is_in_flight(tmp_path):
+    """Lead (18 Nov 2026): live 116 showed grading_now 0 with 5 grades running. A door grading one round per lane
+    (`grade_sequencer`) is grading while any claimed grade is in flight, whatever its single in-flight record says.
+    The public field stays 0 or 1."""
+    from carbon.challenge_validator import grade_sequencer
+
+    view, grader = _door(tmp_path, {}, pending=[])
+    grader.sequencer = grade_sequencer.Sequencer()
+    (tmp_path / "work-inflight.json").write_text(json.dumps({"kind": "advance"}))
+    assert view._read()["grading_now"] == 0
+    with grader.sequencer.task() as task:
+        task.bind(TASKS[0])
+        # a grade in flight on some lane, while the in-flight record shows a build round
+        assert view._read()["grading_now"] == 1
+    assert view._read()["grading_now"] == 0
+
+
 def test_the_snapshot_is_cached_briefly(tmp_path):
     now = [NOW]
     view, _ = _door(tmp_path, {}, pending=[])

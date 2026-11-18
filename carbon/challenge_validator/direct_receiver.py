@@ -2178,11 +2178,16 @@ class OwnerProviders:
         V2 18 Nov). The start still refuses, as before, when the owner is the crown average's host owner (its derived
         rebuilds decide the crown), when its provider was already opened (it holds work), or when NO owner opened.
         """
+        import time
+
         from carbon.challenge_validator import crown_average
 
         first = None
+        began = time.monotonic()
+        took = []
         for directory in sorted(self.root.iterdir()):
             name = directory.name
+            started = time.monotonic()
             try:
                 _private_directory(directory)
                 owner = private_json(directory / "owner.json")
@@ -2218,6 +2223,9 @@ class OwnerProviders:
                     "owner_restore_set_aside", failure, owner_sha256=name
                 )
                 first = failure if first is None else first
+            finally:
+                took.append((time.monotonic() - started, name))
+        _log_restore_timing(time.monotonic() - began, took)
         if first is not None and not self._providers:
             # no owner could be reopened: a whole-door failure, never one owner's
             raise first
@@ -2301,6 +2309,19 @@ def _stop_providers(providers, *, cancel):
 def _owner_name(hotkey):
     """An owner's directory name under the receiver's owners/ (the hotkey's sha256)."""
     return hashlib.sha256(hotkey.encode()).hexdigest()
+
+
+def _log_restore_timing(total, took):
+    """One stderr line (the unit's journal, operator-only): how long the owner restore took, how many owners, and the
+    five slowest by sha256 (Lead, 18 Nov 2026: a restart's ~10 min restore, to aim its next speed-up at real data)."""
+    slowest = sorted(took, reverse=True)[:5]
+    record = {
+        "event": "owner_restore_timing",
+        "owners": len(took),
+        "total_s": round(total, 1),
+        "slowest": [{"owner_sha256": name, "s": round(s, 2)} for s, name in slowest],
+    }
+    print(json.dumps(record, sort_keys=True), file=sys.stderr, flush=True)
 
 
 def _log_start_failure(event, failure, **fields):
