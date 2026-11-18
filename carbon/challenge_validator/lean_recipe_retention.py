@@ -3715,6 +3715,10 @@ def _record_ladder(
             parts_registry=(
                 part_feedback.parts_registry(score_pack) if serves_parts else None
             ),
+            # owner G14: the gate report (v5) on a v3 document, with each gate's PUBLISHED rule
+            published_rules=(
+                None if serves_parts or epoch is None else _published_rules(adapter)
+            ),
             **about,
             rebuild_noise=koth_registry.rebuild_noise(
                 adapter.discovery.info.challenge_key.challenge_id,
@@ -3726,6 +3730,30 @@ def _record_ladder(
     return "RECORDED" + _record_gate_failures(
         adapter, submission_id, exam_key, shown, accuracy
     )
+
+
+def _published_rules(adapter):
+    """``{gate id: passes_when}`` of the version's published exam block (`published_exam.for_version`: the public
+    registration, checked against the registered constants by its own tests), or None when none is published (the
+    document then stays v3)."""
+    try:
+        from carbon.challenge_registry import published_exam
+
+        block = published_exam.for_version(
+            adapter.challenge_id, adapter.challenge_version
+        )
+    except Exception:  # noqa: BLE001 - no published block: v3, as before
+        return None
+    gates = (block or {}).get("gates")
+    if type(gates) is not list:
+        return None
+    return {
+        gate["id"]: gate["passes_when"]
+        for gate in gates
+        if type(gate) is dict
+        and type(gate.get("id")) is str
+        and type(gate.get("passes_when")) is str
+    }
 
 
 def _record_stop_ladder(adapter, submission_id, status, recipe_of):

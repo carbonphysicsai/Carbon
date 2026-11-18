@@ -179,6 +179,12 @@ def checked(document, *, latest=False):
             else gf.FIELDS_V4
         )
         return {name: document[name] for name in sorted(fields)}
+    if version == gf.SCHEMA_V5:
+        # owner G14: v3's fields plus the stage and the closed gate report (`grade_feedback.shape` checked both)
+        if type(document["recipe_digest"]) is not str or type(document["epoch"]) is not int:
+            raise LadderStoreRefused("ladder_document")
+        base = gf.FIELDS_V3_NOT_SCORED if "reason" in document else gf.FIELDS_V3
+        return {name: document[name] for name in sorted(base | gf.V5_ADDED)}
     if version == gf.SCHEMA_V3 and (
         type(document["recipe_digest"]) is not str
         or type(document["epoch"]) is not int
@@ -299,6 +305,7 @@ class LadderStore:
         epoch=None,
         leg_minimums=None,
         parts_registry=None,
+        published_rules=None,
     ):
         """Apply one graded private-exam result (the score row) and return the
         document it shows: stored as the latest, and as the best only when it
@@ -323,6 +330,7 @@ class LadderStore:
             leg_minimums=leg_minimums,
             parts_registry=parts_registry,
             parts_state=parts_state,
+            published_rules=published_rules,
         )
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:

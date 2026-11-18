@@ -69,6 +69,44 @@ FIELDS_V3_NOT_SCORED = FIELDS_V3 | {"reason", "leg"}
 SCHEMA_V4 = "carbon.private-exam.ladder-feedback.v4"
 FIELDS_V4 = FIELDS_V3 | {"parts", "gates", "minimums_missed"}
 FIELDS_V4_NOT_SCORED = FIELDS_V4 | {"reason", "leg"}
+#: v5 (owner G14, 18 Nov 2026; V2's spec GATE_DISCLOSURE_20261118): v3 plus where the grade stopped (``stage``) and, per
+#: registered hard gate, a ``gate_report`` entry: its name, its PUBLISHED rule (`published_exam` ``passes_when``, or
+#: "not yet registered"), its result, a closed reason code and the plain-language reason. Never a case, a count, a value,
+#: a margin, a threshold that is not published, a timing or a partial score.
+SCHEMA_V5 = "carbon.private-exam.ladder-feedback.v5"
+V5_ADDED = frozenset({"stage", "gate_report"})
+GATE_REPORT_FIELDS = frozenset({"name", "rule", "result", "reason_code", "reason"})
+GATE_RESULTS = ("pass", "fail", "not_evaluated", "carbon_failure")
+#: The closed reason codes of a gate entry, each with its plain-language reason (``{gate}`` = the gate's name).
+GATE_REASONS = {
+    "native_gate_failed": "{gate}: a cell failed a native motor check of the published rule.",
+    "cells_not_all_scored": "{gate}: not every cell of the fixed exam bank was scored.",
+    "physics_law_violated": "{gate}: a prediction violates a published physics law.",
+    "prediction_not_finite": "{gate}: a prediction is missing or not a finite number.",
+    "pool_design_violates_published_constraint": (
+        "{gate}: a predicted design violates a published physics constraint."
+    ),
+    "speed_median_above_ceiling": "{gate}: inference is slower than the published speed ceiling.",
+    "in_range_accuracy_above_threshold": (
+        "{gate}: in-range accuracy is outside the published threshold."
+    ),
+    "gate_failed": "{gate}: the published rule was not met.",
+    "stopped_at_earlier_gate": "{gate}: not evaluated, because grading stopped at an earlier gate.",
+    "carbon_infrastructure": (
+        "{gate}: our failure, not yours. This submission is not charged and runs again automatically."
+    ),
+}
+#: The reason code a registered gate's FAIL shows (a gate not listed shows ``gate_failed``).
+GATE_FAIL_CODE = {
+    "native_motor_valid": "native_gate_failed",
+    "complete_fixed_coverage": "cells_not_all_scored",
+    "physics_laws": "physics_law_violated",
+    "schema_finite": "prediction_not_finite",
+    "physics_pool": "pool_design_violates_published_constraint",
+    "speed": "speed_median_above_ceiling",
+    "in_range_accuracy": "in_range_accuracy_above_threshold",
+}
+NOT_PUBLISHED = "not yet registered"
 #: The part step is p = max(PART_FLOOR, PART_FACTOR * s), with s the total's step.
 #: PROVISIONAL disclosure settings, testnet only, not owner-selected (the overnight delegation); the
 #: invariant test pins p >= 2 * s so a merge cannot show a part finer than the total.
@@ -158,6 +196,17 @@ def shape(document):
     """``SCHEMA`` or ``SCHEMA_V3`` when ``document`` has exactly that version's
     fields, else None."""
     if type(document) is not dict:
+        return None
+    if document.get("schema") == SCHEMA_V5:
+        base = {key: value for key, value in document.items() if key not in V5_ADDED}
+        base["schema"] = SCHEMA_V3
+        if (
+            V5_ADDED <= set(document)
+            and document["stage"] == "grading"
+            and _gate_report_valid(document["gate_report"])
+            and shape(base) == SCHEMA_V3
+        ):
+            return SCHEMA_V5
         return None
     if set(document) == FIELDS and document.get("schema") == SCHEMA:
         return SCHEMA
@@ -378,6 +427,71 @@ def next_best(best, document):
     return best
 
 
+def _gate_report_valid(report):
+    """Whether ``report`` is a closed v5 gate report: entries of exactly `GATE_REPORT_FIELDS`, closed results and
+    codes, the reason exactly the code's text."""
+    if type(report) is not list:
+        return False
+    for entry in report:
+        if type(entry) is not dict or set(entry) != GATE_REPORT_FIELDS:
+            return False
+        if type(entry["name"]) is not str or type(entry["rule"]) is not str:
+            return False
+        if entry["result"] not in GATE_RESULTS:
+            return False
+        code = entry["reason_code"]
+        if code is None:
+            if entry["result"] != "pass" or entry["reason"] is not None:
+                return False
+        elif code not in GATE_REASONS or entry["reason"] != GATE_REASONS[code].format(
+            gate=entry["name"].replace("_", " ")
+        ):
+            return False
+    return True
+
+
+def gate_report(graded, gate_registry, published_rules):
+    """The v5 per-gate report of one graded result, in the registry's name order, built field by field from the
+    allow-list (owner G14; V2's GATE_DISCLOSURE_20261118): each registered gate's name, its PUBLISHED rule
+    (``published_rules[name]``, else `NOT_PUBLISHED`), its result, a closed reason code and its plain-language reason.
+    A result that is Carbon's own failure (FAILED_INFRA) reports every gate ``carbon_failure``; a gate the grade did not
+    reach is ``not_evaluated``. No value, count, case or margin is read."""
+    if type(published_rules) is not dict:
+        raise LadderFeedbackRefused("published_rules")
+    carbons = _REASON_OF_STATUS.get(graded.get("status")) == "FAILED_INFRA"
+    verdicts = graded.get("gates")
+    verdicts = verdicts if type(verdicts) is dict else {}
+    report = []
+    for name in sorted(gate_registry):
+        rule = published_rules.get(name)
+        rule = rule if type(rule) is str and rule else NOT_PUBLISHED
+        verdict = verdicts.get(name)
+        if carbons:
+            result, code = "carbon_failure", "carbon_infrastructure"
+        elif verdict == "PASS":
+            result, code = "pass", None
+        elif verdict == "FAIL":
+            result, code = "fail", GATE_FAIL_CODE.get(name, "gate_failed")
+        else:
+            result, code = "not_evaluated", "stopped_at_earlier_gate"
+        report.append(
+            {
+                "name": name,
+                "rule": rule,
+                "result": result,
+                "reason_code": code,
+                "reason": (
+                    None
+                    if code is None
+                    else GATE_REASONS[code].format(gate=name.replace("_", " "))
+                ),
+            }
+        )
+    if not _gate_report_valid(report):
+        raise LadderFeedbackRefused("gate_report")
+    return report
+
+
 def ladder_feedback(
     graded,
     *,
@@ -390,6 +504,7 @@ def ladder_feedback(
     leg_minimums=None,
     parts_registry=None,
     parts_state=None,
+    published_rules=None,
 ):
     """The miner's feedback document for one graded result.
 
@@ -443,6 +558,29 @@ def ladder_feedback(
     if type(graded) is not dict or type(graded.get("status")) is not str:
         raise LadderFeedbackRefused("graded")
     status = graded["status"]
+    if published_rules is not None and registry4 is None:
+        # v5 (owner G14): the v3 document of this result, plus its stage and gate report
+        if about is None:
+            raise LadderFeedbackRefused("about")
+        document = ladder_feedback(
+            graded,
+            best=best,
+            exam_version=exam_version,
+            gate_registry=gate_registry,
+            rebuild_noise=rebuild_noise,
+            recipe_digest=recipe_digest,
+            epoch=epoch,
+            leg_minimums=leg_minimums,
+        )
+        document = {
+            **document,
+            "schema": SCHEMA_V5,
+            "stage": "grading",
+            "gate_report": gate_report(graded, registry, published_rules),
+        }
+        if shape(document) != SCHEMA_V5:
+            raise LadderFeedbackRefused("document_fields")
+        return document
     if registry4 is not None:
         return _feedback_v4(
             graded,
