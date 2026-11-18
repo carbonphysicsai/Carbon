@@ -641,11 +641,12 @@ class AutoGrader:
             # this same process, meets them and burns its one retry on `evaluation_pack_binding_unavailable`. The kept
             # copy also bumps the retry's regrade generation, so it never meets the hung thread's op identities. The
             # hung thread's open files stay valid across the rename, and it never commits.
-            kept = None
+            kept, root = None, getattr(self, "root", None)
             try:
-                kept = infra_requeue.set_aside_interrupted(
-                    self.root, submission_id, started=math.inf
-                )
+                if root is not None:
+                    kept = infra_requeue.set_aside_interrupted(
+                        root, submission_id, started=math.inf
+                    )
             except (OSError, ValueError):
                 pass  # left in place: the retry meets its conflict as before (FAILED, Carbon's)
             try:

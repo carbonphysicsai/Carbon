@@ -209,7 +209,8 @@ def test_a_directory_this_grader_process_wrote_is_left_alone(tmp_path):
 def test_a_grade_ended_as_hung_has_its_evaluation_set_aside_for_a_fresh_retry(tmp_path):
     """V2 (18 Nov 2026): a grade ended as hung (`AutoGrader._end_hung_grades`) wrote its evaluation in THIS process, so
     the start-time rule alone would leave it. It is set aside before `_fail`, whatever its age: the automatic retry
-    binds a fresh evaluation and takes a fresh regrade generation (never the hung thread's op identities)."""
+    binds a fresh evaluation and takes a fresh regrade generation (never the hung thread's op identities).
+    """
     from carbon.challenge_validator import grade_sequencer
 
     evaluation = tmp_path / "auto-grade" / "artifacts" / (TASK + ".evaluation")
@@ -237,4 +238,5 @@ def test_a_grade_ended_as_hung_has_its_evaluation_set_aside_for_a_fresh_retry(tm
     assert failed == [(TASK, auto_grade.GRADE_HUNG)]
     kept = tmp_path / "auto-grade" / "requeued" / (TASK + ".interrupted-1.evaluation")
     assert (kept / "evaluation-pack-binding.json").read_bytes() == b'{"entry_id": "e1"}'
-    assert retention._regrade_generation(base, TASK) == 1  # the retry's regrade id differs
+    # the retry's regrade id differs
+    assert retention._regrade_generation(base, TASK) == 1

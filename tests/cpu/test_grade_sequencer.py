@@ -456,7 +456,8 @@ def test_the_owner_set_the_hung_grade_limit_to_1800_seconds():
 def test_a_parallel_door_runs_two_grade_threads_per_lane_so_a_commit_wait_never_idles_a_lane():
     """Live 116, 18 Nov 2026: a grade waiting its commit turn gave its lane and slot back, but its THREAD waited, so
     with one thread per lane every lane sat free behind a slow head pair. Two per lane: the extra ones start a grade on
-    the freed slot (still one RUNNING per lane, `_slots`); a single-lane door keeps its one."""
+    the freed slot (still one RUNNING per lane, `_slots`); a single-lane door keeps its one.
+    """
     from carbon.challenge_validator import direct_intake
 
     assert direct_intake.grade_rounds(1) == 1

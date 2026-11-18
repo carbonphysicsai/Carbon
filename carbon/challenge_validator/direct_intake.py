@@ -2536,7 +2536,8 @@ def grade_rounds(lanes):
     there, so with one thread per lane a slow grade at the head of the commit order left every lane free and nothing
     started (live 116, 18 Nov 2026 00:12-00:26Z: 10 grades reserved, 2 running, 8 waiting behind a ~12-min head pair;
     Lead). The extra threads start a grade only on a free round slot (still one per lane), so at most one grade RUNS
-    per lane, and only the commits stay in claim order. A single-lane door keeps its one."""
+    per lane, and only the commits stay in claim order. A single-lane door keeps its one.
+    """
     return 2 * lanes if lanes > 1 else 1
 
 
