@@ -72,15 +72,16 @@ def harness(tmp_path, monkeypatch):
     monkeypatch.setattr(worker, "vmap64_state_lanes", lambda *a: 8)
     ops = []
 
-    def fake_pair(ledger, **call):
+    def fake_once(ledger, **call):
         ops.append(call)
         return SimpleNamespace(evidence={"fixture": True})
 
-    monkeypatch.setattr(paired_inference, "infer_frozen_pair", fake_pair)
+    # the re-check is ONE fresh operation (V2 R1 (a), 18 Nov 2026), never a pair
+    monkeypatch.setattr(paired_inference, "infer_frozen_once", fake_once)
     monkeypatch.setattr(
         retention,
         "_menu_rowcheck_outputs",
-        lambda evidence, entry, subset, shape, dtype, procedure: [
+        lambda evidence, entry, subset, shape, dtype, procedure, identities: [
             0.5 for _ in range(shape[0] * shape[1])
         ],
     )
@@ -225,7 +226,7 @@ def test_every_other_version_still_runs_the_real_re_predict_row_check(harness, v
     from carbon.scoring import pool_menu
 
     side = harness.run(version=version)
-    assert len(harness.ops) == 1  # the real fresh-instance re-check (its pair op)
+    assert len(harness.ops) == 1  # the real fresh-instance re-check (its one op)
     assert harness.ops[0]["expected_output_shape"] == (SUBSET, WIDTH)
     read = pool_menu.read_rowcheck_side_file(side)
     assert (
