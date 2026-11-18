@@ -452,3 +452,62 @@ def test_the_heads_own_retake_counts_itself_and_lets_go_once_it_holds_a_lane(tmp
     lane = grade.retake()
     assert lane.index == 1 and work._turn_waiting_local == 0
     work._unlock(grade._held[0])
+
+
+def test_the_live_deadlock_shape_clears(monkeypatch):
+    """Live 116, 18 Nov 2026 (STACKS #4): the incumbent's steps due, a slow first grade open, the head-after-it at its
+    commit turn, and new grade rounds waiting to claim. Before: the steps held the claim lock draining every open
+    grade, the waiting grade had given its lane back and could not re-take one, and nothing graded. Now: the steps
+    never take the claim lock, the waiting grade keeps its lane, a new grade claims at once, and all finish."""
+    from carbon.challenge_validator import auto_grade
+
+    sequencer, first_go, thread = _two_tickets(monkeypatch)
+    releaser = _Releaser()
+    turned = threading.Event()
+
+    def head():
+        token = grade_lanes.offer_releaser(releaser)
+        try:
+            with grade_lanes.bound(LANE), sequencer.task() as task:
+                task.bind("rtsk_head")
+                task.turn()  # waits for the slow first grade, keeping its lane
+                turned.set()
+        finally:
+            grade_lanes.withdraw_releaser(token)
+
+    waiter = threading.Thread(target=head, daemon=True)
+    waiter.start()
+    claims = grade_sequencer.OwnerClaims()
+    ran = []
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.sequencer, grader.owner_claims = sequencer, claims
+    grader.chain_degraded = lambda: False
+    grader._prelude_due = lambda pending: True
+    grader.pending = list
+    grader._prelude_owners = lambda: set()
+    grader._settle_queue_places = lambda: ran.append("places")
+    grader._upkeep_deferred = lambda: False
+    grader._king_upkeep = lambda: ran.append("king")
+    grader._resume_paused_crowns = lambda: None
+    grader._apply_due_retries = lambda idle: None
+    grader._stranded_filed = True
+    done = threading.Event()
+    threading.Thread(target=lambda: (grader._run_once(), done.set()), daemon=True).start()
+    assert done.wait(5)  # the steps never waited on the open grades
+    assert ran[:2] == ["places", "king"]
+    # a new grade claims at once: the claim lock is free
+    claimed = threading.Event()
+
+    def new_grade():
+        with sequencer.task() as task:
+            task.bind("rtsk_new")
+            task.release_claim()
+            claimed.set()
+
+    threading.Thread(target=new_grade, daemon=True).start()
+    assert claimed.wait(2)
+    first_go.set()
+    thread.join(5)
+    assert turned.wait(5)
+    waiter.join(5)
+    assert releaser.events == []  # the waiting grade never gave its lane back
