@@ -2292,7 +2292,7 @@ class OwnerProviders:
             began = time.monotonic()
             try:
                 built = self._build(hotkey, restoring=True, host=False)
-            except Exception as failure:  # noqa: BLE001 - any failure sets the owner aside, as `restore` does
+            except Exception as failure:  # noqa: BLE001 - sets the owner aside
                 with self._lock:
                     self._lazy.pop(name, None)
                     self._lazy_index.pop(name, None)
@@ -2476,7 +2476,7 @@ def _open_crown_owners(grader):
     as any lazy owner; never a reason not to start."""
     try:
         grader._prelude_owners()
-    except Exception:  # noqa: BLE001, S110 - doubt: those owners open on their first touch
+    except Exception:  # noqa: BLE001, S110 - opens on first touch
         pass
 
 
