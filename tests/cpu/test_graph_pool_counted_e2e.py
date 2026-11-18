@@ -603,3 +603,35 @@ def test_graph_original_mismatch_is_unavailable_and_releases_the_slot(
     assert fixture.store.incumbent() is None
     with pytest.raises(StateError, match="unknown_submission"):
         fixture.store.submission(TASK)
+
+
+@pytest.mark.parametrize("propagated", [False, True])
+def test_a_failure_after_the_counted_settle_gives_the_slot_back(
+    case, tmp_path, monkeypatch, propagated
+):
+    """V2 (18 Nov 2026, funds): three grades ended FAILED with their slot COUNTED. The slot is settled when the exam is
+    applied, and a later step (the binding, the sidecars, the filing) can still fail before the Ladder carries the result
+    to the miner: that charge is ours, so the slot goes back (RELEASED / FAILED_INFRA), whether the failure is given back
+    as Carbon's (raised) or returned UNAVAILABLE."""
+    fixture = _setup(case, tmp_path, monkeypatch)
+    code = (
+        sorted(retention._propagated_carbon_failures())[0]
+        if propagated
+        else "binding_failed_after_settle"
+    )
+
+    def fails(**kwargs):
+        raise retention.RetentionUnavailable(code)
+
+    from carbon.scoring import private_evaluation_evidence
+
+    # imported inside the retention function: patched where it is defined
+    monkeypatch.setattr(private_evaluation_evidence, "bind_private_evaluation_evidence", fails)
+    if propagated:
+        with pytest.raises(retention.RetentionUnavailable):
+            _grade(fixture, counted=True)
+    else:
+        result = _grade(fixture, counted=True)
+        assert result["private_evaluation_state"] == "UNAVAILABLE"
+    rows = _cap_rows(fixture)
+    assert [(row[2], row[3]) for row in rows] == [("RELEASED", "FAILED_INFRA")]

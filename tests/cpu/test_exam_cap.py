@@ -1809,3 +1809,15 @@ def test_the_pending_reader_is_lazy_and_a_failing_one_admits(tight):
         )
         is None
     )
+
+
+def test_an_unfinished_counted_grade_gives_its_slot_back(cap):
+    """V2 (18 Nov 2026, funds): a COUNTED slot whose grade then failed before reaching the miner goes back as
+    RELEASED / FAILED_INFRA; only that reservation, only from COUNTED."""
+    slot = _reserve(cap, 1)
+    cap.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE")
+    assert cap.give_back_unfinished(slot) is True
+    with cap.ledger._db() as db:
+        row = db.execute("SELECT state, status FROM exam_graded WHERE id=?", (slot,)).fetchone()
+    assert row == ("RELEASED", "FAILED_INFRA")
+    assert cap.give_back_unfinished(slot) is False  # once

@@ -2402,6 +2402,8 @@ def _retain_selected_pack_evaluation(
     if result.get("evaluation_pack_digest") is None:
         return result
     cap = reservation = None
+    #: the reservation this grade settled COUNTED, until its result reaches the miner (the Ladder write, after the try)
+    counted = None
     try:
         from carbon.development_session.data import write_once
         from carbon.scoring import dual_score
@@ -2619,7 +2621,7 @@ def _retain_selected_pack_evaluation(
             benchmark, registered["score_pack"]
         )
         # The exam was applied: a graded outcome keeps the slot, anything else gives it back.
-        cap.settle(
+        settled_state = cap.settle(
             reservation,
             scoring["models"][0]["status"],
             lane_seconds=(
@@ -2630,6 +2632,7 @@ def _retain_selected_pack_evaluation(
                 )
             ),
         )
+        counted = reservation if settled_state == "COUNTED" else None
         reservation = None
         expected_result = _sha(
             (
@@ -2725,6 +2728,10 @@ def _retain_selected_pack_evaluation(
         if reservation is not None:
             # Grading did not complete (infrastructure or evidence), so the slot is returned.
             cap.settle(reservation, "UNAVAILABLE")
+        if counted is not None:
+            # V2 (18 Nov 2026, funds): the slot was settled COUNTED and a later step failed before the result reached the
+            # miner (the Ladder is written only after this block): the charge is ours, the slot goes back
+            cap.give_back_unfinished(counted)
         if (
             isinstance(exc, RetentionUnavailable)
             and exc.code in _propagated_carbon_failures()

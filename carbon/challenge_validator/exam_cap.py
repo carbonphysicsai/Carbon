@@ -877,6 +877,19 @@ class ExamCap:
                 )
         return "RELEASED"
 
+    def give_back_unfinished(self, reservation: int) -> bool:
+        """Give back a slot settled COUNTED whose grade then failed before its result reached the miner (V2, 18 Nov
+        2026: three slots were charged with no grade): RELEASED / FAILED_INFRA, exactly as `release_undelivered` leaves
+        one, so the recipe runs again uncharged. Only that reservation and only from COUNTED; returns whether it changed.
+        """
+        with self.ledger._db() as db:
+            changed = db.execute(
+                "UPDATE exam_graded SET state='RELEASED', status='FAILED_INFRA' "
+                "WHERE id=? AND state='COUNTED'",
+                (reservation,),
+            ).rowcount
+        return changed == 1
+
     def release_undelivered(self, submission_id: str) -> dict:
         """Give back the one COUNTED slot of a graded submission whose result never reached the
         miner (Validator 4 Nov 03:15 (b) and 05:17 (3)): our infrastructure lost it, so the charge
