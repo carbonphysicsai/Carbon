@@ -396,7 +396,7 @@ class AutoGrader:
 
         try:
             set_aside = self.intake.adapter.provider_for.set_aside()
-        except Exception:  # noqa: BLE001 - no set-aside view (a test double, a one-shot): nothing held
+        except Exception:  # noqa: BLE001 - no set-aside view: nothing held
             return False
         if not set_aside:
             return False
