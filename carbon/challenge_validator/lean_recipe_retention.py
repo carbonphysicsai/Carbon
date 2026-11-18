@@ -3024,19 +3024,25 @@ def _contend(
             ),
             comparator,
         )
-        reader = getattr(promotion.store, "incumbent", None)
-        met = ((reader() if reader is not None else None) or {}).get("model_id")
-        outcome = promotion.consider_private(
-            submission_id,
-            filed["evaluation_key"],
-            comparator,
-            # Delivery provenance, never the pack's shape: only a pack that
-            # arrived through the answer-key route into the sealed store.
-            sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
-            repeat=repeat,
-            # Only a registered control is passed: a promotion that takes none is called as before.
-            **({} if control is None else {"control": control}),
-        )
+        from carbon.challenge_validator.grade_sequencer import CROWN_LOCK
+
+        # V2 (18 Nov 2026): the king is read and the crown written under the crown lock (no incumbent step and no
+        # other grade's crown commit meanwhile); the store's compare-and-set (`PoolStore._set_incumbent`, expected
+        # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`)
+        with CROWN_LOCK:
+            reader = getattr(promotion.store, "incumbent", None)
+            met = ((reader() if reader is not None else None) or {}).get("model_id")
+            outcome = promotion.consider_private(
+                submission_id,
+                filed["evaluation_key"],
+                comparator,
+                # Delivery provenance, never the pack's shape: only a pack that
+                # arrived through the answer-key route into the sealed store.
+                sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
+                repeat=repeat,
+                # Only a registered control is passed: a promotion that takes none is called as before.
+                **({} if control is None else {"control": control}),
+            )
         from carbon.challenge_validator import koth_journal
 
         koth_journal.contention(
@@ -3309,6 +3315,15 @@ def reconsider_paused_pack(
             runner=runner,
         )
     )
+    from carbon.challenge_validator.grade_sequencer import CROWN_LOCK
+
+    with CROWN_LOCK:  # the crown's read and write, as every crown commit (V2, 18 Nov 2026)
+        return _consider_watched(watched, promotion, record, adapter, score_pack, accuracy, discovery)
+
+
+def _consider_watched(watched, promotion, record, adapter, score_pack, accuracy, discovery):
+    from carbon.challenge_validator import koth_registry
+
     return watched.mark(
         promotion.consider_private(
             record["submission_id"],

@@ -263,39 +263,18 @@ def _prelude_grader(claims, ran):
     return grader
 
 
-def test_the_steps_wait_for_a_busy_owner_without_the_claim_lock_then_run_with_no_grade_in_flight():
-    """V2's ruling on 30034a2f (18 Nov 2026): the overdue wait for the steps' owners runs BEFORE the exclusive. Here the
-    owners cannot be read (this grader has no intake), so the steps wait (bounded) for every owner a build round holds:
-    (a) meanwhile the sequencer's claim lock is NOT held and a second round goes on; (b) while the steps run, no grade
-    is claimed or in flight; (c) the steps run once the build's owner is free.
-    """
+def test_unreadable_step_owners_defer_the_steps_and_no_round_waits():
+    """Owner (18 Nov 2026): no door-wide exclusive. When the steps' owners cannot be read (this grader has no intake)
+    the steps are deferred, holding nothing: both rounds go on at once while a build holds an owner."""
     claims = grade_sequencer.OwnerClaims()
     assert claims.try_claim("builder")
-    ran, during = [], []
+    ran = []
     grader = _prelude_grader(claims, ran)
-    sequencer = grader.sequencer
-
-    def king():
-        during.append((sequencer._claim.locked(), dict(sequencer._open)))
-        ran.append("king")
-
-    grader._king_upkeep = king
-    first = threading.Thread(target=grader._run_once, daemon=True)
-    first.start()
-    deadline = time.monotonic() + 5
-    while not claims._exclusive and time.monotonic() < deadline:
-        time.sleep(0.01)
-    assert claims._exclusive  # the first waits for the build's owner
-    # (a) no claim lock held while it waits, and a second round goes on at once
-    assert not sequencer._claim.locked()
-    second_done = threading.Event()
-    threading.Thread(
-        target=lambda: (grader._run_once(), second_done.set()), daemon=True
-    ).start()
-    assert second_done.wait(2) and ran == []
-    # (c) once the build's owner is free the steps run
-    claims.release("builder")
-    first.join(5)
-    assert ran == ["places", "king"]
-    # (b) while they ran: the claim lock held, no grade claimed or in flight
-    assert during == [(True, {})]
+    for _ in range(2):
+        finished = threading.Event()
+        threading.Thread(
+            target=lambda e=finished: (grader._run_once(), e.set()), daemon=True
+        ).start()
+        assert finished.wait(5)
+    assert ran == [] and not claims._exclusive
+    assert claims.held() == {"builder"}

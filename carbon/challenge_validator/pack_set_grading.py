@@ -393,17 +393,21 @@ def _contend_set(
             koth_registry.control(batch_adapters[batches[0]].challenge_id),
             comparator,
         )
-        outcome = promotion.consider_private(
-            origin,
-            filed["evaluation_key"],
-            comparator,
-            sealed=all(
-                getattr(d, "evaluation_pack_sealed", False) is True for d in discoveries
-            ),
-            repeat=repeat,
-            # Only a registered control is passed: a promotion that takes none is called as before.
-            **({} if control is None else {"control": control}),
-        )
+        from .grade_sequencer import CROWN_LOCK
+
+        with CROWN_LOCK:  # the crown's read and write, as every crown commit (V2, 18 Nov 2026)
+            outcome = promotion.consider_private(
+                origin,
+                filed["evaluation_key"],
+                comparator,
+                sealed=all(
+                    getattr(d, "evaluation_pack_sealed", False) is True
+                    for d in discoveries
+                ),
+                repeat=repeat,
+                # Only a registered control is passed: a promotion that takes none is called as before.
+                **({} if control is None else {"control": control}),
+            )
         from . import koth_journal
 
         koth_journal.contention("live_set", origin, outcome, store=promotion.store)

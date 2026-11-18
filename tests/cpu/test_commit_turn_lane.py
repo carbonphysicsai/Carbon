@@ -100,9 +100,9 @@ def _two_tickets(monkeypatch, gone=True):
 
 
 @pytest.mark.parametrize("gone", [True, False])
-def test_the_commit_turn_wait_gives_the_lane_back_only_once_the_session_is_gone(
-    monkeypatch, gone
-):
+def test_the_commit_turn_wait_keeps_the_lane(monkeypatch, gone):
+    """Lead (18 Nov 2026, live 116 deadlock, STACKS #4): a grade waiting for its commit turn KEEPS its lane (a lane given
+    back had to be re-taken behind every queued round while those rounds waited for this ticket)."""
     sequencer, first_go, thread = _two_tickets(monkeypatch, gone)
     releaser = _Releaser()
     during = []
@@ -119,16 +119,12 @@ def test_the_commit_turn_wait_gives_the_lane_back_only_once_the_session_is_gone(
 
     waiter = threading.Thread(target=later, daemon=True)
     waiter.start()
-    for _ in range(200):
-        if releaser.events or not gone:
-            break
-        first_go.wait(0.01)
-    assert releaser.events == (["release"] if gone else [])
+    first_go.wait(0.2)
+    assert releaser.events == []
     first_go.set()
     thread.join(5)
     waiter.join(5)
-    assert releaser.events == (["release", "retake"] if gone else [])
-    assert during == [OTHER if gone else LANE]
+    assert releaser.events == [] and during == [LANE]
 
 
 def test_a_first_ticket_never_waits_and_keeps_its_lane(monkeypatch):

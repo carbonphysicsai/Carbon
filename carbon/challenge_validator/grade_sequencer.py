@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import threading
 import time
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from contextvars import ContextVar
 
 _CURRENT: ContextVar = ContextVar("carbon_grade_sequencer_task", default=None)
@@ -182,20 +182,19 @@ class _Task:
             self._turned = True
             return
         from carbon.development_session.research_carrier import yield_grade_session
-        from carbon.reconstruction import grade_lanes
-
         # best effort itself: a removal that cannot be confirmed means no later op joins it, and the grade session's
         # own exit removes (and reports) it again
-        gone = yield_grade_session()
-        # (a) (Lead 17 Nov 2026): the lane goes back to the door while this grade waits, unless its session container
-        # is not confirmed gone (no round runs beside it)
+        yield_grade_session()
+        # Lead (18 Nov 2026, live 116 deadlock, STACKS #4): the grade KEEPS its lane through this wait. A lane given
+        # back here had to be re-taken behind every queued build and grade round, while the rounds behind it waited
+        # for this ticket: the head of the commit order never got a lane back, and nothing graded.
         # V2 (18 Nov 2026): the commit-turn wait, and the lane re-take after it, are waits on EARLIER grades: `overdue`
         # skips this ticket meanwhile, and its clock starts afresh after, so a healthy grade behind a slow head is never
         # ended as hung (only the head, or a ticket stuck outside this wait, can be)
         with order:
             self.sequencer._waiting.add(self.ticket)
         try:
-            with grade_lanes.given_back() if gone else nullcontext(), order:
+            with order:
                 while any(other < self.ticket for other in self.sequencer._open):
                     order.wait(1.0)
         finally:
@@ -210,6 +209,14 @@ class _Task:
 
 class GradeAbandoned(RuntimeError):
     """This grade was ended as hung (`Sequencer.abandon`): it never commits."""
+
+
+#: The crown's in-process lock (V2, 18 Nov 2026, replacing the door-wide `Sequencer.exclusive`): held around each
+#: grade's crown commit (`lean_recipe_retention._contend`'s consideration) and the incumbent's own crown steps
+#: (`auto_grade._crown_steps`), so no two of them read and write the king at once. The store's own compare-and-set
+#: (`PoolStore._set_incumbent`: the expected king checked inside one BEGIN IMMEDIATE transaction) still refuses a
+#: king that moved. Re-entrant: an incumbent step that files a stranded challenger reaches `_contend` holding it.
+CROWN_LOCK = threading.RLock()
 
 
 class OwnerClaims:
