@@ -170,15 +170,19 @@ def test_a_version_registers_the_ranking_or_defaults_to_the_old_rule():
         pool_version._menu(_menu_block(ranking="nope"))
 
 
-def test_an_error_of_exactly_plus_or_minus_u_still_picks_the_optimum_under_the_new_rule():
-    # the boundary of the owner's "|e| < U" case: the sealed optimum sits at a true margin of 1.01 U, so an error of
-    # exactly +U leaves it feasible on the model (margin 0.01 U) and an error of exactly -U only widens its margin
+def test_the_guarantee_is_for_an_error_strictly_below_u_and_the_edge_lands_at_margin_zero():
+    """The owner's guarantee is |e| < U, STRICTLY. The sealed optimum sits at a true margin of at least U, so an
+    optimistic error of exactly U lands at a model margin >= 0, which still counts as feasible (margin 0 = feasible,
+    like `pick_d`); an error of exactly -U only widens the margin. Here the optimum's true margin is 1.01 U, so both
+    edges keep it feasible on the model and it stays the first pick. Beyond the edge (an optimistic error above the
+    optimum's true margin) it is no longer guaranteed; `test_an_optimistic_bias_beyond_u_is_penalised...` covers that.
+    """
     record = _record()
     for error in (-U, U):
         preds = _model(error)(record)
         out = _score(record, preds, ms.RANKING_ORIGINAL_LIMITS)
         assert out["d"] == pytest.approx(1.0), error
-        assert _first_pick(record, preds, ms.RANKING_ORIGINAL_LIMITS) == 1.0
+        assert _first_pick(record, preds, ms.RANKING_ORIGINAL_LIMITS) == 1.0, error
 
 
 def test_a_model_margin_of_exactly_zero_is_feasible_and_a_tie_shares_its_mean():
