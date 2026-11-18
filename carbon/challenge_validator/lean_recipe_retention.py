@@ -5481,6 +5481,30 @@ def _entry_origin_task(entry_directory, entry_id):
     return match.group(1)
 
 
+#: A bound on the generations an uncounted regrade walks past (a scan bound, not a retry policy).
+_REGRADE_GENERATIONS = 64
+
+
+def _uncounted_marks(base, regrade_id):
+    """An uncounted regrade's own start and finish marks, beside its retained files."""
+    return (
+        Path(base) / (regrade_id + ".regrade-attempt.json"),
+        Path(base) / (regrade_id + ".regrade-done.json"),
+    )
+
+
+def _uncounted_generation(base, regrade_id_at):
+    """The first generation of an uncounted regrade that never started, or that started and finished (see
+    `_uncounted_marks`); 0 for a first regrade."""
+    generation = 0
+    while generation < _REGRADE_GENERATIONS:
+        started, finished = _uncounted_marks(base, regrade_id_at(generation))
+        if not started.exists() or finished.exists():
+            return generation
+        generation += 1
+    return generation
+
+
 def _regrade_generation(base, origin):
     """How many earlier attempts of ``origin``'s grade left an evaluation directory: kept by a hand-back
     (``<origin>.attempt-<n>.evaluation``) or set aside after an interruption (``<origin>.interrupted-<k>.evaluation``),
@@ -5500,7 +5524,54 @@ def _regrade_generation(base, origin):
     )
 
 
-def regrade_retained_entry(
+def _candidate_outcome(error) -> bool:
+    """Whether ``error`` (or the error it was raised from) is the CANDIDATE's own observed failure, not a replay."""
+    from carbon.development_session import research_carrier as carrier
+
+    seen = 0
+    while error is not None and seen < 8:
+        if isinstance(error, carrier.MinerProgramFailure):
+            return getattr(error, "replayed", False) is not True
+        error, seen = error.__cause__, seen + 1
+    return False
+
+
+def _finish_uncounted(marks, outcome):
+    """Write an uncounted regrade's finish mark (see `_uncounted_marks`); a mark already there stays (first wins)."""
+    from carbon.development_session.data import write_once
+
+    if not marks:
+        return
+    try:
+        write_once(
+            marks["finished"],
+            _json({"regrade_task_id": marks["regrade_id"], "outcome": outcome}),
+        )
+    except (
+        OSError,
+        ValueError,
+    ):  # a finish already written with another outcome: the first stays
+        pass
+
+
+def regrade_retained_entry(*args, **kwargs) -> dict:
+    """`_regrade_retained_entry` with an uncounted regrade's finish mark (door-code review, 17 Nov): a regrade that
+    returns, or ends in the CANDIDATE's own failure, is FINISHED, so the next call reuses its id and replays that settled
+    outcome (a failed king is never re-rolled fresh until it passes: no bias toward the incumbent). Only a Carbon-side
+    ending (a WorkerFailure, a RetentionUnavailable, a FAILED_INFRA replay, an interruption) leaves it unfinished, so the
+    next call takes a fresh generation."""
+    marks = {}
+    try:
+        result = _regrade_retained_entry(*args, _marks=marks, **kwargs)
+    except Exception as error:
+        if _candidate_outcome(error):
+            _finish_uncounted(marks, "candidate")
+        raise
+    _finish_uncounted(marks, "returned")
+    return result
+
+
+def _regrade_retained_entry(
     adapter,
     entry_id: str,
     *,
@@ -5513,6 +5584,7 @@ def regrade_retained_entry(
     pool_store=None,
     repeat_index: int = 0,
     file_as=None,
+    _marks=None,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
 
@@ -5598,24 +5670,44 @@ def regrade_retained_entry(
     # A RE-RUN of a miner's counted grade (an earlier attempt of it was interrupted mid-grade or handed back, so its
     # evaluation directory was set aside or kept: `infra_requeue`): a fresh generation, so this attempt's inference ops
     # never meet an earlier attempt's identities (one left RESERVED raised "research operation ambiguous"; one settled
-    # FAILED_INFRA replayed as Carbon's failure for ever; switch-2 copy, 17 Nov). A first attempt, and every crown
-    # repeat or incumbent regrade, keeps its id byte for byte.
-    generation = (
-        _regrade_generation(base, origin) if counted and not repeat_index else 0
-    )
-    regrade_id = (
-        "rtsk_"
-        + hashlib.sha256(
-            (
-                origin
-                + "\0REGRADE\0"
-                + snapshot.manifest_digest
-                + (f"\0REPEAT\0{repeat_index}" if repeat_index else "")
-                + (f"\0IMAGE\0{inference_image.image_id}" if moved else "")
-                + (f"\0ATTEMPT\0{generation}" if generation else "")
-            ).encode()
-        ).hexdigest()
-    )
+    # FAILED_INFRA replayed as Carbon's failure for ever; switch-2 copy, 17 Nov). A first attempt keeps its id byte for
+    # byte.
+
+    def regrade_id_at(generation):
+        return (
+            "rtsk_"
+            + hashlib.sha256(
+                (
+                    origin
+                    + "\0REGRADE\0"
+                    + snapshot.manifest_digest
+                    + (f"\0REPEAT\0{repeat_index}" if repeat_index else "")
+                    + (f"\0IMAGE\0{inference_image.image_id}" if moved else "")
+                    + (f"\0ATTEMPT\0{generation}" if generation else "")
+                ).encode()
+            ).hexdigest()
+        )
+
+    if counted and not repeat_index:
+        generation = _regrade_generation(base, origin)
+    else:
+        # An UNCOUNTED regrade (a crown repeat, an averaging rebuild, king/incumbent upkeep; Validator-2, 17 Nov: one
+        # infra blip must never fail the king's upkeep for ever) keeps no evaluation to count. It marks its own start
+        # and, when it returns, its finish (`_uncounted_marks`); a generation that started and never finished (any of
+        # its ops failed or was interrupted, whatever that op's id) is passed for the next. A finished regrade stays
+        # where it is (its retained bytes are read back); a first one is generation 0, byte for byte.
+        generation = _uncounted_generation(base, regrade_id_at)
+    regrade_id = regrade_id_at(generation)
+    uncounted = not (counted and not repeat_index)
+    if uncounted:
+        started, finished = _uncounted_marks(base, regrade_id)
+        if _marks is not None:
+            _marks["finished"], _marks["regrade_id"] = finished, regrade_id
+        if not started.exists():
+            write_once(
+                started,
+                _json({"regrade_task_id": regrade_id, "generation": generation}),
+            )
     try:
         bank_raw = snapshot.read_role(
             discovery.evaluation_pack_private_root,

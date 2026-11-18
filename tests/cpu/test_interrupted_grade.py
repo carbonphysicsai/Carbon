@@ -10,6 +10,7 @@ Switch-2 copy, 17 Nov 2026 (codex-queue/reports/SWITCH2_COPY_READS_20261117.md),
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
@@ -240,3 +241,101 @@ def test_a_grade_ended_as_hung_has_its_evaluation_set_aside_for_a_fresh_retry(tm
     assert (kept / "evaluation-pack-binding.json").read_bytes() == b'{"entry_id": "e1"}'
     # the retry's regrade id differs
     assert retention._regrade_generation(base, TASK) == 1
+
+
+def test_an_uncounted_regrade_moves_past_a_generation_that_started_and_never_finished(
+    tmp_path,
+):
+    """Validator-2 (17 Nov): a crown repeat / averaging rebuild / king upkeep regrade marks its own start and finish.
+    A generation that started and never finished (ANY of its ops failed or was interrupted, whatever that op's id: the
+    pair children, subset repeats, single-call names never name the regrade id) is passed; a finished one is kept (its
+    retained bytes are read back); a first regrade is generation 0."""
+
+    def regrade_id_at(generation):
+        return f"rtsk_{generation:064d}"
+
+    def mark(generation, done):
+        started, finished = retention._uncounted_marks(
+            tmp_path, regrade_id_at(generation)
+        )
+        started.write_text("{}")
+        if done:
+            finished.write_text("{}")
+
+    assert retention._uncounted_generation(tmp_path, regrade_id_at) == 0
+    mark(0, done=True)
+    assert (
+        retention._uncounted_generation(tmp_path, regrade_id_at) == 0
+    )  # finished: reused
+    for path in tmp_path.iterdir():
+        path.unlink()
+    mark(0, done=False)  # an interrupted pair child, say
+    assert retention._uncounted_generation(tmp_path, regrade_id_at) == 1
+    mark(1, done=False)
+    mark(2, done=True)
+    assert retention._uncounted_generation(tmp_path, regrade_id_at) == 2
+
+
+def test_a_candidates_own_failure_finishes_the_regrade_a_carbon_failure_does_not(
+    tmp_path, monkeypatch
+):
+    """door-code review (17 Nov): a regrade that ends in the CANDIDATE's own failure is finished (the next call reuses
+    its id and replays that settled outcome: a failed king is never re-rolled until it passes). Only a Carbon-side
+    ending (or a replay) leaves it unfinished, so the next call takes a fresh generation.
+    """
+    from carbon.development_session.research_carrier import (
+        MINER_FAILURE_SCHEMA,
+        MinerProgramFailure,
+    )
+
+    def candidate(replayed=False):
+        failure = MinerProgramFailure(
+            {
+                "schema": MINER_FAILURE_SCHEMA,
+                "failure_code": WorkerCode.RUNTIME.value,
+                "observation": "nonzero_exit",
+            }
+        )
+        failure.replayed = replayed
+        return failure
+
+    def wrapped_candidate():
+        try:
+            raise candidate()
+        except MinerProgramFailure as cause:
+            raise retention.RetentionUnavailable("inference_pair_incomplete") from cause
+
+    endings = {
+        "returned": lambda: {"ok": True},
+        "candidate": lambda: (_ for _ in ()).throw(candidate()),
+        "candidate-wrapped": wrapped_candidate,
+        "carbon": lambda: (_ for _ in ()).throw(WorkerFailure(WorkerCode.UNAVAILABLE)),
+        "replay": lambda: (_ for _ in ()).throw(candidate(replayed=True)),
+        "unavailable": lambda: (_ for _ in ()).throw(
+            retention.RetentionUnavailable("regrade_case_bank_unavailable")
+        ),
+    }
+    finished = {}
+    for name, end in endings.items():
+        path = tmp_path / f"{name}.regrade-done.json"
+
+        def body(*args, _marks=None, _end=end, _path=path, **kwargs):
+            _marks["finished"], _marks["regrade_id"] = _path, "rtsk_x"
+            return _end()
+
+        monkeypatch.setattr(retention, "_regrade_retained_entry", body)
+        with contextlib.suppress(
+            Exception
+        ):  # every ending re-raises; only the mark is read
+            retention.regrade_retained_entry("adapter", "entry")
+        finished[name] = (
+            json.loads(path.read_text())["outcome"] if path.exists() else None
+        )
+    assert finished == {
+        "returned": "returned",
+        "candidate": "candidate",
+        "candidate-wrapped": "candidate",
+        "carbon": None,
+        "replay": None,
+        "unavailable": None,
+    }
