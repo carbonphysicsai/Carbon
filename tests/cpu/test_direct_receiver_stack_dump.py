@@ -15,3 +15,14 @@ def test_the_door_registers_a_stack_dump_on_sigusr1():
         assert faulthandler.unregister(signal.SIGUSR1) is True
     finally:
         faulthandler.unregister(signal.SIGUSR1)
+
+
+def test_a_stderr_with_no_file_descriptor_never_stops_the_start(monkeypatch):
+    """Runner (17 Nov 2026): under a captured or redirected stderr the hook raised io.UnsupportedOperation from main()."""
+    import io
+
+    def no_fileno(*args, **kwargs):
+        raise io.UnsupportedOperation("fileno")
+
+    monkeypatch.setattr(faulthandler, "register", no_fileno)
+    direct_receiver.register_stack_dump()  # never raises

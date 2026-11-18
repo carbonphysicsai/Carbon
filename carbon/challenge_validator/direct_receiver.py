@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import contextlib
 import hashlib
+import io
 import json
 import os
 import re
@@ -3143,11 +3144,17 @@ def _exam_cap_startup(ledger, discovery, restore):
 def register_stack_dump():
     """Ops diagnosis (Live ops, 17 Nov 2026: two grades parked for 90 min and their stacks were lost at the restart; no
     py-spy, ptrace_scope 1, no root): ``kill -USR1 <door pid>`` writes every thread's stack to stderr (the journal).
-    Code locations only, never a value; the door goes on. A platform without SIGUSR1: nothing."""
+    Code locations only, never a value; the door goes on. A platform without SIGUSR1, or a stderr with no file
+    descriptor (a captured or redirected stream): nothing, and the start goes on.
+    """
     import faulthandler
 
-    if hasattr(signal, "SIGUSR1"):
+    if not hasattr(signal, "SIGUSR1"):
+        return
+    try:
         faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
+    except (AttributeError, OSError, ValueError, io.UnsupportedOperation):
+        pass  # no file descriptor to write to: a diagnosis aid, never a reason not to start
 
 
 def main(argv=None):
