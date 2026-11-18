@@ -424,10 +424,17 @@ def test_a_bound_op_uses_the_lane_machines_device_cores_and_allocation_record(ho
         assert accelerator_runtime.host_device().digest == lane.device.digest
         assert accelerator_runtime.miner_host_device().digest == lane.device.digest
         assert host_execution.resolve_cpuset(logical_cpus=16, count=4) == binding.cpuset
-        # read as an installed record is (the receiver's start checks at today's count on a 4-core slot)
-        assert host_execution.resolve_cpuset(logical_cpus=16, count=2) == binding.cpuset
+        # today's count on a 4-core slot: exactly 2 of its cores (the quota a default worker is created with)
+        assert host_execution.resolve_cpuset(logical_cpus=16, count=2) == ",".join(
+            str(core) for core in host_execution.parse_cpuset(binding.cpuset)[:2]
+        )
+        # a sized worker of fewer CPUs than the slot runs on exactly its own count of the slot's cores, the lowest
+        # (switch 5); more CPUs than the slot has refuse
+        assert host_execution.resolve_cpuset(logical_cpus=16, count=3) == ",".join(
+            str(core) for core in host_execution.parse_cpuset(binding.cpuset)[:3]
+        )
         with pytest.raises(WorkerFailure):
-            host_execution.resolve_cpuset(logical_cpus=16, count=3)
+            host_execution.resolve_cpuset(logical_cpus=16, count=5)
         with pytest.raises(WorkerFailure):
             # cores the machine lacks
             host_execution.resolve_cpuset(logical_cpus=2, count=4)

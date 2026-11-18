@@ -343,7 +343,9 @@ def test_a_laneless_builds_unsized_doctor_gets_the_reserved_lane_never_policy(ho
 
     work, _ = _door(host, extra=4)
     with work.taking("advance"):
-        assert host_execution.resolve_cpuset(logical_cpus=16, count=CPU_COUNT) == "0-3"
+        # its cores narrowed to today's count (switch 5: a container's --cpus is its count and the kernel holds the quota
+        # to the cpuset's size, so a default worker on the 4-core lane gets 2 cores, never a POLICY refusal)
+        assert host_execution.resolve_cpuset(logical_cpus=16, count=CPU_COUNT) == "0,1"
         assert grade_lanes.current().index == 0
 
 

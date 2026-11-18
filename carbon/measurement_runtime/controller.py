@@ -279,7 +279,10 @@ class IsolatedBurgersMeasurementController:
         }
         self._journal(launch_digest, journal)
         checked = doctor(
-            image_id=self.image.image_id, image_identity=self.image, cli=self.cli
+            image_id=self.image.image_id,
+            image_identity=self.image,
+            cli=self.cli,
+            worker_profile=self.worker_profile,  # its cpuset sized as the worker it launches
         )
         if not checked.eligible or checked.cpuset is None:
             journal.update({"state": "FAILED_INFRA", "terminal_code": checked.code})

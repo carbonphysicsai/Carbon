@@ -262,16 +262,38 @@ def test_a_door_gets_two_lanes_only_when_row_record_and_topology_all_agree(tmp_p
 def test_a_bound_lane_decides_the_cores_and_never_falls_back(tmp_path):
     _record(tmp_path)
     assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=4) == "0-3"
+    assert (
+        resolve_cpuset(logical_cpus=8, root=tmp_path, count=3) == "0,1,2"
+    )  # the record's, narrowed
     with grade_lanes.bound(grade_lanes.Lane(1, "4-7", str(tmp_path))):
         assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=4) == "4-7"
-        # today's (unsized) count runs on the lane's cores whatever their number (V2, 17 Nov 2026), as on a remote slot
-        assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=2) == "4-7"
-        # a sized worker of another count than the lane's, or cores this host does not have: refused, never trimmed
+        # today's count gets exactly 2 of the lane's cores (V2, 18 Nov: a default worker is created with --cpus 2 and the
+        # kernel check holds that quota to the cpuset's size, so the whole 4-core lane would refuse it); never refused
+        assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=2) == "4,5"
+        # switch 5: a sized worker of fewer CPUs than the lane runs on exactly its own count of the lane's cores, the
+        # lowest (the kernel check holds its quota to that); more CPUs than the lane, or cores the host lacks: refused
+        assert resolve_cpuset(logical_cpus=8, root=tmp_path, count=3) == "4,5,6"
         with pytest.raises(WorkerFailure):
-            resolve_cpuset(logical_cpus=8, root=tmp_path, count=3)
+            resolve_cpuset(logical_cpus=8, root=tmp_path, count=5)
         with pytest.raises(WorkerFailure):
             resolve_cpuset(logical_cpus=6, root=tmp_path, count=4)
     assert grade_lanes.current() is None
+
+
+def test_a_default_worker_gets_exactly_its_count_and_fewer_cores_never_refuse_it():
+    """V2 (18 Nov): a container's --cpus is its profile's count and the kernel check holds that quota to the cpuset's
+    size, so the cores are narrowed to the count; at today's count a smaller set is returned as given, never refused.
+    """
+    from carbon.reconstruction.host_execution import _fitted
+    from carbon.reconstruction.worker.model import CPU_COUNT
+
+    assert _fitted("4-7", logical_cpus=8, count=CPU_COUNT) == ",".join(
+        str(core) for core in range(4, 4 + CPU_COUNT)
+    )
+    assert _fitted("5", logical_cpus=8, count=CPU_COUNT) == "5"
+    assert _fitted("4-7", logical_cpus=8, count=4) == "4-7"
+    with pytest.raises(WorkerFailure):
+        _fitted("4-5", logical_cpus=8, count=4)
 
 
 # -- the host lock ------------------------------------------------------------------------------------------------------

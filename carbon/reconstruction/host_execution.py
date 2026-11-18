@@ -159,6 +159,29 @@ def _checked_lanes(lanes: object) -> tuple[str, ...]:
     return lanes
 
 
+def _fitted(cpuset: str, *, logical_cpus: object, count: int) -> str:
+    """``cpuset`` (a lane's, a remote slot's or the record's) for one worker of ``count`` CPUs.
+
+    Cores this host lacks refuse. More cores than ``count`` are narrowed to exactly ``count``, the lowest (switch 5,
+    audit #5: never refused), for today's count too: a container is created with ``--cpus`` = its profile's count and
+    the kernel check holds that quota to the cpuset's size, so a worker of today's count on a 4-core lane must get 2
+    cores, not 4 (Validator-2, 18 Nov: else the switch-2 POLICY class again). Fewer cores than ``count`` refuse for a
+    sized worker (a slower run would not be its own timing); at today's count they are returned as given (an unsized
+    check never refuses here, V2 17 Nov).
+    """
+    cores = parse_cpuset(cpuset)
+    if type(logical_cpus) is int and max(cores) >= logical_cpus:
+        # cores the host does not have are a mistake worth failing on, not something to silently trim
+        raise WorkerFailure(WorkerCode.POLICY)
+    if len(cores) == count:
+        return cpuset
+    if len(cores) < count:
+        if count == CPU_COUNT:
+            return cpuset
+        raise WorkerFailure(WorkerCode.POLICY)
+    return ",".join(str(core) for core in sorted(cores)[:count])
+
+
 def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -> str:
     """The cpuset this host allocates to one worker of ``count`` CPUs.
 
@@ -167,13 +190,14 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
 
     A worker given more than today's CPUs (a next version's larger resources)
     needs exactly that many cores: the kernel check holds the quota to the
-    cpuset's size, so a record naming another count refuses here, not at launch.
+    cpuset's size, so a record naming fewer refuses here, not at launch, and one
+    naming more is narrowed to its lowest ``count`` cores (`_fitted`).
 
     Inside a lane-bound grading round (`carbon.reconstruction.grade_lanes`, two-lane mode only) the round's lane wins:
-    exactly that lane's cores (this host's, or it refuses). A worker of other than today's CPU count needs exactly that
-    many cores; today's count (an unsized caller: a doctor check, an image verify) runs on the lane's cores whatever their
-    number, as on a remote GPU build slot (V2, 17 Nov 2026: an unsized doctor refused every migrated task on a 4-core
-    lane, switch 2). It never falls back to the record's or the derived cores, which may be the other lane's.
+    exactly that lane's cores (this host's, or it refuses), narrowed to the worker's CPU count, the lowest (`_fitted`).
+    A sized worker on a lane with fewer cores refuses; today's count never refuses here (V2, 17 Nov 2026: an unsized
+    doctor refused every migrated task on a 4-core lane, switch 2). It never falls back to the record's or the derived
+    cores, which may be the other lane's.
 
     A build bound to a remote GPU build slot (`carbon.reconstruction.remote_gpu_build`) runs on the lane machine: exactly
     its slot's cores there (``logical_cpus`` is that machine's, from its own daemon), whatever round it is part of.
@@ -184,32 +208,15 @@ def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -
     if remote is not None:
         # read as an installed record is: cores the machine lacks refuse; a worker of other than today's CPU count needs
         # exactly that many cores; today's count runs on the slot's cores whatever their number
-        cores = parse_cpuset(remote)
-        if (type(logical_cpus) is int and max(cores) >= logical_cpus) or (
-            count != CPU_COUNT and len(cores) != count
-        ):
-            raise WorkerFailure(WorkerCode.POLICY)
-        return remote
+        return _fitted(remote, logical_cpus=logical_cpus, count=count)
     # A build round that started LANELESS (V2, 17 Nov 2026): wherever a container's cores are chosen outside the
     # carrier's own op path, the round first holds a local lane (the builds' reserved lane first): never the record's or
     # the derived cores, which may be a grade lane's
     lane = grade_lanes.take_lane_if_laneless()
     if lane is not None:
-        cores = parse_cpuset(lane.cpuset)
-        if (count != CPU_COUNT and len(cores) != count) or (
-            type(logical_cpus) is int and max(cores) >= logical_cpus
-        ):
-            raise WorkerFailure(WorkerCode.POLICY)
-        return lane.cpuset
+        return _fitted(lane.cpuset, logical_cpus=logical_cpus, count=count)
     if root is not None:
         record = HostExecutionRecord.load(root)
         if record is not None:
-            cores = parse_cpuset(record.cpuset)
-            if type(logical_cpus) is int and max(cores) >= logical_cpus:
-                # A record naming cores this host does not have is a mistake
-                # worth failing on, not something to silently trim.
-                raise WorkerFailure(WorkerCode.POLICY)
-            if count != CPU_COUNT and len(cores) != count:
-                raise WorkerFailure(WorkerCode.POLICY)
-            return record.cpuset
+            return _fitted(record.cpuset, logical_cpus=logical_cpus, count=count)
     return derive_cpuset(logical_cpus, count=count)

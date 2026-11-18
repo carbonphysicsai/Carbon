@@ -2450,6 +2450,8 @@ def _run_locked(
                 remote_gpu_build.mirror(stage)
             elif remote_lane.current() is not None:
                 remote_lane.mirror(stage)
+        # Every doctor here is sized as the worker it launches (``sizing``: the same resources version), so the cpuset it
+        # resolves has exactly the worker's CPU count (`host_execution._fitted`) and the kernel's quota equals its size.
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
             if provenance == LIBRARY_BUILD_PROVENANCE:
                 from .research_image import verify_library_worker_image
@@ -2468,21 +2470,21 @@ def _run_locked(
                     # its depot, checked as every Julia run is, and the host's GPU
                     # readiness without the Python GPU worker's lock.
                     verify_julia_image(image, cli)
-                    checked = doctor(image_id=image.image_id, cli=cli)
+                    checked = doctor(image_id=image.image_id, cli=cli, **sizing)
                     _check_gpu_host(cli, None, device)
                 elif device is not None:
                     # A GPU code cell: the pinned GPU worker and the host's GPU
                     # readiness, checked as GPU practice checks them.
                     checked = doctor(
-                        image_id=image.image_id, image_identity=image, cli=cli
+                        image_id=image.image_id, image_identity=image, cli=cli, **sizing
                     )
                     _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
                 elif type(image) is JuliaResearchImageIdentity:
                     verify_julia_image(image, cli)
-                    checked = doctor(image_id=image.image_id, cli=cli)
+                    checked = doctor(image_id=image.image_id, cli=cli, **sizing)
                 else:
                     verify_image(image, cli)
-                    checked = doctor(image_id=image.image_id, cli=cli)
+                    checked = doctor(image_id=image.image_id, cli=cli, **sizing)
             else:
                 checked = doctor(
                     image_id=image.image_id, image_identity=image, cli=cli, **sizing
