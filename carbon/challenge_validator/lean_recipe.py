@@ -1035,7 +1035,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             owner = self._active_owner(submission_id)
             if owner is None:
                 continue
-            if self._built_waits_to_grade(owner):
+            if self._grade_first_holds(owner):
                 # grade first (Lead + owner, 18 Nov 2026): a build holds its owner for its whole run, and a grade of that
                 # owner (and every later grade of its commit group) waits for it; so a NEW build never takes an owner
                 # whose built task waits to grade. The grade takes it; this build comes after.
@@ -1055,6 +1055,23 @@ class LeanRecipeAdapter(ChallengeAdapter):
             # this adapter never fans out a backlog on one call.
             break
         return moved
+
+    #: V2 (18 Nov 2026): grade first holds an owner's next build at most this long (its built task may not be
+    #: claimable: a crown hold, a copy wait), then the build goes on.
+    GRADE_FIRST_MAX_SECONDS = 600
+
+    def _grade_first_holds(self, owner):
+        """Whether grade first holds ``owner``'s next build now (`_built_waits_to_grade`), bounded per owner by
+        `GRADE_FIRST_MAX_SECONDS` from the first skip; the bound resets once nothing of the owner waits."""
+        import time
+
+        since = self.__dict__.setdefault("_grade_first_since", {})
+        if not self._built_waits_to_grade(owner):
+            since.pop(owner, None)
+            return False
+        now = time.monotonic()
+        first = since.setdefault(owner, now)
+        return now - first < self.GRADE_FIRST_MAX_SECONDS
 
     def _built_waits_to_grade(self, owner):
         """Whether ``owner``'s open provider holds a SUCCEEDED (built) task with no grade marker yet (`grade_marked`, set

@@ -98,3 +98,17 @@ def test_a_new_build_never_takes_an_owner_whose_built_task_waits_to_grade():
     adapter, built = _grade_first(views, marked=set())
     del adapter.grade_marked
     assert adapter.advance() == 1 and built == [WAITING]
+
+
+def test_grade_first_holds_an_owner_at_most_its_bound(monkeypatch):
+    """V2 (18 Nov 2026): a built task that cannot be claimed (a crown hold, a copy wait) holds its owner's next build
+    at most `GRADE_FIRST_MAX_SECONDS`, then the build goes on."""
+    import time as real_time
+
+    now = [1000.0]
+    monkeypatch.setattr(real_time, "monotonic", lambda: now[0])
+    views = {DONE: DirectTaskStateV3.SUCCEEDED, WAITING: DirectTaskStateV3.QUEUED}
+    adapter, built = _grade_first(views, marked=set())
+    assert adapter.advance() == 0 and built == []
+    now[0] += LeanRecipeAdapter.GRADE_FIRST_MAX_SECONDS
+    assert adapter.advance() == 1 and built == [WAITING]
