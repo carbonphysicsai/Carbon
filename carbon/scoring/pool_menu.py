@@ -636,6 +636,11 @@ def load_tasks(material, rule, *, input_names, design_names):
             "menu_task_malformed",
         )
         problem = _problem(entry["problem"])
+        # a credit ramp breaks the +-U-gap argument that `original_limits` ranks on: refuse at load, before any grade
+        _require(
+            rule.ranking == menu_score.RANKING_BACKOFF_U or problem.near_limit is None,
+            "menu_ranking_original_limits_with_near_limit",
+        )
         _require(problem.target_id not in seen, "menu_task_duplicate")
         seen.add(problem.target_id)
         _require(problem.target_id in registered, "menu_task_not_registered")

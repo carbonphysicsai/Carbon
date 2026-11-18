@@ -210,3 +210,37 @@ def test_original_limits_refuses_a_problem_that_carries_a_near_limit_ramp():
     assert err.value.code == "menu_ranking_original_limits_with_near_limit"
     # the old rule is untouched by the guard
     assert len(ms._slots(ramp, record, menu, preds, ms.RANKING_BACKOFF_U)) == ms.TOP
+
+
+def test_load_tasks_refuses_original_limits_for_a_problem_with_a_near_limit_ramp(
+    monkeypatch,
+):
+    import dataclasses
+
+    from carbon.scoring import pool_exam, pool_grader, pool_menu
+
+    ramp = dataclasses.replace(
+        base._problem(),
+        near_limit={
+            "kind": min(pool_grader.NEAR_LIMIT_KINDS),
+            "shape": min(pool_grader.NEAR_LIMIT_SHAPES),
+        },
+        s_low=0.0,
+    )
+    monkeypatch.setattr(pool_menu, "_problem", lambda document: ramp)
+    rule = pool_menu.MenuRule(
+        records_sha256=(
+            ("task-1", "0" * 64),
+            ("task-2", "1" * 64),
+            ("task-3", "2" * 64),
+        ),
+        epoch="e1",
+        aggregate="mean",
+        rotation_days=1,
+        rowcheck=(0.0, 0.0, 1),
+        ranking=ms.RANKING_ORIGINAL_LIMITS,
+    )
+    material = {"tasks": [{"problem": {}, "duties": [], "record": {}}]}
+    with pytest.raises(pool_exam.ExamRefused) as err:
+        pool_menu.load_tasks(material, rule, input_names=("a",), design_names=("a",))
+    assert "menu_ranking_original_limits_with_near_limit" in str(err.value)
