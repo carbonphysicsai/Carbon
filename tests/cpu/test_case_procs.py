@@ -178,7 +178,7 @@ def test_the_program_is_four_anchored_edits_of_the_compiled_one():
 #: sha256 of Motor 1.8's per-case processes program at this head: any edit of the GRADED program (the count
 #: function's source included) must change this pin on purpose.
 PROCS_PROGRAM_SHA256 = (
-    "c033da7b1441e7e2c51c2f22f06b04f45567741dac1d438b1f45b588d89f03ca"
+    "b1a5499c0e612d152d69f5117d03796b64c6d725d2c2487e198462596881c08e"
 )
 
 
