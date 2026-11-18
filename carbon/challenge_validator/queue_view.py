@@ -298,9 +298,7 @@ class QueueView:
             counts["grading_now"] = (
                 len(claimed) if sequencer is not None else self._grading_now()
             )
-        except (
-            Exception
-        ):  # noqa: BLE001 - any failure: no v4 counts (503), never a guess and never a v1-v3 change
+        except Exception:  # noqa: BLE001 - any failure: no v4 counts (503)
             return None
         return counts
 
