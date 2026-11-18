@@ -572,16 +572,27 @@ class AutoGrader:
         """The owner whose ledger the steps open for ``task``, as the retention paths resolve it
         (`lean_recipe_retention.regrade_retained_entry`, `remeasure_incumbent_pack`): the adapter's own (the current
         contract), else the owner of its admission under this contract, else under an EARLIER contract (a king or a
-        paused contender admitted before the pack changed). None: not resolvable."""
-        owner = adapter.owner(task)
-        if owner is not None:
-            return owner
+        paused contender admitted before the pack changed). None: not resolvable.
+
+        Read WITHOUT opening any provider first (Lead, 18 Nov 2026: after a restart the steps opened 163 lazy owners one
+        at a time, 1,556 s before the first claim): the providers' own keys (`OwnerProviders.hotkey_of`), then the
+        ledger's admission rows; `adapter.owner` (which opens a lazy owner) only last."""
+        lookup = getattr(getattr(adapter, "provider_for", None), "hotkey_of", None)
+        if callable(lookup):
+            try:
+                owner = lookup(task)
+            except Exception:  # noqa: BLE001 - fall back to the ledger
+                owner = None
+            if type(owner) is str:
+                return owner
         ledger = adapter.ledger
         owner = ledger.owned_outcome(adapter.contract_digest, task)
         if owner is not None:
             return owner
         admitted = ledger.admitted_owner(task)
-        return None if admitted is None else admitted[1]
+        if admitted is not None:
+            return admitted[1]
+        return adapter.owner(task)
 
     @contextlib.contextmanager
     def _prelude_owners_held(self, claims):

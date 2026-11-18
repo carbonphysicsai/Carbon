@@ -101,3 +101,50 @@ def test_a_build_requeue_refused_for_good_is_not_asked_again(monkeypatch):
     )  # no retained request: refused for good
     adapter._requeue_failed_build("5Owner", task_id, provider)
     assert reads == [1]
+
+
+def test_the_steps_owner_lookup_never_opens_a_provider_when_the_ledger_knows_it():
+    """Lead (18 Nov 2026): after a restart the incumbent's steps opened 163 lazy owners one at a time (1,556 s) before
+    the first claim. Their owner lookup reads the providers' keys and the ledger first; `adapter.owner` only last."""
+
+    def opens(task):
+        raise AssertionError("a provider was opened")
+
+    adapter = SimpleNamespace(
+        owner=opens,
+        contract_digest="sha256:" + "c" * 64,
+        provider_for=SimpleNamespace(hotkey_of=lambda task: None),
+        ledger=SimpleNamespace(
+            owned_outcome=lambda contract, task: "5Ledger" if task == A else None,
+            admitted_owner=lambda task: ("contract", "5Earlier") if task == B else None,
+        ),
+    )
+    assert auto_grade.AutoGrader._task_owner(adapter, A) == "5Ledger"
+    assert auto_grade.AutoGrader._task_owner(adapter, B) == "5Earlier"
+
+
+def test_a_requeue_is_asked_at_most_once_per_interval(monkeypatch):
+    import carbon.research
+    from carbon.challenge_validator import lean_recipe
+    from carbon.research import DirectTaskStateV3
+
+    monkeypatch.setattr(carbon.research, "DirectGetTaskRequestV3", lambda *args: args)
+    adapter = LeanRecipeAdapter.__new__(LeanRecipeAdapter)
+    adapter.discovery = SimpleNamespace(info=SimpleNamespace(challenge_key="key"))
+    reads = []
+
+    def get(request):
+        reads.append(1)
+        return SimpleNamespace(task=SimpleNamespace(state=DirectTaskStateV3.SUCCEEDED))
+
+    provider = SimpleNamespace(get_research_result=get, _requests={})
+    task_id = SimpleNamespace(value=B)
+    now = [1000.0]
+    import time
+
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    adapter._requeue_failed_build("5Owner", task_id, provider)
+    adapter._requeue_failed_build("5Owner", task_id, provider)  # within the interval: not asked
+    now[0] += lean_recipe.REQUEUE_ASK_SECONDS
+    adapter._requeue_failed_build("5Owner", task_id, provider)
+    assert reads == [1, 1]

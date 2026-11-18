@@ -326,6 +326,8 @@ def _host_build_wall_guard(claims, host_quiet, research_carrier, remote_lane):
 #: The one build-requeue refusal that may clear in the same process (its ledger rows not all written yet); every other
 #: refusal is remembered (`_requeue_failed_build`).
 _REQUEUE_RETRYABLE = frozenset({"incomplete"})
+#: The shortest interval between two requeue asks of one task (`_requeue_failed_build`).
+REQUEUE_ASK_SECONDS = 300
 #: The owner refusals an advance pass skips (that task only), never the end of the pass.
 _SKIPPED_OWNER_CODES = frozenset(
     {"direct_provider_registration_unavailable", "direct_provider_owner_set_aside"}
@@ -1338,6 +1340,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
         settled = self.__dict__.setdefault("_requeue_settled", set())
         if task_id.value in settled:
             return None
+        # and any task is asked at most once per `REQUEUE_ASK_SECONDS` (Lead: one attempt per id per N min)
+        import time as _time
+
+        asked = self.__dict__.setdefault("_requeue_asked", {})
+        now = _time.monotonic()
+        if now - asked.get(task_id.value, -REQUEUE_ASK_SECONDS) < REQUEUE_ASK_SECONDS:
+            return None
+        asked[task_id.value] = now
 
         def refused(code):
             note("build_requeue_refused", task=task_id.value, code=code)
