@@ -122,7 +122,8 @@ def test_a_touched_owner_in_flight_skips_the_steps_until_it_is_free(monkeypatch)
     assert len(seen) == 1  # asked again next round: it runs
 
 
-def test_the_steps_are_never_starved_past_their_deferral(monkeypatch):
+def test_overdue_steps_never_wait_and_run_on_a_later_round_once_the_owner_is_free(monkeypatch):
+    """Owner (18 Nov 2026): no step waits for an owner, even overdue; it runs on a round after the owner is free."""
     now = [1000.0]
     monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
     claims = grade_sequencer.OwnerClaims()
@@ -135,14 +136,14 @@ def test_the_steps_are_never_starved_past_their_deferral(monkeypatch):
     threading.Thread(
         target=lambda: (grader._run_once(), done.set()), daemon=True
     ).start()
-    # overdue: the steps now wait (bounded) for the owners they need, the king's miner's among them
-    assert not done.wait(0.3) and seen == []
-    assert not claims._exclusive  # only the needed owners, never every owner
+    assert done.wait(5) and seen == [] and not claims._exclusive
     claims.release(KING_OWNER)
-    assert done.wait(5) and len(seen) == 1
+    now[0] += 3600  # past the re-ask throttle
+    grader._run_once()
+    assert len(seen) == 1
 
 
-def test_owners_that_cannot_be_read_take_every_owner_as_before():
+def test_owners_that_cannot_be_read_defer_the_steps_holding_nothing():
     claims = grade_sequencer.OwnerClaims()
     seen = []
     grader = _grader(
@@ -151,11 +152,13 @@ def test_owners_that_cannot_be_read_take_every_owner_as_before():
     states = []
     grader._king_upkeep = lambda: states.append(claims._exclusive)
     grader._run_once()
-    assert states == [True]
+    assert states == [] and not claims._exclusive and claims.held() == set()
 
 
-def test_no_grade_is_in_flight_while_the_steps_run():
-    """The integrity guard stays: the steps wait for an in-flight grade to end and no grade starts meanwhile."""
+def test_a_grade_in_flight_never_stops_the_steps_but_a_crown_commit_defers_the_crown_step():
+    """Owner + V2 (18 Nov 2026): no door-wide exclusive. A grade in flight does not hold the steps back; the crown
+    step takes the crown lock (`grade_sequencer.CROWN_LOCK`) without waiting, so a crown commit running now (the lock
+    held) defers it to a later round, and nothing waits."""
     claims = grade_sequencer.OwnerClaims()
     seen = []
     grader = _grader(claims, seen)
@@ -165,20 +168,36 @@ def test_no_grade_is_in_flight_while_the_steps_run():
     def grade():
         with sequencer.task() as task:
             task.bind("rtsk_" + "g" * 64)
+            task.release_claim()
             grading.set()
             assert finish.wait(5)
 
     thread = threading.Thread(target=grade, daemon=True)
     thread.start()
     assert grading.wait(5)
+    held = threading.Event()
+    release = threading.Event()
+
+    def commit():
+        with grade_sequencer.CROWN_LOCK:
+            held.set()
+            release.wait(5)
+
+    committer = threading.Thread(target=commit, daemon=True)
+    committer.start()
+    assert held.wait(5)
     done = threading.Event()
     threading.Thread(
         target=lambda: (grader._run_once(), done.set()), daemon=True
     ).start()
-    assert not done.wait(0.3) and seen == []  # waits for the grade in flight
+    assert done.wait(5) and seen == []  # never waited; the crown step deferred
+    release.set()
+    committer.join(5)
+    grader._prelude_after = 0.0
+    grader._run_once()
+    assert len(seen) == 1  # ran beside the grade in flight
     finish.set()
     thread.join(5)
-    assert done.wait(5) and len(seen) == 1
 
 
 def test_a_missed_owner_only_collides_on_its_lease_as_carbons_never_a_crown(tmp_path):
