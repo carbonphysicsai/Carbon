@@ -43,6 +43,20 @@ V2_SUFFIX = "/v2"
 #: be made); a "hotkey" is the first and last 4 characters of a public key; "in grading" covers both waiting to be graded and being graded.
 SCHEMA_V3 = "carbon.queue.public.v3"
 V3_SUFFIX = "/v3"
+#: v4 (owner Q15, 18 Nov 2026, relayed by the Lead: "get it in an upcoming update"; the board showed none grading while 4
+#: grades ran on FSN1/HEL1) = v3's closed field set, served at ``PATH + <id> + V4_SUFFIX``, with the COUNTS read from what
+#: actually runs: ``building_now`` = builds holding a build slot (an own operation RESERVED and not waiting for a lane re-take
+#: or a box slot, `queue_view.QueueView._waiting_for_slot`); ``waiting_to_build`` = every other unfinished build (QUEUED, or
+#: RUNNING with no slot); ``grading_now`` = the grades claimed and in flight on this door (a COUNT, one per round, not v1's 0/1
+#: flag); ``waiting_to_grade`` = built and not claimed. No owed or re-run state (owner Q15). The rows are v3's, unchanged. v1-v3
+#: stay byte-identical: the A100 autoscaler sizes on v1's ``waiting_to_build`` (V2, 18 Nov 2026). TIMING: the counts are read
+#: at the same `queue_view.CACHE_S` (30 s) as v1's, and name no submission.
+SCHEMA_V4 = "carbon.queue.public.v4"
+V4_SUFFIX = "/v4"
+#: The v4 counts a view adds to its snapshot (`queue_view.QueueView`): ``{field: count}`` over `RUNNING_FIELDS`, or None when
+#: the door could not read them (v4 then answers 503; v1-v3 are never affected).
+RUNNING = "running"
+RUNNING_FIELDS = frozenset({"waiting_to_build", "building_now", "waiting_to_grade", "grading_now"})
 ROWS = "rows"
 ROWS_QUANTUM_S = 300
 #: ALL rows (Lead 15 Nov: a miner must find their own submission; the page paginates): 1000 rows of ~85 bytes fit
@@ -87,6 +101,7 @@ FIELDS = frozenset(
 )
 FIELDS_V2 = FIELDS | {"held_for_review"}
 FIELDS_V3 = FIELDS_V2 | {"rows", "more_rows", "rows_as_of"}
+FIELDS_V4 = FIELDS_V3
 WAIT_FIELDS = frozenset({"verdicts", "median_s", "p90_s", "reason"})
 #: The raw snapshot a view returns (and nothing else is read from it).
 SNAPSHOT_FIELDS = frozenset(
@@ -147,7 +162,7 @@ def wait_summary(waits_s):
 
 def document(snapshot, challenge):
     """The public document from a view's raw snapshot, checked field by field (closed set)."""
-    if type(snapshot) is not dict or set(snapshot) - {HELD, ROWS} != SNAPSHOT_FIELDS:
+    if type(snapshot) is not dict or set(snapshot) - {HELD, ROWS, RUNNING} != SNAPSHOT_FIELDS:
         raise QueuePublicRefused("queue_snapshot_invalid")
     if snapshot["door_state"] not in DOOR_STATES:
         raise QueuePublicRefused("queue_door_state_invalid")
@@ -259,6 +274,32 @@ def serve_v3(view, challenge):
         view,
         challenge,
         render=document_v3,
+        limit=MAX_BYTES_V3,
+        read="snapshot_v3",
+    )
+
+
+def document_v4(snapshot, challenge):
+    """The v4 document: v3's fields and rows, with the four counts from what actually runs (see `SCHEMA_V4`):
+    ``grading_now`` is the number of grades in flight. Refused (503) when the view could not read them."""
+    running = snapshot.get(RUNNING) if type(snapshot) is dict else None
+    if type(running) is not dict or set(running) != RUNNING_FIELDS:
+        raise QueuePublicRefused("queue_running_invalid")
+    counts = {name: _count(running[name], "queue_running_invalid") for name in RUNNING_FIELDS}
+    # v3's checks on everything else (its 0/1 grading flag is replaced below by the checked count)
+    body = document_v3({**snapshot, "grading_now": 0}, challenge)
+    body = {**body, **counts, "schema": SCHEMA_V4}
+    if set(body) != FIELDS_V4:
+        raise QueuePublicRefused("queue_fields_differ")
+    return body
+
+
+def serve_v4(view, challenge):
+    """`serve` for the v4 document (v3's size limit)."""
+    return serve(
+        view,
+        challenge,
+        render=document_v4,
         limit=MAX_BYTES_V3,
         read="snapshot_v3",
     )

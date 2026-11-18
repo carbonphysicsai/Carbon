@@ -30,7 +30,7 @@ import {FETCH_HEADERS, FeedRefused, boardSlug, entry, panelSummary, parse, proje
 // the optional secret SNAPSHOT_URLS, checked against FEED_KEYS (404 unset).
 import {liveNetwork} from "./snapshot.mjs";
 // The door queue panel: /data/queue/<slug>.json from each door's public, unsigned queue document (queue.mjs).
-import {doorQueue, doorRows, queueUrl} from "./queue.mjs";
+import {doorPanels, queueUrl} from "./queue.mjs";
 
 const INDEX_SCHEMA = "carbon.dashboard.index.v1";
 const MAX_FEED_BYTES = 16 * 2 ** 20;
@@ -194,9 +194,8 @@ export default {
       const slug = decodeURIComponent(url.pathname.slice("/data/queue/".length)).replace(/\.json$/, "");
       const feed = cfg.urls.find(u => { const q = queueUrl(u); return q && boardSlug(q.challengeId, "no-class") === slug; });
       if (!feed) return plain("No such board", 404);
-      // the counts panel (v1, unchanged) and, beside it, the per-submission rows panel (v3): each fails on its own
-      const [counts, rows] = await Promise.all([doorQueue(feed, fetch, FETCH_HEADERS, cfg.seconds), doorRows(feed, fetch, FETCH_HEADERS, cfg.seconds)]);
-      return json({...counts, rows_panel: rows}, 200, cfg.seconds);
+      // v4 (counts of what actually runs + rows) when the door serves it; else the v1 counts and the v3 rows, each failing on its own
+      return json(await doorPanels(feed, fetch, FETCH_HEADERS, cfg.seconds), 200, cfg.seconds);
     }
     if (url.pathname.startsWith("/data/")) return plain("Not found", 404);
     return withHeaders(await env.ASSETS.fetch(request));

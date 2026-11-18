@@ -276,7 +276,29 @@ class QueueView:
             "waits_s": self._waits(now, index),
             "as_of_unix": now,
             qp.HELD: None if (held := self.held()) is None else len(held),
+            qp.RUNNING: self._running(index, claimed),
         }
+
+    def _running(self, index, claimed):
+        """The v4 counts (`queue_public.SCHEMA_V4`, owner Q15): what actually runs. A RUNNING task with no build slot
+        (`_waiting_for_slot`) waits to build; a claimed grade is grading (one per round in flight). None when they cannot
+        be read: v4 answers 503, v1-v3 never change (the A100 autoscaler reads v1)."""
+        try:
+            slotless = self._waiting_for_slot(index)
+            counts = dict.fromkeys(qp.RUNNING_FIELDS, 0)
+            for submission_id in self.grader.pending():
+                state, _created = index.get(submission_id, (None, None))
+                if state == "QUEUED" or submission_id in slotless:
+                    counts["waiting_to_build"] += 1
+                elif state in _BUILDING:
+                    counts["building_now"] += 1
+                elif state == _BUILT and submission_id not in claimed:
+                    counts["waiting_to_grade"] += 1
+            sequencer = getattr(self.grader, "sequencer", None)
+            counts["grading_now"] = len(claimed) if sequencer is not None else self._grading_now()
+        except Exception:  # noqa: BLE001 - any failure: no v4 counts (503), never a guess and never a v1-v3 change
+            return None
+        return counts
 
     def _read_rows(self, boundary):
         """The per-submission rows as of the quantum ``boundary`` (see the module text): pending submissions in the ledger's order

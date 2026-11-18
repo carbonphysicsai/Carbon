@@ -987,7 +987,7 @@
   }
   function queueParts(q) {
     return [q.waiting_to_build + " waiting to build", q.building_now + " building", q.waiting_to_grade + " waiting to grade",
-      q.grading_now ? "grading one now" : "none grading"];
+      q.grading_now ? q.grading_now + " grading" : "none grading"];
   }
   function queueLine(panel) {
     if (!isObject(panel) || panel.state !== "ACCEPTED" || !isObject(panel.queue)) return null;
@@ -1028,9 +1028,11 @@
         stat("Waiting to build", String(q.waiting_to_build)),
         stat("Building now", String(q.building_now)),
         stat("Waiting to grade", String(q.waiting_to_grade)),
-        stat("Grading now", q.grading_now ? "1" : "0"),
+        stat("Grading now", String(q.grading_now)),
         stat("Typical wait, last 24 h", waitText(w.median_s) || "not enough verdicts yet", w.median_s === null ? null : "slowest 10 %: " + waitText(w.p90_s) + " · " + w.verdicts + " verdicts")),
-      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + ". Submit to verdict, all submissions on this door."),
+      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + "."
+        + (panel.counts === "running" ? " Building and grading count what is running now; a build waiting for a machine counts as waiting to build." : "")
+        + " Typical wait: submit to verdict, all submissions on this door."),
       rowsBlock(panel.rows_panel));
   }
   function homeCard(entry, board, showClass, panel) {

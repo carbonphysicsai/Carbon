@@ -587,3 +587,73 @@ def test_the_wait_counts_verdicts_only_never_a_failed_or_handed_back_task(tmp_pa
     (kept / (TASKS[6] + ".attempt-1.marker.json")).write_text("{}")
     _status, body = queue_public.serve(view, CHALLENGE)
     assert body["wait_24h"]["verdicts"] == 5
+
+
+# --- v4: the counts of what actually runs (owner Q15, 18 Nov 2026) ----------------------------------------------------------
+
+
+def test_v4_counts_what_runs_and_v1_keeps_the_task_counts(tmp_path):
+    """The board showed none grading while 4 grades ran on FSN1/HEL1, and 12 building with 2 build containers. v4 counts
+    a RUNNING task with no build slot as waiting to build, and every claimed grade in flight; v1 (the A100 autoscaler's
+    input) is unchanged."""
+    from carbon.challenge_validator import grade_sequencer
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+
+    states = {
+        TASKS[0]: (DirectTaskStateV3.RUNNING, NOW - 100),  # holds a slot
+        TASKS[1]: (DirectTaskStateV3.RUNNING, NOW - 90),  # waits for a slot
+        TASKS[2]: (DirectTaskStateV3.QUEUED, NOW - 80),
+        **{task: (DirectTaskStateV3.SUCCEEDED, NOW - 70) for task in TASKS[3:8]},
+    }
+    view, grader = _door(tmp_path, states, pending=TASKS[:8])
+    provider = next(iter(grader.intake.adapter.provider_for._providers.values()))
+    provider.ledger = _ledger_with(tmp_path, [direct_child_identity(TASKS[0], "build")])
+    grader.sequencer = grade_sequencer.Sequencer()
+    with grader.sequencer.task() as first, grader.sequencer.task() as second:
+        first.bind(TASKS[3])
+        second.bind(TASKS[4])
+        status, v1 = queue_public.serve(view, CHALLENGE)
+        status4, v4 = queue_public.serve_v4(view, CHALLENGE)
+    assert status == 200 and set(v1) == queue_public.FIELDS
+    assert (v1["building_now"], v1["waiting_to_build"], v1["waiting_to_grade"], v1["grading_now"]) == (2, 1, 3, 1)
+    assert status4 == 200 and set(v4) == queue_public.FIELDS_V4
+    assert v4["schema"] == queue_public.SCHEMA_V4
+    assert (v4["building_now"], v4["waiting_to_build"], v4["waiting_to_grade"], v4["grading_now"]) == (1, 2, 3, 2)
+    assert "rtsk_" not in json.dumps(v4)
+
+
+def test_v4_is_unavailable_when_its_counts_cannot_be_read_and_v1_still_serves():
+    snapshot = {**_snapshot(), "held_for_review": None, "rows": {"rows": [], "as_of_unix": NOW - 300}}
+    assert queue_public.serve_v4(_View({**snapshot, "running": None}), CHALLENGE) == (
+        503,
+        {"refused": "queue_running_invalid"},
+    )
+    bad = {"waiting_to_build": 0, "building_now": 0, "waiting_to_grade": 0, "grading_now": -1}
+    assert queue_public.serve_v4(_View({**snapshot, "running": bad}), CHALLENGE)[0] == 503
+    assert queue_public.serve(_View({**_snapshot(), "running": None}), CHALLENGE)[0] == 200
+
+
+def test_a_reader_failure_gives_no_v4_counts_never_a_guess(tmp_path):
+    view, grader = _door(tmp_path, {}, pending=[])
+
+    def broken(_index):
+        raise RuntimeError("ledger moved")
+
+    view._waiting_for_slot = broken
+    snap = view._read()
+    assert snap["running"] is None and snap["grading_now"] == 0
+
+
+def test_the_v4_route_serves_this_challenge_only(tmp_path):
+    view, _ = _door(tmp_path, {}, pending=[])
+    door = SimpleNamespace(challenge=CHALLENGE, queue_view=view)
+    answer = direct_intake.DirectRecipeIntake._queue(
+        door, queue_public.PATH + CHALLENGE.challenge_id + queue_public.V4_SUFFIX
+    )
+    assert answer.status == 200 and answer.body["schema"] == queue_public.SCHEMA_V4
+    other = direct_intake.DirectRecipeIntake._queue(
+        door, queue_public.PATH + "f08-ribbed-bracket" + queue_public.V4_SUFFIX
+    )
+    assert other.status == 404

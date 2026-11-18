@@ -33,11 +33,16 @@ export function checkQueue(text, challengeId) {
   let doc;
   try { doc = JSON.parse(text); } catch { throw new QueueRefused("queue_not_json"); }
   if (!sameKeys(doc, FIELDS) || doc.schema !== QUEUE_SCHEMA) throw new QueueRefused("queue_fields");
+  return checkCounts(doc, challengeId, 1);
+}
+
+// The counts and the door state of a parsed queue document (v1's checks); `gradingMax` 1 for v1's 0/1 flag.
+function checkCounts(doc, challengeId, gradingMax) {
   if (doc.challenge_id !== challengeId || typeof doc.challenge_version !== "string" || !ID.test(doc.challenge_version)) {
     throw new QueueRefused("queue_challenge");
   }
   if (!DOOR_STATES.includes(doc.door_state)) throw new QueueRefused("queue_door_state");
-  if (!["waiting_to_build", "building_now", "waiting_to_grade"].every(k => count(doc[k])) || !count(doc.grading_now, 1)) {
+  if (!["waiting_to_build", "building_now", "waiting_to_grade"].every(k => count(doc[k])) || !count(doc.grading_now, gradingMax)) {
     throw new QueueRefused("queue_counts");
   }
   const w = doc.wait_24h;
@@ -86,6 +91,11 @@ export function checkRows(text, challengeId) {
   let doc;
   try { doc = JSON.parse(text); } catch { throw new QueueRefused("rows_not_json"); }
   if (!sameKeys(doc, FIELDS_V3) || doc.schema !== ROWS_SCHEMA) throw new QueueRefused("rows_fields");
+  return checkRowList(doc, challengeId);
+}
+
+// {rows, more_rows, rows_as_of} of a parsed v3-shaped document (v3's checks).
+function checkRowList(doc, challengeId) {
   if (doc.challenge_id !== challengeId) throw new QueueRefused("rows_challenge");
   if (typeof doc.rows_as_of !== "string" || !UTC.test(doc.rows_as_of)) throw new QueueRefused("rows_time");
   if (!count(doc.more_rows) || !Array.isArray(doc.rows) || doc.rows.length > MAX_ROWS) throw new QueueRefused("rows_count");
@@ -132,4 +142,52 @@ export async function doorQueue(feedUrl, fetcher, headers, ttl) {
   } catch (error) {
     return {state: "UNAVAILABLE", code: error instanceof QueueRefused ? error.code : "queue_unreachable", queue: null};
   }
+}
+
+// ---- v4 (owner Q15, 18 Nov 2026: "grading now" showed none while 4 grades ran): GET /carbon/v1/queue/<id>/v4 =
+// carbon.queue.public.v4 (queue_public.py document_v4): v3's closed field set and rows, with the counts read from what actually
+// runs: building_now = builds holding a build slot, waiting_to_build = every other unfinished build, grading_now = the NUMBER of
+// grades in flight (not v1's 0/1 flag), waiting_to_grade = built and not claimed. One fetch gives both panels. A door with no v4
+// yet (404), or a v4 refused, -> the v1 counts + v3 rows path as before, so the board never goes blank for v4's sake.
+export const V4_SCHEMA = "carbon.queue.public.v4";
+
+// {queue, rows} from the closed v4 document for THIS Challenge, or QueueRefused.
+export function checkQueueV4(text, challengeId) {
+  if (typeof text !== "string" || text.length > MAX_ROWS_BYTES) throw new QueueRefused("v4_too_large");
+  let doc;
+  try { doc = JSON.parse(text); } catch { throw new QueueRefused("v4_not_json"); }
+  if (!sameKeys(doc, FIELDS_V3) || doc.schema !== V4_SCHEMA) throw new QueueRefused("v4_fields");
+  return {queue: checkCounts(doc, challengeId, MAX_COUNT), rows: checkRowList(doc, challengeId)};
+}
+
+// The v4 URL of a feed URL: same door, /carbon/v1/feed/<id> -> /carbon/v1/queue/<id>/v4; null for any other shape.
+export function v4Url(feedUrl) {
+  const base = queueUrl(feedUrl);
+  return base === null ? null : {url: base.url + "/v4", challengeId: base.challengeId};
+}
+
+// {state, code, queue, rows} for one feed URL's door from its v4 document; never throws. 404 = no v4 yet.
+export async function doorQueueV4(feedUrl, fetcher, headers, ttl) {
+  const target = v4Url(feedUrl);
+  if (!target) return {state: "UNAVAILABLE", code: "v4_url", queue: null, rows: null};
+  try {
+    const response = await fetcher(target.url, {headers, cf: {cacheTtl: ttl, cacheEverything: true}, signal: AbortSignal.timeout(8000)});
+    if (response.status === 404) return {state: "NOT_SERVED", code: null, queue: null, rows: null};
+    if (!response.ok) return {state: "UNAVAILABLE", code: "v4_http_" + response.status, queue: null, rows: null};
+    return {state: "ACCEPTED", code: null, ...checkQueueV4(await response.text(), target.challengeId)};
+  } catch (error) {
+    return {state: "UNAVAILABLE", code: error instanceof QueueRefused ? error.code : "v4_unreachable", queue: null, rows: null};
+  }
+}
+
+// The /data/queue/<slug>.json body for one feed URL's door: {state, code, queue, counts, rows_panel}. `counts` says what
+// the numbers count: "running" (v4) or "tasks" (v1: a RUNNING task waiting for a slot counts as building; grading 0/1).
+export async function doorPanels(feedUrl, fetcher, headers, ttl) {
+  const v4 = await doorQueueV4(feedUrl, fetcher, headers, ttl);
+  if (v4.state === "ACCEPTED") {
+    return {state: "ACCEPTED", code: null, queue: v4.queue, counts: "running",
+      rows_panel: {state: "ACCEPTED", code: null, rows: v4.rows}};
+  }
+  const [counts, rows] = await Promise.all([doorQueue(feedUrl, fetcher, headers, ttl), doorRows(feedUrl, fetcher, headers, ttl)]);
+  return {...counts, counts: "tasks", rows_panel: rows};
 }

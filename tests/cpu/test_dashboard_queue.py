@@ -653,3 +653,114 @@ def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and
         plain = _page(_panel(panel))
         assert plain["tables"] == 0 and "submission list" not in plain["text"]
         assert "Waiting to build" in plain["text"]  # the counts panel is unchanged
+
+
+# --- v4: the counts of what actually runs (owner Q15, 18 Nov 2026: "grading now" showed none while 4 grades ran) ------------
+
+
+def _v4_doc(**changes):
+    body = {
+        **_rows_doc(),
+        "schema": "carbon.queue.public.v4",
+        "building_now": 2,
+        "waiting_to_build": 10,
+        "grading_now": 4,
+    }
+    body.update(changes)
+    return body
+
+
+def test_the_v4_reader_accepts_a_grading_count_and_the_rows_in_one_document():
+    got = _run(
+        {
+            "cases": [],
+            "fetches": [],
+            "v4_cases": [
+                {"name": "good", "text": json.dumps(_v4_doc()), "challenge": MOTOR},
+                {"name": "v3", "text": json.dumps(_rows_doc()), "challenge": MOTOR},
+                {"name": "extra", "text": json.dumps(_v4_doc(owed=1)), "challenge": MOTOR},
+                {"name": "other", "text": json.dumps(_v4_doc()), "challenge": "cooling"},
+                {"name": "negative", "text": json.dumps(_v4_doc(grading_now=-1)), "challenge": MOTOR},
+            ],
+        }
+    )["v4Checked"]
+    assert got["good"]["ok"] is True
+    assert got["good"]["value"]["queue"]["grading_now"] == 4
+    assert got["good"]["value"]["queue"]["building_now"] == 2
+    assert got["good"]["value"]["rows"]["rows"][0]["state"] == "in grading"
+    assert got["v3"] == {"ok": False, "code": "v4_fields"}
+    assert got["extra"] == {"ok": False, "code": "v4_fields"}
+    assert got["other"]["ok"] is False
+    assert got["negative"] == {"ok": False, "code": "queue_counts"}
+    # v1 still refuses a count above 1: the old reader and the old door are untouched
+    assert _run(
+        {"cases": [{"name": "v1", "text": json.dumps(_doc(grading_now=4)), "challenge": MOTOR}], "fetches": []}
+    )["checked"]["v1"] == {"ok": False, "code": "queue_counts"}
+
+
+def test_the_panels_use_v4_when_served_and_fall_back_to_v1_and_v3_otherwise():
+    v1 = {"status": 200, "body": json.dumps(_doc())}
+    v3 = {"status": 200, "body": json.dumps(_rows_doc())}
+    got = _run(
+        {
+            "cases": [],
+            "fetches": [],
+            "urls": [FEED],
+            "panel_fetches": [
+                {"name": "v4", "feed": FEED, "responses": {"/v4": {"status": 200, "body": json.dumps(_v4_doc())}}},
+                {"name": "old_door", "feed": FEED, "responses": {"/v4": {"status": 404, "body": "{}"}, "": v1, "/v3": v3}},
+                {"name": "v4_down", "feed": FEED, "responses": {"/v4": {"status": 503, "body": "{}"}, "": v1, "/v3": v3}},
+                {"name": "v4_bad", "feed": FEED, "responses": {"/v4": {"status": 200, "body": json.dumps(_v4_doc(owed=1))}, "": v1, "/v3": v3}},
+            ],
+        }
+    )
+    assert got["v4Urls"][FEED] == {"url": f"https://motor-door.example/carbon/v1/queue/{MOTOR}/v4", "challengeId": MOTOR}
+    panels = got["panels"]
+    v4 = panels["v4"]
+    assert v4["state"] == "ACCEPTED" and v4["counts"] == "running"
+    assert v4["queue"]["grading_now"] == 4 and v4["rows_panel"]["state"] == "ACCEPTED"
+    assert v4["asked"] == [f"https://motor-door.example/carbon/v1/queue/{MOTOR}/v4"]  # one fetch for both panels
+    for name in ("old_door", "v4_down", "v4_bad"):
+        old = panels[name]
+        assert old["state"] == "ACCEPTED" and old["counts"] == "tasks", name
+        assert old["queue"]["grading_now"] == 1 and old["rows_panel"]["state"] == "ACCEPTED", name
+
+
+def test_the_v4_reader_accepts_what_the_doors_writer_writes():
+    """Held equal to carbon/challenge_validator/queue_public.py document_v4 once the door side is on this tree."""
+    qp = pytest.importorskip("carbon.challenge_validator.queue_public")
+    if not hasattr(qp, "document_v4"):
+        pytest.skip("the door's v4 writer is not on this tree yet")
+    challenge = type("C", (), {"challenge_id": MOTOR, "version": "1.8"})()
+    snapshot = {
+        "door_state": "grading",
+        "waiting_to_build": 12,
+        "building_now": 12,
+        "waiting_to_grade": 15,
+        "grading_now": 1,
+        "waits_s": [],
+        "as_of_unix": 1_800_000_000.0,
+        "held_for_review": None,
+        "rows": {"rows": [], "as_of_unix": 1_799_999_700.0},
+        "running": {"waiting_to_build": 22, "building_now": 2, "waiting_to_grade": 7, "grading_now": 8},
+    }
+    text = json.dumps(qp.document_v4(snapshot, challenge))
+    got = _run({"cases": [], "fetches": [], "v4_cases": [{"name": "door", "text": text, "challenge": MOTOR}]})
+    door = got["v4Checked"]["door"]
+    assert door["ok"] is True
+    assert {k: door["value"]["queue"][k] for k in ("waiting_to_build", "building_now", "waiting_to_grade", "grading_now")} == {
+        "waiting_to_build": 22,
+        "building_now": 2,
+        "waiting_to_grade": 7,
+        "grading_now": 8,
+    }
+
+
+def test_the_page_shows_how_many_grade_now_and_what_running_counts_mean():
+    queue = {k: v for k, v in _v4_doc().items() if k in _doc()}
+    queue.pop("schema")
+    shown = _page({"state": "ACCEPTED", "code": None, "queue": queue, "counts": "running", "rows_panel": None})["text"]
+    assert "Grading now4" in shown.replace(" ", "") or "Grading now 4" in shown
+    assert "a build waiting for a machine counts as waiting to build" in shown
+    old = _page(_panel(None))["text"]
+    assert "a build waiting for a machine" not in old  # a v1 door's counts are not described as running counts
