@@ -2317,3 +2317,38 @@ def test_the_restore_logs_its_time_and_its_slowest_owners(
     (timing,) = [x for x in lines if x.get("event") == "owner_restore_timing"]
     assert timing["owners"] == 2 and timing["total_s"] >= 0
     assert {row["owner_sha256"] for row in timing["slowest"]} == set(names.values())
+
+
+def test_a_start_failure_without_a_code_is_named_in_the_journal(
+    tmp_path, monkeypatch, capsys
+):
+    """18 Nov 2026: c8bf7b24 exited 2 s into every start with only `direct_receiver_unavailable`. The journal now gets
+    the failure's type, Carbon's fixed message and where it was raised; stdout keeps the closed code only."""
+    (tmp_path / "config.json").write_text("{}")
+
+    def refused(*_args, **_kwargs):
+        raise ValueError("development candidate profile differs")
+
+    monkeypatch.setattr(receiver, "serve", refused)
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    args = [
+        "--config",
+        str(tmp_path / "config.json"),
+        "--retain-task",
+        "rtsk_" + "a" * 64,
+        "--artifact-directory",
+        str(tmp_path / "artifacts"),
+        "--entry-directory",
+        str(tmp_path / "entries"),
+    ]
+    assert receiver.main(args) == 1
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {"unavailable": "direct_receiver_unavailable"}
+    (logged,) = [
+        json.loads(line)
+        for line in captured.err.strip().splitlines()
+        if '"receiver_start_failed"' in line
+    ]
+    assert logged["code"] == "ValueError"
+    assert logged["reason"] == "development candidate profile differs"
+    assert logged["where"].endswith("in refused")

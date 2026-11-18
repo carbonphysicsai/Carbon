@@ -2325,6 +2325,20 @@ def _log_restore_timing(total, took):
     print(json.dumps(record, sort_keys=True), file=sys.stderr, flush=True)
 
 
+def _raised_at(failure):
+    """``path:line in function`` of the innermost frame that raised ``failure`` (a code location only), or None."""
+    import traceback
+
+    frames = traceback.extract_tb(failure.__traceback__)
+    if not frames:
+        return None
+    last = frames[-1]
+    path = last.filename.replace("\\", "/")
+    marker = "/carbon/"
+    path = "carbon/" + path.split(marker, 1)[1] if marker in path else Path(path).name
+    return f"{path}:{last.lineno} in {last.name}"
+
+
 def _log_start_failure(event, failure, **fields):
     """One stderr line (the unit's journal, operator-only) naming a start failure by its code or type."""
     if "first" in fields:
@@ -3586,6 +3600,11 @@ def main(argv=None):
             )
             return 1
         if type(code) is not str:
+            # 18 Nov 2026 (c8bf7b24 exited 2 s into every start with only this code): the journal (operator-only) gets
+            # the failure's type, Carbon's fixed message and where it was raised; stdout keeps the closed code
+            _log_start_failure(
+                "receiver_start_failed", failure, where=_raised_at(failure)
+            )
             code = "direct_receiver_unavailable"
         print(json.dumps({"unavailable": code}), flush=True)
         # a stop request while waiting for the chain (H8) is a clean stop, not a failed unit
