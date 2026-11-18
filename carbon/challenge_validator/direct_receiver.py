@@ -2268,7 +2268,8 @@ class OwnerProviders:
 
     def hotkey_of(self, task_id):
         """The hotkey whose provider (open, or lazy: `restore`'s scan) holds ``task_id``, read from this receiver's own
-        keys, never opening a provider; None when none does (the grade scan's owner and allowance group)."""
+        keys, never opening a provider; None when none does (the grade scan's owner and allowance group).
+        """
         name = task_id if type(task_id) is str else getattr(task_id, "value", None)
         if type(name) is not str:
             return None

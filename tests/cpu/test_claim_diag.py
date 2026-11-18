@@ -1,6 +1,7 @@
 """Grade-speed (18 Nov 2026, "use all lanes"): built tasks the claim scan passes over are logged by reason, once per
 change; a task's owner and allowance group come from the providers' own keys (never `adapter.owner`, which raises for
-a lazy or gated owner); a build requeue refused for good is not asked again in the same process."""
+a lazy or gated owner); a build requeue refused for good is not asked again in the same process.
+"""
 
 from __future__ import annotations
 
@@ -44,11 +45,15 @@ def _claim(grader, claims):
                 claims.release(owner)
 
 
-def test_the_owner_comes_from_the_providers_keys_and_a_busy_owner_is_logged_once(monkeypatch):
+def test_the_owner_comes_from_the_providers_keys_and_a_busy_owner_is_logged_once(
+    monkeypatch,
+):
     from carbon.battery import intake
 
     lines = []
-    monkeypatch.setattr(intake, "log", lambda event, **fields: lines.append((event, fields)))
+    monkeypatch.setattr(
+        intake, "log", lambda event, **fields: lines.append((event, fields))
+    )
     grader, graded = _grader(lines, owners={A: "5Busy", B: "5Free"})
     claims = grade_sequencer.OwnerClaims()
     assert claims.try_claim("5Busy")
@@ -84,11 +89,15 @@ def test_a_build_requeue_refused_for_good_is_not_asked_again(monkeypatch):
 
     def get(request):
         reads.append(1)
-        return SimpleNamespace(task=SimpleNamespace(state=DirectTaskStateV3.FAILED_INFRA))
+        return SimpleNamespace(
+            task=SimpleNamespace(state=DirectTaskStateV3.FAILED_INFRA)
+        )
 
     provider = SimpleNamespace(get_research_result=get, _requests={})
     adapter.ledger = SimpleNamespace(requeue_failed_build=lambda *a, **k: "requeuable")
     task_id = SimpleNamespace(value=A)
-    adapter._requeue_failed_build("5Owner", task_id, provider)  # no retained request: refused for good
+    adapter._requeue_failed_build(
+        "5Owner", task_id, provider
+    )  # no retained request: refused for good
     adapter._requeue_failed_build("5Owner", task_id, provider)
     assert reads == [1]

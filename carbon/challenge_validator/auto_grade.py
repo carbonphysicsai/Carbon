@@ -778,15 +778,25 @@ class AutoGrader:
         passes = {}
         try:
             return self._claim_scan(
-                sequencer, task, skipped, claims, taken, candidates, busy, held,
-                unknown_in_flight, passed, passes,
+                sequencer,
+                task,
+                skipped,
+                claims,
+                taken,
+                candidates,
+                busy,
+                held,
+                unknown_in_flight,
+                passed,
+                passes,
             )
         finally:
             self._note_passes(passes)
 
     def _note_passes(self, passes):
         """Grade-speed (18 Nov 2026, "use all lanes"): built tasks the claim scan passed over, by reason, logged once
-        per change (``grade_claim_passed``), so a free lane with built tasks never waits silently."""
+        per change (``grade_claim_passed``), so a free lane with built tasks never waits silently.
+        """
         key = tuple(sorted(passes.items()))
         if key == getattr(self, "_passes_logged", ()):
             return
@@ -801,8 +811,18 @@ class AutoGrader:
             return
 
     def _claim_scan(
-        self, sequencer, task, skipped, claims, taken, candidates, busy, held,
-        unknown_in_flight, passed, passes,
+        self,
+        sequencer,
+        task,
+        skipped,
+        claims,
+        taken,
+        candidates,
+        busy,
+        held,
+        unknown_in_flight,
+        passed,
+        passes,
     ):
         def passing(reason):
             passes[reason] = passes.get(reason, 0) + 1
