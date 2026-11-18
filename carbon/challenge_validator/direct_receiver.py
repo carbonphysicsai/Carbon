@@ -2313,7 +2313,8 @@ def _owner_name(hotkey):
 
 def _log_restore_timing(total, took):
     """One stderr line (the unit's journal, operator-only): how long the owner restore took, how many owners, and the
-    five slowest by sha256 (Lead, 18 Nov 2026: a restart's ~10 min restore, to aim its next speed-up at real data)."""
+    five slowest by sha256 (Lead, 18 Nov 2026: a restart's ~10 min restore, to aim its next speed-up at real data).
+    """
     slowest = sorted(took, reverse=True)[:5]
     record = {
         "event": "owner_restore_timing",

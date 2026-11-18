@@ -179,7 +179,7 @@ class QueueView:
             # any of the task's own operations (`direct_child_identity`: prep, build, practice inference, timing, or
             # its remote GPU build shadow) RESERVED: it holds a slot and runs
             own = direct_child_identity(task, "build")[: -len("build")]
-            if not any(op.startswith(own) or op.startswith(task) for op in held):
+            if not any(op.startswith((own, task)) for op in held):
                 waiting.add(task)
         return waiting
 

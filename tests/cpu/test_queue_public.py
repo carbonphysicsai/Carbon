@@ -516,9 +516,7 @@ def _ledger_with(tmp_path, reserved):
 
     path = tmp_path / "campaign.sqlite3"
     with sqlite3.connect(path) as db:
-        db.execute(
-            "CREATE TABLE operations (id TEXT PRIMARY KEY, state TEXT NOT NULL)"
-        )
+        db.execute("CREATE TABLE operations (id TEXT PRIMARY KEY, state TEXT NOT NULL)")
         db.executemany(
             "INSERT INTO operations VALUES(?, 'RESERVED')", [(op,) for op in reserved]
         )
@@ -527,7 +525,8 @@ def _ledger_with(tmp_path, reserved):
 
 def test_only_a_running_task_holding_a_build_slot_counts_as_building(tmp_path):
     """Live ops' queue truth audit (18 Nov 2026): 12 shown building, 2 really building. A RUNNING task's ROW says
-    building only while one of its own operations is RESERVED (it holds a slot); else "waiting to build"."""
+    building only while one of its own operations is RESERVED (it holds a slot); else "waiting to build".
+    """
     from carbon.development_session.bundle_construction_worker import (
         direct_child_identity,
     )
@@ -539,9 +538,7 @@ def test_only_a_running_task_holding_a_build_slot_counts_as_building(tmp_path):
     }
     view, grader = _door(tmp_path, states, pending=TASKS[:3])
     provider = next(iter(grader.intake.adapter.provider_for._providers.values()))
-    provider.ledger = _ledger_with(
-        tmp_path, [direct_child_identity(TASKS[0], "build")]
-    )
+    provider.ledger = _ledger_with(tmp_path, [direct_child_identity(TASKS[0], "build")])
     snap = view._read()
     # the counts are as before (the A100 autoscaler's input); the rows tell building from waiting
     assert (snap["building_now"], snap["waiting_to_build"]) == (2, 1)

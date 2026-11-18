@@ -367,7 +367,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
         door start and right before a build or a grade runs (`_advance_one`, `lean_recipe_retention`'s grade entries),
         never on a lookup (`owner`, `_provider`, the claim and advance scans, status reads): those run no code.
         """
-        if self._identities["implementation_digest"] != _implementation_identity():
+        identities = getattr(self, "_identities", None)
+        if identities is None:
+            # `__init__` always binds the start identity: an adapter without one was built some other way (a one-shot
+            # tool, a test double) and has no start identity to compare, exactly as `_provider` never read one for it
+            return
+        if identities["implementation_digest"] != _implementation_identity():
             raise Unavailable("served_recipe_source_changed")
 
     def _provider(self, hotkey):

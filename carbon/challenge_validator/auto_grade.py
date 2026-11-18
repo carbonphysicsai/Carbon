@@ -828,7 +828,7 @@ class AutoGrader:
             DirectTaskStateV3.RUNNING,
             DirectTaskStateV3.CANCEL_REQUESTED,
         )
-        adapter = getattr(self.intake, "adapter", None)
+        adapter = getattr(getattr(self, "intake", None), "adapter", None)
         opened = getattr(getattr(adapter, "provider_for", None), "_providers", None)
         if type(opened) is not dict:
             return frozenset()

@@ -100,7 +100,9 @@ def test_a_lookup_never_hashes_the_served_sources(monkeypatch):
     """V2's ruling: `_provider` (behind every `owner()`, claim scan, advance scan and status read) runs no hash."""
     calls = _counted_identity(monkeypatch)
     adapter = _adapter()
-    adapter.provider_for = lambda hotkey: object()  # not a provider: refused after the lookup
+    adapter.provider_for = (
+        lambda hotkey: object()
+    )  # not a provider: refused after the lookup
     for _ in range(25):
         # the double is refused; only the hash count matters
         with pytest.raises(Exception):  # noqa: B017
@@ -120,6 +122,10 @@ def test_a_byte_edit_after_start_is_refused_at_the_next_build_start(monkeypatch)
         run_queued_task=lambda task_id: ran.append(task_id),
     )
     adapter._provider = lambda owner: provider
+    import carbon.research as research
+
+    # the read request is the provider double's; only the check before the run matters here
+    monkeypatch.setattr(research, "DirectGetTaskRequestV3", lambda *args: None)
     from carbon.challenge_validator.interface import Unavailable
 
     with pytest.raises(Unavailable, match="served_recipe_source_changed"):
@@ -157,7 +163,9 @@ def test_a_byte_edit_after_start_is_refused_at_the_next_grade_start(monkeypatch,
         if p.kind is p.POSITIONAL_OR_KEYWORD and p.default is p.empty
     ]
     kwargs = {
-        p.name: None for p in params if p.kind is p.KEYWORD_ONLY and p.default is p.empty
+        p.name: None
+        for p in params
+        if p.kind is p.KEYWORD_ONLY and p.default is p.empty
     }
     with pytest.raises(Unavailable, match="served_recipe_source_changed"):
         function(*args, **kwargs)

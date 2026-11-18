@@ -2184,7 +2184,8 @@ def test_an_owner_the_restore_refuses_is_named_in_the_journal(
     monkeypatch.setattr(pool, "_open", refused)
     with pytest.raises(ValueError, match="binding changed"):
         pool.restore()
-    logged = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    lines = [json.loads(x) for x in capsys.readouterr().err.strip().splitlines()]
+    (logged,) = [x for x in lines if x.get("event") == "owner_restore_set_aside"]
     assert logged == {
         "event": "owner_restore_set_aside",
         "code": "ValueError",
@@ -2298,7 +2299,9 @@ def test_the_crown_host_owner_is_never_set_aside_the_start_refuses(
     assert pool.set_aside() == {}
 
 
-def test_the_restore_logs_its_time_and_its_slowest_owners(tmp_path, monkeypatch, capsys):
+def test_the_restore_logs_its_time_and_its_slowest_owners(
+    tmp_path, monkeypatch, capsys
+):
     """Lead (18 Nov 2026): one line with how long the owner restore took and its slowest owners (by sha256), so the
     next speed-up aims at real data. Log only: the restore itself is unchanged."""
     other = "5" + "2" * 47
