@@ -29,9 +29,7 @@ T = {k: "rtsk_" + c * 64 for k, c in zip("RCKO", "1234", strict=True)}
 def _state(tmp_path, rows):
     """A door state with one GRADED exam row per ``rows`` entry ``{task: state}``."""
     db = sqlite3.connect(tmp_path / "attempts.sqlite3")
-    db.execute(
-        "CREATE TABLE exam_graded (submission_id TEXT, kind TEXT, state TEXT)"
-    )
+    db.execute("CREATE TABLE exam_graded (submission_id TEXT, kind TEXT, state TEXT)")
     for task, state in rows.items():
         db.execute("INSERT INTO exam_graded VALUES (?, 'GRADED', ?)", (task, state))
     db.commit()
@@ -87,10 +85,13 @@ def door_ledger(tmp_path):
 
 def test_a_carbon_cut_grade_gets_its_retry_scheduled_by_the_sweep(tmp_path):
     markers = _state(tmp_path, {T["R"]: "RELEASED", T["K"]: "COUNTED"})
-    _marker(markers, T["R"], "FAILED", "Unavailable:unrecorded")  # cut by our stop
+    # cut by our stop
+    _marker(markers, T["R"], "FAILED", "Unavailable:unrecorded")
     _marker(markers, T["C"], "CANDIDATE_FAILED", "candidate_program_failed")
-    _marker(markers, T["K"], "FAILED", "WorkerFailure")  # COUNTED row: never retried here
-    _marker(markers, T["O"], "FAILED", "WorkerFailure", age=2 * 86400)  # too old
+    # a COUNTED row: never retried here
+    _marker(markers, T["K"], "FAILED", "WorkerFailure")
+    # too old
+    _marker(markers, T["O"], "FAILED", "WorkerFailure", age=2 * 86400)
     assert auto_retry.sweep_carbon_cut(tmp_path) == [T["R"]]
     assert _scheduled(tmp_path) == [T["R"]]
     (alert,) = _alerts(tmp_path)
@@ -101,9 +102,13 @@ def test_the_sweep_runs_at_most_hourly_and_names_a_counted_row_once(tmp_path):
     markers = _state(tmp_path, {T["K"]: "COUNTED"})
     _marker(markers, T["K"], "FAILED", "WorkerFailure")
     clock = iter([0.0, 10.0, 4000.0, 8000.0])
-    monotonic = lambda: next(clock)  # noqa: E731
+
+    def monotonic():
+        return next(clock)
+
     auto_retry.sweep_carbon_cut(tmp_path, monotonic=monotonic)
-    auto_retry.sweep_carbon_cut(tmp_path, monotonic=monotonic)  # within the hour: nothing
+    # within the hour: nothing
+    auto_retry.sweep_carbon_cut(tmp_path, monotonic=monotonic)
     auto_retry.sweep_carbon_cut(tmp_path, monotonic=monotonic)
     assert len(_alerts(tmp_path)) == 1
 
@@ -116,7 +121,9 @@ def test_a_task_whose_retries_are_spent_is_not_scheduled_again(tmp_path):
     with open(log / auto_retry.LOG_NAME, "a") as out:
         for k in range(auto_retry.PER_CAUSE_RETRIES):
             out.write(
-                json.dumps({"task": T["R"], "kind": "scheduled", "code": "WorkerFailure"})
+                json.dumps(
+                    {"task": T["R"], "kind": "scheduled", "code": "WorkerFailure"}
+                )
                 + "\n"
             )
             out.write(json.dumps({"task": T["R"], "kind": "refused"}) + "\n")
@@ -125,15 +132,14 @@ def test_a_task_whose_retries_are_spent_is_not_scheduled_again(tmp_path):
 
 def test_the_manual_requeue_takes_a_failed_marker_whose_rows_hold_no_slot(tmp_path):
     db = sqlite3.connect(":memory:")
-    db.execute(
-        "CREATE TABLE exam_graded (submission_id TEXT, kind TEXT, state TEXT)"
-    )
+    db.execute("CREATE TABLE exam_graded (submission_id TEXT, kind TEXT, state TEXT)")
     db.executemany(
         "INSERT INTO exam_graded VALUES (?, 'GRADED', ?)",
         [(T["R"], "RELEASED"), (T["K"], "COUNTED"), (T["C"], "RESERVED")],
     )
     assert infra_requeue._carbon_settled(db, T["R"]) is True
-    assert infra_requeue._carbon_settled(db, T["O"]) is True  # no row: cut before its reservation
+    # no row: cut before its reservation
+    assert infra_requeue._carbon_settled(db, T["O"]) is True
     assert infra_requeue._carbon_settled(db, T["K"]) is False
     assert infra_requeue._carbon_settled(db, T["C"]) is False
 

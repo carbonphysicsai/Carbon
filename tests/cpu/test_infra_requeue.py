@@ -212,13 +212,11 @@ def test_list_regenerates_the_stuck_list_from_the_door_split_at_3_nov(tmp_path):
     _failed(root, ledger, F)
     _row(ledger, F, "COUNTED", "REQUIRED_LEG_MINIMUM_FAILED")
     out = infra_requeue.scan(root)
-    assert out["eligible"] == {"before_split": [B], "since_split": [A, E]}
-    assert out["eligible_counts"] == {"before_split": 1, "since_split": 2}
+    # CARBON-CUT REQUEUE (V2, 18 Nov 2026): D (a FAILED WorkerFailure holding no slot) is Carbon's and listed too
+    assert out["eligible"] == {"before_split": [B], "since_split": [A, D, E]}
+    assert out["eligible_counts"] == {"before_split": 1, "since_split": 3}
     assert out["failed_markers"] == 5
-    assert out["refused_counts"] == {
-        "cause_not_requeueable": 1,
-        "exam_row_counted_or_reserved": 1,
-    }
+    assert out["refused_counts"] == {"exam_row_counted_or_reserved": 1}
     assert out["arrived"][A] == "2026-11-03T00:00:01Z"
     # the read changes nothing
     assert (root / "auto-grade" / "markers" / (A + ".json")).exists()
@@ -349,9 +347,9 @@ def test_requeue_refuses_other_causes_strangers_and_given_back_tasks(tmp_path):
     _failed(root, ledger, D)
     _row(ledger, D, "RELEASED", "FAILED_INFRA")
     out = infra_requeue.requeue(root, [A, B, D, E, "x"], apply=True)
-    assert out["requeued"] == [D]  # given back, no fresh rerun of its recipe exists
+    # CARBON-CUT REQUEUE (V2, 18 Nov 2026): A (a FAILED WorkerFailure holding no slot) is Carbon's: requeued too
+    assert out["requeued"] == [A, D]
     assert out["refused"] == {
-        A: "cause_not_requeueable",
         B: "not_submitted_at_this_door",
         E: "no_marker",
         "x": "not_a_task_id",

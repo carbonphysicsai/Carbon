@@ -2581,7 +2581,7 @@ class OwnerProviders:
                     errors.append(type(failure).__name__)
                     continue
                 if building:
-                    stopped.append(view.task_id.value)
+                    stopped.append(getattr(view.task_id, "value", view.task_id))
         _record_stop_cancelled(self.root.parent, stopped)
         if errors:
             raise ReceiverUnavailable("direct_receiver_cancellation_unresolved")
@@ -2619,7 +2619,8 @@ def _open_crown_owners(grader):
 def _record_stop_cancelled(state_root, tasks):
     """The builds THIS stop cancelled, one line each (`lean_recipe.STOP_CANCELLED`): the next start re-runs each once
     as Carbon's, uncharged, at its original place (CARBON-CUT REQUEUE, V2 18 Nov 2026). Only the receiver writes it,
-    so a miner's own cancel is never re-run. Never raises: a stop never fails on its record."""
+    so a miner's own cancel is never re-run. Never raises: a stop never fails on its record.
+    """
     if not tasks:
         return
     try:

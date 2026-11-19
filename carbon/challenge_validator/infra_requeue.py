@@ -446,6 +446,15 @@ def _carbon_settled(db, task):
     ).fetchone()
 
 
+def _carbon_cut(db, task, paths):
+    """A FAILED marker whose exam rows hold no slot (`_carbon_settled`) and whose code is transient
+    (`auto_retry.retryable`: never a version-wide one, which a requeue would only meet again)."""
+    from .auto_retry import retryable
+
+    marker = _marker_document(paths["marker"]) or {}
+    return retryable(marker.get("code")) and _carbon_settled(db, task)
+
+
 def _requeue_refusal(root, db, door, task, *, auto=False):
     """None when ``requeue`` accepts the task, else its refusal code (read-only). ``auto`` (the receiver's own
     automatic retry, `auto_retry`): the same criteria without the 4 Nov incident's cause filter; a later attempt's
@@ -463,9 +472,9 @@ def _requeue_refusal(root, db, door, task, *, auto=False):
             return "no_marker"
         if state != "FAILED":
             return "marker_" + state.lower()
-        if not auto and not _cause(paths) and not _carbon_settled(db, task):
+        if not auto and not _cause(paths) and not _carbon_cut(db, task, paths):
             # CARBON-CUT REQUEUE (V2, 18 Nov 2026): a FAILED marker (Carbon's by construction) whose exam rows hold
-            # no slot is requeueable whatever its code; the 4 Nov cause list still answers for anything else
+            # no slot is requeueable for any transient code; the 4 Nov cause list still answers for anything else
             return "cause_not_requeueable"
     elif auto:
         return "already_requeued"

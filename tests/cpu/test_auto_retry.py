@@ -155,10 +155,14 @@ def test_applying_reuses_infra_requeues_criteria_without_the_incident_cause(tmp_
     )  # never in a drain
     out = dict(auto_retry.apply_due(root, clock=lambda: later))
     assert out == {A: None, B: "exam_row_counted_or_reserved"}
-    # B's marker still says retry_scheduled (write-once): only the refused one reaches the operator's alert log
+    # B's marker still says retry_scheduled (write-once): only the refused one reaches the operator's alert log; B's
+    # FAILED marker over a COUNTED row is also named once on the owed list (CARBON-CUT REQUEUE, V2 18 Nov 2026)
     assert [
         (r["task"], r["event"], r["reason"]) for r in _log(root, auto_retry.ALERT_NAME)
-    ] == [(B, "auto_retry_refused", "exam_row_counted_or_reserved")]
+    ] == [
+        (B, auto_retry.COUNTED_UNDER_FAILED, "owed_list"),
+        (B, "auto_retry_refused", "exam_row_counted_or_reserved"),
+    ]
     assert not (
         root / "auto-grade" / "markers" / (A + ".json")
     ).exists()  # handed back to the grader
