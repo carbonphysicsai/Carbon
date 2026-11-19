@@ -884,11 +884,29 @@ def register_binding(kind, version, factory):
     _BINDINGS[key] = factory
 
 
+#: Region bounds a version registers itself, by (kind, version): ``bound(binding, region) -> ChallengeBinding``, used
+#: in place of `cooling_region.bounded_binding` when that version is graded WITH a region (Cooling 1.8's 34-slot
+#: derive, exam-cooling 19 Nov; `cooling_region.py` stays byte-untouched). Add-only; every other version keeps
+#: `cooling_region.bounded_binding`, and a grade without a region never reads this.
+_REGION_BOUNDS: dict = {}
+
+
+def register_region_bound(kind, version, bound):
+    """Register ``bound(binding, region) -> ChallengeBinding`` for one (kind, version). Add-only: a different bound for
+    a version already registered is refused; registering the same one again is a no-op. ``bound`` refuses with
+    `cooling_region.RegionRefused` (mapped to `pool_exam.ExamRefused` with its code) or `pool_exam.ExamRefused`."""
+    key = (kind, version)
+    if _REGION_BOUNDS.get(key, bound) is not bound:
+        raise ValueError(f"{key!r} already has a different region bound")
+    _REGION_BOUNDS[key] = bound
+
+
 def official_binding(kind, version, region=None):
     """The OFFICIAL pool binding of one Challenge version: its own registered one (`register_binding`), else
     `pool_adapters.official_binding` (every version before this hook, unchanged). ``region`` (a checked signed region
-    document, `sealed_region` / `checked_region`; Cooling only) bounds its derive by the region's extended bounds
-    (`cooling_region.bounded_binding`, B5); None leaves the binding exactly as before.
+    document, `sealed_region` / `checked_region`; Cooling only) bounds its derive by the region's extended bounds:
+    the version's registered bound (`register_region_bound`), else `cooling_region.bounded_binding` (B5); None leaves
+    the binding exactly as before.
     """
     factory = _BINDINGS.get((kind, version))
     binding = (
@@ -898,8 +916,9 @@ def official_binding(kind, version, region=None):
         return binding
     from carbon.scoring import cooling_region
 
+    bound = _REGION_BOUNDS.get((kind, version), cooling_region.bounded_binding)
     try:
-        return cooling_region.bounded_binding(binding, region)
+        return bound(binding, region)
     except cooling_region.RegionRefused as refused:
         raise pool_exam.ExamRefused(refused.code) from None
 
