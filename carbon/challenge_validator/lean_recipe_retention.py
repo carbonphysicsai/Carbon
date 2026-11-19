@@ -2477,6 +2477,11 @@ def _retain_selected_pack_evaluation(
             ),
             regrade=uncounted,
         )
+        # the order-dependent reservation is made: a door grading in parallel lets its next grade claim now, as the
+        # counted bank grade does (`_counted_bank_grade`), not after this grade's whole pass (Lead, 19 Nov 2026)
+        from . import grade_sequencer
+
+        grade_sequencer.claimed()
         queries = [artifacts["inputs.npz"]]
         registered = _register_retained_pack_source(
             adapter,

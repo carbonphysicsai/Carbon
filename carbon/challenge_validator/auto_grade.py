@@ -713,18 +713,23 @@ class AutoGrader:
             # it): no grade starts ahead of it (ruling C); builds go on, and the next round asks again
             return None
         skipped = set()
-        while True:
-            with sequencer.task() as task:
-                taken = []
-                try:
-                    return self._claim_and_grade(
-                        sequencer, task, skipped, claims, taken
-                    )
-                except _NextTask:
-                    continue
-                finally:
-                    for owner in taken:
-                        claims.release(owner)
+        self._scan_local().codes = {}
+        started = time.monotonic()
+        try:
+            while True:
+                with sequencer.task() as task:
+                    taken = []
+                    try:
+                        return self._claim_and_grade(
+                            sequencer, task, skipped, claims, taken
+                        )
+                    except _NextTask:
+                        continue
+                    finally:
+                        for owner in taken:
+                            claims.release(owner)
+        finally:
+            self._log_claim_scan(len(skipped), started)
 
     def _end_hung_grades(self, sequencer):
         """A grade in flight longer than `GRADE_HUNG_SECONDS` is stuck in Carbon's own code (a model cannot run past its
@@ -806,6 +811,45 @@ class AutoGrader:
             )
         finally:
             self._note_passes(passes)
+
+    def _note_next(self, code):
+        """Count one "not yet" (`_NEXT`) answer of this round's claim loop by its closed code (`_log_claim_scan`), per
+        round thread (the door's rounds share this grader)."""
+        codes = getattr(self._scan_local(), "codes", None)
+        if codes is not None:
+            codes[code] = codes.get(code, 0) + 1
+
+    def _scan_local(self):
+        local = self.__dict__.get("_scan_thread_local")
+        if local is None:
+            local = self.__dict__.setdefault("_scan_thread_local", threading.local())
+        return local
+
+    def _log_claim_scan(self, retried, started):
+        """Lead (19 Nov 2026, live 116: one round held the claim lock ~25 min with no container): a round whose claim
+        loop met any "not yet" task logs one ``grade_claim_scan`` line: how many tasks it retried (each a new claim,
+        a fresh pending scan and that task's retain step up to its reservation, all under the claim lock), their
+        closed codes, and the round's seconds. Counts and codes only; a diagnostic line never stops a round.
+        """
+        if not retried:
+            return
+        try:
+            from carbon.battery.intake import log
+
+            log(
+                "grade_claim_scan",
+                retried=retried,
+                seconds=round(time.monotonic() - started, 1),
+                **{
+                    "next_" + code: count
+                    for code, count in sorted(
+                        (getattr(self._scan_local(), "codes", None) or {}).items()
+                    )
+                    if type(code) is str and code.isidentifier()
+                },
+            )
+        except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
+            return
 
     def _note_passes(self, passes):
         """Grade-speed (18 Nov 2026, "use all lanes"): built tasks the claim scan passed over, by reason, logged once
@@ -1113,6 +1157,7 @@ class AutoGrader:
                         submission_id
                     }
             if code in _PENDING or code in _NOT_YET:
+                self._note_next(code)
                 return _NEXT
             if code in _CAP_LIMITS and self._cap_soft(submission_id):
                 # V2 (18 Nov 2026): an earlier group-mate was passed over this round, or a grade of an unknown group is
@@ -1120,6 +1165,7 @@ class AutoGrader:
                 from carbon.battery.intake import log
 
                 log("cap_refusal_not_yet", code=code)
+                self._note_next(code)
                 return _NEXT
             if isinstance(code, str) and code in _CHAIN_CODES and self.chain_degraded():
                 # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
