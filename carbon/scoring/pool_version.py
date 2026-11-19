@@ -894,7 +894,8 @@ _REGION_BOUNDS: dict = {}
 def register_region_bound(kind, version, bound):
     """Register ``bound(binding, region) -> ChallengeBinding`` for one (kind, version). Add-only: a different bound for
     a version already registered is refused; registering the same one again is a no-op. ``bound`` refuses with
-    `cooling_region.RegionRefused` (mapped to `pool_exam.ExamRefused` with its code) or `pool_exam.ExamRefused`."""
+    `cooling_region.RegionRefused` (mapped to `pool_exam.ExamRefused` with its code) or `pool_exam.ExamRefused`.
+    """
     key = (kind, version)
     if _REGION_BOUNDS.get(key, bound) is not bound:
         raise ValueError(f"{key!r} already has a different region bound")
