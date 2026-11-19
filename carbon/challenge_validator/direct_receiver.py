@@ -2291,6 +2291,18 @@ class OwnerProviders:
                 task for index in self._lazy_index.values() for task in index
             )
 
+    def lazy_tasks_of(self, hotkeys):
+        """The task ids the LAZY owners among ``hotkeys`` hold (all terminal): `lazy_tasks` for one allowance group's
+        hotkeys only, so an admission never gathers every lazy owner's tasks (LOCK + CACHE AUDIT #2b). Memory only."""
+        wanted = frozenset(hotkeys)
+        with self._lock:
+            return frozenset(
+                task
+                for directory, index in self._lazy_index.items()
+                if self._lazy.get(directory) in wanted
+                for task in index
+            )
+
     def lazy_index(self):
         """``{task id: (state name, created unix seconds)}`` over every lazy owner, read by `restore`'s scan (the public
         queue's index of the providers not open yet, `QueueView._index`)."""

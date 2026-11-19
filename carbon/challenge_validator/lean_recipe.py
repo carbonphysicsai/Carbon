@@ -346,6 +346,46 @@ _SKIPPED_OWNER_CODES = frozenset(
 )
 
 
+
+def _group_mates(adapter, hotkey, group):
+    """The hotkeys of ``hotkey``'s allowance group ``group`` (``hotkey`` itself always among them), sorted, or None when
+    the installed grouping has no snapshot window (then the caller reads every hotkey's group, as before).
+
+    The members come from the grouping's latest snapshot: a hotkey the snapshot cannot resolve is in no shared group
+    (`allowance_groups.Grouping`: its own ``h:`` group, or refused), so the group's other hotkeys are exactly the
+    snapshot's members whose group is ``group``. The ``{group: members}`` map is built once per (snapshot, funder map)
+    and kept on the adapter (memory only, one entry); `group_of` itself is unchanged.
+    """
+    from carbon.challenge_validator import exam_cap
+
+    grouping = exam_cap.GROUPING
+    window = getattr(grouping, "window", None)
+    if window is None:
+        return None
+    try:
+        snapshot = window.latest()
+        funder = getattr(grouping, "funder_map", None)
+        current = funder() if callable(funder) else None
+        participants = tuple(snapshot.participants)
+    except Exception:  # noqa: BLE001 - unreadable now: the old read decides
+        return None
+    key = (id(snapshot), getattr(snapshot, "finalized_block", None), id(current))
+    cached = getattr(adapter, "_group_mates_cache", None)
+    if cached is None or cached[0] != key:
+        groups = {}
+        for member in participants:
+            name = getattr(member, "hotkey", None)
+            if type(name) is not str:
+                continue
+            try:
+                groups.setdefault(exam_cap.group_of(name), []).append(name)
+            except exam_cap.ExamCapRefused:
+                continue
+        cached = (key, groups)
+        adapter._group_mates_cache = cached
+    return sorted({hotkey, *cached[1].get(group, ())})
+
+
 class LeanRecipeAdapter(ChallengeAdapter):
     """One registered kit; provider instances remain bound to signer owners."""
 
@@ -668,7 +708,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         """One waiting submission per coldkey (`coldkey_waiting`), or per hotkey when the row says ``"per": "hotkey"``,
         when the receiver installed the guard and the version registers a limit: refuse now, before any intent or build,
         if this hotkey's coldkey (or the hotkey itself) already has that many submissions waiting; otherwise hold the
-        guard's lock until the body (the task's start) is done, so two submissions can never both pass. Off (no guard,
+        guard's lock FOR THAT COLDKEY (or hotkey) until the body (the task's start) is done, so two submissions of it can
+        never both pass. Off (no guard,
         no limit): nothing is checked or held.
         """
         from carbon.challenge_validator import coldkey_waiting
@@ -683,7 +724,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
             yield
             return
         limit, per = rule
-        with guard.lock:
+        # this coldkey's (or hotkey's) lock only, never one for the whole door (LOCK + CACHE AUDIT #14)
+        with guard.lock_for(guard.key_of(hotkey, per)):
             refused = guard.refusal(
                 hotkey=hotkey, task_id=task_id, limit=limit, per=per
             )
@@ -744,22 +786,29 @@ class LeanRecipeAdapter(ChallengeAdapter):
         except exam_cap.ExamCapRefused:
             return ()
         low = exam_cap.epoch_of(block) - exam_cap.DAY_EPOCHS
-        with self.ledger._db() as db:
-            hotkeys = [
-                row[0]
-                for row in db.execute(
-                    "SELECT DISTINCT hotkey FROM attempts WHERE kind='OUTCOME' "
-                    "AND contract_digest=? AND hotkey IS NOT NULL",
-                    (self.contract_digest,),
-                ).fetchall()
-            ]
-            mine = []
-            for owner in hotkeys:
-                try:
-                    if owner == hotkey or exam_cap.group_of(owner) == group:
-                        mine.append(owner)
-                except exam_cap.ExamCapRefused:
-                    continue
+        # LOCK + CACHE AUDIT #2b (19 Nov 2026): the group's hotkeys from the latest snapshot's members (`_group_mates`,
+        # built once per snapshot and funder map), never `group_of` over every hotkey this door ever saw, and the rows
+        # on a read snapshot, never the ledger's write lock
+        read = getattr(self.ledger, "_read", None)
+        with read() if callable(read) else self.ledger._db() as db:
+            mine = _group_mates(self, hotkey, group)
+            if mine is None:
+                # a grouping with no snapshot window (a test double, or none installed): every hotkey's group, as before
+                hotkeys = [
+                    row[0]
+                    for row in db.execute(
+                        "SELECT DISTINCT hotkey FROM attempts WHERE kind='OUTCOME' "
+                        "AND contract_digest=? AND hotkey IS NOT NULL",
+                        (self.contract_digest,),
+                    ).fetchall()
+                ]
+                mine = []
+                for owner in hotkeys:
+                    try:
+                        if owner == hotkey or exam_cap.group_of(owner) == group:
+                            mine.append(owner)
+                    except exam_cap.ExamCapRefused:
+                        continue
             if not mine:
                 return ()
             marks = ",".join("?" * len(mine))
@@ -782,9 +831,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # reads). Same blocks as before; a task with no such view (a mate neither open nor lazy, or an open mate's
         # view that does not hold it) is read as before.
         provider_for = getattr(self, "provider_for", None)
+        # the group's lazy owners' tasks only (never every lazy owner's: LOCK + CACHE AUDIT #2b)
+        lazy_of = getattr(provider_for, "lazy_tasks_of", None)
         lazy_tasks = getattr(provider_for, "lazy_tasks", None)
         try:
-            lazy = frozenset(lazy_tasks()) if callable(lazy_tasks) else frozenset()
+            if callable(lazy_of):
+                lazy = frozenset(lazy_of({owner for owner, _raw in first.values()}))
+            else:
+                lazy = frozenset(lazy_tasks()) if callable(lazy_tasks) else frozenset()
         except Exception:  # noqa: BLE001 - unreadable: every mate read as before
             lazy = frozenset()
         opened = getattr(provider_for, "_providers", None)

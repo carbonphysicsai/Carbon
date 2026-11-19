@@ -1,7 +1,7 @@
 """Live 116, 19 Nov 2026 (no construction-submit for an hour; py-spy: 10 requests waiting at the door-wide `_write`
 behind ONE source chunk's owner-tree storage scan and body rewrite): a source stage holds only its OWN owner's lock
 (`DirectRecipeIntake._stage`), never `_write`, so one owner's uploads never block another owner's submit. An owner's
-own admission still never overlaps its own stage (owner lock first, then `_write`). Fixture doubles only.
+own admission still never overlaps its own stage (owner lock first, then its admission scopes). Fixture doubles only.
 """
 
 from __future__ import annotations
@@ -88,7 +88,6 @@ def test_an_owners_own_admission_waits_for_its_stage_without_holding_write():
     admit.start()
     time.sleep(0.1)
     # the waiting admission holds its owner's turn only: another owner's admission goes through meanwhile
-    assert not intake._write.locked()
     assert intake._admit(SimpleNamespace(hotkey="5Other")) == {"kind": "OUTCOME"}
     release.set()
     stage.join(5)
@@ -97,25 +96,38 @@ def test_an_owners_own_admission_waits_for_its_stage_without_holding_write():
     assert order == ["stage-start", "admit", "stage-end", "admit"]
 
 
-def test_admissions_stay_one_writer_door_wide():
-    state = {"inside": 0, "max": 0}
-    guard = threading.Lock()
+def test_admissions_are_one_at_a_time_per_scope_and_parallel_across_scopes():
+    """LOCK + CACHE AUDIT #2 (19 Nov 2026): no door-wide writer. Admissions of one allowance group run one at a time
+    (the group's rules read each other's state); admissions of unrelated owners overlap."""
+    from carbon.challenge_validator import exam_cap
 
-    def evaluate(submitted):
-        with guard:
-            state["inside"] += 1
-            state["max"] = max(state["max"], state["inside"])
-        time.sleep(0.005)
-        with guard:
-            state["inside"] -= 1
-        return {"kind": "OUTCOME"}
+    def run(grouping):
+        state = {"inside": 0, "max": 0}
+        guard = threading.Lock()
 
-    intake = _intake(evaluate)
-    threads = [
-        threading.Thread(target=intake._admit, args=(SimpleNamespace(hotkey=f"5H{i % 7}"),)) for i in range(40)
-    ]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join(20)
-    assert state["max"] == 1
+        def evaluate(submitted):
+            with guard:
+                state["inside"] += 1
+                state["max"] = max(state["max"], state["inside"])
+            time.sleep(0.02)
+            with guard:
+                state["inside"] -= 1
+            return {"kind": "OUTCOME"}
+
+        exam_cap.install_grouping(grouping)
+        try:
+            intake = _intake(evaluate)
+            threads = [
+                threading.Thread(target=intake._admit, args=(SimpleNamespace(hotkey=f"5H{i % 7}"),))
+                for i in range(28)
+            ]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(20)
+        finally:
+            exam_cap.install_grouping(None)
+        return state["max"]
+
+    assert run(lambda hotkey: "farm") == 1  # one group: one admission at a time
+    assert run(None) > 1  # seven own-hotkey groups: they overlap

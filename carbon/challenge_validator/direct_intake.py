@@ -272,11 +272,11 @@ class DirectRecipeIntake(BatteryIntake):
         self.grade_marker = None
         #: The withdrawal's marker writer (`AutoGrader.withdrawn`), or None: then no withdrawal is advertised or taken.
         self.withdraw_marker = None
-        #: One writer at a time for the calls that change state (an admission or a source
-        #: stage): the cap, idempotency and the once-per-epoch rule hold exactly under any
-        #: number of concurrent clients (GPU_REBUILD_RULINGS section 12). Reads (the public
-        #: facts, status, the Ladder) never take it.
-        self._write = threading.Lock()
+        #: No door-wide writer lock (LOCK + CACHE AUDIT #2, 19 Nov 2026): an admission holds its OWNER's lock, then the
+        #: locks of the cross-owner scopes its rules read (`_admission_scope`: its allowance group and its coldkey), so
+        #: the cap, idempotency, the once-per-epoch rule and one-waiting-per-coldkey stay exact under any number of
+        #: concurrent clients (GPU_REBUILD_RULINGS section 12) while unrelated owners admit in parallel. A withdrawal
+        #: and a source stage hold their owner's lock only. Reads (the public facts, status, the Ladder) take none.
         #: R89: the per-group request buckets (`request_buckets.RequestBuckets`), or None (the peer bucket, as before).
         self.request_buckets = request_buckets
         #: The allowance-group map; swapped whole on a reload, so a reload never empties a bucket.
@@ -795,7 +795,9 @@ class DirectRecipeIntake(BatteryIntake):
                 400, "tool"
             )  # not advertised here: this door does not grade its own submissions
         submission_id = fields["submission_id"]
-        with self._write:
+        # its owner's lock only (never door-wide): a withdrawal changes that owner's own task, and its admissions and
+        # stages hold the same lock
+        with self._owner_lock(hotkey):
             try:
                 result = self.adapter.withdraw(hotkey, submission_id)
             except Unavailable:
@@ -817,9 +819,11 @@ class DirectRecipeIntake(BatteryIntake):
         return Answer(200, {"withdrawn": submission_id, "grade_state": WITHDRAWN_STATE})
 
     def _admit(self, submitted):
-        """The one admission path: a single writer, so a duplicate is admitted once. It also holds the submitter's own
-        owner lock (taken FIRST, never while holding `_write`), so an admission never reads its owner's workspace while
-        that owner's source stage writes it, and waits for that owner's stage without holding `_write`.
+        """The one admission path. It holds the submitter's own owner lock FIRST (a duplicate is admitted once; an
+        admission never reads its owner's workspace while that owner's source stage writes it), then the locks of its
+        allowance group and coldkey (`_admission_scope`), so every rule that reads ANOTHER owner's state (the daily
+        allowance and epoch limit with the group's pending submissions; one waiting submission per coldkey) is decided
+        one admission at a time within that scope, and owners of other groups and coldkeys never wait for it.
         """
         hotkey = getattr(submitted, "hotkey", None)
         owner = (
@@ -830,16 +834,53 @@ class DirectRecipeIntake(BatteryIntake):
         with owner:
             if type(hotkey) is str:
                 self._open_owner(hotkey)
-            with self._write:
+            with self._admission_scope(hotkey):
                 result = self.door.evaluate(submitted)
                 self._note_recipe_digest(result)
                 return result
 
+    def _admission_keys(self, hotkey):
+        """The cross-owner scopes an admission of ``hotkey`` decides in, sorted: ``g:<allowance group>``
+        (`exam_cap.group_of`) and ``c:<coldkey>`` (the door's latest snapshot). Every hotkey of one coldkey shares both.
+        Memory only (the latest snapshot and the funder map, as the rules read them); a scope that cannot be read now
+        adds no key (the owner lock still holds, and the admission meets the same refusal its rule gives)."""
+        from . import exam_cap
+
+        keys = set()
+        try:
+            keys.add("g:" + exam_cap.group_of(hotkey))
+        except Exception:  # noqa: BLE001, S110 - a refusing grouping: the admission refuses the same way
+            pass
+        window = getattr(self, "window", None)
+        try:
+            snapshot = None if window is None else window.latest()
+            member = None if snapshot is None else snapshot.resolve(hotkey)
+        except Exception:  # noqa: BLE001 - no snapshot: no coldkey scope (the guard fails open the same way)
+            member = None
+        coldkey = getattr(member, "coldkey", None)
+        if type(coldkey) is str:
+            keys.add("c:" + coldkey)
+        return sorted(keys)
+
+    @contextlib.contextmanager
+    def _admission_scope(self, hotkey):
+        """Hold the locks of ``hotkey``'s admission scopes (`_admission_keys`), taken in sorted order after the owner
+        lock (so no two admissions can wait on each other in a cycle). Each lock guards nothing but the order of
+        admissions within its scope; the registry of locks is memory only."""
+        keys = self._admission_keys(hotkey) if type(hotkey) is str else []
+        with _OWNER_LOCKS_GUARD:
+            registry = self.__dict__.setdefault("_admission_locks", {})
+            locks = [registry.setdefault(key, threading.Lock()) for key in keys]
+        with contextlib.ExitStack() as held:
+            for lock in locks:
+                held.enter_context(lock)
+            yield
+
     def _open_owner(self, hotkey):
-        """Open (a lazy owner: restore, 3-10 s live) the submitter's provider BEFORE `_write` (case-procs, LOCK PROGRAM
-        19 Nov 2026: a burst of new owners' first submits serialised their restores under the door-wide lock), so the
-        admission's own `_provider` finds it open. Best effort: any refusal here is left to the admission, which meets
-        and answers it exactly as before."""
+        """Open (a lazy owner: restore, 3-10 s live) the submitter's provider BEFORE its admission scopes (case-procs,
+        LOCK PROGRAM 19 Nov 2026: a burst of new owners' first submits serialised their restores under the then
+        door-wide `_write`), so the admission's own `_provider` finds it open. Best effort: any refusal here is left to
+        the admission, which meets and answers it exactly as before."""
         adapter = getattr(self, "adapter", None)
         opener = getattr(adapter, "_provider", None)
         if not callable(opener):
@@ -855,8 +896,9 @@ class DirectRecipeIntake(BatteryIntake):
             return self._stage_source(received)
 
     def _owner_lock(self, hotkey):
-        """The lock of one owner's workspace writes (its source stages, and its admission's read of them): one per
-        hotkey, created on first use. Lock order: an owner lock, then `_write`; a source stage takes its owner's only.
+        """The lock of one owner's state changes (its source stages, admissions and withdrawals): one per hotkey,
+        created on first use. Lock order: an owner lock, then its admission scopes (`_admission_scope`, sorted); a
+        source stage and a withdrawal take their owner's only.
         """
         with _OWNER_LOCKS_GUARD:
             locks = self.__dict__.setdefault("_owner_locks", {})
