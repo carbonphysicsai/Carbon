@@ -425,7 +425,9 @@ class QueueView:
             with self._lock:
                 self._rebuilding.discard(name)
                 self._built.notify_all()
-            _log_rebuild_failed(name, failure)  # the last copy stays; the next reader retries
+            _log_rebuild_failed(
+                name, failure
+            )  # the last copy stays; the next reader retries
             raise
         with self._lock:
             setattr(self, name, built)

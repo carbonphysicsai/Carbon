@@ -748,9 +748,7 @@ class DirectRecipeIntake(BatteryIntake):
             return
         try:
             opener(hotkey)
-        except (
-            Exception
-        ):  # noqa: BLE001, S110 - the admission meets the same refusal under its own rules
+        except Exception:  # noqa: BLE001, S110 - the admission meets the same refusal
             pass
 
     def _stage(self, received):

@@ -123,7 +123,8 @@ def _fsync_write(path: Path, body: bytes) -> None:
 def _partial(ledger, owner, request):
     """``(path, received bytes)`` of ``owner``'s partial upload for ``request``: the append file, else one written by
     the earlier layout (a workspace row, read bounded as before and moved into the append file once), else none (0).
-    An existing partial longer than the file refuses (`WorkspaceBoundExceeded`) before any byte is read."""
+    An existing partial longer than the file refuses (`WorkspaceBoundExceeded`) before any byte is read.
+    """
     partial_name = _partial_name(request)
     path = _partial_path(ledger, owner, partial_name)
     if path.is_file():
@@ -196,26 +197,27 @@ def _append(ledger, workspace, request, name, fingerprint, expected):
             tail = chunk[size - offset :]
         else:
             tail = b""  # a replay of held bytes
-    if tail:
-        received = size + len(tail)
-        if received > request.total_bytes:
-            raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
-        # the same amount the earlier rewrite admitted at this point: the whole partial with the chunk, plus 64 KiB
-        ledger.check_storage(received + 65536)
-        with path.open("ab") as out:
-            out.write(tail)
-            out.flush()
-            os.fsync(out.fileno())
-    else:
-        received = size
+    received = size + len(tail)
+    if received > request.total_bytes:
+        raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
     if received == request.total_bytes:
-        body = _read(path, 0, request.total_bytes + 1)
+        # the completing chunk: the whole file is built and verified IN MEMORY before anything is written, so a chunk
+        # that fails the digest leaves the partial exactly as it was (as the earlier rewrite did); `put` runs the
+        # storage check of the published file, as before
+        body = (_read(path, 0, size + 1) if size else b"") + tail
         if len(body) != request.total_bytes:
             raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
         _verify_complete(name, body, fingerprint)
         workspace.put(name, body, expected_digest=expected)
         path.unlink(missing_ok=True)
         return DirectStageSourceResultV1(name, received, fingerprint, True)
+    if tail:
+        # the same amount the earlier rewrite admitted at this point: the whole partial with the chunk, plus 64 KiB
+        ledger.check_storage(received + 65536)
+        with path.open("ab") as out:
+            out.write(tail)
+            out.flush()
+            os.fsync(out.fileno())
     return DirectStageSourceResultV1(name, received, fingerprint, False)
 
 

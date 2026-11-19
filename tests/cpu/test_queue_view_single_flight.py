@@ -42,12 +42,16 @@ def _view(tmp_path, clock):
         return value()
 
     calls["delay"] = 0.0
-    view._read = lambda: slow("read", lambda: {"as_of_unix": clock(), "grading_now": calls["read"]})
+    view._read = lambda: slow(
+        "read", lambda: {"as_of_unix": clock(), "grading_now": calls["read"]}
+    )
     view._read_rows = lambda boundary: slow("rows", lambda: ([], []))
     return view, calls
 
 
-def test_fifty_reads_and_a_submit_on_eight_request_threads_while_a_slow_rebuild_runs(tmp_path):
+def test_fifty_reads_and_a_submit_on_eight_request_threads_while_a_slow_rebuild_runs(
+    tmp_path,
+):
     clock = _Clock()
     view, calls = _view(tmp_path, clock)
     first = view.snapshot()  # the first build (waited for once)
@@ -80,12 +84,18 @@ def test_rows_rebuild_single_flight_and_serve_the_last_copy(tmp_path):
     with ThreadPoolExecutor(max_workers=8) as pool:
         out = [pool.submit(view.snapshot_v3) for _ in range(20)]
         quick = [f.result(10) for f in out]
-    assert calls["rows"] == 2 and calls["read"] == 2  # each rebuilt once, never per reader
+    assert (
+        calls["rows"] == 2 and calls["read"] == 2
+    )  # each rebuilt once, never per reader
     assert all(qp.ROWS in doc and qp.ROWS_V4 in doc for doc in quick)
-    assert time.monotonic() - began < SLOW_S * 3  # the snapshot and the rows rebuilt once each, not per reader
+    assert (
+        time.monotonic() - began < SLOW_S * 3
+    )  # the snapshot and the rows rebuilt once each, not per reader
 
 
-def test_before_the_first_build_readers_wait_for_it_and_a_failed_build_raises_to_its_caller_only(tmp_path):
+def test_before_the_first_build_readers_wait_for_it_and_a_failed_build_raises_to_its_caller_only(
+    tmp_path,
+):
     clock = _Clock()
     view = queue_view.QueueView(None, None, tmp_path, clock=clock)
     attempts = []
@@ -113,7 +123,9 @@ def test_before_the_first_build_readers_wait_for_it_and_a_failed_build_raises_to
     assert view._cached == kept
 
 
-def test_a_copy_older_than_the_bound_is_never_served_and_a_failed_rebuild_is_logged(tmp_path, capsys):
+def test_a_copy_older_than_the_bound_is_never_served_and_a_failed_rebuild_is_logged(
+    tmp_path, capsys
+):
     """V2 terms: staleness <= STALE_MAX_S (stated, <= 60 s); a failed rebuild logs, keeps the last copy, and the next
     reader retries."""
     assert queue_view.STALE_MAX_S <= 60
@@ -142,6 +154,11 @@ def test_the_cached_document_is_the_live_read(tmp_path):
     """Same answers as the live read: on a fixed tree the served document is exactly what `_read` builds."""
     clock = _Clock()
     view = queue_view.QueueView(None, None, tmp_path, clock=clock)
-    fixed = {"as_of_unix": clock(), "waiting_to_build": 3, "grading_now": 1, "waits_s": [12.0, 40.0]}
+    fixed = {
+        "as_of_unix": clock(),
+        "waiting_to_build": 3,
+        "grading_now": 1,
+        "waits_s": [12.0, 40.0],
+    }
     view._read = lambda: dict(fixed)
     assert view.snapshot() == fixed

@@ -46,28 +46,43 @@ def test_chunks_append_one_file_and_store_no_object_until_complete(tmp_path):
     body = _body(100_000)
     parts = _chunks(body)
     for offset, chunk in parts[:-1]:
-        result = dss.stage_source(ledger, "alice", _request(_name(body), body, offset, chunk))
+        result = dss.stage_source(
+            ledger, "alice", _request(_name(body), body, offset, chunk)
+        )
         assert result.received_bytes == offset + len(chunk) and not result.complete
         assert _objects(ledger) == []  # nothing superseded is left behind
-    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+    path = dss._partial_path(
+        ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1]))
+    )
     assert path.stat().st_size == parts[-1][0]
     offset, chunk = parts[-1]
-    assert dss.stage_source(ledger, "alice", _request(_name(body), body, offset, chunk)).complete
+    assert dss.stage_source(
+        ledger, "alice", _request(_name(body), body, offset, chunk)
+    ).complete
     assert ResearchWorkspace(ledger, "alice").get(_name(body)) == body
     assert len(_objects(ledger)) == 1 and not path.exists()
 
 
-def test_the_storage_check_sees_the_same_amount_at_the_same_point(tmp_path, monkeypatch):
+def test_the_storage_check_sees_the_same_amount_at_the_same_point(
+    tmp_path, monkeypatch
+):
     """Before each chunk is accepted the check is asked for the whole partial with the chunk plus 64 KiB, exactly the
-    amount the earlier rewrite's `workspace.put` asked for; a refusal there accepts nothing."""
+    amount the earlier rewrite's `workspace.put` asked for; a refusal there accepts nothing.
+    """
     ledger = _ledger(tmp_path)
     body = _body(30_000)
     asked = []
     real = ledger.check_storage
-    monkeypatch.setattr(ledger, "check_storage", lambda additional=0: asked.append(additional) or real(additional))
+    monkeypatch.setattr(
+        ledger,
+        "check_storage",
+        lambda additional=0: asked.append(additional) or real(additional),
+    )
     for offset, chunk in _chunks(body)[:-1]:
         dss.stage_source(ledger, "alice", _request(_name(body), body, offset, chunk))
-    assert asked == [offset + len(chunk) + 65536 for offset, chunk in _chunks(body)[:-1]]
+    assert asked == [
+        offset + len(chunk) + 65536 for offset, chunk in _chunks(body)[:-1]
+    ]
 
     def refuse(additional=0):
         raise LedgerRefusal(
@@ -79,7 +94,9 @@ def test_the_storage_check_sees_the_same_amount_at_the_same_point(tmp_path, monk
 
     monkeypatch.setattr(ledger, "check_storage", refuse)
     offset, chunk = _chunks(body)[-1]
-    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+    path = dss._partial_path(
+        ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1]))
+    )
     before = path.stat().st_size
     with pytest.raises(LedgerRefusal):
         dss.stage_source(ledger, "alice", _request(_name(body), body, offset, chunk))
@@ -94,26 +111,40 @@ def test_conflicts_replays_and_bounds_answer_as_before(tmp_path):
     # a replay of held bytes changes nothing and says how much is held
     assert dss.stage_source(ledger, "alice", first).received_bytes == 8192
     # past the received bytes, or different bytes at a held offset: a conflict
-    for bad in (_request(_name(body), body, 8193, body[8193:9000]), _request(_name(body), body, 0, b"y" * 8192)):
+    for bad in (
+        _request(_name(body), body, 8193, body[8193:9000]),
+        _request(_name(body), body, 0, b"y" * 8192),
+    ):
         with pytest.raises(research.ResearchTaskProviderError) as refused:
             dss.stage_source(ledger, "alice", bad)
-        assert refused.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+        assert (
+            refused.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+        )
 
 
 def test_a_torn_append_is_completed_by_its_retry(tmp_path):
     """A crash mid-append leaves part of a chunk: its retry at the same offset appends only the rest (the file never
-    shrinks) and the count is the file's length, so nothing is double-counted or missing."""
+    shrinks) and the count is the file's length, so nothing is double-counted or missing.
+    """
     ledger = _ledger(tmp_path)
     body = _body(20_000)
     dss.stage_source(ledger, "alice", _request(_name(body), body, 0, body[:8192]))
-    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+    path = dss._partial_path(
+        ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1]))
+    )
     with path.open("ab") as out:
-        out.write(body[8192:8192 + 1000])  # torn: 1,000 of the next chunk's 8,192 bytes
-    result = dss.stage_source(ledger, "alice", _request(_name(body), body, 8192, body[8192:16384]))
+        out.write(
+            body[8192 : 8192 + 1000]
+        )  # torn: 1,000 of the next chunk's 8,192 bytes
+    result = dss.stage_source(
+        ledger, "alice", _request(_name(body), body, 8192, body[8192:16384])
+    )
     assert result.received_bytes == 16384 and path.stat().st_size == 16384
     assert path.read_bytes() == body[:16384]
     # the continuation check (the request buckets' read) reads the same length, from the file
-    assert dss.continuation_at(ledger, "alice", _request(_name(body), body, 16384, body[16384:]))
+    assert dss.continuation_at(
+        ledger, "alice", _request(_name(body), body, 16384, body[16384:])
+    )
 
 
 def test_an_upload_the_earlier_layout_began_is_continued(tmp_path):
@@ -121,10 +152,16 @@ def test_an_upload_the_earlier_layout_began_is_continued(tmp_path):
     body = _body(20_000)
     first = _request(_name(body), body, 0, body[:8192])
     ResearchWorkspace(ledger, "alice").put(dss._partial_name(first), body[:8192])
-    assert dss.continuation_at(ledger, "alice", _request(_name(body), body, 8192, body[8192:16384]))
+    assert dss.continuation_at(
+        ledger, "alice", _request(_name(body), body, 8192, body[8192:16384])
+    )
     for offset, chunk in _chunks(body)[1:]:
-        result = dss.stage_source(ledger, "alice", _request(_name(body), body, offset, chunk))
-    assert result.complete and ResearchWorkspace(ledger, "alice").get(_name(body)) == body
+        result = dss.stage_source(
+            ledger, "alice", _request(_name(body), body, offset, chunk)
+        )
+    assert (
+        result.complete and ResearchWorkspace(ledger, "alice").get(_name(body)) == body
+    )
 
 
 def test_one_upload_is_serial_and_two_owners_run_in_parallel(tmp_path, monkeypatch):
@@ -152,7 +189,10 @@ def test_one_upload_is_serial_and_two_owners_run_in_parallel(tmp_path, monkeypat
     def same(owner):
         dss.stage_source(ledger, owner, first)
 
-    threads = [threading.Thread(target=same, args=(o,)) for o in ("alice", "alice", "alice", "bob", "bob", "bob")]
+    threads = [
+        threading.Thread(target=same, args=(o,))
+        for o in ("alice", "alice", "alice", "bob", "bob", "bob")
+    ]
     for t in threads:
         t.start()
     for t in threads:
@@ -182,13 +222,19 @@ def test_a_resend_from_an_earlier_offset_appends_only_its_new_bytes(tmp_path):
     ledger = _ledger(tmp_path)
     body = _body(20_000)
     dss.stage_source(ledger, "alice", _request(_name(body), body, 0, body[:5000]))
-    result = dss.stage_source(ledger, "alice", _request(_name(body), body, 1000, body[1000:9192]))
-    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+    result = dss.stage_source(
+        ledger, "alice", _request(_name(body), body, 1000, body[1000:9192])
+    )
+    path = dss._partial_path(
+        ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1]))
+    )
     assert result.received_bytes == 9192 and path.read_bytes() == body[:9192]
     changed = bytearray(body[2000:10000])
     changed[0] ^= 1
     with pytest.raises(research.ResearchTaskProviderError) as refused:
-        dss.stage_source(ledger, "alice", _request(_name(body), body, 2000, bytes(changed)))
+        dss.stage_source(
+            ledger, "alice", _request(_name(body), body, 2000, bytes(changed))
+        )
     assert refused.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
     assert path.read_bytes() == body[:9192]
 
@@ -197,7 +243,9 @@ def test_a_refused_overlap_leaves_the_held_bytes_unchanged(tmp_path, monkeypatch
     ledger = _ledger(tmp_path)
     body = _body(20_000)
     dss.stage_source(ledger, "alice", _request(_name(body), body, 0, body[:5000]))
-    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+    path = dss._partial_path(
+        ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1]))
+    )
 
     def refuse(additional=0):
         raise LedgerRefusal(
@@ -209,5 +257,7 @@ def test_a_refused_overlap_leaves_the_held_bytes_unchanged(tmp_path, monkeypatch
 
     monkeypatch.setattr(ledger, "check_storage", refuse)
     with pytest.raises(LedgerRefusal):
-        dss.stage_source(ledger, "alice", _request(_name(body), body, 1000, body[1000:9192]))
+        dss.stage_source(
+            ledger, "alice", _request(_name(body), body, 1000, body[1000:9192])
+        )
     assert path.read_bytes() == body[:5000]  # nothing held was lost, nothing appended
