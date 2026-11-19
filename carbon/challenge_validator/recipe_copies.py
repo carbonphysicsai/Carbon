@@ -205,7 +205,8 @@ def _ended_unbuilt(adapter, submission_id):
 
 def _ended_index(adapter):
     """The task ids the door knows ended without a build, read from the open task views and the lazy owners' index
-    without opening any owner (`LeanRecipeAdapter._ended_unbuilt`); empty when the adapter has no such read."""
+    without opening any owner (`LeanRecipeAdapter._ended_unbuilt`); empty when the adapter has no such read.
+    """
     read = getattr(adapter, "_ended_unbuilt", None)
     if not callable(read):
         return frozenset()

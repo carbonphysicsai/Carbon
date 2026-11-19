@@ -6,7 +6,7 @@ never computes its digest or opens its owner. Same decisions; a still-building e
 from __future__ import annotations
 
 import pytest
-from test_recipe_graded_once import CHALLENGE, EXAM, HOTKEYS, T, Door, _recipe
+from test_recipe_graded_once import CHALLENGE, EXAM, HOTKEYS, Door, T, _recipe
 
 from carbon.challenge_validator import recipe_copies
 
