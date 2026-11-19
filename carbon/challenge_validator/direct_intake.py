@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import hashlib
 import os
 import re
@@ -57,6 +58,9 @@ from .dispatch import Adapters, Validator
 from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
 from .request_buckets import claimed_hotkey
+
+#: Guards creation of the per-owner workspace locks (`DirectIntake._owner_lock`).
+_OWNER_LOCKS_GUARD = threading.Lock()
 
 INFO_PATH = "/carbon/v1/construction/intake"
 #: The signed launch board: `GET FEED_PATH + <challenge id>` (the battery door's feed path).
@@ -601,8 +605,10 @@ class DirectRecipeIntake(BatteryIntake):
         if not self._verified_charge(received):
             return _refused(429, "rate")
         if received.call.tool == RESEARCH_NAMESPACE:
-            with self._write:
-                return self._stage_source(received)
+            # Live 116, 19 Nov 2026 (no construction-submit for an hour: 10 requests queued behind ONE source chunk's
+            # storage scan and rewrite under the door-wide `_write`): a source stage writes only its OWN owner's
+            # workspace and checks only that owner's storage cap, so it holds that owner's lock, never `_write`.
+            return self._stage(received)
         fields = {field.name: field.value for field in received.call.fields}
         if received.call.tool == SUBMIT_TOOL:
             if set(fields) != {"strategy_json", "contract_digest"}:
@@ -713,11 +719,31 @@ class DirectRecipeIntake(BatteryIntake):
         return Answer(200, {"withdrawn": submission_id, "grade_state": WITHDRAWN_STATE})
 
     def _admit(self, submitted):
-        """The one admission path: a single writer, so a duplicate is admitted once."""
-        with self._write:
+        """The one admission path: a single writer, so a duplicate is admitted once. It also holds the submitter's own
+        owner lock (taken FIRST, never while holding `_write`), so an admission never reads its owner's workspace while
+        that owner's source stage writes it, and waits for that owner's stage without holding `_write`."""
+        hotkey = getattr(submitted, "hotkey", None)
+        owner = (
+            self._owner_lock(hotkey)
+            if type(hotkey) is str
+            else contextlib.nullcontext()
+        )
+        with owner, self._write:
             result = self.door.evaluate(submitted)
             self._note_recipe_digest(result)
             return result
+
+    def _stage(self, received):
+        """One source stage under its owner's lock only (see the route): never the door-wide `_write`."""
+        with self._owner_lock(received.receipt.hotkey):
+            return self._stage_source(received)
+
+    def _owner_lock(self, hotkey):
+        """The lock of one owner's workspace writes (its source stages, and its admission's read of them): one per
+        hotkey, created on first use. Lock order: an owner lock, then `_write`; a source stage takes its owner's only."""
+        with _OWNER_LOCKS_GUARD:
+            locks = self.__dict__.setdefault("_owner_locks", {})
+            return locks.setdefault(hotkey, threading.Lock())
 
     def _note_recipe_digest(self, result):
         """OWNER-PROBING-COUNTERS-01 (b): store an admitted task's recipe digest at admission (`recipe_copies.
