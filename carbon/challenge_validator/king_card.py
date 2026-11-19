@@ -214,7 +214,8 @@ def text(card):
     ]
     for row in card["outputs"]:
         lines.append(
-            f"{row['output']} [{row['class']}] {row['metric']}: median {row['median']:g}, p90 {row['p90']:g}"
+            f"{row['output']} [{row['class']}] error as a multiple of the exam's U:"
+            f" median {row['median']:g}, p90 {row['p90']:g}"
         )
     speed = card["speed"]
     lines.append(
@@ -227,12 +228,63 @@ def text(card):
     return "\n".join(lines) + "\n"
 
 
-def receipt(card, breakdown_path, breakdown_bytes, crowned_task):
-    """The OPERATOR-ONLY render receipt: which breakdown file the card read (the crowning grade's) and its sha256."""
+HOST_CLASS_SCHEMA = "carbon.validator.host-class.v2"
+_HOST_CLASS_ID = re.compile(r"VALIDATOR-HOST-CLASS-[A-Z0-9][A-Z0-9-]{0,58}")
+
+
+def public_names(constants_bytes, challenge_id, version):
+    """``(outputs, classes)`` from the PUBLIC registration (`pool_version.CONSTANTS`, the served pool constants): the
+    version's registered scored outputs (its physics gate thresholds' names) and its public coverage class vocabulary.
+    Anything missing refuses (never a guessed list)."""
+    try:
+        entry = json.loads(constants_bytes)["versions"][f"{challenge_id} {version}"]
+        outputs = sorted(entry["physics"]["gate_threshold"])
+        classes = list(entry["optimizer"]["coverage_class_vocabulary"])
+    except (ValueError, KeyError, TypeError):
+        raise KingCardRefused("king_card_registration_unreadable") from None
+    _names(outputs, "king_card_registration_unreadable")
+    _names(classes, "king_card_registration_unreadable")
+    _require(bool(outputs) and bool(classes), "king_card_registration_unreadable")
+    return outputs, classes
+
+
+def lane_class(record_bytes):
+    """The device class name of one lane from its host-class record (``id``, schema `HOST_CLASS_SCHEMA`); the card
+    shows this name, never the lane's docker host."""
+    try:
+        record = json.loads(record_bytes)
+    except ValueError:
+        raise KingCardRefused("king_card_lane_class_record_invalid") from None
+    _require(
+        type(record) is dict
+        and record.get("schema") == HOST_CLASS_SCHEMA
+        and type(record.get("id")) is str
+        and _HOST_CLASS_ID.fullmatch(record["id"]) is not None,
+        "king_card_lane_class_record_invalid",
+    )
+    return record["id"]
+
+
+def _sha256(raw):
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def receipt(
+    card,
+    breakdown_path,
+    breakdown_bytes,
+    crowned_task,
+    registration=None,
+    lanes=None,
+):
+    """The OPERATOR-ONLY render receipt: which breakdown file the card read (the crowning grade's), the public
+    registration and the lane class records the names came from, each with its sha256."""
     return {
         "schema": "carbon.king-card-receipt.v1",
         "crowned_task": crowned_task,
         "breakdown_file": str(breakdown_path),
-        "breakdown_sha256": "sha256:" + hashlib.sha256(breakdown_bytes).hexdigest(),
-        "card_sha256": "sha256:" + hashlib.sha256(dumps(card)).hexdigest(),
+        "breakdown_sha256": _sha256(breakdown_bytes),
+        "registration": registration,
+        "lane_class_records": lanes,
+        "card_sha256": _sha256(dumps(card)),
     }

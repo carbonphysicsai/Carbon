@@ -8,7 +8,8 @@ public (it holds hidden-exam values). What it holds, and nothing else (a closed 
 - ``contract_ids``: ``{name: id}``, the registered contract / pack / scorer identities the producer names;
 - ``halves``: ``{"A", "D"}``, the grade's own A and D (the dual pack's two halves, before 0.5 A + 0.5 D);
 - ``sets``: ``{set id: {"A", "D", "rows"}}``, each target set's A, its D as the total saw it, and its target count;
-- ``tasks``: ``[{"task", "D", "Z", "oracle"}]``, each design task's D with its zero (Z, the registered zero model's value)
+- ``tasks``: ``[{"task", "D", "Z", "oracle"}]``, each drawn design task, by its ORDINAL (1, 2, ... in pack order among
+  the drawn tasks; never its id, which names the epoch's draw: V2 19 Nov), with its D with its zero (Z, the registered zero model's value)
   and its oracle value;
 - ``rule_flags``: ``{name: true | false}``, the registered rules' outcomes on this grade;
 - ``outputs``: ``[{"class", "output", "range", "n", "median", "p90"}]``, the custody accuracy record's per class and
@@ -267,7 +268,9 @@ def breakdown(
     for entry in tasks:
         if type(entry) is not dict or set(entry) != TASK_FIELDS:
             raise GradeBreakdownRefused("grade_breakdown_tasks_invalid")
-        task = _name(entry["task"], "grade_breakdown_tasks_invalid")
+        task = entry["task"]
+        if type(task) is not int or task < 1:
+            raise GradeBreakdownRefused("grade_breakdown_tasks_invalid")
         if task in seen:
             raise GradeBreakdownRefused("grade_breakdown_task_repeated")
         seen.add(task)

@@ -3,12 +3,15 @@ Validator-2's standing ruling KING_STATS_DISCLOSURE_20261119). Operator tool: re
 
     python scripts/dev/king_card_render.py --breakdown <dir>/<task>.grade-breakdown.json --crowned-task <task>
         --source official|recomputed [--self-check-matched --graded-at 2026-11-18T10:00:00Z]
-        --epoch E1 --pack-id <public pack id> --code-sha <sha> --public <public.json> --out <dir>
+        --epoch E1 --pack-id <public pack id> --code-sha <sha>
+        --lane-class <lane>=<host-class record.json> [--lane-class ...] --out <dir>
 
-``--public`` is a JSON file ``{"outputs": [...], "classes": [...], "lane_classes": {lane: label}}``: the public
-registration's output and class names, and the public class label of each speed lane (V2 names them; a lane it does
-not name refuses). ``--out`` is an existing owner-only directory; it receives ``king-card.json`` and ``king-card.txt``
-(public, for the owner's sign-off) and ``king-card-receipt.json`` (operator-only: which breakdown file, its sha256).
+The public output and class names are read from the PUBLIC registration of this checkout (`pool_version.CONSTANTS`,
+the served pool constants; V2 19 Nov), never typed. Each ``--lane-class`` names one speed lane (``local`` or the
+lane's docker host, as its grade_lane line says) and the host-class record of that lane's machine; the card shows the
+record's device class name, never the host, and a lane with no record refuses. ``--out`` is an existing owner-only
+directory; it receives ``king-card.json`` and ``king-card.txt`` (public, for the owner's sign-off) and
+``king-card-receipt.json`` (operator-only: which breakdown file, the registration and record files, all sha256).
 Exit 0 with the card's sha256 printed; 3 refused with a typed code (nothing written).
 """
 
@@ -35,7 +38,7 @@ def _parser():
     parser.add_argument("--epoch", required=True)
     parser.add_argument("--pack-id", required=True)
     parser.add_argument("--code-sha", required=True)
-    parser.add_argument("--public", required=True)
+    parser.add_argument("--lane-class", action="append", default=[])
     parser.add_argument("--out", required=True)
     return parser
 
@@ -76,15 +79,34 @@ def main(argv=None):
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     from carbon.challenge_validator import king_card
+    from carbon.scoring import pool_version
 
     try:
         out = _out_dir(args.out)
         raw = _read(args.breakdown, "breakdown_unreadable")
-        public = json.loads(_read(args.public, "public_unreadable"))
-        if type(public) is not dict or set(public) != {"outputs", "classes", "lane_classes"}:
-            raise Refused("public_invalid")
+        document = json.loads(raw)
+        if type(document) is not dict:
+            raise Refused("breakdown_unreadable")
+        registration_path = Path(pool_version.CONSTANTS).resolve()
+        registration = _read(registration_path, "registration_unreadable")
+        outputs, classes = king_card.public_names(
+            registration,
+            document.get("challenge_id"),
+            document.get("challenge_version"),
+        )
+        lane_classes, lanes = {}, {}
+        for item in args.lane_class:
+            lane, sep, path = item.partition("=")
+            if not sep or not lane or lane in lane_classes:
+                raise Refused("lane_class_argument_invalid")
+            record = _read(path, "lane_class_record_unreadable")
+            lane_classes[lane] = king_card.lane_class(record)
+            lanes[lane] = {
+                "file": str(Path(path).resolve()),
+                "sha256": king_card._sha256(record),
+            }
         card = king_card.render(
-            json.loads(raw),
+            document,
             crowned_task=args.crowned_task,
             source=args.source,
             self_check_matched=args.self_check_matched,
@@ -92,11 +114,23 @@ def main(argv=None):
             epoch=args.epoch,
             pack_id=args.pack_id,
             code_sha=args.code_sha,
-            public_outputs=public["outputs"],
-            public_classes=public["classes"],
-            lane_classes=public["lane_classes"],
+            public_outputs=outputs,
+            public_classes=classes,
+            lane_classes=lane_classes,
         )
-        receipt = king_card.receipt(card, Path(args.breakdown).resolve(), raw, args.crowned_task)
+        receipt = king_card.receipt(
+            card,
+            Path(args.breakdown).resolve(),
+            raw,
+            args.crowned_task,
+            registration={
+                "file": str(registration_path),
+                "sha256": king_card._sha256(registration),
+                "outputs": outputs,
+                "classes": classes,
+            },
+            lanes=lanes,
+        )
         names = ("king-card.json", "king-card.txt", "king-card-receipt.json")
         if any((out / name).exists() for name in names):
             raise Refused("out_files_exist")

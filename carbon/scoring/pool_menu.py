@@ -680,19 +680,20 @@ def bank_rows(tasks, design_names):
 
 def _offer_tasks(kept):
     """Offer each drawn task's D with its zero (Z) and oracle, as `menu_score.score_task` computed them, to a staged
-    keep (`grade_breakdown.staged`; nothing staged: a no-op). The custody record and D are unchanged."""
+    keep (`grade_breakdown.staged`; nothing staged: a no-op), by ORDINAL in pack order among the drawn tasks, never
+    the target id (it names the epoch's draw, which this record never holds: V2 19 Nov). Record and D unchanged."""
     from carbon.scoring import grade_breakdown
 
     grade_breakdown.offer(
         "tasks",
         lambda: [
             {
-                "task": task,
+                "task": ordinal,
                 "D": float(d),
                 "Z": None if zero is None else float(zero),
                 "oracle": None if oracle is None else float(oracle),
             }
-            for task, d, zero, oracle in kept
+            for ordinal, (d, zero, oracle) in enumerate(kept, start=1)
         ],
     )
 
@@ -717,11 +718,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
         # Carbon Validator-B 7 Nov (1): the fresh re-check answered differently, so the model's ranking is not a
         # function of each design alone. D = 0 for this grade, typed (the candidate's finding).
         _offer_tasks(
-            [
-                (t.problem.target_id, 0.0, None, None)
-                for t in tasks
-                if t.problem.target_id in drawn
-            ]
+            [(0.0, None, None) for t in tasks if t.problem.target_id in drawn]
         )
         return {
             "D": 0.0,
@@ -787,12 +784,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
             }
         )
         kept.append(
-            (
-                task.problem.target_id,
-                result["d"],
-                result.get("zero"),
-                result.get("oracle"),
-            )
+            (result["d"], result.get("zero"), result.get("oracle"))
         )
     _offer_tasks(kept)
     d = math.fsum(r["d"] for r in results) / len(results)

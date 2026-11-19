@@ -49,8 +49,12 @@ def test_the_kept_values_are_the_grades_own_numbers():
     ]
     assert [s["rows"] for s in sets.values()] == [len(group) for group in the_sets]
     # the menu tasks: the custody record's d per task, with the zero and oracle score_task computed
-    record = {t["task_id"]: t["d"] for t in result["pool"]["menu"]["tasks"]}
-    assert {t["task"]: t["D"] for t in values["tasks"]} == record
+    # (by ordinal in pack order among the drawn tasks, never the drawn id: V2 19 Nov)
+    record = [t["d"] for t in result["pool"]["menu"]["tasks"]]
+    assert [t["D"] for t in values["tasks"]] == record
+    assert [t["task"] for t in values["tasks"]] == list(range(1, len(record) + 1))
+    drawn = {t["task_id"] for t in result["pool"]["menu"]["tasks"]}
+    assert not drawn & {str(v) for t in values["tasks"] for v in t.values()}
     assert all(t["Z"] < t["oracle"] for t in values["tasks"])
     # the accuracy record's per class x output aggregates, no per-case value
     rows = result["pool"]["accuracy"]["rows"]
@@ -122,10 +126,13 @@ def test_an_offer_that_fails_marks_the_keep_and_never_raises():
 def test_a_row_dependent_menu_keeps_its_zero_d_with_no_zero_or_oracle(monkeypatch):
     offered = []
     monkeypatch.setattr(gb, "offer", lambda name, value: offered.append((name, value)))
-    pool_menu._offer_tasks([("pool-1/t1", 0.0, None, None)])
+    pool_menu._offer_tasks([(0.0, None, None), (0.0, None, None)])
     ((name, build),) = offered
     assert name == "tasks"
-    assert build() == [{"task": "pool-1/t1", "D": 0.0, "Z": None, "oracle": None}]
+    assert build() == [
+        {"task": 1, "D": 0.0, "Z": None, "oracle": None},
+        {"task": 2, "D": 0.0, "Z": None, "oracle": None},
+    ]
 
 
 def _benchmark(a=0.4, d=0.2, gates=None):
@@ -171,7 +178,7 @@ def test_the_receiver_writes_the_official_halves_and_gates_beside_the_measuremen
     keep = _keep(
         {
             "sets": {"set0": {"A": 0.9, "D": 0.3, "rows": 4}},
-            "tasks": [{"task": "pool-1/t1", "D": 0.3, "Z": 0.1, "oracle": 0.8}],
+            "tasks": [{"task": 1, "D": 0.3, "Z": 0.1, "oracle": 0.8}],
         }
     )
     # a producer gate after the measure (Motor 1.8's subset repeat) is what the halves and flags say

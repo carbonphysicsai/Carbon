@@ -33,7 +33,7 @@ def _document(**change):
         "exam_key": EXAM,
         "contract_ids": {"physics_contract": "sha256:" + "8" * 64},
         "sets": {"set0": {"A": 0.61234, "D": 0.4321, "rows": 15}},
-        "tasks": [{"task": "menu/t07", "D": 0.4321, "Z": 0.11, "oracle": 0.97}],
+        "tasks": [{"task": 7, "D": 0.4321, "Z": 0.11, "oracle": 0.97}],
         "rule_flags": {"pool_physics": True, "speed": True, "native_motor_valid": True},
         "halves": {"A": 0.612345, "D": 0.432149},
         "outputs": [
@@ -184,28 +184,32 @@ def test_the_cli_writes_the_card_its_text_and_the_receipt_naming_the_crowning_fi
     custody = tmp_path / "custody"
     custody.mkdir(mode=0o700)
     source = gb.write(custody, _document())
-    public = tmp_path / "public.json"
-    public.write_text(
-        json.dumps(
-            {
-                "outputs": PUBLIC["public_outputs"],
-                "classes": PUBLIC["public_classes"],
-                "lane_classes": PUBLIC["lane_classes"],
-            }
-        )
-    )
+    record = tmp_path / "host-class.json"
+    record.write_text(json.dumps({"schema": kc.HOST_CLASS_SCHEMA, "id": "VALIDATOR-HOST-CLASS-EPYC-TEST-01"}))
     out = tmp_path / "out"
     out.mkdir(mode=0o700)
     argv = [
         "--breakdown", str(source), "--crowned-task", TASK, "--source", "official", "--epoch", "E1",
-        "--pack-id", "motor-1.8-pack-e1", "--code-sha", "7b99e87b", "--public", str(public), "--out", str(out),
+        "--pack-id", "motor-1.8-pack-e1", "--code-sha", "7b99e87b", "--lane-class", f"local={record}",
+        "--out", str(out),
     ]
     assert cli.main(argv) == 0
     card = json.loads((out / "king-card.json").read_bytes())
     assert kc.check_card(card) == card
+    # the speed class is the record's device class name, never the lane's host
+    assert card["speed"]["class"] == "VALIDATOR-HOST-CLASS-EPYC-TEST-01"
     receipt = json.loads((out / "king-card-receipt.json").read_bytes())
     assert receipt["breakdown_file"] == str(source.resolve())
     assert receipt["crowned_task"] == TASK
+    assert receipt["registration"]["outputs"] == sorted(receipt["registration"]["outputs"])
+    assert receipt["lane_class_records"]["local"]["sha256"].startswith("sha256:")
+    # a lane with no class record refuses (nothing written)
+    bare = tmp_path / "out-bare"
+    bare.mkdir(mode=0o700)
+    argv_bare = [a for a in argv if a not in ("--lane-class", f"local={record}")]
+    argv_bare[argv_bare.index(str(out))] = str(bare)
+    assert cli.main(argv_bare) == 3
+    assert not any(bare.iterdir())
     # a second render into the same directory refuses (nothing overwritten)
     assert cli.main(argv) == 3
     # the repeat grade's own file (its own task id) is never read as the crowning grade's
@@ -216,3 +220,40 @@ def test_the_cli_writes_the_card_its_text_and_the_receipt_naming_the_crowning_fi
     argv_repeat[argv_repeat.index(str(out))] = str(other_out)
     assert cli.main(argv_repeat) == 3
     assert not any(other_out.iterdir())
+
+
+def test_the_public_names_come_from_the_served_registration():
+    from carbon.scoring import pool_version
+
+    raw = open(pool_version.CONSTANTS, "rb").read()
+    outputs, classes = kc.public_names(raw, "electric-motor-magnetics", "1.8")
+    entry = json.loads(raw)["versions"]["electric-motor-magnetics 1.8"]
+    assert outputs == sorted(entry["physics"]["gate_threshold"])
+    assert classes == entry["optimizer"]["coverage_class_vocabulary"]
+    with pytest.raises(kc.KingCardRefused) as refused:
+        kc.public_names(raw, "electric-motor-magnetics", "9.9")
+    assert refused.value.code == "king_card_registration_unreadable"
+
+
+def test_a_lane_class_is_a_host_class_record_id_never_a_host():
+    from pathlib import Path
+
+    from carbon.scoring import pool_version
+
+    record = Path(pool_version.CONSTANTS).parent / "EPYC7402P-VM-01.json"
+    assert kc.lane_class(record.read_bytes()) == "VALIDATOR-HOST-CLASS-EPYC7402P-VM-01"
+    for bad in (
+        b"{}",
+        b"not json",
+        json.dumps({"schema": kc.HOST_CLASS_SCHEMA, "id": "ssh://root@10.0.0.1"}).encode(),
+        json.dumps({"schema": "other", "id": "VALIDATOR-HOST-CLASS-X"}).encode(),
+    ):
+        with pytest.raises(kc.KingCardRefused) as refused:
+            kc.lane_class(bad)
+        assert refused.value.code == "king_card_lane_class_record_invalid"
+
+
+def test_the_text_says_error_as_a_multiple_of_the_exams_u_and_never_a_raw_error():
+    shown = kc.text(_render())
+    assert "error as a multiple of the exam's U" in shown
+    assert "abs_error_over_u" not in shown

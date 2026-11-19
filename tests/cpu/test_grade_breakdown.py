@@ -45,8 +45,8 @@ def _inputs(**change):
             "lane": "local",
         },
         "tasks": [
-            {"task": "pool-1/d0001", "D": 0.5, "Z": 0.1, "oracle": 0.9},
-            {"task": "pool-1/d0002", "D": None, "Z": 0.2, "oracle": 0.8},
+            {"task": 1, "D": 0.5, "Z": 0.1, "oracle": 0.9},
+            {"task": 2, "D": None, "Z": 0.2, "oracle": 0.8},
         ],
         "rule_flags": {"rough_solver_zero": True, "in_range": False},
         "recipe": {
@@ -65,7 +65,7 @@ def test_the_document_is_the_closed_field_set():
     # not measured: null, never a stand-in
     assert document["sets"]["pool-1"] == {"A": None, "D": None, "rows": 0}
     assert document["tasks"][1] == {
-        "task": "pool-1/d0002",
+        "task": 2,
         "D": None,
         "Z": 0.2,
         "oracle": 0.8,
@@ -94,18 +94,18 @@ def test_the_document_is_the_closed_field_set():
             "grade_breakdown_sets_invalid",
         ),
         (
-            {"tasks": [{"task": "t", "D": 1.0, "Z": 0.0, "oracle": 2.0, "x": 1}]},
+            {"tasks": [{"task": 1, "D": 1.0, "Z": 0.0, "oracle": 2.0, "x": 1}]},
             "grade_breakdown_tasks_invalid",
         ),
         (
-            {"tasks": [{"task": "t", "D": math.inf, "Z": 0.0, "oracle": 2.0}]},
+            {"tasks": [{"task": 1, "D": math.inf, "Z": 0.0, "oracle": 2.0}]},
             "grade_breakdown_tasks_invalid",
         ),
         (
             {
                 "tasks": [
-                    {"task": "t", "D": 1.0, "Z": 0.0, "oracle": 2.0},
-                    {"task": "t", "D": 1.0, "Z": 0.0, "oracle": 2.0},
+                    {"task": 1, "D": 1.0, "Z": 0.0, "oracle": 2.0},
+                    {"task": 1, "D": 1.0, "Z": 0.0, "oracle": 2.0},
                 ]
             },
             "grade_breakdown_task_repeated",
@@ -117,6 +117,14 @@ def test_the_document_is_the_closed_field_set():
         ),
         ({"submission_id": "../escape"}, "grade_breakdown_submission_invalid"),
         ({"submission_id": "a/b"}, "grade_breakdown_submission_invalid"),
+        (
+            {"tasks": [{"task": "menu/t07", "D": 1.0, "Z": 0.0, "oracle": 2.0}]},
+            "grade_breakdown_tasks_invalid",
+        ),
+        (
+            {"tasks": [{"task": 0, "D": 1.0, "Z": 0.0, "oracle": 2.0}]},
+            "grade_breakdown_tasks_invalid",
+        ),
         ({"sets": {"cells": {"A": 0.1, "rows": 1}}}, "grade_breakdown_sets_invalid"),
         ({"halves": {"A": 0.1}}, "grade_breakdown_halves_invalid"),
         ({"halves": {"A": math.nan, "D": 0.1}}, "grade_breakdown_halves_invalid"),
@@ -163,7 +171,7 @@ def test_anything_outside_the_closed_document_refuses(change, code):
 
 def test_a_document_past_the_bound_refuses():
     tasks = [
-        {"task": f"pool/d{i:04d}-" + "x" * 60, "D": 0.1, "Z": 0.2, "oracle": 0.3}
+        {"task": i + 1, "D": 0.123456789012345, "Z": 0.2234567890123, "oracle": 0.3234567890123}
         for i in range(gb.MAX_ENTRIES)
     ]
     with pytest.raises(gb.GradeBreakdownRefused) as refused:
@@ -200,7 +208,7 @@ def test_write_refuses_a_document_that_is_not_checked(tmp_path):
     document = gb.breakdown(**_inputs())
     for broken in (
         {**document, "margin": 0.1},
-        {**document, "tasks": [{"task": "t", "D": "x", "Z": 0.0, "oracle": 1.0}]},
+        {**document, "tasks": [{"task": 1, "D": "x", "Z": 0.0, "oracle": 1.0}]},
         {**document, "schema": "carbon.exam.grade-breakdown.v0"},
     ):
         with pytest.raises(gb.GradeBreakdownRefused):
