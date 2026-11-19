@@ -96,7 +96,8 @@ def file_stranded(root, pool_store, discovery):
         # V2 C5 (fix 1b, 19 Nov 2026): a crown decision the last run queued in memory and never applied is filed for
         # the crown pause sweep first, in claim order, ahead of anything graded after this start
         refile_queued_crowns(root, pool_store)
-    except Exception as error:  # noqa: BLE001 - tried again with the filing, never skipped
+    # tried again with the filing, never skipped
+    except Exception as error:  # noqa: BLE001
         koth_journal.note(
             "recontend_checked",
             state=STRANDED_RETRY,

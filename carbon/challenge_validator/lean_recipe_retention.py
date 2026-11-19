@@ -3230,7 +3230,8 @@ def refile_queued_crowns(root, pool_store):
                 pin=fields["pin"],
                 state=CROWN_PAUSED,
             )
-        except Exception as error:  # noqa: BLE001 - one record never stops the start's filing
+        # one record never stops the start's filing
+        except Exception as error:  # noqa: BLE001
             unrefiled += 1
             koth_journal.note(
                 "crown_queue_unrefiled",

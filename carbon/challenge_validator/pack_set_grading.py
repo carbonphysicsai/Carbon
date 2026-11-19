@@ -431,7 +431,8 @@ def _contend_set(
                 retention._file_if_paused(
                     promotion.store, outcome, "set", origin, set_key, repeat, pin
                 )
-            except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
+            # a pool refusal never unbinds the grade
+            except Exception as exc:  # noqa: BLE001
                 return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}
             return outcome
 

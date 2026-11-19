@@ -190,7 +190,8 @@ class Sequencer:
         for _apply, drop in dropped:
             try:
                 drop()
-            except Exception as error:  # noqa: BLE001 - a dropped decision's record never stops the door
+            # a dropped decision's record never stops the door
+            except Exception as error:  # noqa: BLE001
                 from carbon.battery.intake import log
 
                 log("crown_decision_drop_failed", type=type(error).__name__)
@@ -243,7 +244,8 @@ class Sequencer:
                         break
                     try:
                         apply()
-                    except Exception as error:  # noqa: BLE001 - one decision never stops the queue
+                    # one decision never stops the queue
+                    except Exception as error:  # noqa: BLE001
                         from carbon.battery.intake import log
 
                         log("crown_decision_failed", type=type(error).__name__)
@@ -643,10 +645,10 @@ def turn():
 
 
 __all__ = [
+    "CROWN_QUEUED",
     "GradeAbandoned",
     "OwnerClaims",
     "Sequencer",
-    "CROWN_QUEUED",
     "claimed",
     "crown_decision",
     "current",
