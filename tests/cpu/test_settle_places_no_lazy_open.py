@@ -98,7 +98,8 @@ def test_an_owner_whose_unmarked_tasks_all_ended_unbuilt_is_never_opened(
 
     from carbon.research import DirectTaskStateV3
 
-    _queue(ledger)  # A stop-cancelled; B ended REFUSED (open view), C ended CANCELLED (lazy index)
+    # A stop-cancelled; B ended REFUSED (open view), C ended CANCELLED (lazy index)
+    _queue(ledger)
     _mark(tmp_path, A)
     door = _door(ledger)
     door.provider_for = SimpleNamespace(
