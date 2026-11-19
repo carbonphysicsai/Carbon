@@ -660,7 +660,7 @@ def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and
 
 def _v4_doc(**changes):
     body = {
-        **_rows_doc(),
+        **_rows_doc([_row(1, "waiting to grade", in_queue_s=600)]),
         "schema": "carbon.queue.public.v4",
         "building_now": 2,
         "waiting_to_build": 10,
@@ -693,13 +693,22 @@ def test_the_v4_reader_accepts_a_grading_count_and_the_rows_in_one_document():
                     "text": json.dumps(_v4_doc(grading_now=-1)),
                     "challenge": MOTOR,
                 },
+                {
+                    # a door before the v4 row fix: its rows say "in grading" (refused; the board falls back)
+                    "name": "old_rows",
+                    "text": json.dumps(
+                        _v4_doc(rows=[_row(1, "in grading", in_queue_s=600)])
+                    ),
+                    "challenge": MOTOR,
+                },
             ],
         }
     )["v4Checked"]
     assert got["good"]["ok"] is True
     assert got["good"]["value"]["queue"]["grading_now"] == 4
     assert got["good"]["value"]["queue"]["building_now"] == 2
-    assert got["good"]["value"]["rows"]["rows"][0]["state"] == "in grading"
+    assert got["good"]["value"]["rows"]["rows"][0]["state"] == "waiting to grade"
+    assert got["old_rows"] == {"ok": False, "code": "rows_row"}
     assert got["v3"] == {"ok": False, "code": "v4_fields"}
     assert got["extra"] == {"ok": False, "code": "v4_fields"}
     assert got["other"]["ok"] is False
@@ -801,6 +810,18 @@ def test_the_v4_reader_accepts_what_the_doors_writer_writes():
         "as_of_unix": 1_800_000_000.0,
         "held_for_review": None,
         "rows": {"rows": [], "as_of_unix": 1_799_999_700.0},
+        "rows_v4": {
+            "rows": [
+                {
+                    "position": i + 1,
+                    "hotkey": None,
+                    "state": state,
+                    "in_queue_s": i * qp.ROWS_QUANTUM_S,
+                }
+                for i, state in enumerate(qp.ROW_STATES_V4)
+            ],
+            "as_of_unix": 1_799_999_700.0,
+        },
         "running": {
             "waiting_to_build": 22,
             "building_now": 2,
@@ -818,6 +839,7 @@ def test_the_v4_reader_accepts_what_the_doors_writer_writes():
     )
     door = got["v4Checked"]["door"]
     assert door["ok"] is True
+    assert [r["state"] for r in door["value"]["rows"]["rows"]] == list(qp.ROW_STATES_V4)
     assert {
         k: door["value"]["queue"][k]
         for k in ("waiting_to_build", "building_now", "waiting_to_grade", "grading_now")

@@ -77,6 +77,9 @@ export function queueUrl(feedUrl) {
 export const ROWS_SCHEMA = "carbon.queue.public.v3";
 // "in grading" = built, no verdict yet (waiting to be graded or being graded: not told apart per row, V2C 14 Nov).
 export const ROW_STATES = ["waiting to build", "building", "in grading", "crown check"];
+// v4 rows (queue_public.py ROW_STATES_V4, Lead 19 Nov 2026): a built row is "grading" only while its grade runs, else
+// "waiting to grade". A v4 document still carrying "in grading" (a door before that fix) is refused: v1 + v3 as before.
+export const ROW_STATES_V4 = ["waiting to build", "building", "waiting to grade", "grading", "crown check"];
 export const ROWS_QUANTUM_S = 300;
 // held equal to the door's queue_public.MAX_ROWS / MAX_BYTES_V3 (all rows, Lead 15 Nov)
 export const MAX_ROWS = 1000;
@@ -94,13 +97,13 @@ export function checkRows(text, challengeId) {
   return checkRowList(doc, challengeId);
 }
 
-// {rows, more_rows, rows_as_of} of a parsed v3-shaped document (v3's checks).
-function checkRowList(doc, challengeId) {
+// {rows, more_rows, rows_as_of} of a parsed v3-shaped document (v3's checks; `states`: the row states allowed).
+function checkRowList(doc, challengeId, states = ROW_STATES) {
   if (doc.challenge_id !== challengeId) throw new QueueRefused("rows_challenge");
   if (typeof doc.rows_as_of !== "string" || !UTC.test(doc.rows_as_of)) throw new QueueRefused("rows_time");
   if (!count(doc.more_rows) || !Array.isArray(doc.rows) || doc.rows.length > MAX_ROWS) throw new QueueRefused("rows_count");
   const rows = doc.rows.map((row, i) => {
-    if (!sameKeys(row, ROW_FIELDS) || row.position !== i + 1 || !ROW_STATES.includes(row.state)
+    if (!sameKeys(row, ROW_FIELDS) || row.position !== i + 1 || !states.includes(row.state)
         || !(row.hotkey === null || (typeof row.hotkey === "string" && SHORT_KEY.test(row.hotkey)))
         || !Number.isSafeInteger(row.in_queue_s) || row.in_queue_s < 0 || row.in_queue_s % ROWS_QUANTUM_S !== 0) {
       throw new QueueRefused("rows_row");
@@ -157,7 +160,7 @@ export function checkQueueV4(text, challengeId) {
   let doc;
   try { doc = JSON.parse(text); } catch { throw new QueueRefused("v4_not_json"); }
   if (!sameKeys(doc, FIELDS_V3) || doc.schema !== V4_SCHEMA) throw new QueueRefused("v4_fields");
-  return {queue: checkCounts(doc, challengeId, MAX_COUNT), rows: checkRowList(doc, challengeId)};
+  return {queue: checkCounts(doc, challengeId, MAX_COUNT), rows: checkRowList(doc, challengeId, ROW_STATES_V4)};
 }
 
 // The v4 URL of a feed URL: same door, /carbon/v1/feed/<id> -> /carbon/v1/queue/<id>/v4; null for any other shape.

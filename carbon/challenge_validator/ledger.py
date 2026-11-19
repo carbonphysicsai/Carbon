@@ -643,6 +643,15 @@ class AttemptLedger:
             ).fetchone()
         return None if row is None else (row[0], int(row[1]))
 
+    def queue_place_from_tasks(self, contract_digest):
+        """The tasks that already GAVE their queue place (`grant_queue_place`: once per task), read only."""
+        with self._read() as db:
+            rows = db.execute(
+                "SELECT from_task FROM queue_place_grants WHERE contract_digest=?",
+                (contract_digest,),
+            ).fetchall()
+        return {row[0] for row in rows}
+
     def queue_place_origins(self, contract_digest):
         """``{new task id: the ORIGINAL task's accepted time (ns)}`` for every task that holds a queue place (`grant_queue_place`): the time of
         the granted-from task's first OUTCOME row, the arrival whose place the new task took. A read only: the public queue rows count a

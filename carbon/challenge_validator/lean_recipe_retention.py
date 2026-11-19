@@ -2460,8 +2460,13 @@ def _retain_selected_pack_evaluation(
             if regrade is not None and regrade.counted
             else submission_id
         )
+        hotkey = adapter.owner(submission_id) if regrade is None else regrade.owner
+        # design A: reservations in claim order (the owner's open above runs before, outside the turn)
+        from . import grade_sequencer
+
+        grade_sequencer.reserve_turn()
         reservation = cap.reserve(
-            hotkey=adapter.owner(submission_id) if regrade is None else regrade.owner,
+            hotkey=hotkey,
             challenge_id=adapter.challenge_id,
             challenge_version=adapter.challenge_version,
             # The sealed exam's identity: the pack digest binds the case bank, so a
@@ -2477,6 +2482,9 @@ def _retain_selected_pack_evaluation(
             ),
             regrade=uncounted,
         )
+        # the order-dependent reservation is made: later grades may reserve now, as the counted bank grade does
+        # (`_counted_bank_grade`), not after this grade's whole pass (Lead, 19 Nov 2026)
+        grade_sequencer.claimed()
         queries = [artifacts["inputs.npz"]]
         registered = _register_retained_pack_source(
             adapter,
@@ -3072,60 +3080,282 @@ def _contend(
             ),
             comparator,
         )
-        from carbon.challenge_validator.grade_sequencer import CROWN_LOCK
+        from carbon.challenge_validator import grade_sequencer, koth_journal
 
-        # V2 (18 Nov 2026): the king is read and the crown written under the crown lock (no incumbent step and no
-        # other grade's crown commit meanwhile); the store's compare-and-set (`PoolStore._set_incumbent`, expected
-        # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`)
-        with CROWN_LOCK:
-            # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
-            # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
-            reader = getattr(promotion.store, "incumbent", None)
-            met = ((reader() if reader is not None else None) or {}).get("model_id")
-            outcome = promotion.consider_private(
-                submission_id,
-                filed["evaluation_key"],
-                comparator,
-                # Delivery provenance, never the pack's shape: only a pack that
-                # arrived through the answer-key route into the sealed store.
-                sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
-                repeat=repeat,
-                # Only a registered control is passed: a promotion that takes none is called as before.
-                **({} if control is None else {"control": control}),
-            )
-        from carbon.challenge_validator import koth_journal
+        def decide():
+            # V2 (18 Nov 2026): the king is read and the crown written under the crown lock (no incumbent step and no
+            # other grade's crown commit meanwhile); the store's compare-and-set (`PoolStore._set_incumbent`, expected
+            # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`).
+            # Fix 1b (V2's verdict, 18 Nov 2026): applied in CLAIM order by the crown queue
+            # (`grade_sequencer.crown_decision`), which holds the crown lock around this call.
+            try:
+                # V2 C5 (2): behind a re-filed decision of the last run still undecided, this one is filed after it
+                behind = _queue_behind_refiled(journal, promotion.store)
+                if behind is not None:
+                    return behind
+                # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
+                # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
+                reader = getattr(promotion.store, "incumbent", None)
+                met = ((reader() if reader is not None else None) or {}).get("model_id")
+                outcome = promotion.consider_private(
+                    submission_id,
+                    filed["evaluation_key"],
+                    comparator,
+                    # Delivery provenance, never the pack's shape: only a pack that
+                    # arrived through the answer-key route into the sealed store.
+                    sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
+                    repeat=repeat,
+                    # Only a registered control is passed: a promotion that takes none is called as before.
+                    **({} if control is None else {"control": control}),
+                )
+                koth_journal.contention(
+                    "live", submission_id, outcome, met, store=promotion.store
+                )
+                _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
+                _file_if_paused(
+                    promotion.store,
+                    outcome,
+                    "pack",
+                    submission_id,
+                    lambda: discovery.evaluation_pack_digest,
+                    repeat,
+                    pin,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return _contention_refused(submission_id, exc)
+            return {
+                "outcome": outcome["outcome"],
+                "reason": outcome["reason"],
+                "evaluation_key": outcome["evaluation_key"],
+            }
 
-        koth_journal.contention(
-            "live", submission_id, outcome, met, store=promotion.store
+        journal = crown_journal(
+            adapter,
+            submission_id=submission_id,
+            evaluation_key=filed["evaluation_key"],
+            kind="pack",
+            exam=getattr(discovery, "evaluation_pack_digest", None),
+            entry_id=getattr(repeat, "entry_id", None),
+            pin=pin,
         )
-        _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
-        _file_if_paused(
-            promotion.store,
-            outcome,
-            "pack",
-            submission_id,
-            lambda: discovery.evaluation_pack_digest,
-            repeat,
-            pin,
-        )
+        return grade_sequencer.crown_decision(decide, journal)
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
-        refused = {
-            "error": (
-                str(exc)
-                if isinstance(exc, RetentionUnavailable)
-                else str(getattr(exc, "code", type(exc).__name__))
-            )
-        }
-        from carbon.challenge_validator import koth_journal
+        return _contention_refused(submission_id, exc)
 
-        koth_journal.contention("live", submission_id, refused)
-        return refused
-    return {
-        "outcome": outcome["outcome"],
-        "reason": outcome["reason"],
-        "evaluation_key": outcome["evaluation_key"],
+
+#: V2 C5 (19 Nov 2026): the crown queue's durable record, beside the receiver's grade markers (`CrownJournal`).
+CROWN_QUEUE_JOURNAL = "crown-queue.jsonl"
+
+
+class CrownJournal:
+    """The durable record of one sequenced crown decision (fix 1b; V2 C5, 19 Nov 2026). The crown queue is in memory: a
+    decision handed over behind an earlier grade, whose own grade then ends (its marker GRADED), would be lost at a
+    stop. So ``queued`` is appended (and synced) before the hand-over, ``applied`` once the decision returned (whatever
+    its outcome), ``failed`` when it raised (V2 C5 (1): it stays open) and ``dropped`` when an abandoned grade's
+    decision is dropped. At the next start, before the first grade, `refile_queued_crowns` files every decision queued
+    and neither applied nor dropped for the crown pause sweep (``refiled``); until the sweep has decided them, each new
+    decision is filed behind them (`_queue_behind_refiled`, ``behind``). Custody only: task ids, keys, digests; no
+    score.
+    """
+
+    def __init__(self, directory, **record):
+        """``directory``: the receiver's ``auto-grade`` directory (beside its grade markers)."""
+        self.path = Path(directory) / CROWN_QUEUE_JOURNAL
+        self.record = record
+
+    def _append(self, event):
+        line = json.dumps({"event": event, **self.record}, sort_keys=True) + "\n"
+        fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as out:
+            out.write(line)
+            out.flush()
+            os.fsync(out.fileno())
+
+    def queued(self):
+        self._append("queued")
+
+    def applied(self):
+        self._append("applied")
+
+    def failed(self):
+        self._append("failed")
+
+    def dropped(self):
+        self._append("dropped")
+
+
+def crown_journal(adapter, **record):
+    """The `CrownJournal` of one decision of ``adapter``'s door: in its receiver's ``auto-grade`` directory, the one the
+    grader and `refile_queued_crowns` use (beside the door's attempt ledger, ``<root>/attempts.sqlite3``). None when
+    the door names no ledger file (a tool, a test double): the decision is then made as before, with no record (never
+    a reason to fail it: Runner, 19 Nov 2026, 7b14ee37 rooted it at the grade's artifact map and every contend failed).
+    """
+    path = getattr(getattr(adapter, "ledger", None), "path", None)
+    if not isinstance(path, (str, os.PathLike)):
+        return None
+    return CrownJournal(Path(path).parent / "auto-grade", **record)
+
+
+#: What a crown decision returns when it was filed behind the last run's re-filed decisions (`_queue_behind_refiled`).
+QUEUED_BEHIND_REFILED = "QUEUED_BEHIND_REFILED"
+
+
+def _refiled_pending(path, store, kind):
+    """The ``(submission_id, evaluation_key)`` of every decision this receiver re-filed at a start (``refiled``) or
+    filed behind one (``behind``) whose crown pause record is still unresolved now (read only).
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    filed = set()
+    for line in text.splitlines():
+        try:
+            body = json.loads(line)
+        except ValueError:
+            continue
+        if type(body) is dict and body.get("event") in ("refiled", "behind"):
+            filed.add((body.get("submission_id"), body.get("evaluation_key")))
+    if not filed:
+        return set()
+    unresolved = {
+        (record["submission_id"], record["evaluation_key"])
+        for record in store.paused_crowns(kind)
     }
+    return filed & unresolved
+
+
+def _queue_behind_refiled(journal, store):
+    """V2 C5 (2), 19 Nov 2026: across a restart, claim order holds for the crown too. While a decision the last run
+    queued (re-filed at this start, `refile_queued_crowns`) or one already filed behind it is still undecided in the
+    crown pause sweep, a NEW grade's decision is not made live: it is filed PAUSED after them (the sweep decides in
+    filing order, oldest first, each against the king of its moment) and journaled ``behind``, so every later new
+    decision queues behind it too, until the sweep has decided them all. None when nothing re-filed is pending (the
+    decision is made now). Durable on both sides (the journal and the pool), so a second restart keeps the order.
+    """
+    from carbon.battery.pool_store import CROWN_PAUSED
+
+    if journal is None:
+        return None
+    record = journal.record
+    if not _refiled_pending(journal.path, store, record["kind"]):
+        return None
+    if record.get("entry_id") is None:
+        # nothing retained to contend from later: never decided out of order either (the caller's refusal path)
+        raise RetentionUnavailable("crown_paused_entry_unavailable")
+    store.record_crown_paused(
+        record["submission_id"],
+        record["evaluation_key"],
+        kind=record["kind"],
+        exam=record["exam"],
+        entry_id=record["entry_id"],
+        pin=record["pin"],
+        state=CROWN_PAUSED,
+    )
+    journal._append("behind")
+    return {
+        "outcome": QUEUED_BEHIND_REFILED,
+        "reason": "refiled_crown_pending",
+        "evaluation_key": record["evaluation_key"],
+    }
+
+
+def _queued_crowns(path):
+    """The records of every decision in ``path`` queued and not applied, dropped or re-filed after, in queue order."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    open_ = {}
+    for line in text.splitlines():
+        try:
+            body = json.loads(line)
+        except ValueError:
+            continue
+        if type(body) is not dict:
+            continue
+        key = (body.get("submission_id"), body.get("evaluation_key"))
+        # 'failed' (the decision raised) keeps it open: it is re-filed like one never applied (V2 C5 (1))
+        if body.get("event") == "queued":
+            open_.setdefault(key, body)
+        elif body.get("event") in ("applied", "dropped", "refiled"):
+            open_.pop(key, None)
+    return list(open_.values())
+
+
+def refile_queued_crowns(root, pool_store):
+    """V2 C5 (19 Nov 2026): at a start, before the first grade (`king_upkeep.file_stranded`), file every crown decision
+    the last run queued and never applied or dropped (`CrownJournal`) for the crown pause sweep, in queue (= claim)
+    order, as PAUSED: the sweep decides it from its filed evaluation through the receiver's own consider path
+    (`reconsider_paused_pack`), uncharged, against the king of its moment. A record without a retained entry or pin
+    cannot be contended from: it is journaled (``crown_queue_unrefiled``) for the operator. Returns
+    ``(filed, unrefiled)`` counts. ``pool_store``: a store, or the path of one.
+    """
+    from carbon.battery.pool_store import CROWN_PAUSED, PoolStore
+    from carbon.challenge_validator import koth_journal
+
+    path = Path(root) / "auto-grade" / CROWN_QUEUE_JOURNAL
+    queued = _queued_crowns(path)
+    if not queued:
+        return 0, 0
+    store = (
+        pool_store
+        if hasattr(pool_store, "record_crown_paused")
+        else PoolStore(Path(pool_store))
+    )
+    filed = unrefiled = 0
+    for record in queued:
+        fields = {name: record.get(name) for name in CROWN_JOURNAL_FIELDS}
+        try:
+            store.record_crown_paused(
+                fields["submission_id"],
+                fields["evaluation_key"],
+                kind=fields["kind"],
+                exam=fields["exam"],
+                entry_id=fields["entry_id"],
+                pin=fields["pin"],
+                state=CROWN_PAUSED,
+            )
+        # one record never stops the start's filing
+        except Exception as error:  # noqa: BLE001
+            unrefiled += 1
+            koth_journal.note(
+                "crown_queue_unrefiled",
+                submission_id=fields["submission_id"],
+                code=str(getattr(error, "code", None) or type(error).__name__),
+            )
+            continue
+        CrownJournal(path.parent, **fields)._append("refiled")
+        filed += 1
+    koth_journal.note("crown_queue_refiled", filed=filed, unrefiled=unrefiled)
+    return filed, unrefiled
+
+
+#: The fields of a crown decision's durable record (`CrownJournal`), as `PoolStore.record_crown_paused` files them.
+CROWN_JOURNAL_FIELDS = (
+    "submission_id",
+    "evaluation_key",
+    "kind",
+    "exam",
+    "entry_id",
+    "pin",
+)
+
+
+def _contention_refused(submission_id, exc):
+    """The KOTH result of a pool refusal (journaled): the evaluation stays bound."""
+    refused = {
+        "error": (
+            str(exc)
+            if isinstance(exc, RetentionUnavailable)
+            else str(getattr(exc, "code", type(exc).__name__))
+        )
+    }
+    from carbon.challenge_validator import koth_journal
+
+    koth_journal.contention("live", submission_id, refused)
+    return refused
 
 
 def _control_check(repeat, control, comparator):
@@ -3931,6 +4161,10 @@ def _counted_bank_grade(
     cap = exam_cap.ExamCap(
         adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
     )
+    from . import grade_sequencer
+
+    # design A: reservations in claim order (the owner's open above runs before, outside the turn)
+    grade_sequencer.reserve_turn()
     try:
         reservation = cap.reserve(
             hotkey=owner,
@@ -3951,9 +4185,7 @@ def _counted_bank_grade(
             **_limit_message(adapter, submission_id, code),
         }
     finally:
-        # the order-dependent reservation is made (or refused): a door grading in parallel lets its next grade claim
-        from . import grade_sequencer
-
+        # the order-dependent reservation is made (or refused): later grades may reserve (design A)
         grade_sequencer.claimed()
     from carbon.development_session.research_carrier import grade_session
 

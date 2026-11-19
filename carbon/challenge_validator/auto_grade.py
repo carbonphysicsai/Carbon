@@ -40,6 +40,18 @@ _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _PENDING = frozenset({"task_not_succeeded"})
 #: Retention codes that mean "not gradable now" without having consumed anything.
 _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
+#: An owner the door cannot open now (`interface.Unavailable` from `LeanRecipeAdapter.owner`: set aside at this start,
+#: its registration changed, its provider bound elsewhere): the claim scan's copy check and the incumbent's steps go on
+#: (live 116, 19 Nov 2026 ~09:48Z: grade-loop failures every round on one such raise, nothing graded); the grade itself
+#: gives such a task back as Carbon's, as before (`_grade_on_lane`).
+_OWNER_UNAVAILABLE = frozenset(
+    {
+        "direct_provider_registration_unavailable",
+        "direct_provider_owner_set_aside",
+        # one owner's provider bound to another pack or discovery (`LeanRecipeAdapter._provider`)
+        "direct_provider_binding_unavailable",
+    }
+)
 #: The exam-cap limit refusals that a passed-over earlier group-mate (or an unknown group in flight) makes "not yet"
 #: instead of final (V2, 18 Nov 2026; `AutoGrader._cap_soft`).
 _CAP_LIMITS = frozenset({"exam_daily_allowance_reached", "epoch_limit_reached"})
@@ -224,10 +236,20 @@ class AutoGrader:
     def pending(self):
         """Task ids with no marker yet, in the ledger's order: oldest submission first (`AttemptLedger.submitted_outcomes`)."""
         adapter = self.intake.adapter
+        # one listing of the markers, not a stat per submission ever taken (it runs under the claim lock: design A)
+        try:
+            with os.scandir(self.markers) as entries:
+                marked = {
+                    entry.name[: -len(".json")]
+                    for entry in entries
+                    if entry.name.endswith(".json")
+                }
+        except FileNotFoundError:
+            marked = set()
         return [
             s
             for s in adapter.ledger.submitted_outcomes(adapter.contract_digest)
-            if _TASK.fullmatch(s) and not self._marker(s).exists()
+            if _TASK.fullmatch(s) and s not in marked
         ]
 
     def oldest_pending_ns(self):
@@ -662,17 +684,27 @@ class AutoGrader:
     def _run_prelude(self):
         """The incumbent's own steps of a parallel round (`_run_once_parallel`), in the serial round's order."""
         from .grade_sequencer import CROWN_LOCK
+        from .interface import Unavailable
 
         self._settle_queue_places()
-        # the crown lock without waiting: a crown commit running now, the steps come next round
-        if CROWN_LOCK.acquire(blocking=False):
-            try:
-                self._crown_steps()
-            finally:
-                CROWN_LOCK.release()
-        else:
+        try:
+            # the crown lock without waiting: a crown commit running now, the steps come next round
+            if CROWN_LOCK.acquire(blocking=False):
+                try:
+                    self._crown_steps()
+                finally:
+                    CROWN_LOCK.release()
+            else:
+                self._prelude_after = time.monotonic() + self.PRELUDE_REASK_SECONDS
+            self._apply_due_retries(idle=not self.pending())
+        except Unavailable as unavailable:
+            # an owner the steps need cannot be opened now: the steps wait, the round still grades (live 116, 19 Nov)
+            if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
+                raise
+            from carbon.battery.intake import log
+
+            log("prelude_owner_unavailable", code=unavailable.code)
             self._prelude_after = time.monotonic() + self.PRELUDE_REASK_SECONDS
-        self._apply_due_retries(idle=not self.pending())
 
     def _run_once_parallel(self, sequencer):
         """One grade round of a door that grades one round per lane at once (owner's order 16 Nov; `grade_sequencer`).
@@ -713,18 +745,23 @@ class AutoGrader:
             # it): no grade starts ahead of it (ruling C); builds go on, and the next round asks again
             return None
         skipped = set()
-        while True:
-            with sequencer.task() as task:
-                taken = []
-                try:
-                    return self._claim_and_grade(
-                        sequencer, task, skipped, claims, taken
-                    )
-                except _NextTask:
-                    continue
-                finally:
-                    for owner in taken:
-                        claims.release(owner)
+        self._scan_local().codes = {}
+        started = time.monotonic()
+        try:
+            while True:
+                with sequencer.task() as task:
+                    taken = []
+                    try:
+                        return self._claim_and_grade(
+                            sequencer, task, skipped, claims, taken
+                        )
+                    except _NextTask:
+                        continue
+                    finally:
+                        for owner in taken:
+                            claims.release(owner)
+        finally:
+            self._log_claim_scan(len(skipped), started)
 
     def _end_hung_grades(self, sequencer):
         """A grade in flight longer than `GRADE_HUNG_SECONDS` is stuck in Carbon's own code (a model cannot run past its
@@ -807,6 +844,45 @@ class AutoGrader:
         finally:
             self._note_passes(passes)
 
+    def _note_next(self, code):
+        """Count one "not yet" (`_NEXT`) answer of this round's claim loop by its closed code (`_log_claim_scan`), per
+        round thread (the door's rounds share this grader)."""
+        codes = getattr(self._scan_local(), "codes", None)
+        if codes is not None:
+            codes[code] = codes.get(code, 0) + 1
+
+    def _scan_local(self):
+        local = self.__dict__.get("_scan_thread_local")
+        if local is None:
+            local = self.__dict__.setdefault("_scan_thread_local", threading.local())
+        return local
+
+    def _log_claim_scan(self, retried, started):
+        """Lead (19 Nov 2026, live 116: one round held the claim lock ~25 min with no container): a round whose claim
+        loop met any "not yet" task logs one ``grade_claim_scan`` line: how many tasks it retried (each a new claim,
+        a fresh pending scan and that task's retain step up to its reservation, all under the claim lock), their
+        closed codes, and the round's seconds. Counts and codes only; a diagnostic line never stops a round.
+        """
+        if not retried:
+            return
+        try:
+            from carbon.battery.intake import log
+
+            log(
+                "grade_claim_scan",
+                retried=retried,
+                seconds=round(time.monotonic() - started, 1),
+                **{
+                    "next_" + code: count
+                    for code, count in sorted(
+                        (getattr(self._scan_local(), "codes", None) or {}).items()
+                    )
+                    if type(code) is str and code.isidentifier()
+                },
+            )
+        except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
+            return
+
     def _note_passes(self, passes):
         """Grade-speed (18 Nov 2026, "use all lanes"): built tasks the claim scan passed over, by reason, logged once
         per change (``grade_claim_passed``), so a free lane with built tasks never waits silently.
@@ -880,7 +956,17 @@ class AutoGrader:
                 spent = True
             else:
                 spent = False
-            copy = self._copy_decision(submission_id)
+            from .interface import Unavailable
+
+            try:
+                copy = self._copy_decision(submission_id)
+            except Unavailable as unavailable:
+                # its owner cannot be opened now (set aside / registration changed): no copy can be decided, so the
+                # task goes to its grade, whose owner open meets the same refusal and gives it back as Carbon's
+                # (FAILED, `_grade_on_lane`), as before; the copy check never ends the round (live 116, 19 Nov 2026)
+                if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
+                    raise
+                copy = None
             if copy is not None:
                 decision, first = copy
                 if decision == "wait":
@@ -907,6 +993,10 @@ class AutoGrader:
                     return outcome
             task.bind(submission_id, group)
             self._mark_cap_soft(submission_id, group in passed or unknown_in_flight)
+            # design A (Lead, 19 Nov 2026): the pick is made; the claim lock goes NOW, so the retain step and the
+            # owner's open (a lazy owner's restore after a start) run outside it while other rounds claim. The
+            # reservation keeps claim order through `grade_sequencer.reserve_turn`.
+            task.release_claim()
             from .grade_sequencer import GradeAbandoned
 
             try:
@@ -923,29 +1013,39 @@ class AutoGrader:
         return None
 
     def _building_views(self):
-        """The task ids the door's already-open providers hold as QUEUED, RUNNING or CANCEL_REQUESTED: nothing to grade
-        yet (their grade is `task_not_succeeded`, skipped), so the claim scan skips them before the owner check, while
-        it holds the claim. Live 116 stacks (18 Nov 2026, 14:27Z): that scan ran the owner check (the served-source hash)
-        for every unbuilt submission while every grade and the incumbent's steps waited on the claim. Read from the
-        views alone (no ledger); a task not here is scanned as before."""
+        """The task ids that cannot be graded now because their build has not SUCCEEDED, read from the door's own
+        indexes without opening any provider: an open provider's task views in any state but SUCCEEDED (QUEUED, RUNNING,
+        CANCEL_REQUESTED, and the terminal REFUSED / FAILED / CANCELLED / ... that never get a grade marker and so stay
+        pending forever), and every lazy owner's task not SUCCEEDED (`OwnerProviders.lazy_index`: a lazy owner holds only
+        terminal tasks). Their grade would be `task_not_succeeded`, so the claim scan skips them before the owner check.
+        Live 116, 19 Nov 2026 08:23Z (``grade_claim_scan``): each claim pass retried ~123 such tasks, each through the
+        owner open (a lazy owner's restore) and the retain step, 24-34 min per pass before one real grade. A task in no
+        index is scanned as before."""
         from carbon.research import DirectTaskStateV3
 
-        waiting = (
-            DirectTaskStateV3.QUEUED,
-            DirectTaskStateV3.RUNNING,
-            DirectTaskStateV3.CANCEL_REQUESTED,
-        )
+        succeeded = DirectTaskStateV3.SUCCEEDED
         adapter = getattr(getattr(self, "intake", None), "adapter", None)
-        opened = getattr(getattr(adapter, "provider_for", None), "_providers", None)
-        if type(opened) is not dict:
-            return frozenset()
+        provider_for = getattr(adapter, "provider_for", None)
+        opened = getattr(provider_for, "_providers", None)
         found = set()
-        for provider in tuple(opened.values()):
-            views = getattr(provider, "_views", None)
-            if type(views) is not dict:
-                continue
-            for task, view in tuple(views.items()):
-                if getattr(view, "state", None) in waiting:
+        if type(opened) is dict:
+            for provider in tuple(opened.values()):
+                views = getattr(provider, "_views", None)
+                if type(views) is not dict:
+                    continue
+                for task, view in tuple(views.items()):
+                    state = getattr(view, "state", None)
+                    if state is not None and state is not succeeded:
+                        found.add(task)
+        lazy = getattr(provider_for, "lazy_index", None)
+        if callable(lazy):
+            try:
+                entries = lazy()
+            except Exception:  # noqa: BLE001 - unreadable: scanned as before
+                entries = {}
+            for task, entry in entries.items():
+                state = entry[0] if type(entry) in (tuple, list) and entry else None
+                if type(state) is str and state != succeeded.value:
                     found.add(task)
         return frozenset(found)
 
@@ -1048,6 +1148,7 @@ class AutoGrader:
         """
         from carbon.reconstruction import remote_lane
 
+        from .grade_sequencer import ReserveTurnExpired
         from .lean_recipe_retention import RetentionUnavailable
 
         lane = remote_lane.current()
@@ -1100,6 +1201,10 @@ class AutoGrader:
                     )
             finally:
                 self.activity = None
+        except ReserveTurnExpired:
+            # it retained past the bound while later claims went ahead: "not yet", nothing reserved, uncharged (V2)
+            self._note_next(ReserveTurnExpired.code)
+            return _NEXT
         except RetentionUnavailable as unavailable:
             code = getattr(unavailable, "code", None) or str(unavailable)
             if not isinstance(code, str):
@@ -1113,6 +1218,7 @@ class AutoGrader:
                         submission_id
                     }
             if code in _PENDING or code in _NOT_YET:
+                self._note_next(code)
                 return _NEXT
             if code in _CAP_LIMITS and self._cap_soft(submission_id):
                 # V2 (18 Nov 2026): an earlier group-mate was passed over this round, or a grade of an unknown group is
@@ -1120,6 +1226,7 @@ class AutoGrader:
                 from carbon.battery.intake import log
 
                 log("cap_refusal_not_yet", code=code)
+                self._note_next(code)
                 return _NEXT
             if isinstance(code, str) and code in _CHAIN_CODES and self.chain_degraded():
                 # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
@@ -1271,9 +1378,17 @@ class AutoGrader:
         cap = exam_cap.ExamCap(
             adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
         )
+        from . import grade_sequencer
+
+        hotkey = adapter.owner(submission_id)
+        # design A: its reservation in claim order too (an earlier grade may still be retaining, outside the lock)
+        try:
+            grade_sequencer.reserve_turn()
+        except grade_sequencer.ReserveTurnExpired:
+            return _NEXT
         try:
             reservation = cap.reserve(
-                hotkey=adapter.owner(submission_id),
+                hotkey=hotkey,
                 challenge_id=challenge.challenge_id,
                 challenge_version=challenge.version,
                 exam_key=exam_key,
@@ -1283,13 +1398,13 @@ class AutoGrader:
                 ),
             )
         except exam_cap.ExamCapRefused as refused:
-            from . import grade_sequencer
-
+            grade_sequencer.claimed()
             if refused.code in _CAP_LIMITS and self._cap_soft(submission_id):
                 return _NEXT  # V2 (18 Nov 2026): "not yet", stays pending (`_claim_and_grade`)
             grade_sequencer.turn()  # a parallel door: the refusal's marker in claim order (no-op otherwise)
             self._write(submission_id, "GRADED", code=refused.code)
             return submission_id, "GRADED"
+        grade_sequencer.claimed()
         cap.settle(reservation, recipe_copies.DUPLICATE)
         recipe_copies.record_copy(
             adapter.ledger,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -563,7 +564,25 @@ class DirectFixtureDiscovery:
             )
         ):
             raise ValueError("direct task admission requires prospective kit")
-        registered = registered_material()
+        # keyed by the deriving function too, so a different function (a replaced module, a test double) never reads
+        # another's entry
+        source = (
+            battery_bundle_material
+            if battery
+            else (
+                battery_versioned_material
+                if battery_v2
+                else (
+                    physical_material.bundle_material
+                    if physical
+                    else registered_material
+                )
+            )
+        )
+        registered = _registered_once(
+            (key.challenge_id, key.version, battery, battery_v2, physical, source),
+            registered_material,
+        )
         if (
             key != registered["challenge_key"]
             or kit != registered["construction_kit"]
@@ -715,6 +734,34 @@ class DirectFixtureDiscovery:
 
     def get_interaction_manifest(self, key):
         return self._checked(key)[1]
+
+
+#: The registered public material per (Challenge, version, family) for this process (live 116, 19 Nov 2026: py-spy 18:28Z,
+#: every source-upload chunk's `get_challenge_info` re-derived Motor 1.8's public TRAIN and development bank, CPU-bound).
+#: The registered material is a pure function of this process's code and the version, so it is derived ONCE; every call
+#: still checks the served material against it, field by field, exactly as before.
+_REGISTERED: dict = {}
+_REGISTERED_LOCKS: dict = {}
+_REGISTERED_GUARD = threading.Lock()
+
+
+def _registered_once(key, derive):
+    """``derive()`` for ``key``, computed once per process (single-flight per key; a failure is not kept). Each caller
+    gets its OWN deep copy (V2 on 5a226278), so nothing a caller does to it can change the next call's check; bytes
+    are immutable and shared, arrays and dicts are copied (far cheaper than the derivation).
+    """
+    import copy
+
+    found = _REGISTERED.get(key)
+    if found is None:
+        with _REGISTERED_GUARD:
+            lock = _REGISTERED_LOCKS.setdefault(key, threading.Lock())
+        with lock:
+            found = _REGISTERED.get(key)
+            if found is None:
+                found = derive()
+                _REGISTERED[key] = found
+    return copy.deepcopy(found)
 
 
 class NoPrior:

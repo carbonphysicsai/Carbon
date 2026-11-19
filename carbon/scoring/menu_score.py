@@ -5,7 +5,8 @@ Per task, design-optimum seals a solved POOL (~1.5 M designs: the searched optim
 limit, regime-switch strata, other basins, a spread), each design's TRUTH, and the classical arms' predictions of every
 pool design. Each epoch a custody key draws the epoch's menu (the optimum always, plus a registered quota per stratum).
 The contender's model predicts every menu design ROW-INDEPENDENTLY (`RowIndependentPredict`), the designs are ranked by
-those predictions on the limits backed off by U (Q1), with the driver's `_key` (model-feasible first by the objective,
+those predictions on the limits the version's registered ranking rule names (backed off by U, Q1, for ``backoff_u``;
+the registered limits themselves for ``original_limits``), with the driver's `_key` (model-feasible first by the objective,
 then the least predicted violation, invalid predictions last), and the top five picks are looked up in the truths:
 
     d(pick)  = 0 if the pick is truly infeasible (a true margin < 0), else clip((s - s_zero) / (s_ref - s_zero), 0, 1)
@@ -47,6 +48,24 @@ from carbon.scoring.pool_solver_reference import (
 
 MENU_SCHEMA = "carbon.d-menu.v1"
 METRIC = "menu_top5_v1"
+#: The registered ranking rules (a version registers ONE; the default is today's, bit-identical):
+#: ``backoff_u`` (menu_top5_v1) ranks the model's predictions on the limits backed off by U (Q1); ``original_limits``
+#: (menu_top5_v2) ranks them on the registered limits themselves (back-off 0), so the optimum is picked on the model's
+#: error being small, not on its error having the right sign (owner 18 Nov: "the fix that makes the very best design
+#: choices win"). Prospective only: a version registered with v1 scores exactly as before.
+RANKING_BACKOFF_U = "backoff_u"
+RANKING_ORIGINAL_LIMITS = "original_limits"
+RANKINGS = {
+    RANKING_BACKOFF_U: METRIC,
+    RANKING_ORIGINAL_LIMITS: "menu_top5_v2",
+}
+
+
+def metric_for(ranking):
+    _require(ranking in RANKINGS, "menu_ranking_unregistered")
+    return RANKINGS[ranking]
+
+
 WEIGHTS = (0.4, 0.25, 0.15, 0.12, 0.08)
 TOP = len(WEIGHTS)
 
@@ -310,12 +329,26 @@ def _weighted(slots):
     return total
 
 
-def _slots(problem, record, menu, predictions):
-    """The d of each of the five slots of `menu` ranked by `predictions` on the backed-off limits; tied keys share
-    the mean d of their group over the slots they occupy."""
+def _slots(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
+    """The d of each of the five slots of `menu` ranked by `predictions` on the limits the registered `ranking` names
+    (backed off by U for ``backoff_u``; the registered limits themselves for ``original_limits``); tied keys share
+    the mean d of their group over the slots they occupy.
+
+    The key that decides is `pool_solver_reference._key` on that ranking problem: tier 0 = every predicted margin
+    >= 0, ordered by the objective; tier 1 = a predicted margin < 0, by the summed violation in U units; tier 2 = an
+    invalid prediction. A predicted margin of EXACTLY 0 is feasible (tier 0), the same convention as `pick_d`, where
+    only a true margin < 0 is infeasible, so the ranking and the truth side agree on the boundary. Equal keys tie
+    and share the group's mean d."""
     _require(set(predictions) >= set(menu), "menu_predictions_missing_a_design")
     names = set(problem.outputs)
-    ranked_problem = backed_off(problem)
+    _require(ranking in RANKINGS, "menu_ranking_unregistered")
+    # A credit ramp (`Problem.near_limit`) would break the argument that a true margin of at least U separates a pick
+    # from the limit on the model's ranking: refuse original_limits on a menu problem that carries one.
+    _require(
+        ranking == RANKING_BACKOFF_U or problem.near_limit is None,
+        "menu_ranking_original_limits_with_near_limit",
+    )
+    ranked_problem = backed_off(problem) if ranking == RANKING_BACKOFF_U else problem
     keyed = []
     for pid in menu:
         outputs = predictions[pid]
@@ -340,11 +373,12 @@ def _oracle_slots(problem, record, menu):
     )
 
 
-def raw_score(problem, record, menu, predictions):
+def raw_score(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
     """sum_i w_i d(pick_i) over the top five of `menu` ranked by `predictions` ({id: outputs | None}) on the
-    backed-off limits; tied keys share the mean d of their group over the slots they occupy.
+    limits the registered `ranking` names (see `_slots`); tied keys share the mean d of their group over the slots they
+    occupy.
     """
-    return _weighted(_slots(problem, record, menu, predictions))
+    return _weighted(_slots(problem, record, menu, predictions, ranking))
 
 
 def oracle_score(problem, record, menu):
@@ -356,7 +390,9 @@ SCORED = "SCORED"
 MODEL_ROW_DEPENDENT = "MODEL_ROW_DEPENDENT"
 
 
-def score_task_live(problem, record, predict_menu, *, key, epoch):
+def score_task_live(
+    problem, record, predict_menu, *, key, epoch, ranking=RANKING_BACKOFF_U
+):
     """`score_task` with the predictions made here: ``predict_menu(menu_ids) -> {id: outputs | None}`` (built on a
     `RowIndependentPredict`). A model caught giving batch-dependent predictions scores D = 0 for this epoch, typed
     MODEL_ROW_DEPENDENT (the candidate's finding, shown on the board as that state)."""
@@ -365,20 +401,22 @@ def score_task_live(problem, record, predict_menu, *, key, epoch):
         predictions = predict_menu(menu)
     except ModelRowDependent:
         return {
-            "metric": METRIC,
+            "metric": metric_for(ranking),
             "state": MODEL_ROW_DEPENDENT,
             "d": 0.0,
             "menu_size": len(menu),
         }
-    return score_task(problem, record, predictions, key=key, epoch=epoch)
+    return score_task(
+        problem, record, predictions, key=key, epoch=epoch, ranking=ranking
+    )
 
 
-def score_task(problem, record, predictions, *, key, epoch):
+def score_task(problem, record, predictions, *, key, epoch, ranking=RANKING_BACKOFF_U):
     """The contender's D for one task this epoch (see the module docstring). ``predictions``: {menu id: outputs |
     None} for every id of the epoch's menu. ``key`` = crown_d.derive_key(K_crown, 'd-menu-sample'). Returns numbers
     and counts only."""
     menu = draw_menu(record, key, epoch=epoch)
-    raw = raw_score(problem, record, menu, predictions)
+    raw = raw_score(problem, record, menu, predictions, ranking)
     best = _oracle_slots(problem, record, menu)
     oracle = _weighted(best)
     ds = [pick_d(problem, record, pid) for pid in menu]
@@ -387,14 +425,14 @@ def score_task(problem, record, predictions, *, key, epoch):
     # exactly when every menu design has the same d, an arm exactly when its five slots are the oracle's five.
     no_room = all(d == ds[0] for d in ds)
     for arm in sorted(record.arms):
-        arm_slots = _slots(problem, record, menu, record.arms[arm])
+        arm_slots = _slots(problem, record, menu, record.arms[arm], ranking)
         no_room = no_room or arm_slots == best
         arm_raw = _weighted(arm_slots)
         if arm_raw > zero:
             zero, source = arm_raw, "classical_arm"
     _require(not no_room and zero < oracle, "menu_zero_at_oracle_task_has_no_room")
     return {
-        "metric": METRIC,
+        "metric": metric_for(ranking),
         "state": SCORED,
         "d": min(1.0, max(0.0, (raw - zero) / (oracle - zero))),
         "raw": raw,
@@ -522,6 +560,9 @@ __all__ = [
     "MENU_SCHEMA",
     "METRIC",
     "MODEL_ROW_DEPENDENT",
+    "RANKINGS",
+    "RANKING_BACKOFF_U",
+    "RANKING_ORIGINAL_LIMITS",
     "SCORED",
     "WEIGHTS",
     "MenuRecord",
@@ -533,6 +574,7 @@ __all__ = [
     "menu_record",
     "menu_rows",
     "merge_duties",
+    "metric_for",
     "oracle_score",
     "pick_d",
     "raw_score",

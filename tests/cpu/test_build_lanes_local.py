@@ -193,20 +193,22 @@ class _Build:
 def test_with_remote_build_slots_a_build_starts_with_no_lane(host):
     """Owner, 17 Nov 2026 ("make them independent of each other"): with remote GPU build slots and remote grade lanes,
     a build round STARTS holding no lane and no slot, whatever the grades hold: every lane it could take is busy here
-    (two remote grades, a grade on the unreserved local lane, a build's local part on the reserved one).
+    (two remote grades, a build's local part on a reserved local lane). Every local lane is the builds' (Lead, 19 Nov
+    2026): grades take the remote lanes only.
     """
     work, _ = _door(host, extra=4)
-    assert work.builds_laneless and work._reserved_local == (0,)
+    assert work.builds_laneless and work._reserved_local == (0, 1)
     first = _Build(work)
     assert first.remote.wait(5)
     first.finish.set()
     assert (
         first.local.wait(5) and first.lane.index == 0
     )  # its local part: the reserved lane
-    grades = [_Round(work, "grade") for _ in range(3)]
+    grades = [_Round(work, "grade") for _ in range(2)]
     for grade in grades:
         assert grade.entered.wait(5)
-    assert sorted(g.lane.index for g in grades) == [1, 2, 3]  # never the reserved lane
+    # the remote lanes, never a local one
+    assert sorted(g.lane.index for g in grades) == [2, 3]
     late = _Build(work)
     assert late.remote.wait(5)  # started: no lane needed
     for round_ in (*grades, first, late):
@@ -279,15 +281,15 @@ def test_a_build_away_on_the_remote_box_never_lets_grades_starve_a_new_build(tmp
 def test_a_build_back_from_the_remote_box_takes_the_reserved_lane_while_grades_wait(
     host,
 ):
-    """Grades fill the remote lanes and the unreserved local lane, never the builds' reserved one: the A100's build
-    holds a local lane for its local part at once, and a fourth grade waits for a lane of its own.
+    """Grades fill the remote lanes, never a local lane (every one is the builds', Lead 19 Nov 2026): the A100's build
+    holds a local lane for its local part at once, and the third and fourth grades wait for a remote lane.
     """
     work, _ = _door(host, extra=4)
     away = _Build(work)
     assert away.remote.wait(5)
     grades = [_Round(work, "grade") for _ in range(4)]
     entered = [g for g in grades if g.entered.wait(1)]
-    assert sorted(g.lane.index for g in entered) == [1, 2, 3]
+    assert sorted(g.lane.index for g in entered) == [2, 3]
     away.finish.set()
     assert away.local.wait(5) and away.lane.index == 0  # the reserved lane, at once
     for round_ in (*grades, away):

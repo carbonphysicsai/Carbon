@@ -176,21 +176,14 @@ def test_source_reads_refuse_oversized_existing_object_and_legacy_blob(tmp_path)
 
 
 def test_source_reads_refuse_oversized_partial_before_resuming(tmp_path):
+    """A partial the EARLIER layout wrote (a workspace row) that is longer than the file refuses before resuming."""
+    from carbon.development_session.direct_source_staging import _partial_name
+
     ledger = _ledger(tmp_path)
     workspace = ResearchWorkspace(ledger, "alice")
     body = b'{"documents":{}}'
     first = _request(staging.WORKSPACE_MANIFEST, body, 0, body[:8])
-    stage_source(ledger, "alice", first)
-    partial = next(
-        item["name"]
-        for item in workspace.inventory()
-        if item["name"].startswith("upload-")
-    )
-    workspace.put(
-        partial,
-        b"x" * (len(body) + 1),
-        expected_digest=workspace.current_digest(partial),
-    )
+    workspace.put(_partial_name(first), b"x" * (len(body) + 1))
     with pytest.raises(research.ResearchTaskProviderError) as resumed:
         stage_source(
             ledger, "alice", _request(staging.WORKSPACE_MANIFEST, body, 8, body[8:])

@@ -51,8 +51,16 @@ V3_SUFFIX = "/v3"
 #: flag); ``waiting_to_grade`` = built and not claimed. No owed or re-run state (owner Q15). The rows are v3's, unchanged. v1-v3
 #: stay byte-identical: the A100 autoscaler sizes on v1's ``waiting_to_build`` (V2, 18 Nov 2026). TIMING: the counts are read
 #: at the same `queue_view.CACHE_S` (30 s) as v1's, and name no submission.
+#: v4 ROWS (Lead, 19 Nov 2026: at 04:07Z the live board showed 16 rows "in grading" with ``grading_now`` 0 and nothing
+#: running, the door draining): a built submission's row says `GRADING_ROW` only while its grade RUNS (claimed and not
+#: inside its commit-turn wait, `grade_sequencer.Sequencer.running`), else `WAITING_TO_GRADE`; ``grading_now`` and
+#: ``waiting_to_grade`` are read from the same set, so the rows and counts agree. This tells a grade's start and end apart
+#: per row, at the rows' `ROWS_QUANTUM_S` (v3 does not: `IN_GRADING`); v3's rows stay as they are.
 SCHEMA_V4 = "carbon.queue.public.v4"
 V4_SUFFIX = "/v4"
+ROWS_V4 = "rows_v4"
+WAITING_TO_GRADE = "waiting to grade"
+GRADING_ROW = "grading"
 #: The v4 counts a view adds to its snapshot (`queue_view.QueueView`): ``{field: count}`` over `RUNNING_FIELDS`, or None when
 #: the door could not read them (v4 then answers 503; v1-v3 are never affected).
 RUNNING = "running"
@@ -74,6 +82,7 @@ IN_GRADING = "in grading"
 #: king's candidate), so the crown decision (the repeat grade and rebuilds) is still to be made.
 CROWN_CHECK = "crown check"
 ROW_STATES = (WAITING_TO_BUILD, BUILDING, IN_GRADING, CROWN_CHECK)
+ROW_STATES_V4 = (WAITING_TO_BUILD, BUILDING, WAITING_TO_GRADE, GRADING_ROW, CROWN_CHECK)
 ROW_FIELDS = frozenset({"position", "hotkey", "state", "in_queue_s"})
 #: A short key: 4 characters, an ellipsis, 4 characters (a public chain address's first and last 4), or None when the door cannot say.
 _SHORT_KEY = re.compile(r"[1-9A-HJ-NP-Za-km-z]{4}\u2026[1-9A-HJ-NP-Za-km-z]{4}")
@@ -166,7 +175,7 @@ def document(snapshot, challenge):
     """The public document from a view's raw snapshot, checked field by field (closed set)."""
     if (
         type(snapshot) is not dict
-        or set(snapshot) - {HELD, ROWS, RUNNING} != SNAPSHOT_FIELDS
+        or set(snapshot) - {HELD, ROWS, ROWS_V4, RUNNING} != SNAPSHOT_FIELDS
     ):
         raise QueuePublicRefused("queue_snapshot_invalid")
     if snapshot["door_state"] not in DOOR_STATES:
@@ -228,9 +237,10 @@ def floor_to_quantum(seconds):
     return int(max(0, seconds) // ROWS_QUANTUM_S) * ROWS_QUANTUM_S
 
 
-def document_v3(snapshot, challenge):
+def document_v3(snapshot, challenge, *, states=ROW_STATES):
     """The v3 document: v2's fields plus the per-submission ``rows`` (position, short hotkey, state, time in queue), at most
     `MAX_ROWS` of them, ``more_rows`` counting the rest, and ``rows_as_of`` (the quantum boundary the rows were read at).
+    ``states``: the row states allowed (v4 passes `ROW_STATES_V4`).
     """
     body = document_v2(snapshot, challenge)
     found = snapshot.get(ROWS) if type(snapshot) is dict else None
@@ -250,7 +260,7 @@ def document_v3(snapshot, challenge):
             type(row) is not dict
             or set(row) != ROW_FIELDS
             or row["position"] != position
-            or row["state"] not in ROW_STATES
+            or row["state"] not in states
             or not (row["hotkey"] is None or _SHORT_KEY.fullmatch(str(row["hotkey"])))
             or type(row["in_queue_s"]) is not int
             or isinstance(row["in_queue_s"], bool)
@@ -285,8 +295,9 @@ def serve_v3(view, challenge):
 
 
 def document_v4(snapshot, challenge):
-    """The v4 document: v3's fields and rows, with the four counts from what actually runs (see `SCHEMA_V4`):
-    ``grading_now`` is the number of grades in flight. Refused (503) when the view could not read them.
+    """The v4 document: v3's fields, its rows from the view's `ROWS_V4` (a built row is "waiting to grade" or "grading",
+    see `SCHEMA_V4`), with the four counts from what actually runs: ``grading_now`` is the number of grades running.
+    Refused (503) when the view could not read them.
     """
     running = snapshot.get(RUNNING) if type(snapshot) is dict else None
     if type(running) is not dict or set(running) != RUNNING_FIELDS:
@@ -295,7 +306,13 @@ def document_v4(snapshot, challenge):
         name: _count(running[name], "queue_running_invalid") for name in RUNNING_FIELDS
     }
     # v3's checks on everything else (its 0/1 grading flag is replaced below by the checked count)
-    body = document_v3({**snapshot, "grading_now": 0}, challenge)
+    if ROWS_V4 not in snapshot:
+        raise QueuePublicRefused("queue_rows_invalid")
+    body = document_v3(
+        {**snapshot, "grading_now": 0, ROWS: snapshot[ROWS_V4]},
+        challenge,
+        states=ROW_STATES_V4,
+    )
     body = {**body, **counts, "schema": SCHEMA_V4}
     if set(body) != FIELDS_V4:
         raise QueuePublicRefused("queue_fields_differ")

@@ -1,4 +1,4 @@
-"""Owner G18 (19 Nov 2026, "10 now"): the registry's ``daily_allowance`` sets ``a`` directly, per allowance group per
+"""Owner G18 (19 Nov 2026, "10 now"), then G20 ("Set a higher fixed number: 25"): the registry's ``daily_allowance`` sets ``a`` directly, per allowance group per
 Challenge per rolling day; the one-per-epoch limit is unchanged. Real `AttemptLedger` and `ExamCap`.
 """
 
@@ -66,9 +66,27 @@ def _admission(cap, block, hotkey="hk1"):
     )
 
 
-def test_the_committed_registry_sets_ten():
+def test_the_committed_registry_sets_25():
     cadence = exam_cap.registered_cadence()
-    assert cadence["daily_allowance"] == 10
+    assert cadence["daily_allowance"] == 25
+
+
+def test_at_25_the_epoch_limit_binds_first(tmp_path):
+    """One graded exam per round, 20 rounds a rolling day: a group reaches at most 20 in any window, so 25 never
+    refuses; the round's own limit does, and every later round opens as the oldest round leaves the window.
+    """
+    cap = _cap(tmp_path, _cadence(daily_allowance=25))
+    for index in range(20):
+        block = BLOCK + index * EPOCH
+        assert _admission(cap, block) is None
+        _grade(cap, block)
+    last = BLOCK + 19 * EPOCH
+    assert cap.allowance(hotkey="hk1", block=last)["allowance"] == 25
+    assert _admission(cap, last)["code"] == "epoch_limit_reached"
+    for index in range(20, 26):  # the 21st to 26th: each in its own new round
+        block = BLOCK + index * EPOCH
+        assert _admission(cap, block) is None
+        _grade(cap, block)
 
 
 def test_ten_a_day_are_admitted_and_the_eleventh_is_refused(tmp_path):

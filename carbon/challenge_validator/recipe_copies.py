@@ -203,6 +203,19 @@ def _ended_unbuilt(adapter, submission_id):
         return False
 
 
+def _ended_index(adapter):
+    """The task ids the door knows ended without a build, read from the open task views and the lazy owners' index
+    without opening any owner (`LeanRecipeAdapter._ended_unbuilt`); empty when the adapter has no such read.
+    """
+    read = getattr(adapter, "_ended_unbuilt", None)
+    if not callable(read):
+        return frozenset()
+    try:
+        return frozenset(read())
+    except Exception:  # noqa: BLE001 - unreadable: every task is looked at as before
+        return frozenset()
+
+
 def decide(
     *,
     adapter,
@@ -269,6 +282,7 @@ def decide(
                     (digest,),
                 )
             }
+    ended = _ended_index(adapter)
     for earlier, seq in ordered:
         if seq <= start:
             continue  # before the rule: never a first
@@ -277,6 +291,13 @@ def decide(
         if earlier in known:
             if earlier not in same:
                 continue  # a stored digest, another recipe: compared without opening its owner
+        elif states.get(earlier) is None and (
+            earlier in ended or marker(earlier) is not None
+        ):
+            # live 116, 19 Nov 2026 (77 lazy owners opened one by one after each start, at the pick): no exam row and
+            # settled (a marker) or ended unbuilt is never a first, whatever its digest (the branches below continue
+            # for it), so its digest is not computed and its owner is not opened
+            continue
         elif recipe_digest(adapter, earlier, ledger) != digest:
             continue  # computed (and stored) once, only when never stored (V2: compute only the missing ones)
         state = states.get(earlier)

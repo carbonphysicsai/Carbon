@@ -20,6 +20,10 @@ this door already keeps. Reads; writes nothing.
   ledger is read on a read-only connection (``mode=ro``: no write lock, never blocks a build or a grade); an unreadable
   ledger counts its RUNNING tasks as building, as before. A SUCCEEDED task whose grade is already claimed (in flight,
   `grade_sequencer`) is no longer waiting to grade.
+- **v4 (Lead, 19 Nov 2026):** a built task is GRADING only while its grade runs (`grade_sequencer.Sequencer.running`:
+  claimed, not inside its commit-turn wait); every other built task WAITS TO GRADE, in the v4 rows and counts alike
+  (the live board showed 16 rows "in grading" while nothing ran). A door with no sequencer counts its one grade by the
+  in-flight record and lists no row as grading (it does not record which task).
 - **grading now:** on a door grading one round per lane, 1 while any claimed grade is in flight; else this door's
   in-flight record (``work-inflight.json``, `direct_intake._WorkLock`) is a GRADE round and the grader is grading a
   submission (not its king's upkeep).
@@ -58,6 +62,10 @@ from pathlib import Path
 from . import queue_public as qp
 
 CACHE_S = 30.0
+#: The oldest copy a reader is served while another rebuilds it (V2, 19 Nov 2026: N stated, <= 60 s): the counts' copy
+#: is at most this old (its ``as_of_unix`` says so); past it a reader waits for the rebuild. The rows are floored to their
+#: quantum by design (`queue_public.ROWS_QUANTUM_S`) and are served at most this long past their quantum.
+STALE_MAX_S = 60.0
 DAY_S = 86400.0
 _BUILDING = frozenset({"RUNNING", "CANCEL_REQUESTED"})
 #: The verdict markers whose write time ends a submission's wait (`auto_grade`).
@@ -92,9 +100,13 @@ class QueueView:
         self.grader = grader
         self.state = Path(state_dir)
         self.clock = clock
+        #: Guards the cached documents and who is rebuilding them: memory only, never held across a rebuild (live 116,
+        #: 19 Nov 2026: 37 of 54 request threads waited here while ONE refresh globbed and stat'ed 1,322 markers).
         self._lock = threading.Lock()
+        self._built = threading.Condition(self._lock)
         self._cached = None
         self._rows_cached = None
+        self._rebuilding = set()
         #: ``{task id: provider key}`` from the last `_index` pass (the owning provider's own key; read only).
         self._owners = {}
 
@@ -196,6 +208,11 @@ class QueueView:
         sequencer = getattr(self.grader, "sequencer", None)
         return set() if sequencer is None else set(sequencer.in_flight())
 
+    def _running_grades(self):
+        """The built tasks whose grade runs now (v4): claimed and not waiting for their commit turn."""
+        sequencer = getattr(self.grader, "sequencer", None)
+        return set() if sequencer is None else set(sequencer.running())
+
     def held(self):
         """The held contenders' submission ids, oldest filing first, on a crown-hold door; None on every other door.
         A read of the pool store's filed contenders only (no grade, no lock)."""
@@ -276,15 +293,16 @@ class QueueView:
             "waits_s": self._waits(now, index),
             "as_of_unix": now,
             qp.HELD: None if (held := self.held()) is None else len(held),
-            qp.RUNNING: self._running(index, claimed),
+            qp.RUNNING: self._running(index),
         }
 
-    def _running(self, index, claimed):
+    def _running(self, index):
         """The v4 counts (`queue_public.SCHEMA_V4`, owner Q15): what actually runs. A RUNNING task with no build slot
         (`_waiting_for_slot`) waits to build; a claimed grade is grading (one per round in flight). None when they cannot
         be read: v4 answers 503, v1-v3 never change (the A100 autoscaler reads v1)."""
         try:
             slotless = self._waiting_for_slot(index)
+            grading = self._running_grades()
             counts = dict.fromkeys(qp.RUNNING_FIELDS, 0)
             for submission_id in self.grader.pending():
                 state, _created = index.get(submission_id, (None, None))
@@ -292,11 +310,11 @@ class QueueView:
                     counts["waiting_to_build"] += 1
                 elif state in _BUILDING:
                     counts["building_now"] += 1
-                elif state == _BUILT and submission_id not in claimed:
+                elif state == _BUILT and submission_id not in grading:
                     counts["waiting_to_grade"] += 1
             sequencer = getattr(self.grader, "sequencer", None)
             counts["grading_now"] = (
-                len(claimed) if sequencer is not None else self._grading_now()
+                len(grading) if sequencer is not None else self._grading_now()
             )
         except Exception:  # noqa: BLE001 - any failure: no v4 counts (503)
             return None
@@ -308,6 +326,7 @@ class QueueView:
         index = self._index()
         origins = self._place_origins()
         slotless = self._waiting_for_slot(index)
+        grading = self._running_grades()
         entries = []
         for submission_id in self.grader.pending():
             state, created = index.get(submission_id, (None, None))
@@ -316,9 +335,8 @@ class QueueView:
             elif state in _BUILDING:
                 label = qp.BUILDING
             elif state == _BUILT:
-                label = (
-                    qp.IN_GRADING
-                )  # built, no verdict yet: waiting or being graded, not told apart per row
+                # v3: built, no verdict yet: waiting or being graded, not told apart per row; v4: whether it runs now
+                label = qp.IN_GRADING
             else:
                 continue  # cancelled, a build that ended without success, or a task in no open store: never waiting
             if created is not None and submission_id in origins:
@@ -327,18 +345,27 @@ class QueueView:
             entries.append((submission_id, label, created))
         for submission_id, since in self._crown_checks():
             entries.append((submission_id, qp.CROWN_CHECK, since))
-        rows = []
+        rows, rows_v4 = [], []
         for position, (submission_id, label, created) in enumerate(entries, 1):
             age = 0 if created is None else boundary - created
-            rows.append(
-                {
-                    "position": position,
-                    "hotkey": qp.short_hotkey(self._owners.get(submission_id)),
-                    "state": label,
-                    "in_queue_s": qp.floor_to_quantum(age),
+            row = {
+                "position": position,
+                "hotkey": qp.short_hotkey(self._owners.get(submission_id)),
+                "state": label,
+                "in_queue_s": qp.floor_to_quantum(age),
+            }
+            rows.append(row)
+            if label == qp.IN_GRADING:
+                row = {
+                    **row,
+                    "state": (
+                        qp.GRADING_ROW
+                        if submission_id in grading
+                        else qp.WAITING_TO_GRADE
+                    ),
                 }
-            )
-        return rows
+            rows_v4.append(row)
+        return rows, rows_v4
 
     def _place_origins(self):
         """``{task id: original arrival (unix seconds)}`` of every task that holds a queue place (`AttemptLedger.grant_queue_place`: a
@@ -376,21 +403,92 @@ class QueueView:
             waiting.append((submission_id, graded))
         return waiting
 
+    def _single_flight(self, name, stale, build, *, age):
+        """The cached document ``name`` (an attribute), rebuilt by ONE caller at a time OUTSIDE the lock: while it
+        rebuilds, every other caller gets the last built copy at once (its ``as_of_unix`` says how old it is); only
+        before the first build does a caller wait for it. A rebuild that fails leaves the last copy and raises to its
+        own caller only. Same documents as before, up to one rebuild older."""
+        with self._lock:
+            while True:
+                cached = getattr(self, name)
+                if cached is not None and not stale(cached):
+                    return cached
+                if name not in self._rebuilding:
+                    self._rebuilding.add(name)
+                    break
+                if cached is not None and age(cached) <= STALE_MAX_S:
+                    return cached  # someone else is rebuilding: serve the last copy (at most STALE_MAX_S old)
+                self._built.wait()  # nothing built yet, or the last copy too old: wait for the rebuild
+        try:
+            built = build()
+        except BaseException as failure:
+            with self._lock:
+                self._rebuilding.discard(name)
+                self._built.notify_all()
+            _log_rebuild_failed(
+                name, failure
+            )  # the last copy stays; the next reader retries
+            raise
+        with self._lock:
+            setattr(self, name, built)
+            self._rebuilding.discard(name)
+            self._built.notify_all()
+        return built
+
     def snapshot_v3(self):
         """`snapshot` plus the per-submission rows, rebuilt only when the clock crosses a quantum boundary."""
         base = self.snapshot()
-        with self._lock:
-            boundary = int(self.clock() // qp.ROWS_QUANTUM_S) * qp.ROWS_QUANTUM_S
-            if self._rows_cached is None or self._rows_cached["as_of_unix"] != boundary:
-                self._rows_cached = {
-                    "rows": self._read_rows(boundary),
-                    "as_of_unix": float(boundary),
-                }
-            return {qp.ROWS: dict(self._rows_cached), **base}
+
+        def boundary():
+            return int(self.clock() // qp.ROWS_QUANTUM_S) * qp.ROWS_QUANTUM_S
+
+        def build():
+            at = boundary()
+            rows, rows_v4 = self._read_rows(at)
+            return {"rows": rows, "rows_v4": rows_v4, "as_of_unix": float(at)}
+
+        cached = self._single_flight(
+            "_rows_cached",
+            lambda c: c["as_of_unix"] != boundary(),
+            build,
+            age=lambda c: self.clock() - c["as_of_unix"] - qp.ROWS_QUANTUM_S,
+        )
+        return {
+            qp.ROWS: {"rows": cached["rows"], "as_of_unix": cached["as_of_unix"]},
+            qp.ROWS_V4: {
+                "rows": cached["rows_v4"],
+                "as_of_unix": cached["as_of_unix"],
+            },
+            **base,
+        }
 
     def snapshot(self):
-        with self._lock:
-            now = self.clock()
-            if self._cached is None or now - self._cached["as_of_unix"] >= CACHE_S:
-                self._cached = self._read()
-            return dict(self._cached)
+        cached = self._single_flight(
+            "_cached",
+            lambda c: self.clock() - c["as_of_unix"] >= CACHE_S,
+            self._read,
+            age=lambda c: self.clock() - c["as_of_unix"],
+        )
+        return dict(cached)
+
+
+def _log_rebuild_failed(name, failure):
+    """One JSON line on stderr (the journal) for a failed rebuild: the document's name and the failure's type only."""
+    import json
+    import sys
+
+    try:
+        print(
+            json.dumps(
+                {
+                    "event": "queue_view_rebuild_failed",
+                    "document": name,
+                    "type": type(failure).__name__,
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+    except Exception:  # noqa: BLE001, S110 - a log line never fails a read
+        pass

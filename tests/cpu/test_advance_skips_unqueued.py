@@ -113,3 +113,28 @@ def test_grade_first_holds_an_owner_at_most_its_bound(monkeypatch):
     assert adapter.advance() == 0 and built == []
     now[0] += LeanRecipeAdapter.GRADE_FIRST_MAX_SECONDS
     assert adapter.advance() == 1 and built == [WAITING]
+
+
+def test_grade_first_counts_only_the_time_its_owner_is_free(monkeypatch):
+    """Live 116, 19 Nov 2026: the bound ran through the owner's own long build, so its next build took the owner the
+    moment the build ended, before the waiting grade could. Time while another round holds the owner is not counted.
+    """
+    import time as real_time
+
+    from carbon.challenge_validator.grade_sequencer import OwnerClaims
+
+    now = [1000.0]
+    monkeypatch.setattr(real_time, "monotonic", lambda: now[0])
+    views = {DONE: DirectTaskStateV3.SUCCEEDED, WAITING: DirectTaskStateV3.QUEUED}
+    adapter, built = _grade_first(views, marked=set())
+    adapter.owner_claims = OwnerClaims()
+    assert adapter.owner_claims.try_claim(OWNER)  # its build runs
+    assert adapter.advance() == 0
+    now[0] += 3 * LeanRecipeAdapter.GRADE_FIRST_MAX_SECONDS  # a long build
+    assert adapter.advance() == 0 and built == []
+    adapter.owner_claims.release(OWNER)  # the build ended: the grade still comes first
+    assert adapter.advance() == 0 and built == []
+    now[0] += LeanRecipeAdapter.GRADE_FIRST_MAX_SECONDS - 1
+    assert adapter.advance() == 0 and built == []
+    now[0] += 1  # free and unclaimed for the whole bound: the build goes on
+    assert adapter.advance() == 1 and built == [WAITING]

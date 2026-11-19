@@ -12,7 +12,9 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import os
 import re
+import sqlite3
 import threading
 import time
 from collections.abc import Callable
@@ -773,6 +775,21 @@ class LeanRecipeAdapter(ChallengeAdapter):
         for other, owner, raw in rows:
             if other not in first:
                 first[other] = (owner, raw)
+        # Live 116, 19 Nov 2026 (no construction-submit completed for an hour: this check runs under the intake's one
+        # admission lock and opened every group-mate's provider, lazily RESTORING each, and waited on each mate's own
+        # lock while its build ran): a task a LAZY owner holds is terminal by definition (`OwnerProviders.lazy_tasks`),
+        # so never pending here; an OPEN mate's task is read from its view without its lock (as `_building_views`
+        # reads). Same blocks as before; a task with no such view (a mate neither open nor lazy, or an open mate's
+        # view that does not hold it) is read as before.
+        provider_for = getattr(self, "provider_for", None)
+        lazy_tasks = getattr(provider_for, "lazy_tasks", None)
+        try:
+            lazy = frozenset(lazy_tasks()) if callable(lazy_tasks) else frozenset()
+        except Exception:  # noqa: BLE001 - unreadable: every mate read as before
+            lazy = frozenset()
+        opened = getattr(provider_for, "_providers", None)
+        opened = opened if type(opened) is dict else {}
+        challenge_key = self.discovery.info.challenge_key
         blocks = []
         for other, (owner, raw) in first.items():
             if other == task_id:
@@ -784,6 +801,18 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     or other_block >= block
                     or exam_cap.epoch_of(other_block) <= low
                 ):
+                    continue
+                if other in lazy:
+                    continue  # a lazy owner's task: terminal, never pending, never opened
+                views = getattr(opened.get(owner), "_views", None)
+                view = views.get(other) if type(views) is dict else None
+                if view is not None:
+                    # read from the open view (no owner lock); a view it does not hold falls through to the old read
+                    # (V2: this block is the probing bound, so nothing unread is ever skipped)
+                    if getattr(view, "challenge_key", None) == challenge_key and getattr(
+                        view, "state", None
+                    ) in (DirectTaskStateV3.QUEUED, DirectTaskStateV3.RUNNING):
+                        blocks.append(other_block)
                     continue
                 task = (
                     self._provider(owner)
@@ -1048,6 +1077,42 @@ class LeanRecipeAdapter(ChallengeAdapter):
         except Exception:  # noqa: BLE001 - never fails a submission
             return
 
+    def _ended_unbuilt(self):
+        """The task ids whose build ENDED without success (REFUSED / UNRESOLVED / FAILED_INFRA / CANCELLED), read from the
+        open providers' views and the lazy owners' index (`OwnerProviders.lazy_index`), never opening an owner: they
+        never get a grade marker and never need a queue place. A task in neither is not listed (looked at as before).
+        """
+        from carbon.research import DirectTaskStateV3
+
+        ended = {
+            DirectTaskStateV3.REFUSED,
+            DirectTaskStateV3.UNRESOLVED,
+            DirectTaskStateV3.FAILED_INFRA,
+            DirectTaskStateV3.CANCELLED,
+        }
+        names = {state.value for state in ended}
+        provider_for = getattr(self, "provider_for", None)
+        found = set()
+        opened = getattr(provider_for, "_providers", None)
+        if type(opened) is dict:
+            for provider in tuple(opened.values()):
+                views = getattr(provider, "_views", None)
+                if type(views) is not dict:
+                    continue
+                for task, view in tuple(views.items()):
+                    if getattr(view, "state", None) in ended:
+                        found.add(task)
+        lazy = getattr(provider_for, "lazy_index", None)
+        if callable(lazy):
+            try:
+                entries = lazy()
+            except Exception:  # noqa: BLE001 - unreadable: looked at as before
+                entries = {}
+            for task, entry in entries.items():
+                if type(entry) in (tuple, list) and entry and entry[0] in names:
+                    found.add(task)
+        return found
+
     def settle_stop_cancelled_places(self):
         """The one-shot for miners who ALREADY resubmitted (owner ruling 14 Nov 2026, the Lead's): for every task whose terminal
         marker is ``cancelled_by_carbon_stop``, find its resubmission (the next generation of the same owner, recipe and
@@ -1073,12 +1138,40 @@ class LeanRecipeAdapter(ChallengeAdapter):
             return 0
         from carbon.development_session.construction_recipe import ConstructionRecipe
 
+        # Live 116, 19 Nov 2026 07:47-08:0xZ: this opened EVERY marked task's owner (a lazy owner's full restore, the
+        # public TRAIN derived again) in the incumbent's steps after each start, ~350 owners one after another, and no
+        # grade was claimed meanwhile. Two ledger reads now skip what can need no place, before any owner is opened:
+        # a task that already gave its place (granted once per task), and an owner with no submitted task still
+        # waiting (no marker): a resubmission is the same owner's later submitted, unmarked task, so none can exist.
+        try:
+            given = self.ledger.queue_place_from_tasks(self.contract_digest)
+            with os.scandir(directory) as entries:
+                settled = {
+                    entry.name[: -len(".json")]
+                    for entry in entries
+                    if entry.name.endswith(".json")
+                }
+            # unmarked is not waiting: a build that ended REFUSED / FAILED / CANCELLED never gets a marker (live 116,
+            # 19 Nov 2026 11:2xZ: this still opened 66+ lazy owners one by one); such a task is known from the open
+            # views and the lazy owners' index without opening any owner
+            dead = self._ended_unbuilt()
+            waiting = {
+                self.ledger.owned_outcome(self.contract_digest, other)
+                for other in self.ledger.submitted_outcomes(self.contract_digest)
+                if other not in settled and other not in dead
+            }
+        except (AttributeError, OSError, sqlite3.Error):
+            given, waiting = set(), None  # unreadable: look at every task, as before
         unresolved, left = 0, []
         for task in marked:
+            if task in given:
+                continue
             try:
                 owner = self.ledger.owned_outcome(self.contract_digest, task)
                 if owner is None:
                     continue
+                if waiting is not None and owner not in waiting:
+                    continue  # nothing of this owner waits: no resubmission to place, no owner opened
                 provider = self._provider(owner)
                 retained = provider._requests.get(task)
                 if retained is None:
@@ -1173,7 +1266,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     def _grade_first_holds(self, owner):
         """Whether grade first holds ``owner``'s next build now (`_built_waits_to_grade`), bounded per owner by
-        `GRADE_FIRST_MAX_SECONDS` from the first skip; the bound resets once nothing of the owner waits.
+        `GRADE_FIRST_MAX_SECONDS` of the time the owner is FREE with its built task unclaimed; the bound resets once
+        nothing of the owner waits, and while another round holds the owner (live 116, 19 Nov 2026 05:1xZ: the bound ran
+        through each owner's long build, so the moment the build ended the owner's NEXT build took it again, and 31
+        built tasks waited with every grade lane idle, ``owner_busy``).
         """
         import time
 
@@ -1181,6 +1277,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if not self._built_waits_to_grade(owner):
             since.pop(owner, None)
             return False
+        claims = getattr(self, "owner_claims", None)
+        if claims is not None and owner in claims.held():
+            # another round holds it (its build, or a grade): no grade could take it, so no grade-first time is spent
+            since.pop(owner, None)
+            return True
         now = time.monotonic()
         first = since.setdefault(owner, now)
         return now - first < self.GRADE_FIRST_MAX_SECONDS

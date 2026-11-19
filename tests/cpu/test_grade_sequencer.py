@@ -150,7 +150,8 @@ def _grader(pending, steps):
     return grader
 
 
-def test_two_rounds_grade_different_tasks_and_commit_in_submission_order():
+def _two_rounds(group):
+    """Two rounds: task a (claimed first, a slow graded pass) and task b, with ``group(sid)`` their allowance groups."""
     log, a_started = [], threading.Event()
 
     def steps(grader, sid, turn):
@@ -165,6 +166,7 @@ def test_two_rounds_grade_different_tasks_and_commit_in_submission_order():
         return sid, "GRADED"
 
     grader = _grader(["a", "b"], steps)
+    grader._allowance_group = group
     results = []
 
     def round_():
@@ -178,10 +180,18 @@ def test_two_rounds_grade_different_tasks_and_commit_in_submission_order():
     first.join(10)
     second.join(10)
     assert sorted(results) == [("a", "GRADED"), ("b", "GRADED")]
-    assert log.index("computed b") < log.index(
-        "computed a"
-    )  # b's compute ran beside a's
-    assert log.index("commit a") < log.index("commit b")  # but a committed first
+    # b's compute ran beside a's
+    assert log.index("computed b") < log.index("computed a")
+    return log
+
+
+def test_two_rounds_of_different_groups_commit_each_at_once():
+    """Fix 1b (V2's verdict, 18 Nov 2026): across allowance groups a grade's own writes are order-free, so b's commit
+    never waits for a's slow graded pass (only the crown decision is ordered: `test_crown_queue`; one group's tasks
+    stay in order: `test_a_later_task_of_the_same_allowance_group_waits_for_the_earlier_one`).
+    """
+    log = _two_rounds(lambda sid: "h:" + sid)  # one hotkey per task
+    assert log.index("commit b") < log.index("computed a")
 
 
 def test_a_task_not_gradable_now_lets_the_round_try_the_next(monkeypatch):
@@ -509,7 +519,8 @@ def test_a_grade_waiting_its_commit_turn_is_never_ended_as_hung(monkeypatch):
     def behind():
         head_bound.wait(10)
         with sequencer.task() as task:
-            task.bind("behind", "h:b")
+            # the same allowance group: its commit turn waits for the head (fix 1b: another group's would not)
+            task.bind("behind", "h:a")
             out["ticket"] = task.ticket
             behind_waiting.set()
             task.turn()

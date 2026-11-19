@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import hashlib
 import os
 import re
@@ -58,11 +59,21 @@ from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
 from .request_buckets import claimed_hotkey
 
+#: Guards creation of the per-owner workspace locks (`DirectIntake._owner_lock`).
+_OWNER_LOCKS_GUARD = threading.Lock()
+
 INFO_PATH = "/carbon/v1/construction/intake"
 #: The signed launch board: `GET FEED_PATH + <challenge id>` (the battery door's feed path).
 FEED_PATH = "/carbon/v1/feed/"
 #: How long the published readiness is reused: reading it verifies the whole official receipt log.
 OFFICIAL_GPU_CACHE_SECONDS = 10.0
+#: The public GETs' shared answers (live 116, 19 Nov 2026: py-spy 18:22Z, 23 of 37 request threads rebuilt the info
+#: document's receipt readiness at once on its cache expiry): each requester-independent public GET answer is rebuilt by
+#: ONE caller at a time, off every request lock, every other caller served the last good answer. An answer is fresh for
+#: `PUBLIC_GET_FRESH_S`; while it rebuilds, the last good one is served if at most `PUBLIC_GET_STALE_MAX_S` old (V2: N
+#: stated, <= 60 s), else the reader waits for the rebuild.
+PUBLIC_GET_FRESH_S = 10.0
+PUBLIC_GET_STALE_MAX_S = 60.0
 SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
@@ -501,6 +512,14 @@ class DirectRecipeIntake(BatteryIntake):
         )
 
     def route(self, method, path, headers, body):
+        if method == "GET":
+            # every public GET: requester-independent (no signature, no hotkey), so one shared answer per path
+            # (called as this class's own functions: a test double of the intake routes through them too)
+            key = DirectRecipeIntake._public_key(self, path)
+            if key is not None:
+                return DirectRecipeIntake._public_get(
+                    self, key, lambda: DirectRecipeIntake._public_answer(self, key)
+                )
         if method == "GET" and path == INFO_PATH:
             return self.public()
         if method == "GET" and path.startswith(koth_public.PATH):
@@ -512,6 +531,89 @@ class DirectRecipeIntake(BatteryIntake):
         if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
+
+    def _public_key(self, path):
+        """The canonical path of one of this door's public GET documents, or None (any other path is answered live, as
+        before: a 404 is cheap and never cached, so no path can grow the cache)."""
+        from urllib.parse import unquote
+
+        try:
+            asked = unquote(path)
+        except Exception:  # noqa: BLE001 - not a public document path
+            return None
+        challenge = self.challenge.challenge_id
+        known = {INFO_PATH, FEED_PATH + challenge}
+        known.update(
+            koth_public.PATH + challenge + suffix
+            for suffix in ("", koth_public.V2_SUFFIX, koth_public.V3_SUFFIX)
+        )
+        known.update(
+            queue_public.PATH + challenge + suffix
+            for suffix in (
+                "",
+                queue_public.V2_SUFFIX,
+                queue_public.V3_SUFFIX,
+                queue_public.V4_SUFFIX,
+            )
+        )
+        return asked if asked in known else None
+
+    def _public_answer(self, key):
+        """The live answer of the public document ``key`` (the same handlers as before)."""
+        if key == INFO_PATH:
+            return self.public()
+        if key.startswith(koth_public.PATH):
+            return self._koth(key)
+        if key.startswith(queue_public.PATH):
+            return self._queue(key)
+        return self._board()
+
+    def _public_get(self, key, build):
+        """One shared public answer for ``key``: fresh for `PUBLIC_GET_FRESH_S`; rebuilt by ONE caller at a time outside
+        the guard (no request lock is held while it builds); meanwhile every other caller gets the last GOOD answer (a
+        2xx/4xx one) if at most `PUBLIC_GET_STALE_MAX_S` old, else waits for the rebuild. A rebuild that fails (raises,
+        or answers 5xx) keeps the last good answer for others; its own caller gets its own result, as before. The body
+        is copied per caller (the answer an earlier caller holds is never shared mutably).
+        """
+        import copy
+
+        state = self.__dict__.setdefault("_public_state", {})
+        cond = self.__dict__.setdefault("_public_cond", threading.Condition())
+        with cond:
+            while True:
+                entry = state.get(key)
+                now = time.monotonic()
+                if entry is not None and entry.get("answer") is not None:
+                    age = now - entry["at"]
+                    if age < PUBLIC_GET_FRESH_S:
+                        return Answer(
+                            entry["answer"].status, copy.deepcopy(entry["answer"].body)
+                        )
+                    if entry.get("building") and age <= PUBLIC_GET_STALE_MAX_S:
+                        return Answer(
+                            entry["answer"].status, copy.deepcopy(entry["answer"].body)
+                        )
+                if entry is None or not entry.get("building"):
+                    entry = state.setdefault(key, {"answer": None, "at": 0.0})
+                    entry["building"] = True
+                    break
+                cond.wait(PUBLIC_GET_STALE_MAX_S)
+        answer = None
+        try:
+            answer = build()
+            return answer
+        finally:
+            with cond:
+                entry = state[key]
+                entry["building"] = False
+                if (
+                    answer is not None
+                    and type(answer) is Answer
+                    and answer.status < 500
+                ):
+                    entry["answer"] = Answer(answer.status, copy.deepcopy(answer.body))
+                    entry["at"] = time.monotonic()
+                cond.notify_all()
 
     def _board(self):
         """The operator-signed launch board of this receiver's one Challenge
@@ -601,8 +703,10 @@ class DirectRecipeIntake(BatteryIntake):
         if not self._verified_charge(received):
             return _refused(429, "rate")
         if received.call.tool == RESEARCH_NAMESPACE:
-            with self._write:
-                return self._stage_source(received)
+            # Live 116, 19 Nov 2026 (no construction-submit for an hour: 10 requests queued behind ONE source chunk's
+            # storage scan and rewrite under the door-wide `_write`): a source stage writes only its OWN owner's
+            # workspace and checks only that owner's storage cap, so it holds that owner's lock, never `_write`.
+            return self._stage(received)
         fields = {field.name: field.value for field in received.call.fields}
         if received.call.tool == SUBMIT_TOOL:
             if set(fields) != {"strategy_json", "contract_digest"}:
@@ -713,11 +817,50 @@ class DirectRecipeIntake(BatteryIntake):
         return Answer(200, {"withdrawn": submission_id, "grade_state": WITHDRAWN_STATE})
 
     def _admit(self, submitted):
-        """The one admission path: a single writer, so a duplicate is admitted once."""
-        with self._write:
-            result = self.door.evaluate(submitted)
-            self._note_recipe_digest(result)
-            return result
+        """The one admission path: a single writer, so a duplicate is admitted once. It also holds the submitter's own
+        owner lock (taken FIRST, never while holding `_write`), so an admission never reads its owner's workspace while
+        that owner's source stage writes it, and waits for that owner's stage without holding `_write`.
+        """
+        hotkey = getattr(submitted, "hotkey", None)
+        owner = (
+            self._owner_lock(hotkey)
+            if type(hotkey) is str
+            else contextlib.nullcontext()
+        )
+        with owner:
+            if type(hotkey) is str:
+                self._open_owner(hotkey)
+            with self._write:
+                result = self.door.evaluate(submitted)
+                self._note_recipe_digest(result)
+                return result
+
+    def _open_owner(self, hotkey):
+        """Open (a lazy owner: restore, 3-10 s live) the submitter's provider BEFORE `_write` (case-procs, LOCK PROGRAM
+        19 Nov 2026: a burst of new owners' first submits serialised their restores under the door-wide lock), so the
+        admission's own `_provider` finds it open. Best effort: any refusal here is left to the admission, which meets
+        and answers it exactly as before."""
+        adapter = getattr(self, "adapter", None)
+        opener = getattr(adapter, "_provider", None)
+        if not callable(opener):
+            return
+        try:
+            opener(hotkey)
+        except Exception:  # noqa: BLE001, S110 - the admission meets the same refusal
+            pass
+
+    def _stage(self, received):
+        """One source stage under its owner's lock only (see the route): never the door-wide `_write`."""
+        with self._owner_lock(received.receipt.hotkey):
+            return self._stage_source(received)
+
+    def _owner_lock(self, hotkey):
+        """The lock of one owner's workspace writes (its source stages, and its admission's read of them): one per
+        hotkey, created on first use. Lock order: an owner lock, then `_write`; a source stage takes its owner's only.
+        """
+        with _OWNER_LOCKS_GUARD:
+            locks = self.__dict__.setdefault("_owner_locks", {})
+            return locks.setdefault(hotkey, threading.Lock())
 
     def _note_recipe_digest(self, result):
         """OWNER-PROBING-COUNTERS-01 (b): store an admitted task's recipe digest at admission (`recipe_copies.
@@ -1314,6 +1457,16 @@ def _backoff_s(failures):
     return FAILURE_BACKOFF_S[min(failures, len(FAILURE_BACKOFF_S)) - 1]
 
 
+def _closed_code(failure):
+    """A typed refusal's code when it is a closed identifier (``[a-z0-9_.:-]``, at most 96 chars), else None: safe for
+    the journal, never a message, path or value."""
+    code = getattr(failure, "code", None)
+    code = getattr(code, "value", code)
+    if type(code) is str and re.fullmatch(r"[a-z0-9_.:-]{1,96}", code):
+        return code
+    return None
+
+
 def _keep_failure(subject, loop, failure):
     """Keep a failure's full traceback in the receiver's PRIVATE evidence
     directory, one file per distinct failure site, and return the site's short
@@ -1322,6 +1475,10 @@ def _keep_failure(subject, loop, failure):
     without a ledger, or an unwritable directory, keeps nothing."""
     try:
         ledger = getattr(getattr(subject, "adapter", subject), "ledger", None)
+        if ledger is None:
+            # the grader holds its adapter through its intake (live 116, 19 Nov 2026: 190 grade-loop failures, no file)
+            adapter = getattr(getattr(subject, "intake", None), "adapter", None)
+            ledger = getattr(adapter, "ledger", None)
         path = getattr(ledger, "path", None)
         frames = traceback.extract_tb(failure.__traceback__)
         site = hashlib.sha256(
@@ -2008,7 +2165,8 @@ class _WorkLock:
 
     def _grade_local(self, local):
         """The ``(index, spec)`` local lanes a grade round may take: every one on a door with no remote grade lane; on a
-        door whose builds start laneless (`builds_laneless`), every one but the builds' reserved lane; else none.
+        door whose builds start laneless (`builds_laneless`), every one not reserved for builds (all are, since 19 Nov
+        2026); else none.
         """
         if not self._grades_remote_only():
             return local
@@ -2068,11 +2226,13 @@ class _WorkLock:
         self._build_slots = threading.BoundedSemaphore(len(local))
         # Owner, 17 Nov 2026 ("make them independent of each other"): with remote GPU build slots, a build round STARTS
         # with no lane (`_Taking._enter_laneless`: it needs only its remote slot), and its local part runs on a local
-        # lane re-taken when it needs one, the first local lane RESERVED for builds (`_reserved_local`): grades never take
-        # it, so a build's local part never waits behind a grade, and grades use every other lane.
+        # lane re-taken when it needs one. EVERY local lane is RESERVED for builds (`_reserved_local`; Lead 19 Nov 2026:
+        # with one reserved lane the A100 slots' local parts queued up to 605 s, live 116 13:31-13:37Z, while grades held
+        # the other; the local EPYC lanes grade ~2x slower than the remote Ryzen lanes anyway, 597 s vs 313 s): grades
+        # run on the remote lanes only, so a build's local part never waits behind a grade.
         # (a door with no remote grade lane grades on its local lanes: its builds start on one, as before)
         self.builds_laneless = extra_rounds > 0 and self._grades_remote_only()
-        self._reserved_local = (min(local),) if self.builds_laneless else ()
+        self._reserved_local = tuple(local) if self.builds_laneless else ()
         return len(local) + max(0, extra_rounds)
 
     def _take_local_lane(self, *, like=None):
@@ -2683,6 +2843,8 @@ def _grade_loop(grader, stop, work):
             log(
                 "direct_grade_failure",
                 type=type(failure).__name__,
+                # a typed refusal's closed code (e.g. an Unavailable's), never free text: names the cause in the journal
+                code=_closed_code(failure),
                 consecutive=failures,
                 retry_s=wait,
                 site=_keep_failure(grader, "grade", failure),
