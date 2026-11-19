@@ -12,7 +12,8 @@ rows with a non-finite output in each, nothing else:
 
 ``per_case_zero`` > 0 with ``per_case_repeat`` and ``batched`` at 0 points at the zero padding (a graph that mixes the
 rows of its batch); all three > 0 points at the model on those rows. It mirrors the inference program's own loading
-(`bundle_graph_state.load`, the x64 rule, `level4.interpret.rebuild`), and reads no exam input: give it PUBLIC inputs only
+(`physical_graph_state_v2.load` for a graph route v2 ensemble, with its per-member combination and decoder, else
+`bundle_graph_state.load`; the x64 rule, `level4.interpret.rebuild`), and reads no exam input: give it PUBLIC inputs only
 (the Challenge's public TRAIN inputs). It prints no prediction, value or input; the output shape and dtype it prints
 are the public interface's. Run it in the inference image on a scratch copy, the invocation receipted by Validator-2:
 
@@ -62,13 +63,26 @@ def count(
     """``{mode: rows with a non-finite output}`` plus the run's public facts (see the module text)."""
     import numpy as np
 
-    from carbon.development_session.bundle_graph_state import load
-    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session import bundle_graph_state, physical_graph_state_v2
+    from carbon.development_session.construction_recipe import (
+        ConstructionRecipe,
+        RecipeRefused,
+    )
     from carbon.level4.allowlist import Allowlist
 
     recipe = ConstructionRecipe.from_bytes(recipe_bytes)
     allowed = Allowlist(allowlist_bytes)
-    doc, parameters = load(state_bytes, recipe, allowed)
+    # A graph route v2 ensemble state (Motor 1.8 and the other v2 versions), read as its inference program does
+    # (direct_graph_construction_worker.PHYSICAL_V2_INFER_PROGRAM); else a bundle state
+    ensemble = None
+    try:
+        doc, members, mu, sd, combine = physical_graph_state_v2.load(
+            state_bytes, recipe, allowed
+        )
+        ensemble = (members, mu, sd, combine)
+        parameters = [p for member in members for p in member]
+    except RecipeRefused:
+        doc, parameters = bundle_graph_state.load(state_bytes, recipe, allowed)
     inputs = np.asarray(inputs)
     if rows is not None:
         inputs = inputs[:rows]
@@ -83,8 +97,25 @@ def count(
 
     declared = doc["graphs"][doc["entry"]]["inputs"]
     batch = declared[-1]["shape"][0]
-    forward = rebuild(doc, allowed)
-    params = [jnp.asarray(p) for p in parameters]
+    if ensemble is None:
+        forward = rebuild(doc, allowed)
+        params = [jnp.asarray(p) for p in parameters]
+    else:
+        import jax
+
+        members, mu, sd, combine = ensemble
+        # Motor 1.8 compiles each member's forward (JIT_INFERENCE_VERSIONS); the same compiled call per member here
+        member_forward = jax.jit(rebuild(doc, allowed))
+        member_arrays = [[jnp.asarray(p) for p in member] for member in members]
+        params = []
+
+        def forward(*arguments):
+            part = arguments[-1]
+            total = None
+            for weights, arrays in zip(combine, member_arrays):
+                term = member_forward(*arrays, part)[0] * jnp.asarray(weights)
+                total = term if total is None else total + term
+            return [total * jnp.asarray(sd) + jnp.asarray(mu)]
     x = jnp.asarray(inputs, dtype=declared[-1]["dtype"])
     tail = [(0, 0)] * (x.ndim - 1)
     zero, repeat = [], []
