@@ -525,6 +525,8 @@ def _pack_file_identity(base, relative_path):
 def _pack_files(root, relative_path, snapshot, public_root, private_root):
     """Every file the pack check reads: the manifest, then each role's artifact (inline bytes, a hidden batch store and an
     unavailable role read no file here)."""
+    from collections.abc import Mapping
+
     from carbon.challenge_validator.evaluation_pack import UNAVAILABLE
 
     files = [(root, relative_path)]
@@ -535,7 +537,8 @@ def _pack_files(root, relative_path, snapshot, public_root, private_root):
         for entry in roles.values():
             if (
                 entry != UNAVAILABLE
-                and type(entry) is dict
+                # a parsed pack's role entry is a read-only mapping (`parse_pack`: MappingProxyType), never a dict
+                and isinstance(entry, Mapping)
                 and "inline_bytes" not in entry
                 and entry.get("kind") != "hidden_batch_store"
                 and "path" in entry
