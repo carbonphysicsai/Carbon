@@ -15,6 +15,11 @@ review. When it is absent, malformed, unvalued or inconsistent grading refuses
 (``exam_cadence_unregistered``); a v1 (CPU-hours) file is refused as
 ``exam_cadence_schema_unsupported``: no default, fail closed.
 
+**A set daily allowance (owner G18, 19 Nov 2026: "10 now").** The registry may also carry ``daily_allowance``, a
+whole number of at least 1. When it is present, ``a`` IS that number, per allowance group per Challenge per rolling
+day, whatever ``R``, ``M`` and ``sum_t`` are (they are still read and reported); the one-per-epoch limit is unchanged.
+When it is absent, ``a`` is the formula above, as before. A malformed value refuses (``exam_cadence_unregistered``).
+
 **No per-version cap.** The earlier per-exam-version C = 20 is gone; cadence already bounds
 every miner.
 
@@ -265,6 +270,8 @@ _V2_KEYS = {
     "measurement_digest",
     "class_record_digest",
 }
+#: Keys a v2 registry MAY carry: ``daily_allowance`` (owner G18) sets ``a`` directly when present.
+_V2_OPTIONAL = {"daily_allowance"}
 
 
 def _positive(value) -> bool:
@@ -286,7 +293,14 @@ def registered_cadence(path=None) -> dict:
     try:
         if (
             type(document) is not dict
-            or set(document) != _V2_KEYS
+            or not _V2_KEYS <= set(document) <= _V2_KEYS | _V2_OPTIONAL
+            or (
+                "daily_allowance" in document
+                and (
+                    type(document["daily_allowance"]) is not int
+                    or document["daily_allowance"] < 1
+                )
+            )
             or document["schema"] != REGISTRY_SCHEMA
             or type(document["source"]) is not str
             or not document["source"]
@@ -308,7 +322,7 @@ def registered_cadence(path=None) -> dict:
             raise ValueError("cadence registry malformed")
     except (ValueError, KeyError, TypeError):
         raise ExamCapRefused("exam_cadence_unregistered") from None
-    return {
+    cadence = {
         "capacity_gpu_lane_hours_per_day": float(
             document["capacity_gpu_lane_hours_per_day"]
         ),
@@ -317,6 +331,9 @@ def registered_cadence(path=None) -> dict:
         "measurement_digest": document["measurement_digest"],
         "class_record_digest": document["class_record_digest"],
     }
+    if "daily_allowance" in document:
+        cadence["daily_allowance"] = document["daily_allowance"]
+    return cadence
 
 
 def grading_deadline_seconds(material):
@@ -491,7 +508,12 @@ class ExamCap:
             else:
                 total += measured[challenge_id]
         capacity = cadence["capacity_gpu_lane_hours_per_day"]
-        allowed = max(1, math.floor(capacity / (len(active) * total)))
+        fixed = cadence.get("daily_allowance")
+        allowed = (
+            fixed
+            if fixed is not None
+            else max(1, math.floor(capacity / (len(active) * total)))
+        )
         return {
             "allowance": allowed,
             "active_miners": len(active),

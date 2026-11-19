@@ -1,6 +1,7 @@
 {
   "capacity_gpu_lane_hours_per_day": 16.799999999999997,
   "class_record_digest": "sha256:b7af024b037d9ddef784febd2942fd5125c07ad1e0ece37198c39da823499feb",
+  "daily_allowance": 10,
   "lanes": 1,
   "measurement_digest": "sha256:7c2294e12c26a83f52565e6ff99c84ff8d3ead71214e9ca094c0617dd9e0e994",
   "rebuild_gpu_lane_hours": {
