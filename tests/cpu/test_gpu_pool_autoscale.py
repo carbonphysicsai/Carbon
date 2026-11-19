@@ -751,7 +751,7 @@ def test_the_spawned_bring_up_command_parses(tmp_path, monkeypatch):
     every box the autoscaler rented sat until the bring-up timeout."""
     seen = []
     monkeypatch.setattr(scale.subprocess, "run", lambda argv, **_: seen.append(argv))
-    monkeypatch.setitem(scale.CONFIG_PATH, 0, str(tmp_path / "config.json"))
+    monkeypatch.setattr(scale, "CONFIG_PATH", [str(tmp_path / "config.json")])
     scale._spawn_bring_up(_config(tmp_path), "carbon-pool-11191155")
     argv = seen[0]
     script = argv.index(scale.os.path.abspath(scale.__file__))
