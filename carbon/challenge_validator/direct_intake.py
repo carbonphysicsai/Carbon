@@ -721,7 +721,8 @@ class DirectRecipeIntake(BatteryIntake):
     def _admit(self, submitted):
         """The one admission path: a single writer, so a duplicate is admitted once. It also holds the submitter's own
         owner lock (taken FIRST, never while holding `_write`), so an admission never reads its owner's workspace while
-        that owner's source stage writes it, and waits for that owner's stage without holding `_write`."""
+        that owner's source stage writes it, and waits for that owner's stage without holding `_write`.
+        """
         hotkey = getattr(submitted, "hotkey", None)
         owner = (
             self._owner_lock(hotkey)
@@ -747,7 +748,9 @@ class DirectRecipeIntake(BatteryIntake):
             return
         try:
             opener(hotkey)
-        except Exception:  # noqa: BLE001, S110 - the admission meets the same refusal under its own rules
+        except (
+            Exception
+        ):  # noqa: BLE001, S110 - the admission meets the same refusal under its own rules
             pass
 
     def _stage(self, received):
@@ -757,7 +760,8 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _owner_lock(self, hotkey):
         """The lock of one owner's workspace writes (its source stages, and its admission's read of them): one per
-        hotkey, created on first use. Lock order: an owner lock, then `_write`; a source stage takes its owner's only."""
+        hotkey, created on first use. Lock order: an owner lock, then `_write`; a source stage takes its owner's only.
+        """
         with _OWNER_LOCKS_GUARD:
             locks = self.__dict__.setdefault("_owner_locks", {})
             return locks.setdefault(hotkey, threading.Lock())
