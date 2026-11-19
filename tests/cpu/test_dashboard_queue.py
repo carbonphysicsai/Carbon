@@ -839,9 +839,7 @@ def test_the_v4_reader_accepts_what_the_doors_writer_writes():
     )
     door = got["v4Checked"]["door"]
     assert door["ok"] is True
-    assert [r["state"] for r in door["value"]["rows"]["rows"]] == list(
-        qp.ROW_STATES_V4
-    )
+    assert [r["state"] for r in door["value"]["rows"]["rows"]] == list(qp.ROW_STATES_V4)
     assert {
         k: door["value"]["queue"][k]
         for k in ("waiting_to_build", "building_now", "waiting_to_grade", "grading_now")

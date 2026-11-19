@@ -101,7 +101,8 @@ class Sequencer:
 
     def running(self):
         """The claimed submission ids whose grade is RUNNING now: claimed and bound, not inside its commit-turn wait
-        (where it has given its grade-session container back and waits on earlier grades, `_Task.turn`)."""
+        (where it has given its grade-session container back and waits on earlier grades, `_Task.turn`).
+        """
         with self._order:
             return {
                 sid

@@ -742,7 +742,9 @@ def test_v4_rows_grade_only_a_running_grade_and_the_counts_agree(tmp_path):
             second.bind(TASKS[1])
             second.release_claim()
             with grader.sequencer._order:
-                grader.sequencer._waiting.add(second.ticket)  # waits for its commit turn
+                grader.sequencer._waiting.add(
+                    second.ticket
+                )  # waits for its commit turn
             status, v4 = queue_public.serve_v4(view, CHALLENGE)
     assert status == 200
     assert _states_of(v4) == [
