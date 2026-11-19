@@ -588,7 +588,8 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
             before is not None
             and trusted is not None
             and trusted[0] == before
-            and trusted[1] is train
+            # the same TRAIN, or equal bytes (as safe: the full check compares content; V2 20:30Z)
+            and (trusted[1] is train or trusted[1] == train)
             and trusted[2] == documents
         ):
             return

@@ -35,7 +35,7 @@ from carbon.development_session.research_service import DirectFixtureDiscovery
 from carbon.scoring.engine import ScoreEngine
 
 
-def _bound(tmp_path, *, altered_kit=False):
+def _bound(tmp_path, *, altered_kit=False, private_file=False):
     material = bundle_material_v5()
     challenge = material["challenge_key"]
     draft = tmp_path / "draft"
@@ -62,6 +62,10 @@ def _bound(tmp_path, *, altered_kit=False):
         "public": roles,
         "private": {name: "HUMAN_INPUT" for name in PRIVATE_ROLES},
     }
+    if private_file:
+        # one private role held as a file (synthetic bytes), so a private artifact's change can be shown
+        (private / "reference-rows.json").write_bytes(b'{"rows": [1, 2, 3]}')
+        body["private"]["reference_rows"] = {"path": "reference-rows.json"}
     (draft / "evaluation-pack.json").write_text(json.dumps(body), encoding="utf-8")
     prepared = prepare_pack(
         draft,
@@ -133,9 +137,10 @@ def test_the_pack_check_is_cached_by_file_identity_and_rechecks_on_any_change(
     check(material)
     check(material)
     assert len(full) == 3
-    # an equal TRAIN that is another object, or other construction documents: the full check again
+    # an equal TRAIN that is another object reads as the same TRAIN (V2 20:30Z: equal bytes are as safe); other
+    # construction documents: the full check again
     check({**material, "train": bytes(bytearray(material["train"]))})
-    assert len(full) == 4
+    assert len(full) == 3
     other = {**material, "interface_document": {"changed": True}}
     with pytest.raises(EvaluationPackUnavailable, match="construction_mismatch"):
         check(other)
@@ -144,6 +149,61 @@ def test_the_pack_check_is_cached_by_file_identity_and_rechecks_on_any_change(
     for _ in range(2):
         with pytest.raises(EvaluationPackUnavailable, match="digest_mismatch"):
             check(material)
+
+
+def _counting(monkeypatch):
+    """How many full pack checks run (`EvaluationPackSnapshot.verify_available` calls)."""
+    from carbon.challenge_validator import evaluation_pack
+
+    full = []
+    original = evaluation_pack.EvaluationPackSnapshot.verify_available
+
+    def counted(self, *args, **kwargs):
+        full.append(1)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(
+        evaluation_pack.EvaluationPackSnapshot, "verify_available", counted
+    )
+    return full
+
+
+def test_on_the_real_discovery_path_the_second_and_third_requests_skip_the_full_check(
+    tmp_path, monkeypatch
+):
+    """V2 20:30Z MUST-FIX: through the REAL `DirectFixtureDiscovery` (the research service's catalog and manifest
+    provider, which runs this check on every request): its construction is the first full check, the first request the
+    second (trust needs two equal readings), and every later request skips it."""
+    full = _counting(monkeypatch)
+    material, _public, check, _selection = _bound(tmp_path, private_file=True)
+    discovery = DirectFixtureDiscovery(material, task_admission=True, pack_check=check)
+    assert len(full) == 1
+    key = discovery.info.challenge_key
+    discovery.get_interaction_manifest(key)  # request 1, as the research service asks it
+    assert len(full) == 2
+    for _ in range(2):  # requests 2 and 3, both calls each
+        discovery.get_interaction_manifest(key)
+        discovery.get_challenge_info(key)
+    assert len(full) == 2
+
+
+def test_a_changed_private_artifact_refuses_on_the_next_request(tmp_path, monkeypatch):
+    """V2 22:26Z: the cache watches the PRIVATE role files too (the MappingProxyType entries `parse_pack` keeps): a
+    trusted pack whose private artifact changes refuses on the very next request."""
+    import os
+
+    full = _counting(monkeypatch)
+    material, _public, check, _selection = _bound(tmp_path, private_file=True)
+    discovery = DirectFixtureDiscovery(material, task_admission=True, pack_check=check)
+    key = discovery.info.challenge_key
+    discovery.get_challenge_info(key)
+    discovery.get_challenge_info(key)
+    assert len(full) == 2  # trusted
+    private = tmp_path / "private" / "reference-rows.json"
+    private.write_bytes(b'{"rows": [1, 2, 4]}')  # same size, other bytes
+    os.utime(private, ns=(10**18, 10**18))
+    with pytest.raises(EvaluationPackUnavailable, match="digest_mismatch"):
+        discovery.get_challenge_info(key)
 
 
 def test_pack_must_match_registered_construction_content(tmp_path):
