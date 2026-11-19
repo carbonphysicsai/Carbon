@@ -112,13 +112,15 @@ class DirectIntakeDoorBusy(DirectIntakeRateLimit):
 
     Nothing was admitted, charged or recorded, so a rebuilt, re-signed request may be sent again (bounded, jittered)."""
 
-    def __init__(self, retry_after_s=None):
-        DirectIntakeRefusal.__init__(self, "intake_busy")
+    def __init__(self, retry_after_s=None, code="intake_busy"):
+        DirectIntakeRefusal.__init__(self, code)
         self.retry_after_s = retry_after_s
 
 
 #: Tries (the first send included) and the longest single wait for a door that answers `intake_busy` (about a minute in all).
 DOOR_BUSY_TRIES = 6
+#: The door's row-free 503 refusals (nothing read, admitted, recorded or charged): its connection cap and its in-flight bound.
+DOOR_BUSY_CODES = ("intake_busy", "capacity")
 DOOR_BUSY_MAX_WAIT_S = 30.0
 
 
@@ -134,8 +136,8 @@ def _raise_if_pre_admission_refusal(status, answer):
         return
     if status == 429 and answer.get("refused") == "rate":
         raise DirectIntakeRateLimit()
-    if status == 503 and answer.get("refused") == "intake_busy":
-        raise DirectIntakeDoorBusy(answer.get("retry_after_s"))
+    if status == 503 and answer.get("refused") in DOOR_BUSY_CODES:
+        raise DirectIntakeDoorBusy(answer.get("retry_after_s"), answer["refused"])
 
 
 class DirectIntakeBusy(DirectIntakeRefusal):

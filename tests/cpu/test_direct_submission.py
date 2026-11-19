@@ -1509,3 +1509,19 @@ def test_a_503_that_is_not_intake_busy_is_never_resent(tmp_path, monkeypatch):
     with pytest.raises(client.DirectIntakeRefusal, match="TRANSPORT_STORE"):
         _client(tmp_path, monkeypatch, send, wait_s=300)()
     assert sent == [client.SUBMIT_TOOL]
+
+
+def test_a_503_capacity_refusal_is_retried_like_intake_busy_then_names_itself(
+    tmp_path, monkeypatch
+):
+    sent, sleeps = [], []
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        return 503, {"refused": "capacity"}
+
+    with pytest.raises(client.DirectIntakeRefusal) as refused:
+        _client(tmp_path, monkeypatch, send, sleeps=sleeps, wait_s=300)()
+    assert refused.value.code == "capacity"
+    assert sent.count(client.SUBMIT_TOOL) == client.DOOR_BUSY_TRIES
+    assert sum(sleeps) <= 75
