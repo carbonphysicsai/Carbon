@@ -183,28 +183,27 @@ def _append(ledger, workspace, request, name, fingerprint, expected):
     end = offset + len(chunk)
     if offset > size:
         raise ResearchTaskProviderError(ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT)
+    tail = chunk
     if offset < size:
         held = _read(path, offset, end - offset)
         if held != chunk:
-            if end > size and chunk.startswith(held):
-                # a torn tail of THIS chunk (a crash mid-append): cut back to its offset and append it whole
-                with path.open("r+b") as out:
-                    out.truncate(offset)
-                    out.flush()
-                    os.fsync(out.fileno())
-                size = offset
-            else:
+            if not (end > size and chunk.startswith(held)):
                 raise ResearchTaskProviderError(
                     ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
                 )
-    if offset == size:
-        received = size + len(chunk)
+            # the held bytes are this chunk's first bytes (a torn append, or a resend from an earlier offset): only
+            # the rest is new (V2, 19 Nov: same bytes accepted; a differing byte still refuses; the file never shrinks)
+            tail = chunk[size - offset :]
+        else:
+            tail = b""  # a replay of held bytes
+    if tail:
+        received = size + len(tail)
         if received > request.total_bytes:
             raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
         # the same amount the earlier rewrite admitted at this point: the whole partial with the chunk, plus 64 KiB
         ledger.check_storage(received + 65536)
         with path.open("ab") as out:
-            out.write(chunk)
+            out.write(tail)
             out.flush()
             os.fsync(out.fileno())
     else:

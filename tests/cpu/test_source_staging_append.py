@@ -100,9 +100,9 @@ def test_conflicts_replays_and_bounds_answer_as_before(tmp_path):
         assert refused.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
 
 
-def test_a_torn_append_is_cut_back_and_the_chunk_appended_whole(tmp_path):
-    """A crash mid-append leaves part of a chunk: its retry at the same offset is accepted and the count is the file's
-    length, so nothing is double-counted or missing."""
+def test_a_torn_append_is_completed_by_its_retry(tmp_path):
+    """A crash mid-append leaves part of a chunk: its retry at the same offset appends only the rest (the file never
+    shrinks) and the count is the file's length, so nothing is double-counted or missing."""
     ledger = _ledger(tmp_path)
     body = _body(20_000)
     dss.stage_source(ledger, "alice", _request(_name(body), body, 0, body[:8192]))
@@ -174,3 +174,40 @@ def test_another_owner_never_sees_an_upload_it_does_not_hold(tmp_path):
     with pytest.raises(research.ResearchTaskProviderError) as refused:
         dss.stage_source(ledger, "bob", second)
     assert refused.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+
+
+def test_a_resend_from_an_earlier_offset_appends_only_its_new_bytes(tmp_path):
+    """V2 (ca445f32): a chunk whose held bytes equal its first bytes is accepted and only the rest is appended; a
+    differing byte still refuses."""
+    ledger = _ledger(tmp_path)
+    body = _body(20_000)
+    dss.stage_source(ledger, "alice", _request(_name(body), body, 0, body[:5000]))
+    result = dss.stage_source(ledger, "alice", _request(_name(body), body, 1000, body[1000:9192]))
+    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+    assert result.received_bytes == 9192 and path.read_bytes() == body[:9192]
+    changed = bytearray(body[2000:10000])
+    changed[0] ^= 1
+    with pytest.raises(research.ResearchTaskProviderError) as refused:
+        dss.stage_source(ledger, "alice", _request(_name(body), body, 2000, bytes(changed)))
+    assert refused.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+    assert path.read_bytes() == body[:9192]
+
+
+def test_a_refused_overlap_leaves_the_held_bytes_unchanged(tmp_path, monkeypatch):
+    ledger = _ledger(tmp_path)
+    body = _body(20_000)
+    dss.stage_source(ledger, "alice", _request(_name(body), body, 0, body[:5000]))
+    path = dss._partial_path(ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1])))
+
+    def refuse(additional=0):
+        raise LedgerRefusal(
+            "miner budget: retained_bytes",
+            code=MINER_CEILING_REACHED,
+            dimension="retained_bytes",
+            refused_at="storage_check",
+        )
+
+    monkeypatch.setattr(ledger, "check_storage", refuse)
+    with pytest.raises(LedgerRefusal):
+        dss.stage_source(ledger, "alice", _request(_name(body), body, 1000, body[1000:9192]))
+    assert path.read_bytes() == body[:5000]  # nothing held was lost, nothing appended
