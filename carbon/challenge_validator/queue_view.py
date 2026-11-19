@@ -62,6 +62,10 @@ from pathlib import Path
 from . import queue_public as qp
 
 CACHE_S = 30.0
+#: The oldest copy a reader is served while another rebuilds it (V2, 19 Nov 2026: N stated, <= 60 s): the counts' copy
+#: is at most this old (its ``as_of_unix`` says so); past it a reader waits for the rebuild. The rows are floored to their
+#: quantum by design (`queue_public.ROWS_QUANTUM_S`) and are served at most this long past their quantum.
+STALE_MAX_S = 60.0
 DAY_S = 86400.0
 _BUILDING = frozenset({"RUNNING", "CANCEL_REQUESTED"})
 #: The verdict markers whose write time ends a submission's wait (`auto_grade`).
@@ -399,7 +403,7 @@ class QueueView:
             waiting.append((submission_id, graded))
         return waiting
 
-    def _single_flight(self, name, stale, build):
+    def _single_flight(self, name, stale, build, *, age):
         """The cached document ``name`` (an attribute), rebuilt by ONE caller at a time OUTSIDE the lock: while it
         rebuilds, every other caller gets the last built copy at once (its ``as_of_unix`` says how old it is); only
         before the first build does a caller wait for it. A rebuild that fails leaves the last copy and raises to its
@@ -412,15 +416,16 @@ class QueueView:
                 if name not in self._rebuilding:
                     self._rebuilding.add(name)
                     break
-                if cached is not None:
-                    return cached  # someone else is rebuilding: serve the last copy
-                self._built.wait()  # nothing built yet: wait for the first build
+                if cached is not None and age(cached) <= STALE_MAX_S:
+                    return cached  # someone else is rebuilding: serve the last copy (at most STALE_MAX_S old)
+                self._built.wait()  # nothing built yet, or the last copy too old: wait for the rebuild
         try:
             built = build()
-        except BaseException:
+        except BaseException as failure:
             with self._lock:
                 self._rebuilding.discard(name)
                 self._built.notify_all()
+            _log_rebuild_failed(name, failure)  # the last copy stays; the next reader retries
             raise
         with self._lock:
             setattr(self, name, built)
@@ -441,7 +446,10 @@ class QueueView:
             return {"rows": rows, "rows_v4": rows_v4, "as_of_unix": float(at)}
 
         cached = self._single_flight(
-            "_rows_cached", lambda c: c["as_of_unix"] != boundary(), build
+            "_rows_cached",
+            lambda c: c["as_of_unix"] != boundary(),
+            build,
+            age=lambda c: self.clock() - c["as_of_unix"] - qp.ROWS_QUANTUM_S,
         )
         return {
             qp.ROWS: {"rows": cached["rows"], "as_of_unix": cached["as_of_unix"]},
@@ -457,5 +465,28 @@ class QueueView:
             "_cached",
             lambda c: self.clock() - c["as_of_unix"] >= CACHE_S,
             self._read,
+            age=lambda c: self.clock() - c["as_of_unix"],
         )
         return dict(cached)
+
+
+def _log_rebuild_failed(name, failure):
+    """One JSON line on stderr (the journal) for a failed rebuild: the document's name and the failure's type only."""
+    import json
+    import sys
+
+    try:
+        print(
+            json.dumps(
+                {
+                    "event": "queue_view_rebuild_failed",
+                    "document": name,
+                    "type": type(failure).__name__,
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+    except Exception:  # noqa: BLE001, S110 - a log line never fails a read
+        pass
