@@ -850,17 +850,15 @@ class DirectRecipeIntake(BatteryIntake):
         keys = set()
         try:
             keys.add("g:" + exam_cap.group_of(hotkey))
-        except (
-            Exception
-        ):  # noqa: BLE001, S110 - a refusing grouping: the admission refuses the same way
+        # a refusing grouping: no group key, and the admission refuses the same way
+        except Exception:  # noqa: BLE001, S110
             pass
         window = getattr(self, "window", None)
         try:
             snapshot = None if window is None else window.latest()
             member = None if snapshot is None else snapshot.resolve(hotkey)
-        except (
-            Exception
-        ):  # noqa: BLE001 - no snapshot: no coldkey scope (the guard fails open the same way)
+        # no snapshot: no coldkey scope (the guard fails open the same way)
+        except Exception:  # noqa: BLE001
             member = None
         coldkey = getattr(member, "coldkey", None)
         if type(coldkey) is str:
