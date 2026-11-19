@@ -80,6 +80,8 @@ class _NextTask(Exception):
 _NEXT = object()
 #: The set of stalled tasks is replaced whole by a door's grade threads; one at a time.
 _STALLED_LOCK = threading.Lock()
+#: When this module was first loaded (the door's start, near enough): `stranded_filed` names its seconds after it.
+_PROCESS_START = time.monotonic()
 
 
 class AutoGrader:
@@ -1365,11 +1367,19 @@ class AutoGrader:
             # Once per start, before the first grade: queue every challenger graded while the king could not be met
             # (`recontend`), so it is contended ahead of anything graded after. Marked done only once the check was
             # MADE (a refusal or a missing exam is tried again a minute later, never left silent until a restart).
-            state, _filed = king_upkeep.file_stranded(
+            state, filed = king_upkeep.file_stranded(
                 self.root, self.pool_store, self.intake.adapter.discovery
             )
             if state == king_upkeep.STRANDED_DONE:
                 self._stranded_filed = True
+                # V2 (19 Nov 2026): one line when it is made, so a stranded hold's end reads from the journal
+                from carbon.battery.intake import log
+
+                log(
+                    "stranded_filed",
+                    count=filed if type(filed) is int else None,
+                    seconds_after_start=round(time.monotonic() - _PROCESS_START, 1),
+                )
             else:
                 # its refusal code is in the journal (`recontend_checked`)
                 self._stranded_last = "retry"

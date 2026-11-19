@@ -151,3 +151,25 @@ def test_a_requeue_is_asked_at_most_once_per_interval(monkeypatch):
     now[0] += lean_recipe.REQUEUE_ASK_SECONDS
     adapter._requeue_failed_build("5Owner", task_id, provider)
     assert reads == [1, 1]
+
+
+def test_the_stranded_filing_logs_one_line_when_it_is_made(monkeypatch):
+    """V2 (19 Nov 2026): `stranded_filed` (its count and seconds after start) is logged once when the filing is made,
+    so a stranded hold's end reads from the journal."""
+    from carbon.battery import intake
+    from carbon.challenge_validator import king_upkeep
+
+    lines = []
+    monkeypatch.setattr(intake, "log", lambda event, **fields: lines.append((event, fields)))
+    monkeypatch.setattr(
+        king_upkeep, "file_stranded", lambda *a, **k: (king_upkeep.STRANDED_DONE, 3)
+    )
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader._pool = lambda: object()
+    grader.pool_store = "/nonexistent-pool-store"
+    grader.root = "/nonexistent-root"
+    grader.intake = SimpleNamespace(adapter=SimpleNamespace(discovery=None))
+    assert grader._file_stranded()[0] is True
+    assert grader._stranded_filed is True
+    assert [(event, fields["count"]) for event, fields in lines] == [("stranded_filed", 3)]
+    assert lines[0][1]["seconds_after_start"] >= 0
