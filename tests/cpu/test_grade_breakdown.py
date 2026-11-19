@@ -131,7 +131,9 @@ def test_write_is_once_owner_only_and_refuses_a_change(tmp_path):
     assert json.loads(path.read_bytes()) == document
     if os.name == "posix":
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
-    assert gb.write(directory, document) == path  # the same bytes again: nothing changes
+    assert (
+        gb.write(directory, document) == path
+    )  # the same bytes again: nothing changes
     changed = gb.breakdown(**_inputs(rule_flags={"in_range": True}))
     with pytest.raises(gb.GradeBreakdownRefused) as refused:
         gb.write(directory, changed)

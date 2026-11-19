@@ -224,7 +224,8 @@ def dumps(document):
 def write(directory, document):
     """Write ``document`` once as ``<directory>/<submission_id>.grade-breakdown.json`` (owner-only, whole or not at
     all) and return its path. ``directory`` must exist, be a real directory and give no access to group or others; the
-    same bytes again is a no-op, different bytes refuse (``grade_breakdown_conflict``)."""
+    same bytes again is a no-op, different bytes refuse (``grade_breakdown_conflict``).
+    """
     if (
         type(document) is not dict
         or set(document) != FIELDS
@@ -272,9 +273,11 @@ def write(directory, document):
 
 def _parsed_time(text):
     try:
-        return datetime.datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(
-            tzinfo=datetime.UTC
-        ).timestamp()
+        return (
+            datetime.datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ")
+            .replace(tzinfo=datetime.UTC)
+            .timestamp()
+        )
     except (TypeError, ValueError):
         raise GradeBreakdownRefused("grade_breakdown_document_invalid") from None
 
@@ -308,9 +311,7 @@ def recipe_measures(state_bytes):
                     shape, _fortran, dtype = header
                     if member.filename == "graph.npy":
                         if dtype != np.uint8 or len(shape) != 1:
-                            raise GradeBreakdownRefused(
-                                "grade_breakdown_state_invalid"
-                            )
+                            raise GradeBreakdownRefused("grade_breakdown_state_invalid")
                         document = json.loads(stream.read(shape[0]))
                         continue
                 if member.filename in _NOT_TRAINED:
