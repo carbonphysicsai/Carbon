@@ -44,7 +44,9 @@ def _door(delay=0.0, status=200):
             time.sleep(built["delay"])
             with guard:
                 built["inside"] -= 1
-            return Answer(built["status"], {"doc": kind, "build": n, "signed": "sig-" + kind})
+            return Answer(
+                built["status"], {"doc": kind, "build": n, "signed": "sig-" + kind}
+            )
 
         return build
 
@@ -65,7 +67,9 @@ def test_a_flood_of_every_public_get_never_holds_a_submit():
         _get(intake, key)  # prime every shared answer
     primed = built["n"]
     for entry in intake._public_state.values():
-        entry["at"] -= di.PUBLIC_GET_FRESH_S + 1  # every answer now due a rebuild (and fresh again once rebuilt)
+        entry["at"] -= (
+            di.PUBLIC_GET_FRESH_S + 1
+        )  # every answer now due a rebuild (and fresh again once rebuilt)
     built["delay"] = 1.0
     done = {}
 
@@ -80,7 +84,9 @@ def test_a_flood_of_every_public_get_never_holds_a_submit():
         for f in subs:
             f.result(20)
         answers = [g.result(20) for g in gets]
-    assert max(done.values()) - began < 1.5  # submits never wait out a flood of rebuilds
+    assert (
+        max(done.values()) - began < 1.5
+    )  # submits never wait out a flood of rebuilds
     assert built["n"] - primed <= len(KEYS)  # at most one rebuild per path
     assert all(a.status == 200 and a.body["signed"].startswith("sig-") for a in answers)
 
@@ -90,9 +96,13 @@ def test_each_endpoint_serves_exactly_what_it_built_and_a_copy_per_caller():
     for key in KEYS:
         first = _get(intake, key)
         again = _get(intake, key)
-        assert again == first  # same document (signed bytes included), served from the shared answer
+        assert (
+            again == first
+        )  # same document (signed bytes included), served from the shared answer
         again.body["doc"] = "changed by a caller"
-        assert _get(intake, key) == first  # a caller's copy never changes the shared one
+        assert (
+            _get(intake, key) == first
+        )  # a caller's copy never changes the shared one
     assert built["n"] == len(KEYS)
 
 
@@ -102,7 +112,9 @@ def test_a_quoted_path_is_the_same_document_and_an_unknown_one_is_never_cached()
     assert _get(intake, key.replace("-", "%2D")) == _get(intake, key)
     assert built["n"] == 1
     for _ in range(3):
-        _get(intake, koth_public.PATH + "another-challenge")  # answered live (a 404), never stored
+        _get(
+            intake, koth_public.PATH + "another-challenge"
+        )  # answered live (a 404), never stored
     assert set(intake._public_state) == {key}
 
 
@@ -119,12 +131,16 @@ def test_a_failed_rebuild_keeps_the_last_good_answer_for_others(monkeypatch):
 def test_a_copy_past_the_stale_bound_is_never_served(monkeypatch):
     intake, built = _door()
     _get(intake, KEYS[0])
-    intake._public_state[KEYS[0]]["at"] -= di.PUBLIC_GET_STALE_MAX_S + 1  # the last copy is too old
+    intake._public_state[KEYS[0]]["at"] -= (
+        di.PUBLIC_GET_STALE_MAX_S + 1
+    )  # the last copy is too old
     built["delay"] = 0.2
     with ThreadPoolExecutor(max_workers=4) as pool:
         out = [pool.submit(_get, intake, KEYS[0]) for _ in range(6)]
         docs = [f.result(10) for f in out]
-    assert {d.body["build"] for d in docs} == {2}  # everyone got the rebuilt answer, nobody the old one
+    assert {d.body["build"] for d in docs} == {
+        2
+    }  # everyone got the rebuilt answer, nobody the old one
     assert di.PUBLIC_GET_STALE_MAX_S <= 60
 
 

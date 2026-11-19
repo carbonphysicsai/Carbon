@@ -572,7 +572,11 @@ class DirectFixtureDiscovery:
             else (
                 battery_versioned_material
                 if battery_v2
-                else (physical_material.bundle_material if physical else registered_material)
+                else (
+                    physical_material.bundle_material
+                    if physical
+                    else registered_material
+                )
             )
         )
         registered = _registered_once(
@@ -744,7 +748,8 @@ _REGISTERED_GUARD = threading.Lock()
 def _registered_once(key, derive):
     """``derive()`` for ``key``, computed once per process (single-flight per key; a failure is not kept). Each caller
     gets its OWN deep copy (V2 on 5a226278), so nothing a caller does to it can change the next call's check; bytes
-    are immutable and shared, arrays and dicts are copied (far cheaper than the derivation)."""
+    are immutable and shared, arrays and dicts are copied (far cheaper than the derivation).
+    """
     import copy
 
     found = _REGISTERED.get(key)

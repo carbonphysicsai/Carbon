@@ -573,7 +573,8 @@ class DirectRecipeIntake(BatteryIntake):
         the guard (no request lock is held while it builds); meanwhile every other caller gets the last GOOD answer (a
         2xx/4xx one) if at most `PUBLIC_GET_STALE_MAX_S` old, else waits for the rebuild. A rebuild that fails (raises,
         or answers 5xx) keeps the last good answer for others; its own caller gets its own result, as before. The body
-        is copied per caller (the answer an earlier caller holds is never shared mutably)."""
+        is copied per caller (the answer an earlier caller holds is never shared mutably).
+        """
         import copy
 
         state = self.__dict__.setdefault("_public_state", {})
@@ -585,9 +586,13 @@ class DirectRecipeIntake(BatteryIntake):
                 if entry is not None and entry.get("answer") is not None:
                     age = now - entry["at"]
                     if age < PUBLIC_GET_FRESH_S:
-                        return Answer(entry["answer"].status, copy.deepcopy(entry["answer"].body))
+                        return Answer(
+                            entry["answer"].status, copy.deepcopy(entry["answer"].body)
+                        )
                     if entry.get("building") and age <= PUBLIC_GET_STALE_MAX_S:
-                        return Answer(entry["answer"].status, copy.deepcopy(entry["answer"].body))
+                        return Answer(
+                            entry["answer"].status, copy.deepcopy(entry["answer"].body)
+                        )
                 if entry is None or not entry.get("building"):
                     entry = state.setdefault(key, {"answer": None, "at": 0.0})
                     entry["building"] = True
@@ -601,7 +606,11 @@ class DirectRecipeIntake(BatteryIntake):
             with cond:
                 entry = state[key]
                 entry["building"] = False
-                if answer is not None and type(answer) is Answer and answer.status < 500:
+                if (
+                    answer is not None
+                    and type(answer) is Answer
+                    and answer.status < 500
+                ):
                     entry["answer"] = Answer(answer.status, copy.deepcopy(answer.body))
                     entry["at"] = time.monotonic()
                 cond.notify_all()
