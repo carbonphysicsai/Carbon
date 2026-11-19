@@ -546,6 +546,7 @@ def measure_pool(
     if a_only:
         # The owner's "physics score alone" for this version: D := A per set, so the dual pack's 0.5 A + 0.5 D is A.
         d_values = list(a_values)
+
     def se_basis():
         """The per-target decomposition of the final total (`se_basis`), from this grade's own values."""
         if policies.physics is not None:

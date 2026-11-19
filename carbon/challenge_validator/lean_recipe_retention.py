@@ -2964,7 +2964,9 @@ def _write_captured_exam_se(
             document.update(standard_error=spread, status="MEASURED", n_targets=sizes)
         except pool_exam.ExamRefused as refused:
             document.update(status="UNAVAILABLE", reason=refused.code)
-        except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+        except (
+            Exception
+        ) as failure:  # noqa: BLE001 - operator evidence, never the grade
             document.pop("standard_error", None)
             document.update(
                 status="UNAVAILABLE",
@@ -2985,7 +2987,9 @@ def _write_captured_exam_se(
         for name, body in sidecars:
             try:
                 write_once(directory / name, _json(body))
-            except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+            except (
+                Exception
+            ) as failure:  # noqa: BLE001 - operator evidence, never the grade
                 _journal(
                     "grade_sidecar_unwritten",
                     task=submission_id,

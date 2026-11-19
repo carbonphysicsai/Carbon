@@ -974,7 +974,8 @@ def test_real_adapter_the_staged_capture_is_the_official_subset_grades_measure(
     """Door-code item 5, V2 evidence A: inside the subset producer (`produce_registered_dual_measurement` ->
     `_produce` -> `measure_subset` -> PoolVariant.measure -> `pool_exam.measure_pool`, the ONE measure of the grade),
     the receiver's staged capture holds THAT measure: its basis total is the benchmark's own 0.5 A + 0.5 D; a grade the
-    subset repeat leaves unscored has no SE (gated), whatever the pool measure staged."""
+    subset repeat leaves unscored has no SE (gated), whatever the pool measure staged.
+    """
     from carbon.challenge_validator import lean_recipe_retention as retention
     from carbon.scoring import pool_exam
 
@@ -984,7 +985,9 @@ def test_real_adapter_the_staged_capture_is_the_official_subset_grades_measure(
     benchmark = json.loads(measured.raw)["benchmark"]
     assert set(benchmark["models"][0]["gates"].values()) == {"PASS"}
     assert callable(captured["se_basis_of"])
-    basis = retention._official_basis(captured, benchmark)  # raises capture_not_official otherwise
+    basis = retention._official_basis(
+        captured, benchmark
+    )  # raises capture_not_official otherwise
     legs = benchmark["models"][0]["measurements"]
     graded = 0.5 * legs[physical.METRICS["A"]]["value"]
     graded += 0.5 * legs[physical.METRICS["D"]]["value"]

@@ -123,7 +123,9 @@ def test_a_basis_that_cannot_be_derived_never_reaches_the_grade(monkeypatch):
     assert result == plain
     with pytest.raises(RuntimeError):
         captured["se_basis_of"]()
-    with pytest.raises(RuntimeError):  # the operator's explicit capture refuses, as before
+    with pytest.raises(
+        RuntimeError
+    ):  # the operator's explicit capture refuses, as before
         _measure(the_sets, policies, material)
 
 
@@ -268,7 +270,8 @@ def test_a_gate_failed_pool_grade_stores_its_gate_failures(tmp_path):
 @pytest.mark.usefixtures("geometric_v1_stand_in")
 def test_a_basis_that_is_not_the_scored_measures_is_never_used(tmp_path):
     """V2 on d31ca579 (evidence A): the captured basis must be the OFFICIAL grade's; its total must be the benchmark's
-    own 0.5 A + 0.5 D, else UNAVAILABLE capture_not_official (the accuracy record is still kept)."""
+    own 0.5 A + 0.5 D, else UNAVAILABLE capture_not_official (the accuracy record is still kept).
+    """
     the_sets = _sets(per_class=2)
     policies, material = _registered(the_sets, threshold=2.5)
     result, captured = _staged(the_sets, policies, material)
