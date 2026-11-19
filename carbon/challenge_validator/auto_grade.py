@@ -981,29 +981,39 @@ class AutoGrader:
         return None
 
     def _building_views(self):
-        """The task ids the door's already-open providers hold as QUEUED, RUNNING or CANCEL_REQUESTED: nothing to grade
-        yet (their grade is `task_not_succeeded`, skipped), so the claim scan skips them before the owner check, while
-        it holds the claim. Live 116 stacks (18 Nov 2026, 14:27Z): that scan ran the owner check (the served-source hash)
-        for every unbuilt submission while every grade and the incumbent's steps waited on the claim. Read from the
-        views alone (no ledger); a task not here is scanned as before."""
+        """The task ids that cannot be graded now because their build has not SUCCEEDED, read from the door's own
+        indexes without opening any provider: an open provider's task views in any state but SUCCEEDED (QUEUED, RUNNING,
+        CANCEL_REQUESTED, and the terminal REFUSED / FAILED / CANCELLED / ... that never get a grade marker and so stay
+        pending forever), and every lazy owner's task not SUCCEEDED (`OwnerProviders.lazy_index`: a lazy owner holds only
+        terminal tasks). Their grade would be `task_not_succeeded`, so the claim scan skips them before the owner check.
+        Live 116, 19 Nov 2026 08:23Z (``grade_claim_scan``): each claim pass retried ~123 such tasks, each through the
+        owner open (a lazy owner's restore) and the retain step, 24-34 min per pass before one real grade. A task in no
+        index is scanned as before."""
         from carbon.research import DirectTaskStateV3
 
-        waiting = (
-            DirectTaskStateV3.QUEUED,
-            DirectTaskStateV3.RUNNING,
-            DirectTaskStateV3.CANCEL_REQUESTED,
-        )
+        succeeded = DirectTaskStateV3.SUCCEEDED
         adapter = getattr(getattr(self, "intake", None), "adapter", None)
-        opened = getattr(getattr(adapter, "provider_for", None), "_providers", None)
-        if type(opened) is not dict:
-            return frozenset()
+        provider_for = getattr(adapter, "provider_for", None)
+        opened = getattr(provider_for, "_providers", None)
         found = set()
-        for provider in tuple(opened.values()):
-            views = getattr(provider, "_views", None)
-            if type(views) is not dict:
-                continue
-            for task, view in tuple(views.items()):
-                if getattr(view, "state", None) in waiting:
+        if type(opened) is dict:
+            for provider in tuple(opened.values()):
+                views = getattr(provider, "_views", None)
+                if type(views) is not dict:
+                    continue
+                for task, view in tuple(views.items()):
+                    state = getattr(view, "state", None)
+                    if state is not None and state is not succeeded:
+                        found.add(task)
+        lazy = getattr(provider_for, "lazy_index", None)
+        if callable(lazy):
+            try:
+                entries = lazy()
+            except Exception:  # noqa: BLE001 - unreadable: those tasks are scanned as before
+                entries = {}
+            for task, entry in entries.items():
+                state = entry[0] if type(entry) in (tuple, list) and entry else None
+                if type(state) is str and state != succeeded.value:
                     found.add(task)
         return frozenset(found)
 
