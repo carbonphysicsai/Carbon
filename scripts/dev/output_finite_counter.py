@@ -116,6 +116,7 @@ def count(
                 term = member_forward(*arrays, part)[0] * jnp.asarray(weights)
                 total = term if total is None else total + term
             return [total * jnp.asarray(sd) + jnp.asarray(mu)]
+
     x = jnp.asarray(inputs, dtype=declared[-1]["dtype"])
     tail = [(0, 0)] * (x.ndim - 1)
     zero, repeat = [], []
