@@ -666,6 +666,11 @@ NEXT_ACTIONS = {
     # The profile does name it, so this is never "no intake configured".
     # Validator (E9 follow-up): the codes that can follow a submit, given
     # their own step before the generic one.
+    "intake_busy": (
+        "The validator is busy and turned your submit away before reading it, "
+        "even after several tries. Nothing was sent, charged or graded, and "
+        "the frozen candidate is kept. Wait a minute and submit again."
+    ),
     "construction_request_deadline": (
         "Your construction receiver did not answer before the submit's "
         "deadline. The frozen candidate is kept. If the receiver did get your "

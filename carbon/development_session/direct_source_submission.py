@@ -26,6 +26,7 @@ from carbon.transport.models import MAX_BODY, message
 from .direct_submission import (
     SOURCE_TOOL,
     SUBMIT_PATH,
+    DirectIntakeDoorBusy,
     DirectIntakeRateLimit,
     DirectIntakeRefusal,
     _checked,
@@ -205,6 +206,14 @@ def _stage_one(
                 pacer.saw_rate()
                 pacer.last_fault = "rate"
                 raise DirectIntakeRateLimit()
+            if (
+                status == 503
+                and type(answer) is dict
+                and answer.get("refused") == "intake_busy"
+            ):
+                pacer.saw_rate()
+                pacer.last_fault = "rate"
+                raise DirectIntakeDoorBusy(answer.get("retry_after_s"))
             if status != 200 or type(answer) is not dict:
                 raise DirectIntakeRefusal(
                     _refusal_code(answer, "construction_source_staging_unavailable")
@@ -419,6 +428,14 @@ def _stage_material_one(
                 pacer.saw_rate()
                 pacer.last_fault = "rate"
                 raise DirectIntakeRateLimit()
+            if (
+                status == 503
+                and type(answer) is dict
+                and answer.get("refused") == "intake_busy"
+            ):
+                pacer.saw_rate()
+                pacer.last_fault = "rate"
+                raise DirectIntakeDoorBusy(answer.get("retry_after_s"))
             if status != 200 or type(answer) is not dict:
                 raise DirectIntakeRefusal(
                     _refusal_code(answer, "construction_material_staging_unavailable")

@@ -1454,3 +1454,57 @@ def test_other_infrastructure_failures_are_not_resubmitted(tmp_path, monkeypatch
 
     result = _client(tmp_path, monkeypatch, send)()
     assert result["state"] == "FAILED_INFRA" and len(submits) == 1
+
+
+@pytest.mark.parametrize("phase", ["submit", "status"])
+def test_an_intake_busy_503_is_resent_after_retry_after_and_succeeds(
+    tmp_path, monkeypatch, phase
+):
+    sent, busy_left = [], [2]
+
+    def send(url, body, headers):
+        request = json.loads(body)
+        sent.append(request["tool"])
+        is_submit = request["tool"] == client.SUBMIT_TOOL
+        if (phase == "submit") == is_submit and busy_left[0]:
+            busy_left[0] -= 1
+            return 503, {"refused": "intake_busy", "retry_after_s": 1.0}
+        return (202 if is_submit else 200), _answer(
+            "ADMITTED" if is_submit else "RECONSTRUCTED"
+        )
+
+    sleeps = []
+    result = _client(tmp_path, monkeypatch, send, sleeps=sleeps, wait_s=200)()
+    assert result["state"] == "RECONSTRUCTED"
+    assert sent.count(phase_tool := (client.SUBMIT_TOOL if phase == "submit" else client.STATUS_TOOL)) == 3
+    waits = [s for s in sleeps if s >= 1.0]
+    assert len(waits) >= 2 and waits[0] < waits[1]  # Retry-After honoured, then doubling
+
+
+def test_a_door_that_stays_busy_is_tried_a_bounded_number_of_times_then_names_itself(
+    tmp_path, monkeypatch
+):
+    sent, sleeps = [], []
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        return 503, {"refused": "intake_busy", "retry_after_s": 1.0}
+
+    with pytest.raises(client.DirectIntakeRefusal) as refused:
+        _client(tmp_path, monkeypatch, send, sleeps=sleeps, wait_s=300)()
+    assert refused.value.code == "intake_busy"
+    assert sent.count(client.SUBMIT_TOOL) == client.DOOR_BUSY_TRIES
+    assert sum(sleeps) <= 75  # about a minute of waiting, never open-ended
+    assert not (tmp_path / "construction-intake-epoch-1.json").exists()
+
+
+def test_a_503_that_is_not_intake_busy_is_never_resent(tmp_path, monkeypatch):
+    sent = []
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        return 503, {"refused": "TRANSPORT_STORE"}
+
+    with pytest.raises(client.DirectIntakeRefusal, match="TRANSPORT_STORE"):
+        _client(tmp_path, monkeypatch, send, wait_s=300)()
+    assert sent == [client.SUBMIT_TOOL]

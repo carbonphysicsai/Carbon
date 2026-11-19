@@ -107,6 +107,37 @@ TRANSPORT_STALE = "TRANSPORT_STALE"
 BUSY_RETRIES = 2
 
 
+class DirectIntakeDoorBusy(DirectIntakeRateLimit):
+    """The door's connection cap refused this request before reading it: HTTP 503 `intake_busy` with Retry-After.
+
+    Nothing was admitted, charged or recorded, so a rebuilt, re-signed request may be sent again (bounded, jittered)."""
+
+    def __init__(self, retry_after_s=None):
+        DirectIntakeRefusal.__init__(self, "intake_busy")
+        self.retry_after_s = retry_after_s
+
+
+#: Tries (the first send included) and the longest single wait for a door that answers `intake_busy` (about a minute in all).
+DOOR_BUSY_TRIES = 6
+DOOR_BUSY_MAX_WAIT_S = 30.0
+
+
+def _door_busy_wait(attempt, retry_after_s):
+    """Seconds to wait after the `attempt`-th (1-based) `intake_busy`: Retry-After, doubling, capped, plus jitter."""
+    base = min(max(float(retry_after_s or 1.0), 1.0) * 2 ** (attempt - 1), DOOR_BUSY_MAX_WAIT_S)
+    return base + random.uniform(0.0, 0.25 * base)
+
+
+def _raise_if_pre_admission_refusal(status, answer):
+    """Raise the typed pre-admission refusal for HTTP 429 `rate` or HTTP 503 `intake_busy`; otherwise return."""
+    if type(answer) is not dict:
+        return
+    if status == 429 and answer.get("refused") == "rate":
+        raise DirectIntakeRateLimit()
+    if status == 503 and answer.get("refused") == "intake_busy":
+        raise DirectIntakeDoorBusy(answer.get("retry_after_s"))
+
+
 class DirectIntakeBusy(DirectIntakeRefusal):
     """The door was busy: it refused the request as TRANSPORT_STALE before admitting anything."""
 
@@ -127,6 +158,7 @@ def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.
     """
     last = None
     busy = 0
+    door_busy = 0
     for attempt in range(31):
         if clock() >= deadline:
             if last is not None:
@@ -143,6 +175,17 @@ def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.
             if busy > BUSY_RETRIES or remaining <= 0:
                 raise
             sleep(min(_busy_wait(), remaining))
+            if clock() >= deadline:
+                raise
+        except DirectIntakeDoorBusy as refused:
+            # intake_busy: refused before the body was read, so nothing happened. At most DOOR_BUSY_TRIES sends, each
+            # rebuilt and signed afresh, waiting Retry-After (doubling, capped, jittered); then the typed refusal.
+            last = refused
+            door_busy += 1
+            remaining = deadline - clock()
+            if door_busy >= DOOR_BUSY_TRIES or remaining <= 0:
+                raise
+            sleep(min(_door_busy_wait(door_busy, refused.retry_after_s), remaining))
             if clock() >= deadline:
                 raise
         except DirectIntakeRateLimit as refused:
@@ -181,10 +224,11 @@ def read_intake(url: str, *, timeout: float = 10.0) -> dict:
         ) as response:
             facts = json.loads(response.read(65536))
     except urllib.error.HTTPError as refused:
-        if refused.code == 429:
+        if refused.code in (429, 503):
             answer = json.loads(refused.read(65536) or b"{}")
-            if type(answer) is dict and answer.get("refused") == "rate":
-                raise DirectIntakeRateLimit() from None
+            if type(answer) is dict and refused.code == 503:
+                answer["retry_after_s"] = _retry_after_s(refused.headers)
+            _raise_if_pre_admission_refusal(refused.code, answer)
         raise
     if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
         raise DirectIntakeRefusal("construction_intake_wrong_schema")
@@ -202,7 +246,18 @@ def post(url, body, headers, *, timeout=30.0):
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.status, json.loads(response.read(65536))
     except urllib.error.HTTPError as refused:
-        return refused.code, json.loads(refused.read(65536) or b"{}")
+        answer = json.loads(refused.read(65536) or b"{}")
+        if refused.code == 503 and type(answer) is dict:
+            answer["retry_after_s"] = _retry_after_s(refused.headers)
+        return refused.code, answer
+
+
+def _retry_after_s(headers):
+    """The Retry-After header as seconds (a plain number), or None."""
+    try:
+        return float(headers.get("Retry-After")) if headers is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _checked(facts, *, recipe, contract_digest, receiver, context):
@@ -1041,12 +1096,7 @@ def submit_and_wait(
                 if send is post
                 else send(url, body, headers)
             )
-            if (
-                status == 429
-                and type(answer) is dict
-                and answer.get("refused") == "rate"
-            ):
-                raise DirectIntakeRateLimit()
+            _raise_if_pre_admission_refusal(status, answer)
             if (
                 status == 400
                 and type(answer) is dict
@@ -1146,12 +1196,7 @@ def submit_and_wait(
                 if send is post
                 else send(url, body, headers)
             )
-            if (
-                status == 429
-                and type(answer) is dict
-                and answer.get("refused") == "rate"
-            ):
-                raise DirectIntakeRateLimit()
+            _raise_if_pre_admission_refusal(status, answer)
             if (
                 status != 200
                 or type(answer) is not dict
@@ -1327,8 +1372,7 @@ def withdraw_submission(root, epoch, signer, *, read=read_intake, send=post):
             body, receiver=record["receiver"], nonce_ns=time.time_ns()
         )
         status, answer = send(url, body, headers)
-        if status == 429 and type(answer) is dict and answer.get("refused") == "rate":
-            raise DirectIntakeRateLimit()
+        _raise_if_pre_admission_refusal(status, answer)
         if status != 200 or type(answer) is not dict:
             code = _refusal_code(answer, "withdraw_unavailable")
             if code == TRANSPORT_STALE:
