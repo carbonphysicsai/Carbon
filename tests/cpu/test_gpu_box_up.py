@@ -1808,12 +1808,16 @@ def test_only_public_material_goes_to_the_box(tmp_path):
     box = FakeBox(cfg)
     assert _run(cfg, box)["status"] == "ADMITTED"
     streamed = [pipe for _, pipe in box.calls if pipe is not None]
-    assert streamed == [
-        ["docker", "save", JAX],
-        ["docker", "save", TORCH],
-        ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD, "--"]
-        + list(box_up.TREE_PATHS),
-    ]
+    # exactly these three public uploads, the JAX image first; the torch image streams in the background beside the
+    # tree, so its order against the tree upload is not fixed
+    assert streamed[0] == ["docker", "save", JAX]
+    assert sorted(streamed[1:]) == sorted(
+        [
+            ["docker", "save", TORCH],
+            ["git", "-C", str(box_up.ROOT), "archive", "--format=tar", HEAD, "--"]
+            + list(box_up.TREE_PATHS),
+        ]
+    )
     for argv, _ in box.calls:
         text = " ".join(argv)
         assert "PRIVATE KEY" not in text and "secret" not in text
