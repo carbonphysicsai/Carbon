@@ -372,7 +372,8 @@ def _roles(snapshot, root):
 
 def _twins(pair_path, snapshot, root, adapter, bank, n_rows, width):
     """One fresh answer per bank row (None when not repeat-checked), as the subset producer reads its side file. The
-    run binding values (recipe, state, image) are read from the side file's own run block: see the module notes."""
+    run binding values (recipe, state, image) are read from the side file's own run block: see the module notes.
+    """
     if pair_path is None:
         return [None] * n_rows
     import io
@@ -455,7 +456,8 @@ def _total(pack, measured):
 
 def _menu_tasks(policies, material, record, se_d):
     """Per drawn task: the measured d, and Z / oracle re-run through `menu_score.score_task` exactly as
-    `pool_menu.score` calls it (key = the installed menu key, epoch = the rule's epoch)."""
+    `pool_menu.score` calls it (key = the installed menu key, epoch = the rule's epoch).
+    """
     from carbon.scoring import menu_score, pool_menu, pool_version
 
     rule = policies.menu

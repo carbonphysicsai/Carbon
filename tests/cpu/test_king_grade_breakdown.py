@@ -1,5 +1,6 @@
 """The king grade breakdown's output guard (scripts/dev/king_grade_breakdown.py): aggregates only, a self-check
-before any write, an owner-only output directory. No sealed data and no key: numpy stand-ins only."""
+before any write, an owner-only output directory. No sealed data and no key: numpy stand-ins only.
+"""
 
 from __future__ import annotations
 
