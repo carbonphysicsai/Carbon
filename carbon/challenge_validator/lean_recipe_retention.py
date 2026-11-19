@@ -875,8 +875,49 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     return artifacts
 
 
+#: The retained files whose bytes are an operation output's own file, by the evidence field naming the operation.
+_OPERATION_FILES = (
+    ("build_operation", "state.npz", "state.npz"),
+    ("inference_operation", "predictions.json", "predictions.json"),
+    ("timed_operation", "predictions.json", "timed-query-predictions.json"),
+)
+
+
+def _operation_sources(provider, evidence):
+    """``{retained file name: the operation snapshot file it was read from}`` for a served task's retention: the build's
+    state, the graded predictions and the timed query's predictions are each byte-for-byte that operation's output
+    (`_snapshot` read and checked them), so the retained file is stored as a hard link to it (`data.link_once`, which
+    re-checks the bytes; owner rule #13: the predictions are on disk once). Anything unreadable names no source."""
+    try:
+        root = Path(provider.ledger.root)
+    except (AttributeError, TypeError):
+        return {}
+    sources = {}
+    for field, name, retained in _OPERATION_FILES:
+        operation = evidence.get(field) if type(evidence) is dict else None
+        if type(operation) is str and re.fullmatch(
+            r"operation-[0-9a-f]{64}", operation
+        ):
+            sources[retained] = root / operation / "snapshot" / name
+    return sources
+
+
+def _write_retained(task_root, artifacts, sources=None):
+    """Write each retained file once (`write_once`); a file whose source is known is a hard link to it when the bytes
+    are identical (`link_once`): the same names, bytes and digests for every reader and custody check, stored once."""
+    from carbon.development_session.data import link_once, write_once
+
+    sources = sources or {}
+    for name, raw in artifacts.items():
+        source = sources.get(name)
+        if source is None:
+            write_once(task_root / name, raw)
+        else:
+            link_once(source, task_root / name, raw)
+
+
 def _retain_graph_artifacts(
-    artifacts, submission_id, *, artifact_directory, entry_directory
+    artifacts, submission_id, *, artifact_directory, entry_directory, sources=None
 ):
     from carbon.development_session.data import write_once
 
@@ -942,8 +983,7 @@ def _retain_graph_artifacts(
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
     try:
-        for name, raw in artifacts.items():
-            write_once(task_root / name, raw)
+        _write_retained(task_root, artifacts, sources)
         manifest_path = base / (submission_id + ".roles.json")
         write_once(manifest_path, _json(role_manifest))
         custody = prepare_custody_v5(task_root, manifest_path)
@@ -4459,6 +4499,7 @@ def _retain_served_artifacts(
             submission_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
+            sources=_operation_sources(provider, evidence),
         )
         return provider, task, result, artifacts, evidence
     if recipe.to_dict()["source"]["kind"] != "bundle":
@@ -4819,9 +4860,10 @@ def _retain_served_artifacts(
     task_root = base / submission_id
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
+    # stored once on disk: the operation outputs it retains are hard links to them (owner rule #13)
+    sources = _operation_sources(provider, evidence)
     try:
-        for name, raw in artifacts.items():
-            write_once(task_root / name, raw)
+        _write_retained(task_root, artifacts, sources)
         manifest_path = base / (submission_id + ".roles.json")
         write_once(manifest_path, _json(role_manifest))
         custody = prepare_custody_v5(task_root, manifest_path)
@@ -6454,9 +6496,28 @@ def _regrade_retained_entry(
 
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
+    # Stored once on disk (owner rule #13): a file kept unchanged from the origin is a hard link to the origin's own
+    # retained file, and this grade's predictions to its inference operation's output (`link_once` re-checks the bytes)
+    sources = {
+        name: base / origin / name
+        for name, raw in files.items()
+        if artifacts.get(name) is raw
+    }
+    for retained, field in (
+        ("predictions.json", "inference_operation"),
+        ("timed-query-predictions.json", "timed_operation"),
+    ):
+        operation = operations.get(field) if type(operations) is dict else None
+        if (
+            type(operation) is str
+            and re.fullmatch(r"operation-[0-9a-f]{64}", operation)
+            and retained in artifacts
+        ):
+            sources[retained] = (
+                provider.ledger.root / operation / "snapshot" / "predictions.json"
+            )
     try:
-        for name, raw in artifacts.items():
-            write_once(task_root / name, raw)
+        _write_retained(task_root, artifacts, sources)
         # Beside the task (not in it): the custody inventory is exactly the declared files.
         write_once(
             base / (regrade_id + ".regrade-operation.json"),
