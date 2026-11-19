@@ -28,7 +28,6 @@ import threading
 import time
 from dataclasses import replace
 
-import pytest
 from test_c08_authenticated_miner_mcp import (
     CONTEXT,
     NOW,
@@ -346,19 +345,6 @@ def _summary(door, out):
     )
 
 
-#: The known live defect the bound tests meet today (strict: a fix makes them pass, and the marks must then go).
-LAZY_RESTORE_UNDER_WRITE = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "LOCK PROGRAM, known live defect (case-procs, 19 Nov 2026): a lazy owner's first submit or upload restores its "
-        "provider INSIDE the door's write lock (DirectRecipeIntake._admit / _stage_source -> LeanRecipeAdapter."
-        "evaluate -> provider_for), so every other submit and upload of the door waits out that restore (3-10 s live "
-        "each; a burst of new owners after a start serialises them all). Strict: once the restore runs outside the "
-        "lock this passes, and the mark must be removed."
-    ),
-)
-
-
 def test_every_request_is_answered_and_nothing_scales_with_all_owners(
     tmp_path, monkeypatch
 ):
@@ -374,7 +360,6 @@ def test_every_request_is_answered_and_nothing_scales_with_all_owners(
     assert door.touched <= asked and len(door.opened) <= len(asked)
 
 
-@LAZY_RESTORE_UNDER_WRITE
 def test_every_submit_completes_under_the_bound_while_uploads_and_grades_run(
     tmp_path, monkeypatch
 ):
@@ -383,7 +368,6 @@ def test_every_submit_completes_under_the_bound_while_uploads_and_grades_run(
     assert slowest <= SUBMIT_BOUND_SECONDS, _summary(door, out)
 
 
-@LAZY_RESTORE_UNDER_WRITE
 def test_no_slow_step_runs_under_the_doors_write_lock(tmp_path, monkeypatch):
     door, out = _run(tmp_path, monkeypatch)
     assert door.violations == [], _summary(door, out)

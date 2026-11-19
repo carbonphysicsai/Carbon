@@ -728,10 +728,27 @@ class DirectRecipeIntake(BatteryIntake):
             if type(hotkey) is str
             else contextlib.nullcontext()
         )
-        with owner, self._write:
-            result = self.door.evaluate(submitted)
-            self._note_recipe_digest(result)
-            return result
+        with owner:
+            if type(hotkey) is str:
+                self._open_owner(hotkey)
+            with self._write:
+                result = self.door.evaluate(submitted)
+                self._note_recipe_digest(result)
+                return result
+
+    def _open_owner(self, hotkey):
+        """Open (a lazy owner: restore, 3-10 s live) the submitter's provider BEFORE `_write` (case-procs, LOCK PROGRAM
+        19 Nov 2026: a burst of new owners' first submits serialised their restores under the door-wide lock), so the
+        admission's own `_provider` finds it open. Best effort: any refusal here is left to the admission, which meets
+        and answers it exactly as before."""
+        adapter = getattr(self, "adapter", None)
+        opener = getattr(adapter, "_provider", None)
+        if not callable(opener):
+            return
+        try:
+            opener(hotkey)
+        except Exception:  # noqa: BLE001, S110 - the admission meets the same refusal under its own rules
+            pass
 
     def _stage(self, received):
         """One source stage under its owner's lock only (see the route): never the door-wide `_write`."""
