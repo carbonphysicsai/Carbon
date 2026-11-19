@@ -44,7 +44,12 @@ _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
 #: its registration unreadable; `lean_recipe._SKIPPED_OWNER_CODES`): only that owner's task waits; the round goes on
 #: (live 116, 19 Nov 2026 ~09:58Z: 190 grade-loop failures in a row on one such raise, nothing graded).
 _OWNER_UNAVAILABLE = frozenset(
-    {"direct_provider_registration_unavailable", "direct_provider_owner_set_aside"}
+    {
+        "direct_provider_registration_unavailable",
+        "direct_provider_owner_set_aside",
+        # one owner's provider bound to another pack or discovery (`LeanRecipeAdapter._provider`)
+        "direct_provider_binding_unavailable",
+    }
 )
 #: The exam-cap limit refusals that a passed-over earlier group-mate (or an unknown group in flight) makes "not yet"
 #: instead of final (V2, 18 Nov 2026; `AutoGrader._cap_soft`).

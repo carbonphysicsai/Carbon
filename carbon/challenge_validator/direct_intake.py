@@ -1314,6 +1314,16 @@ def _backoff_s(failures):
     return FAILURE_BACKOFF_S[min(failures, len(FAILURE_BACKOFF_S)) - 1]
 
 
+def _closed_code(failure):
+    """A typed refusal's code when it is a closed identifier (``[a-z0-9_.:-]``, at most 96 chars), else None: safe for
+    the journal, never a message, path or value."""
+    code = getattr(failure, "code", None)
+    code = getattr(code, "value", code)
+    if type(code) is str and re.fullmatch(r"[a-z0-9_.:-]{1,96}", code):
+        return code
+    return None
+
+
 def _keep_failure(subject, loop, failure):
     """Keep a failure's full traceback in the receiver's PRIVATE evidence
     directory, one file per distinct failure site, and return the site's short
@@ -1322,6 +1332,10 @@ def _keep_failure(subject, loop, failure):
     without a ledger, or an unwritable directory, keeps nothing."""
     try:
         ledger = getattr(getattr(subject, "adapter", subject), "ledger", None)
+        if ledger is None:
+            # the grader holds its adapter through its intake (live 116, 19 Nov 2026: 190 grade-loop failures, no file)
+            adapter = getattr(getattr(subject, "intake", None), "adapter", None)
+            ledger = getattr(adapter, "ledger", None)
         path = getattr(ledger, "path", None)
         frames = traceback.extract_tb(failure.__traceback__)
         site = hashlib.sha256(
@@ -2683,6 +2697,8 @@ def _grade_loop(grader, stop, work):
             log(
                 "direct_grade_failure",
                 type=type(failure).__name__,
+                # a typed refusal's closed code (e.g. an Unavailable's), never free text: names the cause in the journal
+                code=_closed_code(failure),
                 consecutive=failures,
                 retry_s=wait,
                 site=_keep_failure(grader, "grade", failure),
