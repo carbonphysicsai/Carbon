@@ -15,10 +15,11 @@ review. When it is absent, malformed, unvalued or inconsistent grading refuses
 (``exam_cadence_unregistered``); a v1 (CPU-hours) file is refused as
 ``exam_cadence_schema_unsupported``: no default, fail closed.
 
-**A set daily allowance (owner G18, 19 Nov 2026: "10 now").** The registry may also carry ``daily_allowance``, a
+**A set daily allowance (owner G18, 19 Nov 2026: "10 now"; G20: "Set a higher fixed number: 25").** The registry may also carry ``daily_allowance``, a
 whole number of at least 1. When it is present, ``a`` IS that number, per allowance group per Challenge per rolling
 day, whatever ``R``, ``M`` and ``sum_t`` are (they are still read and reported); the one-per-epoch limit is unchanged.
-When it is absent, ``a`` is the formula above, as before. A malformed value refuses (``exam_cadence_unregistered``).
+With the one-per-epoch limit a group grades at most 20 times in a rolling day (20 epochs), so a value above 20 never
+refuses before the epoch limit does. When it is absent, ``a`` is the formula above, as before. A malformed value refuses (``exam_cadence_unregistered``).
 
 **No per-version cap.** The earlier per-exam-version C = 20 is gone; cadence already bounds
 every miner.
