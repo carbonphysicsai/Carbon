@@ -12,7 +12,9 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    the door, each box file and whether any of the box's slots is busy, and when one last was (`DOOR_PROBE`). The
    Lambda account's instances and the instance type's live price.
 2. **Scale up** (policy v2, Lead 18 Nov 2026; values from live 116's data, see `RENT_MANY`). When `RENT_MANY`
-   builds wait in every sample across `RENT_MANY_S` (5 min), or any build waits across `RENT_ANY_S` (10 min), no
+   builds wait in every sample across `RENT_MANY_S` (5 min), or any build waits across `RENT_ANY_S` (10 min), and
+   in every sample of that window at most `GRADE_SHORT` tasks wait to grade (builds, not grading, are the bottleneck:
+   owner, 19 Nov 2026; otherwise the tick logs ``grade_bound`` and rents nothing), no
    box up has all its slots free (then the door, not the box count, holds the queue), nothing is being brought up,
    no bring-up failed in the last `FAIL_BACKOFF_S`, the account holds fewer than ``max_boxes`` instances, one more
    keeps the hourly total within ``max_usd_per_hour`` and today's spend leaves room under ``max_usd_per_day``: launch
@@ -71,6 +73,12 @@ from pathlib import Path
 RENT_MANY = 3
 RENT_MANY_S = 300
 RENT_ANY_S = 600
+#: A box is added only while BUILDS are the bottleneck (owner "good fix", Lead 19 Nov 2026): the grade queue must be
+#: short in every sample of the same window. GRADE_SHORT = the door's remote grade lanes (8 today: FSN1 + HEL1, 4 each):
+#: a queue that one round of the lanes clears (~7.5 min at ~453 s per grade) means grading keeps up and more built
+#: tasks would be graded soon; a longer one means a new box only moves tasks from the build queue to the grade queue
+#: (19 Nov 13:0xZ: 31 waiting to build, 35 waiting to grade). An unreadable grade count never rents.
+GRADE_SHORT = 8
 #: Samples kept (2 h at the 5-minute timer).
 KEEP_SAMPLES = 24
 #: A bring-up that has not finished in this long is failed (gpu_box_up: under 20 min).
@@ -208,14 +216,43 @@ def load_config(path) -> Config:
 # -- the policy (pure) ------------------------------------------------------------------------------------------------
 
 
-def _held(samples, now, span, least) -> bool:
-    """Every sample of the last ``span`` s showed at least ``least`` builds waiting, with one sample per 5-minute tick
-    across it and the oldest at least ``span`` ago (a gap in the timer, or an unreadable queue, never counts).
+def _window(samples, now, span):
+    """The samples of the last ``span`` s, or None unless there is one per tick across it and the oldest is at least
+    ``span`` ago (a gap in the timer never counts). The edge allows 90 s: the 5-minute timer fires every 360 s
+    (systemd's default 1-min accuracy), so a 60 s edge dropped the older sample whenever a tick ran late.
     """
-    window = [s for s in samples if now - s["t"] <= span + 60]
+    window = [s for s in samples if now - s["t"] <= span + 90]
     if len(window) < 1 + span // 300 or now - min(s["t"] for s in window) < span - 60:
+        return None
+    return window
+
+
+def _held(samples, now, span, least) -> bool:
+    """Every sample of the last ``span`` s showed at least ``least`` builds waiting (`_window`; an unreadable queue
+    never counts) AND at most `GRADE_SHORT` tasks waiting to grade (an unreadable grade count never counts).
+    """
+    window = _window(samples, now, span)
+    if window is None:
         return False
-    return all(s["waiting"] is not None and s["waiting"] >= least for s in window)
+    return all(
+        s["waiting"] is not None
+        and s["waiting"] >= least
+        and s.get("grade") is not None
+        and s["grade"] <= GRADE_SHORT
+        for s in window
+    )
+
+
+def grade_bound(samples, now) -> bool:
+    """Builds would want a box but the grade queue is the limit: `RENT_MANY` builds waited through `RENT_MANY_S` while
+    a sample of that window showed more than `GRADE_SHORT` waiting to grade (or no readable count).
+    """
+    window = _window(samples, now, RENT_MANY_S)
+    return (
+        bool(window)
+        and all(s["waiting"] is not None and s["waiting"] >= RENT_MANY for s in window)
+        and not _held(samples, now, RENT_MANY_S, RENT_MANY)
+    )
 
 
 def want_box(samples, now) -> str | None:
@@ -370,7 +407,8 @@ def _door(config, argv, *, stdin=None, timeout=120):
 
 
 def read_door(config):
-    """``(waiting_to_build or None, boxes)`` read on the door (`DOOR_PROBE`, the public queue)."""
+    """``(waiting_to_build or None, boxes, waiting_to_grade or None)`` read on the door (`DOOR_PROBE`, the public
+    queue)."""
     probe = _door(
         config,
         ["python3", "-I", "-", config.door_host_root, config.boxes_dir],
@@ -380,13 +418,20 @@ def read_door(config):
     queue = _door(config, ["curl", "-sf", "--max-time", "20", config.door_queue_url])
     try:
         public = json.loads(queue.stdout)
-        waiting = int(public["waiting_to_build"])
-        if public.get("door_state") == "draining":
-            # a draining door builds nothing new: as unreadable (no idle clock, no drain, release or rent)
-            waiting = None
-    except (ValueError, KeyError, TypeError):
+    except (ValueError, TypeError):
+        public = None
+
+    def count(key):
+        try:
+            return int(public[key])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    waiting = count("waiting_to_build")
+    if type(public) is dict and public.get("door_state") == "draining":
+        # a draining door builds nothing new: as unreadable (no idle clock, no drain, release or rent)
         waiting = None
-    return waiting, boxes
+    return waiting, boxes, count("waiting_to_grade")
 
 
 # -- state and log ----------------------------------------------------------------------------------------------------
@@ -516,10 +561,10 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
     now = time.time() if now is None else now
     client = client or Lambda(config.lambda_key_file)
     state = load_state(config)
-    waiting, boxes = (door or read_door)(config)
-    state["samples"] = (state["samples"] + [{"t": now, "waiting": waiting}])[
-        -KEEP_SAMPLES:
-    ]
+    waiting, boxes, grading = (door or read_door)(config)
+    state["samples"] = (
+        state["samples"] + [{"t": now, "waiting": waiting, "grade": grading}]
+    )[-KEEP_SAMPLES:]
     instances = client.instances()
     by_id = {i["id"]: i for i in instances}
     ours = state["boxes"]
@@ -676,6 +721,9 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
     # a box up with every slot free while builds wait: more boxes would sit free too (the door holds the queue)
     idle_box = any(e.get("file") and not e.get("busy") for e in (boxes or {}).values())
     why = want_box(state["samples"], now)
+    if why is None and grade_bound(state["samples"], now) and not bringing:
+        # builds wait, but grading is the limit: a box would only move tasks into the grade queue (owner, 19 Nov)
+        log(config, action="grade_bound", waiting=waiting, grading=grading)
     if why is None and waiting is not None and up < prewarm(config, now):
         why = "prewarm"
     if (
@@ -749,6 +797,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 {
                     "dry": True,
                     "waiting_to_build": waiting,
+                    "waiting_to_grade": grading,
                     "boxes_up": up,
                     "want_box": why,
                     "idle_box_up": idle_box,

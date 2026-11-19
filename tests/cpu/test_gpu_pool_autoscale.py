@@ -87,14 +87,23 @@ class _Client:
 
 
 def _ticks(
-    config, client, waiting, *, boxes=None, start=T0, every=300, count=4, spawned=None
+    config,
+    client,
+    waiting,
+    *,
+    boxes=None,
+    start=T0,
+    every=300,
+    count=4,
+    spawned=None,
+    grading=0,
 ):
     state = None
     for k in range(count):
         state = scale.tick(
             config,
             client=client,
-            door=lambda c: (waiting, {} if boxes is None else boxes),
+            door=lambda c: (waiting, {} if boxes is None else boxes, grading),
             now=start + k * every,
             spawn=lambda c, name: (spawned if spawned is not None else []).append(name),
         )
@@ -108,8 +117,11 @@ def _log(config):
     ]
 
 
-def _samples(*waiting, every=300):
-    return [{"t": T0 + k * every, "waiting": w} for k, w in enumerate(waiting)]
+def _samples(*waiting, every=300, grade=0):
+    return [
+        {"t": T0 + k * every, "waiting": w, "grade": grade}
+        for k, w in enumerate(waiting)
+    ]
 
 
 def test_rent_when_three_wait_five_minutes_or_any_waits_ten():
@@ -125,8 +137,13 @@ def test_rent_when_three_wait_five_minutes_or_any_waits_ten():
     s = _samples(5, None, 5)
     assert scale.want_box(s, end(s)) is None  # an unreadable queue never counts
     # a gap in the timer is not five minutes of waiting
-    s = [{"t": T0, "waiting": 9}]
+    s = [{"t": T0, "waiting": 9, "grade": 0}]
     assert scale.want_box(s, T0 + 300) is None
+    # builds wait, but the grade queue is the limit (owner, 19 Nov 2026)
+    s = _samples(31, 31, grade=scale.GRADE_SHORT + 1)
+    assert scale.want_box(s, end(s)) is None and scale.grade_bound(s, end(s))
+    s = _samples(31, 31, grade=scale.GRADE_SHORT)
+    assert scale.want_box(s, end(s)) == "many" and not scale.grade_bound(s, end(s))
 
 
 def test_three_builds_waiting_five_minutes_rents_one_box(tmp_path):
@@ -362,7 +379,7 @@ def test_an_adopted_box_is_drained_and_released_after_an_idle_hour(
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, busy),
+        door=lambda c: (0, busy, 0),
         now=T0,
     )
     record = scale.load_state(config)["boxes"]["carbon-a100"]
@@ -407,7 +424,7 @@ def test_adopt_refuses_without_one_active_instance_and_its_box_file(
             "carbon-a100",
             ip,
             client=_Client(instances),
-            door=lambda c: (0, boxes),
+            door=lambda c: (0, boxes, 0),
             now=T0,
         )
     assert scale.load_state(config)["boxes"] == {}
@@ -423,7 +440,7 @@ def test_a_dry_tick_changes_nothing(tmp_path, monkeypatch, capsys):
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, {"carbon-a100": {"file": True}}),
+        door=lambda c: (0, {"carbon-a100": {"file": True}}, 0),
         now=T0,
     )
     before = (Path(config.state_dir) / "state.json").read_text()
@@ -456,7 +473,7 @@ def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (80, idle),
+        door=lambda c: (80, idle, 0),
         now=T0,
     )
     monkeypatch.setattr(
@@ -496,7 +513,7 @@ def test_an_unreadable_queue_drains_and_releases_nothing(tmp_path, monkeypatch):
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, idle),
+        door=lambda c: (0, idle, 0),
         now=T0,
     )
     monkeypatch.setattr(scale, "_door", lambda *a, **k: pytest.fail("door write"))
@@ -513,7 +530,7 @@ def _adopted(config, client, entry):
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, {"carbon-a100": entry}),
+        door=lambda c: (0, {"carbon-a100": entry}, 0),
         now=T0,
     )
 
@@ -660,7 +677,7 @@ def test_the_daily_cap_drains_releases_pages_once_and_rents_nothing(
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, {"carbon-a100": busy}),
+        door=lambda c: (0, {"carbon-a100": busy}, 0),
         now=day0 + 3600,
     )
     calls = []
@@ -759,3 +776,27 @@ def test_the_spawned_bring_up_command_parses(tmp_path, monkeypatch):
     assert args.command == "bring-up"
     assert args.name == "carbon-pool-11191155"
     assert args.config == str(tmp_path / "config.json")
+
+
+def test_no_box_while_the_grade_queue_is_the_limit(tmp_path):
+    """Builds wait, but more than GRADE_SHORT tasks wait to grade: a box would only move tasks into the grade queue."""
+    config = _config(tmp_path)
+    client = _Client()
+    _ticks(config, client, 31, grading=35)
+    assert client.launched == []
+    assert "grade_bound" in [line["action"] for line in _log(config)]
+
+
+def test_an_unreadable_grade_queue_never_rents(tmp_path):
+    config = _config(tmp_path)
+    client = _Client()
+    _ticks(config, client, 31, grading=None)
+    assert client.launched == []
+
+
+def test_a_short_grade_queue_rents_at_the_six_minute_tick(tmp_path):
+    """The 5-minute timer fires every 360 s (systemd's 1-min accuracy): two samples 360 s apart still hold."""
+    config = _config(tmp_path)
+    client = _Client()
+    _ticks(config, client, 31, grading=scale.GRADE_SHORT, every=360, count=2)
+    assert len(client.launched) == 1
