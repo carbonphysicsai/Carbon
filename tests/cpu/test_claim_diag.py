@@ -160,7 +160,9 @@ def test_the_stranded_filing_logs_one_line_when_it_is_made(monkeypatch):
     from carbon.challenge_validator import king_upkeep
 
     lines = []
-    monkeypatch.setattr(intake, "log", lambda event, **fields: lines.append((event, fields)))
+    monkeypatch.setattr(
+        intake, "log", lambda event, **fields: lines.append((event, fields))
+    )
     monkeypatch.setattr(
         king_upkeep, "file_stranded", lambda *a, **k: (king_upkeep.STRANDED_DONE, 3)
     )
@@ -171,5 +173,7 @@ def test_the_stranded_filing_logs_one_line_when_it_is_made(monkeypatch):
     grader.intake = SimpleNamespace(adapter=SimpleNamespace(discovery=None))
     assert grader._file_stranded()[0] is True
     assert grader._stranded_filed is True
-    assert [(event, fields["count"]) for event, fields in lines] == [("stranded_filed", 3)]
+    assert [(event, fields["count"]) for event, fields in lines] == [
+        ("stranded_filed", 3)
+    ]
     assert lines[0][1]["seconds_after_start"] >= 0
