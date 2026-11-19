@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Recompute the private grade breakdown of ONE already-graded Motor 1.8 task (aggregates only).
 
 Scope. Read-only. Live ops runs this ON the live validator host only, under Validator-2's ruling (RECEIPTS
@@ -643,7 +642,7 @@ def main(argv=None):
     try:
         out = _private_out_dir(args.out)
         doc = breakdown(args)
-    except Exception as exc:  # a typed code only, never a message
+    except Exception as exc:  # noqa: BLE001 - a typed code only, never a message
         print("refused:" + _code(exc))
         return 3
     try:
@@ -657,7 +656,7 @@ def main(argv=None):
         return 2
     try:
         digest = _write_once(out, doc)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - a typed code only, never a message
         print("refused:" + _code(exc))
         return 3
     print(digest)
