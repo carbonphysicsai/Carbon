@@ -294,7 +294,8 @@ def test_the_direct_construction_door_is_the_local_hop_door():
 def test_a_local_hop_door_takes_256_at_once_and_the_257th_gets_the_typed_503():
     """V2 R12 (19 Nov 2026): the front releases a restart's held requests together, and 64 refused 8. A local-hop door
     holds 256 at once (every request arrives on loopback; the front caps each client); the 257th is told 503
-    intake_busy with Retry-After, never dropped. Any other door keeps 64 in all and 4 per address."""
+    intake_busy with Retry-After, never dropped. Any other door keeps 64 in all and 4 per address.
+    """
     local = battery_intake._Server(
         ("127.0.0.1", 0), _handler(FakeIntake(lambda *a: None)), local_hop=True
     )
