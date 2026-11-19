@@ -34,7 +34,9 @@ It prints a JSON summary (``carbon.gpu-box-admin.v1``, ``"admin": "PASS"``) the 
 never using sudo there (every door-phase command is checked for it). It re-verifies the admin work READ-ONLY (a
 mismatch is ``admin_incomplete:<admin step to re-run>``), then:
 
-  images       each ``--image`` streamed from the door's daemon (``docker save | docker load``) and proved by its id
+  images       each ``--image`` streamed from the door's daemon (``docker save | docker load``) and proved by its id:
+               the JAX image first; the others stream in the background during tree, device and class check and are
+               joined (``images_rest``) before the door link, so the box file still needs every image proved
   tree         only what the class check reads (`TREE_PATHS`, ``git archive`` of HEAD, which must be reachable from
                origin/main), extracted afresh every run into carbon-grade's own ``~/carbon-box-up/tree-<sha>``
   device       the box's host device record (``carbon_accelerator.py prepare``, which needs no root), fetched back
@@ -94,6 +96,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -1664,8 +1667,9 @@ class Session:
                     "admin_summary_mismatch", f"{field}: {summary.get(field)!r}"
                 )
 
-    def images(self):
-        for image in self.cfg.images:
+    def images(self, only=None):
+        """Load each of ``only`` (default: every ``--image``) on the box unless it is there already, proved by its id."""
+        for image in self.cfg.images if only is None else only:
             if (
                 self.remote(door_image_id(image), reason="image_unreadable").strip()
                 == image
@@ -1927,6 +1931,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     session = Session(cfg, runner, log=log)
     scratch, session.known_hosts = _known_hosts_scratch()
     admitted = False
+    background = ThreadPoolExecutor(max_workers=1)
     try:
         host_key = session.run_step("host_key", session.host_key)
         session.verify("lane_user", session.door_lane_user)
@@ -1944,7 +1949,13 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
                 driver,
                 shape,
             )
-        session.run_step("images", session.images)
+        # The class check needs only the JAX image: it lands first, and the other images (the 3.4 GB torch image,
+        # ~230 s over the door's link) stream in the background meanwhile; every image is proved by its id and joined
+        # before the door link and the box file, so nothing is admitted earlier (Lead + owner, 19 Nov 2026: faster
+        # bring-up; the door->box link, not compression, is the limit: the saved images are already compressed).
+        session.run_step("images", session.images, [cfg.jax_image])
+        rest = [image for image in cfg.images if image != cfg.jax_image]
+        streaming = background.submit(session.images, rest)
         commit = session.run_step("tree", session.tree)
         device, device_digest = session.run_step(
             "device", session.device, commit, uuid, driver
@@ -1952,6 +1963,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         summary, raw_output, raw_ops = session.run_step(
             "class_check", session.class_check, commit, uuid
         )
+        session.run_step("images_rest", streaming.result)
         session.run_step("door_link", session.door_link, host_key)
         document = box_document(
             cfg,
@@ -1971,6 +1983,8 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
     except Refused as refusal:
         return refused(session.step, refusal)
     finally:
+        # a background image stream still running after an earlier refusal ends before this run does
+        background.shutdown(wait=True)
         # any end but a full PASS (a refusal, an OSError, an interrupt) leaves none of the three files
         if not admitted:
             remove_box_files(cfg)

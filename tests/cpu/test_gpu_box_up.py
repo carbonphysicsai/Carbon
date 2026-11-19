@@ -1377,7 +1377,61 @@ def test_an_image_whose_id_differs_after_loading_is_refused(tmp_path):
     cfg = _config(tmp_path)
     outcome = _run(cfg, FakeBox(cfg, load_as={TORCH: "sha256:" + "f" * 64}))
     _refused(outcome, "image_id_mismatch")
+    # the torch image streams beside the class check and is joined after it, before the door link and the box file
+    assert outcome["step"] == "images_rest"
+    assert _no_box_file(tmp_path)
+
+
+def _loads(box):
+    return [
+        (pipe_from[2], index)
+        for index, (argv, pipe_from) in enumerate(box.calls)
+        if argv[0] == "ssh" and argv[-1] == box_up.DOOR_DOCKER_LOAD
+    ]
+
+
+def test_the_jax_image_lands_before_the_class_check_and_the_rest_streams_beside_it(
+    tmp_path,
+):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    loads = dict(_loads(box))
+    assert set(loads) == {JAX, TORCH}
+    commands = box.remote_commands()
+    check = next(
+        index
+        for index, (argv, _) in enumerate(box.calls)
+        if argv[0] == "ssh" and argv[-1] == box_up.cmd_class_check(cfg, HEAD, UUID)
+    )
+    link = next(
+        index
+        for index, (argv, _) in enumerate(box.calls)
+        if argv[0] != "ssh" and index > check
+    )
+    assert loads[JAX] < check
+    assert loads[TORCH] < link
+    assert box_up.cmd_class_check(cfg, HEAD, UUID) in commands
+
+
+def test_a_jax_image_mismatch_refuses_before_anything_else_streams(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, load_as={JAX: "sha256:" + "f" * 64})
+    outcome = _run(cfg, box)
+    _refused(outcome, "image_id_mismatch")
     assert outcome["step"] == "images"
+    assert [image for image, _ in _loads(box)] == [JAX]
+    assert box_up.cmd_class_check(cfg, HEAD, UUID) not in box.remote_commands()
+    assert _no_box_file(tmp_path)
+
+
+def test_a_failed_class_check_still_waits_for_the_background_stream(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, class_rc=1)
+    _refused(_run(cfg, box), "class_check_failed")
+    # the run returned only after the torch stream ended: no stream outlives a refused run
+    assert TORCH in dict(_loads(box))
+    assert box.loaded[TORCH] == TORCH
     assert _no_box_file(tmp_path)
 
 
