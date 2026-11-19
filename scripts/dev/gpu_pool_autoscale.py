@@ -828,7 +828,7 @@ def adopt(config, name, ip, *, client=None, door=None, now=None):
     state = load_state(config)
     if name in state["boxes"]:
         raise SystemExit(f"adopt: {name} is already this tool's")
-    _, boxes = (door or read_door)(config)
+    _, boxes, _ = (door or read_door)(config)
     if boxes is None or not boxes.get(name, {}).get("file"):
         raise SystemExit(f"adopt: no box file {name}.json on the door")
     found = [i for i in client.instances() if i["ip"] == ip and i["status"] == "active"]

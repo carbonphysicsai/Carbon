@@ -633,12 +633,17 @@ def test_a_draining_door_is_read_as_unreadable(monkeypatch):
         return type("R", (), {"returncode": 0, "stdout": stdout})()
 
     monkeypatch.setattr(scale, "_door", door)
-    out["queue"] = json.dumps({"waiting_to_build": 4, "door_state": "grading"}).encode()
-    assert scale.read_door(config) == (4, {})
     out["queue"] = json.dumps(
-        {"waiting_to_build": 4, "door_state": "draining"}
+        {"waiting_to_build": 4, "waiting_to_grade": 6, "door_state": "grading"}
     ).encode()
-    assert scale.read_door(config) == (None, {})
+    assert scale.read_door(config) == (4, {}, 6)
+    out["queue"] = json.dumps(
+        {"waiting_to_build": 4, "waiting_to_grade": 6, "door_state": "draining"}
+    ).encode()
+    assert scale.read_door(config) == (None, {}, 6)
+    # no grade count on the board: unreadable, so no rent (`_held`)
+    out["queue"] = json.dumps({"waiting_to_build": 4, "door_state": "grading"}).encode()
+    assert scale.read_door(config) == (4, {}, None)
 
 
 _CFG_MIN = {
