@@ -13,8 +13,8 @@ infrastructure failure is not scientific failure. Nothing here grades, scores or
   `infra_requeue.requeue(..., auto=True)`: exactly the operator tool's criteria (never a COUNTED / RESERVED / graded
   task, never a recipe already graded, the task row bound to the served pack) minus the 4 Nov incident's cause filter,
   and for a later attempt ``rearm``'s (every earlier attempt FAILED on Carbon's side), with no receipt; the re-grade
-  reuses the task's own row (no new slot, its original epoch). It is spaced (`RETRY_SECONDS` after the failure; applied on an idle tick, or once overdue
-  by `OVERDUE_SECONDS` so a busy door cannot starve it) and never while the door drains.
+  reuses the task's own row (no new slot, its original epoch). The first retry goes back at the next round, busy door
+  or idle; only a later retry of the same cause waits `RETRY_SECONDS`; nothing is applied while the door drains.
 - **A COUNTED slot with no delivered verdict** (Validator-2B (2)) is released automatically only when ALL hold
   (`undelivered_refusal`): the marker is FAILED with a Carbon code; the pool store was read and holds no graded
   private evaluation of the submission (a missing or unreadable store refuses); no Ladder/feedback document for its round (`infra_requeue._ladder_shows_round`); exactly one COUNTED
@@ -47,10 +47,10 @@ _NOT_RETRIED = frozenset({"vmap64_grade_needs_sealed_pack"})
 #: The next step a FAILED marker shows for a code that names its own (the operator's plain line), else the usual rule.
 #: ``resubmit_program_changed`` stays a closed code for markers written before switch 5; no code chooses it now.
 OWN_NEXT_STEPS = {}
-#: Spacing of the one retry after its failure (the crown sweep's own retry spacing), and when a retry that waited for
-#: an idle tick is applied anyway.
-RETRY_SECONDS = 15 * 60
-OVERDUE_SECONDS = 60 * 60
+#: Spacing of a task's second and later retry of the SAME cause after its scheduling (`due`): a backstop against a hot
+#: loop on one fault, with the per-cause and per-task caps below. 5 min (Validator-2's ruling on the over-broad rules
+#: audit #6, 18 Nov 2026: next tick for the first retry, then 5 min; was 15 min).
+RETRY_SECONDS = 5 * 60
 #: Automatic retries per Carbon code (its base, before any ``:``) and per task in all (switch 5): a backstop against a
 #: hot loop, not a policy on miners (each retry is uncharged on the task's own row and cannot probe the exam).
 PER_CAUSE_RETRIES = 3

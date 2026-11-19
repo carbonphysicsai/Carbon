@@ -66,6 +66,11 @@ def test_only_a_transient_carbon_code_is_retried(code, expected):
     assert auto_retry.retryable(code) is expected
 
 
+def test_a_repeat_of_the_same_cause_waits_five_minutes_not_fifteen():
+    # V2's ruling on the over-broad rules audit #6 (18 Nov 2026): next tick, then 5 min
+    assert auto_retry.RETRY_SECONDS == 5 * 60
+
+
 def test_a_task_has_one_pending_retry_at_a_time_and_it_is_spaced(tmp_path):
     root, ledger = _root(tmp_path)
     t0 = 10_000 * S
