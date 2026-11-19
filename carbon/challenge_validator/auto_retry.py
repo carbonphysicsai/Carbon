@@ -193,15 +193,33 @@ def _pending(root):
     return pending
 
 
+def _earlier_same_cause(root):
+    """``{task: how many schedules of the task's PENDING retry's cause came before it}`` (its spacing, `due`)."""
+    counts, earlier = {}, {}
+    for r in _lines(_dir(root) / LOG_NAME):
+        if r.get("kind") != "scheduled":
+            continue
+        key = (r["task"], _cause(r.get("code")))
+        earlier[r["task"]] = counts.get(key, 0)
+        counts[key] = counts.get(key, 0) + 1
+    return earlier
+
+
 def due(root, *, clock=time.time_ns, idle=True):
-    """Scheduled retries due now, oldest first: ``RETRY_SECONDS`` after scheduling on an idle tick, else only once
-    overdue by ``OVERDUE_SECONDS``."""
+    """Scheduled retries due now, oldest first. V2-OWED-NOW-20261119 (b): a Carbon-side retry goes back at the NEXT
+    round, busy door or idle (no idle-tick wait, no overdue wait); only a task's second and later retry of the SAME
+    cause waits `RETRY_SECONDS` after its scheduling (a backstop against a hot loop on one fault; the D16 caps bound
+    the rest). ``idle`` is kept for callers and no longer delays anything."""
+    del idle
     now = int(clock())
-    wait = RETRY_SECONDS if idle else RETRY_SECONDS + OVERDUE_SECONDS
+    earlier = _earlier_same_cause(root)
+
+    def ready(task, at_ns):
+        spacing = RETRY_SECONDS if earlier.get(task, 0) else 0
+        return type(at_ns) is int and now - at_ns >= spacing * 1_000_000_000
+
     pending = sorted(
-        (at_ns, task)
-        for task, at_ns in _pending(root).items()
-        if type(at_ns) is int and now - at_ns >= wait * 1_000_000_000
+        (at_ns, task) for task, at_ns in _pending(root).items() if ready(task, at_ns)
     )
     return [task for _at_ns, task in pending]
 

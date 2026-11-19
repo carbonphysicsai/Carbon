@@ -78,14 +78,24 @@ def test_a_task_has_one_pending_retry_at_a_time_and_it_is_spaced(tmp_path):
     assert not auto_retry.schedule(
         root, B, "pool_constants_x", ledger=ledger, clock=lambda: t0
     )
-    early = t0 + (auto_retry.RETRY_SECONDS - 1) * S
+    # V2-OWED-NOW-20261119 (b): the first retry goes back at the next round, busy door or idle
+    assert auto_retry.due(root, clock=lambda: t0) == [A]
+    assert auto_retry.due(root, clock=lambda: t0, idle=False) == [A]
+    # the second retry of the SAME cause is spaced; one of another cause is not
+    _close(root, A, t0)
+    t1 = t0 + 5 * S
+    assert auto_retry.schedule(
+        root, A, "inference_pair_incomplete", ledger=ledger, clock=lambda: t1
+    )
+    early = t1 + (auto_retry.RETRY_SECONDS - 1) * S
     assert auto_retry.due(root, clock=lambda: early) == []
-    ready = t0 + auto_retry.RETRY_SECONDS * S
+    ready = t1 + auto_retry.RETRY_SECONDS * S
+    assert auto_retry.due(root, clock=lambda: ready, idle=False) == [A]
+    _close(root, A, ready)
+    assert auto_retry.schedule(
+        root, A, "WorkerFailure", ledger=ledger, clock=lambda: ready
+    )
     assert auto_retry.due(root, clock=lambda: ready) == [A]
-    # a busy door waits for an idle tick until the retry is overdue
-    assert auto_retry.due(root, clock=lambda: ready, idle=False) == []
-    overdue = t0 + (auto_retry.RETRY_SECONDS + auto_retry.OVERDUE_SECONDS) * S
-    assert auto_retry.due(root, clock=lambda: overdue, idle=False) == [A]
     # switch 5: a task the operator already re-queued (a ledger requeue row) gets its automatic retries too
     from carbon.challenge_validator.exam_cap import ExamCap
 
