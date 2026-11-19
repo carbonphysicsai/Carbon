@@ -1478,8 +1478,10 @@ def test_an_intake_busy_503_is_resent_after_retry_after_and_succeeds(
     assert result["state"] == "RECONSTRUCTED"
     tool = client.SUBMIT_TOOL if phase == "submit" else client.STATUS_TOOL
     assert sent.count(tool) == 3
-    waits = [s for s in sleeps if s >= 1.0]
-    assert len(waits) >= 2 and waits[0] < waits[1]  # Retry-After honoured, then doubling
+    # The busy waits, not the 1.05 s pacing sleep the client puts before each resend.
+    waits = [s for s in sleeps if s >= 1.0 and s != 1.05]
+    # Retry-After honoured, then doubling.
+    assert len(waits) >= 2 and waits[0] < waits[1]
 
 
 def test_a_door_that_stays_busy_is_tried_a_bounded_number_of_times_then_names_itself(

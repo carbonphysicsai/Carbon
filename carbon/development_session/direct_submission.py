@@ -110,7 +110,8 @@ BUSY_RETRIES = 2
 class DirectIntakeDoorBusy(DirectIntakeRateLimit):
     """The door's connection cap refused this request before reading it: HTTP 503 `intake_busy` with Retry-After.
 
-    Nothing was admitted, charged or recorded, so a rebuilt, re-signed request may be sent again (bounded, jittered)."""
+    Nothing was admitted, charged or recorded, so a rebuilt, re-signed request may be sent again (bounded, jittered).
+    """
 
     def __init__(self, retry_after_s=None, code="intake_busy"):
         DirectIntakeRefusal.__init__(self, code)
@@ -126,7 +127,9 @@ DOOR_BUSY_MAX_WAIT_S = 30.0
 
 def _door_busy_wait(attempt, retry_after_s):
     """Seconds to wait after the `attempt`-th (1-based) `intake_busy`: Retry-After, doubling, capped, plus jitter."""
-    base = min(max(float(retry_after_s or 1.0), 1.0) * 2 ** (attempt - 1), DOOR_BUSY_MAX_WAIT_S)
+    base = min(
+        max(float(retry_after_s or 1.0), 1.0) * 2 ** (attempt - 1), DOOR_BUSY_MAX_WAIT_S
+    )
     return base + random.uniform(0.0, 0.25 * base)
 
 
