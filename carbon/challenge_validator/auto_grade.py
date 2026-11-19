@@ -40,9 +40,10 @@ _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _PENDING = frozenset({"task_not_succeeded"})
 #: Retention codes that mean "not gradable now" without having consumed anything.
 _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
-#: An owner the door cannot open now (`interface.Unavailable` from `LeanRecipeAdapter.owner`: set aside at this start, or
-#: its registration unreadable; `lean_recipe._SKIPPED_OWNER_CODES`): only that owner's task waits; the round goes on
-#: (live 116, 19 Nov 2026 ~09:58Z: 190 grade-loop failures in a row on one such raise, nothing graded).
+#: An owner the door cannot open now (`interface.Unavailable` from `LeanRecipeAdapter.owner`: set aside at this start,
+#: its registration changed, its provider bound elsewhere): the claim scan's copy check and the incumbent's steps go on
+#: (live 116, 19 Nov 2026 ~09:48Z: grade-loop failures every round on one such raise, nothing graded); the grade itself
+#: gives such a task back as Carbon's, as before (`_grade_on_lane`).
 _OWNER_UNAVAILABLE = frozenset(
     {
         "direct_provider_registration_unavailable",
@@ -683,7 +684,6 @@ class AutoGrader:
     def _run_prelude(self):
         """The incumbent's own steps of a parallel round (`_run_once_parallel`), in the serial round's order."""
         from .grade_sequencer import CROWN_LOCK
-
         from .interface import Unavailable
 
         self._settle_queue_places()
@@ -961,15 +961,12 @@ class AutoGrader:
             try:
                 copy = self._copy_decision(submission_id)
             except Unavailable as unavailable:
-                # its owner cannot be opened now (set aside / registration unreadable): only this task waits
+                # its owner cannot be opened now (set aside / registration changed): no copy can be decided, so the
+                # task goes to its grade, whose owner open meets the same refusal and gives it back as Carbon's
+                # (FAILED, `_grade_on_lane`), as before; the copy check never ends the round (live 116, 19 Nov 2026)
                 if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
                     raise
-                if spent:
-                    return None
-                if claims is not None and taken:
-                    claims.release(taken.pop())
-                passing("owner_unavailable")
-                continue
+                copy = None
             if copy is not None:
                 decision, first = copy
                 if decision == "wait":
@@ -1151,7 +1148,6 @@ class AutoGrader:
         """
         from carbon.reconstruction import remote_lane
 
-        from .interface import Unavailable
         from .lean_recipe_retention import RetentionUnavailable
 
         lane = remote_lane.current()
@@ -1204,14 +1200,6 @@ class AutoGrader:
                     )
             finally:
                 self.activity = None
-        except Unavailable as unavailable:
-            # raised by the owner's open at the start of the retain step, before any reservation: not this round's end
-            if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
-                raise
-            with _STALLED_LOCK:
-                self.stalled = getattr(self, "stalled", frozenset()) | {submission_id}
-            self._note_next(unavailable.code)
-            return _NEXT
         except RetentionUnavailable as unavailable:
             code = getattr(unavailable, "code", None) or str(unavailable)
             if not isinstance(code, str):

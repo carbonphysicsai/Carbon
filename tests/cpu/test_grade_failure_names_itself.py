@@ -1,5 +1,6 @@
 """Live 116, 19 Nov 2026 ~09:48Z: the grade loop failed 190 times with no traceback (the grader reaches its ledger
-through its intake) and no cause in the journal. The grader's failure is kept, and the line carries a closed code."""
+through its intake) and no cause in the journal. The grader's failure is kept, and the line carries a closed code.
+"""
 
 from __future__ import annotations
 

@@ -1,6 +1,7 @@
-"""Live 116, 19 Nov 2026 ~09:58Z: 190 grade-loop failures in a row (``direct_grade_failure`` type Unavailable), nothing
-graded. An owner the door cannot open now (set aside at this start, or its registration unreadable) holds back only its
-own task; the round, the claim scan and the incumbent's steps go on. Any other Unavailable is raised as before.
+"""Live 116, 19 Nov 2026 ~09:48Z: grade-loop failures every round (``direct_grade_failure`` type Unavailable), nothing
+graded. An owner the door cannot open now (set aside at this start, its registration changed, its provider bound
+elsewhere) never ends the round from the claim scan's copy check or the incumbent's steps; its task goes to its grade,
+which gives it back as Carbon's as before. Any other Unavailable is raised as before.
 """
 
 from __future__ import annotations
@@ -27,7 +28,6 @@ def _scan_grader(copy_raises):
     def copy_decision(task):
         if task == A:
             raise copy_raises
-        return None
 
     grader._copy_decision = copy_decision
     grader._grade_one = lambda task, *, turn: (task, "GRADED")
@@ -45,45 +45,18 @@ def _claim(grader, claims):
                 claims.release(owner)
 
 
-def test_an_unopenable_owner_in_the_claim_scan_skips_only_its_task():
+def test_an_unopenable_owner_in_the_copy_check_goes_on_to_its_grade():
+    """No copy can be decided; its grade's owner open gives it back as Carbon's (`_grade_on_lane`), as before."""
     claims = grade_sequencer.OwnerClaims()
     grader = _scan_grader(Unavailable(SET_ASIDE))
-    assert _claim(grader, claims) == (B, "GRADED")
-    assert claims.held() == set()  # the skipped owner's claim was given back
+    # the stand-in grade: the round never ended
+    assert _claim(grader, claims) == (A, "GRADED")
 
 
 def test_any_other_unavailable_in_the_claim_scan_is_raised_as_before():
     grader = _scan_grader(Unavailable("something_else"))
     with pytest.raises(Unavailable):
         _claim(grader, grade_sequencer.OwnerClaims())
-
-
-def _lane_grader(raises):
-    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
-
-    def retain_result(*args, **kwargs):
-        raise raises
-
-    grader.intake = SimpleNamespace(retain_result=retain_result)
-    grader.containers = lambda: 0
-    grader.sample_seconds = 3600
-    grader.artifacts = grader.entries = None
-    grader._pool = lambda: None
-    grader._scan_local().codes = {}
-    return grader
-
-
-def test_an_unopenable_owner_at_the_retain_step_is_not_yet():
-    grader = _lane_grader(Unavailable(SET_ASIDE))
-    assert grader._grade_on_lane(A, turn=lambda: None) is auto_grade._NEXT
-    assert A in grader.stalled
-    assert grader._scan_local().codes == {SET_ASIDE: 1}
-
-
-def test_any_other_unavailable_at_the_retain_step_is_raised_as_before():
-    grader = _lane_grader(Unavailable("something_else"))
-    with pytest.raises(Unavailable):
-        grader._grade_on_lane(A, turn=lambda: None)
 
 
 def test_the_incumbents_steps_wait_for_an_unopenable_owner_and_the_round_goes_on(
