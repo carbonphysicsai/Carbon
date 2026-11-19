@@ -1151,9 +1151,11 @@ def test_keep_evaluation_completes_a_517b_requeue_once_and_the_grader_then_binds
     assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
 
 
-def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path):
-    from carbon.challenge_validator import infra_requeue
+def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path, monkeypatch):
+    from carbon.challenge_validator import auto_retry, infra_requeue
 
+    # the operator's paths only: the grader's automatic retries (due at the next round since V2-OWED-NOW (b)) are off
+    monkeypatch.setattr(auto_retry, "apply_due", lambda *args, **kwargs: [])
     root, ledger = _root(tmp_path)
     later = time.time_ns() + 10**12
     for task in (A, C, D, E, F):
@@ -1312,10 +1314,12 @@ def test_a_rerun_that_failed_on_attempt_ones_binding_is_requeued_once_more_and_g
 
 
 def test_a_second_requeue_takes_only_attempt_twos_binding_conflict_on_attempt_ones_files(
-    tmp_path,
+    tmp_path, monkeypatch
 ):
-    from carbon.challenge_validator import infra_requeue
+    from carbon.challenge_validator import auto_retry, infra_requeue
 
+    # the operator's paths only: the grader's automatic retries (due at the next round since V2-OWED-NOW (b)) are off
+    monkeypatch.setattr(auto_retry, "apply_due", lambda *args, **kwargs: [])
     root, ledger = _root(tmp_path)
     for task in (A, B, C):
         _rs18_failed_rerun(root, ledger, task)
