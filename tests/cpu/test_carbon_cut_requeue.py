@@ -91,7 +91,7 @@ def test_a_carbon_cut_grade_gets_its_retry_scheduled_by_the_sweep(tmp_path):
     # a COUNTED row: never retried here
     _marker(markers, T["K"], "FAILED", "WorkerFailure")
     # too old
-    _marker(markers, T["O"], "FAILED", "WorkerFailure", age=2 * 86400)
+    _marker(markers, T["O"], "FAILED", "WorkerFailure", age=4 * 86400)
     assert auto_retry.sweep_carbon_cut(tmp_path) == [T["R"]]
     assert _scheduled(tmp_path) == [T["R"]]
     (alert,) = _alerts(tmp_path)

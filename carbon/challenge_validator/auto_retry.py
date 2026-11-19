@@ -209,7 +209,8 @@ def due(root, *, clock=time.time_ns, idle=True):
 #: CARBON-CUT REQUEUE (V2's ruling, 18 Nov 2026): how often the sweep looks for Carbon-side FAILED grades no retry was
 #: ever scheduled for (a grade cut by our own stop or restart is marked at restore, never scheduled), and how far back.
 SWEEP_SECONDS = 60 * 60
-SWEEP_WINDOW_SECONDS = 24 * 60 * 60
+#: 72 h (Lead, 19 Nov 2026: tasks owed since 18 Nov 00:12Z must still be in reach when this ships)
+SWEEP_WINDOW_SECONDS = 72 * 60 * 60
 #: when this process last swept, per state root (monotonic seconds)
 _SWEPT = {}
 #: the owed-list line for a FAILED marker whose exam row is still COUNTED (released only by the operator's
