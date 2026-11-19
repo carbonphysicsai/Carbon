@@ -61,9 +61,14 @@ def _log(root, name, task):
 
 
 def _bypass(root, task):
-    return sqlite3.connect(root / "attempts.sqlite3").execute(
-        "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (task,)
-    ).fetchall()
+    return (
+        sqlite3.connect(root / "attempts.sqlite3")
+        .execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?",
+            (task,),
+        )
+        .fetchall()
+    )
 
 
 def test_one_of_two_failed_twins_is_regraded_and_the_other_then_waits(tmp_path):
@@ -100,9 +105,7 @@ def test_earlier_never_graded_twins_do_not_hold_a_regrade(tmp_path):
     _owed(root, ledger, E, recipe, at_ns=SPLIT_NS + 1 * 10**9)
     _store(root, F, recipe)  # stored, never graded, never handed back
     _owed(root, ledger, A, recipe, at_ns=SPLIT_NS + 3 * 10**9)
-    assert infra_requeue.requeue(root, [A])["refused"] == {
-        A: "given_back_rerun_exists"
-    }
+    assert infra_requeue.requeue(root, [A])["refused"] == {A: "given_back_rerun_exists"}
     out = infra_requeue.regrade(root, [A], ruling=RULING, apply=True)
     assert out["regraded"] == [A] and out["refused"] == {}
 
@@ -115,9 +118,7 @@ def test_released_and_reclassed_first_attempts_are_regraded(tmp_path):
     _log(root, "releases.jsonl", A)
     _owed(root, ledger, B, _recipe("reclassed"), code=infra_requeue.RECLASSED_CODE)
     _log(root, "reclass.jsonl", B)
-    assert infra_requeue.requeue(root, [A])["refused"] == {
-        A: "released_not_regraded"
-    }
+    assert infra_requeue.requeue(root, [A])["refused"] == {A: "released_not_regraded"}
     assert infra_requeue.rearm(root, [B], ruling=RULING)["refused"] == {
         B: "not_rearmed_before"
     }

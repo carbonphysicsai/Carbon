@@ -1822,7 +1822,8 @@ _REGRADE_MARKERS = ("FAILED", "GRADED")
 
 def _regrade_refusal(root, db, door, task):
     """``(attempt, code, twins, None)`` when ``regrade`` accepts the task, else ``(None, None, twins, refusal)``
-    (read-only; see the module text). ``twins``: ``[{"task", "marker"}]`` of its same-recipe tasks."""
+    (read-only; see the module text). ``twins``: ``[{"task", "marker"}]`` of its same-recipe tasks.
+    """
     twins = []
     if type(task) is not str or not _TASK.fullmatch(task):
         return None, None, twins, "not_a_task_id"
@@ -1882,7 +1883,8 @@ def _regrade_refusal(root, db, door, task):
 
 def regrade(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     """``{"regraded": [...], "refused": {task: code}, "twins": {task: [...]}}``: each task V2 ruled owed a free re-grade
-    is handed back to the grader once more, uncharged, same task id (see the module text). Dry run unless ``apply``."""
+    is handed back to the grader once more, uncharged, same task id (see the module text). Dry run unless ``apply``.
+    """
     out = {
         "schema": SCHEMA,
         "action": "regrade",
