@@ -421,3 +421,91 @@ def test_the_start_filing_refiles_queued_crowns_before_recontend(monkeypatch):
     state, _count = king_upkeep.file_stranded("/root", "/pool", discovery)
     # tried again with the filing (the stranded hold keeps grades back meanwhile), never skipped
     assert state == king_upkeep.STRANDED_RETRY and order == []
+
+
+def _events(root):
+    import json
+
+    path = root / "auto-grade" / "crown-queue.jsonl"
+    return [json.loads(line)["event"] for line in path.read_text().splitlines()]
+
+
+def test_a_decision_that_raises_is_journaled_failed_and_refiled_at_the_next_start(
+    tmp_path,
+):
+    """V2 C5 (1): 'applied' only when the decision returned; one that raised is 'failed' and stays open."""
+    from carbon.challenge_validator.lean_recipe_retention import refile_queued_crowns
+
+    root = tmp_path / "receiver"
+    (root / "auto-grade" / "artifacts").mkdir(parents=True)
+
+    def decide():
+        raise OSError("pool unreadable mid-decision")
+
+    sequencer = grade_sequencer.Sequencer()
+    with sequencer.task() as task:
+        task.bind("rtsk_" + "f" * 64, "h:f")
+        grade_sequencer.crown_decision(decide, _journal(root, "f"))
+    assert _events(root) == ["queued", "failed"]  # never 'applied'
+    store = _Store()
+    assert refile_queued_crowns(root, store) == (1, 0)
+    assert [sid for sid, _key, _fields in store.filed] == ["rtsk_" + "f" * 64]
+
+
+class _PausedStore(_Store):
+    """`_Store` plus the crown pause sweep's view: unresolved records in filing order, resolved one by one."""
+
+    def __init__(self):
+        super().__init__()
+        self.resolved = set()
+
+    def record_crown_paused(self, submission_id, key, **fields):
+        if all((sid, k) != (submission_id, key) for sid, k, _f in self.filed):
+            super().record_crown_paused(submission_id, key, **fields)
+
+    def paused_crowns(self, kind=None):
+        return [
+            {"submission_id": sid, "evaluation_key": key, "kind": fields["kind"]}
+            for sid, key, fields in self.filed
+            if (sid, key) not in self.resolved and kind in (None, fields["kind"])
+        ]
+
+
+def test_new_crown_decisions_queue_behind_the_refiled_ones_until_the_sweep_decides_them(
+    tmp_path,
+):
+    """V2 C5 (2): across a restart the crown keeps claim order. While a re-filed decision of the last run is undecided,
+    each new decision is filed PAUSED after it (the sweep decides in filing order); once all are decided, new
+    decisions are made live again."""
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    root = tmp_path / "receiver"
+    (root / "auto-grade" / "artifacts").mkdir(parents=True)
+    _journal(root, "x").queued()  # queued at the stop, never applied
+    store = _PausedStore()
+    assert retention.refile_queued_crowns(root, store) == (1, 0)
+    x, y, z, w = ("rtsk_" + c * 64 for c in "xyzw")
+
+    behind = retention._queue_behind_refiled(_journal(root, "y"), store)
+    assert behind["outcome"] == retention.QUEUED_BEHIND_REFILED
+    assert [sid for sid, _k, _f in store.filed] == [x, y]
+    # X decided by the sweep: Y (filed behind it) is still undecided, so Z queues behind too
+    store.resolved.add((x, KEY))
+    assert retention._queue_behind_refiled(_journal(root, "z"), store) is not None
+    assert [sid for sid, _k, _f in store.filed] == [x, y, z]
+    # all decided: the next decision is made live (None: no filing)
+    store.resolved |= {(y, KEY), (z, KEY)}
+    assert retention._queue_behind_refiled(_journal(root, "w"), store) is None
+    assert [sid for sid, _k, _f in store.filed] == [x, y, z]
+    assert w not in {sid for sid, _k, _f in store.filed}
+
+
+def test_with_nothing_refiled_a_decision_is_made_live(tmp_path):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    root = tmp_path / "receiver"
+    (root / "auto-grade" / "artifacts").mkdir(parents=True)
+    store = _PausedStore()
+    assert retention._queue_behind_refiled(_journal(root, "a"), store) is None
+    assert retention._queue_behind_refiled(None, store) is None
+    assert store.filed == []

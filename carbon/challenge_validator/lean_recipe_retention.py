@@ -3089,6 +3089,10 @@ def _contend(
             # Fix 1b (V2's verdict, 18 Nov 2026): applied in CLAIM order by the crown queue
             # (`grade_sequencer.crown_decision`), which holds the crown lock around this call.
             try:
+                # V2 C5 (2): behind a re-filed decision of the last run still undecided, this one is filed after it
+                behind = _queue_behind_refiled(journal, promotion.store)
+                if behind is not None:
+                    return behind
                 # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
                 # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
                 reader = getattr(promotion.store, "incumbent", None)
@@ -3147,10 +3151,12 @@ CROWN_QUEUE_JOURNAL = "crown-queue.jsonl"
 class CrownJournal:
     """The durable record of one sequenced crown decision (fix 1b; V2 C5, 19 Nov 2026). The crown queue is in memory: a
     decision handed over behind an earlier grade, whose own grade then ends (its marker GRADED), would be lost at a
-    stop. So ``queued`` is appended (and synced) before the hand-over, ``applied`` once the decision is made (whatever
-    its outcome) and ``dropped`` when an abandoned grade's decision is dropped. At the next start, before the first
-    grade, `refile_queued_crowns` files every decision queued and neither applied nor dropped for the crown pause
-    sweep. Custody only: task ids, keys, digests; no score.
+    stop. So ``queued`` is appended (and synced) before the hand-over, ``applied`` once the decision returned (whatever
+    its outcome), ``failed`` when it raised (V2 C5 (1): it stays open) and ``dropped`` when an abandoned grade's
+    decision is dropped. At the next start, before the first grade, `refile_queued_crowns` files every decision queued
+    and neither applied nor dropped for the crown pause sweep (``refiled``); until the sweep has decided them, each new
+    decision is filed behind them (`_queue_behind_refiled`, ``behind``). Custody only: task ids, keys, digests; no
+    score.
     """
 
     def __init__(self, artifacts, **record):
@@ -3171,8 +3177,75 @@ class CrownJournal:
     def applied(self):
         self._append("applied")
 
+    def failed(self):
+        self._append("failed")
+
     def dropped(self):
         self._append("dropped")
+
+
+#: What a crown decision returns when it was filed behind the last run's re-filed decisions (`_queue_behind_refiled`).
+QUEUED_BEHIND_REFILED = "QUEUED_BEHIND_REFILED"
+
+
+def _refiled_pending(path, store, kind):
+    """The ``(submission_id, evaluation_key)`` of every decision this receiver re-filed at a start (``refiled``) or
+    filed behind one (``behind``) whose crown pause record is still unresolved now (read only).
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    filed = set()
+    for line in text.splitlines():
+        try:
+            body = json.loads(line)
+        except ValueError:
+            continue
+        if type(body) is dict and body.get("event") in ("refiled", "behind"):
+            filed.add((body.get("submission_id"), body.get("evaluation_key")))
+    if not filed:
+        return set()
+    unresolved = {
+        (record["submission_id"], record["evaluation_key"])
+        for record in store.paused_crowns(kind)
+    }
+    return filed & unresolved
+
+
+def _queue_behind_refiled(journal, store):
+    """V2 C5 (2), 19 Nov 2026: across a restart, claim order holds for the crown too. While a decision the last run
+    queued (re-filed at this start, `refile_queued_crowns`) or one already filed behind it is still undecided in the
+    crown pause sweep, a NEW grade's decision is not made live: it is filed PAUSED after them (the sweep decides in
+    filing order, oldest first, each against the king of its moment) and journaled ``behind``, so every later new
+    decision queues behind it too, until the sweep has decided them all. None when nothing re-filed is pending (the
+    decision is made now). Durable on both sides (the journal and the pool), so a second restart keeps the order.
+    """
+    from carbon.battery.pool_store import CROWN_PAUSED
+
+    if journal is None:
+        return None
+    record = journal.record
+    if not _refiled_pending(journal.path, store, record["kind"]):
+        return None
+    if record.get("entry_id") is None:
+        # nothing retained to contend from later: never decided out of order either (the caller's refusal path)
+        raise RetentionUnavailable("crown_paused_entry_unavailable")
+    store.record_crown_paused(
+        record["submission_id"],
+        record["evaluation_key"],
+        kind=record["kind"],
+        exam=record["exam"],
+        entry_id=record["entry_id"],
+        pin=record["pin"],
+        state=CROWN_PAUSED,
+    )
+    journal._append("behind")
+    return {
+        "outcome": QUEUED_BEHIND_REFILED,
+        "reason": "refiled_crown_pending",
+        "evaluation_key": record["evaluation_key"],
+    }
 
 
 def _queued_crowns(path):
@@ -3190,6 +3263,7 @@ def _queued_crowns(path):
         if type(body) is not dict:
             continue
         key = (body.get("submission_id"), body.get("evaluation_key"))
+        # 'failed' (the decision raised) keeps it open: it is re-filed like one never applied (V2 C5 (1))
         if body.get("event") == "queued":
             open_.setdefault(key, body)
         elif body.get("event") in ("applied", "dropped", "refiled"):

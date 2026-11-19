@@ -361,7 +361,8 @@ class _Task:
         """Whether an EARLIER open ticket still holds this grade's commit order (caller holds ``_order``): one of the
         same exam-cap allowance group, or of an unknown group (None, or not bound yet), and not expired (design A); a
         grade whose own group is unknown is ordered behind every earlier one (fix 1b: across groups a grade's own
-        writes are order-free; only the crown decision is claim-ordered, `crown_decision`)."""
+        writes are order-free; only the crown decision is claim-ordered, `crown_decision`).
+        """
         seq = self.sequencer
         mine = seq._groups.get(self.ticket)
         now = time.monotonic()
@@ -427,16 +428,21 @@ class _Task:
         once every earlier grade's decisions are applied or it ended. Returns ``decide()``'s result when it was applied
         now (no earlier decision outstanding), else `CROWN_QUEUED`: this grade goes on and ends; the decision is applied
         by the thread of the earlier grade, after its own. ``journal`` (optional): ``queued()`` is written BEFORE the
-        hand-over (so a stop can never lose a decision the grade's marker already says is graded), ``applied()`` after
-        the decision, ``dropped()`` when `abandon` drops it."""
+        hand-over (so a stop can never lose a decision the grade's marker already says is graded), ``applied()`` when
+        the decision returned, ``failed()`` when it raised (re-filed at the next start), ``dropped()`` when `abandon`
+        drops it."""
         result = {}
 
         def apply():
+            # V2 C5 (1), 19 Nov 2026: 'applied' only when the decision returned; one that raised never ran to its end,
+            # so it is written 'failed' and stays open for the next start's re-filing (never silently "considered")
             try:
                 with CROWN_LOCK:
                     result["value"] = decide()
-            finally:
-                _journal(journal, "applied")
+            except BaseException:
+                _journal(journal, "failed")
+                raise
+            _journal(journal, "applied")
 
         if self.ticket in self.sequencer._abandoned:
             raise GradeAbandoned(self.ticket)

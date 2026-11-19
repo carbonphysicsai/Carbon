@@ -408,6 +408,10 @@ def _contend_set(
             # the crown's read and write, as every crown commit (V2, 18 Nov 2026), in CLAIM order (fix 1b): the crown
             # queue (`grade_sequencer.crown_decision`) holds the crown lock around this call
             try:
+                # V2 C5 (2): behind a re-filed decision of the last run still undecided, this one is filed after it
+                behind = retention._queue_behind_refiled(journal, promotion.store)
+                if behind is not None:
+                    return behind
                 # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
                 # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
                 outcome = promotion.consider_private(
