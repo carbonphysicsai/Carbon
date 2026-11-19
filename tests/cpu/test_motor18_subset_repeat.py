@@ -968,6 +968,39 @@ def test_real_adapter_one_ulp_off_in_one_repeated_row_leaves_the_grade_unscored(
     assert scored["models"][0]["score"] is None
 
 
+def test_real_adapter_the_staged_capture_is_the_official_subset_grades_measure(
+    case, as_subset
+):
+    """Door-code item 5, V2 evidence A: inside the subset producer (`produce_registered_dual_measurement` ->
+    `_produce` -> `measure_subset` -> PoolVariant.measure -> `pool_exam.measure_pool`, the ONE measure of the grade),
+    the receiver's staged capture holds THAT measure: its basis total is the benchmark's own 0.5 A + 0.5 D; a grade the
+    subset repeat leaves unscored has no SE (gated), whatever the pool measure staged."""
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.scoring import pool_exam
+
+    originals, _sealed, _keyed = _fixture_side(case)
+    with pool_exam.staged_capture() as captured:
+        _src, measured = _subset_produce(case, originals)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    assert set(benchmark["models"][0]["gates"].values()) == {"PASS"}
+    assert callable(captured["se_basis_of"])
+    basis = retention._official_basis(captured, benchmark)  # raises capture_not_official otherwise
+    legs = benchmark["models"][0]["measurements"]
+    graded = 0.5 * legs[physical.METRICS["A"]]["value"]
+    graded += 0.5 * legs[physical.METRICS["D"]]["value"]
+    assert basis["total"] == pytest.approx(graded, abs=1e-12)
+
+    def change(answers, positions):
+        answers[0][-1] = math.nextafter(answers[0][-1], math.inf)
+
+    originals, _sealed, _keyed = _fixture_side(case, change=change)
+    with pool_exam.staged_capture() as captured:
+        _src, measured = _subset_produce(case, originals)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    assert "FAIL" in benchmark["models"][0]["gates"].values()
+    assert retention._official_basis(captured, benchmark) == {"gated": True}
+
+
 def test_real_adapter_repeat_values_reach_gates_only(case, as_subset, monkeypatch):
     """A-5: the twin rows the measure receives never reach a score input. Perturb every twin row that is not a sealed
     cell (pool and probe rows: never read) wildly, and every sealed cell's twin inside Motor's torque rule (read only by

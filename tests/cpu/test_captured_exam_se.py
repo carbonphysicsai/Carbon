@@ -30,6 +30,7 @@ from carbon.challenge_validator import exam_rotation
 from carbon.challenge_validator import gate_failure_feedback as gff
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.ledger import AttemptLedger
+from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import pool_exam
 
 KEY = "sha256:" + "ab" * 32
@@ -129,14 +130,27 @@ def test_a_basis_that_cannot_be_derived_never_reaches_the_grade(monkeypatch):
 # --- the receiver's sidecars ------------------------------------------------------------------------------------------
 
 
-def _write(directory, captured, gates, score=0.5):
+def _legs(result):
+    """A dual benchmark model's measurements as the producer writes them (`physical_dual_pack.METRICS`)."""
+    return {
+        physical.METRICS[name]: {
+            "status": "RESOLVED",
+            "value": result[name],
+            "unit": "1",
+        }
+        for name in ("A", "D")
+    }
+
+
+def _write(directory, captured, gates, score=0.5, measured=None):
     directory.mkdir(exist_ok=True)
+    model = {"gates": gates, **({} if measured is None else {"measurements": measured})}
     return retention._write_captured_exam_se(
         SID,
         SimpleNamespace(manifest_digest=KEY),
         directory,
         {"models": [{"score": score}]},
-        {"models": [{"gates": gates}]},
+        {"models": [model]},
         captured,
     )
 
@@ -149,11 +163,12 @@ def _se(directory):
 def test_a_scored_pool_grade_writes_both_sidecars_from_its_own_measure(tmp_path):
     the_sets = _sets(per_class=2)
     policies, material = _registered(the_sets, threshold=2.5)
-    _result, captured = _staged(the_sets, policies, material)
+    result, captured = _staged(the_sets, policies, material)
     expected, sizes = pool_exam.target_bootstrap_se(
         captured["se_basis_of"](), KEY, resamples=200
     )
-    record = _write(tmp_path / "a", captured, {"x": "PASS", "y": "PASS"})
+    gates = {"x": "PASS", "y": "PASS"}
+    record = _write(tmp_path / "a", captured, gates, measured=_legs(result))
     assert record == captured["accuracy"]
     done = _se(tmp_path / "a")
     assert (done["status"], done["exam_key"], done["resamples"]) == (
@@ -229,6 +244,7 @@ def test_the_writer_never_raises(tmp_path, capsys):
     assert lines[0]["sidecar"] == exam_rotation.SE_SIDECAR
     assert lines[0]["error"] == "ValueError"
     assert lines[1]["status"] == "UNAVAILABLE" and lines[1]["accuracy"] is True
+    assert type(lines[1]["seconds"]) is float and lines[1]["seconds"] >= 0
     assert (tmp_path / "c" / exam_rotation.ACCURACY_SIDECAR).exists()
 
 
@@ -247,3 +263,40 @@ def test_a_gate_failed_pool_grade_stores_its_gate_failures(tmp_path):
     assert retention._record_gate_failures(adapter, SID, KEY, shown, record) == ""
     failures = gff.derive(record)
     assert failures is not None and gff.read(ledger, SID, KEY) == failures
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_a_basis_that_is_not_the_scored_measures_is_never_used(tmp_path):
+    """V2 on d31ca579 (evidence A): the captured basis must be the OFFICIAL grade's; its total must be the benchmark's
+    own 0.5 A + 0.5 D, else UNAVAILABLE capture_not_official (the accuracy record is still kept)."""
+    the_sets = _sets(per_class=2)
+    policies, material = _registered(the_sets, threshold=2.5)
+    result, captured = _staged(the_sets, policies, material)
+    other = {**result, "D": result["D"] + 0.25}
+    record = _write(tmp_path / "a", captured, {"x": "PASS"}, measured=_legs(other))
+    done = _se(tmp_path / "a")
+    assert (done["status"], done["reason"]) == ("UNAVAILABLE", "capture_not_official")
+    assert record == captured["accuracy"]
+    basis = retention._official_basis(
+        captured, {"models": [{"gates": {"x": "PASS"}, "measurements": _legs(result)}]}
+    )
+    assert basis["total"] == pytest.approx(0.5 * result["A"] + 0.5 * result["D"])
+
+
+def test_a_broken_stderr_or_a_malformed_capture_never_stops_the_grade(
+    tmp_path, monkeypatch
+):
+    class Broken:
+        def write(self, *args):
+            raise OSError("stderr gone")
+
+        def flush(self):
+            raise OSError("stderr gone")
+
+    record = {"rows": [], "gate": {"statistic": "p90", "passed": True}}
+    monkeypatch.setattr(sys, "stderr", Broken())
+    few = {"gated": False, "sets": [[{"d": 0.4}]]}
+    assert _write(tmp_path / "a", {"accuracy": record, "se_basis": few}, {}) == record
+    assert _write(tmp_path / "b", None, {"x": "PASS"}) is None  # not a capture at all
+    monkeypatch.undo()
+    retention._journal("grade_exam_se", task=SID, status="MEASURED")

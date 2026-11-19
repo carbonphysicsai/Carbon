@@ -2694,14 +2694,23 @@ def _retain_selected_pack_evaluation(
         if captured:
             # A pool-graded version (Motor 1.8 on 116 among them, whose development adapter `_pool_graded` reads is not
             # the sealed pool adapter, so it kept neither sidecar nor any gate failure): both from this grade's measure.
-            accuracy_record = _write_captured_exam_se(
-                submission_id,
-                snapshot,
-                directory,
-                scoring,
-                benchmark,
-                captured,
-            )
+            # Operator evidence after the binding exists: whatever goes wrong here, the grade goes on (V2 on d31ca579).
+            try:
+                accuracy_record = _write_captured_exam_se(
+                    submission_id,
+                    snapshot,
+                    directory,
+                    scoring,
+                    benchmark,
+                    captured,
+                )
+            except Exception as failure:  # noqa: BLE001 - never the grade
+                accuracy_record = None
+                _journal(
+                    "grade_exam_se_failed",
+                    task=submission_id,
+                    error=type(failure).__name__,
+                )
         elif (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
             accuracy_record = _write_exam_se(
                 adapter,
@@ -2862,84 +2871,142 @@ def _pool_graded(adapter) -> bool:
 _SE_RESAMPLES = 200
 
 
+def _journal(event, **fields):
+    """One JSON line on stderr (the receiver's journal): the event, its UTC time and closed fields only (a task id, a
+    status, a refusal code, an exception type name), never a value. Guarded: a log line never stops a grade (V2 on
+    46560738 / d31ca579)."""
+    try:
+        import sys
+        import time
+
+        print(
+            json.dumps(
+                {
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "event": event,
+                    **fields,
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+    except Exception:  # noqa: BLE001, S110 - a log line never stops a grade
+        pass
+
+
+def _official_basis(captured, benchmark):
+    """The captured SE basis, checked to be the OFFICIAL grade's: its total must be the benchmark's own
+    0.5 A + 0.5 D (the dual measurement the grade was scored from), else ``capture_not_official`` (V2 on d31ca579,
+    evidence A). A grade with any failed mandatory gate has no total: ``gated``."""
+    from carbon.scoring import physical_dual_pack as physical
+    from carbon.scoring import pool_exam
+
+    model = benchmark["models"][0]
+    gates = model["gates"]
+    if type(gates) is not dict or any(v != "PASS" for v in gates.values()):
+        return {"gated": True}
+    if "se_basis" in captured:
+        return captured["se_basis"]  # the measure's own gated basis (no total)
+    basis = captured["se_basis_of"]()
+    legs = model["measurements"]
+    a_value = legs[physical.METRICS["A"]]["value"]
+    d_value = legs[physical.METRICS["D"]]["value"]
+    official = 0.5 * a_value + 0.5 * d_value
+    total = basis.get("total") if type(basis) is dict else None
+    bound = 1e-12 * max(1.0, abs(official))
+    if type(total) is not float or abs(total - official) > bound:
+        raise pool_exam.ExamRefused("capture_not_official")
+    return basis
+
+
 def _write_captured_exam_se(
     submission_id, snapshot, directory, scoring, benchmark, captured
 ):
     """A pool grade's two custody sidecars from THIS grade's own measure (`pool_exam.staged_capture`), write-once beside
-    the binding, and its accuracy record (None when the version has none) for the gate-failure feedback.
+    the binding, and its accuracy record (None when the version has none, or on any failure here) for the gate-failure
+    feedback.
 
     - `exam_rotation.SE_SIDECAR`: the target-cluster SE of the exam total (`pool_exam.target_bootstrap_se`, the same
       computation as `pool_exam_se`), or UNAVAILABLE with the reason: ``gated`` when any mandatory gate failed (the
-      subset repeat's own gates included, which the pool measure never sees), the measure's refusal code, or
+      subset repeat's own gates included, which the pool measure never sees), ``capture_not_official`` when the
+      captured basis is not the scored measure's (`_official_basis`), the measure's refusal code, or
       ``bootstrap_failed:<type>``. The scored basis is derived here (``se_basis_of``), after the producer call, never
       under its lock.
     - `exam_rotation.ACCURACY_SIDECAR`: the custody accuracy record, gate-failed grades included.
 
     Never raises: these are operator evidence, never the grade, and never on the crown's path (lesson 5). A write that
-    fails is one journal line (``grade_sidecar_unwritten``); each grade logs ``grade_exam_se`` (status and reason only).
+    fails is one journal line (``grade_sidecar_unwritten``); each grade logs ``grade_exam_se`` (status, reason and
+    its seconds); anything else is ``grade_exam_se_failed`` with the exception type and returns None.
     """
-    from carbon.battery.intake import log
-    from carbon.challenge_validator import exam_rotation
-    from carbon.development_session.data import write_once
-    from carbon.scoring import pool_exam
-
-    accuracy = captured.get("accuracy")
-    exam_key = snapshot.manifest_digest
-    document = {
-        "schema": exam_rotation.SE_SCHEMA,
-        "exam_key": exam_key,
-        "resamples": _SE_RESAMPLES,
-    }
     try:
-        document["total"] = scoring["models"][0].get("score")
-        gates = benchmark["models"][0]["gates"]
-        if type(gates) is not dict or any(v != "PASS" for v in gates.values()):
-            basis = {"gated": True}
-        elif "se_basis" in captured:
-            basis = captured["se_basis"]  # the measure's own gated basis (no total)
-        else:
-            basis = captured["se_basis_of"]()
-        spread, sizes = pool_exam.target_bootstrap_se(
-            basis, exam_key, resamples=_SE_RESAMPLES
-        )
-        document.update(standard_error=spread, status="MEASURED", n_targets=sizes)
-    except pool_exam.ExamRefused as refused:
-        document.update(status="UNAVAILABLE", reason=refused.code)
-    except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
-        document.pop("standard_error", None)
-        document.update(
-            status="UNAVAILABLE", reason="bootstrap_failed:" + type(failure).__name__
-        )
-    sidecars = [(exam_rotation.SE_SIDECAR, document)]
-    if accuracy is not None:
-        sidecars.append(
-            (
-                exam_rotation.ACCURACY_SIDECAR,
-                {
-                    "schema": exam_rotation.ACCURACY_SIDECAR_SCHEMA,
-                    "exam_key": exam_key,
-                    "record": accuracy,
-                },
-            )
-        )
-    for name, body in sidecars:
+        import time
+
+        from carbon.challenge_validator import exam_rotation
+        from carbon.development_session.data import write_once
+        from carbon.scoring import pool_exam
+
+        started = time.monotonic()
+        accuracy = captured.get("accuracy")
+        exam_key = snapshot.manifest_digest
+        document = {
+            "schema": exam_rotation.SE_SCHEMA,
+            "exam_key": exam_key,
+            "resamples": _SE_RESAMPLES,
+        }
         try:
-            write_once(directory / name, _json(body))
-        except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
-            log(
-                "grade_sidecar_unwritten",
-                task=submission_id,
-                sidecar=name,
-                error=type(failure).__name__,
+            document["total"] = scoring["models"][0].get("score")
+            spread, sizes = pool_exam.target_bootstrap_se(
+                _official_basis(captured, benchmark),
+                exam_key,
+                resamples=_SE_RESAMPLES,
             )
-    log(
-        "grade_exam_se",
-        task=submission_id,
-        status=document["status"],
-        reason=document.get("reason"),
-        accuracy=accuracy is not None,
-    )
-    return accuracy
+            document.update(standard_error=spread, status="MEASURED", n_targets=sizes)
+        except pool_exam.ExamRefused as refused:
+            document.update(status="UNAVAILABLE", reason=refused.code)
+        except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+            document.pop("standard_error", None)
+            document.update(
+                status="UNAVAILABLE",
+                reason="bootstrap_failed:" + type(failure).__name__,
+            )
+        sidecars = [(exam_rotation.SE_SIDECAR, document)]
+        if accuracy is not None:
+            sidecars.append(
+                (
+                    exam_rotation.ACCURACY_SIDECAR,
+                    {
+                        "schema": exam_rotation.ACCURACY_SIDECAR_SCHEMA,
+                        "exam_key": exam_key,
+                        "record": accuracy,
+                    },
+                )
+            )
+        for name, body in sidecars:
+            try:
+                write_once(directory / name, _json(body))
+            except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+                _journal(
+                    "grade_sidecar_unwritten",
+                    task=submission_id,
+                    sidecar=name,
+                    error=type(failure).__name__,
+                )
+        _journal(
+            "grade_exam_se",
+            task=submission_id,
+            status=document["status"],
+            reason=document.get("reason"),
+            accuracy=accuracy is not None,
+            # what this adds to the grade (basis + bootstrap + writes), measured on the grade class (V2 evidence B)
+            seconds=round(time.monotonic() - started, 3),
+        )
+        return accuracy
+    except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+        _journal(
+            "grade_exam_se_failed", task=submission_id, error=type(failure).__name__
+        )
+        return None
 
 
 def _write_exam_se(
