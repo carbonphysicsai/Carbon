@@ -158,6 +158,10 @@ SOCKET_TIMEOUT_S = 10.0
 #: - at most this many peer buckets are remembered (least recent evicted).
 BODY_DEADLINE_S = 10.0
 MAX_CONNECTIONS, MAX_CONNECTIONS_PER_PEER = 64, 4
+#: A door reached only through its local hop (the front: every request arrives on loopback, the per-address cap does
+#: not apply and the front already caps each client) takes this many at once (V2 R12, 19 Nov 2026: the front releases
+#: a restart's held requests together, and 64 refused 8 at the 13cb754b LISTENING moment). Over it: the same typed 503.
+LOCAL_HOP_MAX_CONNECTIONS = 256
 MAX_PEERS = 4096
 #: On SIGTERM the worker may finish the pass in flight for this long; a run
 #: cut off after it is recovered as infrastructure on the next start.
@@ -1624,7 +1628,9 @@ class _Server(ThreadingHTTPServer):
         trusted_proxy=False,
         local_hop=False,
     ):
-        self.slots = ConnectionSlots()
+        self.slots = ConnectionSlots(
+            total=LOCAL_HOP_MAX_CONNECTIONS if local_hop else MAX_CONNECTIONS
+        )
         self.service = service
         self.trusted_proxy = trusted_proxy
         #: A door reached only through a local hop (an ssh forward, the operator's tools): see

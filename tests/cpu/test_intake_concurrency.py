@@ -289,3 +289,37 @@ def test_another_door_keeps_its_per_address_cap_and_its_close_at_once():
 def test_the_direct_construction_door_is_the_local_hop_door():
     assert DirectRecipeIntake.local_hop is True
     assert not getattr(battery_intake.BatteryIntake, "local_hop", False)
+
+
+def test_a_local_hop_door_takes_256_at_once_and_the_257th_gets_the_typed_503():
+    """V2 R12 (19 Nov 2026): the front releases a restart's held requests together, and 64 refused 8. A local-hop door
+    holds 256 at once (every request arrives on loopback; the front caps each client); the 257th is told 503
+    intake_busy with Retry-After, never dropped. Any other door keeps 64 in all and 4 per address."""
+    local = battery_intake._Server(
+        ("127.0.0.1", 0), _handler(FakeIntake(lambda *a: None)), local_hop=True
+    )
+    other = battery_intake._Server(
+        ("127.0.0.1", 0), _handler(FakeIntake(lambda *a: None)), local_hop=False
+    )
+    try:
+        assert local.slots.total == battery_intake.LOCAL_HOP_MAX_CONNECTIONS == 256
+        assert (other.slots.total, other.slots.per_peer) == (64, 4)
+        for _ in range(256):
+            assert local.slots.acquire("127.0.0.1", shared_proxy=True)
+        assert not local.slots.acquire("127.0.0.1", shared_proxy=True)
+    finally:
+        local.server_close()
+        other.server_close()
+    # the 257th connection, on a live local-hop door at its cap, reads the typed 503
+    server, thread = serve(FakeIntake(lambda *a: None))
+    try:
+        for _ in range(server.slots.total):
+            server.slots.acquire("127.0.0.1", shared_proxy=True)
+        connection = http.client.HTTPConnection(*server.server_address, timeout=5)
+        connection.request("GET", "/")
+        response = connection.getresponse()
+        assert response.status == 503
+        assert response.getheader("Retry-After") == "1"
+        assert json.loads(response.read()) == {"refused": "intake_busy"}
+    finally:
+        stop(server, thread)
