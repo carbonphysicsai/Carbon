@@ -512,7 +512,8 @@ _BUILD_RETRIES = Path("auto-grade") / "requeued" / "build-retries.jsonl"
 
 def _build_ancestors(root, task):
     """The tasks ``task`` was re-run FROM by the door's own build re-runs (following ``new_task -> from_task`` back to
-    the miner's submit), as a set; empty when it is no door re-run or the log is unreadable (nothing is excused then)."""
+    the miner's submit), as a set; empty when it is no door re-run or the log is unreadable (nothing is excused then).
+    """
     try:
         text = (Path(root) / _BUILD_RETRIES).read_text(encoding="utf-8")
     except OSError:
