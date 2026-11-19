@@ -2022,7 +2022,8 @@ class _WorkLock:
 
     def _grade_local(self, local):
         """The ``(index, spec)`` local lanes a grade round may take: every one on a door with no remote grade lane; on a
-        door whose builds start laneless (`builds_laneless`), every one but the builds' reserved lane; else none.
+        door whose builds start laneless (`builds_laneless`), every one not reserved for builds (all are, since 19 Nov
+        2026); else none.
         """
         if not self._grades_remote_only():
             return local
@@ -2082,11 +2083,13 @@ class _WorkLock:
         self._build_slots = threading.BoundedSemaphore(len(local))
         # Owner, 17 Nov 2026 ("make them independent of each other"): with remote GPU build slots, a build round STARTS
         # with no lane (`_Taking._enter_laneless`: it needs only its remote slot), and its local part runs on a local
-        # lane re-taken when it needs one, the first local lane RESERVED for builds (`_reserved_local`): grades never take
-        # it, so a build's local part never waits behind a grade, and grades use every other lane.
+        # lane re-taken when it needs one. EVERY local lane is RESERVED for builds (`_reserved_local`; Lead 19 Nov 2026:
+        # with one reserved lane the A100 slots' local parts queued up to 605 s, live 116 13:31-13:37Z, while grades held
+        # the other; the local EPYC lanes grade ~2x slower than the remote Ryzen lanes anyway, 597 s vs 313 s): grades
+        # run on the remote lanes only, so a build's local part never waits behind a grade.
         # (a door with no remote grade lane grades on its local lanes: its builds start on one, as before)
         self.builds_laneless = extra_rounds > 0 and self._grades_remote_only()
-        self._reserved_local = (min(local),) if self.builds_laneless else ()
+        self._reserved_local = tuple(local) if self.builds_laneless else ()
         return len(local) + max(0, extra_rounds)
 
     def _take_local_lane(self, *, like=None):
