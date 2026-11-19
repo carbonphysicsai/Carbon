@@ -1173,7 +1173,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     def _grade_first_holds(self, owner):
         """Whether grade first holds ``owner``'s next build now (`_built_waits_to_grade`), bounded per owner by
-        `GRADE_FIRST_MAX_SECONDS` from the first skip; the bound resets once nothing of the owner waits.
+        `GRADE_FIRST_MAX_SECONDS` of the time the owner is FREE with its built task unclaimed; the bound resets once
+        nothing of the owner waits, and while another round holds the owner (live 116, 19 Nov 2026 05:1xZ: the bound ran
+        through each owner's long build, so the moment the build ended the owner's NEXT build took it again, and 31
+        built tasks waited with every grade lane idle, ``owner_busy``).
         """
         import time
 
@@ -1181,6 +1184,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if not self._built_waits_to_grade(owner):
             since.pop(owner, None)
             return False
+        claims = getattr(self, "owner_claims", None)
+        if claims is not None and owner in claims.held():
+            # another round holds it (its build, or a grade): no grade could take it, so no grade-first time is spent
+            since.pop(owner, None)
+            return True
         now = time.monotonic()
         first = since.setdefault(owner, now)
         return now - first < self.GRADE_FIRST_MAX_SECONDS
