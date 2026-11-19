@@ -542,7 +542,7 @@ def test_only_a_running_task_holding_a_build_slot_counts_as_building(tmp_path):
     snap = view._read()
     # the counts are as before (the A100 autoscaler's input); the rows tell building from waiting
     assert (snap["building_now"], snap["waiting_to_build"]) == (2, 1)
-    rows = view._read_rows(NOW)
+    rows, _ = view._read_rows(NOW)
     assert [row["state"] for row in rows] == [
         queue_public.BUILDING,
         queue_public.WAITING_TO_BUILD,
@@ -648,6 +648,7 @@ def test_v4_is_unavailable_when_its_counts_cannot_be_read_and_v1_still_serves():
         **_snapshot(),
         "held_for_review": None,
         "rows": {"rows": [], "as_of_unix": NOW - 300},
+        "rows_v4": {"rows": [], "as_of_unix": NOW - 300},
     }
     assert queue_public.serve_v4(_ViewV3({**snapshot, "running": None}), CHALLENGE) == (
         503,
@@ -704,3 +705,87 @@ def test_the_v4_route_serves_this_challenge_only(tmp_path):
         door, queue_public.PATH + "f08-ribbed-bracket" + queue_public.V4_SUFFIX
     )
     assert other.status == 404
+
+
+# --- v4 rows: "grading" only while the grade runs (Lead, 19 Nov 2026) ----------------------------------------------------
+
+
+def _states_of(document):
+    return [row["state"] for row in document["rows"]]
+
+
+def test_v4_rows_wait_to_grade_when_nothing_runs_and_v3_keeps_in_grading(tmp_path):
+    """Live 04:07Z: 16 rows "in grading", grading_now 0, nothing running (the door draining). v4 says waiting to grade."""
+    from carbon.challenge_validator import grade_sequencer
+
+    states = {task: (DirectTaskStateV3.SUCCEEDED, NOW - 900) for task in TASKS[:4]}
+    view, grader = _door(tmp_path, states, pending=TASKS[:4])
+    grader.sequencer = grade_sequencer.Sequencer()
+    status3, v3 = queue_public.serve_v3(view, CHALLENGE)
+    status4, v4 = queue_public.serve_v4(view, CHALLENGE)
+    assert status3 == 200 and _states_of(v3) == [queue_public.IN_GRADING] * 4
+    assert status4 == 200 and _states_of(v4) == [queue_public.WAITING_TO_GRADE] * 4
+    assert (v4["grading_now"], v4["waiting_to_grade"]) == (0, 4)
+
+
+def test_v4_rows_grade_only_a_running_grade_and_the_counts_agree(tmp_path):
+    """A claimed grade running is "grading"; one inside its commit-turn wait (its container given back) waits to grade."""
+    from carbon.challenge_validator import grade_sequencer
+
+    states = {task: (DirectTaskStateV3.SUCCEEDED, NOW - 900) for task in TASKS[:3]}
+    view, grader = _door(tmp_path, states, pending=TASKS[:3])
+    grader.sequencer = grade_sequencer.Sequencer()
+    with grader.sequencer.task() as first:
+        first.bind(TASKS[0])
+        first.release_claim()
+        with grader.sequencer.task() as second:
+            second.bind(TASKS[1])
+            second.release_claim()
+            with grader.sequencer._order:
+                grader.sequencer._waiting.add(second.ticket)  # waits for its commit turn
+            status, v4 = queue_public.serve_v4(view, CHALLENGE)
+    assert status == 200
+    assert _states_of(v4) == [
+        queue_public.GRADING_ROW,
+        queue_public.WAITING_TO_GRADE,
+        queue_public.WAITING_TO_GRADE,
+    ]
+    assert (v4["grading_now"], v4["waiting_to_grade"]) == (1, 2)
+    assert "rtsk_" not in json.dumps(v4)
+
+
+def test_each_document_takes_only_its_own_row_states():
+    row = {"position": 1, "hotkey": None, "in_queue_s": 300}
+    base = {
+        **_snapshot(),
+        "held_for_review": None,
+        "running": {
+            "waiting_to_build": 0,
+            "building_now": 0,
+            "waiting_to_grade": 1,
+            "grading_now": 0,
+        },
+    }
+
+    def rows(state):
+        return {"rows": [{**row, "state": state}], "as_of_unix": NOW - 300}
+
+    v3_ok = {**base, "rows": rows(queue_public.IN_GRADING)}
+    assert queue_public.serve_v3(_ViewV3(v3_ok), CHALLENGE)[0] == 200
+    assert queue_public.serve_v4(_ViewV3(v3_ok), CHALLENGE) == (
+        503,
+        {"refused": "queue_rows_invalid"},
+    )  # no v4 rows
+    for v4_state in (queue_public.WAITING_TO_GRADE, queue_public.GRADING_ROW):
+        assert queue_public.serve_v3(
+            _ViewV3({**base, "rows": rows(v4_state)}), CHALLENGE
+        ) == (503, {"refused": "queue_rows_invalid"})
+        assert (
+            queue_public.serve_v4(
+                _ViewV3({**v3_ok, "rows_v4": rows(v4_state)}), CHALLENGE
+            )[0]
+            == 200
+        )
+    assert queue_public.serve_v4(
+        _ViewV3({**v3_ok, "rows_v4": rows(queue_public.IN_GRADING)}), CHALLENGE
+    ) == (503, {"refused": "queue_rows_invalid"})

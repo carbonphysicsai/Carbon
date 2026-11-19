@@ -99,6 +99,16 @@ class Sequencer:
         with self._order:
             return {sid for sid in self._open.values() if sid is not None}
 
+    def running(self):
+        """The claimed submission ids whose grade is RUNNING now: claimed and bound, not inside its commit-turn wait
+        (where it has given its grade-session container back and waits on earlier grades, `_Task.turn`)."""
+        with self._order:
+            return {
+                sid
+                for ticket, sid in self._open.items()
+                if sid is not None and ticket not in self._waiting
+            }
+
     def groups_in_flight(self):
         """The exam-cap allowance groups of the grades in flight (a claim holds a later task of the same group back,
         so its allowance is read after the earlier one settles, as one at a time does). An unknown group is "any".

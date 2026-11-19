@@ -20,6 +20,10 @@ this door already keeps. Reads; writes nothing.
   ledger is read on a read-only connection (``mode=ro``: no write lock, never blocks a build or a grade); an unreadable
   ledger counts its RUNNING tasks as building, as before. A SUCCEEDED task whose grade is already claimed (in flight,
   `grade_sequencer`) is no longer waiting to grade.
+- **v4 (Lead, 19 Nov 2026):** a built task is GRADING only while its grade runs (`grade_sequencer.Sequencer.running`:
+  claimed, not inside its commit-turn wait); every other built task WAITS TO GRADE, in the v4 rows and counts alike
+  (the live board showed 16 rows "in grading" while nothing ran). A door with no sequencer counts its one grade by the
+  in-flight record and lists no row as grading (it does not record which task).
 - **grading now:** on a door grading one round per lane, 1 while any claimed grade is in flight; else this door's
   in-flight record (``work-inflight.json``, `direct_intake._WorkLock`) is a GRADE round and the grader is grading a
   submission (not its king's upkeep).
@@ -196,6 +200,11 @@ class QueueView:
         sequencer = getattr(self.grader, "sequencer", None)
         return set() if sequencer is None else set(sequencer.in_flight())
 
+    def _running_grades(self):
+        """The built tasks whose grade runs now (v4): claimed and not waiting for their commit turn."""
+        sequencer = getattr(self.grader, "sequencer", None)
+        return set() if sequencer is None else set(sequencer.running())
+
     def held(self):
         """The held contenders' submission ids, oldest filing first, on a crown-hold door; None on every other door.
         A read of the pool store's filed contenders only (no grade, no lock)."""
@@ -276,15 +285,16 @@ class QueueView:
             "waits_s": self._waits(now, index),
             "as_of_unix": now,
             qp.HELD: None if (held := self.held()) is None else len(held),
-            qp.RUNNING: self._running(index, claimed),
+            qp.RUNNING: self._running(index),
         }
 
-    def _running(self, index, claimed):
+    def _running(self, index):
         """The v4 counts (`queue_public.SCHEMA_V4`, owner Q15): what actually runs. A RUNNING task with no build slot
         (`_waiting_for_slot`) waits to build; a claimed grade is grading (one per round in flight). None when they cannot
         be read: v4 answers 503, v1-v3 never change (the A100 autoscaler reads v1)."""
         try:
             slotless = self._waiting_for_slot(index)
+            grading = self._running_grades()
             counts = dict.fromkeys(qp.RUNNING_FIELDS, 0)
             for submission_id in self.grader.pending():
                 state, _created = index.get(submission_id, (None, None))
@@ -292,11 +302,11 @@ class QueueView:
                     counts["waiting_to_build"] += 1
                 elif state in _BUILDING:
                     counts["building_now"] += 1
-                elif state == _BUILT and submission_id not in claimed:
+                elif state == _BUILT and submission_id not in grading:
                     counts["waiting_to_grade"] += 1
             sequencer = getattr(self.grader, "sequencer", None)
             counts["grading_now"] = (
-                len(claimed) if sequencer is not None else self._grading_now()
+                len(grading) if sequencer is not None else self._grading_now()
             )
         except Exception:  # noqa: BLE001 - any failure: no v4 counts (503)
             return None
@@ -308,6 +318,7 @@ class QueueView:
         index = self._index()
         origins = self._place_origins()
         slotless = self._waiting_for_slot(index)
+        grading = self._running_grades()
         entries = []
         for submission_id in self.grader.pending():
             state, created = index.get(submission_id, (None, None))
@@ -316,9 +327,8 @@ class QueueView:
             elif state in _BUILDING:
                 label = qp.BUILDING
             elif state == _BUILT:
-                label = (
-                    qp.IN_GRADING
-                )  # built, no verdict yet: waiting or being graded, not told apart per row
+                # v3: built, no verdict yet: waiting or being graded, not told apart per row; v4: whether it runs now
+                label = qp.IN_GRADING
             else:
                 continue  # cancelled, a build that ended without success, or a task in no open store: never waiting
             if created is not None and submission_id in origins:
@@ -327,18 +337,27 @@ class QueueView:
             entries.append((submission_id, label, created))
         for submission_id, since in self._crown_checks():
             entries.append((submission_id, qp.CROWN_CHECK, since))
-        rows = []
+        rows, rows_v4 = [], []
         for position, (submission_id, label, created) in enumerate(entries, 1):
             age = 0 if created is None else boundary - created
-            rows.append(
-                {
-                    "position": position,
-                    "hotkey": qp.short_hotkey(self._owners.get(submission_id)),
-                    "state": label,
-                    "in_queue_s": qp.floor_to_quantum(age),
+            row = {
+                "position": position,
+                "hotkey": qp.short_hotkey(self._owners.get(submission_id)),
+                "state": label,
+                "in_queue_s": qp.floor_to_quantum(age),
+            }
+            rows.append(row)
+            if label == qp.IN_GRADING:
+                row = {
+                    **row,
+                    "state": (
+                        qp.GRADING_ROW
+                        if submission_id in grading
+                        else qp.WAITING_TO_GRADE
+                    ),
                 }
-            )
-        return rows
+            rows_v4.append(row)
+        return rows, rows_v4
 
     def _place_origins(self):
         """``{task id: original arrival (unix seconds)}`` of every task that holds a queue place (`AttemptLedger.grant_queue_place`: a
@@ -382,11 +401,21 @@ class QueueView:
         with self._lock:
             boundary = int(self.clock() // qp.ROWS_QUANTUM_S) * qp.ROWS_QUANTUM_S
             if self._rows_cached is None or self._rows_cached["as_of_unix"] != boundary:
+                rows, rows_v4 = self._read_rows(boundary)
                 self._rows_cached = {
-                    "rows": self._read_rows(boundary),
+                    "rows": rows,
+                    "rows_v4": rows_v4,
                     "as_of_unix": float(boundary),
                 }
-            return {qp.ROWS: dict(self._rows_cached), **base}
+            cached = self._rows_cached
+            return {
+                qp.ROWS: {"rows": cached["rows"], "as_of_unix": cached["as_of_unix"]},
+                qp.ROWS_V4: {
+                    "rows": cached["rows_v4"],
+                    "as_of_unix": cached["as_of_unix"],
+                },
+                **base,
+            }
 
     def snapshot(self):
         with self._lock:
