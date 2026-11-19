@@ -78,6 +78,8 @@ import sys
 import time
 from pathlib import Path
 
+from carbon.challenge_validator.ledger import prepared_once, read_snapshot
+
 EPOCH_BLOCKS = 360
 #: A chain block, in seconds (12 s blocks): the clock behind "next round opens at <UTC time>".
 BLOCK_SECONDS = 12
@@ -373,7 +375,7 @@ def epoch_of(block: int) -> int:
 
 def submission_block(ledger, contract_digest: str, submission_id: str):
     """The chain block of the signed receipt the submission arrived under, or None."""
-    with ledger._db() as db:
+    with read_snapshot(ledger) as db:
         rows = db.execute(
             "SELECT receipt FROM attempts WHERE kind='OUTCOME' AND contract_digest=? "
             "AND submission_id=? AND receipt IS NOT NULL ORDER BY seq LIMIT 1",
@@ -402,7 +404,7 @@ def later_own_holds_the_round(
     if type(block) is not int or block < 0:
         return False
     try:
-        with ledger._db() as db:
+        with read_snapshot(ledger) as db:
             holders = db.execute(
                 "SELECT submission_id FROM exam_graded WHERE hotkey=? AND challenge_id=? "
                 "AND epoch=? AND kind='GRADED' AND state IN ('RESERVED','COUNTED') "
@@ -453,8 +455,12 @@ class ExamCap:
         self.ledger = ledger
         self.clock = clock or time.time_ns
         self._cadence = cadence
-        with ledger._db() as db:
-            _prepare(db)
+        def prepare():
+            with ledger._db() as db:
+                _prepare(db)
+
+        # once per process per ledger file (LOCK + CACHE AUDIT #6): not the write lock on every construct
+        prepared_once(ledger, "exam_cap", prepare)
         if grading_deadline_seconds is not None:
             self.recover(grading_deadline_seconds)
 
@@ -526,7 +532,7 @@ class ExamCap:
         """The current daily allowance for a hotkey's group (operator view, no side effects)."""
         cadence = self.cadence()
         group = group_of(hotkey)
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             return self._allowance(db, group, epoch_of(block), cadence)
 
     def _limit_refusal(
@@ -610,7 +616,7 @@ class ExamCap:
             # the grouping's own refusal (an owner-chosen ``refuse`` policy): told at once, like a limit
             return {"code": refused.code, "message": plain_text(refused.code)}
         epoch = epoch_of(block)
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             row = db.execute(
                 "SELECT state FROM exam_graded WHERE challenge_id=? AND "
                 "challenge_version=? AND exam_key=? AND submission_id=?",
@@ -643,7 +649,7 @@ class ExamCap:
             )
         except Exception:  # noqa: BLE001 - a failed read refuses nothing
             pending = ()
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             code = self._limit_refusal(
                 db,
                 hotkey,
@@ -852,7 +858,7 @@ class ExamCap:
         under the owner's resubmit promise (`return_promised_slot`: its grade
         stands). The receiver refuses its resubmit
         (``same_recipe_already_submitted``) before anything is reserved."""
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             row = db.execute(
                 "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
                 "challenge_version=? AND exam_key=? AND submission_id=? AND "
@@ -1070,7 +1076,7 @@ class ExamCap:
         """Whether this submission's grading was given back as FAILED_INFRA (our
         failure or a crash): the receiver then runs the recipe again as a fresh
         task, in the miner's next slot (invariant 7)."""
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             row = db.execute(
                 "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
                 "challenge_version=? AND exam_key=? AND submission_id=? AND "
@@ -1096,7 +1102,7 @@ class ExamCap:
             if value is not None:
                 query += f" AND {column}=?"
                 args.append(value)
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             return db.execute(query, args).fetchone()[0]
 
     def _refusal(self, db, code, challenge_id):

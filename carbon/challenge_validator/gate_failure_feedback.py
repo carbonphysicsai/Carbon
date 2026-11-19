@@ -119,12 +119,20 @@ def _canonical(failures):
 
 
 def ensure(ledger):
-    """Create the table beside the Ladder's in the receiver's ledger file (a no-op when it exists)."""
-    db = sqlite3.connect(ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS)
-    try:
-        db.executescript(DDL)
-    finally:
-        db.close()
+    """Create the table beside the Ladder's in the receiver's ledger file (a no-op when it exists), once per process per
+    ledger file (`ledger.prepared_once`)."""
+    from carbon.challenge_validator.ledger import prepared_once
+
+    def prepare():
+        db = sqlite3.connect(
+            ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+        )
+        try:
+            db.executescript(DDL)
+        finally:
+            db.close()
+
+    prepared_once(ledger, "gate_failures_v1", prepare)
 
 
 def record(ledger, submission_id, exam_key, failures):
@@ -154,9 +162,12 @@ def record(ledger, submission_id, exam_key, failures):
 
 
 def read(ledger, submission_id, exam_key):
-    """The stored failures of this submission on this exam, or None (not gate-failed, an older grade, no table yet)."""
+    """The stored failures of this submission on this exam, or None (not gate-failed, an older grade, no table yet).
+    A read on a snapshot, never the ledger's write lock (LOCK + CACHE AUDIT #6: every v6+ feedback took it)."""
+    from carbon.challenge_validator.ledger import read_snapshot
+
     try:
-        with ledger._db() as db:
+        with read_snapshot(ledger) as db:
             row = db.execute(
                 "SELECT failures FROM gate_failures_v1 WHERE submission_id=? AND exam_key=?",
                 (submission_id, exam_key),

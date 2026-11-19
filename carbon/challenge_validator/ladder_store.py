@@ -227,13 +227,19 @@ class LadderStore:
 
     def __init__(self, ledger):
         self.ledger = ledger
-        db = sqlite3.connect(
-            ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
-        )
-        try:
-            db.executescript(DDL)
-        finally:
-            db.close()
+        from carbon.challenge_validator.ledger import prepared_once
+
+        def prepare():
+            db = sqlite3.connect(
+                ledger.path, isolation_level=None, timeout=LEDGER_BUSY_SECONDS
+            )
+            try:
+                db.executescript(DDL)
+            finally:
+                db.close()
+
+        # once per process per ledger file (LOCK + CACHE AUDIT #6): every feedback request built one
+        prepared_once(ledger, "ladder_store", prepare)
 
     @staticmethod
     def _key(hotkey, challenge, exam_key):
@@ -260,8 +266,10 @@ class LadderStore:
         the same evaluation key (read only, never rewritten)."""
         from carbon.scoring.sealed_versions import ladder_key
 
+        from carbon.challenge_validator.ledger import read_snapshot
+
         hotkey, challenge_id, evaluation, exam_key = key
-        with self.ledger._db() as db:
+        with read_snapshot(self.ledger) as db:
             row = db.execute(
                 "SELECT best, latest FROM ladder_feedback_v2 WHERE hotkey=?"
                 " AND challenge_id=? AND evaluation_version=? AND exam_key=?",
@@ -373,7 +381,9 @@ class LadderStore:
 
     def _parts_state(self, key):
         """The miner's last shown ``parts`` for this exam (None before the first)."""
-        with self.ledger._db() as db:
+        from carbon.challenge_validator.ledger import read_snapshot
+
+        with read_snapshot(self.ledger) as db:
             row = db.execute(
                 "SELECT parts FROM ladder_parts_v4 WHERE hotkey=? AND challenge_id=?"
                 " AND evaluation_version=? AND exam_key=?",

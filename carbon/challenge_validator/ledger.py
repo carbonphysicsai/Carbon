@@ -198,6 +198,37 @@ def submission_sha256(submission):
     return "sha256:" + h.hexdigest()
 
 
+#: The (name, ledger file path, inode) whose one-time preparation (`prepared_once`) ran in this process.
+_PREPARED: set = set()
+
+
+def prepared_once(ledger, name, run):
+    """Run ``run()`` (a table preparation: CREATE IF NOT EXISTS, a column ALTER) once per process for this ledger FILE
+    and ``name`` (LOCK + CACHE AUDIT #6, 19 Nov 2026: `ExamCap()` took the shared ledger's write lock for its DDL on
+    every construct, three times per submit, and `LadderStore()` / gate-failure reads ran DDL per request). Keyed by
+    the file's path AND inode, so a file replaced at the same path is prepared again; a ledger without a path, or a
+    file that cannot be stat'ed yet, is prepared every time, as before."""
+    path = getattr(ledger, "path", None)
+    try:
+        inode = os.stat(path).st_ino if path is not None else None
+    except (OSError, TypeError, ValueError):
+        inode = None
+    key = (name, str(path), inode)
+    if inode is not None and key in _PREPARED:
+        return
+    run()
+    if inode is not None:
+        _PREPARED.add(key)
+
+
+def read_snapshot(ledger):
+    """A read-only snapshot of the ledger (`AttemptLedger._read`: one DEFERRED transaction, never the write lock); a
+    ledger without one (a test double) is read on its ordinary transaction. Reads only: anything that writes, or whose
+    check must hold until its own write (a reservation), keeps ``ledger._db()``."""
+    read = getattr(ledger, "_read", None)
+    return read() if callable(read) else ledger._db()
+
+
 class AttemptLedger:
     """An owner-only SQLite ledger of submission attempts."""
 
