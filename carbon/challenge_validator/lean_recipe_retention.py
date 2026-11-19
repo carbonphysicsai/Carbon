@@ -2580,7 +2580,13 @@ def _retain_selected_pack_evaluation(
                 produce_registered_dual_measurement,
             )
         _unblock_timing()  # the produce takes the process-wide pair-read lock
-        with pool_menu.staged_rowcheck(menu_rowcheck):
+        # A pool-graded version's measure also hands back THIS grade's custody accuracy record and SE basis (`captured`,
+        # empty for every other version), never through a producer file: the sidecars below come from the official grade
+        # itself, not from a second measure (door-code item 5, 19 Nov 2026)
+        with (
+            pool_menu.staged_rowcheck(menu_rowcheck),
+            pool_exam.staged_capture() as captured,
+        ):
             prepared = produce_registered_dual_measurement(
                 selected_pack=snapshot,
                 public_root=discovery.evaluation_pack_public_root,
@@ -2685,7 +2691,18 @@ def _retain_selected_pack_evaluation(
         if uncounted and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
         accuracy_record = None
-        if (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
+        if captured:
+            # A pool-graded version (Motor 1.8 on 116 among them, whose development adapter `_pool_graded` reads is not
+            # the sealed pool adapter, so it kept neither sidecar nor any gate failure): both from this grade's measure.
+            accuracy_record = _write_captured_exam_se(
+                submission_id,
+                snapshot,
+                directory,
+                scoring,
+                benchmark,
+                captured,
+            )
+        elif (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
             accuracy_record = _write_exam_se(
                 adapter,
                 snapshot,
@@ -2839,6 +2856,90 @@ def _pool_graded(adapter) -> bool:
     except Exception:  # noqa: BLE001
         return False
     return getattr(module, "POOL_GRADED", False) is True
+
+
+#: The resamples of a pool grade's exam-total SE (as `_write_exam_se`).
+_SE_RESAMPLES = 200
+
+
+def _write_captured_exam_se(
+    submission_id, snapshot, directory, scoring, benchmark, captured
+):
+    """A pool grade's two custody sidecars from THIS grade's own measure (`pool_exam.staged_capture`), write-once beside
+    the binding, and its accuracy record (None when the version has none) for the gate-failure feedback.
+
+    - `exam_rotation.SE_SIDECAR`: the target-cluster SE of the exam total (`pool_exam.target_bootstrap_se`, the same
+      computation as `pool_exam_se`), or UNAVAILABLE with the reason: ``gated`` when any mandatory gate failed (the
+      subset repeat's own gates included, which the pool measure never sees), the measure's refusal code, or
+      ``bootstrap_failed:<type>``. The scored basis is derived here (``se_basis_of``), after the producer call, never
+      under its lock.
+    - `exam_rotation.ACCURACY_SIDECAR`: the custody accuracy record, gate-failed grades included.
+
+    Never raises: these are operator evidence, never the grade, and never on the crown's path (lesson 5). A write that
+    fails is one journal line (``grade_sidecar_unwritten``); each grade logs ``grade_exam_se`` (status and reason only).
+    """
+    from carbon.battery.intake import log
+    from carbon.challenge_validator import exam_rotation
+    from carbon.development_session.data import write_once
+    from carbon.scoring import pool_exam
+
+    accuracy = captured.get("accuracy")
+    exam_key = snapshot.manifest_digest
+    document = {
+        "schema": exam_rotation.SE_SCHEMA,
+        "exam_key": exam_key,
+        "resamples": _SE_RESAMPLES,
+    }
+    try:
+        document["total"] = scoring["models"][0].get("score")
+        gates = benchmark["models"][0]["gates"]
+        if type(gates) is not dict or any(v != "PASS" for v in gates.values()):
+            basis = {"gated": True}
+        elif "se_basis" in captured:
+            basis = captured["se_basis"]  # the measure's own gated basis (no total)
+        else:
+            basis = captured["se_basis_of"]()
+        spread, sizes = pool_exam.target_bootstrap_se(
+            basis, exam_key, resamples=_SE_RESAMPLES
+        )
+        document.update(standard_error=spread, status="MEASURED", n_targets=sizes)
+    except pool_exam.ExamRefused as refused:
+        document.update(status="UNAVAILABLE", reason=refused.code)
+    except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+        document.pop("standard_error", None)
+        document.update(
+            status="UNAVAILABLE", reason="bootstrap_failed:" + type(failure).__name__
+        )
+    sidecars = [(exam_rotation.SE_SIDECAR, document)]
+    if accuracy is not None:
+        sidecars.append(
+            (
+                exam_rotation.ACCURACY_SIDECAR,
+                {
+                    "schema": exam_rotation.ACCURACY_SIDECAR_SCHEMA,
+                    "exam_key": exam_key,
+                    "record": accuracy,
+                },
+            )
+        )
+    for name, body in sidecars:
+        try:
+            write_once(directory / name, _json(body))
+        except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+            log(
+                "grade_sidecar_unwritten",
+                task=submission_id,
+                sidecar=name,
+                error=type(failure).__name__,
+            )
+    log(
+        "grade_exam_se",
+        task=submission_id,
+        status=document["status"],
+        reason=document.get("reason"),
+        accuracy=accuracy is not None,
+    )
+    return accuracy
 
 
 def _write_exam_se(
