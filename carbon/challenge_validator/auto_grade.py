@@ -1148,6 +1148,7 @@ class AutoGrader:
         """
         from carbon.reconstruction import remote_lane
 
+        from .grade_sequencer import ReserveTurnExpired
         from .lean_recipe_retention import RetentionUnavailable
 
         lane = remote_lane.current()
@@ -1200,6 +1201,10 @@ class AutoGrader:
                     )
             finally:
                 self.activity = None
+        except ReserveTurnExpired:
+            # it retained past the bound while later claims went ahead: "not yet", nothing reserved, uncharged (V2)
+            self._note_next(ReserveTurnExpired.code)
+            return _NEXT
         except RetentionUnavailable as unavailable:
             code = getattr(unavailable, "code", None) or str(unavailable)
             if not isinstance(code, str):
@@ -1377,7 +1382,10 @@ class AutoGrader:
 
         hotkey = adapter.owner(submission_id)
         # design A: its reservation in claim order too (an earlier grade may still be retaining, outside the lock)
-        grade_sequencer.reserve_turn()
+        try:
+            grade_sequencer.reserve_turn()
+        except grade_sequencer.ReserveTurnExpired:
+            return _NEXT
         try:
             reservation = cap.reserve(
                 hotkey=hotkey,

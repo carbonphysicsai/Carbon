@@ -32,6 +32,20 @@ from contextvars import ContextVar
 _CURRENT: ContextVar = ContextVar("carbon_grade_sequencer_task", default=None)
 
 
+#: V2 (19 Nov 2026, design A addition 1): how long an early claim may retain before its reservation while later claims
+#: wait on it. Past it the early claim no longer holds the order: later claims reserve and commit, and the early one ends
+#: "not yet" at its own reservation turn (`ReserveTurnExpired`: its task goes back to pending, nothing reserved,
+#: uncharged). OPERATIONAL (door-code picks, minutes, not GRADE_HUNG_SECONDS): a slow lazy open is ~12 s, a retain step
+#: a few seconds; 300 s only ends a claim that is truly stuck before its reservation.
+RETAIN_BEFORE_RESERVE_SECONDS = 300
+
+
+class ReserveTurnExpired(RuntimeError):
+    """This claim retained past `RETAIN_BEFORE_RESERVE_SECONDS` and later claims went ahead: it ends "not yet"."""
+
+    code = "reserve_turn_expired"
+
+
 class Sequencer:
     """A door's claim lock, its tickets, and the commit order. Shared by the door's grade threads."""
 
@@ -51,6 +65,10 @@ class Sequencer:
         self._waiting = set()
         #: tickets past their exam-cap reservation (`claimed`): a later grade's `reserve_turn` no longer waits for them
         self._reserved = set()
+        #: ticket -> when it was claimed (never reset), for `RETAIN_BEFORE_RESERVE_SECONDS`
+        self._claimed_at = {}
+        #: tickets that retained past the bound: they no longer hold the order and end "not yet" at their own turn
+        self._expired = set()
 
     def in_flight(self):
         """The submission ids claimed and not yet finished (a claim skips them)."""
@@ -73,6 +91,7 @@ class Sequencer:
             self._next += 1
             self._open[ticket] = None
             self._started[ticket] = time.monotonic()
+            self._claimed_at[ticket] = self._started[ticket]
         state = _Task(self, ticket)
         token = _CURRENT.set(state)
         try:
@@ -87,7 +106,25 @@ class Sequencer:
                 self._abandoned.discard(ticket)
                 self._waiting.discard(ticket)
                 self._reserved.discard(ticket)
+                self._claimed_at.pop(ticket, None)
+                self._expired.discard(ticket)
                 self._order.notify_all()
+
+    def _holds_order(self, other, now):
+        """Whether open ticket ``other`` (earlier than a caller) still holds the reservation / commit order: not past
+        its bound. An unreserved ticket that is not itself waiting and retained past `RETAIN_BEFORE_RESERVE_SECONDS` is
+        marked expired (caller holds ``_order``)."""
+        if other in self._expired:
+            return False
+        if (
+            other not in self._reserved
+            and other not in self._waiting
+            and now - self._claimed_at.get(other, now) > RETAIN_BEFORE_RESERVE_SECONDS
+        ):
+            self._expired.add(other)
+            self._order.notify_all()
+            return False
+        return True
 
     def overdue(self, seconds, now=None):
         """``[(ticket, submission id)]`` of the grades claimed more than ``seconds`` ago and still open (a grade stuck in
@@ -184,11 +221,17 @@ class _Task:
             raise GradeAbandoned(self.ticket)
         order = self.sequencer._order
         seq = self.sequencer
+        with order:
+            if self.ticket in seq._expired:
+                raise ReserveTurnExpired(self.ticket)
 
         def earlier():
+            now = time.monotonic()
             return any(
-                other < self.ticket and other not in seq._reserved
-                for other in seq._open
+                other < self.ticket
+                and other not in seq._reserved
+                and seq._holds_order(other, now)
+                for other in tuple(seq._open)
             )
 
         with order:
@@ -206,6 +249,19 @@ class _Task:
                     seq._started[self.ticket] = time.monotonic()
         if self.ticket in seq._abandoned:
             raise GradeAbandoned(self.ticket)
+        with order:
+            if self.ticket in seq._expired:
+                raise ReserveTurnExpired(self.ticket)
+
+    def _earlier_holding(self):
+        """Whether an EARLIER open ticket still holds the commit order (an expired one does not; caller holds
+        ``_order``)."""
+        seq = self.sequencer
+        now = time.monotonic()
+        return any(
+            other < self.ticket and seq._holds_order(other, now)
+            for other in tuple(seq._open)
+        )
 
     def reserved(self):
         """This grade's reservation is made (or refused): later grades may reserve, and the claim lock, if still held,
@@ -225,7 +281,7 @@ class _Task:
         self.release_claim()
         order = self.sequencer._order
         with order:
-            earlier = any(other < self.ticket for other in self.sequencer._open)
+            earlier = self._earlier_holding()
         if not earlier:
             self._turned = True
             return
@@ -244,7 +300,7 @@ class _Task:
             self.sequencer._waiting.add(self.ticket)
         try:
             with order:
-                while any(other < self.ticket for other in self.sequencer._open):
+                while self._earlier_holding():
                     order.wait(1.0)
         finally:
             with order:
