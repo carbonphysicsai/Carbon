@@ -224,10 +224,20 @@ class AutoGrader:
     def pending(self):
         """Task ids with no marker yet, in the ledger's order: oldest submission first (`AttemptLedger.submitted_outcomes`)."""
         adapter = self.intake.adapter
+        # one listing of the markers, not a stat per submission ever taken (it runs under the claim lock: design A)
+        try:
+            with os.scandir(self.markers) as entries:
+                marked = {
+                    entry.name[: -len(".json")]
+                    for entry in entries
+                    if entry.name.endswith(".json")
+                }
+        except FileNotFoundError:
+            marked = set()
         return [
             s
             for s in adapter.ledger.submitted_outcomes(adapter.contract_digest)
-            if _TASK.fullmatch(s) and not self._marker(s).exists()
+            if _TASK.fullmatch(s) and s not in marked
         ]
 
     def oldest_pending_ns(self):
@@ -951,6 +961,10 @@ class AutoGrader:
                     return outcome
             task.bind(submission_id, group)
             self._mark_cap_soft(submission_id, group in passed or unknown_in_flight)
+            # design A (Lead, 19 Nov 2026): the pick is made; the claim lock goes NOW, so the retain step and the
+            # owner's open (a lazy owner's restore after a start) run outside it while other rounds claim. The
+            # reservation keeps claim order through `grade_sequencer.reserve_turn`.
+            task.release_claim()
             from .grade_sequencer import GradeAbandoned
 
             try:

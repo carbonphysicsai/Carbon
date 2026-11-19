@@ -2460,8 +2460,13 @@ def _retain_selected_pack_evaluation(
             if regrade is not None and regrade.counted
             else submission_id
         )
+        hotkey = adapter.owner(submission_id) if regrade is None else regrade.owner
+        # design A: reservations in claim order (the owner's open above runs before, outside the turn)
+        from . import grade_sequencer
+
+        grade_sequencer.reserve_turn()
         reservation = cap.reserve(
-            hotkey=adapter.owner(submission_id) if regrade is None else regrade.owner,
+            hotkey=hotkey,
             challenge_id=adapter.challenge_id,
             challenge_version=adapter.challenge_version,
             # The sealed exam's identity: the pack digest binds the case bank, so a
@@ -2477,10 +2482,8 @@ def _retain_selected_pack_evaluation(
             ),
             regrade=uncounted,
         )
-        # the order-dependent reservation is made: a door grading in parallel lets its next grade claim now, as the
-        # counted bank grade does (`_counted_bank_grade`), not after this grade's whole pass (Lead, 19 Nov 2026)
-        from . import grade_sequencer
-
+        # the order-dependent reservation is made: later grades may reserve now, as the counted bank grade does
+        # (`_counted_bank_grade`), not after this grade's whole pass (Lead, 19 Nov 2026)
         grade_sequencer.claimed()
         queries = [artifacts["inputs.npz"]]
         registered = _register_retained_pack_source(
@@ -3936,6 +3939,10 @@ def _counted_bank_grade(
     cap = exam_cap.ExamCap(
         adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
     )
+    from . import grade_sequencer
+
+    # design A: reservations in claim order (the owner's open above runs before, outside the turn)
+    grade_sequencer.reserve_turn()
     try:
         reservation = cap.reserve(
             hotkey=owner,
@@ -3956,9 +3963,7 @@ def _counted_bank_grade(
             **_limit_message(adapter, submission_id, code),
         }
     finally:
-        # the order-dependent reservation is made (or refused): a door grading in parallel lets its next grade claim
-        from . import grade_sequencer
-
+        # the order-dependent reservation is made (or refused): later grades may reserve (design A)
         grade_sequencer.claimed()
     from carbon.development_session.research_carrier import grade_session
 

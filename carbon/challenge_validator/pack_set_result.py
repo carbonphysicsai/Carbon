@@ -216,15 +216,22 @@ def grade_set(
     """
     if type(batches) not in (list, tuple) or not batches:
         raise SetResultRefused("set_batches")
-    reservation = cap.reserve(
-        hotkey=hotkey,
-        challenge_id=challenge_id,
-        challenge_version=challenge_version,
-        exam_key=set_key,
-        submission_id=submission_id,
-        block=block,
-        regrade=False,
-    )
+    from . import grade_sequencer
+
+    # design A: reservations in claim order (no-op off a parallel door)
+    grade_sequencer.reserve_turn()
+    try:
+        reservation = cap.reserve(
+            hotkey=hotkey,
+            challenge_id=challenge_id,
+            challenge_version=challenge_version,
+            exam_key=set_key,
+            submission_id=submission_id,
+            block=block,
+            regrade=False,
+        )
+    finally:
+        grade_sequencer.claimed()
 
     def give_back(reason):
         cap.settle(reservation, UNAVAILABLE)

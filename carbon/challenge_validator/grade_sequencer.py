@@ -4,8 +4,13 @@ A door in lane mode runs one grade round per lane (`direct_intake._WorkLock`). E
 pass, the subset repeat, the menu re-check) runs in parallel on its lane, but everything that depends on the ORDER of
 grades is committed by one writer, in claim order (= the door's pending order = submission order):
 
-- **Claim** (`Sequencer.task`): one grade at a time picks the next pending task and does the cheap preparation up to and
-  including its exam-cap reservation (allowance counts read in order); `claimed` then lets the next grade claim.
+- **Claim** (`Sequencer.task`): one grade at a time PICKS the next pending task (its owner, its group) and binds it;
+  the claim lock then goes at once (`_Task.release_claim`, design A, 19 Nov 2026: live 116 lost 20-30 min of grading
+  after every start while one claim held the lock through a lazy owner's open and the retain step). The retain step
+  and the owner's open run outside the lock, in parallel with other rounds' picks.
+- **Reservation turn** (`reserve_turn`): just before its exam-cap reservation a grade waits until every EARLIER claimed
+  grade has reserved or ended; `claimed` marks it reserved. So reservations, and every allowance count they read, are
+  made in claim order exactly as when the claim lock was held through them.
 - **Commit turn** (`turn`): before the order-dependent writes (the exam-cap settle, which feeds every later allowance;
   the crown compare-and-set; the Ladder; the marker), a grade waits until every EARLIER claimed grade has finished.
   Before waiting it gives up its grade-session container (`research_carrier.yield_grade_session`), so the idle
@@ -44,6 +49,8 @@ class Sequencer:
         self._abandoned = set()
         #: tickets inside their commit-turn wait (`_Task.turn`): a legitimate wait on EARLIER grades, never hung (V2)
         self._waiting = set()
+        #: tickets past their exam-cap reservation (`claimed`): a later grade's `reserve_turn` no longer waits for them
+        self._reserved = set()
 
     def in_flight(self):
         """The submission ids claimed and not yet finished (a claim skips them)."""
@@ -79,6 +86,7 @@ class Sequencer:
                 self._started.pop(ticket, None)
                 self._abandoned.discard(ticket)
                 self._waiting.discard(ticket)
+                self._reserved.discard(ticket)
                 self._order.notify_all()
 
     def overdue(self, seconds, now=None):
@@ -166,6 +174,46 @@ class _Task:
         if self._claim_held:
             self._claim_held = False
             self.sequencer._claim.release()
+
+    def reserve_turn(self):
+        """Wait until every EARLIER claimed grade has made its exam-cap reservation or ended (design A): reservations
+        stay in claim order now that the claim lock is let go after the pick. A legitimate wait on earlier grades, as
+        the commit turn is: `overdue` skips this ticket meanwhile and its clock starts afresh after.
+        """
+        if self.ticket in self.sequencer._abandoned:
+            raise GradeAbandoned(self.ticket)
+        order = self.sequencer._order
+        seq = self.sequencer
+
+        def earlier():
+            return any(
+                other < self.ticket and other not in seq._reserved
+                for other in seq._open
+            )
+
+        with order:
+            if not earlier():
+                return
+            seq._waiting.add(self.ticket)
+        try:
+            with order:
+                while earlier():
+                    order.wait(1.0)
+        finally:
+            with order:
+                seq._waiting.discard(self.ticket)
+                if self.ticket in seq._started:
+                    seq._started[self.ticket] = time.monotonic()
+        if self.ticket in seq._abandoned:
+            raise GradeAbandoned(self.ticket)
+
+    def reserved(self):
+        """This grade's reservation is made (or refused): later grades may reserve, and the claim lock, if still held,
+        goes."""
+        with self.sequencer._order:
+            self.sequencer._reserved.add(self.ticket)
+            self.sequencer._order.notify_all()
+        self.release_claim()
 
     def turn(self):
         """Wait until every earlier grade has finished (idempotent). Gives up the claim lock and this grade's session
@@ -349,10 +397,18 @@ def current():
 
 
 def claimed():
-    """The calling grade has made its order-dependent reservation: the next grade may claim. No-op unsequenced."""
+    """The calling grade has made (or been refused) its order-dependent reservation: later grades may reserve, and the
+    claim lock goes if still held. No-op unsequenced."""
     task = _CURRENT.get()
     if task is not None:
-        task.release_claim()
+        task.reserved()
+
+
+def reserve_turn():
+    """Wait for the calling grade's reservation turn (see the module docstring). No-op unsequenced."""
+    task = _CURRENT.get()
+    if task is not None:
+        task.reserve_turn()
 
 
 def turn():
