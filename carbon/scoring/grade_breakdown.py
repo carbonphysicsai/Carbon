@@ -13,7 +13,7 @@ public (it holds hidden-exam values). What it holds, and nothing else (a closed 
   and its oracle value;
 - ``rule_flags``: ``{name: true | false}``, the registered rules' outcomes on this grade;
 - ``outputs``: ``[{"class", "output", "range", "n", "median", "p90"}]``, the custody accuracy record's per class and
-  output error aggregates (`pool_physics_score.accuracy_record`); never a per-case value;
+  output error aggregates (the pool grade's in-range accuracy aggregates); never a per-case value;
 - ``speed``: ``{"call_seconds", "median_seconds", "ceiling_seconds", "passed", "lane"}``, the speed lane's scored
   single-design call seconds, the gate's verdict on them (`pool_exam.single_call_speed_gate`) and the lane they were
   timed on (``"local"`` or its docker host; null when not known);
@@ -191,9 +191,7 @@ def _outputs(value):
                 "output": key[1],
                 "range": _name(entry["range"], "grade_breakdown_outputs_invalid"),
                 "n": _count(entry["n"], "grade_breakdown_outputs_invalid"),
-                "median": _value(
-                    entry["median"], "grade_breakdown_outputs_invalid"
-                ),
+                "median": _value(entry["median"], "grade_breakdown_outputs_invalid"),
                 "p90": _value(entry["p90"], "grade_breakdown_outputs_invalid"),
             }
         )
@@ -458,7 +456,8 @@ def staged():
 def offer(name, value):
     """The pool grade hands one value it already computed to the staged keep (a deep copy; a zero-argument callable is
     called here, so building the value is inside the guard); nothing staged: a no-op, nothing built. ``name`` "measure"
-    closes one measure (a second one in the same stage makes the keep ambiguous). Never raises."""
+    closes one measure (a second one in the same stage makes the keep ambiguous). Never raises.
+    """
     stage = _STAGED.get()
     if stage is None:
         return
@@ -473,7 +472,8 @@ def offer(name, value):
 
 def kept(stage):
     """The values one staged grade offered, ``{name: value}``; None when no pool grade ran inside the stage (nothing
-    to keep); `GradeBreakdownRefused` when the keep is ambiguous (more than one measure) or an offer failed."""
+    to keep); `GradeBreakdownRefused` when the keep is ambiguous (more than one measure) or an offer failed.
+    """
     if type(stage) is not dict or stage.get("measures", 0) == 0:
         return None
     if stage["broken"] is not None:

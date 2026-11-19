@@ -36,12 +36,23 @@ from decimal import ROUND_HALF_UP, Decimal
 from carbon.scoring import grade_breakdown as gb
 
 SCHEMA = "carbon.king-card.v1"
-CARD_KEYS = frozenset({"schema", "challenge", "version", "halves", "outputs", "speed", "gates", "provenance"})
+CARD_KEYS = frozenset(
+    {
+        "schema",
+        "challenge",
+        "version",
+        "halves",
+        "outputs",
+        "speed",
+        "gates",
+        "provenance",
+    }
+)
 HALF_KEYS = frozenset({"A", "D"})
 OUTPUT_KEYS = frozenset({"output", "class", "metric", "median", "p90"})
 SPEED_KEYS = frozenset({"median_seconds", "ceiling_seconds", "passed", "class"})
 PROVENANCE_KEYS = frozenset({"label", "epoch", "pack_id", "graded_at", "code_sha"})
-#: What the accuracy record's aggregates measure (`pool_physics_score._ratios`: |error| / U per reserved case).
+#: What the breakdown's output aggregates measure: |error| / U per reserved case (the grade's in-range record).
 METRIC = "abs_error_over_u"
 OFFICIAL, RECOMPUTED = "official", "recomputed"
 SIGNIFICANT = 2
@@ -67,7 +78,9 @@ def significant(value, digits=SIGNIFICANT):
     """``value`` at ``digits`` significant digits, half up (None stays None)."""
     if value is None:
         return None
-    _require(type(value) in (int, float) and math.isfinite(value), "king_card_value_invalid")
+    _require(
+        type(value) in (int, float) and math.isfinite(value), "crown_card_value_invalid"
+    )
     if value == 0:
         return 0.0
     exact = Decimal(repr(float(value)))
@@ -108,38 +121,64 @@ def render(
     breakdown; ``source`` is `OFFICIAL` (the grade kept it) or `RECOMPUTED` (the receipted recompute tool wrote it, and
     ``self_check_matched`` must be True); ``public_outputs`` / ``public_classes`` are the public registration's names;
     ``lane_classes`` maps a breakdown's speed lane to its public class label. ``graded_at``: the original grade's time,
-    required for `RECOMPUTED` (its file was written at the recompute), refused for `OFFICIAL` (the file's own time)."""
-    _require(type(document) is dict and set(document) == gb.FIELDS, "king_card_breakdown_invalid")
+    required for `RECOMPUTED` (its file was written at the recompute), refused for `OFFICIAL` (the file's own time).
+    """
+    _require(
+        type(document) is dict and set(document) == gb.FIELDS,
+        "crown_card_breakdown_invalid",
+    )
     try:
         checked = gb.breakdown(
             **{k: document[k] for k in gb.FIELDS - {"schema", "written_at"}},
             clock=gb._parsed_time(document["written_at"]),
         )
     except gb.GradeBreakdownRefused:
-        raise KingCardRefused("king_card_breakdown_invalid") from None
-    _require(checked == document and document["schema"] == gb.SCHEMA, "king_card_breakdown_invalid")
-    _require(type(crowned_task) is str and document["submission_id"] == crowned_task, "king_card_not_the_crowned_grade")
-    _require(source in (OFFICIAL, RECOMPUTED), "king_card_source_invalid")
-    _require(source == OFFICIAL or self_check_matched is True, "king_card_recompute_not_self_checked")
-    if source == OFFICIAL:
-        _require(graded_at is None, "king_card_graded_at_invalid")
-        graded_at = document["written_at"]
-    _require(type(graded_at) is str and _TIME.fullmatch(graded_at), "king_card_graded_at_invalid")
-    _require(type(epoch) is str and _EPOCH.fullmatch(epoch), "king_card_epoch_invalid")
-    _require(type(pack_id) is str and _NAME.fullmatch(pack_id), "king_card_pack_id_invalid")
-    _require(type(code_sha) is str and _SHA.fullmatch(code_sha), "king_card_code_sha_invalid")
-    outputs_public = _names(public_outputs, "king_card_public_names_invalid")
-    classes_public = _names(public_classes, "king_card_public_names_invalid")
-    _require(type(lane_classes) is dict, "king_card_lane_classes_invalid")
+        raise KingCardRefused("crown_card_breakdown_invalid") from None
     _require(
-        all(type(k) is str and type(v) is str and _LABEL.fullmatch(v) for k, v in lane_classes.items()),
-        "king_card_lane_classes_invalid",
+        checked == document and document["schema"] == gb.SCHEMA,
+        "crown_card_breakdown_invalid",
+    )
+    _require(
+        type(crowned_task) is str and document["submission_id"] == crowned_task,
+        "crown_card_not_the_crowned_grade",
+    )
+    _require(source in (OFFICIAL, RECOMPUTED), "crown_card_source_invalid")
+    _require(
+        source == OFFICIAL or self_check_matched is True,
+        "crown_card_recompute_not_self_checked",
+    )
+    if source == OFFICIAL:
+        _require(graded_at is None, "crown_card_graded_at_invalid")
+        graded_at = document["written_at"]
+    _require(
+        type(graded_at) is str and _TIME.fullmatch(graded_at),
+        "crown_card_graded_at_invalid",
+    )
+    _require(type(epoch) is str and _EPOCH.fullmatch(epoch), "crown_card_epoch_invalid")
+    _require(
+        type(pack_id) is str and _NAME.fullmatch(pack_id), "crown_card_pack_id_invalid"
+    )
+    _require(
+        type(code_sha) is str and _SHA.fullmatch(code_sha),
+        "crown_card_code_sha_invalid",
+    )
+    outputs_public = _names(public_outputs, "crown_card_public_names_invalid")
+    classes_public = _names(public_classes, "crown_card_public_names_invalid")
+    _require(type(lane_classes) is dict, "crown_card_lane_classes_invalid")
+    _require(
+        all(
+            type(k) is str and type(v) is str and _LABEL.fullmatch(v)
+            for k, v in lane_classes.items()
+        ),
+        "crown_card_lane_classes_invalid",
     )
     # gates: a crowned grade passed every one
     flags = document["rule_flags"]
-    _require(flags and all(v is True for v in flags.values()), "king_card_gate_not_passed")
+    _require(
+        flags and all(v is True for v in flags.values()), "crown_card_gate_not_passed"
+    )
     halves = document["halves"]
-    _require(all(halves[k] is not None for k in HALF_KEYS), "king_card_halves_missing")
+    _require(all(halves[k] is not None for k in HALF_KEYS), "crown_card_halves_missing")
     # outputs: public output x public class only; median and p90 only
     shown = []
     for row in document["outputs"] or []:
@@ -158,8 +197,8 @@ def render(
         )
     shown.sort(key=lambda r: (r["output"], r["class"]))
     speed = document["speed"]
-    _require(speed is not None, "king_card_speed_missing")
-    _require(speed["lane"] in lane_classes, "king_card_speed_class_unnamed")
+    _require(speed is not None, "crown_card_speed_missing")
+    _require(speed["lane"] in lane_classes, "crown_card_speed_class_unnamed")
     card = {
         "schema": SCHEMA,
         "challenge": document["challenge_id"],
@@ -190,19 +229,39 @@ def render(
 
 def check_card(card):
     """``card`` when its key set is exactly the pinned one at every level, else `KingCardRefused` (fail closed)."""
-    _require(type(card) is dict and set(card) == CARD_KEYS and card["schema"] == SCHEMA, "king_card_keys")
-    _require(type(card["halves"]) is dict and set(card["halves"]) == HALF_KEYS, "king_card_keys")
-    _require(type(card["outputs"]) is list, "king_card_keys")
-    _require(all(type(r) is dict and set(r) == OUTPUT_KEYS for r in card["outputs"]), "king_card_keys")
-    _require(type(card["speed"]) is dict and set(card["speed"]) == SPEED_KEYS, "king_card_keys")
-    _require(type(card["gates"]) is dict and set(card["gates"].values()) <= {"PASS"}, "king_card_keys")
-    _require(type(card["provenance"]) is dict and set(card["provenance"]) == PROVENANCE_KEYS, "king_card_keys")
+    _require(
+        type(card) is dict and set(card) == CARD_KEYS and card["schema"] == SCHEMA,
+        "crown_card_keys",
+    )
+    _require(
+        type(card["halves"]) is dict and set(card["halves"]) == HALF_KEYS,
+        "crown_card_keys",
+    )
+    _require(type(card["outputs"]) is list, "crown_card_keys")
+    _require(
+        all(type(r) is dict and set(r) == OUTPUT_KEYS for r in card["outputs"]),
+        "crown_card_keys",
+    )
+    _require(
+        type(card["speed"]) is dict and set(card["speed"]) == SPEED_KEYS,
+        "crown_card_keys",
+    )
+    _require(
+        type(card["gates"]) is dict and set(card["gates"].values()) <= {"PASS"},
+        "crown_card_keys",
+    )
+    _require(
+        type(card["provenance"]) is dict and set(card["provenance"]) == PROVENANCE_KEYS,
+        "crown_card_keys",
+    )
     return card
 
 
 def dumps(card):
     """Canonical public bytes of a checked card."""
-    return json.dumps(check_card(card), sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return json.dumps(
+        check_card(card), sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
 
 
 def text(card):
@@ -244,10 +303,10 @@ def public_names(constants_bytes, challenge_id, version):
         outputs = sorted(entry["physics"]["gate_threshold"])
         classes = list(entry["optimizer"]["coverage_class_vocabulary"])
     except (ValueError, KeyError, TypeError):
-        raise KingCardRefused("king_card_registration_unreadable") from None
-    _names(outputs, "king_card_registration_unreadable")
-    _names(classes, "king_card_registration_unreadable")
-    _require(bool(outputs) and bool(classes), "king_card_registration_unreadable")
+        raise KingCardRefused("crown_card_registration_unreadable") from None
+    _names(outputs, "crown_card_registration_unreadable")
+    _names(classes, "crown_card_registration_unreadable")
+    _require(bool(outputs) and bool(classes), "crown_card_registration_unreadable")
     return outputs, classes
 
 
@@ -257,13 +316,13 @@ def lane_class(record_bytes):
     try:
         record = json.loads(record_bytes)
     except ValueError:
-        raise KingCardRefused("king_card_lane_class_record_invalid") from None
+        raise KingCardRefused("crown_card_lane_class_record_invalid") from None
     _require(
         type(record) is dict
         and record.get("schema") == HOST_CLASS_SCHEMA
         and type(record.get("id")) is str
         and _HOST_CLASS_ID.fullmatch(record["id"]) is not None,
-        "king_card_lane_class_record_invalid",
+        "crown_card_lane_class_record_invalid",
     )
     return record["id"]
 
@@ -281,7 +340,8 @@ def receipt(
     lanes=None,
 ):
     """The OPERATOR-ONLY render receipt: which breakdown file the card read (the crowning grade's), the public
-    registration and the lane class records the names came from, each with its sha256."""
+    registration and the lane class records the names came from, each with its sha256.
+    """
     return {
         "schema": "carbon.king-card-receipt.v1",
         "crowned_task": crowned_task,

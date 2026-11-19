@@ -1,4 +1,4 @@
-"""Render the PUBLIC king card from the crowning grade's private grade breakdown (`carbon.challenge_validator.king_card`,
+"""Render the PUBLIC king card from the crowning grade's private grade breakdown (`carbon.challenge_validator.crown_card`,
 Validator-2's standing ruling KING_STATS_DISCLOSURE_20261119). Operator tool: read-only on the breakdown.
 
     python scripts/dev/king_card_render.py --breakdown <dir>/<task>.grade-breakdown.json --crowned-task <task>
@@ -80,7 +80,7 @@ def main(argv=None):
     args = _parser().parse_args(argv)
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
-    from carbon.challenge_validator import king_card
+    from carbon.challenge_validator import crown_card as king_card
     from carbon.scoring import pool_version
 
     try:
@@ -143,7 +143,10 @@ def main(argv=None):
             raise Refused("out_files_exist")
         _write_new(out / names[0], king_card.dumps(card))
         _write_new(out / names[1], king_card.text(card).encode())
-        _write_new(out / names[2], json.dumps(receipt, sort_keys=True, indent=1).encode() + b"\n")
+        _write_new(
+            out / names[2],
+            json.dumps(receipt, sort_keys=True, indent=1).encode() + b"\n",
+        )
     except Exception as exc:  # noqa: BLE001 - a typed code only, never a message
         code = getattr(exc, "code", None)
         print("refused:" + (code if type(code) is str else type(exc).__name__))

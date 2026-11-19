@@ -188,7 +188,9 @@ def test_the_receiver_writes_the_official_halves_and_gates_beside_the_measuremen
         ADAPTER,
         TASK,
         SNAPSHOT,
-        _benchmark(a=None, d=0.0, gates={"physics": "PASS", "native_motor_valid": "FAIL"}),
+        _benchmark(
+            a=None, d=0.0, gates={"physics": "PASS", "native_motor_valid": "FAIL"}
+        ),
         "sha256:" + "6" * 64,
     )
     document = json.loads((directory / (TASK + gb.SUFFIX)).read_bytes())
@@ -201,18 +203,23 @@ def test_the_receiver_writes_the_official_halves_and_gates_beside_the_measuremen
         assert (directory / (TASK + gb.SUFFIX)).stat().st_mode & 0o077 == 0
 
 
-def test_a_receiver_breakdown_failure_never_stops_the_grade(tmp_path, monkeypatch):
-    lines = []
-    import carbon.battery.intake as intake
-
-    monkeypatch.setattr(intake, "log", lambda event, **f: lines.append((event, f)))
+def test_a_receiver_breakdown_failure_never_stops_the_grade(tmp_path, capsys):
     directory = _private(tmp_path)
     bad = _keep({"sets": {"set0": {"A": float("nan"), "D": 0.1, "rows": 1}}})
     retention._keep_grade_breakdown(
         bad, directory, ADAPTER, TASK, SNAPSHOT, _benchmark(), "sha256:" + "6" * 64
     )
+    lines = [
+        json.loads(line)
+        for line in capsys.readouterr().err.splitlines()
+        if line.startswith("{")
+    ]
     assert lines == [
-        ("grade_breakdown_unwritten", {"task": TASK, "code": "grade_breakdown_sets_invalid"})
+        {
+            "event": "grade_breakdown_unwritten",
+            "task": TASK,
+            "code": "grade_breakdown_sets_invalid",
+        }
     ]
     assert not (directory / (TASK + gb.SUFFIX)).exists()
     # no pool grade inside the stage: nothing written, nothing logged
@@ -221,4 +228,4 @@ def test_a_receiver_breakdown_failure_never_stops_the_grade(tmp_path, monkeypatc
     retention._keep_grade_breakdown(
         empty, directory, ADAPTER, TASK, SNAPSHOT, _benchmark(), "sha256:" + "6" * 64
     )
-    assert len(lines) == 1
+    assert "grade_breakdown_unwritten" not in capsys.readouterr().err

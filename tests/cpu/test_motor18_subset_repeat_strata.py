@@ -531,5 +531,8 @@ def test_only_door_and_grade_modules_import_the_subset_repeat_evidence():
         "carbon/scoring/subset_repeat_produce.py",
         # operator tools run in custody (counts only; the grader's own re-measure)
         "scripts/dev/design_value_parts.py",
+        # the receipted king recompute (V2 19 Nov, run in custody on the door host): reads the kept --pair side file
+        # through `subset_repeat_evidence.read`, as the grade does; aggregates only leave it
+        "scripts/dev/king_grade_breakdown.py",
         "scripts/dev/sealed_exam/subset_repeat_counts.py",
     }

@@ -649,13 +649,12 @@ def measure_pool(
     }
 
 
-def _offer_kept(
-    speed, call_seconds, accuracy, a_values=None, d_values=None, sets=None
-):
+def _offer_kept(speed, call_seconds, accuracy, a_values=None, d_values=None, sets=None):
     """Offer what this grade already computed to a staged keep (`grade_breakdown.staged`, set by the receiver around
     its producer call; nothing staged: a no-op, nothing built): each set's A, D and target count, the accuracy record's
     per class and output aggregates (never a per-case value), and the scored single-call seconds with the speed verdict.
-    Never changes, stops or refuses the grade (owner via Lead, 19 Nov 2026: king statistics from the official grade)."""
+    Never changes, stops or refuses the grade (owner via Lead, 19 Nov 2026: king statistics from the official grade).
+    """
     from carbon.scoring import grade_breakdown
 
     if sets is not None:
@@ -677,9 +676,7 @@ def _offer_kept(
                     "output": row["output"],
                     "range": row["range"],
                     "n": int(row["n"]),
-                    "median": (
-                        None if row["median"] is None else float(row["median"])
-                    ),
+                    "median": (None if row["median"] is None else float(row["median"])),
                     "p90": None if row["p90"] is None else float(row["p90"]),
                 }
                 for row in accuracy["rows"]

@@ -1011,7 +1011,8 @@ def _keep_grade_breakdown(
     pool grade offered inside ``keep`` and the official benchmark's own A, D and gate verdicts (so a producer's later
     gate, e.g. Motor 1.8's subset repeat, is what ``halves`` and ``rule_flags`` say). No pool grade inside: nothing.
     Any failure logs ``grade_breakdown_unwritten`` with its closed code and never changes or stops the grade (Carbon's
-    gap, not the candidate's). The sets, tasks, outputs and speed are the measure's values before a producer gate."""
+    gap, not the candidate's). The sets, tasks, outputs and speed are the measure's values before a producer gate.
+    """
     from carbon.scoring import grade_breakdown
     from carbon.scoring.physical_dual_pack import METRICS
 
@@ -1050,16 +1051,21 @@ def _keep_grade_breakdown(
         grade_breakdown.write(directory, document)
     # a breakdown never changes or stops a grade
     except Exception as failure:  # noqa: BLE001
-        try:
-            from carbon.battery.intake import log
+        import sys
 
-            log(
-                "grade_breakdown_unwritten",
-                task=submission_id,
-                code=getattr(failure, "code", None) or type(failure).__name__,
-            )
-        except Exception:  # noqa: BLE001 (a log line never stops a grade)
-            pass
+        code = getattr(failure, "code", None)
+        print(
+            json.dumps(
+                {
+                    "event": "grade_breakdown_unwritten",
+                    "task": submission_id,
+                    "code": code if type(code) is str else type(failure).__name__,
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
 
 
 def _speed_lane():

@@ -34,8 +34,22 @@ def _inputs(**change):
         },
         "halves": {"A": 0.25, "D": 0.5},
         "outputs": [
-            {"class": "H-1", "output": "torque_pkpk", "range": "in", "n": 16, "median": 0.4, "p90": 1.1},
-            {"class": "H-3", "output": "ke_ll", "range": "out", "n": 0, "median": None, "p90": None},
+            {
+                "class": "H-1",
+                "output": "torque_pkpk",
+                "range": "in",
+                "n": 16,
+                "median": 0.4,
+                "p90": 1.1,
+            },
+            {
+                "class": "H-3",
+                "output": "ke_ll",
+                "range": "out",
+                "n": 0,
+                "median": None,
+                "p90": None,
+            },
         ],
         "speed": {
             "call_seconds": [0.01] * 20,
@@ -135,30 +149,88 @@ def test_the_document_is_the_closed_field_set():
         (
             {
                 "outputs": [
-                    {"class": "H-1", "output": "t", "range": "in", "n": 1, "median": 0.1, "p90": 0.2},
-                    {"class": "H-1", "output": "t", "range": "in", "n": 1, "median": 0.1, "p90": 0.2},
+                    {
+                        "class": "H-1",
+                        "output": "t",
+                        "range": "in",
+                        "n": 1,
+                        "median": 0.1,
+                        "p90": 0.2,
+                    },
+                    {
+                        "class": "H-1",
+                        "output": "t",
+                        "range": "in",
+                        "n": 1,
+                        "median": 0.1,
+                        "p90": 0.2,
+                    },
                 ]
             },
             "grade_breakdown_outputs_invalid",
         ),
         (
-            {"outputs": [{"class": "H-1", "output": "t", "range": "in", "n": 1, "median": 0.1, "p90": 0.2, "case": "c1"}]},
+            {
+                "outputs": [
+                    {
+                        "class": "H-1",
+                        "output": "t",
+                        "range": "in",
+                        "n": 1,
+                        "median": 0.1,
+                        "p90": 0.2,
+                        "case": "c1",
+                    }
+                ]
+            },
             "grade_breakdown_outputs_invalid",
         ),
         (
-            {"speed": {"call_seconds": [], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True, "lane": "local"}},
+            {
+                "speed": {
+                    "call_seconds": [],
+                    "median_seconds": 0.1,
+                    "ceiling_seconds": 1.0,
+                    "passed": True,
+                    "lane": "local",
+                }
+            },
             "grade_breakdown_speed_invalid",
         ),
         (
-            {"speed": {"call_seconds": [None], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True, "lane": "local"}},
+            {
+                "speed": {
+                    "call_seconds": [None],
+                    "median_seconds": 0.1,
+                    "ceiling_seconds": 1.0,
+                    "passed": True,
+                    "lane": "local",
+                }
+            },
             "grade_breakdown_speed_invalid",
         ),
         (
-            {"speed": {"call_seconds": [0.1], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": 1, "lane": "local"}},
+            {
+                "speed": {
+                    "call_seconds": [0.1],
+                    "median_seconds": 0.1,
+                    "ceiling_seconds": 1.0,
+                    "passed": 1,
+                    "lane": "local",
+                }
+            },
             "grade_breakdown_speed_invalid",
         ),
         (
-            {"speed": {"call_seconds": [0.1], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True, "lane": "a b"}},
+            {
+                "speed": {
+                    "call_seconds": [0.1],
+                    "median_seconds": 0.1,
+                    "ceiling_seconds": 1.0,
+                    "passed": True,
+                    "lane": "a b",
+                }
+            },
             "grade_breakdown_speed_invalid",
         ),
     ],
@@ -171,7 +243,12 @@ def test_anything_outside_the_closed_document_refuses(change, code):
 
 def test_a_document_past_the_bound_refuses():
     tasks = [
-        {"task": i + 1, "D": 0.123456789012345, "Z": 0.2234567890123, "oracle": 0.3234567890123}
+        {
+            "task": i + 1,
+            "D": 0.123456789012345,
+            "Z": 0.2234567890123,
+            "oracle": 0.3234567890123,
+        }
         for i in range(gb.MAX_ENTRIES)
     ]
     with pytest.raises(gb.GradeBreakdownRefused) as refused:
