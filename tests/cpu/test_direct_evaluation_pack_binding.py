@@ -104,7 +104,8 @@ def test_the_pack_check_is_cached_by_file_identity_and_rechecks_on_any_change(
 ):
     """Live 116, 19 Nov 2026 (TEAM_RULES #13): every research request ran the pack check twice, re-hashing the pack and
     re-reading TRAIN per upload chunk. The full check now runs again only when a file's identity changed, the TRAIN
-    object or the construction documents changed, and is trusted only after it ran between two equal readings."""
+    object or the construction documents changed, and is trusted only after it ran between two equal readings.
+    """
     import os
 
     from carbon.challenge_validator import evaluation_pack
@@ -122,7 +123,9 @@ def test_the_pack_check_is_cached_by_file_identity_and_rechecks_on_any_change(
     )
     for _ in range(5):
         check(material)
-    assert len(full) == 2  # the first, then one between two equal readings; then trusted
+    assert (
+        len(full) == 2
+    )  # the first, then one between two equal readings; then trusted
     # the same bytes written again: the file's identity moved, so the full check runs once, then is trusted again
     train = public / "train.bin"
     train.write_bytes(material["train"])
