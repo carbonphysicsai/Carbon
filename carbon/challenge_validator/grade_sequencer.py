@@ -11,10 +11,22 @@ grades is committed by one writer, in claim order (= the door's pending order = 
 - **Reservation turn** (`reserve_turn`): just before its exam-cap reservation a grade waits until every EARLIER claimed
   grade has reserved or ended; `claimed` marks it reserved. So reservations, and every allowance count they read, are
   made in claim order exactly as when the claim lock was held through them.
-- **Commit turn** (`turn`): before the order-dependent writes (the exam-cap settle, which feeds every later allowance;
-  the crown compare-and-set; the Ladder; the marker), a grade waits until every EARLIER claimed grade has finished.
-  Before waiting it gives up its grade-session container (`research_carrier.yield_grade_session`), so the idle
-  container never sits on its lane's cores meanwhile.
+- **Commit turn** (`turn`): before its own order-dependent writes (the exam-cap settle, which feeds every later
+  allowance of ITS group; the Ladder, one row per hotkey; the marker), a grade waits until every EARLIER claimed grade
+  of the SAME exam-cap allowance group has finished (a grade whose group is unknown waits for, and holds, every
+  earlier one). Fix 1b (V2's verdict of 18 Nov 2026, GRADE_SPEED_20261118.md; Lead 19 Nov): across groups these writes
+  are order-free (M counts RESERVED + COUNTED rows, reserved at claim), so a light grade's marker, settle, keep, lane
+  and slot land at once, never behind an earlier heavy grade of another miner (live 116, 19 Nov 11:31-11:44Z: light
+  grades done in 100-200 s landed 593-653 s after their claim). Before waiting it gives up its grade-session container
+  (`research_carrier.yield_grade_session`).
+- **Crown queue** (`crown_decision`): the crown IS order-dependent (V2: with the crown margin, K = 1.00, earlier A = 1.05,
+  later B = 1.06 crowns A in claim order but B out of order: a different miner holds the weights). Each grade's crown
+  decision is appended under its ticket and applied strictly in claim order by one applier (`_drain`: whichever thread
+  can take the short applier lock, under `CROWN_LOCK`). A decision waits only for EARLIER grades' decisions, never in
+  its grade's thread: a grade whose earlier ones are still running hands its decision over and ends (its lane and its
+  round are freed); the earlier grade's thread applies it after its own. A grade that ends with no decision (FAILED,
+  RELEASED, refused, an exception) closes its ticket so the queue never waits on it; a hung grade ended by `abandon`
+  drops any decision it had queued (its slot was given back: never a free grade that crowns).
 - **Exclusive** (`exclusive`): the king's upkeep, the crown sweep and due retries move the incumbent; they run only
   with no grade claimed and none in flight.
 
@@ -69,6 +81,14 @@ class Sequencer:
         self._claimed_at = {}
         #: tickets that retained past the bound: they no longer hold the order and end "not yet" at their own turn
         self._expired = set()
+        #: the crown queue (`crown_decision`): ticket -> its decisions not yet applied, in the order they came
+        self._crown = {}
+        #: tickets whose grade ended (or was abandoned): no further decision of theirs will come
+        self._crown_closed = set()
+        #: the lowest ticket whose decisions are not all applied: the queue's head (tickets are dense from 0)
+        self._crown_next = 0
+        #: held by the one thread applying decisions now (`_drain`), never waited for
+        self._applier = threading.Lock()
 
     def in_flight(self):
         """The submission ids claimed and not yet finished (a claim skips them)."""
@@ -99,6 +119,9 @@ class Sequencer:
         finally:
             _CURRENT.reset(token)
             state.release_claim()
+            # its decisions are all in: the queue goes past it, applying whatever later grades handed over meanwhile,
+            # before its ticket leaves the open set (`exclusive` never sees a door with a decision still queued)
+            self._close_crown(ticket)
             with self._order:
                 self._open.pop(ticket, None)
                 self._groups.pop(ticket, None)
@@ -156,7 +179,73 @@ class Sequencer:
             self._open.pop(ticket, None)
             self._groups.pop(ticket, None)
             self._abandoned.add(ticket)
+            # fix 1b: its queued crown decision is dropped (its slot is given back as Carbon's: never a free grade
+            # that crowns) and the queue goes on past it
+            self._crown.pop(ticket, None)
             self._order.notify_all()
+        self._close_crown(ticket)
+
+    def _close_crown(self, ticket):
+        """No further crown decision of ``ticket`` will come: the queue may go past it (`_drain`)."""
+        with self._order:
+            if ticket >= self._crown_next:
+                self._crown_closed.add(ticket)
+        self._drain()
+
+    def _submit_crown(self, ticket, apply):
+        """Append ``apply`` to ``ticket``'s crown decisions, then apply every decision that is next in claim order."""
+        with self._order:
+            if ticket in self._abandoned:
+                raise GradeAbandoned(ticket)
+            self._crown.setdefault(ticket, []).append(apply)
+        self._drain()
+
+    def _next_crown(self):
+        """The next decision to apply in claim order, or None (under ``_order``): the head ticket's next queued
+        decision; a closed head with none left is passed."""
+        while True:
+            head = self._crown_next
+            queued = self._crown.get(head)
+            if queued:
+                return queued.pop(0)
+            # an expired claim (design A: stuck before its reservation) can bring no decision: passed as closed
+            if head in self._crown_closed or head in self._expired:
+                self._crown_closed.discard(head)
+                self._crown.pop(head, None)
+                self._crown_next = head + 1
+                continue
+            return None
+
+    def _drain(self):
+        """Apply the crown decisions that are next in claim order, in one thread at a time: a thread that finds the
+        applier busy leaves them to it (it looks again before it lets go, so none is left behind).
+        """
+        while True:
+            if not self._applier.acquire(blocking=False):
+                return
+            try:
+                while True:
+                    with self._order:
+                        apply = self._next_crown()
+                    if apply is None:
+                        break
+                    try:
+                        apply()
+                    except Exception as error:  # noqa: BLE001 - one decision never stops the queue
+                        from carbon.battery.intake import log
+
+                        log("crown_decision_failed", type=type(error).__name__)
+            finally:
+                self._applier.release()
+            with self._order:
+                head = self._crown_next
+                ready = (
+                    bool(self._crown.get(head))
+                    or head in self._crown_closed
+                    or head in self._expired
+                )
+            if not ready:
+                return
 
     @contextmanager
     def exclusive(self):
@@ -255,14 +344,22 @@ class _Task:
                 raise ReserveTurnExpired(self.ticket)
 
     def _earlier_holding(self):
-        """Whether an EARLIER open ticket still holds the commit order (an expired one does not; caller holds
-        ``_order``)."""
+        """Whether an EARLIER open ticket still holds this grade's commit order (caller holds ``_order``): one of the
+        same exam-cap allowance group, or of an unknown group (None, or not bound yet), and not expired (design A); a
+        grade whose own group is unknown is ordered behind every earlier one (fix 1b: across groups a grade's own
+        writes are order-free; only the crown decision is claim-ordered, `crown_decision`)."""
         seq = self.sequencer
+        mine = seq._groups.get(self.ticket)
         now = time.monotonic()
-        return any(
-            other < self.ticket and seq._holds_order(other, now)
-            for other in tuple(seq._open)
-        )
+        for other in tuple(seq._open):
+            if other >= self.ticket:
+                continue
+            theirs = seq._groups.get(other)
+            if (mine is None or theirs is None or theirs == mine) and seq._holds_order(
+                other, now
+            ):
+                return True
+        return False
 
     def reserved(self):
         """This grade's reservation is made (or refused): later grades may reserve, and the claim lock, if still held,
@@ -273,8 +370,8 @@ class _Task:
         self.release_claim()
 
     def turn(self):
-        """Wait until every earlier grade has finished (idempotent). Gives up the claim lock and this grade's session
-        container first."""
+        """Wait until every earlier grade of this grade's allowance group has finished (idempotent; fix 1b). Gives up
+        the claim lock and, before any wait, this grade's session container."""
         if self.ticket in self.sequencer._abandoned:
             raise GradeAbandoned(self.ticket)
         if self._turned:
@@ -311,6 +408,20 @@ class _Task:
         if self.ticket in self.sequencer._abandoned:
             raise GradeAbandoned(self.ticket)
         self._turned = True
+
+    def crown(self, decide):
+        """Hand this grade's crown decision to the crown queue (`crown_decision`): ``decide()`` runs under `CROWN_LOCK`
+        once every earlier grade's decisions are applied or it ended. Returns ``decide()``'s result when it was applied
+        now (no earlier decision outstanding), else `CROWN_QUEUED`: this grade goes on and ends; the decision is applied
+        by the thread of the earlier grade, after its own."""
+        result = {}
+
+        def apply():
+            with CROWN_LOCK:
+                result["value"] = decide()
+
+        self.sequencer._submit_crown(self.ticket, apply)
+        return result.get("value", CROWN_QUEUED)
 
 
 class GradeAbandoned(RuntimeError):
@@ -453,6 +564,26 @@ def current():
     return _CURRENT.get()
 
 
+#: What `crown_decision` returns for a decision queued behind an earlier grade's (fix 1b): the grade goes on and ends;
+#: the decision is applied in claim order later (its outcome reaches the KOTH journal then).
+CROWN_QUEUED = {
+    "outcome": "QUEUED_IN_CLAIM_ORDER",
+    "reason": "earlier_grade_in_flight",
+}
+
+
+def crown_decision(decide):
+    """Apply a grade's crown decision ``decide()`` (the king read and the crown written) in claim order (fix 1b, see the
+    module docstring). Unsequenced (one lane, a tool, a test, an incumbent step): run now under `CROWN_LOCK`, as
+    before. Returns ``decide()``'s result, or a copy of `CROWN_QUEUED`."""
+    task = _CURRENT.get()
+    if task is None:
+        with CROWN_LOCK:
+            return decide()
+    value = task.crown(decide)
+    return dict(CROWN_QUEUED) if value is CROWN_QUEUED else value
+
+
 def claimed():
     """The calling grade has made (or been refused) its order-dependent reservation: later grades may reserve, and the
     claim lock goes if still held. No-op unsequenced."""
@@ -479,7 +610,9 @@ __all__ = [
     "GradeAbandoned",
     "OwnerClaims",
     "Sequencer",
+    "CROWN_QUEUED",
     "claimed",
+    "crown_decision",
     "current",
     "owner_exclusive",
     "turn",

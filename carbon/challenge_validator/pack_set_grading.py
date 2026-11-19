@@ -393,34 +393,39 @@ def _contend_set(
             koth_registry.control(batch_adapters[batches[0]].challenge_id),
             comparator,
         )
-        from .grade_sequencer import CROWN_LOCK
+        from . import grade_sequencer, koth_journal
 
-        with (
-            CROWN_LOCK
-        ):  # the crown's read and write, as every crown commit (V2, 18 Nov 2026)
-            # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
-            # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
-            outcome = promotion.consider_private(
-                origin,
-                filed["evaluation_key"],
-                comparator,
-                sealed=all(
-                    getattr(d, "evaluation_pack_sealed", False) is True
-                    for d in discoveries
-                ),
-                repeat=repeat,
-                # Only a registered control is passed: a promotion that takes none is called as before.
-                **({} if control is None else {"control": control}),
-            )
-        from . import koth_journal
+        def decide():
+            # the crown's read and write, as every crown commit (V2, 18 Nov 2026), in CLAIM order (fix 1b): the crown
+            # queue (`grade_sequencer.crown_decision`) holds the crown lock around this call
+            try:
+                # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
+                # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
+                outcome = promotion.consider_private(
+                    origin,
+                    filed["evaluation_key"],
+                    comparator,
+                    sealed=all(
+                        getattr(d, "evaluation_pack_sealed", False) is True
+                        for d in discoveries
+                    ),
+                    repeat=repeat,
+                    # Only a registered control is passed: a promotion that takes none is called as before.
+                    **({} if control is None else {"control": control}),
+                )
+                koth_journal.contention(
+                    "live_set", origin, outcome, store=promotion.store
+                )
+                retention._watch_repeat_miss(
+                    promotion.store, batch_adapters[batches[0]], origin, outcome
+                )
+                retention._file_if_paused(
+                    promotion.store, outcome, "set", origin, set_key, repeat, pin
+                )
+            except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
+                return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}
+            return outcome
 
-        koth_journal.contention("live_set", origin, outcome, store=promotion.store)
-        retention._watch_repeat_miss(
-            promotion.store, batch_adapters[batches[0]], origin, outcome
-        )
-        retention._file_if_paused(
-            promotion.store, outcome, "set", origin, set_key, repeat, pin
-        )
-        return outcome
+        return grade_sequencer.crown_decision(decide)
     except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
         return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}

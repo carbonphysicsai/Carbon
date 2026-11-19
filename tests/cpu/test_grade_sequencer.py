@@ -509,7 +509,8 @@ def test_a_grade_waiting_its_commit_turn_is_never_ended_as_hung(monkeypatch):
     def behind():
         head_bound.wait(10)
         with sequencer.task() as task:
-            task.bind("behind", "h:b")
+            # the same allowance group: its commit turn waits for the head (fix 1b: another group's would not)
+            task.bind("behind", "h:a")
             out["ticket"] = task.ticket
             behind_waiting.set()
             task.turn()

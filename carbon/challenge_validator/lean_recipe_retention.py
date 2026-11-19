@@ -3080,60 +3080,70 @@ def _contend(
             ),
             comparator,
         )
-        from carbon.challenge_validator.grade_sequencer import CROWN_LOCK
+        from carbon.challenge_validator import grade_sequencer, koth_journal
 
-        # V2 (18 Nov 2026): the king is read and the crown written under the crown lock (no incumbent step and no
-        # other grade's crown commit meanwhile); the store's compare-and-set (`PoolStore._set_incumbent`, expected
-        # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`)
-        with CROWN_LOCK:
-            # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
-            # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
-            reader = getattr(promotion.store, "incumbent", None)
-            met = ((reader() if reader is not None else None) or {}).get("model_id")
-            outcome = promotion.consider_private(
-                submission_id,
-                filed["evaluation_key"],
-                comparator,
-                # Delivery provenance, never the pack's shape: only a pack that
-                # arrived through the answer-key route into the sealed store.
-                sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
-                repeat=repeat,
-                # Only a registered control is passed: a promotion that takes none is called as before.
-                **({} if control is None else {"control": control}),
-            )
-        from carbon.challenge_validator import koth_journal
+        def decide():
+            # V2 (18 Nov 2026): the king is read and the crown written under the crown lock (no incumbent step and no
+            # other grade's crown commit meanwhile); the store's compare-and-set (`PoolStore._set_incumbent`, expected
+            # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`).
+            # Fix 1b (V2's verdict, 18 Nov 2026): applied in CLAIM order by the crown queue
+            # (`grade_sequencer.crown_decision`), which holds the crown lock around this call.
+            try:
+                # no king value is passed in (no ``average``: the installed rule; ``repeat``: the contender's own repeat): the king's
+                # evidence and crown mean are read inside, under the lock (`PoolStore.private_evaluation_pair`, `crown_average.screening`)
+                reader = getattr(promotion.store, "incumbent", None)
+                met = ((reader() if reader is not None else None) or {}).get("model_id")
+                outcome = promotion.consider_private(
+                    submission_id,
+                    filed["evaluation_key"],
+                    comparator,
+                    # Delivery provenance, never the pack's shape: only a pack that
+                    # arrived through the answer-key route into the sealed store.
+                    sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
+                    repeat=repeat,
+                    # Only a registered control is passed: a promotion that takes none is called as before.
+                    **({} if control is None else {"control": control}),
+                )
+                koth_journal.contention(
+                    "live", submission_id, outcome, met, store=promotion.store
+                )
+                _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
+                _file_if_paused(
+                    promotion.store,
+                    outcome,
+                    "pack",
+                    submission_id,
+                    lambda: discovery.evaluation_pack_digest,
+                    repeat,
+                    pin,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return _contention_refused(submission_id, exc)
+            return {
+                "outcome": outcome["outcome"],
+                "reason": outcome["reason"],
+                "evaluation_key": outcome["evaluation_key"],
+            }
 
-        koth_journal.contention(
-            "live", submission_id, outcome, met, store=promotion.store
-        )
-        _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
-        _file_if_paused(
-            promotion.store,
-            outcome,
-            "pack",
-            submission_id,
-            lambda: discovery.evaluation_pack_digest,
-            repeat,
-            pin,
-        )
+        return grade_sequencer.crown_decision(decide)
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
-        refused = {
-            "error": (
-                str(exc)
-                if isinstance(exc, RetentionUnavailable)
-                else str(getattr(exc, "code", type(exc).__name__))
-            )
-        }
-        from carbon.challenge_validator import koth_journal
+        return _contention_refused(submission_id, exc)
 
-        koth_journal.contention("live", submission_id, refused)
-        return refused
-    return {
-        "outcome": outcome["outcome"],
-        "reason": outcome["reason"],
-        "evaluation_key": outcome["evaluation_key"],
+
+def _contention_refused(submission_id, exc):
+    """The KOTH result of a pool refusal (journaled): the evaluation stays bound."""
+    refused = {
+        "error": (
+            str(exc)
+            if isinstance(exc, RetentionUnavailable)
+            else str(getattr(exc, "code", type(exc).__name__))
+        )
     }
+    from carbon.challenge_validator import koth_journal
+
+    koth_journal.contention("live", submission_id, refused)
+    return refused
 
 
 def _control_check(repeat, control, comparator):
