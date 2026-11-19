@@ -38,16 +38,20 @@ Docker's ssh:// connection helper, which runs ``ssh`` from ``PATH``, takes the s
 a box (mirror, discard, probes) passes the same pinned options itself (`_box_ssh`). ``~/.ssh/config`` is never edited.
 
 **Choice, down, proven.** Each op takes a free slot on an eligible box: the box with the most free slots, then the name.
-A box whose op failed with its link or GPU unhealthy is marked DOWN (`DOWN_MARKER`, a timestamp) and skipped for
-`DOWN_SECONDS`, or until its next successful health probe, so a retry lands on another box. A box's FIRST real build is
+A box whose op failed with its link or GPU unhealthy is SUSPECT; a second such loss within `DOWN_SECONDS`
+(`DOWN_AFTER_LOSSES` in a row, over-broad rules audit #13: one blip must not idle a box) marks it DOWN (`DOWN_MARKER`, a
+timestamp), skipped for `DOWN_SECONDS` or until its next successful health probe (which also clears a suspect mark), so
+a retry lands on another box. A box's FIRST real build is
 also built, with the same graph/seed/recipe, on an already PROVEN box (the graph route's ``<task>~shadow``,
 `research_tasks`): equal state digests mark the new box PROVEN (`PROVEN_MARKER`, bound to its box file's digest); unequal
 ones refuse it and the task is FAILED_INFRA. While a box's first build runs, no other op starts there (`FIRST_BUILD`),
 so that is the only extra build. With no proven box at all, the first box is proven by its own class check at once.
 
 **Per build** (Validator-2's re-read): before the container is created, the box's GPU name and uuid (``nvidia-smi``) and
-the image id (``docker image inspect``, `check_host`) are read again on the box; a mismatch with the box file is
-FAILED_INFRA and the box file is renamed ``.refused``.
+the image id (``docker image inspect``, `check_host`) are read again on the box; a mismatch with the box file, read
+twice (an image the daemon answers for without the admitted one; ``nvidia-smi`` naming GPUs, none of them the box file's),
+is FAILED_INFRA and the box file is renamed ``.refused``. A GPU list that is empty or unreadable is the box lost (DOWN),
+never refused (audit #13: ``.refused`` only on a verified identity change).
 
 **Local slot lanes** (Lead, Mon 16 Nov: one design for both): the OLD lane record ``<HOST_ROOT>/remote-gpu-build-lanes.json``
 (`RECORD`) is kept ONLY for a lane with ``"docker_host": null`` and ``"stage_root": null``: THIS host's own GPU (the
@@ -117,6 +121,10 @@ BOX_COPY = "box.json"
 REFUSED_NOTE = "refused.json"
 #: How long a box marked down is skipped (an operational bound, not a scientific value).
 DOWN_SECONDS = 600
+#: Lost ops in a row (each within `DOWN_SECONDS` of the one before) that mark a box DOWN (`note_loss`); the first only
+#: marks it SUSPECT, still offered (over-broad rules audit #13, Validator-2 ruling 18 Nov 2026: one blip idled a box for
+#: 10 min, with 1-3 boxes 33-100 pct of GPU build capacity). An operational bound, not a scientific value.
+DOWN_AFTER_LOSSES = 2
 #: The graph route's first-build shadow op: ``<task>~shadow``, on a proven box other than the new one.
 SHADOW_SUFFIX = "~shadow"
 #: The values rows: ``{"schema", "rows": {"<challenge> <version>": {"device_kind": str, "slots"?: int}}}``.
@@ -824,12 +832,44 @@ def mark_down(lane, reason=b""):
     )
 
 
+def note_loss(lane, reason=b""):
+    """One lost op on ``lane``'s box (its link or GPU unhealthy after a failure): the box is DOWN (`mark_down`) once
+    `DOWN_AFTER_LOSSES` losses come in a row, each within `DOWN_SECONDS` of the last; before that it is only SUSPECT
+    (the mark counts the losses; `is_down` is False, so the box is still offered). A healthy probe clears it.
+    """
+    if lane is None or lane.spec.local:
+        return False
+    path = Path(lane.lane_dir) / DOWN_MARKER
+    mark = _read_mark(path)
+    now = time.time()
+    losses = 1
+    if (
+        mark is not None
+        and type(mark.get("losses")) is int
+        and type(mark.get("unix")) in (int, float)
+        and now - mark["unix"] < DOWN_SECONDS
+    ):
+        losses = mark["losses"] + 1
+    if losses >= DOWN_AFTER_LOSSES:
+        return mark_down(lane, reason)
+    return _write_mark(
+        path,
+        {
+            "unix": now,
+            "losses": losses,
+            "reason": bytes(reason)[:200].decode("utf-8", "replace"),
+        },
+    )
+
+
 def is_down(lane):
-    """Whether ``lane``'s box was marked down less than `DOWN_SECONDS` ago."""
+    """Whether ``lane``'s box was marked down less than `DOWN_SECONDS` ago (a SUSPECT mark, `note_loss`, is not)."""
     if lane.spec.local:
         return False
     mark = _read_mark(Path(lane.lane_dir) / DOWN_MARKER)
     if mark is None or type(mark.get("unix")) not in (int, float):
+        return False
+    if "losses" in mark:
         return False
     return time.time() - mark["unix"] < DOWN_SECONDS
 
@@ -1377,14 +1417,15 @@ def _settled_binding(offer, recorded, key):
 
 
 def _note_loss(binding, error):
-    """A box op that failed as Carbon's with its link or GPU lost: its box is DOWN (`DOWN_SECONDS`)."""
+    """A box op that failed as Carbon's with its link or GPU lost: one loss (`note_loss`; DOWN after
+    `DOWN_AFTER_LOSSES` in a row)."""
     if binding.lane.spec.local or getattr(error, "box_refused", False):
         return
     diagnostic = getattr(error, "private_diagnostic", b"")
     if diagnostic == b"remote_gpu_build_unhealthy_after_failure" or not healthy(
         binding
     ):
-        mark_down(binding.lane, diagnostic)
+        note_loss(binding.lane, diagnostic)
 
 
 def _take(offer, identity, key, *, held, check, pause, poll, deadline):
@@ -2376,13 +2417,16 @@ def check_host(cli_, image, record, pins=None):
             if attempt == 2:
                 # twice, with the daemon answering: the image the box file admitted is not there as it was
                 raise refuse(lane, b"remote_gpu_build_box_image_mismatch") from error
+    ours = (lane.device.device_uuid, lane.device.device_kind)
     rows = _gpu_rows(binding)
-    if rows is None:
+    if rows and ours not in rows and not lane.spec.local:
+        # a verified identity change only (audit #13): read again; a flicker that names ours the second time is not one
+        rows = _gpu_rows(binding)
+        if rows and ours not in rows:
+            raise refuse(lane, b"remote_gpu_build_box_gpu_mismatch")
+    if not rows or ours not in rows:
+        # unreadable or empty: the GPU is lost (the box DOWN through the op's failure), never a refusal
         raise RemoteLaneDown(b"remote_gpu_build_device_absent")
-    if (lane.device.device_uuid, lane.device.device_kind) not in rows:
-        if lane.spec.local:
-            raise RemoteLaneDown(b"remote_gpu_build_device_absent")
-        raise refuse(lane, b"remote_gpu_build_box_gpu_mismatch")
     clear_down(lane)
 
 
@@ -2562,6 +2606,7 @@ __all__ = [
     "BOX_SCHEMA",
     "BOX_SLOT_CPUSETS",
     "DEFAULT_SLOTS",
+    "DOWN_AFTER_LOSSES",
     "DOWN_SECONDS",
     "GATE_LOCK",
     "MAX_LANES",
@@ -2607,6 +2652,7 @@ __all__ = [
     "mark_proven",
     "mirror",
     "needs_alone",
+    "note_loss",
     "note_uncounted_wall",
     "offered",
     "offered_for",

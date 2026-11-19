@@ -2445,7 +2445,16 @@ def test_a_lost_box_is_marked_down_skipped_and_back_after_a_healthy_probe(
         mark = json.loads(
             (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).read_text()
         )
-        assert type(mark["unix"]) is float and remote_gpu_build.is_down(lost)
+        # one loss: SUSPECT only, still offered (over-broad rules audit #13: one blip never idles a box)
+        assert mark["losses"] == 1 and not remote_gpu_build.is_down(lost)
+        with pytest.raises(RemoteLaneDown), _op() as again:
+            assert again.lane.spec.name == "a100-a"
+            raise RemoteLaneDown(b"exit=255\nConnection reset")  # lost again, in a row
+        mark = json.loads(
+            (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).read_text()
+        )
+        assert type(mark["unix"]) is float and "losses" not in mark
+        assert remote_gpu_build.is_down(lost)
         # the FAILED_INFRA task's retry lands on another box
         with _op() as retry:
             assert retry.lane.spec.name == "a100-b"
@@ -2467,6 +2476,61 @@ def test_a_lost_box_is_marked_down_skipped_and_back_after_a_healthy_probe(
     monkeypatch.setattr(remote_gpu_build, "gpu_present", lambda binding=None: True)
     assert remote_gpu_build.healthy(remote_gpu_build.OpBinding(lost, 0))
     assert not (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).exists()
+
+
+def test_a_loss_long_after_the_last_is_a_first_loss_again(host):
+    values = _values(host)
+    write_box(host, box_document("a100-a", docker_host="ssh://carbon-build@a.example"))
+    with _offer(host, values):
+        (lane,) = remote_gpu_build.boxes(_pool(host, values))
+        assert remote_gpu_build.note_loss(lane, b"lost")
+        path = Path(lane.lane_dir) / remote_gpu_build.DOWN_MARKER
+        old = json.loads(path.read_text())
+        old["unix"] -= remote_gpu_build.DOWN_SECONDS + 1
+        path.write_text(json.dumps(old))
+        assert remote_gpu_build.note_loss(lane, b"lost")
+        assert json.loads(path.read_text())["losses"] == 1
+        assert not remote_gpu_build.is_down(lane)
+        # a healthy probe clears a suspect mark too
+        remote_gpu_build.clear_down(lane)
+        assert not path.exists()
+
+
+def test_an_empty_gpu_list_or_a_one_read_flicker_never_refuses_the_box(
+    host, monkeypatch
+):
+    from carbon.reconstruction.worker import accelerator_runtime as runtime
+
+    values = _install(host)
+    path = _boxes_dir(host) / f"{BOX}.json"
+    monkeypatch.setattr(runtime, "verify_image_and_toolkit", lambda **kw: None)
+    monkeypatch.setattr(remote_gpu_build, "link_up", lambda binding=None, **k: True)
+    reads = []
+
+    def capture(*a, **k):
+        return reads.pop(0)
+
+    monkeypatch.setattr(remote_gpu_build, "_ssh_capture", capture)
+    ours = f"{UUID}, {KIND}\n".encode()
+    other = b"GPU-other, NVIDIA A100-SXM4-80GB\n"
+    with _offer(host, values), _op() as binding:
+        record = binding.lane.device
+        # nvidia-smi names no GPU (the GPU fell off the bus): the box is lost, not refused
+        reads[:] = [b""]
+        with pytest.raises(RemoteLaneDown) as raised:
+            remote_gpu_build.check_host(_FakeCLI(), _image(), record)
+        assert raised.value.private_diagnostic == b"remote_gpu_build_device_absent"
+        assert path.exists()
+        # another GPU on the first read, ours on the second: a flicker, the build goes on
+        reads[:] = [other, ours]
+        remote_gpu_build.check_host(_FakeCLI(), _image(), record)
+        assert path.exists() and not reads
+        # another GPU on both reads: a verified identity change, refused
+        reads[:] = [other, other]
+        with pytest.raises(RemoteLaneDown) as raised:
+            remote_gpu_build.check_host(_FakeCLI(), _image(), record)
+        assert raised.value.private_diagnostic == b"remote_gpu_build_box_gpu_mismatch"
+        assert not path.exists() and Path(str(path) + ".refused").exists()
 
 
 def _image(image_id=IMAGE):
