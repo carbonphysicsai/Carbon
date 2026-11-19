@@ -75,7 +75,10 @@ def test_the_kept_values_are_the_grades_own_numbers():
         rule_flags={k: bool(v) for k, v in result["gates"].items()},
         halves={"A": result["A"], "D": result["D"]},
         clock=1_800_000_000.0,
-        **values,
+        sets=values["sets"],
+        tasks=values["tasks"],
+        outputs=values["outputs"],
+        speed={**values["speed"], "lane": None},
     )
     assert document["outputs"] == values["outputs"]
 

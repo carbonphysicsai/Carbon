@@ -498,8 +498,10 @@ def _menu_tasks(policies, material, record, se_d):
     ]
 
 
-def breakdown(args):
-    """The aggregates document (unchecked against the expectations; see `main`)."""
+def breakdown(args, keep=None):
+    """The aggregates document (unchecked against the expectations; see `main`). ``keep`` (a dict, optional) receives
+    what the private grade breakdown needs: the values this same measure offered (`grade_breakdown.staged`), the exam
+    key, the gates and the A / D the self-check reads."""
     from carbon.development_session import single_call_timing
     from carbon.scoring import physical_dual_pack as physical
     from carbon.scoring import (
@@ -554,7 +556,9 @@ def breakdown(args):
     )
     rowcheck_raw = _read_file(args.rowcheck)
     capture = {}
-    with pool_menu.staged_rowcheck(rowcheck_raw):
+    from carbon.scoring import grade_breakdown
+
+    with pool_menu.staged_rowcheck(rowcheck_raw), grade_breakdown.staged() as stage:
         measured = subset_produce.measure_subset(
             adapter,
             outputs=outputs,
@@ -598,6 +602,19 @@ def breakdown(args):
             policies, definition["pool"], pool["menu"], basis.get("menu_d")
         )
     a, d, total, w = _total(roles["score_pack"], measured)
+    if keep is not None:
+        keep.update(
+            values=grade_breakdown.kept(stage),
+            exam_key=snapshot.manifest_digest,
+            gates=dict(gates),
+            contract_ids={
+                "physics_contract": roles["score_pack"]["physics_contract_digest"],
+                "measurement_contract": roles["score_pack"][
+                    "measurement_contract_digest"
+                ],
+            },
+            halves={"A": a, "D": d},
+        )
     return {
         "schema": SCHEMA,
         "challenge": CHALLENGE,
@@ -627,7 +644,33 @@ def _parser():
     parser.add_argument("--expect-d", type=float, required=True)
     parser.add_argument("--expect-total", type=float, required=True)
     parser.add_argument("--out", required=True)
+    # the private grade breakdown of the SAME recompute (king card source "recomputed"): the graded task's id and the
+    # lane its single calls were timed on (its grade_lane line: "local" or the lane's docker host)
+    parser.add_argument("--task", default=None)
+    parser.add_argument("--speed-lane", default=None)
     return parser
+
+
+def grade_breakdown_document(args, keep):
+    """The checked private grade breakdown of this recompute (`grade_breakdown` schema), written only after the
+    self-check matched."""
+    from carbon.scoring import grade_breakdown
+
+    values = keep["values"] or {}
+    speed = values.get("speed")
+    return grade_breakdown.breakdown(
+        challenge_id=CHALLENGE,
+        challenge_version=VERSION,
+        submission_id=args.task,
+        exam_key=keep["exam_key"],
+        contract_ids=keep["contract_ids"],
+        sets=values.get("sets", {}),
+        tasks=values.get("tasks", []),
+        rule_flags={k: bool(v) for k, v in keep["gates"].items()},
+        halves=keep["halves"],
+        outputs=values.get("outputs"),
+        speed=None if speed is None else {**speed, "lane": args.speed_lane},
+    )
 
 
 def _code(exc):
@@ -641,9 +684,10 @@ def main(argv=None):
     args = _parser().parse_args(argv)
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
+    keep = {}
     try:
         out = _private_out_dir(args.out)
-        doc = breakdown(args)
+        doc = breakdown(args, keep)
     except Exception as exc:  # noqa: BLE001 - a typed code only, never a message
         print("refused:" + _code(exc))
         return 3
@@ -658,10 +702,17 @@ def main(argv=None):
         return 2
     try:
         digest = _write_once(out, doc)
+        kept = None
+        if args.task is not None:
+            from carbon.scoring import grade_breakdown
+
+            kept = grade_breakdown.write(out, grade_breakdown_document(args, keep))
     except Exception as exc:  # noqa: BLE001 - a typed code only, never a message
         print("refused:" + _code(exc))
         return 3
     print(digest)
+    if kept is not None:
+        print(kept.name)
     return 0
 
 

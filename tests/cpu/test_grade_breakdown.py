@@ -42,6 +42,7 @@ def _inputs(**change):
             "median_seconds": 0.01,
             "ceiling_seconds": 0.5,
             "passed": True,
+            "lane": "local",
         },
         "tasks": [
             {"task": "pool-1/d0001", "D": 0.5, "Z": 0.1, "oracle": 0.9},
@@ -137,15 +138,19 @@ def test_the_document_is_the_closed_field_set():
             "grade_breakdown_outputs_invalid",
         ),
         (
-            {"speed": {"call_seconds": [], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True}},
+            {"speed": {"call_seconds": [], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True, "lane": "local"}},
             "grade_breakdown_speed_invalid",
         ),
         (
-            {"speed": {"call_seconds": [None], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True}},
+            {"speed": {"call_seconds": [None], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True, "lane": "local"}},
             "grade_breakdown_speed_invalid",
         ),
         (
-            {"speed": {"call_seconds": [0.1], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": 1}},
+            {"speed": {"call_seconds": [0.1], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": 1, "lane": "local"}},
+            "grade_breakdown_speed_invalid",
+        ),
+        (
+            {"speed": {"call_seconds": [0.1], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True, "lane": "a b"}},
             "grade_breakdown_speed_invalid",
         ),
     ],

@@ -1041,7 +1041,11 @@ def _keep_grade_breakdown(
                 "D": legs[METRICS["D"]]["value"],
             },
             outputs=values.get("outputs"),
-            speed=values.get("speed"),
+            speed=(
+                None
+                if values.get("speed") is None
+                else {**values["speed"], "lane": _speed_lane()}
+            ),
         )
         grade_breakdown.write(directory, document)
     # a breakdown never changes or stops a grade
@@ -1056,6 +1060,15 @@ def _keep_grade_breakdown(
             )
         except Exception:  # noqa: BLE001 (a log line never stops a grade)
             pass
+
+
+def _speed_lane():
+    """The grade lane this thread holds (its single calls were timed on it): ``"local"`` or the lane's docker host;
+    None when no lane is held (an unlaned grade)."""
+    from carbon.reconstruction import grade_lanes
+
+    lane = grade_lanes.current()
+    return None if lane is None else (lane.docker_host or "local")
 
 
 def _private_evaluation_directory(result, submission_id):

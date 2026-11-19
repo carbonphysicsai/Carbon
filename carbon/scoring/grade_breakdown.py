@@ -13,8 +13,9 @@ public (it holds hidden-exam values). What it holds, and nothing else (a closed 
 - ``rule_flags``: ``{name: true | false}``, the registered rules' outcomes on this grade;
 - ``outputs``: ``[{"class", "output", "range", "n", "median", "p90"}]``, the custody accuracy record's per class and
   output error aggregates (`pool_physics_score.accuracy_record`); never a per-case value;
-- ``speed``: ``{"call_seconds", "median_seconds", "ceiling_seconds", "passed"}``, the speed lane's scored
-  single-design call seconds and the gate's verdict on them (`pool_exam.single_call_speed_gate`);
+- ``speed``: ``{"call_seconds", "median_seconds", "ceiling_seconds", "passed", "lane"}``, the speed lane's scored
+  single-design call seconds, the gate's verdict on them (`pool_exam.single_call_speed_gate`) and the lane they were
+  timed on (``"local"`` or its docker host; null when not known);
 - ``recipe``: ``{"recipe_info_bytes", "trained_arrays": {"count", "bytes"}}``, the charged recipe size under accounting v6
   (`carbon.level4.graph.recipe_info_bytes`) and the trained arrays the rebuilt state carries outside it (model-eval,
   19 Nov: computed by the build and dropped until now); `recipe_measures` reads both from the retained state bytes;
@@ -73,8 +74,11 @@ SET_FIELDS = frozenset({"A", "D", "rows"})
 HALF_FIELDS = frozenset({"A", "D"})
 OUTPUT_FIELDS = frozenset({"class", "output", "range", "n", "median", "p90"})
 SPEED_FIELDS = frozenset(
-    {"call_seconds", "median_seconds", "ceiling_seconds", "passed"}
+    {"call_seconds", "median_seconds", "ceiling_seconds", "passed", "lane"}
 )
+#: The lane a speed was timed on: ``"local"`` (the door host's own lane) or that lane's docker host (private here; the
+#: king card shows only the public class label the caller's closed map gives it).
+_LANE = re.compile(r"[A-Za-z0-9][A-Za-z0-9@:/._-]{0,199}")
 MAX_CALLS = 256
 TASK_FIELDS = frozenset({"task", "D", "Z", "oracle"})
 RECIPE_FIELDS = frozenset({"recipe_info_bytes", "trained_arrays"})
@@ -205,6 +209,9 @@ def _speed(value):
         raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
     if type(value["passed"]) is not bool:
         raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
+    lane = value["lane"]
+    if lane is not None and (type(lane) is not str or not _LANE.fullmatch(lane)):
+        raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
     seconds = [_value(c, "grade_breakdown_speed_invalid") for c in calls]
     if any(c is None for c in seconds):
         raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
@@ -217,6 +224,7 @@ def _speed(value):
             value["ceiling_seconds"], "grade_breakdown_speed_invalid"
         ),
         "passed": value["passed"],
+        "lane": lane,
     }
 
 
