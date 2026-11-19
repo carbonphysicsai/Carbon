@@ -183,12 +183,18 @@ def pool_predictor(plugin, descriptor, specs):
                 spec, row = universe.lookup(conditions, design)
                 out.append(
                     {
-                        name: value
-                        + sum(
-                            step
-                            * spec.u_at(row, name)
-                            * _sign(seed, "layer", _key(conditions), list(design), name)
-                            for seed, step in layers
+                        name: (
+                            value
+                            + sum(
+                                step
+                                * spec.u_at(row, name)
+                                * _sign(
+                                    seed, "layer", _key(conditions), list(design), name
+                                )
+                                for seed, step in layers
+                            )
+                            if name in spec.u
+                            else value  # a typed-state output (no U of its own here): kept as answered
                         )
                         for name, value in prediction.items()
                     }
@@ -234,6 +240,10 @@ def pool_predictor(plugin, descriptor, specs):
         for design in designs:
             spec, index = universe.lookup(conditions, design)
             truth = dict(spec.truths[index])
+            typed = getattr(spec, "typed_truths", ())
+            if typed:
+                # a typed-state target: the truth-built controls answer its typed outputs with the truth too
+                truth.update(typed[index])
             if kind == "oracle":
                 out.append(truth)
             elif kind == "noisy" and descriptor["mode"] == "feasible_bias":
@@ -276,10 +286,14 @@ def _apply_bias(spec, index, conditions, design, prediction, bias):
 
 def _random_error(spec, index, conditions, design, truth, k, seed):
     return {
-        name: value
-        + k
-        * spec.u_at(index, name)
-        * _sign(seed, "noise", _key(conditions), list(design), name)
+        name: (
+            value
+            + k
+            * spec.u_at(index, name)
+            * _sign(seed, "noise", _key(conditions), list(design), name)
+            if name in spec.u
+            else value  # a typed-state output: kept as the truth (the noise is on the outputs)
+        )
         for name, value in truth.items()
     }
 
