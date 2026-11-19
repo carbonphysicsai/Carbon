@@ -73,7 +73,8 @@ def test_the_committed_registry_sets_25():
 
 def test_at_25_the_epoch_limit_binds_first(tmp_path):
     """One graded exam per round, 20 rounds a rolling day: a group reaches at most 20 in any window, so 25 never
-    refuses; the round's own limit does, and every later round opens as the oldest round leaves the window."""
+    refuses; the round's own limit does, and every later round opens as the oldest round leaves the window.
+    """
     cap = _cap(tmp_path, _cadence(daily_allowance=25))
     for index in range(20):
         block = BLOCK + index * EPOCH
