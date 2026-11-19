@@ -103,7 +103,7 @@ def count(
         np.asarray(jnp.concatenate(blocks)) for blocks in (zero, repeat, together)
     )
     return {
-        "rows": int(len(x)),
+        "rows": len(x),
         "batch": int(batch),
         "output_shape": list(zero.shape),
         "output_dtype": str(zero.dtype),
