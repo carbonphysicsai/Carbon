@@ -505,6 +505,42 @@ def _requeue_refusal(root, db, door, task, *, auto=False):
     return _door_refusal(root, db, door, task)
 
 
+#: The door's build re-run log (`lean_recipe.BUILD_RETRIES`, append-only ``{from_task, new_task, chain_root, code, at_ns}``),
+#: beside the requeue log.
+_BUILD_RETRIES = Path("auto-grade") / "requeued" / "build-retries.jsonl"
+
+
+def _build_ancestors(root, task):
+    """The tasks ``task`` was re-run FROM by the door's own build re-runs (following ``new_task -> from_task`` back to
+    the miner's submit), as a set; empty when it is no door re-run or the log is unreadable (nothing is excused then)."""
+    try:
+        text = (Path(root) / _BUILD_RETRIES).read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    parent = {}
+    for raw in text.splitlines():
+        try:
+            line = json.loads(raw)
+        except ValueError:
+            continue
+        if (
+            type(line) is dict
+            and type(line.get("new_task")) is str
+            and type(line.get("from_task")) is str
+        ):
+            parent.setdefault(line["new_task"], line["from_task"])
+    found, current = set(), task
+    while current in parent and parent[current] not in found | {task}:
+        current = parent[current]
+        found.add(current)
+    return found
+
+
+def _never_graded(root, db, task):
+    """No marker and no exam row: the task never reached a grade (a build re-run's cancelled or failed predecessor)."""
+    return _marker(_paths(root, task)["marker"]) is None and not _rows(db, task)
+
+
 def _door_refusal(root, db, door, task):
     """None when the door may grade the task again (never released, no counted / reserved / graded row, its row in
     its owner's store on the served contract and pack, no same-recipe rerun or delivered grade), else the code.
@@ -541,11 +577,16 @@ def _door_refusal(root, db, door, task):
     pack, recipes = store
     if pack != door.served["pack"]:
         return "pack_not_served"
+    # this task's own build-retry predecessors (the miner's submit and the door's earlier re-runs of it) share its recipe
+    # and never grade: they are not a fresh rerun (live 116, 19 Nov 2026: rtsk_bd87af02 and 4 more refused 3 times only
+    # because of them). A later re-run, a resubmit, or a predecessor that has a marker or an exam row still counts.
+    ancestors = _build_ancestors(root, task) if given_back else set()
     if given_back and any(
         other != task and recipe == recipes[task]
         # a task the miner WITHDREW never grades: it is not a fresh rerun (17 Nov: four custody failures refused only
         # because their withdrawn twin of the same recipe existed)
         and _marker(_paths(root, other)["marker"]) != WITHDRAWN
+        and not (other in ancestors and _never_graded(root, db, other))
         for other, recipe in recipes.items()
     ):
         # a fresh rerun (or another task) of this same recipe exists: it grades, this one never does twice
