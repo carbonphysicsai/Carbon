@@ -1009,7 +1009,7 @@ class AutoGrader:
         if callable(lazy):
             try:
                 entries = lazy()
-            except Exception:  # noqa: BLE001 - unreadable: those tasks are scanned as before
+            except Exception:  # noqa: BLE001 - unreadable: scanned as before
                 entries = {}
             for task, entry in entries.items():
                 state = entry[0] if type(entry) in (tuple, list) and entry else None

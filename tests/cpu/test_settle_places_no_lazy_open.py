@@ -5,7 +5,8 @@ waiting, and a task that already gave its place, are skipped before any owner is
 
 from __future__ import annotations
 
-from test_queue_place import (  # noqa: F401 (the ledger fixture)
+import pytest
+from test_queue_place import (
     CONTRACT,
     HOTKEYS,
     A,
@@ -15,8 +16,15 @@ from test_queue_place import (  # noqa: F401 (the ledger fixture)
     _door,
     _mark,
     _queue,
-    ledger,
 )
+
+from carbon.challenge_validator.ledger import AttemptLedger
+
+
+@pytest.fixture
+def ledger(tmp_path):
+    clock = iter(range(1000, 100_000, 10))
+    return AttemptLedger(tmp_path / "attempts.sqlite3", clock=lambda: next(clock))
 
 
 def _opened(door):
