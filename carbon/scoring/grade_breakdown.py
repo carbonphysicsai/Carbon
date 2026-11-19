@@ -6,10 +6,15 @@ public (it holds hidden-exam values). What it holds, and nothing else (a closed 
 
 - ``challenge_id``, ``challenge_version``, ``submission_id``, ``exam_key`` (the evaluation pack digest the grade ran on);
 - ``contract_ids``: ``{name: id}``, the registered contract / pack / scorer identities the producer names;
-- ``sets``: ``{set id: {"A": value, "rows": count}}``, the per-set accuracy leg A and how many rows it covered;
+- ``halves``: ``{"A", "D"}``, the grade's own A and D (the dual pack's two halves, before 0.5 A + 0.5 D);
+- ``sets``: ``{set id: {"A", "D", "rows"}}``, each target set's A, its D as the total saw it, and its target count;
 - ``tasks``: ``[{"task", "D", "Z", "oracle"}]``, each design task's D with its zero (Z, the registered zero model's value)
   and its oracle value;
 - ``rule_flags``: ``{name: true | false}``, the registered rules' outcomes on this grade;
+- ``outputs``: ``[{"class", "output", "range", "n", "median", "p90"}]``, the custody accuracy record's per class and
+  output error aggregates (`pool_physics_score.accuracy_record`); never a per-case value;
+- ``speed``: ``{"call_seconds", "median_seconds", "ceiling_seconds", "passed"}``, the speed lane's scored
+  single-design call seconds and the gate's verdict on them (`pool_exam.single_call_speed_gate`);
 - ``recipe``: ``{"recipe_info_bytes", "trained_arrays": {"count", "bytes"}}``, the charged recipe size under accounting v6
   (`carbon.level4.graph.recipe_info_bytes`) and the trained arrays the rebuilt state carries outside it (model-eval,
   19 Nov: computed by the build and dropped until now); `recipe_measures` reads both from the retained state bytes;
@@ -20,11 +25,20 @@ A value a producer does not measure is ``null``, never a stand-in. Numbers are f
 existing one with different bytes refuses. Nothing here grades, scores or changes a graded number: a producer computes
 its grade as before and hands the values it already has to `breakdown`.
 
+KEPT FROM THE OFFICIAL GRADE (owner via Lead, 19 Nov 2026: king statistics come from the exam's actual results, no
+remeasuring). The receiver stages a keep around its producer call (`staged`, the `pool_menu.staged_rowcheck`
+pattern: never through a producer file, whose bytes never move); the pool grade (`pool_exam.measure_pool`,
+`pool_menu.score`) OFFERS the values it already computed (`offer`); `kept` reads them back after the call. Nothing
+staged keeps nothing, so every other caller runs exactly as before; an offer never raises into a grade.
+
 This module imports no accelerator profile and no execution package (`test_protected_material_isolation`).
 """
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
+import copy
 import datetime
 import io
 import json
@@ -48,11 +62,20 @@ FIELDS = frozenset(
         "sets",
         "tasks",
         "rule_flags",
+        "halves",
+        "outputs",
+        "speed",
         "recipe",
         "written_at",
     }
 )
-SET_FIELDS = frozenset({"A", "rows"})
+SET_FIELDS = frozenset({"A", "D", "rows"})
+HALF_FIELDS = frozenset({"A", "D"})
+OUTPUT_FIELDS = frozenset({"class", "output", "range", "n", "median", "p90"})
+SPEED_FIELDS = frozenset(
+    {"call_seconds", "median_seconds", "ceiling_seconds", "passed"}
+)
+MAX_CALLS = 256
 TASK_FIELDS = frozenset({"task", "D", "Z", "oracle"})
 RECIPE_FIELDS = frozenset({"recipe_info_bytes", "trained_arrays"})
 ARRAY_FIELDS = frozenset({"count", "bytes"})
@@ -131,6 +154,72 @@ def _recipe(value):
     }
 
 
+def _halves(value):
+    if value is None:
+        return {"A": None, "D": None}
+    if type(value) is not dict or set(value) != HALF_FIELDS:
+        raise GradeBreakdownRefused("grade_breakdown_halves_invalid")
+    return {
+        key: _value(value[key], "grade_breakdown_halves_invalid") for key in ("A", "D")
+    }
+
+
+def _outputs(value):
+    if value is None:
+        return None
+    if type(value) not in (list, tuple) or len(value) > MAX_ENTRIES:
+        raise GradeBreakdownRefused("grade_breakdown_outputs_invalid")
+    rows, seen = [], set()
+    for entry in value:
+        if type(entry) is not dict or set(entry) != OUTPUT_FIELDS:
+            raise GradeBreakdownRefused("grade_breakdown_outputs_invalid")
+        key = (
+            _name(entry["class"], "grade_breakdown_outputs_invalid"),
+            _name(entry["output"], "grade_breakdown_outputs_invalid"),
+        )
+        if key in seen:
+            raise GradeBreakdownRefused("grade_breakdown_outputs_invalid")
+        seen.add(key)
+        rows.append(
+            {
+                "class": key[0],
+                "output": key[1],
+                "range": _name(entry["range"], "grade_breakdown_outputs_invalid"),
+                "n": _count(entry["n"], "grade_breakdown_outputs_invalid"),
+                "median": _value(
+                    entry["median"], "grade_breakdown_outputs_invalid"
+                ),
+                "p90": _value(entry["p90"], "grade_breakdown_outputs_invalid"),
+            }
+        )
+    return rows
+
+
+def _speed(value):
+    if value is None:
+        return None
+    if type(value) is not dict or set(value) != SPEED_FIELDS:
+        raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
+    calls = value["call_seconds"]
+    if type(calls) not in (list, tuple) or not 0 < len(calls) <= MAX_CALLS:
+        raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
+    if type(value["passed"]) is not bool:
+        raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
+    seconds = [_value(c, "grade_breakdown_speed_invalid") for c in calls]
+    if any(c is None for c in seconds):
+        raise GradeBreakdownRefused("grade_breakdown_speed_invalid")
+    return {
+        "call_seconds": seconds,
+        "median_seconds": _value(
+            value["median_seconds"], "grade_breakdown_speed_invalid"
+        ),
+        "ceiling_seconds": _value(
+            value["ceiling_seconds"], "grade_breakdown_speed_invalid"
+        ),
+        "passed": value["passed"],
+    }
+
+
 def breakdown(
     *,
     challenge_id,
@@ -141,6 +230,9 @@ def breakdown(
     sets,
     tasks,
     rule_flags,
+    halves=None,
+    outputs=None,
+    speed=None,
     recipe=None,
     clock=None,
 ):
@@ -160,6 +252,7 @@ def breakdown(
             raise GradeBreakdownRefused("grade_breakdown_sets_invalid")
         checked_sets[set_id] = {
             "A": _value(entry["A"], "grade_breakdown_sets_invalid"),
+            "D": _value(entry["D"], "grade_breakdown_sets_invalid"),
             "rows": _count(entry["rows"], "grade_breakdown_sets_invalid"),
         }
     checked_tasks, seen = [], set()
@@ -204,6 +297,9 @@ def breakdown(
         "sets": checked_sets,
         "tasks": checked_tasks,
         "rule_flags": flags,
+        "halves": _halves(halves),
+        "outputs": _outputs(outputs),
+        "speed": _speed(speed),
         "recipe": _recipe(recipe),
         "written_at": datetime.datetime.fromtimestamp(now, datetime.UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
@@ -330,3 +426,47 @@ def recipe_measures(state_bytes):
         "recipe_info_bytes": charged,
         "trained_arrays": {"count": count, "bytes": total},
     }
+
+
+#: The keep staged for the grade produced in THIS context (`staged`): set by the receiver around its producer call,
+#: never through a producer file (the `pool_menu.staged_rowcheck` pattern).
+_STAGED = contextvars.ContextVar("carbon_grade_breakdown", default=None)
+
+
+@contextlib.contextmanager
+def staged():
+    """Stage a keep for the grade measured inside this block; yields the stage `kept` reads. Cleared on exit."""
+    stage = {"measures": 0, "values": {}, "broken": None}
+    token = _STAGED.set(stage)
+    try:
+        yield stage
+    finally:
+        _STAGED.reset(token)
+
+
+def offer(name, value):
+    """The pool grade hands one value it already computed to the staged keep (a deep copy; a zero-argument callable is
+    called here, so building the value is inside the guard); nothing staged: a no-op, nothing built. ``name`` "measure"
+    closes one measure (a second one in the same stage makes the keep ambiguous). Never raises."""
+    stage = _STAGED.get()
+    if stage is None:
+        return
+    try:
+        if name == "measure":
+            stage["measures"] += 1
+        elif name not in stage["values"]:
+            stage["values"][name] = copy.deepcopy(value() if callable(value) else value)
+    except Exception:  # noqa: BLE001 (an offer never changes or stops a grade)
+        stage["broken"] = "grade_breakdown_offer_failed"
+
+
+def kept(stage):
+    """The values one staged grade offered, ``{name: value}``; None when no pool grade ran inside the stage (nothing
+    to keep); `GradeBreakdownRefused` when the keep is ambiguous (more than one measure) or an offer failed."""
+    if type(stage) is not dict or stage.get("measures", 0) == 0:
+        return None
+    if stage["broken"] is not None:
+        raise GradeBreakdownRefused(stage["broken"])
+    if stage["measures"] != 1:
+        raise GradeBreakdownRefused("grade_breakdown_more_than_one_measure")
+    return dict(stage["values"])

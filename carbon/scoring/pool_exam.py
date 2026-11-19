@@ -431,6 +431,7 @@ def measure_pool(
         # A failed mandatory gate gives no score; the dual pack reads only the gate verdicts.
         if capture is not None:
             capture["se_basis"] = {"gated": True}
+        _offer_kept(speed, speed_call_seconds, accuracy)
         return {
             **base,
             "A": base.get("A"),
@@ -623,6 +624,7 @@ def measure_pool(
         capture["se_basis_of"] = se_basis
     elif capture is not None:
         capture["se_basis"] = se_basis()
+    _offer_kept(speed, speed_call_seconds, accuracy, a_values, d_values, plugin.sets)
     return {
         **base,
         "A": statistics.fmean(a_values),
@@ -645,6 +647,54 @@ def measure_pool(
             **({"total_rule": "a_only"} if a_only else {}),
         },
     }
+
+
+def _offer_kept(
+    speed, call_seconds, accuracy, a_values=None, d_values=None, sets=None
+):
+    """Offer what this grade already computed to a staged keep (`grade_breakdown.staged`, set by the receiver around
+    its producer call; nothing staged: a no-op, nothing built): each set's A, D and target count, the accuracy record's
+    per class and output aggregates (never a per-case value), and the scored single-call seconds with the speed verdict.
+    Never changes, stops or refuses the grade (owner via Lead, 19 Nov 2026: king statistics from the official grade)."""
+    from carbon.scoring import grade_breakdown
+
+    if sets is not None:
+        grade_breakdown.offer(
+            "sets",
+            lambda: {
+                f"set{i}": {"A": float(a), "D": float(d), "rows": len(specs)}
+                for i, (a, d, specs) in enumerate(
+                    zip(a_values, d_values, sets, strict=True)
+                )
+            },
+        )
+    if accuracy is not None and "rows" in accuracy:
+        grade_breakdown.offer(
+            "outputs",
+            lambda: [
+                {
+                    "class": row["class"],
+                    "output": row["output"],
+                    "range": row["range"],
+                    "n": int(row["n"]),
+                    "median": (
+                        None if row["median"] is None else float(row["median"])
+                    ),
+                    "p90": None if row["p90"] is None else float(row["p90"]),
+                }
+                for row in accuracy["rows"]
+            ],
+        )
+    grade_breakdown.offer(
+        "speed",
+        lambda: {
+            "call_seconds": [float(c) for c in call_seconds],
+            "median_seconds": float(speed["median_seconds"]),
+            "ceiling_seconds": float(speed["ceiling_seconds_per_design"]),
+            "passed": bool(speed["passed"]),
+        },
+    )
+    grade_breakdown.offer("measure", None)
 
 
 #: A weekly-check SE is reported only from at least this many targets per set (Validator ruling, 2026-10-29).

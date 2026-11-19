@@ -678,6 +678,25 @@ def bank_rows(tasks, design_names):
     return [row for task in tasks for row in task_rows(task, design_names)[0]]
 
 
+def _offer_tasks(kept):
+    """Offer each drawn task's D with its zero (Z) and oracle, as `menu_score.score_task` computed them, to a staged
+    keep (`grade_breakdown.staged`; nothing staged: a no-op). The custody record and D are unchanged."""
+    from carbon.scoring import grade_breakdown
+
+    grade_breakdown.offer(
+        "tasks",
+        lambda: [
+            {
+                "task": task,
+                "D": float(d),
+                "Z": None if zero is None else float(zero),
+                "oracle": None if oracle is None else float(oracle),
+            }
+            for task, d, zero, oracle in kept
+        ],
+    )
+
+
 def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
     """The version's menu D. ``predict_rows(rows) -> [derived outputs dict | None]`` reads the model's one table.
 
@@ -686,7 +705,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
     re-scored on a later draw without inference). It never holds the drawn ids.
     """
     check_rule(rule)
-    results, predictions = [], {}
+    results, predictions, kept = [], {}, []
     drawn = set(draw_tasks(rule, key, epoch=rule.epoch))
     # a registered k is logged in the custody record; with none the record is exactly as before
     drawn_note = (
@@ -697,6 +716,13 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
     if row_dependent:
         # Carbon Validator-B 7 Nov (1): the fresh re-check answered differently, so the model's ranking is not a
         # function of each design alone. D = 0 for this grade, typed (the candidate's finding).
+        _offer_tasks(
+            [
+                (t.problem.target_id, 0.0, None, None)
+                for t in tasks
+                if t.problem.target_id in drawn
+            ]
+        )
         return {
             "D": 0.0,
             "record": {
@@ -760,6 +786,15 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
                 "menu_size": result["menu_size"],
             }
         )
+        kept.append(
+            (
+                task.problem.target_id,
+                result["d"],
+                result.get("zero"),
+                result.get("oracle"),
+            )
+        )
+    _offer_tasks(kept)
     d = math.fsum(r["d"] for r in results) / len(results)
     return {
         "D": d,

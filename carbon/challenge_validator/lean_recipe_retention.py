@@ -1004,6 +1004,60 @@ def _retain_graph_artifacts(
     }
 
 
+def _keep_grade_breakdown(
+    keep, directory, adapter, submission_id, snapshot, benchmark, measurement_sha256
+):
+    """Write the grade's private breakdown (`grade_breakdown`) once beside its dual measurement, from the values the
+    pool grade offered inside ``keep`` and the official benchmark's own A, D and gate verdicts (so a producer's later
+    gate, e.g. Motor 1.8's subset repeat, is what ``halves`` and ``rule_flags`` say). No pool grade inside: nothing.
+    Any failure logs ``grade_breakdown_unwritten`` with its closed code and never changes or stops the grade (Carbon's
+    gap, not the candidate's). The sets, tasks, outputs and speed are the measure's values before a producer gate."""
+    from carbon.scoring import grade_breakdown
+    from carbon.scoring.physical_dual_pack import METRICS
+
+    try:
+        values = grade_breakdown.kept(keep)
+        if values is None:
+            return
+        model = benchmark["models"][0]
+        legs = model["measurements"]
+        document = grade_breakdown.breakdown(
+            challenge_id=adapter.challenge_id,
+            challenge_version=adapter.challenge_version,
+            submission_id=submission_id,
+            exam_key=snapshot.manifest_digest,
+            contract_ids={
+                "physics_contract": benchmark["physics_contract_digest"],
+                "measurement_contract": benchmark["measurement_contract_digest"],
+                "dual_measurement": measurement_sha256,
+            },
+            sets=values.get("sets", {}),
+            tasks=values.get("tasks", []),
+            rule_flags={
+                name: verdict == "PASS" for name, verdict in model["gates"].items()
+            },
+            halves={
+                "A": legs[METRICS["A"]]["value"],
+                "D": legs[METRICS["D"]]["value"],
+            },
+            outputs=values.get("outputs"),
+            speed=values.get("speed"),
+        )
+        grade_breakdown.write(directory, document)
+    # a breakdown never changes or stops a grade
+    except Exception as failure:  # noqa: BLE001
+        try:
+            from carbon.battery.intake import log
+
+            log(
+                "grade_breakdown_unwritten",
+                task=submission_id,
+                code=getattr(failure, "code", None) or type(failure).__name__,
+            )
+        except Exception:  # noqa: BLE001 (a log line never stops a grade)
+            pass
+
+
 def _private_evaluation_directory(result, submission_id):
     if (
         type(submission_id) is not str
@@ -2681,13 +2735,18 @@ def _retain_selected_pack_evaluation(
             from carbon.scoring.subset_repeat_produce import (
                 produce_registered_dual_measurement,
             )
+        from carbon.scoring import grade_breakdown
+
         _unblock_timing()  # the produce takes the process-wide pair-read lock
         # A pool-graded version's measure also hands back THIS grade's custody accuracy record and SE basis (`captured`,
         # empty for every other version), never through a producer file: the sidecars below come from the official grade
-        # itself, not from a second measure (door-code item 5, 19 Nov 2026)
+        # itself, not from a second measure (door-code item 5, 19 Nov 2026). The grade's own values are kept for the king
+        # statistics too (`grade_breakdown.staged`): what a pool grade offers is written below, beside its measurement,
+        # and nothing is remeasured
         with (
             pool_menu.staged_rowcheck(menu_rowcheck),
             pool_exam.staged_capture() as captured,
+            grade_breakdown.staged() as keep,
         ):
             prepared = produce_registered_dual_measurement(
                 selected_pack=snapshot,
@@ -2733,6 +2792,15 @@ def _retain_selected_pack_evaluation(
         if pin != expected_pin or _sha(raw) != pin["dual_measurement_sha256"]:
             raise RetentionUnavailable("dual_measurement_registration_changed")
         benchmark = json.loads(raw)["benchmark"]
+        _keep_grade_breakdown(
+            keep,
+            directory,
+            adapter,
+            submission_id,
+            snapshot,
+            benchmark,
+            prepared.sha256,
+        )
         scoring = ScoreEngine.score_dual_benchmark_v4(
             benchmark, registered["score_pack"]
         )

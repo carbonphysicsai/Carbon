@@ -28,7 +28,21 @@ def _inputs(**change):
         "submission_id": TASK,
         "exam_key": EXAM,
         "contract_ids": {"score_pack": "sha256:" + "2" * 64, "scorer": "motor-v9"},
-        "sets": {"cells": {"A": 0.25, "rows": 30}, "pool-1": {"A": None, "rows": 0}},
+        "sets": {
+            "cells": {"A": 0.25, "D": 0.5, "rows": 30},
+            "pool-1": {"A": None, "D": None, "rows": 0},
+        },
+        "halves": {"A": 0.25, "D": 0.5},
+        "outputs": [
+            {"class": "H-1", "output": "torque_pkpk", "range": "in", "n": 16, "median": 0.4, "p90": 1.1},
+            {"class": "H-3", "output": "ke_ll", "range": "out", "n": 0, "median": None, "p90": None},
+        ],
+        "speed": {
+            "call_seconds": [0.01] * 20,
+            "median_seconds": 0.01,
+            "ceiling_seconds": 0.5,
+            "passed": True,
+        },
         "tasks": [
             {"task": "pool-1/d0001", "D": 0.5, "Z": 0.1, "oracle": 0.9},
             {"task": "pool-1/d0002", "D": None, "Z": 0.2, "oracle": 0.8},
@@ -48,7 +62,7 @@ def test_the_document_is_the_closed_field_set():
     assert set(document) == gb.FIELDS and document["schema"] == gb.SCHEMA
     assert document["written_at"] == "2027-01-15T08:00:00Z"
     # not measured: null, never a stand-in
-    assert document["sets"]["pool-1"] == {"A": None, "rows": 0}
+    assert document["sets"]["pool-1"] == {"A": None, "D": None, "rows": 0}
     assert document["tasks"][1] == {
         "task": "pool-1/d0002",
         "D": None,
@@ -67,12 +81,15 @@ def test_the_document_is_the_closed_field_set():
     [
         ({"exam_key": "not-a-digest"}, "grade_breakdown_exam_key_invalid"),
         (
-            {"sets": {"cells": {"A": math.nan, "rows": 1}}},
+            {"sets": {"cells": {"A": math.nan, "D": 0.1, "rows": 1}}},
             "grade_breakdown_sets_invalid",
         ),
-        ({"sets": {"cells": {"A": True, "rows": 1}}}, "grade_breakdown_sets_invalid"),
         (
-            {"sets": {"cells": {"A": 0.1, "rows": 1, "margin": 0.2}}},
+            {"sets": {"cells": {"A": True, "D": 0.1, "rows": 1}}},
+            "grade_breakdown_sets_invalid",
+        ),
+        (
+            {"sets": {"cells": {"A": 0.1, "D": 0.1, "rows": 1, "margin": 0.2}}},
             "grade_breakdown_sets_invalid",
         ),
         (
@@ -99,6 +116,38 @@ def test_the_document_is_the_closed_field_set():
         ),
         ({"submission_id": "../escape"}, "grade_breakdown_submission_invalid"),
         ({"submission_id": "a/b"}, "grade_breakdown_submission_invalid"),
+        ({"sets": {"cells": {"A": 0.1, "rows": 1}}}, "grade_breakdown_sets_invalid"),
+        ({"halves": {"A": 0.1}}, "grade_breakdown_halves_invalid"),
+        ({"halves": {"A": math.nan, "D": 0.1}}, "grade_breakdown_halves_invalid"),
+        (
+            {"outputs": [{"class": "H-1", "output": "t", "range": "in", "n": 1}]},
+            "grade_breakdown_outputs_invalid",
+        ),
+        (
+            {
+                "outputs": [
+                    {"class": "H-1", "output": "t", "range": "in", "n": 1, "median": 0.1, "p90": 0.2},
+                    {"class": "H-1", "output": "t", "range": "in", "n": 1, "median": 0.1, "p90": 0.2},
+                ]
+            },
+            "grade_breakdown_outputs_invalid",
+        ),
+        (
+            {"outputs": [{"class": "H-1", "output": "t", "range": "in", "n": 1, "median": 0.1, "p90": 0.2, "case": "c1"}]},
+            "grade_breakdown_outputs_invalid",
+        ),
+        (
+            {"speed": {"call_seconds": [], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True}},
+            "grade_breakdown_speed_invalid",
+        ),
+        (
+            {"speed": {"call_seconds": [None], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": True}},
+            "grade_breakdown_speed_invalid",
+        ),
+        (
+            {"speed": {"call_seconds": [0.1], "median_seconds": 0.1, "ceiling_seconds": 1.0, "passed": 1}},
+            "grade_breakdown_speed_invalid",
+        ),
     ],
 )
 def test_anything_outside_the_closed_document_refuses(change, code):
