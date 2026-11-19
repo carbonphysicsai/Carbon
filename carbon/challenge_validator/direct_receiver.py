@@ -3711,9 +3711,7 @@ def _dump_stacks(signum=None, frame=None, stream=None):
                 f'  File "{entry.filename}", line {entry.lineno} in {entry.name}'
             )
     try:
-        out.write("
-".join(lines) + "
-")
+        out.write("\n".join(lines) + "\n")
         out.flush()
     except (OSError, ValueError, AttributeError):
         pass  # no stream to write to: a diagnosis aid, never a reason to stop
