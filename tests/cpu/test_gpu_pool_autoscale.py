@@ -744,3 +744,18 @@ def test_config_refuses_a_missing_or_too_high_daily_cap(tmp_path):
             scale.load_config(path)
     path.write_text(json.dumps({**raw, "prewarm_utc": [[6, 9]]}))
     assert scale.load_config(path).prewarm_utc == ((6, 9),)
+
+
+def test_the_spawned_bring_up_command_parses(tmp_path, monkeypatch):
+    """The detached bring-up's own command line must parse: a "?" name after ``--config`` did not (19 Nov 2026), so
+    every box the autoscaler rented sat until the bring-up timeout."""
+    seen = []
+    monkeypatch.setattr(scale.subprocess, "run", lambda argv, **_: seen.append(argv))
+    monkeypatch.setitem(scale.CONFIG_PATH, 0, str(tmp_path / "config.json"))
+    scale._spawn_bring_up(_config(tmp_path), "carbon-pool-11191155")
+    argv = seen[0]
+    script = argv.index(scale.os.path.abspath(scale.__file__))
+    args = scale._parser().parse_args(argv[script + 1 :])
+    assert args.command == "bring-up"
+    assert args.name == "carbon-pool-11191155"
+    assert args.config == str(tmp_path / "config.json")

@@ -818,10 +818,12 @@ def _spawn_bring_up(config, name):
             sys.executable,
             "-I",
             os.path.abspath(__file__),
+            # the name right after the command: argparse refuses a "?" positional after an option ("unrecognized
+            # arguments: <name>"), which left every rented box un-brought-up until the timeout (19 Nov 2026, 11:55Z)
             "bring-up",
+            name,
             "--config",
             CONFIG_PATH[0],
-            name,
         ],
         check=False,
     )
@@ -969,7 +971,7 @@ def _reason(output):
     return "unknown"
 
 
-def main(argv=None):
+def _parser():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("command", choices=("tick", "bring-up", "status", "adopt"))
     parser.add_argument("name", nargs="?")
@@ -978,7 +980,11 @@ def main(argv=None):
     parser.add_argument(
         "--dry-run", action="store_true", help="tick/adopt: print, change nothing"
     )
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv=None):
+    args = _parser().parse_args(argv)
     DRY[0] = args.dry_run
     CONFIG_PATH[0] = os.path.abspath(args.config)
     config = load_config(args.config)
