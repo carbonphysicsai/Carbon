@@ -40,6 +40,12 @@ _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _PENDING = frozenset({"task_not_succeeded"})
 #: Retention codes that mean "not gradable now" without having consumed anything.
 _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
+#: An owner the door cannot open now (`interface.Unavailable` from `LeanRecipeAdapter.owner`: set aside at this start, or
+#: its registration unreadable; `lean_recipe._SKIPPED_OWNER_CODES`): only that owner's task waits; the round goes on
+#: (live 116, 19 Nov 2026 ~09:58Z: 190 grade-loop failures in a row on one such raise, nothing graded).
+_OWNER_UNAVAILABLE = frozenset(
+    {"direct_provider_registration_unavailable", "direct_provider_owner_set_aside"}
+)
 #: The exam-cap limit refusals that a passed-over earlier group-mate (or an unknown group in flight) makes "not yet"
 #: instead of final (V2, 18 Nov 2026; `AutoGrader._cap_soft`).
 _CAP_LIMITS = frozenset({"exam_daily_allowance_reached", "epoch_limit_reached"})
@@ -673,16 +679,27 @@ class AutoGrader:
         """The incumbent's own steps of a parallel round (`_run_once_parallel`), in the serial round's order."""
         from .grade_sequencer import CROWN_LOCK
 
+        from .interface import Unavailable
+
         self._settle_queue_places()
-        # the crown lock without waiting: a crown commit running now, the steps come next round
-        if CROWN_LOCK.acquire(blocking=False):
-            try:
-                self._crown_steps()
-            finally:
-                CROWN_LOCK.release()
-        else:
+        try:
+            # the crown lock without waiting: a crown commit running now, the steps come next round
+            if CROWN_LOCK.acquire(blocking=False):
+                try:
+                    self._crown_steps()
+                finally:
+                    CROWN_LOCK.release()
+            else:
+                self._prelude_after = time.monotonic() + self.PRELUDE_REASK_SECONDS
+            self._apply_due_retries(idle=not self.pending())
+        except Unavailable as unavailable:
+            # an owner the steps need cannot be opened now: the steps wait, the round still grades (live 116, 19 Nov)
+            if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
+                raise
+            from carbon.battery.intake import log
+
+            log("prelude_owner_unavailable", code=unavailable.code)
             self._prelude_after = time.monotonic() + self.PRELUDE_REASK_SECONDS
-        self._apply_due_retries(idle=not self.pending())
 
     def _run_once_parallel(self, sequencer):
         """One grade round of a door that grades one round per lane at once (owner's order 16 Nov; `grade_sequencer`).
@@ -934,7 +951,20 @@ class AutoGrader:
                 spent = True
             else:
                 spent = False
-            copy = self._copy_decision(submission_id)
+            from .interface import Unavailable
+
+            try:
+                copy = self._copy_decision(submission_id)
+            except Unavailable as unavailable:
+                # its owner cannot be opened now (set aside / registration unreadable): only this task waits
+                if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
+                    raise
+                if spent:
+                    return None
+                if claims is not None and taken:
+                    claims.release(taken.pop())
+                passing("owner_unavailable")
+                continue
             if copy is not None:
                 decision, first = copy
                 if decision == "wait":
@@ -1116,6 +1146,7 @@ class AutoGrader:
         """
         from carbon.reconstruction import remote_lane
 
+        from .interface import Unavailable
         from .lean_recipe_retention import RetentionUnavailable
 
         lane = remote_lane.current()
@@ -1168,6 +1199,14 @@ class AutoGrader:
                     )
             finally:
                 self.activity = None
+        except Unavailable as unavailable:
+            # raised by the owner's open at the start of the retain step, before any reservation: not this round's end
+            if getattr(unavailable, "code", None) not in _OWNER_UNAVAILABLE:
+                raise
+            with _STALLED_LOCK:
+                self.stalled = getattr(self, "stalled", frozenset()) | {submission_id}
+            self._note_next(unavailable.code)
+            return _NEXT
         except RetentionUnavailable as unavailable:
             code = getattr(unavailable, "code", None) or str(unavailable)
             if not isinstance(code, str):
