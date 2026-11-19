@@ -742,18 +742,21 @@ _REGISTERED_GUARD = threading.Lock()
 
 
 def _registered_once(key, derive):
-    """``derive()`` for ``key``, computed once per process (single-flight per key; a failure is not kept)."""
+    """``derive()`` for ``key``, computed once per process (single-flight per key; a failure is not kept). Each caller
+    gets its OWN deep copy (V2 on 5a226278), so nothing a caller does to it can change the next call's check; bytes
+    are immutable and shared, arrays and dicts are copied (far cheaper than the derivation)."""
+    import copy
+
     found = _REGISTERED.get(key)
-    if found is not None:
-        return found
-    with _REGISTERED_GUARD:
-        lock = _REGISTERED_LOCKS.setdefault(key, threading.Lock())
-    with lock:
-        found = _REGISTERED.get(key)
-        if found is None:
-            found = derive()
-            _REGISTERED[key] = found
-        return found
+    if found is None:
+        with _REGISTERED_GUARD:
+            lock = _REGISTERED_LOCKS.setdefault(key, threading.Lock())
+        with lock:
+            found = _REGISTERED.get(key)
+            if found is None:
+                found = derive()
+                _REGISTERED[key] = found
+    return copy.deepcopy(found)
 
 
 class NoPrior:

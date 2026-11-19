@@ -38,8 +38,8 @@ def test_many_concurrent_calls_derive_the_material_once():
         t.start()
     for t in threads:
         t.join(10)
-    assert len(calls) == 1 and len(out) == 20 and all(o is out[0] for o in out)
-    assert rs._registered_once(key, derive) is out[0] and len(calls) == 1
+    assert len(calls) == 1 and len(out) == 20 and all(o == out[0] for o in out)
+    assert rs._registered_once(key, derive) == out[0] and len(calls) == 1
 
 
 def test_each_version_and_family_is_its_own_entry_and_a_failure_is_not_kept():
@@ -53,3 +53,22 @@ def test_each_version_and_family_is_its_own_entry_and_a_failure_is_not_kept():
     with pytest.raises(ValueError):
         rs._registered_once(("c", "2.0", False, False, True), broken)
     assert rs._registered_once(("c", "2.0", False, False, True), lambda: {"v": "2.0"}) == {"v": "2.0"}
+
+
+def test_mutating_a_returned_value_never_changes_the_next_calls_check():
+    """V2 on 5a226278: each caller gets its own copy of the cached material, nested values and arrays included."""
+    import numpy as np
+
+    key = ("electric-motor-magnetics", "1.8", False, False, True)
+
+    def derive():
+        return {"construction_kit": {"id": "m", "nested": [1, 2]}, "example": np.zeros(3), "train": b"t"}
+
+    first = rs._registered_once(key, derive)
+    first["construction_kit"]["id"] = "changed"
+    first["construction_kit"]["nested"].append(3)
+    first["example"][0] = 9.0
+    first["train"] = b"other"
+    again = rs._registered_once(key, derive)
+    assert again["construction_kit"] == {"id": "m", "nested": [1, 2]}
+    assert np.array_equal(again["example"], np.zeros(3)) and again["train"] == b"t"
