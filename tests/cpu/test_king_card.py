@@ -257,3 +257,29 @@ def test_the_text_says_error_as_a_multiple_of_the_exams_u_and_never_a_raw_error(
     shown = kc.text(_render())
     assert "error as a multiple of the exam's U" in shown
     assert "abs_error_over_u" not in shown
+
+
+@pytest.mark.skipif(os.name != "posix", reason="owner-only directory modes are POSIX")
+def test_a_lane_with_no_class_record_shows_class_not_recorded(tmp_path):
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "king_card_render", Path(__file__).resolve().parents[2] / "scripts/dev/king_card_render.py"
+    )
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    custody = tmp_path / "custody"
+    custody.mkdir(mode=0o700)
+    source = gb.write(custody, _document())
+    out = tmp_path / "out"
+    out.mkdir(mode=0o700)
+    argv = [
+        "--breakdown", str(source), "--crowned-task", TASK, "--source", "official", "--epoch", "E1",
+        "--pack-id", "motor-1.8-pack-e1", "--code-sha", "7b99e87b", "--lane-unrecorded", "local", "--out", str(out),
+    ]
+    assert cli.main(argv) == 0
+    card = json.loads((out / "king-card.json").read_bytes())
+    assert card["speed"]["class"] == kc.UNRECORDED_CLASS == "class not recorded"
+    receipt = json.loads((out / "king-card-receipt.json").read_bytes())
+    assert receipt["lane_class_records"] == {"local": {"file": None, "sha256": None}}

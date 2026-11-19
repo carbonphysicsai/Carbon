@@ -39,6 +39,8 @@ def _parser():
     parser.add_argument("--pack-id", required=True)
     parser.add_argument("--code-sha", required=True)
     parser.add_argument("--lane-class", action="append", default=[])
+    # a lane no host-class record was measured for: its label is the closed "class not recorded" (V2 19 Nov)
+    parser.add_argument("--lane-unrecorded", action="append", default=[])
     parser.add_argument("--out", required=True)
     return parser
 
@@ -105,6 +107,11 @@ def main(argv=None):
                 "file": str(Path(path).resolve()),
                 "sha256": king_card._sha256(record),
             }
+        for lane in args.lane_unrecorded:
+            if not lane or lane in lane_classes:
+                raise Refused("lane_class_argument_invalid")
+            lane_classes[lane] = king_card.UNRECORDED_CLASS
+            lanes[lane] = {"file": None, "sha256": None}
         card = king_card.render(
             document,
             crowned_task=args.crowned_task,

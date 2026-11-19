@@ -229,6 +229,9 @@ def text(card):
 
 
 HOST_CLASS_SCHEMA = "carbon.validator.host-class.v2"
+#: The closed label of a lane no host-class record was ever measured for (V2, 19 Nov 2026: honest, never a guess); it
+#: becomes the record id once the lane's own record is bound.
+UNRECORDED_CLASS = "class not recorded"
 _HOST_CLASS_ID = re.compile(r"VALIDATOR-HOST-CLASS-[A-Z0-9][A-Z0-9-]{0,58}")
 
 
