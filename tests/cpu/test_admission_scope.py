@@ -201,7 +201,7 @@ def test_the_group_read_uses_the_snapshot_members_and_gives_the_same_blocks():
     opened[outsider] = _Provider({_task(20): _view(DirectTaskStateV3.QUEUED)})
 
     def blocks(grouping):
-        door, asked = _door(rows, opened=opened)
+        door, _asked = _door(rows, opened=opened)
         door.ledger = _RecordingLedger(door.ledger)
         exam_cap.install_grouping(grouping)
         try:
@@ -248,4 +248,3 @@ def test_lazy_tasks_are_gathered_for_the_group_only():
     assert owners.lazy_tasks_of({"5A", "5B"}) == frozenset({"t1", "t2", "t3"})
     assert owners.lazy_tasks_of(set()) == frozenset()
     assert owners.lazy_tasks() == frozenset({"t1", "t2", "t3", "t4"})
-

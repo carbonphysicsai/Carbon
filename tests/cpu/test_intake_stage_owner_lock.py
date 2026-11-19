@@ -18,7 +18,9 @@ CHUNK_S = 0.02
 def _intake(evaluate=None):
     intake = object.__new__(DirectRecipeIntake)
     intake._write = threading.Lock()
-    intake.door = SimpleNamespace(evaluate=evaluate or (lambda submitted: {"kind": "OUTCOME"}))
+    intake.door = SimpleNamespace(
+        evaluate=evaluate or (lambda submitted: {"kind": "OUTCOME"})
+    )
     intake._note_recipe_digest = lambda result: None
     return intake
 
@@ -50,7 +52,9 @@ def test_100_owners_x_30_chunks_never_hold_a_submit_past_a_bound():
         for _ in range(30):
             assert intake._stage(_received(owner)) == "staged"
 
-    workers = [threading.Thread(target=uploads, args=(f"5Owner{i:03d}",)) for i in range(100)]
+    workers = [
+        threading.Thread(target=uploads, args=(f"5Owner{i:03d}",)) for i in range(100)
+    ]
     for w in workers:
         w.start()
     time.sleep(0.1)  # every owner mid-upload
@@ -84,7 +88,9 @@ def test_an_owners_own_admission_waits_for_its_stage_without_holding_write():
     stage = threading.Thread(target=intake._stage, args=(_received("5Same"),))
     stage.start()
     staging.wait(5)
-    admit = threading.Thread(target=intake._admit, args=(SimpleNamespace(hotkey="5Same"),))
+    admit = threading.Thread(
+        target=intake._admit, args=(SimpleNamespace(hotkey="5Same"),)
+    )
     admit.start()
     time.sleep(0.1)
     # the waiting admission holds its owner's turn only: another owner's admission goes through meanwhile
@@ -98,7 +104,8 @@ def test_an_owners_own_admission_waits_for_its_stage_without_holding_write():
 
 def test_admissions_are_one_at_a_time_per_scope_and_parallel_across_scopes():
     """LOCK + CACHE AUDIT #2 (19 Nov 2026): no door-wide writer. Admissions of one allowance group run one at a time
-    (the group's rules read each other's state); admissions of unrelated owners overlap."""
+    (the group's rules read each other's state); admissions of unrelated owners overlap.
+    """
     from carbon.challenge_validator import exam_cap
 
     def run(grouping):
@@ -118,7 +125,9 @@ def test_admissions_are_one_at_a_time_per_scope_and_parallel_across_scopes():
         try:
             intake = _intake(evaluate)
             threads = [
-                threading.Thread(target=intake._admit, args=(SimpleNamespace(hotkey=f"5H{i % 7}"),))
+                threading.Thread(
+                    target=intake._admit, args=(SimpleNamespace(hotkey=f"5H{i % 7}"),)
+                )
                 for i in range(28)
             ]
             for t in threads:

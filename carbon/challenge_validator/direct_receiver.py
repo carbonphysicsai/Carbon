@@ -2293,7 +2293,8 @@ class OwnerProviders:
 
     def lazy_tasks_of(self, hotkeys):
         """The task ids the LAZY owners among ``hotkeys`` hold (all terminal): `lazy_tasks` for one allowance group's
-        hotkeys only, so an admission never gathers every lazy owner's tasks (LOCK + CACHE AUDIT #2b). Memory only."""
+        hotkeys only, so an admission never gathers every lazy owner's tasks (LOCK + CACHE AUDIT #2b). Memory only.
+        """
         wanted = frozenset(hotkeys)
         with self._lock:
             return frozenset(

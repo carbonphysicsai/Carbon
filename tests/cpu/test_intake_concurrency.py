@@ -208,7 +208,8 @@ def test_rate_and_capacity_refusals_carry_retry_after_and_arrive_as_responses():
 
 def test_state_changing_calls_run_one_writer_per_owner_and_stay_idempotent():
     """An owner's admissions run one at a time (its owner lock, then its scopes); a duplicate is admitted once. Owners
-    of other groups are not held behind it (LOCK + CACHE AUDIT #2: no door-wide writer)."""
+    of other groups are not held behind it (LOCK + CACHE AUDIT #2: no door-wide writer).
+    """
     inside = {}
     peak = {}
     guard = threading.Lock()

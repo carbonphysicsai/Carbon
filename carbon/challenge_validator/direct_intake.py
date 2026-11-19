@@ -843,19 +843,24 @@ class DirectRecipeIntake(BatteryIntake):
         """The cross-owner scopes an admission of ``hotkey`` decides in, sorted: ``g:<allowance group>``
         (`exam_cap.group_of`) and ``c:<coldkey>`` (the door's latest snapshot). Every hotkey of one coldkey shares both.
         Memory only (the latest snapshot and the funder map, as the rules read them); a scope that cannot be read now
-        adds no key (the owner lock still holds, and the admission meets the same refusal its rule gives)."""
+        adds no key (the owner lock still holds, and the admission meets the same refusal its rule gives).
+        """
         from . import exam_cap
 
         keys = set()
         try:
             keys.add("g:" + exam_cap.group_of(hotkey))
-        except Exception:  # noqa: BLE001, S110 - a refusing grouping: the admission refuses the same way
+        except (
+            Exception
+        ):  # noqa: BLE001, S110 - a refusing grouping: the admission refuses the same way
             pass
         window = getattr(self, "window", None)
         try:
             snapshot = None if window is None else window.latest()
             member = None if snapshot is None else snapshot.resolve(hotkey)
-        except Exception:  # noqa: BLE001 - no snapshot: no coldkey scope (the guard fails open the same way)
+        except (
+            Exception
+        ):  # noqa: BLE001 - no snapshot: no coldkey scope (the guard fails open the same way)
             member = None
         coldkey = getattr(member, "coldkey", None)
         if type(coldkey) is str:

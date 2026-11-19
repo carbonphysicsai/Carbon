@@ -346,7 +346,6 @@ _SKIPPED_OWNER_CODES = frozenset(
 )
 
 
-
 def _group_mates(adapter, hotkey, group):
     """The hotkeys of ``hotkey``'s allowance group ``group`` (``hotkey`` itself always among them), sorted, or None when
     the installed grouping has no snapshot window (then the caller reads every hotkey's group, as before).
@@ -863,9 +862,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 if view is not None:
                     # read from the open view (no owner lock); a view it does not hold falls through to the old read
                     # (V2: this block is the probing bound, so nothing unread is ever skipped)
-                    if getattr(view, "challenge_key", None) == challenge_key and getattr(
-                        view, "state", None
-                    ) in (DirectTaskStateV3.QUEUED, DirectTaskStateV3.RUNNING):
+                    if getattr(
+                        view, "challenge_key", None
+                    ) == challenge_key and getattr(view, "state", None) in (
+                        DirectTaskStateV3.QUEUED,
+                        DirectTaskStateV3.RUNNING,
+                    ):
                         blocks.append(other_block)
                     continue
                 task = (

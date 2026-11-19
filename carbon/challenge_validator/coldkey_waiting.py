@@ -113,7 +113,8 @@ class Guard:
 
     def key_of(self, hotkey, per="coldkey"):
         """The scope ``hotkey``'s submission is counted in: ``h:<hotkey>`` for a per-hotkey row, else ``c:<coldkey>``
-        from the door's latest snapshot (``h:<hotkey>`` when it cannot be resolved: such a submitter is refused)."""
+        from the door's latest snapshot (``h:<hotkey>`` when it cannot be resolved: such a submitter is refused).
+        """
         if per != "hotkey":
             try:
                 snapshot = self._snapshot()

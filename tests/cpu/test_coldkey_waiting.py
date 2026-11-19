@@ -430,7 +430,8 @@ def test_through_the_real_adapter_with_no_registered_limit_nothing_changes(
 
 def test_the_lock_is_held_until_the_task_has_started(tmp_path, monkeypatch):
     """Two hotkeys of one coldkey can never both pass: the guard's lock FOR THAT COLDKEY is held from the check to the
-    task's start; it is that coldkey's lock only, never one for the whole door (LOCK + CACHE AUDIT #14)."""
+    task's start; it is that coldkey's lock only, never one for the whole door (LOCK + CACHE AUDIT #14).
+    """
     request, adapter, _ledger, door, provider = _door(tmp_path, monkeypatch)
     guard = adapter.coldkey_waiting
     seen = []
@@ -444,7 +445,9 @@ def test_the_lock_is_held_until_the_task_has_started(tmp_path, monkeypatch):
     assert _submit(door, adapter, request.recipe, 1)["kind"] == "OUTCOME"
     assert len(seen) == 1 and len(seen[0]) == 1 and seen[0][0].startswith("c:")
     assert not any(lock.locked() for lock in guard._locks.values())
-    assert all(isinstance(lock, type(threading.Lock())) for lock in guard._locks.values())
+    assert all(
+        isinstance(lock, type(threading.Lock())) for lock in guard._locks.values()
+    )
 
 
 def _race(monkeypatch, *, locked):
