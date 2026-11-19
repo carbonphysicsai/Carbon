@@ -287,7 +287,7 @@ def _journal(root, name):
     from carbon.challenge_validator.lean_recipe_retention import CrownJournal
 
     return CrownJournal(
-        root / "auto-grade" / "artifacts",
+        root / "auto-grade",
         submission_id="rtsk_" + name * 64,
         evaluation_key=KEY,
         kind="pack",
@@ -395,9 +395,8 @@ def test_an_applied_or_dropped_decision_is_never_refiled(tmp_path):
 
 
 def test_the_start_filing_refiles_queued_crowns_before_recontend(monkeypatch):
-    from carbon.challenge_validator import king_upkeep
+    from carbon.challenge_validator import king_upkeep, recontend
     from carbon.challenge_validator import lean_recipe_retention as retention
-    from carbon.challenge_validator import recontend
 
     order = []
     monkeypatch.setattr(
@@ -509,3 +508,23 @@ def test_with_nothing_refiled_a_decision_is_made_live(tmp_path):
     assert retention._queue_behind_refiled(_journal(root, "a"), store) is None
     assert retention._queue_behind_refiled(None, store) is None
     assert store.filed == []
+
+
+def test_the_journal_lives_beside_the_doors_ledger_and_a_door_without_one_has_none(
+    tmp_path,
+):
+    """Runner (19 Nov 2026): 7b14ee37 rooted the journal at `_contend`'s ``artifacts`` (the grade's artifact MAP, not a
+    directory), so every contend refused with TypeError. It is rooted at the door's receiver directory now; a door
+    with no ledger file (a tool, a test double) gets no journal, and its decision is made as before.
+    """
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator.lean_recipe_retention import crown_journal
+
+    ledger = SimpleNamespace(path=tmp_path / "attempts.sqlite3")
+    adapter = SimpleNamespace(ledger=ledger)
+    journal = crown_journal(adapter, submission_id="rtsk_" + "a" * 64)
+    assert journal.path == tmp_path / "auto-grade" / "crown-queue.jsonl"
+    assert crown_journal(SimpleNamespace(), submission_id="x") is None
+    no_file = SimpleNamespace(ledger=SimpleNamespace())
+    assert crown_journal(no_file, submission_id="x") is None

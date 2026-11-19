@@ -3129,12 +3129,12 @@ def _contend(
                 "evaluation_key": outcome["evaluation_key"],
             }
 
-        journal = CrownJournal(
-            artifacts,
+        journal = crown_journal(
+            adapter,
             submission_id=submission_id,
             evaluation_key=filed["evaluation_key"],
             kind="pack",
-            exam=discovery.evaluation_pack_digest,
+            exam=getattr(discovery, "evaluation_pack_digest", None),
             entry_id=getattr(repeat, "entry_id", None),
             pin=pin,
         )
@@ -3159,8 +3159,9 @@ class CrownJournal:
     score.
     """
 
-    def __init__(self, artifacts, **record):
-        self.path = Path(artifacts).parent / CROWN_QUEUE_JOURNAL
+    def __init__(self, directory, **record):
+        """``directory``: the receiver's ``auto-grade`` directory (beside its grade markers)."""
+        self.path = Path(directory) / CROWN_QUEUE_JOURNAL
         self.record = record
 
     def _append(self, event):
@@ -3182,6 +3183,18 @@ class CrownJournal:
 
     def dropped(self):
         self._append("dropped")
+
+
+def crown_journal(adapter, **record):
+    """The `CrownJournal` of one decision of ``adapter``'s door: in its receiver's ``auto-grade`` directory, the one the
+    grader and `refile_queued_crowns` use (beside the door's attempt ledger, ``<root>/attempts.sqlite3``). None when
+    the door names no ledger file (a tool, a test double): the decision is then made as before, with no record (never
+    a reason to fail it: Runner, 19 Nov 2026, 7b14ee37 rooted it at the grade's artifact map and every contend failed).
+    """
+    path = getattr(getattr(adapter, "ledger", None), "path", None)
+    if not isinstance(path, (str, os.PathLike)):
+        return None
+    return CrownJournal(Path(path).parent / "auto-grade", **record)
 
 
 #: What a crown decision returns when it was filed behind the last run's re-filed decisions (`_queue_behind_refiled`).
@@ -3313,7 +3326,7 @@ def refile_queued_crowns(root, pool_store):
                 code=str(getattr(error, "code", None) or type(error).__name__),
             )
             continue
-        CrownJournal(path.parent / "artifacts", **fields)._append("refiled")
+        CrownJournal(path.parent, **fields)._append("refiled")
         filed += 1
     koth_journal.note("crown_queue_refiled", filed=filed, unrefiled=unrefiled)
     return filed, unrefiled
