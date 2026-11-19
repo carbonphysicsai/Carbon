@@ -369,9 +369,8 @@ class _Task:
             if other >= self.ticket:
                 continue
             theirs = seq._groups.get(other)
-            if (mine is None or theirs is None or theirs == mine) and seq._holds_order(
-                other, now
-            ):
+            related = mine is None or theirs is None or theirs == mine
+            if related and seq._holds_order(other, now):
                 return True
         return False
 
