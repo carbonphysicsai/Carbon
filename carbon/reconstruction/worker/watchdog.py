@@ -83,9 +83,12 @@ REMOTE_REMOVAL_PAUSE_S = 10.0
 
 
 def _says_absent(stderr) -> bool:
-    """Whether a failed ``docker inspect`` says the container does not exist (not a transport fault)."""
-    text = stderr if type(stderr) is bytes else b""
-    return b"No such object" in text or b"No such container" in text
+    """Whether a failed ``docker inspect`` says the container does not exist (not a transport fault). Read case-blind,
+    as `liveness_reaper` reads it: the remote lanes' docker says ``error: no such object: <name>`` (live 116, 19 Nov 2026
+    20:06Z), which the case-sensitive match never saw, so every remote watchdog polled ``docker inspect`` until its
+    deadline (~1 h) and 63 of them loaded the door host."""
+    text = (stderr if type(stderr) is bytes else b"").lower()
+    return b"no such object" in text or b"no such container" in text
 
 
 def main(arguments: list[str] | None = None) -> int:
