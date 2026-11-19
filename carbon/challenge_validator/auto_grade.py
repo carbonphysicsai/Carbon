@@ -1331,9 +1331,14 @@ class AutoGrader:
         cap = exam_cap.ExamCap(
             adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
         )
+        from . import grade_sequencer
+
+        hotkey = adapter.owner(submission_id)
+        # design A: its reservation in claim order too (an earlier grade may still be retaining, outside the lock)
+        grade_sequencer.reserve_turn()
         try:
             reservation = cap.reserve(
-                hotkey=adapter.owner(submission_id),
+                hotkey=hotkey,
                 challenge_id=challenge.challenge_id,
                 challenge_version=challenge.version,
                 exam_key=exam_key,
@@ -1343,13 +1348,13 @@ class AutoGrader:
                 ),
             )
         except exam_cap.ExamCapRefused as refused:
-            from . import grade_sequencer
-
+            grade_sequencer.claimed()
             if refused.code in _CAP_LIMITS and self._cap_soft(submission_id):
                 return _NEXT  # V2 (18 Nov 2026): "not yet", stays pending (`_claim_and_grade`)
             grade_sequencer.turn()  # a parallel door: the refusal's marker in claim order (no-op otherwise)
             self._write(submission_id, "GRADED", code=refused.code)
             return submission_id, "GRADED"
+        grade_sequencer.claimed()
         cap.settle(reservation, recipe_copies.DUPLICATE)
         recipe_copies.record_copy(
             adapter.ledger,
