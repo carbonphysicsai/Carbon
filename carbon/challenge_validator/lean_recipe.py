@@ -775,6 +775,21 @@ class LeanRecipeAdapter(ChallengeAdapter):
         for other, owner, raw in rows:
             if other not in first:
                 first[other] = (owner, raw)
+        # Live 116, 19 Nov 2026 (no construction-submit completed for an hour: this check runs under the intake's one
+        # admission lock and opened every group-mate's provider, lazily RESTORING each, and waited on each mate's own
+        # lock while its build ran): a task a LAZY owner holds is terminal by definition (`OwnerProviders.lazy_tasks`),
+        # so never pending here; an OPEN mate's task is read from its view without its lock (as `_building_views`
+        # reads). Same blocks as before; a task with no such view (a mate neither open nor lazy, or an open mate's
+        # view that does not hold it) is read as before.
+        provider_for = getattr(self, "provider_for", None)
+        lazy_tasks = getattr(provider_for, "lazy_tasks", None)
+        try:
+            lazy = frozenset(lazy_tasks()) if callable(lazy_tasks) else frozenset()
+        except Exception:  # noqa: BLE001 - unreadable: every mate read as before
+            lazy = frozenset()
+        opened = getattr(provider_for, "_providers", None)
+        opened = opened if type(opened) is dict else {}
+        challenge_key = self.discovery.info.challenge_key
         blocks = []
         for other, (owner, raw) in first.items():
             if other == task_id:
@@ -786,6 +801,18 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     or other_block >= block
                     or exam_cap.epoch_of(other_block) <= low
                 ):
+                    continue
+                if other in lazy:
+                    continue  # a lazy owner's task: terminal, never pending, never opened
+                views = getattr(opened.get(owner), "_views", None)
+                view = views.get(other) if type(views) is dict else None
+                if view is not None:
+                    # read from the open view (no owner lock); a view it does not hold falls through to the old read
+                    # (V2: this block is the probing bound, so nothing unread is ever skipped)
+                    if getattr(view, "challenge_key", None) == challenge_key and getattr(
+                        view, "state", None
+                    ) in (DirectTaskStateV3.QUEUED, DirectTaskStateV3.RUNNING):
+                        blocks.append(other_block)
                     continue
                 task = (
                     self._provider(owner)
