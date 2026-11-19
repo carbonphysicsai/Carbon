@@ -67,6 +67,13 @@ INFO_PATH = "/carbon/v1/construction/intake"
 FEED_PATH = "/carbon/v1/feed/"
 #: How long the published readiness is reused: reading it verifies the whole official receipt log.
 OFFICIAL_GPU_CACHE_SECONDS = 10.0
+#: The public GETs' shared answers (live 116, 19 Nov 2026: py-spy 18:22Z, 23 of 37 request threads rebuilt the info
+#: document's receipt readiness at once on its cache expiry): each requester-independent public GET answer is rebuilt by
+#: ONE caller at a time, off every request lock, every other caller served the last good answer. An answer is fresh for
+#: `PUBLIC_GET_FRESH_S`; while it rebuilds, the last good one is served if at most `PUBLIC_GET_STALE_MAX_S` old (V2: N
+#: stated, <= 60 s), else the reader waits for the rebuild.
+PUBLIC_GET_FRESH_S = 10.0
+PUBLIC_GET_STALE_MAX_S = 60.0
 SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
@@ -505,6 +512,14 @@ class DirectRecipeIntake(BatteryIntake):
         )
 
     def route(self, method, path, headers, body):
+        if method == "GET":
+            # every public GET: requester-independent (no signature, no hotkey), so one shared answer per path
+            # (called as this class's own functions: a test double of the intake routes through them too)
+            key = DirectRecipeIntake._public_key(self, path)
+            if key is not None:
+                return DirectRecipeIntake._public_get(
+                    self, key, lambda: DirectRecipeIntake._public_answer(self, key)
+                )
         if method == "GET" and path == INFO_PATH:
             return self.public()
         if method == "GET" and path.startswith(koth_public.PATH):
@@ -516,6 +531,80 @@ class DirectRecipeIntake(BatteryIntake):
         if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
+
+    def _public_key(self, path):
+        """The canonical path of one of this door's public GET documents, or None (any other path is answered live, as
+        before: a 404 is cheap and never cached, so no path can grow the cache)."""
+        from urllib.parse import unquote
+
+        try:
+            asked = unquote(path)
+        except Exception:  # noqa: BLE001 - not a public document path
+            return None
+        challenge = self.challenge.challenge_id
+        known = {INFO_PATH, FEED_PATH + challenge}
+        known.update(
+            koth_public.PATH + challenge + suffix
+            for suffix in ("", koth_public.V2_SUFFIX, koth_public.V3_SUFFIX)
+        )
+        known.update(
+            queue_public.PATH + challenge + suffix
+            for suffix in (
+                "",
+                queue_public.V2_SUFFIX,
+                queue_public.V3_SUFFIX,
+                queue_public.V4_SUFFIX,
+            )
+        )
+        return asked if asked in known else None
+
+    def _public_answer(self, key):
+        """The live answer of the public document ``key`` (the same handlers as before)."""
+        if key == INFO_PATH:
+            return self.public()
+        if key.startswith(koth_public.PATH):
+            return self._koth(key)
+        if key.startswith(queue_public.PATH):
+            return self._queue(key)
+        return self._board()
+
+    def _public_get(self, key, build):
+        """One shared public answer for ``key``: fresh for `PUBLIC_GET_FRESH_S`; rebuilt by ONE caller at a time outside
+        the guard (no request lock is held while it builds); meanwhile every other caller gets the last GOOD answer (a
+        2xx/4xx one) if at most `PUBLIC_GET_STALE_MAX_S` old, else waits for the rebuild. A rebuild that fails (raises,
+        or answers 5xx) keeps the last good answer for others; its own caller gets its own result, as before. The body
+        is copied per caller (the answer an earlier caller holds is never shared mutably)."""
+        import copy
+
+        state = self.__dict__.setdefault("_public_state", {})
+        cond = self.__dict__.setdefault("_public_cond", threading.Condition())
+        with cond:
+            while True:
+                entry = state.get(key)
+                now = time.monotonic()
+                if entry is not None and entry.get("answer") is not None:
+                    age = now - entry["at"]
+                    if age < PUBLIC_GET_FRESH_S:
+                        return Answer(entry["answer"].status, copy.deepcopy(entry["answer"].body))
+                    if entry.get("building") and age <= PUBLIC_GET_STALE_MAX_S:
+                        return Answer(entry["answer"].status, copy.deepcopy(entry["answer"].body))
+                if entry is None or not entry.get("building"):
+                    entry = state.setdefault(key, {"answer": None, "at": 0.0})
+                    entry["building"] = True
+                    break
+                cond.wait(PUBLIC_GET_STALE_MAX_S)
+        answer = None
+        try:
+            answer = build()
+            return answer
+        finally:
+            with cond:
+                entry = state[key]
+                entry["building"] = False
+                if answer is not None and type(answer) is Answer and answer.status < 500:
+                    entry["answer"] = Answer(answer.status, copy.deepcopy(answer.body))
+                    entry["at"] = time.monotonic()
+                cond.notify_all()
 
     def _board(self):
         """The operator-signed launch board of this receiver's one Challenge
