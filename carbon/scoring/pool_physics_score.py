@@ -682,7 +682,8 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
             carriers = [
                 spec
                 for spec in members
-                if output in spec.outputs or (output in typed_map(rule) and output in _typed_names(spec))
+                if output in spec.outputs
+                or (output in typed_map(rule) and output in _typed_names(spec))
             ]
             _require(
                 not members or carriers,
@@ -1042,8 +1043,10 @@ def target_cells(spec, predict, scales, plan, rule):
         "cell_scale_needs_the_registered_a_multiplier",
     )
     name = plan.class_of(spec.target_id)
-    # only the cells whose output this target carries (`attach_cells`: a cell is graded over its carriers)
-    cells = [(f, o) for f, c, o in rule.cells.scored if c == name and o in spec.outputs]
+    # only the cells whose output this target carries, a typed-state output included (`attach_cells`: a cell is graded
+    # over its carriers)
+    carried = set(spec.outputs) | (set(_typed_names(spec)) & set(typed_map(rule)))
+    cells = [(f, o) for f, c, o in rule.cells.scored if c == name and o in carried]
     if not cells or not spec.agen:
         return {}
     for _family, output in cells:
