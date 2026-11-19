@@ -96,9 +96,13 @@ class QueueView:
         self.grader = grader
         self.state = Path(state_dir)
         self.clock = clock
+        #: Guards the cached documents and who is rebuilding them: memory only, never held across a rebuild (live 116,
+        #: 19 Nov 2026: 37 of 54 request threads waited here while ONE refresh globbed and stat'ed 1,322 markers).
         self._lock = threading.Lock()
+        self._built = threading.Condition(self._lock)
         self._cached = None
         self._rows_cached = None
+        self._rebuilding = set()
         #: ``{task id: provider key}`` from the last `_index` pass (the owning provider's own key; read only).
         self._owners = {}
 
@@ -395,31 +399,63 @@ class QueueView:
             waiting.append((submission_id, graded))
         return waiting
 
+    def _single_flight(self, name, stale, build):
+        """The cached document ``name`` (an attribute), rebuilt by ONE caller at a time OUTSIDE the lock: while it
+        rebuilds, every other caller gets the last built copy at once (its ``as_of_unix`` says how old it is); only
+        before the first build does a caller wait for it. A rebuild that fails leaves the last copy and raises to its
+        own caller only. Same documents as before, up to one rebuild older."""
+        with self._lock:
+            while True:
+                cached = getattr(self, name)
+                if cached is not None and not stale(cached):
+                    return cached
+                if name not in self._rebuilding:
+                    self._rebuilding.add(name)
+                    break
+                if cached is not None:
+                    return cached  # someone else is rebuilding: serve the last copy
+                self._built.wait()  # nothing built yet: wait for the first build
+        try:
+            built = build()
+        except BaseException:
+            with self._lock:
+                self._rebuilding.discard(name)
+                self._built.notify_all()
+            raise
+        with self._lock:
+            setattr(self, name, built)
+            self._rebuilding.discard(name)
+            self._built.notify_all()
+        return built
+
     def snapshot_v3(self):
         """`snapshot` plus the per-submission rows, rebuilt only when the clock crosses a quantum boundary."""
         base = self.snapshot()
-        with self._lock:
-            boundary = int(self.clock() // qp.ROWS_QUANTUM_S) * qp.ROWS_QUANTUM_S
-            if self._rows_cached is None or self._rows_cached["as_of_unix"] != boundary:
-                rows, rows_v4 = self._read_rows(boundary)
-                self._rows_cached = {
-                    "rows": rows,
-                    "rows_v4": rows_v4,
-                    "as_of_unix": float(boundary),
-                }
-            cached = self._rows_cached
-            return {
-                qp.ROWS: {"rows": cached["rows"], "as_of_unix": cached["as_of_unix"]},
-                qp.ROWS_V4: {
-                    "rows": cached["rows_v4"],
-                    "as_of_unix": cached["as_of_unix"],
-                },
-                **base,
-            }
+
+        def boundary():
+            return int(self.clock() // qp.ROWS_QUANTUM_S) * qp.ROWS_QUANTUM_S
+
+        def build():
+            at = boundary()
+            rows, rows_v4 = self._read_rows(at)
+            return {"rows": rows, "rows_v4": rows_v4, "as_of_unix": float(at)}
+
+        cached = self._single_flight(
+            "_rows_cached", lambda c: c["as_of_unix"] != boundary(), build
+        )
+        return {
+            qp.ROWS: {"rows": cached["rows"], "as_of_unix": cached["as_of_unix"]},
+            qp.ROWS_V4: {
+                "rows": cached["rows_v4"],
+                "as_of_unix": cached["as_of_unix"],
+            },
+            **base,
+        }
 
     def snapshot(self):
-        with self._lock:
-            now = self.clock()
-            if self._cached is None or now - self._cached["as_of_unix"] >= CACHE_S:
-                self._cached = self._read()
-            return dict(self._cached)
+        cached = self._single_flight(
+            "_cached",
+            lambda c: self.clock() - c["as_of_unix"] >= CACHE_S,
+            self._read,
+        )
+        return dict(cached)
