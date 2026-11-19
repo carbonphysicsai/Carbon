@@ -1050,6 +1050,41 @@ class LeanRecipeAdapter(ChallengeAdapter):
         except Exception:  # noqa: BLE001 - never fails a submission
             return
 
+    def _ended_unbuilt(self):
+        """The task ids whose build ENDED without success (REFUSED / UNRESOLVED / FAILED_INFRA / CANCELLED), read from the
+        open providers' views and the lazy owners' index (`OwnerProviders.lazy_index`), never opening an owner: they
+        never get a grade marker and never need a queue place. A task in neither is not listed (looked at as before)."""
+        from carbon.research import DirectTaskStateV3
+
+        ended = {
+            DirectTaskStateV3.REFUSED,
+            DirectTaskStateV3.UNRESOLVED,
+            DirectTaskStateV3.FAILED_INFRA,
+            DirectTaskStateV3.CANCELLED,
+        }
+        names = {state.value for state in ended}
+        provider_for = getattr(self, "provider_for", None)
+        found = set()
+        opened = getattr(provider_for, "_providers", None)
+        if type(opened) is dict:
+            for provider in tuple(opened.values()):
+                views = getattr(provider, "_views", None)
+                if type(views) is not dict:
+                    continue
+                for task, view in tuple(views.items()):
+                    if getattr(view, "state", None) in ended:
+                        found.add(task)
+        lazy = getattr(provider_for, "lazy_index", None)
+        if callable(lazy):
+            try:
+                entries = lazy()
+            except Exception:  # noqa: BLE001 - unreadable: looked at as before
+                entries = {}
+            for task, entry in entries.items():
+                if type(entry) in (tuple, list) and entry and entry[0] in names:
+                    found.add(task)
+        return found
+
     def settle_stop_cancelled_places(self):
         """The one-shot for miners who ALREADY resubmitted (owner ruling 14 Nov 2026, the Lead's): for every task whose terminal
         marker is ``cancelled_by_carbon_stop``, find its resubmission (the next generation of the same owner, recipe and
@@ -1088,10 +1123,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     for entry in entries
                     if entry.name.endswith(".json")
                 }
+            # unmarked is not waiting: a build that ended REFUSED / FAILED / CANCELLED never gets a marker (live 116,
+            # 19 Nov 2026 11:2xZ: this still opened 66+ lazy owners one by one); such a task is known from the open
+            # views and the lazy owners' index without opening any owner
+            dead = self._ended_unbuilt()
             waiting = {
                 self.ledger.owned_outcome(self.contract_digest, other)
                 for other in self.ledger.submitted_outcomes(self.contract_digest)
-                if other not in settled
+                if other not in settled and other not in dead
             }
         except (AttributeError, OSError, sqlite3.Error):
             given, waiting = set(), None  # unreadable: look at every task, as before

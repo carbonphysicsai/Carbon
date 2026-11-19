@@ -88,3 +88,27 @@ def test_300_cancelled_owners_and_one_waiting_open_one(tmp_path, ledger):
     opened = _opened(door)
     door.settle_stop_cancelled_places()
     assert opened == [owners[7]]
+
+
+def test_an_owner_whose_unmarked_tasks_all_ended_unbuilt_is_never_opened(
+    tmp_path, ledger
+):
+    """Live 116, 19 Nov 2026 11:2xZ: unmarked is not waiting; a REFUSED / CANCELLED build never gets a marker."""
+    from types import SimpleNamespace
+
+    from carbon.research import DirectTaskStateV3
+
+    _queue(ledger)  # A stop-cancelled; B ended REFUSED (open view), C ended CANCELLED (lazy index)
+    _mark(tmp_path, A)
+    door = _door(ledger)
+    door.provider_for = SimpleNamespace(
+        _providers={
+            HOTKEYS[0]: SimpleNamespace(
+                _views={B: SimpleNamespace(state=DirectTaskStateV3.REFUSED)}
+            )
+        },
+        lazy_index=lambda: {C: ("CANCELLED", 0.0)},
+    )
+    opened = _opened(door)
+    assert door.settle_stop_cancelled_places() == 0
+    assert opened == []
