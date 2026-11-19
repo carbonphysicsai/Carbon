@@ -63,3 +63,20 @@ def test_an_owner_with_a_waiting_task_is_still_looked_at(tmp_path, ledger):
     opened = _opened(door)
     assert door.settle_stop_cancelled_places() == 1  # asked again next call, as before
     assert opened == [HOTKEYS[0]]
+
+
+def test_300_cancelled_owners_and_one_waiting_open_one(tmp_path, ledger):
+    """Lead (19 Nov 2026): ~300 lazy owners after a start, one real place to settle: only that owner is opened."""
+    from test_queue_place import _outcome
+
+    owners = ["5Owner" + f"{i:03d}" + "x" * 38 for i in range(300)]
+    for i, owner in enumerate(owners):
+        cancelled = "rtsk_" + f"{i:064x}"
+        _outcome(ledger, cancelled, hotkey=owner)
+        _mark(tmp_path, cancelled)
+    waiting = "rtsk_" + "f" * 64  # the one owner's resubmission, not yet settled
+    _outcome(ledger, waiting, hotkey=owners[7])
+    door = _door(ledger)
+    opened = _opened(door)
+    door.settle_stop_cancelled_places()
+    assert opened == [owners[7]]
