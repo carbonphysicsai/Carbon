@@ -265,3 +265,159 @@ def test_an_unsequenced_crown_decision_is_applied_at_once_under_the_crown_lock()
         "reason": "A",
     }
     assert crown.king == "A"
+
+
+# --- V2 C5 (19 Nov 2026): a decision queued at a stop is never lost ---------------------------------------------------
+
+KEY, PACK = "sha256:" + "k" * 64, "sha256:" + "e" * 64
+ENTRY, PIN = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+
+
+class _Store:
+    """A stand-in pool store: the crown pause sweep's filings, in order."""
+
+    def __init__(self):
+        self.filed = []
+
+    def record_crown_paused(self, submission_id, key, **fields):
+        self.filed.append((submission_id, key, fields))
+
+
+def _journal(root, name):
+    from carbon.challenge_validator.lean_recipe_retention import CrownJournal
+
+    return CrownJournal(
+        root / "auto-grade" / "artifacts",
+        submission_id="rtsk_" + name * 64,
+        evaluation_key=KEY,
+        kind="pack",
+        exam=PACK,
+        entry_id=ENTRY,
+        pin=PIN,
+    )
+
+
+def test_a_decision_queued_at_a_stop_is_refiled_once_at_the_next_start(tmp_path):
+    from carbon.battery.pool_store import CROWN_PAUSED
+    from carbon.challenge_validator.lean_recipe_retention import refile_queued_crowns
+
+    root = tmp_path / "receiver"
+    (root / "auto-grade" / "artifacts").mkdir(parents=True)
+    crown = _Crown()
+    sequencer = grade_sequencer.Sequencer()
+    head_claimed, stop = threading.Event(), threading.Event()
+
+    def head():
+        # still running at the stop: no decision of its own yet
+        with sequencer.task() as task:
+            task.bind("rtsk_" + "a" * 64, "h:a")
+            task.release_claim()
+            head_claimed.set()
+            stop.wait(10)
+
+    thread = threading.Thread(target=head)
+    thread.start()
+    assert head_claimed.wait(10)
+    with sequencer.task() as task:
+        task.bind("rtsk_" + "b" * 64, "h:b")
+        out = grade_sequencer.crown_decision(
+            crown.decide("B", 2.0), _journal(root, "b")
+        )
+    assert out == grade_sequencer.CROWN_QUEUED and crown.decided == []
+    # the receiver stops here: the in-memory queue is gone; the next start files B for the crown pause sweep
+    store = _Store()
+    assert refile_queued_crowns(root, store) == (1, 0)
+    assert store.filed == [
+        (
+            "rtsk_" + "b" * 64,
+            KEY,
+            {
+                "kind": "pack",
+                "exam": PACK,
+                "entry_id": ENTRY,
+                "pin": PIN,
+                "state": CROWN_PAUSED,
+            },
+        )
+    ]
+    assert refile_queued_crowns(root, store) == (0, 0)  # once
+    stop.set()
+    thread.join(10)
+
+
+def test_an_applied_or_dropped_decision_is_never_refiled(tmp_path):
+    from carbon.challenge_validator.lean_recipe_retention import refile_queued_crowns
+
+    root = tmp_path / "receiver"
+    (root / "auto-grade" / "artifacts").mkdir(parents=True)
+    crown = _Crown()
+    sequencer = grade_sequencer.Sequencer()
+    # applied at once (nothing earlier): queued, then applied
+    with sequencer.task() as task:
+        task.bind("rtsk_" + "c" * 64, "h:c")
+        grade_sequencer.crown_decision(crown.decide("C", 2.0), _journal(root, "c"))
+    # queued behind an earlier grade, then that grade is ended as hung: dropped
+    head_claimed, release = threading.Event(), threading.Event()
+
+    def head():
+        with sequencer.task() as task:
+            task.bind("rtsk_" + "a" * 64, "h:a")
+            task.release_claim()
+            head_claimed.set()
+            release.wait(10)
+
+    thread = threading.Thread(target=head)
+    thread.start()
+    assert head_claimed.wait(10)
+    hung = {}
+
+    def queued_then_hung():
+        with sequencer.task() as task:
+            task.bind("rtsk_" + "d" * 64, "h:d")
+            hung["ticket"] = task.ticket
+            grade_sequencer.crown_decision(crown.decide("D", 3.0), _journal(root, "d"))
+            hung["queued"] = True
+            release.wait(10)
+
+    other = threading.Thread(target=queued_then_hung)
+    other.start()
+    for _ in range(500):
+        if hung.get("queued"):
+            break
+        time.sleep(0.01)
+    sequencer.abandon(hung["ticket"])
+    release.set()
+    thread.join(10)
+    other.join(10)
+    assert crown.decided == ["C"]
+    store = _Store()
+    assert refile_queued_crowns(root, store) == (0, 0) and store.filed == []
+
+
+def test_the_start_filing_refiles_queued_crowns_before_recontend(monkeypatch):
+    from carbon.challenge_validator import king_upkeep
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.challenge_validator import recontend
+
+    order = []
+    monkeypatch.setattr(
+        retention, "refile_queued_crowns", lambda root, pool: order.append("refile")
+    )
+
+    def file(root, pool, exam, apply):
+        order.append("recontend")
+        return {"king": "k", "filed": [], "skipped": {}}
+
+    monkeypatch.setattr(recontend, "file", file)
+    discovery = type("D", (), {"evaluation_pack_digest": PACK})()
+    state, _count = king_upkeep.file_stranded("/root", "/pool", discovery)
+    assert state == king_upkeep.STRANDED_DONE and order == ["refile", "recontend"]
+
+    def broken(root, pool):
+        raise OSError("unreadable")
+
+    monkeypatch.setattr(retention, "refile_queued_crowns", broken)
+    order.clear()
+    state, _count = king_upkeep.file_stranded("/root", "/pool", discovery)
+    # tried again with the filing (the stranded hold keeps grades back meanwhile), never skipped
+    assert state == king_upkeep.STRANDED_RETRY and order == []

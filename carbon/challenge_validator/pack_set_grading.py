@@ -282,6 +282,7 @@ def grade_set_entry(
                 entry_directory=entry_directory,
                 runner=runner,
             ),
+            artifacts=artifact_directory,
         )
     return out
 
@@ -353,7 +354,15 @@ def _set_control_check(repeat, control, comparator):
 
 
 def _contend_set(
-    promotion, batch_adapters, batches, set_key, origin, pins, repeat=None
+    promotion,
+    batch_adapters,
+    batches,
+    set_key,
+    origin,
+    pins,
+    repeat=None,
+    *,
+    artifacts=None,
 ):
     """File the submission's set evaluation and let it meet the incumbent under
     the set's key. Its own failure never unbinds the set result: the outcome
@@ -426,6 +435,18 @@ def _contend_set(
                 return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}
             return outcome
 
-        return grade_sequencer.crown_decision(decide)
+        # V2 C5: the decision's durable record, when the grade's receiver directory is known
+        journal = None
+        if artifacts is not None:
+            journal = retention.CrownJournal(
+                artifacts,
+                submission_id=origin,
+                evaluation_key=filed["evaluation_key"],
+                kind="set",
+                exam=set_key,
+                entry_id=getattr(repeat, "entry_id", None),
+                pin=pin,
+            )
+        return grade_sequencer.crown_decision(decide, journal)
     except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
         return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}

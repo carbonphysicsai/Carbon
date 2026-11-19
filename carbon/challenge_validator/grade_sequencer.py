@@ -26,7 +26,10 @@ grades is committed by one writer, in claim order (= the door's pending order = 
   its grade's thread: a grade whose earlier ones are still running hands its decision over and ends (its lane and its
   round are freed); the earlier grade's thread applies it after its own. A grade that ends with no decision (FAILED,
   RELEASED, refused, an exception) closes its ticket so the queue never waits on it; a hung grade ended by `abandon`
-  drops any decision it had queued (its slot was given back: never a free grade that crowns).
+  drops any decision it had queued (its slot was given back: never a free grade that crowns). The queue is in memory;
+  a caller's ``journal`` makes each decision durable (V2 C5, 19 Nov 2026: a decision queued at a stop is never lost):
+  ``queued`` before it is handed over, ``applied`` or ``dropped`` after (`lean_recipe_retention.CrownJournal`, re-filed
+  at the next start by `lean_recipe_retention.refile_queued_crowns`).
 - **Exclusive** (`exclusive`): the king's upkeep, the crown sweep and due retries move the incumbent; they run only
   with no grade claimed and none in flight.
 
@@ -81,7 +84,8 @@ class Sequencer:
         self._claimed_at = {}
         #: tickets that retained past the bound: they no longer hold the order and end "not yet" at their own turn
         self._expired = set()
-        #: the crown queue (`crown_decision`): ticket -> its decisions not yet applied, in the order they came
+        #: the crown queue (`crown_decision`): ticket -> its decisions not yet applied, in the order they came, each
+        #: ``(apply, drop)``: ``drop`` is called when an abandoned grade's decision is dropped
         self._crown = {}
         #: tickets whose grade ended (or was abandoned): no further decision of theirs will come
         self._crown_closed = set()
@@ -181,8 +185,15 @@ class Sequencer:
             self._abandoned.add(ticket)
             # fix 1b: its queued crown decision is dropped (its slot is given back as Carbon's: never a free grade
             # that crowns) and the queue goes on past it
-            self._crown.pop(ticket, None)
+            dropped = self._crown.pop(ticket, None) or []
             self._order.notify_all()
+        for _apply, drop in dropped:
+            try:
+                drop()
+            except Exception as error:  # noqa: BLE001 - a dropped decision's record never stops the door
+                from carbon.battery.intake import log
+
+                log("crown_decision_drop_failed", type=type(error).__name__)
         self._close_crown(ticket)
 
     def _close_crown(self, ticket):
@@ -192,12 +203,12 @@ class Sequencer:
                 self._crown_closed.add(ticket)
         self._drain()
 
-    def _submit_crown(self, ticket, apply):
+    def _submit_crown(self, ticket, apply, drop=lambda: None):
         """Append ``apply`` to ``ticket``'s crown decisions, then apply every decision that is next in claim order."""
         with self._order:
             if ticket in self._abandoned:
                 raise GradeAbandoned(ticket)
-            self._crown.setdefault(ticket, []).append(apply)
+            self._crown.setdefault(ticket, []).append((apply, drop))
         self._drain()
 
     def _next_crown(self):
@@ -207,7 +218,8 @@ class Sequencer:
             head = self._crown_next
             queued = self._crown.get(head)
             if queued:
-                return queued.pop(0)
+                apply, _drop = queued.pop(0)
+                return apply
             # an expired claim (design A: stuck before its reservation) can bring no decision: passed as closed
             if head in self._crown_closed or head in self._expired:
                 self._crown_closed.discard(head)
@@ -409,18 +421,28 @@ class _Task:
             raise GradeAbandoned(self.ticket)
         self._turned = True
 
-    def crown(self, decide):
+    def crown(self, decide, journal=None):
         """Hand this grade's crown decision to the crown queue (`crown_decision`): ``decide()`` runs under `CROWN_LOCK`
         once every earlier grade's decisions are applied or it ended. Returns ``decide()``'s result when it was applied
         now (no earlier decision outstanding), else `CROWN_QUEUED`: this grade goes on and ends; the decision is applied
-        by the thread of the earlier grade, after its own."""
+        by the thread of the earlier grade, after its own. ``journal`` (optional): ``queued()`` is written BEFORE the
+        hand-over (so a stop can never lose a decision the grade's marker already says is graded), ``applied()`` after
+        the decision, ``dropped()`` when `abandon` drops it."""
         result = {}
 
         def apply():
-            with CROWN_LOCK:
-                result["value"] = decide()
+            try:
+                with CROWN_LOCK:
+                    result["value"] = decide()
+            finally:
+                _journal(journal, "applied")
 
-        self.sequencer._submit_crown(self.ticket, apply)
+        if self.ticket in self.sequencer._abandoned:
+            raise GradeAbandoned(self.ticket)
+        _journal(journal, "queued")
+        self.sequencer._submit_crown(
+            self.ticket, apply, lambda: _journal(journal, "dropped")
+        )
         return result.get("value", CROWN_QUEUED)
 
 
@@ -572,15 +594,29 @@ CROWN_QUEUED = {
 }
 
 
-def crown_decision(decide):
+def _journal(journal, event):
+    """Write one event of a crown decision's durable record; a record that cannot be written is logged, never a
+    reason to lose or stop the decision itself."""
+    if journal is None:
+        return
+    try:
+        getattr(journal, event)()
+    except Exception as error:  # noqa: BLE001
+        from carbon.battery.intake import log
+
+        log("crown_queue_journal_failed", event=event, type=type(error).__name__)
+
+
+def crown_decision(decide, journal=None):
     """Apply a grade's crown decision ``decide()`` (the king read and the crown written) in claim order (fix 1b, see the
     module docstring). Unsequenced (one lane, a tool, a test, an incumbent step): run now under `CROWN_LOCK`, as
-    before. Returns ``decide()``'s result, or a copy of `CROWN_QUEUED`."""
+    before, with no record. Returns ``decide()``'s result, or a copy of `CROWN_QUEUED`. ``journal``: see `_Task.crown`.
+    """
     task = _CURRENT.get()
     if task is None:
         with CROWN_LOCK:
             return decide()
-    value = task.crown(decide)
+    value = task.crown(decide, journal)
     return dict(CROWN_QUEUED) if value is CROWN_QUEUED else value
 
 

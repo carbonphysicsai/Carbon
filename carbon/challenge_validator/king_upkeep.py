@@ -90,7 +90,19 @@ def file_stranded(root, pool_store, discovery):
     filed nothing and said nothing): its state, the counts filed and skipped, or the refusal code, or ``no_exam`` when
     the door's discovery names no evaluation pack."""
     from . import recontend
+    from .lean_recipe_retention import refile_queued_crowns
 
+    try:
+        # V2 C5 (fix 1b, 19 Nov 2026): a crown decision the last run queued in memory and never applied is filed for
+        # the crown pause sweep first, in claim order, ahead of anything graded after this start
+        refile_queued_crowns(root, pool_store)
+    except Exception as error:  # noqa: BLE001 - tried again with the filing, never skipped
+        koth_journal.note(
+            "recontend_checked",
+            state=STRANDED_RETRY,
+            code="crown_queue_" + type(error).__name__,
+        )
+        return STRANDED_RETRY, 0
     exam = getattr(discovery, "evaluation_pack_digest", None)
     if exam is None:
         koth_journal.note("recontend_checked", state=STRANDED_RETRY, code="no_exam")

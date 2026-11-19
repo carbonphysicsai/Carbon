@@ -3125,10 +3125,134 @@ def _contend(
                 "evaluation_key": outcome["evaluation_key"],
             }
 
-        return grade_sequencer.crown_decision(decide)
+        journal = CrownJournal(
+            artifacts,
+            submission_id=submission_id,
+            evaluation_key=filed["evaluation_key"],
+            kind="pack",
+            exam=discovery.evaluation_pack_digest,
+            entry_id=getattr(repeat, "entry_id", None),
+            pin=pin,
+        )
+        return grade_sequencer.crown_decision(decide, journal)
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
         return _contention_refused(submission_id, exc)
+
+
+#: V2 C5 (19 Nov 2026): the crown queue's durable record, beside the receiver's grade markers (`CrownJournal`).
+CROWN_QUEUE_JOURNAL = "crown-queue.jsonl"
+
+
+class CrownJournal:
+    """The durable record of one sequenced crown decision (fix 1b; V2 C5, 19 Nov 2026). The crown queue is in memory: a
+    decision handed over behind an earlier grade, whose own grade then ends (its marker GRADED), would be lost at a
+    stop. So ``queued`` is appended (and synced) before the hand-over, ``applied`` once the decision is made (whatever
+    its outcome) and ``dropped`` when an abandoned grade's decision is dropped. At the next start, before the first
+    grade, `refile_queued_crowns` files every decision queued and neither applied nor dropped for the crown pause
+    sweep. Custody only: task ids, keys, digests; no score.
+    """
+
+    def __init__(self, artifacts, **record):
+        self.path = Path(artifacts).parent / CROWN_QUEUE_JOURNAL
+        self.record = record
+
+    def _append(self, event):
+        line = json.dumps({"event": event, **self.record}, sort_keys=True) + "\n"
+        fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as out:
+            out.write(line)
+            out.flush()
+            os.fsync(out.fileno())
+
+    def queued(self):
+        self._append("queued")
+
+    def applied(self):
+        self._append("applied")
+
+    def dropped(self):
+        self._append("dropped")
+
+
+def _queued_crowns(path):
+    """The records of every decision in ``path`` queued and not applied, dropped or re-filed after, in queue order."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    open_ = {}
+    for line in text.splitlines():
+        try:
+            body = json.loads(line)
+        except ValueError:
+            continue
+        if type(body) is not dict:
+            continue
+        key = (body.get("submission_id"), body.get("evaluation_key"))
+        if body.get("event") == "queued":
+            open_.setdefault(key, body)
+        elif body.get("event") in ("applied", "dropped", "refiled"):
+            open_.pop(key, None)
+    return list(open_.values())
+
+
+def refile_queued_crowns(root, pool_store):
+    """V2 C5 (19 Nov 2026): at a start, before the first grade (`king_upkeep.file_stranded`), file every crown decision
+    the last run queued and never applied or dropped (`CrownJournal`) for the crown pause sweep, in queue (= claim)
+    order, as PAUSED: the sweep decides it from its filed evaluation through the receiver's own consider path
+    (`reconsider_paused_pack`), uncharged, against the king of its moment. A record without a retained entry or pin
+    cannot be contended from: it is journaled (``crown_queue_unrefiled``) for the operator. Returns
+    ``(filed, unrefiled)`` counts. ``pool_store``: a store, or the path of one.
+    """
+    from carbon.battery.pool_store import CROWN_PAUSED, PoolStore
+    from carbon.challenge_validator import koth_journal
+
+    path = Path(root) / "auto-grade" / CROWN_QUEUE_JOURNAL
+    queued = _queued_crowns(path)
+    if not queued:
+        return 0, 0
+    store = (
+        pool_store
+        if hasattr(pool_store, "record_crown_paused")
+        else PoolStore(Path(pool_store))
+    )
+    filed = unrefiled = 0
+    for record in queued:
+        fields = {name: record.get(name) for name in CROWN_JOURNAL_FIELDS}
+        try:
+            store.record_crown_paused(
+                fields["submission_id"],
+                fields["evaluation_key"],
+                kind=fields["kind"],
+                exam=fields["exam"],
+                entry_id=fields["entry_id"],
+                pin=fields["pin"],
+                state=CROWN_PAUSED,
+            )
+        except Exception as error:  # noqa: BLE001 - one record never stops the start's filing
+            unrefiled += 1
+            koth_journal.note(
+                "crown_queue_unrefiled",
+                submission_id=fields["submission_id"],
+                code=str(getattr(error, "code", None) or type(error).__name__),
+            )
+            continue
+        CrownJournal(path.parent / "artifacts", **fields)._append("refiled")
+        filed += 1
+    koth_journal.note("crown_queue_refiled", filed=filed, unrefiled=unrefiled)
+    return filed, unrefiled
+
+
+#: The fields of a crown decision's durable record (`CrownJournal`), as `PoolStore.record_crown_paused` files them.
+CROWN_JOURNAL_FIELDS = (
+    "submission_id",
+    "evaluation_key",
+    "kind",
+    "exam",
+    "entry_id",
+    "pin",
+)
 
 
 def _contention_refused(submission_id, exc):
