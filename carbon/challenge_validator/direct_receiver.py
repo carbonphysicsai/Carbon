@@ -491,14 +491,117 @@ def _private_directory(path: Path) -> Path:
     return path
 
 
+def _pack_file_identity(base, relative_path):
+    """``(device, inode, size, mtime_ns, ctime_ns)`` of one pack file, opened exactly as the pack check opens it
+    (descriptor-relative, no symbolic link anywhere on the path) and never read; None when it cannot be opened that way
+    or is not a regular file."""
+    import stat as stat_module
+
+    from carbon.registry import digest as artifact_digest
+
+    try:
+        descriptor = artifact_digest._secure_open(
+            Path(base), artifact_digest._artifact_parts(relative_path)
+        )
+    except Exception:  # noqa: BLE001 - unopenable: the full check decides
+        return None
+    try:
+        found = os.fstat(descriptor)
+    except OSError:
+        return None
+    finally:
+        os.close(descriptor)
+    if not stat_module.S_ISREG(found.st_mode):
+        return None
+    return (
+        found.st_dev,
+        found.st_ino,
+        found.st_size,
+        found.st_mtime_ns,
+        found.st_ctime_ns,
+    )
+
+
+def _pack_files(root, relative_path, snapshot, public_root, private_root):
+    """Every file the pack check reads: the manifest, then each role's artifact (inline bytes, a hidden batch store and an
+    unavailable role read no file here)."""
+    from carbon.challenge_validator.evaluation_pack import UNAVAILABLE
+
+    files = [(root, relative_path)]
+    for roles, base in (
+        (snapshot.public, public_root),
+        (snapshot.private, private_root),
+    ):
+        for entry in roles.values():
+            if (
+                entry != UNAVAILABLE
+                and type(entry) is dict
+                and "inline_bytes" not in entry
+                and entry.get("kind") != "hidden_batch_store"
+                and "path" in entry
+            ):
+                files.append((base, entry["path"]))
+    return tuple(files)
+
+
 def _pack_check(root, relative_path, digest, public_root, private_root, challenge):
-    """Bind an opted-in pack to registered construction bytes at every use."""
+    """Bind an opted-in pack to registered construction bytes at every use.
+
+    CACHED BY FILE IDENTITY (TEAM_RULES #13; live 116, 19 Nov 2026: every research request ran this twice, so every
+    source-upload chunk re-hashed the whole pack and re-read TRAIN). Every use still opens each file the check reads,
+    exactly as the check opens it, and reads its identity (device, inode, size, mtime, ctime: a write moves ctime).
+    The full check (load the manifest, digest every artifact, compare the construction roles and TRAIN) runs again
+    whenever any identity differs, a file cannot be opened that way, the material's TRAIN is another object, or its
+    three construction documents differ. A result is trusted only after a full check that ran BETWEEN two equal
+    identity readings (so a write during the check is never trusted), and a failed check is never cached.
+    """
     from carbon.challenge_validator.evaluation_pack import (
         EvaluationPackUnavailable,
         load_pack,
     )
 
+    #: ``files`` (the files the last full check read) and ``trusted`` ((identities, TRAIN object, documents) or None)
+    memo = {"files": None, "trusted": None}
+    memo_lock = threading.Lock()  # guards the two references only (no I/O under it)
+
+    def identities(files):
+        if files is None:
+            return None
+        found = tuple(_pack_file_identity(base, path) for base, path in files)
+        return None if any(item is None for item in found) else found
+
     def checked(material):
+        documents = canonical(
+            [
+                material["construction_kit"],
+                material["interface_document"],
+                material["physics_contract"],
+            ]
+        )
+        train = material["train"]
+        before = identities(memo["files"])
+        trusted = memo["trusted"]
+        if (
+            before is not None
+            and trusted is not None
+            and trusted[0] == before
+            and trusted[1] is train
+            and trusted[2] == documents
+        ):
+            return
+        try:
+            files = full(material)
+        except BaseException:
+            with memo_lock:
+                memo["trusted"] = None  # a failed check is never trusted
+            raise
+        after = identities(files)
+        with memo_lock:
+            memo["files"] = files
+            stable = after is not None and after == before
+            memo["trusted"] = (after, train, documents) if stable else None
+
+    def full(material):
         snapshot = load_pack(
             root,
             relative_path,
@@ -525,6 +628,7 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
             != material["train"]
         ):
             raise EvaluationPackUnavailable("evaluation_pack.train_mismatch")
+        return _pack_files(root, relative_path, snapshot, public_root, private_root)
 
     return checked
 

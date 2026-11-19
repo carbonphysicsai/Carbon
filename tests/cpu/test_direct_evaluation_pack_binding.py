@@ -99,6 +99,50 @@ def test_sealed_pack_rechecked_when_fixed_train_changes(tmp_path):
         discovery._checked(discovery.info.challenge_key)
 
 
+def test_the_pack_check_is_cached_by_file_identity_and_rechecks_on_any_change(
+    tmp_path, monkeypatch
+):
+    """Live 116, 19 Nov 2026 (TEAM_RULES #13): every research request ran the pack check twice, re-hashing the pack and
+    re-reading TRAIN per upload chunk. The full check now runs again only when a file's identity changed, the TRAIN
+    object or the construction documents changed, and is trusted only after it ran between two equal readings."""
+    import os
+
+    from carbon.challenge_validator import evaluation_pack
+
+    material, public, check, _selection = _bound(tmp_path)
+    full = []
+    original = evaluation_pack.EvaluationPackSnapshot.verify_available
+
+    def counted(self, *args, **kwargs):
+        full.append(1)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(
+        evaluation_pack.EvaluationPackSnapshot, "verify_available", counted
+    )
+    for _ in range(5):
+        check(material)
+    assert len(full) == 2  # the first, then one between two equal readings; then trusted
+    # the same bytes written again: the file's identity moved, so the full check runs once, then is trusted again
+    train = public / "train.bin"
+    train.write_bytes(material["train"])
+    os.utime(train, ns=(10**18, 10**18))
+    check(material)
+    check(material)
+    assert len(full) == 3
+    # an equal TRAIN that is another object, or other construction documents: the full check again
+    check({**material, "train": bytes(bytearray(material["train"]))})
+    assert len(full) == 4
+    other = {**material, "interface_document": {"changed": True}}
+    with pytest.raises(EvaluationPackUnavailable, match="construction_mismatch"):
+        check(other)
+    # changed bytes refuse, and a refusal is never trusted
+    train.write_bytes(b"changed")
+    for _ in range(2):
+        with pytest.raises(EvaluationPackUnavailable, match="digest_mismatch"):
+            check(material)
+
+
 def test_pack_must_match_registered_construction_content(tmp_path):
     material, _public, check, _selection = _bound(tmp_path, altered_kit=True)
     with pytest.raises(EvaluationPackUnavailable, match="construction_mismatch"):
