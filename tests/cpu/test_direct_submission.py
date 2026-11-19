@@ -1476,7 +1476,8 @@ def test_an_intake_busy_503_is_resent_after_retry_after_and_succeeds(
     sleeps = []
     result = _client(tmp_path, monkeypatch, send, sleeps=sleeps, wait_s=200)()
     assert result["state"] == "RECONSTRUCTED"
-    assert sent.count(phase_tool := (client.SUBMIT_TOOL if phase == "submit" else client.STATUS_TOOL)) == 3
+    tool = client.SUBMIT_TOOL if phase == "submit" else client.STATUS_TOOL
+    assert sent.count(tool) == 3
     waits = [s for s in sleeps if s >= 1.0]
     assert len(waits) >= 2 and waits[0] < waits[1]  # Retry-After honoured, then doubling
 
