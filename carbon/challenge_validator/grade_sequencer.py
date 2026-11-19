@@ -116,10 +116,11 @@ class Sequencer:
         marked expired (caller holds ``_order``)."""
         if other in self._expired:
             return False
+        age = now - self._claimed_at.get(other, now)
         if (
             other not in self._reserved
             and other not in self._waiting
-            and now - self._claimed_at.get(other, now) > RETAIN_BEFORE_RESERVE_SECONDS
+            and age > RETAIN_BEFORE_RESERVE_SECONDS
         ):
             self._expired.add(other)
             self._order.notify_all()

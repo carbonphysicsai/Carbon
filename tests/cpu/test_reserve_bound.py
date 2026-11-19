@@ -45,7 +45,8 @@ def test_a_claim_stuck_before_its_reservation_stops_holding_the_order(monkeypatc
         with sequencer.task() as task:
             task.bind("b")
             task.release_claim()
-            grade_sequencer.reserve_turn()  # past the bound the stuck claim no longer holds it
+            # past the bound the stuck claim no longer holds it
+            grade_sequencer.reserve_turn()
             order.append("reserve b")
             grade_sequencer.claimed()
             grade_sequencer.turn()  # nor the commit order
@@ -58,7 +59,8 @@ def test_a_claim_stuck_before_its_reservation_stops_holding_the_order(monkeypatc
     assert order == ["reserve b", "commit b"]
     a_free.set()
     threads[0].join(5)
-    assert outcome == {"a": "not yet"}  # nothing reserved for it: back to pending, uncharged
+    # nothing reserved for it: back to pending, uncharged
+    assert outcome == {"a": "not yet"}
 
 
 def test_within_the_bound_the_order_holds(monkeypatch):
