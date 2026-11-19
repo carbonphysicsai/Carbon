@@ -12,7 +12,6 @@ import asyncio
 import contextlib
 import functools
 import hashlib
-import io
 import json
 import os
 import re
@@ -3693,20 +3692,49 @@ def _exam_cap_startup(ledger, discovery, restore):
     exam_cap.ExamCap(ledger, grading_deadline_seconds=deadline)
 
 
+def _dump_stacks(signum=None, frame=None, stream=None):
+    """Write every thread's stack (code locations only: file, line, function; never a value) to ``stream`` (stderr), in
+    faulthandler's layout. Runs as a Python signal handler, so in the main thread with the GIL held: the other threads'
+    frames are read through `sys._current_frames`, which is safe while they run.
+    """
+    import traceback
+
+    out = sys.stderr if stream is None else stream
+    names = {thread.ident: thread.name for thread in threading.enumerate()}
+    lines = []
+    for ident, top in sys._current_frames().items():
+        lines.append(
+            f"Thread {ident:#018x} {names.get(ident, '?')} (most recent call first):"
+        )
+        for entry in reversed(traceback.extract_stack(top)):
+            lines.append(
+                f'  File "{entry.filename}", line {entry.lineno} in {entry.name}'
+            )
+    try:
+        out.write("
+".join(lines) + "
+")
+        out.flush()
+    except (OSError, ValueError, AttributeError):
+        pass  # no stream to write to: a diagnosis aid, never a reason to stop
+
+
 def register_stack_dump():
     """Ops diagnosis (Live ops, 17 Nov 2026: two grades parked for 90 min and their stacks were lost at the restart; no
     py-spy, ptrace_scope 1, no root): ``kill -USR1 <door pid>`` writes every thread's stack to stderr (the journal).
-    Code locations only, never a value; the door goes on. A platform without SIGUSR1, or a stderr with no file
-    descriptor (a captured or redirected stream): nothing, and the start goes on.
-    """
-    import faulthandler
+    Code locations only, never a value; the door goes on.
 
+    A Python handler (`_dump_stacks`), NOT ``faulthandler.register(all_threads=True)``: faulthandler walks the other
+    threads' frames from the signal context without the GIL, and on live 116 (19 Nov 2026 06:28:27Z) it crashed the
+    receiver (SEGV, core dumped) mid-walk, killing two in-flight grades. A platform without SIGUSR1, or a call off the
+    main thread: nothing, and the start goes on.
+    """
     if not hasattr(signal, "SIGUSR1"):
         return
     try:
-        faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
-    except (AttributeError, OSError, ValueError, io.UnsupportedOperation):
-        pass  # no file descriptor to write to: a diagnosis aid, never a reason not to start
+        signal.signal(signal.SIGUSR1, _dump_stacks)
+    except (OSError, ValueError):
+        pass  # not the main thread: a diagnosis aid, never a reason not to start
 
 
 def main(argv=None):
