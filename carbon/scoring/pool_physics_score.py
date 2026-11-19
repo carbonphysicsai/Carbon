@@ -757,10 +757,10 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         )
     if headroom:
         # the admission's n is the cell's reserved case count over the whole exam, over the class's targets that carry
-        # the cell's output (a mismatch is a different exam)
+        # the cell's output, a typed-state output included (a mismatch is a different exam)
         counts = collections.Counter()
         for spec in all_specs:
-            for output in spec.outputs:
+            for output in set(spec.outputs) | set(_typed_names(spec)):
                 counts[(plan.class_of(spec.target_id), output)] += len(spec.agen)
         for cell in document["cells"]:
             if (cell["family"], cell["class"], cell["output"]) in cells.scored:
