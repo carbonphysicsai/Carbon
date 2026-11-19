@@ -229,3 +229,26 @@ def test_a_receiver_breakdown_failure_never_stops_the_grade(tmp_path, capsys):
         empty, directory, ADAPTER, TASK, SNAPSHOT, _benchmark(), "sha256:" + "6" * 64
     )
     assert "grade_breakdown_unwritten" not in capsys.readouterr().err
+
+
+def test_a_broken_stderr_never_stops_the_grade(tmp_path, monkeypatch):
+    """V2 on 46560738: the unwritten line is guarded too; a stderr that raises returns to the grade."""
+    import sys
+
+    class Broken:
+        def write(self, text):
+            raise OSError("stderr gone")
+
+        def flush(self):
+            raise OSError("stderr gone")
+
+    monkeypatch.setattr(sys, "stderr", Broken())
+    directory = _private(tmp_path)
+    bad = _keep({"sets": {"set0": {"A": float("nan"), "D": 0.1, "rows": 1}}})
+    assert (
+        retention._keep_grade_breakdown(
+            bad, directory, ADAPTER, TASK, SNAPSHOT, _benchmark(), "sha256:" + "6" * 64
+        )
+        is None
+    )
+    assert not (directory / (TASK + gb.SUFFIX)).exists()

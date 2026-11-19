@@ -1054,18 +1054,21 @@ def _keep_grade_breakdown(
         import sys
 
         code = getattr(failure, "code", None)
-        print(
-            json.dumps(
-                {
-                    "event": "grade_breakdown_unwritten",
-                    "task": submission_id,
-                    "code": code if type(code) is str else type(failure).__name__,
-                },
-                sort_keys=True,
-            ),
-            file=sys.stderr,
-            flush=True,
-        )
+        try:
+            print(
+                json.dumps(
+                    {
+                        "event": "grade_breakdown_unwritten",
+                        "task": submission_id,
+                        "code": code if type(code) is str else type(failure).__name__,
+                    },
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+                flush=True,
+            )
+        except Exception:  # noqa: BLE001, S110 - a log line never stops a grade (V2 on 46560738)
+            pass
 
 
 def _speed_lane():
