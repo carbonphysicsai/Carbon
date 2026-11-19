@@ -1053,7 +1053,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
     def _ended_unbuilt(self):
         """The task ids whose build ENDED without success (REFUSED / UNRESOLVED / FAILED_INFRA / CANCELLED), read from the
         open providers' views and the lazy owners' index (`OwnerProviders.lazy_index`), never opening an owner: they
-        never get a grade marker and never need a queue place. A task in neither is not listed (looked at as before)."""
+        never get a grade marker and never need a queue place. A task in neither is not listed (looked at as before).
+        """
         from carbon.research import DirectTaskStateV3
 
         ended = {
