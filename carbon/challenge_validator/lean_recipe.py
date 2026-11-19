@@ -12,7 +12,9 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import os
 import re
+import sqlite3
 import threading
 import time
 from collections.abc import Callable
@@ -1073,12 +1075,36 @@ class LeanRecipeAdapter(ChallengeAdapter):
             return 0
         from carbon.development_session.construction_recipe import ConstructionRecipe
 
+        # Live 116, 19 Nov 2026 07:47-08:0xZ: this opened EVERY marked task's owner (a lazy owner's full restore, the
+        # public TRAIN derived again) in the incumbent's steps after each start, ~350 owners one after another, and no
+        # grade was claimed meanwhile. Two ledger reads now skip what can need no place, before any owner is opened:
+        # a task that already gave its place (granted once per task), and an owner with no submitted task still
+        # waiting (no marker): a resubmission is the same owner's later submitted, unmarked task, so none can exist.
+        try:
+            given = self.ledger.queue_place_from_tasks(self.contract_digest)
+            with os.scandir(directory) as entries:
+                settled = {
+                    entry.name[: -len(".json")]
+                    for entry in entries
+                    if entry.name.endswith(".json")
+                }
+            waiting = {
+                self.ledger.owned_outcome(self.contract_digest, other)
+                for other in self.ledger.submitted_outcomes(self.contract_digest)
+                if other not in settled
+            }
+        except (AttributeError, OSError, sqlite3.Error):
+            given, waiting = set(), None  # unreadable: look at every task, as before
         unresolved, left = 0, []
         for task in marked:
+            if task in given:
+                continue
             try:
                 owner = self.ledger.owned_outcome(self.contract_digest, task)
                 if owner is None:
                     continue
+                if waiting is not None and owner not in waiting:
+                    continue  # nothing of this owner waits: no resubmission to place, no owner opened
                 provider = self._provider(owner)
                 retained = provider._requests.get(task)
                 if retained is None:
