@@ -97,6 +97,19 @@ FAILED_INFRA, and the task has no reclass record or only records with ``marker_r
 it then replaces the marker and appends a record with ``resumed: true`` and ``marker_replaced: true``. Any other state is
 refused as before; a dry run shows ``would_resume``. A completed reclass is never resumed (``already_given_back``).
 
+``regrade`` (V2-OWED-NOW, 19 Nov; Lead: one path for Validator-2's class (d), "a free re-grade owed, no later task"):
+each listed task, named in V2's ruling, goes back to the grader ONCE more over its own retained bytes and task id
+(its original place), uncharged (`ExamCap.mark_requeued`: its next reservation neither spends nor is refused by the
+miner's round or day, and reuses its own row). It takes what the other verbs refuse by rule (a twin of the same recipe
+that never graded, a ``release`` / ``reclass`` give-back, a first attempt, a GRADED marker of an incomplete grade V2
+ruled ours), and keeps only the checks that protect the grade and the miner: a ruling id; once per task
+(``regrades.jsonl``, on record before anything moves); a FAILED or GRADED marker (never a candidate outcome, a
+withdrawal or an unreadable one); no exam row of its own holding a slot (COUNTED / RESERVED: release it first); arrived
+at this door on the served contract, its row in its owner's store bound to the served pack; and no same-recipe twin
+that is graded (``same_recipe_already_graded``), holds a slot (``same_recipe_slot_held``) or is already handed back
+and waiting (``same_recipe_regrade_pending``), so a recipe is never graded twice. The dry run lists each task's
+same-recipe twins (ids and marker states only). The automatic retry never uses it.
+
 Without ``--apply`` nothing changes. Each prints one JSON document: task ids, codes and counts only (no hotkey, path or
 score). Runs with the door up: sqlite writes go through the ledger's own transactions, the owner stores are opened
 read-only, and the marker move is the single commit point the grader observes.
@@ -1803,6 +1816,118 @@ def rearm(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     return out
 
 
+REGRADES = "regrades.jsonl"
+_REGRADE_MARKERS = ("FAILED", "GRADED")
+
+
+def _regrade_refusal(root, db, door, task):
+    """``(attempt, code, twins, None)`` when ``regrade`` accepts the task, else ``(None, None, twins, refusal)``
+    (read-only; see the module text). ``twins``: ``[{"task", "marker"}]`` of its same-recipe tasks."""
+    twins = []
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return None, None, twins, "not_a_task_id"
+    if _log_lines(root, REGRADES, task):
+        return None, None, twins, "already_regraded"
+    attempt = _restore_attempt(root, task)
+    if attempt is None:
+        return None, None, twins, "attempts_unreadable_or_exhausted"
+    paths = _restore_paths(root, task, attempt)
+    state, code = _marker_body(paths["marker"])
+    if state is None:
+        return None, None, twins, "no_marker"
+    if state not in _REGRADE_MARKERS:
+        return None, None, twins, "marker_" + str(state).lower()
+    refusal = _evaluation_refusal(paths)
+    if refusal is not None:
+        return None, None, twins, refusal
+    if not _carbon_settled(db, task):
+        return None, None, twins, "exam_row_counted_or_reserved"
+    arrival = _arrival(db, task)
+    if arrival is None:
+        return None, None, twins, "not_submitted_at_this_door"
+    if door.served is None:
+        return None, None, twins, "door_binding_unavailable"
+    hotkey, contract = arrival[2], arrival[3]
+    if contract != door.served["contract"]:
+        return None, None, twins, "contract_not_served"
+    store = door.store(hotkey) if type(hotkey) is str else None
+    if store is None:
+        return None, None, twins, "owner_store_unreadable"
+    pack, recipes = store
+    if task not in recipes:
+        return None, None, twins, "task_row_missing"
+    if pack != door.served["pack"]:
+        return None, None, twins, "pack_not_served"
+    refusal = None
+    for other in sorted(recipes):
+        if other == task or recipes[other] != recipes[task]:
+            continue
+        other_state = _marker(_paths(root, other)["marker"])
+        twins.append({"task": other, "marker": other_state})
+        if refusal is not None:
+            continue
+        if other_state in _DELIVERED:
+            refusal = "same_recipe_already_graded"
+        elif not _carbon_settled(db, other):
+            refusal = "same_recipe_slot_held"
+        elif other_state is None and (
+            _log_lines(root, "requeues.jsonl", other)
+            or _log_lines(root, REGRADES, other)
+        ):
+            refusal = "same_recipe_regrade_pending"
+    if refusal is not None:
+        return None, None, twins, refusal
+    return attempt, code if type(code) is str else None, twins, None
+
+
+def regrade(root, tasks, *, ruling, apply=False, clock=time.time_ns):
+    """``{"regraded": [...], "refused": {task: code}, "twins": {task: [...]}}``: each task V2 ruled owed a free re-grade
+    is handed back to the grader once more, uncharged, same task id (see the module text). Dry run unless ``apply``."""
+    out = {
+        "schema": SCHEMA,
+        "action": "regrade",
+        "apply": apply,
+        "ruling": ruling,
+        "regraded": [],
+        "causes": {},
+        "refused": {},
+        "twins": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    ledger, cap = _ledger(root)
+    door = _Door(root)
+    for task in tasks:
+        with ledger._db() as db:
+            attempt, code, twins, refusal = _regrade_refusal(root, db, door, task)
+        if twins:
+            out["twins"][task] = twins
+        if refusal is not None:
+            out["refused"][task] = refusal
+            continue
+        if apply:
+            paths = _restore_paths(root, task, attempt)
+            paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
+            line = {
+                "task": task,
+                "attempt": attempt + 1,
+                "kind": "regrade",
+                "cause": code,
+                "ruling": ruling,
+                "evaluation_kept": paths["evaluation"].is_dir(),
+                "at_ns": int(clock()),
+            }
+            # once per task, fail closed: on record before anything moves
+            with open(
+                paths["kept_marker"].parent / REGRADES, "a", encoding="utf-8"
+            ) as log:
+                log.write(json.dumps(line, sort_keys=True) + "\n")
+            _hand_back_again(cap, task, attempt, paths, line)
+        out["regraded"].append(task)
+        out["causes"][task] = code if type(code) is str else None
+    return out
+
+
 def rebuild(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     """``{"requested": [...], "refused": {task: code}}``: the operator's BUILD re-arm (Lead 17 Nov, on Validator-2's
     receipt) for builds that never reached a grade: a FAILED_INFRA build, or one refused only for the CPU worker wall of
@@ -2061,6 +2186,13 @@ def main(argv=None):
         "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
     )
     seven.add_argument("--apply", action="store_true")
+    regrade_parser = sub.add_parser("regrade")
+    regrade_parser.add_argument("--root", type=Path, required=True)
+    regrade_parser.add_argument("--ids", type=Path, required=True, help="the task ids")
+    regrade_parser.add_argument(
+        "--ruling", required=True, help="Validator-2's ruling id (a closed id)"
+    )
+    regrade_parser.add_argument("--apply", action="store_true")
     eight = sub.add_parser("restore-allowance")
     eight.add_argument("--root", type=Path, required=True)
     eight.add_argument("--ids", type=Path, required=True, help="the task ids")
@@ -2158,6 +2290,11 @@ def main(argv=None):
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
         ]
         out = rearm(args.root, tasks, ruling=args.ruling, apply=args.apply)
+    elif args.cmd == "regrade":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = regrade(args.root, tasks, ruling=args.ruling, apply=args.apply)
     elif args.cmd == "return-slot":
         tasks = [
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
