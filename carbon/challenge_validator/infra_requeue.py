@@ -448,7 +448,8 @@ def _carbon_settled(db, task):
 
 def _carbon_cut(db, task, paths):
     """A FAILED marker whose exam rows hold no slot (`_carbon_settled`) and whose code is transient
-    (`auto_retry.retryable`: never a version-wide one, which a requeue would only meet again)."""
+    (`auto_retry.retryable`: never a version-wide one, which a requeue would only meet again).
+    """
     from .auto_retry import retryable
 
     marker = _marker_document(paths["marker"]) or {}
@@ -528,8 +529,7 @@ def _door_refusal(root, db, door, task):
     if pack != door.served["pack"]:
         return "pack_not_served"
     if given_back and any(
-        other != task
-        and recipe == recipes[task]
+        other != task and recipe == recipes[task]
         # a task the miner WITHDREW never grades: it is not a fresh rerun (17 Nov: four custody failures refused only
         # because their withdrawn twin of the same recipe existed)
         and _marker(_paths(root, other)["marker"]) != WITHDRAWN
