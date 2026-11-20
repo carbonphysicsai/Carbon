@@ -226,6 +226,44 @@ def _active_box(config, client, name="carbon-pool-a"):
     return name
 
 
+def test_a_released_box_takes_its_door_ssh_files_with_it(tmp_path, monkeypatch):
+    """``gpu_box_up door`` writes each box's ssh block for the door's watchdogs; the release removes it (a recycled
+    address must not keep an old block). With ``door_ssh_boxes_dir`` empty nothing is removed.
+    """
+    config = _config(tmp_path, door_ssh_boxes_dir=".ssh/config.d/carbon-boxes")
+    client = _Client()
+    name = _active_box(config, client)
+    calls = []
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    idle = {
+        name: {"file": True, "busy": False, "last": T0 - 3700, "admitted": T0 - 7200}
+    }
+    _ticks(config, client, 0, boxes=idle, count=1)
+    assert ["rm"] not in [
+        a[:1] for a, _ in calls
+    ]  # drained only: its builds and watchdogs still run
+    free = {name: dict(idle[name], file=False)}
+    _ticks(config, client, 0, boxes=free, start=T0 + 300, count=1)
+    assert client.terminated == ["i-a"]
+    base = f".ssh/config.d/carbon-boxes/{name}"
+    assert (["rm", "-f", f"{base}.conf", f"{base}.known_hosts"], None) in calls
+    assert any(e["action"] == "box_ssh_removed" and e["ok"] for e in _log(config))
+
+
+def test_the_door_ssh_boxes_dir_is_a_plain_path_under_the_door_home(tmp_path):
+    config = _config(tmp_path)
+    raw = {k: list(v) if type(v) is tuple else v for k, v in config.__dict__.items()}
+    path = tmp_path / "c.json"
+    for bad in ("/home/carbon/.ssh", "../x", ".ssh/../../x", ".ssh/a b"):
+        path.write_text(json.dumps({**raw, "door_ssh_boxes_dir": bad}))
+        with pytest.raises(SystemExit, match="door_ssh_boxes_dir"):
+            scale.load_config(path)
+    path.write_text(
+        json.dumps({**raw, "door_ssh_boxes_dir": ".ssh/config.d/carbon-boxes"})
+    )
+    assert scale.load_config(path).door_ssh_boxes_dir == ".ssh/config.d/carbon-boxes"
+
+
 def test_an_idle_box_is_drained_then_released_with_its_cost(tmp_path, monkeypatch):
     config = _config(tmp_path)
     client = _Client()

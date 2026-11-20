@@ -95,6 +95,7 @@ DAY_MARGIN_H = 0.5
 RENT_MIN_H = 1.0
 LAMBDA_API = "https://cloud.lambdalabs.com/api/v1"
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+_REL_DIR = re.compile(r"[A-Za-z0-9._-][A-Za-z0-9._/-]{0,199}")
 #: ``tick --dry-run``: no rent, drain, release, state write or log-file line (printed only, marked ``dry``).
 DRY = [False]
 
@@ -184,6 +185,10 @@ class Config:
     max_usd_per_day: float | None = None
     #: the door's pager outbox (relative to the door user's home); "" pages nothing
     page_outbox: str = "ops-watch/outbox.jsonl"
+    #: where ``gpu_box_up door`` writes each box's ssh files for the door's watchdogs (``--ssh-boxes-dir``, relative to
+    #: the door user's home: ``.ssh/config.d/carbon-boxes``); a released box's ``<name>.conf`` + ``.known_hosts`` are
+    #: removed there. "" removes nothing
+    door_ssh_boxes_dir: str = ""
     #: [[start_hour, end_hour], ...] UTC: keep one box warm inside a window (a hook; empty until 24 h+ of G7 data)
     prewarm_utc: tuple = ()
     #: the pool's provider. Only "lambda" runs today: a Lium pool (`LiumCli`) waits for the Lium pod bring-up and the
@@ -217,6 +222,11 @@ def load_config(path) -> Config:
         raise SystemExit(
             "prewarm_utc: [[start_hour, end_hour], ...], 0 <= start < end <= 24"
         )
+    if config.door_ssh_boxes_dir and (
+        not _REL_DIR.fullmatch(config.door_ssh_boxes_dir)
+        or ".." in config.door_ssh_boxes_dir.split("/")
+    ):
+        raise SystemExit("door_ssh_boxes_dir: a plain path under the door user's home")
     if not config.name_prefix or not _NAME.fullmatch(
         config.name_prefix.rstrip("-") or "x"
     ):
@@ -735,6 +745,28 @@ def _hours(record, now):
     return round((now - record["launched"]) / 3600, 3)
 
 
+def _forget_box_ssh(config, name):
+    """The released box's ssh files on the door (``gpu_box_up``'s watchdog link) go with it. A failure is logged, not
+    retried: a stale block is harmless (its own pinned key refuses any other host) and the next bring-up on a recycled
+    address replaces it."""
+    if not config.door_ssh_boxes_dir:
+        return
+    base = f"{config.door_ssh_boxes_dir}/{name}"
+    if DRY[0]:
+        log(config, action="would_remove_box_ssh", box=name)
+        return
+    try:
+        ok = (
+            _door(
+                config, ["rm", "-f", f"{base}.conf", f"{base}.known_hosts"]
+            ).returncode
+            == 0
+        )
+    except (OSError, subprocess.SubprocessError):
+        ok = False
+    log(config, action="box_ssh_removed", box=name, ok=ok)
+
+
 def _released(config, state, name, record, client, now, why):
     if DRY[0]:
         log(config, action="would_release", box=name, id=record["id"], why=why)
@@ -758,6 +790,7 @@ def _released(config, state, name, record, client, now, why):
         )
         return
     _close_cost(state, record, now)
+    _forget_box_ssh(config, name)
     hours = _hours(record, now)
     log(
         config,
@@ -813,6 +846,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
             "terminated",
         ):
             _close_cost(state, record, now)
+            _forget_box_ssh(config, name)
             hours = _hours(record, now)
             log(
                 config,

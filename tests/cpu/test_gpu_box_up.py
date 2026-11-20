@@ -218,6 +218,9 @@ class FakeBox:
         # whether the door's own build link (its generated shim + wrapper) logs in to the box
         self.door_link_ok = True
         self.door_links = []
+        # whether the door's watchdogs (plain DOCKER_HOST through the door's ~/.ssh/config) reach the box
+        self.watchdog_ok = True
+        self.watchdog_links = []
         # Lambda's Ubuntu 22.04: python3 is 3.10, no newer interpreter until the admin phase installs python3.11
         self.python = ""
         self.python_installs = 0
@@ -256,6 +259,8 @@ class FakeBox:
             return 0, HEAD + "\n", ""
         if argv[0].endswith("/docker") and argv[1:3] == ["image", "inspect"]:
             return self._door_link(argv)
+        if argv[0] == "env":
+            return self._watchdog_link(argv)
         assert argv[0] == "ssh" and "StrictHostKeyChecking=yes" in argv
         known = next(a for a in argv if a.startswith("UserKnownHostsFile="))
         pinned = Path(known.split("=", 1)[1]).read_text()
@@ -294,6 +299,21 @@ class FakeBox:
             return 255, "", f"carbon-grade@{IP}: Permission denied (publickey).\n"
         ids = [self.loaded.get(image, "") for image in argv[5:]]
         return 0, "".join(i + "\n" for i in ids if i), ""
+
+    def _watchdog_link(self, argv):
+        """A door watchdog's own docker call: read back the per-box ssh files its ssh would use."""
+        assert argv[:3] == ["env", "-i", "PATH=/usr/local/bin:/usr/bin:/bin"], argv
+        assert argv[3] == f"DOCKER_HOST=ssh://carbon-grade@{IP}" and argv[4].startswith(
+            "HOME="
+        )
+        assert argv[5:] == ["docker", "version", "--format", "{{.Server.Version}}"]
+        conf, known = box_up.box_ssh_files(self.cfg)
+        self.watchdog_links.append(
+            {"conf": conf.read_text(), "known_hosts": known.read_text()}
+        )
+        if not self.watchdog_ok:
+            return 1, "", f"carbon-grade@{IP}: Host key verification failed.\n"
+        return 0, self.docker + "\n", ""
 
     def _lane_only(self):
         assert self.user == "carbon-grade", self.user
@@ -491,6 +511,8 @@ def _door_argv(tmp_path, *extra, record=None, ops=None, manifest=None):
         str(tmp_path / "class-ops.json"),
         "--boxes-dir",
         str(tmp_path / "boxes"),
+        "--ssh-boxes-dir",
+        str(tmp_path / "ssh-boxes"),
         *extra,
     ]
 
@@ -2091,7 +2113,87 @@ def test_the_door_link_is_the_doors_own_generated_wrapper_with_the_recorded_key(
     assert f"DOCKER_HOST=ssh://carbon-grade@{IP}" in link["wrapper"]
     # the last check before the box file, and every admitted image was found through it
     steps = [step for step, _ in box_up.plan_door(cfg)]
-    assert steps[-1] == "door_link"
+    assert steps[-2:] == ["door_link", "watchdog_link"]
+
+
+def test_the_doors_watchdogs_get_a_per_box_ssh_block_before_the_box_file(tmp_path):
+    """Live 116, 20 Nov 2026: the first autoscaled A100 built fine, but its watchdogs (plain DOCKER_HOST, the door's own
+    ~/.ssh/config) got "Host key verification failed" on every poll: no Host block named its address. The door phase
+    writes that block and proves a watchdog's own call reaches the box before the box file.
+    """
+    key = tmp_path / "lane_key"
+    key.write_text("not a real key\n")
+    cfg = _config(tmp_path, "--ssh-key", str(key))
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    (seen,) = box.watchdog_links
+    conf, known = box_up.box_ssh_files(cfg)
+    assert conf == tmp_path / "ssh-boxes" / "a100-1.conf"
+    assert seen["known_hosts"] == known.read_text() == f"{IP} ssh-ed25519 {HOST_KEY}\n"
+    text = conf.read_text()
+    assert seen["conf"] == text
+    for line in (
+        f"Host {IP}",
+        "  User carbon-grade",
+        f"  IdentityFile {key}",
+        "  IdentitiesOnly yes",
+        f"  UserKnownHostsFile {known}",
+        "  StrictHostKeyChecking yes",
+        "  ClearAllForwardings yes",
+    ):
+        assert line in text.splitlines(), line
+    assert stat.S_IMODE(os.stat(conf).st_mode) == 0o600
+    assert stat.S_IMODE(os.stat(known).st_mode) == 0o600
+    assert stat.S_IMODE(os.stat(conf.parent).st_mode) == 0o700
+    # the watchdog call is the last check, after the door link
+    calls = [argv[0] for argv, _ in box.calls]
+    assert calls[-1] == "env" and calls[-2].endswith("/docker")
+    steps = [step for step, _ in box_up.plan_door(cfg)]
+    assert steps[-1] == "watchdog_link"
+
+
+def test_a_box_the_doors_watchdogs_cannot_reach_is_never_admitted(tmp_path):
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg, watchdog_ok=False)
+    outcome = _run(cfg, box)
+    _refused(outcome, "watchdog_link_failed")
+    assert outcome["step"] == "watchdog_link"
+    assert "Host key verification failed" in outcome["detail"]
+    assert "Include " in outcome["detail"]
+    assert _no_box_file(tmp_path)
+    # a new box that failed leaves no ssh files either
+    assert not list((tmp_path / "ssh-boxes").iterdir())
+
+
+def test_a_recycled_address_drops_the_old_boxes_ssh_block(tmp_path):
+    """ssh takes the FIRST matching Host block; a provider hands an address to the next rental."""
+    ssh_boxes = tmp_path / "ssh-boxes"
+    ssh_boxes.mkdir(mode=0o700)
+    (ssh_boxes / "a100-0.conf").write_text(
+        f"# a100-0\nHost {IP}\n  User carbon-grade\n"
+    )
+    (ssh_boxes / "a100-0.known_hosts").write_text(f"{IP} ssh-ed25519 {_key_body(99)}\n")
+    (ssh_boxes / "other.conf").write_text("# other\nHost 203.0.113.99\n")
+    cfg = _config(tmp_path)
+    assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
+    assert sorted(p.name for p in ssh_boxes.iterdir()) == [
+        "a100-1.conf",
+        "a100-1.known_hosts",
+        "other.conf",
+    ]
+
+
+def test_a_failed_re_bring_up_keeps_the_ssh_files_of_a_box_in_use(tmp_path):
+    """A box re-checked while its builds may still run: the box file goes (no new build), its watchdogs keep reaching
+    it; the autoscaler removes the ssh files when it releases the box."""
+    cfg = _config(tmp_path)
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    box.door_link_ok = False
+    _refused(_run(cfg, box), "door_link_failed")
+    assert _no_box_file(tmp_path)
+    conf, known = box_up.box_ssh_files(cfg)
+    assert conf.exists() and known.exists()
 
 
 def test_a_door_link_missing_an_admitted_image_is_refused(tmp_path):
