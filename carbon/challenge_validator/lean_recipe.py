@@ -120,20 +120,58 @@ def _failure_class(provider, task_id):
     return None if record is None else infra_diagnosis.classify(record)
 
 
-def _class_refusal(failure_class, same):
-    """Why a build of ``failure_class`` is not re-run automatically after ``same`` re-runs of it in its chain, or None
-    (re-run within owner D16's caps as before): a recipe-side class never is; an unclassified one once only.
-    """
+def _class_refusal(failure_class, chain):
+    """Why a build of ``failure_class`` gets no automatic rebuild after ``chain`` door rebuilds in its chain, or None
+    (OWNER G-LEAD-10, replacing the 3x requeue + D16 cap for builds): a proven Carbon-side class gets exactly ONE; an
+    unknown one (no class, or `UNCLASSIFIED`) none; a recipe-side one none."""
     from carbon.development_session import infra_diagnosis
 
-    if failure_class is None:
-        return None
-    allowed = infra_diagnosis.RETRIES.get(failure_class, 1)
-    if allowed is None or same < allowed:
-        return None
-    # a recipe-side class is never re-run; an unclassified one, re-run once, goes to the owed path with an alert for a
-    # new detector (V2 FAILURE_LABELS_RULING_20261120 section 1)
-    return "recipe_side" if allowed == 0 else "unclassified_owed"
+    if failure_class is None or failure_class == infra_diagnosis.UNCLASSIFIED:
+        return "unknown_no_rebuild"
+    if failure_class in infra_diagnosis.RECIPE_CLASSES:
+        return "recipe_side"
+    if chain >= infra_diagnosis.RETRIES.get(failure_class, 0):
+        return "one_rebuild_spent"
+    return None
+
+
+class _RebuildIdentities:
+    """``identity -> bool`` for `remote_gpu_build.set_healthy_only`: whether an op is the build of one of this door's
+    class rebuilds (`rebuild_build_identities`), re-read only when `BUILD_RETRIES` changes (size and mtime).
+    """
+
+    def __init__(self, ledger_path):
+        self.ledger_path = ledger_path
+        self._seen = None
+        self._identities = frozenset()
+
+    def __call__(self, identity):
+        path = Path(self.ledger_path).parent / "auto-grade" / "requeued" / BUILD_RETRIES
+        try:
+            info = path.stat()
+            seen = (info.st_size, info.st_mtime_ns)
+        except OSError:
+            return False
+        if seen != self._seen:
+            self._identities = rebuild_build_identities(self.ledger_path)
+            self._seen = seen
+        return identity in self._identities
+
+
+def rebuild_build_identities(ledger_path):
+    """The build op identities of the door's class rebuilds (`BUILD_RETRIES` lines marked ``healthy_box``): each takes
+    its slot only on a healthy box (`remote_gpu_build.set_healthy_only`, owner G-LEAD-10).
+    """
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+
+    path = Path(ledger_path).parent / "auto-grade" / "requeued" / BUILD_RETRIES
+    return frozenset(
+        direct_child_identity(line["new_task"], "build")
+        for line in _jsonl(path)
+        if line.get("healthy_box") is True and type(line.get("new_task")) is str
+    )
 
 
 def _build_retry_counts(directory, task, code):
@@ -472,6 +510,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self.max_strategy_bytes = MAX_BODY
         self._kit = dict(contract.construction_kit)
         self._identities = self._bound_identities(contract)
+        # OWNER G-LEAD-10: this door's class rebuilds take their build slot only on a healthy box
+        path = getattr(ledger, "path", None)
+        if path is not None:
+            from carbon.reconstruction import remote_gpu_build
+
+            remote_gpu_build.set_healthy_only(_RebuildIdentities(path))
 
     def _bound_identities(self, contract):
         from carbon.development_session.profile import canonical
@@ -1649,15 +1693,46 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 return None
             request = requests[rerun + 1]
             new_task = provider._task_id(request).value
-            # owner P0 (20 Nov 2026): a classified failure is counted under its class (the catch-all code told
-            # nothing apart); a recipe-side class is never re-run, an unclassified one once (`_class_refusal`)
-            failure_class = (
-                None if stop_cancelled else _failure_class(provider, task_id)
-            )
+            # OWNER G-LEAD-10 (20 Nov 2026, "Go with the table"), replacing the 3x requeue + D16 cap for builds: a proven
+            # Carbon-side failure is rebuilt ONCE, on a healthy box, unless its miner submitted since; an unknown one is
+            # not (the miner resubmits when ready; its spot was never used); a recipe-side one is not. A receiver stop's
+            # own cancellation keeps its earlier rule (CARBON-CUT REQUEUE).
+            if stop_cancelled:
+                failure_class = None
+            elif task.state is DirectTaskStateV3.REFUSED:
+                failure_class = "carbon_cpu_worker_wall"  # `_cpu_wall_refusal` above: the door's CPU worker
+            else:
+                failure_class = _failure_class(provider, task_id)
             code = failure_class or _build_failure_code(task)
             retries = Path(self.ledger.path).parent / "auto-grade" / "requeued"
             root, chain, same = _build_retry_counts(retries, task_id.value, code)
-            by_class = _class_refusal(failure_class, same)
+            # an operator's own rebuild request (an owed re-run under LO-1 (d)) is never refused by the automatic rule
+            automatic = not stop_cancelled and operator is None
+            by_class = _class_refusal(failure_class, chain) if automatic else None
+            # the failure's own time (its terminal receipt); unknown: no skip (the rebuild runs)
+            completed = getattr(
+                getattr(task, "terminal_receipt", None), "completed_at_micros", None
+            )
+            chain_tasks = {
+                line.get(key)
+                for line in _jsonl(retries / BUILD_RETRIES)
+                if line.get("chain_root") == root
+                for key in ("from_task", "new_task")
+            } | {task_id.value, root}
+            if (
+                by_class is None
+                and automatic
+                and type(completed) is int
+                and completed > 0
+                and hasattr(self.ledger, "submitted_since")
+                and self.ledger.submitted_since(
+                    self.contract_digest,
+                    owner,
+                    completed * 1000,
+                    exclude=chain_tasks,
+                )
+            ):
+                by_class = "miner_submitted_since"
             if by_class is not None:
                 _append_line(
                     retries / BUILD_ALERTS,
@@ -1739,6 +1814,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     "code": code,
                     "at_ns": time.time_ns(),
                     **({} if operator is None else {"ruling": operator}),
+                    # a class rebuild runs on a healthy box (`rebuild_build_identities`)
+                    **({} if stop_cancelled else {"healthy_box": True}),
                 },
             )
             note(

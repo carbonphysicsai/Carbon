@@ -468,6 +468,20 @@ class AttemptLedger:
             ).fetchall()
         return tuple(row[0] for row in rows)
 
+    def submitted_since(self, contract_digest, hotkey, since_ns, *, exclude=()):
+        """Whether ``hotkey`` had a submission accepted on ``contract_digest`` after ``since_ns``: its own, never a door
+        re-run's copied row (code `BUILD_REQUEUED`) nor a task in ``exclude`` (the failed task's own chain). Owner
+        G-LEAD-10: Carbon's one rebuild is skipped when it did."""
+        read = getattr(self, "_read", None)
+        with read() if callable(read) else self._db() as db:
+            rows = db.execute(
+                "SELECT submission_id FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND hotkey=? "
+                "AND at_ns>? AND COALESCE(code, '')<>?",
+                (contract_digest, _kept(hotkey), int(since_ns), self.BUILD_REQUEUED),
+            ).fetchall()
+        excluded = set(exclude)
+        return any(row[0] not in excluded for row in rows)
+
     def grant_queue_place(self, contract_digest, *, from_task, new_task, hotkey):
         """Give ``new_task`` (the resubmission of the recipe of ``from_task``, a task a receiver stop cancelled) the ORIGINAL
         arrival place of ``from_task`` in `submitted_outcomes`, ONCE per ``from_task`` and only to the SAME hotkey.

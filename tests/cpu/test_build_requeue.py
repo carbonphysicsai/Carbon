@@ -114,20 +114,38 @@ def _plain_requests(monkeypatch):
     )
 
 
+#: A retained diagnosis of a proven Carbon-side failure (a build wall on a busy box: owner G-LEAD-10's one rebuild).
+BUSY_BOX = {
+    "failed_stage": "build",
+    "reason_code": "reconstruction.worker.runtime.failed",
+    "tail": "stream command timed out",
+}
+
+
 class _Provider:
-    """The provider surface the requeue reads: task states, retained requests, task ids, a start."""
+    """The provider surface the requeue reads: task states, retained requests, task ids, a start, the failure's
+    retained diagnosis (default a proven Carbon-side one) and, when set, its completion time.
+    """
 
     evaluation_pack_digest = "sha256:" + "p" * 64
 
-    def __init__(self, states):
+    def __init__(self, states, diagnosis=BUSY_BOX, completed=None):
         self.states = dict(states)
         self._requests = {A: ("req", HOTKEYS[0], 0)}
         self.started = []
+        self.diagnosis = diagnosis
+        self.completed = completed
 
     def get_research_result(self, request):
         return SimpleNamespace(
-            task=SimpleNamespace(state=self.states[request.task_id.value])
+            task=SimpleNamespace(
+                state=self.states[request.task_id.value],
+                terminal_receipt=SimpleNamespace(completed_at_micros=self.completed),
+            )
         )
+
+    def private_infra_diagnosis(self, task_id):
+        return self.diagnosis
 
     @staticmethod
     def _task_id(request):

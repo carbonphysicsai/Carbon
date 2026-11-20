@@ -171,8 +171,13 @@ def test_every_class_has_one_fixed_carbon_side_row_and_a_retry_rule():
                 and 10 < len(row[key]) < 300
                 and chr(10) not in row[key]
             )
-    assert d.RETRIES[d.UNCLASSIFIED] == 1
-    assert all(d.RETRIES[name] is None for name in d.CARBON_CLASSES)
+    # owner G-LEAD-10: a proven Carbon-side class is rebuilt once; an unknown one never (the miner resubmits)
+    assert d.RETRIES[d.UNCLASSIFIED] == 0
+    assert all(d.RETRIES[name] == 1 for name in d.CARBON_CLASSES)
+    assert d.public_row(d.UNCLASSIFIED)["next_step"].startswith("Resubmit")
+    assert d.public_row("carbon_build_wall_busy_host")["next_step"].startswith(
+        "Nothing to do"
+    )
     assert d.public_row("not_a_class") is None and d.public_row(None) is None
 
 
@@ -183,16 +188,17 @@ def test_a_class_never_carries_the_private_tail():
 
 
 @pytest.mark.parametrize(
-    "failure_class,same,expected",
+    "failure_class,chain,expected",
     [
-        (None, 9, None),  # no diagnosis: D16's caps as before
-        ("carbon_build_wall_busy_host", 2, None),  # Carbon's: D16's caps decide
-        (d.UNCLASSIFIED, 0, None),
-        (d.UNCLASSIFIED, 1, "unclassified_owed"),  # once only, then owed
+        (None, 0, "unknown_no_rebuild"),  # no diagnosis: unknown
+        (d.UNCLASSIFIED, 0, "unknown_no_rebuild"),
+        ("carbon_build_wall_busy_host", 0, None),  # proven Carbon-side: one rebuild
+        ("carbon_build_wall_busy_host", 1, "one_rebuild_spent"),
+        ("carbon_cpu_worker_wall", 0, None),
     ],
 )
-def test_the_retry_rule_by_class(failure_class, same, expected):
-    assert lean_recipe._class_refusal(failure_class, same) == expected
+def test_the_rebuild_rule_by_class(failure_class, chain, expected):
+    assert lean_recipe._class_refusal(failure_class, chain) == expected
 
 
 def test_the_class_is_read_from_the_retained_diagnosis_and_unreadable_is_none():

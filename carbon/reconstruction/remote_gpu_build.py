@@ -151,6 +151,28 @@ SLOT_MEMORY_MODES = ("capped", "shared")
 MEMORY_SHARE = 0.9
 #: How long an op waits for a free slot before it is Carbon's (UNAVAILABLE); an operational bound.
 SLOT_WAIT_SECONDS = 3600
+#: Owner G-LEAD-10 (20 Nov 2026, "Go with the table"): Carbon's one rebuild of a build that failed on Carbon's side runs
+#: on a HEALTHY box, one with at most this many builds running, its own included.
+HEALTHY_MAX_LIVE = 4
+#: ``identity -> bool``: whether an op must take its slot on a healthy box (`set_healthy_only`; None: no op must).
+_HEALTHY_ONLY = None
+
+
+def set_healthy_only(predicate):
+    """Register which op identities take a slot only on a healthy box (`HEALTHY_MAX_LIVE`): the receiver's rebuilds."""
+    global _HEALTHY_ONLY
+    _HEALTHY_ONLY = predicate
+
+
+def _healthy_only(identity):
+    if _HEALTHY_ONLY is None:
+        return False
+    try:
+        return _HEALTHY_ONLY(identity) is True
+    except Exception:  # noqa: BLE001 - unreadable: an ordinary op, as before
+        return False
+
+
 POLL_S = 0.5
 #: How long the GPU probe may take.
 PROBE_SECONDS = 20
@@ -1346,6 +1368,7 @@ def _note_loss(binding, error):
 
 def _take(offer, identity, *, held, check, pause, poll, deadline):
     shadow = type(identity) is str and identity.endswith(SHADOW_SUFFIX)
+    healthy = not shadow and _healthy_only(identity)
     while True:
         lanes = _candidates(offer, shadow=shadow)
         if not lanes:
@@ -1356,9 +1379,14 @@ def _take(offer, identity, *, held, check, pause, poll, deadline):
             )
         order = sorted(lanes, key=lambda lane: (-_free_slots(lane), lane.spec.name))
         for lane in order:
+            if healthy and _live_count(lane) >= HEALTHY_MAX_LIVE:
+                continue  # a rebuild waits for a box with fewer builds running (owner G-LEAD-10)
             binding = _try_lane(offer, lane, held=held, shadow=shadow)
             if binding is not None:
                 return binding
+        if healthy and any(_live_ops(lane) for lane in lanes):
+            # waiting for a healthy box is progress, never Carbon's failure: the bound is for slots no live op holds
+            deadline = max(deadline, time.monotonic() + SLOT_WAIT_SECONDS)
         if offer.fixed is None and any(_live_ops(lane) for lane in lanes):
             # a pool's build rounds are sized for its most boxes (`door_build_slots`), so a round may wait behind
             # live builds on the boxes up: that wait is progress, never Carbon's failure; the wall-clock bound is for
@@ -1444,6 +1472,24 @@ def _live_ops(lane):
         finally:
             os.close(fd)
     return False
+
+
+def _live_count(lane):
+    """How many of ``lane``'s slots a live op holds now (each slot lock tried and let go at once)."""
+    live = 0
+    for slot in range(lane.slots):
+        try:
+            fd = os.open(Path(lane.lane_dir) / f"slot-{slot}" / "slot.lock", os.O_RDWR)
+        except OSError:
+            continue
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        except BlockingIOError:
+            live += 1
+        finally:
+            os.close(fd)
+    return live
 
 
 def _free_slots(lane):

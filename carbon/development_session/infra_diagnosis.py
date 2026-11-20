@@ -172,17 +172,22 @@ CARBON_CLASSES = frozenset(
         "carbon_restart_lost",
         "carbon_state_conflict",
         "carbon_cleanup_uncertain",
+        # a build refused only because its build-pipeline inference hit the door's CPU worker wall (`lean_recipe`)
+        "carbon_cpu_worker_wall",
     }
 )
 #: Recipe-side classes of a FAILED_INFRA record: none (see above; a detector head adds one with its fixtures).
 RECIPE_CLASSES = frozenset()
-#: Anything else: Carbon's (invariant 7), re-run ONCE, then owed with an alert for a new detector.
+#: Anything else: Carbon's (invariant 7) but not proven, so never rebuilt automatically (owner G-LEAD-10).
 UNCLASSIFIED = "carbon_unclassified"
 CLASSES = CARBON_CLASSES | RECIPE_CLASSES | {UNCLASSIFIED}
-#: Automatic re-runs a class allows within one task's chain: None = owner D16's per-code cap as before.
-RETRIES = {**{name: None for name in CARBON_CLASSES}, UNCLASSIFIED: 1}
-_OURS_NEXT = "Nothing to do: Carbon re-runs it. It is not charged and uses none of your allowance."
-_AUTO = "re-run automatically up to Carbon's retry limit, then owed a re-run"
+#: OWNER G-LEAD-10 (20 Nov 2026, "Go with the table"), replacing the 3x requeue + D16 cap for builds: automatic rebuilds a
+#: class gets in one task's chain. A proven Carbon-side failure: exactly ONE, on a healthy box, skipped if the miner
+#: submitted since; unknown: none (the miner may resubmit, its spot returned); recipe-side: none (its spot used).
+RETRIES = {**{name: 1 for name in CARBON_CLASSES}, UNCLASSIFIED: 0}
+RETRIES.update({name: 0 for name in RECIPE_CLASSES})
+_OURS_NEXT = "Nothing to do: Carbon rebuilds it once. This attempt used none of your daily allowance."
+_AUTO = "rebuilt once automatically on a Carbon machine that is not busy, unless you submit again first"
 #: The miner's table (the ruling's section 4), one row per class: what happened (one sentence, a public cause class:
 #: never a host, path, id or log text), whose side, charged or not, what to do next, retried or owed.
 FAILURE_TABLE = {
@@ -230,11 +235,17 @@ FAILURE_TABLE = {
         "Carbon could not confirm the cleanup after your build.",
         _AUTO,
     ),
+    "carbon_cpu_worker_wall": (
+        "Your model's check inference reached its time limit on Carbon's CPU worker, which is too slow for it.",
+        _AUTO,
+    ),
     UNCLASSIFIED: (
-        "Your build failed on Carbon's side for a reason Carbon has not classified yet.",
-        "re-run automatically once, then owed a re-run",
+        "Your build failed and Carbon could not tell why, so it is treated as Carbon's failure.",
+        "not rebuilt automatically",
     ),
 }
+#: The next step of a class whose miner resubmits (unknown): its own words.
+_RESUBMIT_NEXT = "Resubmit your recipe when you are ready. This attempt used none of your daily allowance."
 #: The one plain-English line per class.
 EXPLANATIONS = {name: row[0] for name, row in FAILURE_TABLE.items()}
 #: The closed keys of a public failure row (the ruling's section 4 columns): nothing else is ever served.
@@ -258,7 +269,7 @@ def public_row(failure_class):
         "what_happened": what,
         "side": "carbon",
         "charged": False,
-        "next_step": _OURS_NEXT,
+        "next_step": _RESUBMIT_NEXT if failure_class == UNCLASSIFIED else _OURS_NEXT,
         "retried_or_owed": retried,
     }
 

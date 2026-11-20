@@ -1,8 +1,10 @@
-"""Owner D16 for builds (18 Nov 2026, via the Lead; V2 Y on BUILD_RETRY_SPEC_20261118).
+"""OWNER G-LEAD-10 for builds (20 Nov 2026, "Go with the table"), replacing owner D16's 3-per-code / 5-per-chain re-runs.
 
-A build that ended on Carbon's side (FAILED_INFRA, or UNRESOLVED: invariant 7) re-runs automatically as its next
-generation at its original place, uncharged, a re-run of a re-run included, at most 3 times per failure code and 5
-times per task chain; a spent cap writes ``build_retry_cap_spent`` to the owed-list feed. Fixture ids only.
+A build that ended on Carbon's side with a PROVEN Carbon-side class (`infra_diagnosis.classify`) is rebuilt ONCE as its
+next generation at its original place, uncharged, on a healthy box (``healthy_box`` in `BUILD_RETRIES`), skipped if its
+miner submitted since the failure; an UNKNOWN cause is not rebuilt (the miner resubmits when ready; no allowance was
+used); a rebuild is never rebuilt again. Each refusal writes ``build_not_rerun`` to the owed-list feed. A receiver
+stop's own cancellation keeps its earlier rule (`test_carbon_cut_requeue`). Fixture ids only.
 """
 
 from __future__ import annotations
@@ -74,7 +76,9 @@ def _spent(attempts, code, count):
         log.writelines(rows)
 
 
-def test_an_unresolved_build_reruns_at_its_place_uncharged(door_ledger):
+def test_a_proven_carbon_side_build_is_rebuilt_once_at_its_place_on_a_healthy_box(
+    door_ledger,
+):
     _queue(door_ledger)
     door = _door(door_ledger)
     provider = _Provider({A: DirectTaskStateV3.UNRESOLVED})
@@ -88,57 +92,79 @@ def test_an_unresolved_build_reruns_at_its_place_uncharged(door_ledger):
         ).fetchone()
     (line,) = _lines(_journal(door_ledger) / lean_recipe.BUILD_RETRIES)
     assert (line["from_task"], line["new_task"], line["chain_root"]) == (A, N, A)
-    assert line["code"] == "direct_task_unresolved"
+    assert line["code"] == "carbon_build_wall_busy_host"
+    assert line["healthy_box"] is True
+    # its build takes a slot only on a healthy box
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+
+    assert direct_child_identity(N, "build") in lean_recipe.rebuild_build_identities(
+        door_ledger.path
+    )
 
 
-def test_a_rerun_of_a_rerun_counts_in_the_same_chain(door_ledger):
+def test_a_rebuild_is_never_rebuilt_again(door_ledger):
     _queue(door_ledger)
     door = _door(door_ledger)
     provider = _Provider(
-        {A: DirectTaskStateV3.FAILED_INFRA, N: DirectTaskStateV3.UNRESOLVED}
+        {A: DirectTaskStateV3.FAILED_INFRA, N: DirectTaskStateV3.FAILED_INFRA}
     )
     provider._requests[N] = ("req", HOTKEYS[0], 1)
     assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) == N
-    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(N), provider) == NEXT
-    lines = _lines(_journal(door_ledger) / lean_recipe.BUILD_RETRIES)
-    assert [line["chain_root"] for line in lines] == [A, A]
-
-
-def test_the_fourth_rerun_of_one_code_is_refused_and_owed(door_ledger):
-    _queue(door_ledger)
-    _spent(door_ledger, "direct_task_unresolved", lean_recipe.BUILD_CODE_RETRIES)
-    door = _door(door_ledger)
-    provider = _Provider({A: DirectTaskStateV3.UNRESOLVED})
-    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) is None
-    assert provider.started == []
+    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(N), provider) is None
+    assert len(provider.started) == 1
     (alert,) = _lines(_journal(door_ledger) / lean_recipe.BUILD_ALERTS)
-    assert alert["event"] == "build_retry_cap_spent"
-    assert alert["reason"] == "owed_list"
-    assert (alert["task"], alert["code"], alert["code_retries"]) == (
-        A,
-        "direct_task_unresolved",
-        3,
+    assert (alert["event"], alert["reason"], alert["task"]) == (
+        "build_not_rerun",
+        "one_rebuild_spent",
+        N,
     )
 
 
-def test_another_code_reruns_until_the_chain_cap(door_ledger):
+@pytest.mark.parametrize(
+    "diagnosis",
+    [
+        None,  # no retained diagnosis
+        {"failed_stage": "orchestration", "reason_code": "graph_decision", "tail": "x"},
+    ],
+)
+def test_an_unknown_cause_is_not_rebuilt(door_ledger, diagnosis):
     _queue(door_ledger)
-    _spent(door_ledger, "direct_task_unresolved", lean_recipe.BUILD_CODE_RETRIES)
     door = _door(door_ledger)
-    provider = _Provider({A: DirectTaskStateV3.FAILED_INFRA})
-    # a FAILED_INFRA ending is its own code: within the chain's 5
-    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) == N
-
-
-def test_the_sixth_rerun_of_a_chain_is_refused_and_owed(door_ledger):
-    _queue(door_ledger)
-    _spent(door_ledger, "x", 2)
-    _spent(door_ledger, "y", 3)
-    door = _door(door_ledger)
-    provider = _Provider({A: DirectTaskStateV3.FAILED_INFRA})
+    provider = _Provider({A: DirectTaskStateV3.FAILED_INFRA}, diagnosis=diagnosis)
     assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) is None
+    assert provider.started == []
     (alert,) = _lines(_journal(door_ledger) / lean_recipe.BUILD_ALERTS)
-    assert alert["chain_retries"] == lean_recipe.BUILD_CHAIN_RETRIES
+    assert (alert["event"], alert["reason"]) == (
+        "build_not_rerun",
+        "unknown_no_rebuild",
+    )
+
+
+def test_a_miner_who_submitted_since_the_failure_gets_no_rebuild(tmp_path):
+    clock = iter(range(1000, 100_000, 10))
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3", clock=lambda: next(clock))
+    _outcome(ledger, A)  # at 1000
+    _outcome(ledger, B, hotkey=HOTKEYS[1])  # another miner's: never counts
+    door = _door(ledger)
+    # the failure completed at 1 us (1000 ns): A's own row is not "since"
+    provider = _Provider({A: DirectTaskStateV3.FAILED_INFRA}, completed=1)
+    _outcome(ledger, "rtsk_" + "9" * 64)  # the miner submitted again after the failure
+    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) is None
+    assert provider.started == []
+    (alert,) = _lines(_journal(ledger) / lean_recipe.BUILD_ALERTS)
+    assert alert["reason"] == "miner_submitted_since"
+
+
+def test_without_a_later_submission_the_rebuild_runs(tmp_path):
+    clock = iter(range(1000, 100_000, 10))
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3", clock=lambda: next(clock))
+    _outcome(ledger, A)
+    _outcome(ledger, B, hotkey=HOTKEYS[1])
+    door = _door(ledger)
+    provider = _Provider({A: DirectTaskStateV3.FAILED_INFRA}, completed=1)
+    assert door._requeue_failed_build(HOTKEYS[0], ResearchTaskId(A), provider) == N
 
 
 def test_a_miners_own_resubmit_still_wins(door_ledger):
