@@ -22,7 +22,12 @@ from pathlib import Path
 
 from carbon.challenge_kit.interface_dtype import output_dtype
 from carbon.challenge_validator import crown_average as crown_average_step
+from carbon.challenge_validator import pair_read_gate as _pair_read_gate
 from carbon.development_session.graph_gpu_lane import OPS_NOTE as _OPS_NOTE
+
+# Owner LO-3: grades that read the repeat pair under the same ceiling read together; `pair_read_bound.py` (a Motor 1.8
+# producer file) keeps its bytes, the gate replaces its lock at runtime (`pair_read_gate`).
+_pair_read_gate.install()
 
 
 class RetentionUnavailable(ValueError):
@@ -1416,6 +1421,7 @@ def _sized_pair_ceiling(adapter, artifacts):
     limit = _pair_read_limit(adapter, artifacts)
     if limit <= PAIR_READ_BYTES:
         return contextlib.nullcontext()
+    _pair_read_gate.install()  # (idempotent; a no-op once the import installed it)
     return pair_read_bound.raised(limit)
 
 
