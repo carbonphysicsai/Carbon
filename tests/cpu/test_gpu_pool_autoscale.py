@@ -805,3 +805,73 @@ def test_a_short_grade_queue_rents_at_the_six_minute_tick(tmp_path):
     client = _Client()
     _ticks(config, client, 31, grading=scale.GRADE_SHORT, every=360, count=2)
     assert len(client.launched) == 1
+
+
+#: a throwaway ed25519 public key made for this test (no private half kept) and its `ssh-keygen -lf` fingerprint
+_TEST_KEY = (
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIManWiRHmMhNw1kEbOqy0SArUbLppCj81daXQv9iDAIW"
+)
+_TEST_FP = "SHA256:Ly3uqeEksDw8h+KyEKpCDf0a1gADf5fLx4l0rX7CU8g"
+
+
+def test_the_host_key_fingerprint_reads_a_keyscan_line():
+    """ssh-keyscan prints `<host> ssh-ed25519 <base64>`: the key is the field after the type (field 1 crashed every
+    bring-up, 20 Nov 2026)."""
+    assert scale._fingerprint("203.0.113.9 " + _TEST_KEY) == _TEST_FP
+    assert (
+        scale._fingerprint("[203.0.113.9]:20301 " + _TEST_KEY + " comment") == _TEST_FP
+    )
+    assert scale._fingerprint(_TEST_KEY) == _TEST_FP
+
+
+def test_bring_up_pins_the_keyscan_host_key_and_runs_both_phases(tmp_path, monkeypatch):
+    config = _config(tmp_path)
+    (tmp_path / "key").write_text("k")
+    state = {
+        "samples": [],
+        "boxes": {
+            "carbon-pool-a": {
+                "id": "i-1",
+                "launched": T0,
+                "phase": "UP",
+                "price_usd_h": PRICE,
+            }
+        },
+        "backoff_until": 0,
+    }
+    scale.save_state(config, state)
+    client = _Client(
+        [
+            {
+                "id": "i-1",
+                "name": "carbon-pool-a",
+                "status": "active",
+                "ip": "203.0.113.9",
+                "type": "gpu_1x_a100_sxm4",
+                "price_usd_h": PRICE,
+            }
+        ]
+    )
+    runs = []
+
+    class _Run:
+        def __init__(self, stdout, returncode=0):
+            self.stdout, self.returncode = stdout, returncode
+
+    def run(argv, **_):
+        runs.append(argv)
+        if argv[0] == "ssh-keyscan":
+            return _Run(
+                "# 203.0.113.9:22 SSH-2.0-OpenSSH\n203.0.113.9 " + _TEST_KEY + "\n"
+            )
+        return _Run('{"status": "PASS"}\n')
+
+    monkeypatch.setattr(
+        scale, "_door", lambda config, argv, **_: _Run(b'{"status": "ADMITTED"}\n')
+    )
+    scale.bring_up(config, "carbon-pool-a", client=client, run=run, wait=lambda s: None)
+    record = scale.load_state(config)["boxes"]["carbon-pool-a"]
+    assert record["result"] == "ADMITTED"
+    assert record["host_key_fingerprint"] == _TEST_FP
+    admin = next(a for a in runs if "admin" in a)
+    assert admin[admin.index("--host-key-fingerprint") + 1] == _TEST_FP

@@ -885,7 +885,13 @@ CONFIG_PATH = [""]
 
 
 def _fingerprint(line):
-    blob = base64.b64decode(line.split()[1])
+    """The SHA256 fingerprint (``ssh-keygen -l`` form) of an ed25519 key line: an ``ssh-keyscan`` line ``<host>
+    ssh-ed25519 <base64>`` or a bare ``ssh-ed25519 <base64>``. The key is the field AFTER the type: reading field 1 of
+    a keyscan line decoded the type name and crashed every bring-up 5 min in (``Incorrect padding``), so all three
+    rents of 19-20 Nov timed out and were released while builds waited (20 Nov 2026, 02:1xZ).
+    """
+    fields = line.split()
+    blob = base64.b64decode(fields[fields.index("ssh-ed25519") + 1])
     return "SHA256:" + base64.b64encode(hashlib.sha256(blob).digest()).decode().rstrip(
         "="
     )
