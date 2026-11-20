@@ -1184,6 +1184,13 @@ GRADING_EXCLUDED = (
     ),
     ("carbon.development_session.data", "create-only file writing"),
     (
+        "carbon.challenge_validator.grade_archive",
+        (
+            "storage only: puts an operator-archived origin's retained files back by sha256 before a regrade reads"
+            " them; the regrade then re-checks every file against its role manifest digest (V2 to confirm)"
+        ),
+    ),
+    (
         "carbon.development_session.profile",
         "canonical JSON and digest helpers: identity, verified where bound",
     ),

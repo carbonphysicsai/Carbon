@@ -100,6 +100,7 @@ def harness(tmp_path, monkeypatch):
         fail("VALIDATE")
 
     original_write = carrier.write_once
+    original_stage = carrier._stage_once
 
     def write(path, payload):
         if path.parent.name == "input":
@@ -107,6 +108,11 @@ def harness(tmp_path, monkeypatch):
         elif path.name == "resources.json":
             fail("RESOURCES")
         original_write(path, payload)
+
+    def stage(path, payload, mode):
+        # an op's input files are staged once per ledger (`_stage_once`); a staging fault is raised here as before
+        fail("STAGING")
+        original_stage(path, payload, mode)
 
     monkeypatch.setattr(carrier, "DockerCLI", CLI)
     monkeypatch.setattr(carrier, "doctor", doctor)
@@ -118,6 +124,7 @@ def harness(tmp_path, monkeypatch):
     monkeypatch.setattr(carrier, "remove_exact_container", remove)
     monkeypatch.setattr(carrier, "decode_output_stream", decode)
     monkeypatch.setattr(carrier, "write_once", write)
+    monkeypatch.setattr(carrier, "_stage_once", stage)
     monkeypatch.setattr(carrier, "_check_cancel", lambda *args: fail("CHECK_CANCEL"))
 
     def run(**overrides):
