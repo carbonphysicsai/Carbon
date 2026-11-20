@@ -6,6 +6,8 @@ copy to the receiver's own constant, so the page cannot drift from the door."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from carbon.battery import intake as battery_intake
@@ -16,39 +18,48 @@ from scripts.dev.miner_launchpad import supervisor
 KEPT = " Your frozen candidate is kept."
 
 
-def test_the_waiting_codes_carry_the_receivers_own_sentence():
-    assert supervisor.NEXT_ACTIONS["coldkey_submission_waiting"] == (
-        coldkey_waiting.MESSAGE + KEPT
-    )
-    assert supervisor.NEXT_ACTIONS["hotkey_submission_waiting"] == (
-        coldkey_waiting.HOTKEY_MESSAGE + KEPT
-    )
+def test_the_waiting_codes_carry_the_receivers_own_sentence_then_the_clients_tail():
+    coldkey = supervisor.NEXT_ACTIONS["coldkey_submission_waiting"]
+    hotkey = supervisor.NEXT_ACTIONS["hotkey_submission_waiting"]
+    assert coldkey.startswith(coldkey_waiting.MESSAGE)
+    assert hotkey.startswith(coldkey_waiting.HOTKEY_MESSAGE)
     assert coldkey_waiting.CODE == "coldkey_submission_waiting"
     assert coldkey_waiting.HOTKEY_CODE == "hotkey_submission_waiting"
+    # The tails name the Launchpad's own button and say another hotkey may be the one waiting.
+    assert "Withdraw (while queued)" in hotkey and "Withdraw (while queued)" in coldkey
+    assert "Another hotkey under your coldkey" in coldkey
+    assert coldkey.endswith(KEPT) and hotkey.endswith(KEPT)
 
 
-def test_the_unmapped_group_carries_the_receivers_own_sentence():
-    receiver = exam_cap.GROUPED_LIMIT_TEXT["allowance_group_unmapped"]
-    assert supervisor.NEXT_ACTIONS["allowance_group_unmapped"] == receiver + KEPT
+def test_the_launchpad_button_the_tails_name_exists():
+    page = (Path(supervisor.__file__).parent / "app.js").read_text(encoding="utf-8")
+    assert "Withdraw (while queued)" in page
 
 
-def test_the_unresolved_group_sentence_is_true_of_both_receiver_sentences():
-    # The receiver says it at admission and at grade in two sentences; the client's one holds the shared facts.
-    text = supervisor.NEXT_ACTIONS["allowance_group_unresolved"]
-    for receiver in (
-        coldkey_waiting.UNRESOLVED_MESSAGE,
-        exam_cap.GROUPED_LIMIT_TEXT["allowance_group_unresolved"],
+def test_the_group_refusals_use_no_internal_name_and_keep_the_receivers_facts():
+    # The receiver's sentences say "funder map" and "chain snapshot"; the miner is told in plain words. The fact the
+    # receiver states (no graded-exam slot used) stays, and the receiver still says it.
+    for code, receiver in (
+        (
+            "allowance_group_unmapped",
+            exam_cap.GROUPED_LIMIT_TEXT["allowance_group_unmapped"],
+        ),
+        ("allowance_group_unresolved", coldkey_waiting.UNRESOLVED_MESSAGE),
     ):
-        assert "match this hotkey to its coldkey in its latest chain snapshot" in receiver
-        assert "match this hotkey to its coldkey in its latest chain snapshot" in text
-    assert "Try again later" in text and "graded-exam slot" in text
+        text = supervisor.NEXT_ACTIONS[code]
+        assert "funder map" not in text and "chain snapshot" not in text
+        assert "No graded-exam slot was used" in text and "Try again later" in text
+        assert "last 4 characters of your hotkey" in text
+        assert "slot" in receiver or "allowance" in receiver
 
 
 def test_the_updating_door_sentence_is_the_doors_own_words():
-    assert battery_intake.UPDATING_MESSAGE in supervisor.NEXT_ACTIONS["door_updating"]
+    text = supervisor.NEXT_ACTIONS["door_updating"]
+    assert battery_intake.UPDATING_MESSAGE in text
+    assert "Your place in line" in text and "few minutes" not in text
 
 
-def test_every_new_code_has_its_own_sentence_that_says_to_try_again():
+def test_every_new_code_has_its_own_sentence():
     for code in (
         "hotkey_submission_waiting",
         "coldkey_submission_waiting",
@@ -60,7 +71,9 @@ def test_every_new_code_has_its_own_sentence_that_says_to_try_again():
     ):
         text = supervisor.next_action(code)
         assert text != supervisor.FALLBACK_ACTION
-        assert "again" in text.lower()
+        # A refusal that is ours never tells the miner to send it again; a rule of theirs says when to try again.
+        if code not in ("direct_task_cancelled", "version_closed"):
+            assert "again" in text.lower() or "retry" in text.lower()
 
 
 @pytest.mark.parametrize(
@@ -74,7 +87,7 @@ def test_every_new_code_has_its_own_sentence_that_says_to_try_again():
 )
 def test_a_graph_budget_refusal_names_the_32_kib_budget_in_bytes_not_tokens(code):
     text = supervisor.next_action(code)
-    assert "32 KiB" in text
+    assert "32 KiB size limit" in text
     assert "bytes" in text and "not tokens" in text
     assert "zlib" in text
 
