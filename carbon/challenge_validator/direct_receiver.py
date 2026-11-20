@@ -1499,8 +1499,94 @@ def _migration_refused(hotkey, old, new, reason):
     return False
 
 
+#: Grade-marker states that carry NO grade evidence (`auto_grade`): the grade failed Carbon-side (no score was accepted;
+#: an automatic retry grades it again) or the miner withdrew the task. Every other marker state is a grade.
+_UNGRADED_MARKERS = frozenset({"FAILED", "WITHDRAWN_BY_MINER"})
+
+
+def _owner_task_states(owner_dir):
+    """``[(task id, state name)]`` of every task in ``owner_dir``'s task store (read-only), or None when it cannot be
+    read (doubt keeps the declaration: `_ungraded_owner`)."""
+    import sqlite3
+
+    from carbon.research import DirectTaskViewV3, load_canonical
+
+    path = Path(owner_dir) / "tasks" / "direct-tasks.sqlite3"
+    if not path.is_file():
+        return None
+    try:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
+        try:
+            rows = db.execute("SELECT id, view FROM direct_tasks").fetchall()
+        finally:
+            db.close()
+        found = []
+        for identity, view_raw in rows:
+            view = load_canonical(view_raw, DirectTaskViewV3)
+            if view.task_id.value != identity:
+                return None
+            found.append((identity, view.state.value))
+    except Exception:  # noqa: BLE001 - unreadable: the declaration decides, as before
+        return None
+    return found
+
+
+def _marker_state(markers_dir, task_id):
+    """The grade marker state of ``task_id`` (None: no marker; ``"UNREADABLE"``: a marker that cannot be read)."""
+    path = Path(markers_dir) / f"{task_id}.json"
+    try:
+        if path.is_symlink():
+            return "UNREADABLE"
+        if not path.exists():
+            return None
+        body = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return "UNREADABLE"
+    state = body.get("state") if type(body) is dict else None
+    return state if type(state) is str else "UNREADABLE"
+
+
+def _ungraded_owner(owner_dir, markers_dir, *, build_inputs_changed):
+    """Over-broad rules audit #12 (M2 narrowed): the counts ``{"tasks", "unbuilt", "built_ungraded"}`` when NOTHING this
+    owner holds was graded under the old program, else None (the hand-declared change stays required).
+
+    What M2 protects is the evidence a grade bound to the program that made it: a grading or rebuild change is never
+    carried under an owner whose tasks were graded (or may be regraded, repeated or rebuilt for a crown) under the old
+    program, without the declared record V2 receipts. An owner with no grade evidence at all has nothing bound to the old
+    program: its unbuilt tasks are built and graded on the new one; a built task with no grade (no marker, or a FAILED
+    or withdrawn one) is graded on the new one for the first time, and only when the worker build inputs are unchanged
+    (``build_inputs_changed`` False: the state was built by the same worker images the new door runs). Doubt (no door
+    markers, an unreadable store or marker) keeps the declaration.
+    """
+    if markers_dir is None:
+        return None
+    states = _owner_task_states(owner_dir)
+    if states is None:
+        return None
+    unbuilt = built = 0
+    for task_id, state in states:
+        marker = _marker_state(markers_dir, task_id)
+        if marker is not None and marker not in _UNGRADED_MARKERS:
+            return None  # graded under the old program (or a marker that cannot be read): declared only
+        if state == "SUCCEEDED" and marker != "WITHDRAWN_BY_MINER":
+            if build_inputs_changed:
+                return None  # a built state from the old worker images would be graded: declared only
+            built += 1
+        else:
+            unbuilt += 1
+    return {"tasks": len(states), "unbuilt": unbuilt, "built_ungraded": built}
+
+
 def _migrate_owner_manifest(
-    ledger, hotkey, raw, frozen, candidate, *, images_migrated=False
+    ledger,
+    hotkey,
+    raw,
+    frozen,
+    candidate,
+    *,
+    images_migrated=False,
+    markers_dir=None,
+    host=False,
 ):
     """Re-freeze a retained owner's campaign manifest to a NEW accepted revision (Lead 4 Nov, option (a)), or False.
 
@@ -1508,7 +1594,9 @@ def _migrate_owner_manifest(
     (the revision is part of it) and refused to start. The manifest is re-frozen only when the change is the revision
     alone (`_revision_only_change`), the old revision is an ANCESTOR of the new one (`_is_ancestor`), and every retained
     task names the contract this receiver serves (the recipe contract is unchanged); otherwise the start refuses as
-    before. Only the campaign row changes (compare-and-swap on its old bytes); every task, evidence and view row is
+    before. A change of grading or rebuild paths (M2) migrates under the declared record, or with none for an owner that
+    holds no grade evidence (`_ungraded_owner`, over-broad rules audit #12; never the crown's host owner, ``host``,
+    whose rebuilds are crown evidence; ``markers_dir`` is the door's grade-marker directory). Only the campaign row changes (compare-and-swap on its old bytes); every task, evidence and view row is
     kept. The change is logged to stderr and appended to ``manifest-migrations.jsonl`` beside the owner's ledger.
     """
     import sys
@@ -1536,7 +1624,9 @@ def _migrate_owner_manifest(
         )
     touched = _grading_change(old, new)
     declared = _declared_change(old, new, touched) if touched else None
+    basis = "no_grading_change" if touched == () else None
     if declared is not None:
+        basis = "declared"
         # the ruled amendment: a change the Validator receipted by its declaration and per-door evidence
         print(
             json.dumps(
@@ -1553,9 +1643,32 @@ def _migrate_owner_manifest(
             file=sys.stderr,
             flush=True,
         )
-    elif touched != ():
-        # M2: a grading or rebuild change is never carried under an old owner's manifest. Said once per owner, so a
-        # spare proof shows why the start refused.
+    elif touched and not host:
+        ungraded = _ungraded_owner(
+            Path(ledger.root).parent,
+            markers_dir,
+            build_inputs_changed=BUILD_INPUTS_CHANGED in touched,
+        )
+        if ungraded is not None:
+            # audit #12: nothing this owner holds was graded under the old program, so nothing is re-bound (counts only)
+            basis = "ungraded_owner"
+            print(
+                json.dumps(
+                    {
+                        "event": "owner_manifest_migration_ungraded",
+                        "from_revision": old,
+                        "to_revision": new,
+                        "paths": len(touched),
+                        **ungraded,
+                    },
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+                flush=True,
+            )
+    if basis is None:
+        # M2: a grading or rebuild change is never carried under a manifest whose owner holds grade evidence of the old
+        # program without the declared record. Said once per owner, so a spare proof shows why the start refused.
         print(
             json.dumps(
                 {
@@ -1603,6 +1716,8 @@ def _migrate_owner_manifest(
             raw if type(raw) is bytes else str(raw).encode("utf-8")
         ).hexdigest(),
         "to_manifest_sha256": hashlib.sha256(payload).hexdigest(),
+        # why it was allowed: no grading change, the declared record, or an owner with no grade evidence (audit #12)
+        "basis": basis,
     }
     with open(
         Path(ledger.root) / "manifest-migrations.jsonl", "a", encoding="utf-8"
@@ -2200,6 +2315,8 @@ class OwnerProviders:
                         frozen,
                         candidate,
                         images_migrated=self.images_migrated,
+                        markers_dir=self.markers_dir,
+                        host=host,
                     )
                 ):
                     raise ValueError("retained direct owner campaign binding changed")
