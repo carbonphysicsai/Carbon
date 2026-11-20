@@ -491,11 +491,11 @@ def _contract_failure(
     return WorkerFailure(WorkerCode.POLICY, private_diagnostic=diagnostic)
 
 
-def test_the_output_contract_raise_is_named_and_gets_one_retry_not_three(tmp_path):
+def test_the_output_contract_raise_is_named_and_gets_no_automatic_retry(tmp_path):
     """live-ops 20 Nov 20:27Z: a graded inference whose worker program refused its own output failed byte-identically
     4 times per task (3 automatic retries as ``WorkerFailure``). Its side is unproven (V2 rules it from the counter's
-    counts), so owner G-LEAD-10's UNKNOWN: ONE retry, then the owed list. Every other worker failure keeps its code.
-    """
+    counts), so the owner's G-LEAD-10 CAUSE UNKNOWN row: spot returned, NO automatic regrade (V2 20:57Z). Every other
+    worker failure keeps its code and its retries."""
     import inspect
 
     from carbon.development_session import bundle_construction_worker, research_carrier
@@ -524,21 +524,29 @@ def test_the_output_contract_raise_is_named_and_gets_one_retry_not_three(tmp_pat
         == "ValueError"
     )
     assert auto_retry.failure_code(OSError("x")) == "OSError"
-    # one retry for this cause, then cap spent (owed); other causes keep PER_CAUSE_RETRIES
+    # not a version-wide gap (its spot is returned, not 'resubmit after the fix'), but no retry: cap spent at once
     root = tmp_path
     assert auto_retry.retryable(auto_retry.OUTPUT_CONTRACT_DIFFERS)
-    assert auto_retry.schedule(root, A, auto_retry.OUTPUT_CONTRACT_DIFFERS)
-    _close(root, A, 1)
     assert not auto_retry.schedule(root, A, auto_retry.OUTPUT_CONTRACT_DIFFERS)
-    assert _log(root, auto_retry.ALERT_NAME)[-1]["event"] == "auto_retry_cap_spent"
+    alert = _log(root, auto_retry.ALERT_NAME)[-1]
+    assert (alert["event"], alert["reason"], alert["code"]) == (
+        "auto_retry_cap_spent",
+        "owed_list",
+        auto_retry.OUTPUT_CONTRACT_DIFFERS,
+    )
+    assert not [r for r in _log(root) if r.get("kind") == "scheduled"]
+    # the other causes keep theirs
+    assert auto_retry.schedule(root, B, "WorkerFailure")
     assert (
         auto_retry.CAUSE_RETRIES.get("WorkerFailure", auto_retry.PER_CAUSE_RETRIES) == 3
     )
 
 
-def test_the_real_grader_gives_an_output_contract_failure_one_retry_then_owes_it(
+def test_the_real_grader_returns_the_spot_of_an_output_contract_failure_and_owes_it(
     tmp_path, monkeypatch
 ):
+    """The first failure goes straight to RELEASED FAILED_INFRA (uncharged) + slot_returned + the owed list: one
+    attempt, no automatic regrade."""
     from carbon.challenge_validator import auto_grade
 
     root, ledger = _root(tmp_path)
@@ -555,15 +563,34 @@ def test_the_real_grader_gives_an_output_contract_failure_one_retry_then_owes_it
     assert grader.run_once() == (A, "FAILED")
     marker = grader.marker(A)
     assert marker["code"] == auto_retry.OUTPUT_CONTRACT_DIFFERS
-    assert marker["next_step"] == "retry_scheduled"
-    assert grader.run_once() == (A, "FAILED")  # its one retry, failed the same way
-    assert grader.marker(A)["next_step"] == "slot_returned"
-    assert grader.run_once() is None  # owed: no third grade
-    assert attempts == [A, A]
+    assert marker["next_step"] == "slot_returned"
     assert _rows(ledger, A) == [
         ("RELEASED", "FAILED_INFRA")
     ]  # uncharged, never typed the candidate's here
-    assert (
-        _log(root, auto_retry.ALERT_NAME)[-1]["code"]
-        == auto_retry.OUTPUT_CONTRACT_DIFFERS
+    alert = _log(root, auto_retry.ALERT_NAME)[-1]
+    assert (alert["event"], alert["code"]) == (
+        "auto_retry_cap_spent",
+        auto_retry.OUTPUT_CONTRACT_DIFFERS,
     )
+    assert grader.run_once() is None  # owed: no second grade
+    assert attempts == [A]
+
+
+def test_the_miner_sees_only_the_existing_failed_infra_form_for_it():
+    """V2 20:57Z condition (2): the code is not in the public failure table (a row needs the owner's OK, R43), so a
+    miner's status reply for this marker is the existing grade-side form: FAILED_INFRA, no failure detail, no class
+    row; the marker's code is never served."""
+    from carbon.challenge_validator.direct_intake import DirectRecipeIntake
+
+    marker = {
+        "state": "FAILED",
+        "code": auto_retry.OUTPUT_CONTRACT_DIFFERS,
+        "next_step": "slot_returned",
+    }
+    intake = SimpleNamespace(grade_marker=lambda submission_id: marker)
+    assert DirectRecipeIntake._grade_state_v4(intake, HOTKEY, A) == (
+        "FAILED_INFRA",
+        None,
+    )
+    assert DirectRecipeIntake._failure_class_row(intake, A) is None
+    assert DirectRecipeIntake._grade_state(intake, HOTKEY, A) is None

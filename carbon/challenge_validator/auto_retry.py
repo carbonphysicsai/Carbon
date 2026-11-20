@@ -61,11 +61,12 @@ CAUSE_RETRIES = {"speed_outputs_disagree": 1}
 #: A graded inference whose worker program refused its own output (`bundle_construction_worker`'s check: shape, dtype,
 #: kind or a non-finite value; the carrier's marker OUTPUT_CONTRACT_DIFFERS). Deterministic: the same state and query
 #: give byte-identical failures (live-ops 20 Nov 20:27Z: 3 Motor 1.8 tasks, 4 attempts each, about 96 lane-min). Its
-#: side is not proven yet (V2 rules it from the output_finite_counter counts), so under owner G-LEAD-10 it is UNKNOWN:
-#: ONE automatic retry, then the owed list (Lead 20 Nov: "Unknown means one retry, not three"). Nothing here charges or
-#: types it the candidate's.
+#: side is not proven yet (V2 rules it from the output_finite_counter counts), so it is the owner's G-LEAD-10 CAUSE
+#: UNKNOWN row: its spot returned, NO automatic regrade (0 here: the first failure is at once cap spent, so the marker
+#: says slot_returned and the task goes on the owed list), the miner resubmits when ready (V2 pre-read 20 Nov 20:57Z).
+#: Nothing here charges or types it the candidate's. Prospective: a marker already written keeps its code.
 OUTPUT_CONTRACT_DIFFERS = "output_contract_differs"
-CAUSE_RETRIES[OUTPUT_CONTRACT_DIFFERS] = 1
+CAUSE_RETRIES[OUTPUT_CONTRACT_DIFFERS] = 0
 #: The worker program's own closed raise (`bundle_construction_worker`, its inference program text), matched in the
 #: failure's private diagnostic only to NAME the code: a candidate that printed it could only lower its own free retries.
 _OUTPUT_CONTRACT_RAISE = b"bundle inference output contract differs"
