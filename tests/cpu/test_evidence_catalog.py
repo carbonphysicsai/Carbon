@@ -1,5 +1,6 @@
 """Carbon Evidence Catalog v0 (`scripts/dev/evidence_catalog.py`): the join, its class discipline and its read-only
-sources, on a synthetic receiver state (fake task-record decoders; no door, worker, model or hidden value)."""
+sources, on a synthetic receiver state (fake task-record decoders; no door, worker, model or hidden value).
+"""
 
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "dev"))
 
-import evidence_catalog as cec  # noqa: E402
+import evidence_catalog as cec
 
 HOTKEY = "5" + "H" * 47
 TASK = "rtsk_" + "a" * 64
@@ -99,9 +100,11 @@ def state(tmp_path):
                 [(COPY, RERUN, "m", "1.8", "k", RECIPE, 1)],
             ),
             (
-                "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, epoch, "
-                "submission_id, state, status, reserved_ns, settled_ns, cpu_seconds, lane_seconds) "
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, epoch, "
+                    "submission_id, state, status, reserved_ns, settled_ns, cpu_seconds, lane_seconds) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                ),
                 [
                     (
                         HOTKEY,
@@ -340,7 +343,7 @@ def test_the_sources_are_read_only_and_the_catalog_is_swapped_in_owner_only(stat
 
 
 def test_refusals_before_anything_is_written(state, tmp_path):
-    root, out, key, pool = state
+    root, out, key, _pool = state
     with pytest.raises(cec.CatalogRefused, match="catalog_state_root_invalid"):
         cec.build(tmp_path / "nowhere", out, key, decoders=DECODERS)
     with pytest.raises(cec.CatalogRefused, match="catalog_out_inside_state"):

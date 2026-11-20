@@ -162,9 +162,9 @@ def _default_decoders():
             "updated_s": v.updated_at_micros / 1e6,
             "recipe_digest": v.immutable_bindings.recipe_digest,
             "refusal_code": None if r is None else r.refusal_code,
-            "infra_class": None
-            if infra is None
-            else getattr(infra, "value", str(infra)),
+            "infra_class": (
+                None if infra is None else getattr(infra, "value", str(infra))
+            ),
             "completed_s": None if r is None else r.completed_at_micros / 1e6,
         }
 
@@ -198,7 +198,7 @@ def build(
             return None
         return "o:" + hmac.new(key, hotkey.encode(), hashlib.sha256).hexdigest()[:32]
 
-    tmp = out_dir / (".%s.%d.tmp" % (CATALOG_NAME, os.getpid()))
+    tmp = out_dir / f".{CATALOG_NAME}.{os.getpid()}.tmp"
     if tmp.exists():
         tmp.unlink()
     out = sqlite3.connect(str(tmp))
@@ -307,9 +307,8 @@ def _fill(out, root, pool_store, decode_view, decode_recipe, pseudonym):
                 row = sub(sid)
                 try:
                     v = decode_view(view)
-                except (
-                    Exception
-                ):  # noqa: BLE001 - an undecodable record is counted, never guessed
+                # an undecodable record is counted, never guessed (a canonical refusal is a ValueError)
+                except (ValueError, TypeError, KeyError, AttributeError):
                     counts["undecoded_views"] = counts.get("undecoded_views", 0) + 1
                     continue
                 row.update(
@@ -335,7 +334,7 @@ def _fill(out, root, pool_store, decode_view, decode_recipe, pseudonym):
                             sort_keys=True,
                             separators=(",", ":"),
                         )
-                    except Exception:  # noqa: BLE001
+                    except (ValueError, TypeError, KeyError, AttributeError):
                         counts["undecoded_recipes"] = (
                             counts.get("undecoded_recipes", 0) + 1
                         )
@@ -367,8 +366,7 @@ def _fill(out, root, pool_store, decode_view, decode_recipe, pseudonym):
                     if all(x is None for x in values):
                         continue
                     out.execute(
-                        "INSERT OR REPLACE INTO builds VALUES(?%s)"
-                        % (",?" * len(BUILD_FIELDS)),
+                        f"INSERT OR REPLACE INTO builds VALUES(?{',?' * len(BUILD_FIELDS)})",
                         [sid, *values],
                     )
                     builds += 1
@@ -487,12 +485,28 @@ def _fill(out, root, pool_store, decode_view, decode_recipe, pseudonym):
         finally:
             db.close()
 
-    columns = (
-        "submission_id challenge_id version owner recipe_digest request_sha256 admitted_ns created_s updated_s "
-        "completed_s task_state refusal_code infra_class failure_stage failure_reason cancel_kind rerun_of copy_of"
-    ).split()
+    columns = [
+        "submission_id",
+        "challenge_id",
+        "version",
+        "owner",
+        "recipe_digest",
+        "request_sha256",
+        "admitted_ns",
+        "created_s",
+        "updated_s",
+        "completed_s",
+        "task_state",
+        "refusal_code",
+        "infra_class",
+        "failure_stage",
+        "failure_reason",
+        "cancel_kind",
+        "rerun_of",
+        "copy_of",
+    ]
     out.executemany(
-        "INSERT INTO submissions VALUES(%s)" % ",".join("?" * len(columns)),
+        f"INSERT INTO submissions VALUES({','.join('?' * len(columns))})",
         ([row.get(c) for c in columns] for row in subs.values()),
     )
     counts.update(
@@ -510,7 +524,7 @@ def _fill(out, root, pool_store, decode_view, decode_recipe, pseudonym):
         "crown_finals",
         "crown_events",
     ):
-        counts[table] = out.execute("SELECT COUNT(*) FROM %s" % table).fetchone()[0]
+        counts[table] = out.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
     return counts
 
 
