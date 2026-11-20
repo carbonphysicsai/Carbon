@@ -4373,6 +4373,30 @@ def _epoch_of_submission(adapter, submission_id, recipe_digest):
     return None if block is None else exam_cap.epoch_of(block)
 
 
+def _ladder_owner(adapter, submission_id):
+    """The hotkey of ``submission_id`` for its Ladder, read WITHOUT opening a provider first (an open is refused while
+    the receiver stops, and opens a lazy owner): the receiver's own keys (`OwnerProviders.hotkey_of`), then the
+    ledger's admission of it under this contract, `adapter.owner` only last (as `auto_grade.AutoGrader._task_owner`).
+    """
+    lookup = getattr(getattr(adapter, "provider_for", None), "hotkey_of", None)
+    if callable(lookup):
+        try:
+            owner = lookup(submission_id)
+        except Exception:  # noqa: BLE001 - fall back to the ledger
+            owner = None
+        if type(owner) is str:
+            return owner
+    owned = getattr(getattr(adapter, "ledger", None), "owned_outcome", None)
+    if callable(owned):
+        try:
+            owner = owned(adapter.contract_digest, submission_id)
+        except Exception:  # noqa: BLE001 - fall back to the adapter
+            owner = None
+        if type(owner) is str:
+            return owner
+    return adapter.owner(submission_id)
+
+
 def _record_ladder(
     adapter,
     submission_id,
@@ -4391,11 +4415,13 @@ def _record_ladder(
     the one source the KOTH comparator also reads (`koth_registry`). Its own
     failure never unbinds the evaluation: the state says RECORDED or names the
     refusal."""
+    from carbon.challenge_validator.interface import Unavailable
+
     try:
         from carbon.challenge_validator import koth_registry, part_feedback
         from carbon.challenge_validator.ladder_store import LadderStore
 
-        hotkey = adapter.owner(submission_id)
+        hotkey = _ladder_owner(adapter, submission_id)
         if hotkey is None:
             return "UNAVAILABLE: ladder_owner_unknown"
         epoch = _epoch_of_submission(adapter, submission_id, recipe_digest)
@@ -4431,7 +4457,9 @@ def _record_ladder(
                 version=_registry_version(adapter),
             ),
         )
-    except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
+    except (ImportError, OSError, ValueError, KeyError, TypeError, Unavailable) as exc:
+        # (live 116, 20 Nov 2026 14:09:50Z: an owner open refused while the receiver stopped escaped here and failed a
+        # grade that had already COUNTED; the Ladder's own failure only names itself)
         return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))
     return "RECORDED" + _record_gate_failures(
         adapter, submission_id, exam_key, shown, accuracy
