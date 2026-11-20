@@ -82,59 +82,51 @@ ROWS = (
 )
 
 
-#: The owner's failure-handling rule (G-LEAD-10, "Go with the table"; prospective): per class of failure, whether the daily
-#: spot is used, whether Carbon rebuilds by itself, and what the miner does. V2's ruling revision owns the exact terms; a change
-#: there is a change to these three entries and nothing else.
-CLASS_TERMS = {
-    "recipe": (
-        "Yours (your recipe)",
-        "Used: it counts against your daily limit.",
-        "Carbon does not rebuild it.",
-    ),
-    "carbon": (
-        "Ours (Carbon's)",
-        "Returned: it uses none of your daily limit.",
-        "Carbon rebuilds it once, automatically, on a healthy machine. If you submit again before then, the automatic "
-        "rebuild is skipped.",
-    ),
-    "unknown": (
-        "Ours (Carbon's); the cause is not known yet",
-        "Returned: it uses none of your daily limit.",
-        "Carbon does not rebuild it by itself.",
-    ),
-}
-#: What the miner does, by class (a recipe-side row adds its own fix).
-CLASS_TODO = {
-    "carbon": "Nothing: wait for the rebuild, or submit again if you prefer.",
-    "unknown": "Submit again once, when you are ready.",
-}
+#: The recipe-side terms of the owner's failure-handling rule (G-LEAD-10, "Go with the table"): the daily spot is used and
+#: Carbon does not rebuild. A Carbon-side class carries its own terms in the receiver's class table (`public_row`), so the
+#: words and the owner's rule are written once, there.
+RECIPE_SIDE = "Yours (your recipe)"
+RECIPE_SPOT = "Used: it counts against your daily limit."
+RECIPE_NEXT = "Carbon does not rebuild it."
+CARBON_SIDE = "Ours (Carbon's)"
+CARBON_SPOT = "Returned: it uses none of your daily limit."
 #: The recipe-side codes a build or an inference can already end in (the receiver's `failure` observation words), each with
 #: the public rule to fit; both are yours and counted as your try, as today.
-RECIPE_FAILURES = (
-    ("WORKER_WALL_LIMIT_REACHED", "Reduce the work so it fits the public time limit (the Challenge's How you're tested page)."),
-    ("WORKER_MEMORY_LIMIT_REACHED", "Reduce memory use so it fits the public memory limit (the Challenge's How you're tested page)."),
-)
+RECIPE_FAILURES = {
+    "WORKER_WALL_LIMIT_REACHED": "Reduce the work so it fits the public time limit (the Challenge's How you're tested page).",
+    "WORKER_MEMORY_LIMIT_REACHED": "Reduce memory use so it fits the public memory limit (the Challenge's How you're tested page).",
+}
+
+
+def _sentence(text):
+    text = str(text).strip()
+    return text[:1].upper() + text[1:] + ("" if text.endswith(".") else ".")
 
 
 def failure_rows():
-    """The failure-class table rows `(code, what happened, whose side, daily spot, what happens next, what to do)`, read
-    from the receiver's class table: recipe-side first, then every Carbon-side class, the unclassified one last."""
+    """The failure table rows `(code, what happened, whose side, daily spot, what happens next, what to do)`: the recipe-side
+    codes first, then every class of the receiver's own table (`infra_diagnosis.public_row`), the unclassified one last. A
+    new class appears here with no row written by hand."""
     from carbon.development_session import infra_diagnosis as diagnosis
     from scripts.dev.miner_launchpad import projection
 
     rows = []
-    for code, todo in RECIPE_FAILURES:
-        side, spot, nxt = CLASS_TERMS["recipe"]
+    for code, todo in RECIPE_FAILURES.items():
         what = "Your recipe's run " + projection.FAILURE_OBSERVATION_WORDS[code] + "."
-        rows.append((code, what, side, spot, nxt, todo))
+        rows.append((code, what, RECIPE_SIDE, RECIPE_SPOT, RECIPE_NEXT, todo))
     for code in sorted(diagnosis.CLASSES, key=lambda name: (name == diagnosis.UNCLASSIFIED, name)):
         public = diagnosis.public_row(code)
-        kind = "unknown" if code == diagnosis.UNCLASSIFIED else "carbon"
-        side, spot, nxt = CLASS_TERMS[kind]
-        if code in diagnosis.RECIPE_CLASSES:
-            side, spot, nxt = CLASS_TERMS["recipe"]
-            kind = "recipe"
-        rows.append((code, public["what_happened"], side, spot, nxt, CLASS_TODO.get(kind, "See the line above.")))
+        ours = public["side"] == "carbon"
+        rows.append(
+            (
+                code,
+                public["what_happened"],
+                CARBON_SIDE if ours else RECIPE_SIDE,
+                CARBON_SPOT if not public["charged"] else RECIPE_SPOT,
+                _sentence(public["retried_or_owed"]),
+                public["next_step"],
+            )
+        )
     return rows
 
 
@@ -178,8 +170,10 @@ def render():
         lines.append("| `" + _cell(row[0]) + "` | " + " | ".join(_cell(cell) for cell in row[1:]) + " |")
     lines += [
         "",
-        "*Not stated* means that code's own words do not say, so this table does not guess. If a message repeats, "
-        "send us the UTC time and the last 4 characters of your hotkey.",
+        (
+            "*Not stated* means that code's own words do not say, so this table does not guess. If a message repeats, "
+            "send us the UTC time and the last 4 characters of your hotkey."
+        ),
         "",
         END,
     ]

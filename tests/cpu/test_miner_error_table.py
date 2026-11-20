@@ -63,7 +63,7 @@ def test_a_refusal_that_does_not_say_whether_it_charged_says_not_stated():
     # A row says "No" only when its own words say so: each such sentence names it.
     said = ("charged", "allowance", "unused", "slot", "admitting")
     for source, code, _, charged in error_table.ROWS:
-        if not charged.startswith("No"):
+        if not charged.startswith("No") or charged.startswith("Not "):
             continue
         words = (
             supervisor.NEXT_ACTIONS[code]
@@ -100,17 +100,22 @@ def test_every_failure_class_the_receiver_can_emit_has_its_row_without_a_hand_wr
 
 def test_each_failure_class_states_its_spot_and_what_happens_next_by_the_owners_rule():
     # G-LEAD-10: recipe crashed = spot used, no rebuild; Carbon's = spot returned, one automatic rebuild unless the miner
-    # resubmitted first; unknown = spot returned, no automatic rebuild, resubmit when ready.
+    # resubmitted first; unknown = spot returned, no automatic rebuild, resubmit when ready. The Carbon-side words are the
+    # receiver's own (`public_row`), so the table and the served reply cannot disagree.
     rows = {row[0]: row for row in error_table.failure_rows()}
     for code in ("WORKER_WALL_LIMIT_REACHED", "WORKER_MEMORY_LIMIT_REACHED"):
         _, _, side, spot, nxt, todo = rows[code]
         assert spot.startswith("Used") and "does not rebuild" in nxt and side.startswith("Yours")
-    for code in infra_diagnosis.CLASSES - {infra_diagnosis.UNCLASSIFIED} - infra_diagnosis.RECIPE_CLASSES:
-        _, _, side, spot, nxt, todo = rows[code]
+    for code in infra_diagnosis.CLASSES:
+        public = infra_diagnosis.public_row(code)
+        _, what, side, spot, nxt, todo = rows[code]
+        assert what == public["what_happened"] and todo == public["next_step"]
+        assert nxt.lower().startswith(public["retried_or_owed"].lower())
         assert side.startswith("Ours") and spot.startswith("Returned")
-        assert "once, automatically" in nxt and "submit again before then" in nxt
-    _, _, side, spot, nxt, todo = rows[infra_diagnosis.UNCLASSIFIED]
-    assert spot.startswith("Returned") and "does not rebuild it by itself" in nxt and "Submit again" in todo
+    carbon = rows["carbon_build_wall_busy_host"]
+    assert "rebuilt once" in carbon[4] and "unless you submit again first" in carbon[4]
+    unknown = rows[infra_diagnosis.UNCLASSIFIED]
+    assert unknown[4] == "Not rebuilt automatically." and "Resubmit" in unknown[5]
 
 
 def test_the_failure_table_names_no_host_path_or_id():
