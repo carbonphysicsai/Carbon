@@ -264,9 +264,8 @@ class LadderStore:
         """The current row for `key`: the evaluation-keyed one, else the most
         recent row written before under a construction version that maps to
         the same evaluation key (read only, never rewritten)."""
-        from carbon.scoring.sealed_versions import ladder_key
-
         from carbon.challenge_validator.ledger import read_snapshot
+        from carbon.scoring.sealed_versions import ladder_key
 
         hotkey, challenge_id, evaluation, exam_key = key
         with read_snapshot(self.ledger) as db:

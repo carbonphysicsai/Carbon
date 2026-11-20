@@ -455,6 +455,7 @@ class ExamCap:
         self.ledger = ledger
         self.clock = clock or time.time_ns
         self._cadence = cadence
+
         def prepare():
             with ledger._db() as db:
                 _prepare(db)

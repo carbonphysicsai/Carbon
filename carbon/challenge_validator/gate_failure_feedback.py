@@ -163,7 +163,8 @@ def record(ledger, submission_id, exam_key, failures):
 
 def read(ledger, submission_id, exam_key):
     """The stored failures of this submission on this exam, or None (not gate-failed, an older grade, no table yet).
-    A read on a snapshot, never the ledger's write lock (LOCK + CACHE AUDIT #6: every v6+ feedback took it)."""
+    A read on a snapshot, never the ledger's write lock (LOCK + CACHE AUDIT #6: every v6+ feedback took it).
+    """
     from carbon.challenge_validator.ledger import read_snapshot
 
     try:

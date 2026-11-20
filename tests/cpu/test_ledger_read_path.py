@@ -13,9 +13,8 @@ import os
 
 import pytest
 
-from carbon.challenge_validator import exam_cap
+from carbon.challenge_validator import exam_cap, ladder_store
 from carbon.challenge_validator import gate_failure_feedback as gff
-from carbon.challenge_validator import ladder_store
 from carbon.challenge_validator import ledger as ledger_module
 from carbon.challenge_validator.ledger import AttemptLedger
 
@@ -53,13 +52,13 @@ def test_exam_cap_prepares_once_per_ledger_file_and_reads_take_no_write_lock(
     exam_cap.ExamCap(ledger)
     exam_cap.ExamCap(ledger)
     assert writes["n"] == 1  # one preparation per process for this file
-    identity = dict(
-        hotkey=HOTKEY,
-        challenge_id="toy",
-        challenge_version="1",
-        exam_key=EXAM,
-        submission_id=SID,
-    )
+    identity = {
+        "hotkey": HOTKEY,
+        "challenge_id": "toy",
+        "challenge_version": "1",
+        "exam_key": EXAM,
+        "submission_id": SID,
+    }
     assert first.holds_slot(**identity) is False
     assert first.released_on_infra(**identity) is False
     assert first.count(hotkey=HOTKEY, challenge_id="toy") == 0
