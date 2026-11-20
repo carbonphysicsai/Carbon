@@ -143,8 +143,11 @@ def test_a_grade_refused_before_the_configuration_grades_fresh_after_it(
     its retained regrade bytes. Configured, the retry runs under its own regrade id on the pack's image (fresh
     identities), never reading those bytes back, and binds; the first attempt's files are left as they were.
     """
-    first = _grade(migrated, counted=True)
-    assert "leg_minimum_platform_mismatch" in first["private_evaluation_reason"]
+    # Carbon's version-wide gap (V2-L2-RETENTION-20261120): raised to the grader (FAILED_INFRA), slot returned
+    with pytest.raises(
+        retention.RetentionUnavailable, match="^leg_minimum_platform_mismatch$"
+    ):
+        _grade(migrated, counted=True)
     old_root = _regrade_root(migrated)
     old_worker = (old_root / "worker-evidence.json").read_bytes()
     migrated.used.clear()

@@ -618,14 +618,18 @@ def test_retention_refuses_an_unregistered_challenge_fail_closed(cap):
     _record(cap, contract, "rtsk_new", 360)
     adapter = _adapter(cap, contract)
     adapter.challenge_id = "not-registered"
-    refused = _retain(adapter, "rtsk_new")
-    assert refused["private_evaluation_reason"] == "exam_cap_unregistered"
+    # Carbon's own gap (V2-L2-RETENTION-20261120): the grader gives it back as FAILED_INFRA, never a miner's UNAVAILABLE
+    with pytest.raises(retention.RetentionUnavailable, match="^exam_cap_unregistered$"):
+        _retain(adapter, "rtsk_new")
 
 
 def test_retention_with_no_signed_block_does_not_grade(cap):
     contract = "sha256:" + "c" * 64  # no OUTCOME attempt row: no receipt block
-    refused = _retain(_adapter(cap, contract), "rtsk_new")
-    assert refused["private_evaluation_reason"] == "exam_cap_block_unavailable"
+    # Carbon's own gap (V2-L2-RETENTION-20261120): the grader gives it back as FAILED_INFRA, never a miner's UNAVAILABLE
+    with pytest.raises(
+        retention.RetentionUnavailable, match="^exam_cap_block_unavailable$"
+    ):
+        _retain(_adapter(cap, contract), "rtsk_new")
 
 
 def test_rebuild_lane_seconds_come_from_the_ledgers_operation_receipts(tmp_path):
@@ -692,7 +696,9 @@ def test_retention_never_recovers_reservations_only_start_up_does(tight, clock):
     _reserve(tight, 7)  # another attempt, left open
     clock.now += 100_000 * 1_000_000_000  # long past any deadline
     _record(tight, contract, "rtsk_new", 360 * 30)
-    _retain(_adapter(tight, contract, cadence(9.4)), "rtsk_new")
+    # this fixture adapter grades nothing (no worker after the reservation): Carbon's failure, raised to the grader
+    with pytest.raises(retention.RetentionUnavailable):
+        _retain(_adapter(tight, contract, cadence(9.4)), "rtsk_new")
     with tight.ledger._db() as db:
         row = db.execute(
             "SELECT state FROM exam_graded WHERE submission_id='rtsk_7'"
