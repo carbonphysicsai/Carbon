@@ -2803,3 +2803,68 @@ def test_a_cpu_image_that_is_not_a_full_id_or_is_the_jax_image_is_refused(tmp_pa
 def test_without_a_cpu_image_the_box_file_lists_what_it_did_before(tmp_path):
     cfg = _config(tmp_path)
     assert cfg.images == (JAX, TORCH) and cfg.cpu_image == "" and not cfg.pod
+
+
+def _pod_on(tmp_path, name, port):
+    """A pod door config for box ``name`` on ``port`` of the same IP, each with its own config files."""
+    return _pod_config(tmp_path, "--box-name", name, "--port", str(port))
+
+
+def test_two_pods_on_one_ip_with_other_ports_keep_each_others_ssh_files(tmp_path):
+    """Lium hands out several pods on one IP with different ssh ports: each pod's watchdog block is keyed by ip AND
+    port, and admitting one never drops another's."""
+    first = _pod_on(tmp_path, "ada-1", PORT)
+    assert _run(first, FakePod(first))["status"] == "ADMITTED"
+    second = _pod_on(tmp_path, "ada-2", PORT + 1)
+    assert (
+        _run(
+            second,
+            FakePod(
+                second,
+                port=PORT + 1,
+                keyscan=f"[{IP}]:{PORT + 1} ssh-ed25519 {HOST_KEY}\n",
+            ),
+        )["status"]
+        == "ADMITTED"
+    )
+    ssh_boxes = tmp_path / "ssh-boxes"
+    assert sorted(p.name for p in ssh_boxes.iterdir()) == [
+        "ada-1.conf",
+        "ada-1.known_hosts",
+        "ada-2.conf",
+        "ada-2.known_hosts",
+    ]
+    for name, port in (("ada-1", PORT), ("ada-2", PORT + 1)):
+        lines = (ssh_boxes / f"{name}.conf").read_text().splitlines()
+        assert lines[1] == f'Match host {IP} exec "test %p = {port}"'
+        assert f"  Port {port}" in lines
+        assert f"Host {IP}" not in lines
+        known = (ssh_boxes / f"{name}.known_hosts").read_text()
+        assert known == f"[{IP}]:{port} ssh-ed25519 {HOST_KEY}\n"
+
+
+def test_a_recycled_pod_ip_and_port_drops_the_old_pods_ssh_files(tmp_path):
+    ssh_boxes = tmp_path / "ssh-boxes"
+    ssh_boxes.mkdir(mode=0o700)
+    match = f'Match host {IP} exec "test %p = {PORT}"'
+    (ssh_boxes / "ada-0.conf").write_text(f"# ada-0\n{match}\n  User carbon-grade\n")
+    (ssh_boxes / "ada-0.known_hosts").write_text(
+        f"[{IP}]:{PORT} ssh-ed25519 {_key_body(99)}\n"
+    )
+    other_port = f'Match host {IP} exec "test %p = {PORT + 1}"'
+    (ssh_boxes / "ada-9.conf").write_text(f"# ada-9\n{other_port}\n")
+    cfg = _pod_on(tmp_path, "ada-1", PORT)
+    assert _run(cfg, FakePod(cfg))["status"] == "ADMITTED"
+    assert sorted(p.name for p in ssh_boxes.iterdir()) == [
+        "ada-1.conf",
+        "ada-1.known_hosts",
+        "ada-9.conf",
+    ]
+
+
+def test_the_port_22_ssh_block_is_keyed_by_host_as_before(tmp_path):
+    cfg = _config(tmp_path)
+    assert box_up.box_ssh_selector(cfg) == f"Host {IP}"
+    text = box_up.box_ssh_conf_text(cfg, Path("/k"))
+    assert text.splitlines()[1] == f"Host {IP}" and "Port" not in text
+    assert "Match" not in text

@@ -2199,11 +2199,24 @@ def box_ssh_files(cfg) -> tuple[Path, Path]:
     )
 
 
+def box_ssh_selector(cfg) -> str:
+    """The line that opens a box's block in its ``<name>.conf``, keyed by its address AND port: ``Host <ip>`` on port 22
+    (as every VM box has it), ``Match host <ip> exec "test %p = <port>"`` on any other port. Lium hands out several pods
+    on one IP with different ssh ports, and a ``Host <ip>`` block would match them all (ssh takes the FIRST value of each
+    option, so one pod's known_hosts and key would be offered to the others). ssh expands ``%p`` to the connection's
+    port; ``Match ... exec`` runs that local ``test`` once per ssh connection, which is cheap.
+    """
+    if cfg.port == 22:
+        return f"Host {cfg.ip}"
+    return f'Match host {cfg.ip} exec "test %p = {cfg.port}"'
+
+
 def box_ssh_conf_text(cfg, known_hosts: Path) -> str:
-    """The build link's settings (`pinned_ssh_options`): the pinned host key strictly, the lane key alone."""
+    """The build link's settings (`pinned_ssh_options`): the pinned host key strictly, the lane key alone, in a block
+    for this box's address and port (`box_ssh_selector`)."""
     lines = [
         f"# {cfg.name}: written by gpu_box_up door at admission; gpu_pool_autoscale removes it at release",
-        f"Host {cfg.ip}",
+        box_ssh_selector(cfg),
         f"  User {LANE_USER}",
     ]
     if cfg.port != 22:
@@ -2239,13 +2252,14 @@ def _replace_private(path: Path, text: str) -> None:
 
 def write_box_ssh_files(cfg, host_key: str) -> None:
     """This box's ``<name>.known_hosts`` (the pinned key line) and ``<name>.conf`` (0600, each replaced atomically).
-    Another box's files naming the same address go first: ssh takes the FIRST matching Host block, and a provider
-    recycles addresses."""
+    Another box's files naming the same address and port (`box_ssh_selector`) go first: ssh takes the FIRST matching
+    block, and a provider recycles addresses (Lium: ip:port, with a new host key). Another pod on the same IP but another
+    port keeps its files."""
     directory = ready_boxes_dir(cfg.ssh_boxes_dir)
     conf, known = box_ssh_files(cfg)
-    host = f"Host {cfg.ip}\n"
+    selector = box_ssh_selector(cfg) + "\n"
     for other in sorted(directory.glob("*.conf")):
-        if other != conf and host in other.read_text(encoding="utf-8"):
+        if other != conf and selector in other.read_text(encoding="utf-8"):
             other.unlink()
             other.with_suffix(".known_hosts").unlink(missing_ok=True)
     _replace_private(known, host_key + "\n")
