@@ -627,6 +627,71 @@ NEXT_ACTIONS = {
         "earlier graded exams age past one day, so submit it again in a later "
         "round."
     ),
+    # The receiver's own sentences (`coldkey_waiting`, `exam_cap`), word for word, then the one thing the client adds:
+    # the frozen candidate is kept. A test holds each to the receiver's text, so the page cannot drift from the door.
+    "hotkey_submission_waiting": (
+        "One waiting submission per hotkey on this Challenge: this hotkey already has a submission queued, building or "
+        "waiting for its grade on this validator. Nothing was built or graded for this submission and it used none of "
+        "your allowance. Submit again once that submission has its result, or withdraw it while it is still queued, if "
+        "this validator offers withdrawal (withdraw command). Your frozen candidate is kept."
+    ),
+    "coldkey_submission_waiting": (
+        "One waiting submission per coldkey on this Challenge: a submission from a hotkey of this coldkey is already "
+        "queued, building or waiting for its grade on this validator. Nothing was built or graded for this submission "
+        "and it used none of your allowance. Submit again once that submission has its result. Your frozen candidate "
+        "is kept."
+    ),
+    "allowance_group_unmapped": (
+        "This hotkey's coldkey is not yet in the validator's funder map, so it cannot be graded yet. This submission "
+        "was not graded and no graded-exam slot was used for it; if it had been built, that build was spent. Try "
+        "again later. Your frozen candidate is kept."
+    ),
+    # The receiver says this at admission (`coldkey_waiting.UNRESOLVED_MESSAGE`) and at grade (`exam_cap`) in two
+    # sentences; this one is true of both, and the receiver's own answer says which and whether a build was spent.
+    "allowance_group_unresolved": (
+        "The validator cannot yet match this hotkey to its coldkey in its latest chain snapshot, so it cannot take or "
+        "grade this submission yet. No graded-exam slot was used for it; the validator's own answer says whether a "
+        "build was spent. Try again later. Your frozen candidate is kept."
+    ),
+    # HTTP 410 on a result read (`version_close`): the submission was still queued when its Challenge version closed.
+    "version_closed": (
+        "This submission was still queued when that version of the Challenge closed, so it was closed, not graded, "
+        "and nothing was charged. Submit your work again on the version that is open now."
+    ),
+    # HTTP 503 `status: updating` (`battery.intake.updating_answer`), before anything is read or admitted.
+    "door_updating": (
+        "Carbon is upgrading the validator; please retry shortly. Nothing was built or graded for this request and "
+        "nothing was charged. Your frozen candidate is kept: submit again in a few minutes."
+    ),
+    # The validator's own stop cancelled the submission before it ran (`direct_task_cancelled`); the client sends it
+    # once more by itself, and this is what is left when that one is cancelled too.
+    "direct_task_cancelled": (
+        "The validator stopped before it ran this submission, which cancelled it; this is not a result about your "
+        "candidate and nothing was graded or charged. The client already sent it once more and it was cancelled again. "
+        "Your frozen candidate is kept: submit it again."
+    ),
+    # The graph's information budget: the same sentence at each place a build or the intake can refuse for it.
+    "fitted_info_over_budget": (
+        "Your graph is over the 32 KiB information budget: the whole graph counted together, as its compressed (zlib "
+        "level 9) size in bytes, not tokens or characters. The operations, wiring, shapes, constants and every static "
+        "value in your ops' parameters all count. Nothing was graded. Your frozen candidate is kept: shrink the graph "
+        "(repeat layers instead of pasting numbers) and submit again."
+    ),
+    "bundle_graph_caps_refused": (
+        "Your graph went over one of the registered graph limits. The one to check first is the 32 KiB information "
+        "budget: the whole graph, compressed (zlib level 9), in bytes, not tokens. Nothing was graded. Your frozen "
+        "candidate is kept: shrink the graph and submit again."
+    ),
+    "cap_exceeded": (
+        "Your graph went over one of the registered graph limits. The one to check first is the 32 KiB information "
+        "budget: the whole graph, compressed (zlib level 9), in bytes, not tokens. Nothing was graded. Your frozen "
+        "candidate is kept: shrink the graph and submit again."
+    ),
+    "bundle_graph_oversized": (
+        "Your graph file is larger than this validator reads, before the 32 KiB information budget (compressed size "
+        "of the whole graph, in bytes, not tokens) is even measured. Nothing was graded. Your frozen candidate is "
+        "kept: shrink the graph and submit again."
+    ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.
     "construction_submission_unserved": (

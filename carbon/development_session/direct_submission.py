@@ -118,6 +118,10 @@ class DirectIntakeDoorBusy(DirectIntakeRateLimit):
         self.retry_after_s = retry_after_s
 
 
+#: The door's 503 while it is drained for an update: ``{"status": "updating", "message", "retry_after_s"}``. The client
+#: names it ``door_updating`` (a refusal code, so the miner's page and kit say what to do, not a bare HTTP status).
+DOOR_UPDATING_STATUS = "updating"
+DOOR_UPDATING = "door_updating"
 #: Tries (the first send included) and the longest single wait for a door that answers `intake_busy` (about a minute in all).
 DOOR_BUSY_TRIES = 6
 #: The door's row-free 503 refusals (nothing read, admitted, recorded or charged): its connection cap and its in-flight bound.
@@ -141,6 +145,13 @@ def _raise_if_pre_admission_refusal(status, answer):
         raise DirectIntakeRateLimit()
     if status == 503 and answer.get("refused") in DOOR_BUSY_CODES:
         raise DirectIntakeDoorBusy(answer.get("retry_after_s"), answer["refused"])
+    if status == 503 and answer.get("status") == DOOR_UPDATING_STATUS:
+        # The door is drained for an update and says so at once (`battery.intake.updating_answer`): nothing was read,
+        # admitted or charged. Its own sentence and retry hint reach the miner; no automatic resend (a drain lasts
+        # minutes, not the seconds `intake_busy` backs off for).
+        raise DirectIntakeRefusal(
+            DOOR_UPDATING, _refusal_retry({"retry": answer}, DOOR_UPDATING)
+        )
 
 
 class DirectIntakeBusy(DirectIntakeRefusal):
@@ -306,9 +317,26 @@ def _checked(facts, *, recipe, contract_digest, receiver, context):
     return ChallengeKey(challenge["id"], challenge["version"]), snapshot["id"]
 
 
-#: The receiver's public facts a limit refusal may carry (`exam_cap`): a number, two short strings.
-_RETRY_FIELDS = {"next_block": int, "next_utc": str, "message": str}
-LIMIT_CODES = ("epoch_limit_reached", "exam_daily_allowance_reached")
+#: The receiver's public facts a limit refusal may carry (`exam_cap`): a number, two short strings; the door's own
+#: retry hint in whole seconds (`door_updating`).
+_RETRY_FIELDS = {
+    "next_block": int,
+    "next_utc": str,
+    "message": str,
+    "retry_after_s": int,
+}
+#: The refusals whose receiver sentence (`retry.message`) the client keeps: the two round and daily limits, the
+#: one-waiting-submission rule (per coldkey or per hotkey), the allowance-group refusals, and a door drained for an
+#: update. Each is refused before anything is built or graded, so the sentence is the miner's whole answer.
+LIMIT_CODES = (
+    "epoch_limit_reached",
+    "exam_daily_allowance_reached",
+    "hotkey_submission_waiting",
+    "coldkey_submission_waiting",
+    "allowance_group_unmapped",
+    "allowance_group_unresolved",
+    DOOR_UPDATING,
+)
 
 
 def _refusal_retry(answer, code):
