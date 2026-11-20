@@ -84,3 +84,31 @@ def test_the_pool_store_keeps_every_attempt_as_its_own_private_row(tmp_path):
     assert store.crown_rebuild_attempts("other") == []
     # the decision cache never sees them
     assert store.crown_rebuild_cached("sub-1", KEY, 5, False) is None
+
+
+def test_a_kept_body_never_holds_raw_predictions_and_stays_bounded():
+    import hashlib
+    import json
+
+    raw = "A" * 5000
+    body = {
+        "evidence": {
+            "model_p": {"score_status": bp.FAILED_INFRA, "total_score": None},
+            "predictions_raw_base64": raw,
+            "rows": [{"inference_receipt_raw": "x"}],
+        }
+    }
+    kept = ca._kept_body(body)
+    assert kept["evidence"]["predictions_raw_base64"] == {
+        "sha256": hashlib.sha256(raw.encode()).hexdigest(),
+        "bytes": 5000,
+    }
+    assert kept["evidence"]["rows"][0]["inference_receipt_raw"]["bytes"] == 1
+    assert kept["evidence"]["model_p"] == body["evidence"]["model_p"]
+    huge = {"evidence": {"model_p": {"score_status": "SCORED", "total_score": 0.5}}}
+    huge["evidence"]["cases"] = list(range(ca.KEPT_BODY_BYTES))
+    bounded = ca._kept_body(huge)
+    assert bounded["over_bound"] is True
+    assert bounded["model_p"] == {"score_status": "SCORED", "total_score": 0.5}
+    assert len(json.dumps(bounded)) < 1024
+    assert ca._kept_body(None) is None

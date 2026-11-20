@@ -539,6 +539,59 @@ def _keep(keep, seed, again, reason, body):
         keep(seed, again, reason, body)
 
 
+#: a kept attempt's body is at most this many canonical JSON bytes (V2 11:26:59Z: a contended host's retries never add
+#: MBs per attempt to the pool store); larger, only its sha256, size and model_p status/total are kept
+KEPT_BODY_BYTES = 64 * 1024
+#: members never kept as values (raw predictions, any base64): their sha256 and size stand in for them
+_KEPT_AS_DIGEST = ("predictions", "base64", "_raw")
+
+
+def _kept_body(body):
+    """``body`` for a kept attempt: every member whose name holds `_KEPT_AS_DIGEST` replaced by its sha256 and size;
+    then, if still over `KEPT_BODY_BYTES`, only the body's sha256, size and its model_p score status and total.
+    """
+
+    def canonical(value):
+        return json.dumps(
+            value, sort_keys=True, separators=(",", ":"), default=str
+        ).encode()
+
+    def stand_in(value):
+        raw = value.encode() if type(value) is str else canonical(value)
+        return {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)}
+
+    def strip(value):
+        if type(value) is dict:
+            return {
+                k: (
+                    stand_in(v)
+                    if any(part in str(k) for part in _KEPT_AS_DIGEST)
+                    else strip(v)
+                )
+                for k, v in value.items()
+            }
+        if type(value) is list:
+            return [strip(v) for v in value]
+        return value
+
+    if body is None:
+        return None
+    kept = strip(body)
+    raw = canonical(kept)
+    if len(raw) <= KEPT_BODY_BYTES:
+        return kept
+    model = ((body if type(body) is dict else {}).get("evidence") or {}).get("model_p")
+    model = model if type(model) is dict else {}
+    return {
+        "over_bound": True,
+        **stand_in(body),
+        "model_p": {
+            "score_status": model.get("score_status"),
+            "total_score": model.get("total_score"),
+        },
+    }
+
+
 def _kept_attempts(store, submission_id, key):
     """A ``keep(seed, again, reason, body)`` for `run_average`: each crown rebuild attempt the decision did not use (a
     busy host's, an infrastructure failure, a grade that is not a measurement, a host-fault repeat that disagreed) is
@@ -558,7 +611,7 @@ def _kept_attempts(store, submission_id, key):
                 again,
                 reason=str(reason),
                 contended=reason == REBUILD_HOST_CONTENDED,
-                body=body,
+                body=_kept_body(body),
             )
         # kept data never changes or stops a decision
         except Exception:  # noqa: BLE001, S110
