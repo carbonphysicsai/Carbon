@@ -88,6 +88,7 @@ def test_the_card_finds_the_miners_own_row_by_its_short_hotkey():
 def test_the_median_wait_is_in_hours_and_says_when_there_are_too_few_verdicts():
     text, _ = queue_place.lines(queue_place.parse(document(), CHALLENGE), HOTKEY)
     assert any("Typical wait, last 24 h: 19.5 h" in line for line in text)
+    assert any("not a promise for your submission" in line for line in text)
     sparse, _ = queue_place.lines(queue_place.parse(document(median=None), CHALLENGE), HOTKEY)
     assert any("not enough verdicts yet" in line for line in sparse)
 

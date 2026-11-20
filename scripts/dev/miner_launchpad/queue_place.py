@@ -282,7 +282,8 @@ def lines(answer, hotkey):
     else:
         out.append(
             f"Typical wait, last 24 h: {median} from submit to verdict (the slowest 10 % waited "
-            f"{duration_words(answer['p90_s'])}; {answer['verdicts']} verdicts, all submissions on this validator)."
+            f"{duration_words(answer['p90_s'])}; {answer['verdicts']} verdicts, all submissions on this validator). "
+            "This is the whole queue's typical wait, not a promise for your submission."
         )
     return out, state
 
