@@ -39,7 +39,9 @@ def _ns(seconds):
 def _seed(path, rows, withdrawals=(), slots=()):
     db = sqlite3.connect(path)
     db.executescript(attempt_ledger.DDL)
-    db.executescript(exam_cap._DDL)  # the receiver's own exam_graded / exam_requeues schema
+    db.executescript(
+        exam_cap._DDL
+    )  # the receiver's own exam_graded / exam_requeues schema
     for at, kind, code, hotkey, task, state in rows:
         db.execute(
             "INSERT INTO attempts(at_ns,kind,code,hotkey,contract_digest,receipt,submission_sha256,submission_id,state)"
@@ -525,17 +527,71 @@ def test_a_graded_task_that_failed_its_gate_is_graded_and_counted_not_succeeded(
 def test_the_state_follows_the_receivers_own_rule_for_every_marker_and_slot(tmp_path):
     cases = [
         # marker, slot (state, status), expected state, charged, slot given back
-        (dict(state="GRADED", code=None), ("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE"), "GRADED", "yes", "not stated"),
-        (dict(state="GRADED", code=None), ("RESERVED", None), "GRADED", "yes", "not stated"),
-        (dict(state="GRADED", code=None), ("RELEASED", "SLOT_RETURNED"), "GRADED", "no", "yes"),
-        (dict(state="GRADED", code=None), (None, None), "NOT_GRADED", "no", "yes"),
-        (dict(state="GRADED", code=None), ("RELEASED", "FAILED_INFRA"), "NOT_GRADED", "no", "yes"),
-        (dict(state="GRADED", code="epoch_limit_reached"), (None, None), "ROUND_LIMIT_REACHED", "no", "not stated"),
-        (dict(state="GRADED", code="exam_daily_allowance_reached"), (None, None), "ROUND_LIMIT_REACHED", "no", "not stated"),
-        (dict(state="DUPLICATE"), ("COUNTED", "DUPLICATE_OF_EARLIER"), "GRADED", "yes", "not stated"),
-        (dict(state="CANDIDATE_FAILED"), ("COUNTED", "WORKER_WALL_LIMIT_REACHED"), "CANDIDATE_FAILED", "yes", "not stated"),
-        (dict(state="FAILED", code="WorkerFailure"), ("RELEASED", "FAILED_INFRA"), "FAILED_INFRA", "no", "yes"),
-        (dict(state="VERSION_CLOSED"), (None, None), "NOT_GRADED", "no", "yes"),
+        (
+            {"state": "GRADED", "code": None},
+            ("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE"),
+            "GRADED",
+            "yes",
+            "not stated",
+        ),
+        (
+            {"state": "GRADED", "code": None},
+            ("RESERVED", None),
+            "GRADED",
+            "yes",
+            "not stated",
+        ),
+        (
+            {"state": "GRADED", "code": None},
+            ("RELEASED", "SLOT_RETURNED"),
+            "GRADED",
+            "no",
+            "yes",
+        ),
+        ({"state": "GRADED", "code": None}, (None, None), "NOT_GRADED", "no", "yes"),
+        (
+            {"state": "GRADED", "code": None},
+            ("RELEASED", "FAILED_INFRA"),
+            "NOT_GRADED",
+            "no",
+            "yes",
+        ),
+        (
+            {"state": "GRADED", "code": "epoch_limit_reached"},
+            (None, None),
+            "ROUND_LIMIT_REACHED",
+            "no",
+            "not stated",
+        ),
+        (
+            {"state": "GRADED", "code": "exam_daily_allowance_reached"},
+            (None, None),
+            "ROUND_LIMIT_REACHED",
+            "no",
+            "not stated",
+        ),
+        (
+            {"state": "DUPLICATE"},
+            ("COUNTED", "DUPLICATE_OF_EARLIER"),
+            "GRADED",
+            "yes",
+            "not stated",
+        ),
+        (
+            {"state": "CANDIDATE_FAILED"},
+            ("COUNTED", "WORKER_WALL_LIMIT_REACHED"),
+            "CANDIDATE_FAILED",
+            "yes",
+            "not stated",
+        ),
+        (
+            {"state": "FAILED", "code": "WorkerFailure"},
+            ("RELEASED", "FAILED_INFRA"),
+            "FAILED_INFRA",
+            "no",
+            "yes",
+        ),
+        ({"state": "VERSION_CLOSED"}, (None, None), "NOT_GRADED", "no", "yes"),
     ]
     for number, (marker, slot, state, charged, given_back) in enumerate(cases):
         folder = tmp_path / f"c{number}"

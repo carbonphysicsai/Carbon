@@ -699,7 +699,8 @@ def _board(root):
 
 def _slot(db, task):
     """`(state, status)` of the task's latest graded-exam slot row (`exam_graded`), or `(None, None)`: nothing is read but
-    those two tokens, and a ledger without the table says nothing rather than failing."""
+    those two tokens, and a ledger without the table says nothing rather than failing.
+    """
     try:
         row = db.execute(
             "SELECT state, status FROM exam_graded WHERE submission_id=? AND kind='GRADED' ORDER BY id DESC LIMIT 1",
@@ -713,7 +714,8 @@ def _slot(db, task):
 def _grade_state(marker, slot, latest):
     """`(state, code, charged, slot_given_back)`: the validator's own grade state of one task, the way the receiver derives it
     (`direct_intake._grade_state_v4`): from the auto-grade marker's state and the task's exam slot row. A task that was only
-    admitted is QUEUED; it is never "succeeded" because the ledger holds an admission."""
+    admitted is QUEUED; it is never "succeeded" because the ledger holds an admission.
+    """
     mstate, mcode = marker.get("state"), marker.get("code")
     slot_state, slot_status = slot
     if not mstate:
@@ -778,7 +780,9 @@ def _task(root, db, task, owed, *, detail):
         "owed": owed.get(task, []),
     }
     if detail:
-        shown["reason"] = None if shown["outcome_code"] is None else _words(shown["outcome_code"])
+        shown["reason"] = (
+            None if shown["outcome_code"] is None else _words(shown["outcome_code"])
+        )
     return shown
 
 
