@@ -22,7 +22,7 @@ This guide gets you from a clean machine to your first graded model.
 
 - **A Linux machine** (x86-64; see [Supported setup](#supported-setup): 32 GB of RAM and 4 CPUs), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group and **log out of every session for this user and in again** so the group applies; on a server, a login alone is not enough if your user's service manager is already running: run `sudo systemctl restart user@$(id -u).service` (it may print a failed-job line and still restart) or reboot, then run the installer again) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
 - **To practise: nothing to register.** You can run your agent and practise on any Challenge without a wallet, a registration or a signer (see **Just want to practise?** in step 4).
-- **To freeze and submit: a Bittensor wallet with a hotkey registered on subnet 567.** Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
+- **To freeze and submit: a Bittensor wallet with a hotkey registered on the subnet of the Challenge you submit to** (Motor: subnet 116 on mainnet; the Challenges still on the test network: subnet 567). Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
 - **A model key from a provider**, if you want Carbon's agent (Graphite) or Hermes to do the research. Setup lists the providers each agent can use. Save the key in a file only you can read; Carbon reads it from that file. Skip this if you bring your own agent, e.g. Claude Code, which uses its own model.
 
 ---
@@ -419,6 +419,46 @@ Hermes asks you before each action that changes something (launch, practise, fre
 | Setup or a campaign says your **practice identity** is missing, damaged or not readable by you alone | Run `chmod 600` on it if it is only readable by others, otherwise choose **Practise without registering** again at Setup's first step, then **Review and launch**. |
 | Submit says the validator doesn't serve this Challenge | No validator grades that Challenge yet. Practise it now; submit when one appears. |
 
+### Every code, in one table
+
+The words in the middle column are the ones the Launchpad and the command line show, copied from the same source, so the table cannot drift from them.
+
+<!-- error-table:start (generated: python -m scripts.dev.miner_launchpad.error_table --write docs/MINING.md) -->
+
+| You see | What it means and what to do | Whose side | Charged? |
+|---|---|---|---|
+| `TRANSPORT_STALE` | The validator turned this request away before admitting it, even after Carbon sent it again a few times. This is on the validator's side, not your machine's clock. Submit again shortly; the request is rebuilt and signed afresh, and the frozen candidate is kept. | Ours | No: turned away before it was admitted |
+| `intake_busy` | The validator is busy and turned your submit away before reading it, even after several tries. Nothing was sent, charged or graded, and the frozen candidate is kept. Wait a minute and submit again. | Ours | No: nothing was sent, charged or graded |
+| `door_updating` | Carbon is upgrading the validator; please retry shortly. Nothing was built or graded for this request and nothing was charged. The Launchpad's Your place in line card shows when the validator is back. Your frozen candidate is kept. | Ours | No: nothing was charged |
+| `capacity` | The validator intake is busy. Submit again in a few minutes; the frozen candidate is kept. | Ours | Not stated |
+| `TRANSPORT_CAPACITY` | The validator's receipt journal is full; that is on its side. Submit again later; the frozen candidate is kept. | Ours | Not stated |
+| `TRANSPORT_STORE` | The validator could not record the request; that is on its side. Submit again; the frozen candidate is kept. | Ours | Not stated |
+| `allowance_group_unmapped` | This is not a mistake on your side. The validator cannot yet place your coldkey in its list for graded exams, so it cannot grade this submission yet. No graded-exam slot was used for it. Try again later; if it keeps happening, send us the UTC time and the last 4 characters of your hotkey. Your frozen candidate is kept. | Ours | No graded-exam slot was used |
+| `allowance_group_unresolved` | This is not a mistake on your side. The validator cannot yet match your hotkey to its coldkey, so it cannot take or grade this submission yet. No graded-exam slot was used for it. Try again later; if it keeps happening, send us the UTC time and the last 4 characters of your hotkey. Your frozen candidate is kept. | Ours | No graded-exam slot was used |
+| `direct_task_cancelled` | The validator stopped before it ran this submission and cancelled it, twice. This is on our side, not a result about your candidate, and nothing was graded or charged. Your frozen candidate is kept. Check for the result later; if it still shows cancelled, send us the UTC time and the last 4 characters of your hotkey. | Ours | No: nothing was graded or charged |
+| `version_closed` | This submission was still queued when its version of the Challenge closed, so it was closed, not graded, and nothing was charged. This is not a result about your model. | Ours | No: nothing was charged |
+| `FAILED_INFRA` | Grade state: The validator's side failed: it is not your result, and a counted slot is given back. | Ours | No: a counted slot is given back |
+| `NOT_GRADED` | Grade state: Not graded: the slot was given back and nothing was charged. | Not stated | No: the slot was given back and nothing was charged |
+| `hotkey_submission_waiting` | One waiting submission per hotkey on this Challenge: this hotkey already has a submission queued, building or waiting for its grade on this validator. Nothing was built or graded for this submission and it used none of your allowance. Submit again once that submission has its result, or withdraw it while it is still queued, if this validator offers withdrawal (withdraw command). To submit a different model now, use Withdraw (while queued) on the waiting one in the Launchpad first. Your frozen candidate is kept. | A rule, not a failure | No: it used none of your allowance |
+| `coldkey_submission_waiting` | One waiting submission per coldkey on this Challenge: a submission from a hotkey of this coldkey is already queued, building or waiting for its grade on this validator. Nothing was built or graded for this submission and it used none of your allowance. Submit again once that submission has its result. Another hotkey under your coldkey may be the one waiting; a submission still queued can be withdrawn from the Launchpad that made it (Withdraw (while queued)). Your frozen candidate is kept. | A rule, not a failure | No: it used none of your allowance |
+| `epoch_limit_reached` | One graded exam per Challenge per round, and your graded exam for this round is already used or in progress. Nothing was built or graded for this submission and it used none of your allowance. Your frozen candidate is kept: submit it again when the next round opens (a round is 360 blocks, about 72 minutes; the receiver's answer names the block and the time). | A rule, not a failure | No: it used none of your allowance |
+| `exam_daily_allowance_reached` | You have used your graded exams for the day on this Challenge. Nothing was built or graded for this submission and it used none of your allowance. Your frozen candidate is kept: a slot frees as earlier graded exams age past one day, so submit it again in a later round. | A rule, not a failure | No: it used none of your allowance |
+| `same_recipe_already_submitted` | You already submitted this exact recipe and it was graded on the current exam set, so it was not graded again and this final exam is still unused. Its result is the one shown where you first submitted it (Check for result reads it again). Your frozen candidate is kept. To use this exam, submit a different recipe (a new campaign, since this one keeps its frozen candidate), or wait for a new exam set: then this same recipe is graded again. | A rule, not a failure | No: this final exam is still unused |
+| `ROUND_LIMIT_REACHED` | Grade state: Not graded: your key's graded exams for this round or this day were already used. | A rule, not a failure | Not graded |
+| `SUPERSEDED_BY_OWN_LATER_SUBMIT` | Grade state: Not graded: your own later submission took this round's graded slot. | Yours (your own later submission) | Not graded |
+| `TRANSPORT_RATE` | Too many requests reached the validator from your hotkey at once. Wait a moment, then submit again; the frozen candidate is kept. | Yours (too many requests at once) | Not stated |
+| `rate` | The validator intake is limiting requests from your address. Wait a minute, then submit again; the frozen candidate is kept. | Yours (too many requests) | Not stated |
+| `fitted_info_over_budget` | Your graph is over the 32 KiB size limit. It is counted as the compressed (zlib level 9) size of the whole graph, in bytes, not tokens or characters: the operations, wiring, shapes, constants and every static value in your ops' parameters all count. Nothing was graded. Your frozen candidate is kept; the kit's rules for your graph say what counts, and a graph with repeated layers compresses far below pasted numbers. | Yours | Nothing was graded |
+| `candidate_build_refused` | Carbon's build refused your graph because of something in it (not a feature Carbon is missing): for example a malformed graph, a limit the kit names, or a policy rule. One thing to check first is the 32 KiB size limit: the compressed (zlib level 9) size of the whole graph, in bytes, not tokens. Nothing was graded. Your frozen candidate is kept. | Yours | Nothing was graded |
+| `RECONSTRUCTION_FAILED` | Grade state: Your recipe's own run failed before it could be graded: nothing was graded. | Yours | Nothing was graded |
+| `CANDIDATE_FAILED` | Grade state: Counted as your try: your model's own run failed while it was being graded. | Yours | Yes: counted as your try |
+| `construction_intake_unavailable` | Your construction receiver is configured but could not be reached, or did not answer. The frozen candidate is kept. If the receiver did get your submission, submitting again returns that submission's result; it is never graded twice. For a receiver on this machine's loopback (a tunnel), start the tunnel; otherwise the receiver may be down, so ask its operator or wait. Then submit again. | Either: your connection or the validator | Not stated; if it got your submission, submitting again returns that result and it is never graded twice |
+| `construction_request_deadline` | Your construction receiver did not answer before the submit's deadline. The frozen candidate is kept. If the receiver did get your submission, submitting again returns that submission's result; it is never graded twice. Submit again later. | Either: your connection or the validator | Not stated; if it got your submission, submitting again returns that result and it is never graded twice |
+
+*Not stated* means that code's own words do not say, so this table does not guess. If a message repeats, send us the UTC time and the last 4 characters of your hotkey.
+
+<!-- error-table:end -->
+
 **Need help?** Message the Carbon team on Telegram: [@RBequette](https://t.me/RBequette).
 
 ---
@@ -485,8 +525,7 @@ A miner who improves more often earns more of it.
 
 ## Moving to mainnet
 
-Carbon's mainnet opens on **HUMAN_INPUT** (date). Until then, everything on
-this page runs on the test network. This section says what changes, what you
+Motor already runs on mainnet; Cooling, Ribbed Bracket and Burst Thermal still run on the test network, and their mainnet dates are not set yet. This section says what changes when a Challenge moves to mainnet, what you
 do, and what stays the same.
 
 **What changes**
