@@ -7,6 +7,7 @@ not replay a worker, grade predictions, or grant receiver/official authority.
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import inspect
 import io
@@ -1158,6 +1159,48 @@ def _private_measurement_bytes(path, limit):
     return path.read_bytes()
 
 
+# --- H3a (owner rule #13; Lead pick 20 Nov 2026): the grade's evaluation SIDE FILES stored gzipped ------------------------
+# A subset-repeat and a menu row-check side file are written as ``<name>.json.gz``: gzip at a fixed level with mtime 0
+# (the same bytes for the same content on any host) of exactly the bytes the measure reads. Every digest that names
+# them (the row check's basis ``side_file_sha256``, the measure's own use) is of the UNCOMPRESSED bytes, which
+# `_side_bytes` returns; a side file written before stays ``<name>.json`` and is read as before. Nothing is rewritten.
+SIDE_GZ = ".gz"
+
+
+def _side_gz(path):
+    return Path(str(path) + SIDE_GZ)
+
+
+def _side_exists(path):
+    """Whether the side file ``path`` (``<name>.json``) is kept, gzipped or as written before."""
+    packed = _side_gz(path)
+    return any(p.exists() or p.is_symlink() for p in (path, packed))
+
+
+def _side_bytes(path, limit):
+    """The side file's own (uncompressed) bytes: its ``.json.gz`` decompressed, else its ``.json``; at most ``limit``
+    bytes either way, else `RetentionUnavailable` (as `_private_measurement_bytes`)."""
+    packed = _side_gz(path)
+    if not (packed.exists() or packed.is_symlink()):
+        return _private_measurement_bytes(path, limit)
+    data = _private_measurement_bytes(packed, limit)
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(data)) as stream:
+            raw = stream.read(limit + 1)
+    except (OSError, EOFError) as exc:
+        raise RetentionUnavailable("public_measurement_bytes_unavailable") from exc
+    if not 0 < len(raw) <= limit:
+        raise RetentionUnavailable("public_measurement_bytes_unavailable")
+    return raw
+
+
+def _write_side(path, raw):
+    """Write the side file ``path``'s bytes ``raw`` once as ``<name>.json.gz`` (`SIDE_GZ`, deterministic gzip)."""
+    from carbon.development_session.data import write_once
+
+    write_once(_side_gz(path), gzip.compress(raw, compresslevel=6, mtime=0))
+
+
 def _retain_public_synthetic_measurement(result, artifacts, submission_id, evidence):
     """Keep a separate private, descriptive v1.3 measurement beside the bank.
 
@@ -1610,7 +1653,6 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
     import numpy as np
 
     from carbon.development_session.construction_recipe import ConstructionRecipe
-    from carbon.development_session.data import write_once
     from carbon.development_session.direct_graph_construction_worker import (
         VMAP64_INFERENCE_VERSIONS as vmap64_versions,
     )
@@ -1651,8 +1693,8 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
     path = _private_evaluation_directory(result, submission_id) / (
         f"subset-repeat-{tag}.json"
     )
-    if path.exists() or path.is_symlink():
-        cached = _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))
+    if _side_exists(path):
+        cached = _side_bytes(path, _pair_read_limit(adapter, artifacts))
         try:
             document = json.loads(cached)
             same = (
@@ -1761,7 +1803,7 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
         lanes=lanes,
         run=run.evidence,
     )
-    write_once(path, raw)
+    _write_side(path, raw)
     return raw
 
 
@@ -1945,7 +1987,7 @@ def _structural_rowcheck(
             }
         ),
     )
-    write_once(path, side)
+    _write_side(path, side)
     return side
 
 
@@ -1965,7 +2007,6 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
 
     from carbon.challenge_validator import crown_hold
     from carbon.development_session.construction_recipe import ConstructionRecipe
-    from carbon.development_session.data import write_once
     from carbon.development_session.direct_graph_construction_worker import (
         VMAP64_INFERENCE_VERSIONS as vmap64_versions,
     )
@@ -2012,8 +2053,8 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     path = _private_evaluation_directory(result, submission_id) / (
         f"menu-rowcheck-{tag}.json"
     )
-    if path.exists() or path.is_symlink():
-        cached = _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))
+    if _side_exists(path):
+        cached = _side_bytes(path, _pair_read_limit(adapter, artifacts))
         try:
             same = pool_menu.read_rowcheck_side_file(cached)["positions"] == positions
         except pool_exam.ExamRefused:
@@ -2123,7 +2164,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
     rows = [flat[i * width : (i + 1) * width] for i in range(len(queried))]
     side = pool_menu.rowcheck_side_file(positions, rows)
-    write_once(path, side)
+    _write_side(path, side)
     return side
 
 

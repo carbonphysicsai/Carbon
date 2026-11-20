@@ -71,9 +71,15 @@ def _json(path, code):
     return json.loads(path.read_bytes())
 
 
-def _one(folder, pattern, code, required=True):
+def _one(folder, pattern, code, required=True, exclude=None):
+    """The ONE kept file matching ``pattern`` (``.json`` or, since H3a, ``.json.gz``), never a name starting with
+    ``exclude`` (the row check's basis file also matches its side file's pattern)."""
     found = sorted(
-        p for p in folder.glob(pattern) if p.is_file() and not p.is_symlink()
+        p
+        for p in folder.glob(pattern)
+        if p.is_file()
+        and not p.is_symlink()
+        and not (exclude and p.name.startswith(exclude))
     )
     if len(found) > 1 or (required and not found):
         raise Refused(code)
@@ -120,9 +126,14 @@ def plan(task, folder, root, identity):
         raise Refused("predictions_missing")
     inputs = {
         "predictions": predictions,
-        "rowcheck": _one(folder, "menu-rowcheck-*.json", "rowcheck_missing"),
+        "rowcheck": _one(
+            folder,
+            "menu-rowcheck-*.json*",
+            "rowcheck_missing",
+            exclude="menu-rowcheck-basis-",
+        ),
         "single_call": _one(folder, "single-call.json", "single_call_missing"),
-        "pair": _one(folder, "subset-repeat-*.json", "pair_ambiguous", required=False),
+        "pair": _one(folder, "subset-repeat-*.json*", "pair_ambiguous", required=False),
     }
     from carbon.scoring.physical_dual_pack import METRICS
 

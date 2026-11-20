@@ -1389,7 +1389,11 @@ def test_the_door_runs_one_fresh_op_on_the_sealed_cells_and_each_stratums_keyed_
     assert calls[0]["procedure"] == "per_case"
     assert calls[0]["identity"] == subset.run_identity(PACK, "rtsk_x")
     assert document["run"] == {"fixture": True}
-    assert _cache(tmp_path).read_bytes() == raw
+    # kept gzipped (H3a) and read back as exactly these bytes
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    assert retention._side_gz(_cache(tmp_path)).exists()
+    assert retention._side_bytes(_cache(tmp_path), 10**9) == raw
     # a retry reads the retained bytes back and runs nothing
     assert run() == raw and len(calls) == 1
 

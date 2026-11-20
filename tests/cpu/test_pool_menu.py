@@ -739,11 +739,16 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
             "positions"
         ] == pool_menu.rowcheck_plan(rows_total, 5, key, epoch="fixture-epoch-2")
         # a cached file that is not this epoch's plan is Carbon's fault, never re-used
-        epoch2 = sorted(tmp_path.glob("menu-rowcheck-*.json"))
+        # (kept gzipped since H3a: the cached file of each epoch is <name>.json.gz)
+        epoch2 = sorted(tmp_path.glob("menu-rowcheck-*.json.gz"))
         assert len(epoch2) == 2
+        import gzip
+
         for f in epoch2:
             f.chmod(0o600)
-            f.write_bytes(pool_menu.rowcheck_side_file([0], [[0.0]]))
+            f.write_bytes(
+                gzip.compress(pool_menu.rowcheck_side_file([0], [[0.0]]), mtime=0)
+            )
         with pytest.raises(lrr.RetentionUnavailable, match="cache_not_this_epoch"):
             run()
         monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)

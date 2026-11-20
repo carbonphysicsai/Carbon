@@ -250,7 +250,16 @@ def _read_file(path, limit=MAX_INPUT_BYTES):
     selected = Path(path)
     _require(selected.is_file() and not selected.is_symlink(), "input_file_unavailable")
     _require(0 < selected.stat().st_size <= limit, "input_file_size")
-    return selected.read_bytes()
+    raw = selected.read_bytes()
+    if selected.name.endswith(".json.gz"):
+        # a kept side file stored gzipped (`lean_recipe_retention.SIDE_GZ`): its own bytes
+        import gzip
+        import io
+
+        with gzip.GzipFile(fileobj=io.BytesIO(raw)) as stream:
+            raw = stream.read(limit + 1)
+        _require(0 < len(raw) <= limit, "input_file_size")
+    return raw
 
 
 def _strict_json(raw, code):
