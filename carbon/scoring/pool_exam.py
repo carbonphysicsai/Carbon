@@ -379,7 +379,9 @@ def measure_pool(
     # An A_gen slice answer the Challenge's own validity gates refuse is the candidate's gate failure on a pool
     # answer (OWNER-GATES-ON-POOL-3A-01: the A_gen slice alike), never an untyped refusal inside agen_accuracy.
     if not pool_grader.agen_predictions_valid(
-        all_specs, pool_plugin.pool_predictor(submitted, serve)
+        all_specs,
+        pool_plugin.pool_predictor(submitted, serve),
+        pool_physics_score.answer_check(policies.physics),
     ):
         physics_failed = sorted({*physics_failed, AGEN_VALIDITY_GATE})
     speed = single_call_speed_gate(speed_call_seconds, ceiling_seconds=ceiling_seconds)

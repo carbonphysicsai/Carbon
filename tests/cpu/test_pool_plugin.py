@@ -509,6 +509,25 @@ def test_a_custody_pool_source_loads_only_with_the_bindings_design_names():
         pp.spec_from_source(dict(document, conditions={"fixed": {}}), binding())
 
 
+def test_a_custody_pool_source_carries_typed_truths_only_when_present():
+    document = _source_document("src", 3)
+    plain = pp.spec_from_source(document, binding())
+    assert plain.typed_truths == ()
+    typed = {
+        "rec": [1.0 + i for i in range(len(document["truths"]))]
+    }  # per original design
+    spec = pp.spec_from_source(dict(document, typed_truths=typed), binding())
+    # each kept point takes the typed truth of its origin in the original pool
+    assert [row["rec"] for row in spec.typed_truths] == [
+        typed["rec"][i] for i in spec.origin
+    ]
+    assert spec.digest != plain.digest  # the typed truths enter the target's identity
+    with pytest.raises(pool_grader.PoolRefused):
+        pp.spec_from_source(
+            dict(document, typed_truths={"rec": typed["rec"][:-1]}), binding()
+        )
+
+
 def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
     tmp_path, monkeypatch
 ):

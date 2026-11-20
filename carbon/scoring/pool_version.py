@@ -223,8 +223,11 @@ def _physics(value):
     ``"accuracy_only"``, `pool_physics_score.TARGET_KINDS`; absent = today's targets) and ``"region_sha256"`` (B5: the
     signed region the derive grades inside; absent = the TRAIN box). A null or HUMAN_INPUT anywhere in it refuses (the
     values are the owner's).
+    A headroom rule may also register ``"typed_outputs"``: a non-empty list of typed-state outputs (BT 3.2, rule
+    bt32-threshold-recovery-two-part.v1), each exactly ``{"output", "kind", "rule", "threshold_c", "band_output",
+    "band_u", "value_u", "event_weight"}`` (`typed_state_output.TypedOutput`); absent = none (every other version).
     """
-    from carbon.scoring import pool_physics_score
+    from carbon.scoring import pool_physics_score, typed_state_output
 
     if value is _ABSENT:
         return None
@@ -250,7 +253,7 @@ def _physics(value):
     allowed = (
         required
         | {"in_range_cases_sha256", "target_kind", "region_sha256"}
-        | (set() if headroom else {"scoring"})
+        | ({"typed_outputs"} if headroom else {"scoring"})
     )
     if not required <= set(value) <= allowed:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
@@ -261,6 +264,11 @@ def _physics(value):
         if type(item) is dict:
             for inner in item.values():
                 _picked(inner)
+    if "typed_outputs" in value:
+        value = dict(
+            value,
+            typed_outputs=_typed_outputs(value["typed_outputs"], typed_state_output),
+        )
     rule = pool_physics_score.PhysicsRule(
         **value, **({"cell_scale": None} if headroom else {})
     )
@@ -269,6 +277,25 @@ def _physics(value):
     except pool_physics_score.PhysicsRefused:
         raise PoolConstantsNotRegistered("pool_constants_malformed") from None
     return rule
+
+
+def _typed_outputs(value, typed_state_output):
+    """The registered typed-state outputs as a tuple of `typed_state_output.TypedOutput`; a null or HUMAN_INPUT in any
+    field refuses (a U not yet receipted stays HUMAN_INPUT: the version cannot be graded).
+    """
+    fields = {f for f in typed_state_output.TypedOutput.__dataclass_fields__}
+    if type(value) is not list or not value:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    out = []
+    for entry in value:
+        if type(entry) is not dict or set(entry) != fields:
+            raise PoolConstantsNotRegistered("pool_constants_malformed")
+        for item in entry.values():
+            if item is None:
+                raise PoolConstantsNotRegistered("pool_constants_not_registered")
+            _picked(item)
+        out.append(typed_state_output.TypedOutput(**entry))
+    return tuple(out)
 
 
 def _near_limit(value):
