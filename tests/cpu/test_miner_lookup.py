@@ -40,10 +40,23 @@ def _seed(path, rows, withdrawals=()):
         db.execute(
             "INSERT INTO attempts(at_ns,kind,code,hotkey,contract_digest,receipt,submission_sha256,submission_id,state)"
             " VALUES(?,?,?,?,?,?,?,?,?)",
-            (_ns(at), kind, code, hotkey, "d" * 8, CANARY, "sha256:" + CANARY, task, state),
+            (
+                _ns(at),
+                kind,
+                code,
+                hotkey,
+                "d" * 8,
+                CANARY,
+                "sha256:" + CANARY,
+                task,
+                state,
+            ),
         )
     for task, hotkey in withdrawals:
-        db.execute("INSERT INTO miner_withdrawals VALUES(?,?,?,?)", ("d" * 8, task, hotkey, _ns(T0)))
+        db.execute(
+            "INSERT INTO miner_withdrawals VALUES(?,?,?,?)",
+            ("d" * 8, task, hotkey, _ns(T0)),
+        )
     db.commit()
     db.close()
 
@@ -86,8 +99,20 @@ def store(tmp_path):
         json.dumps(
             {
                 "ladder": [
-                    {"rank": 1, "hotkey": HOTKEY, "total": 0.123456, "status": "SCORED", "gate_names": [CANARY]},
-                    {"rank": 2, "hotkey": OTHER, "total": 0.1, "status": "SCORED", "gate_names": []},
+                    {
+                        "rank": 1,
+                        "hotkey": HOTKEY,
+                        "total": 0.123456,
+                        "status": "SCORED",
+                        "gate_names": [CANARY],
+                    },
+                    {
+                        "rank": 2,
+                        "hotkey": OTHER,
+                        "total": 0.1,
+                        "status": "SCORED",
+                        "gate_names": [],
+                    },
                     {"rank": 3, "hotkey": "short", "total": 0.1, "status": "SCORED"},
                 ]
             }
@@ -98,7 +123,11 @@ def store(tmp_path):
 
 def _root(store, **extra):
     return ml.Root(
-        store / "attempts.sqlite3", store / "markers", store / "owed.tsv", board=store / "board.json", **extra
+        store / "attempts.sqlite3",
+        store / "markers",
+        store / "owed.tsv",
+        board=store / "board.json",
+        **extra,
     )
 
 
@@ -117,13 +146,17 @@ def test_a_task_comes_out_as_the_allow_listed_fields_only(store):
     assert task["outcome_code"] == "CANDIDATE_FAILED"
     assert task["reason"].startswith("Grade state: ")
     assert task["charged"] == "yes"
-    assert task["owed"] == []  # a row with an unlisted state or a bad id is dropped, never shown
+    assert (
+        task["owed"] == []
+    )  # a row with an unlisted state or a bad id is dropped, never shown
     assert document["board"] == {"rank": 1, "total": 0.123, "status": "SCORED"}
     assert "FSN1" not in text and "traceback" not in text and "gate_names" not in text
     assert document["not_available"] == list(ml.NOT_AVAILABLE)
 
 
-def test_an_infrastructure_failure_is_carbon_failure_uncharged_with_the_slot_given_back(store):
+def test_an_infrastructure_failure_is_carbon_failure_uncharged_with_the_slot_given_back(
+    store,
+):
     task = _ask(store, "task", TASK_B)[0]["task"]
     assert task["state"] == "carbon_failure"
     assert task["charged"] == "no" and task["slot_given_back"] == "yes"
@@ -135,7 +168,9 @@ def test_an_infrastructure_failure_is_carbon_failure_uncharged_with_the_slot_giv
     ]
 
 
-def test_a_stop_cancelled_task_is_cancelled_in_the_validators_words_not_the_markers(store):
+def test_a_stop_cancelled_task_is_cancelled_in_the_validators_words_not_the_markers(
+    store,
+):
     task = _ask(store, "task", TASK_C)[0]["task"]
     assert task["state"] == "CANCELLED"
     assert task["outcome_code"] == "direct_task_cancelled"
@@ -144,9 +179,16 @@ def test_a_stop_cancelled_task_is_cancelled_in_the_validators_words_not_the_mark
 
 def test_a_code_outside_the_closed_tables_is_never_printed(tmp_path):
     odd = "rtsk_" + "99" * 32
-    _seed(tmp_path / "attempts.sqlite3", [(T0, "REFUSED", CANARY + "_code", HOTKEY, odd, CANARY)])
+    _seed(
+        tmp_path / "attempts.sqlite3",
+        [(T0, "REFUSED", CANARY + "_code", HOTKEY, odd, CANARY)],
+    )
     task = _ask(tmp_path, "task", odd)[0]["task"]
-    assert task["outcome_code"] is None and task["reason"] is None and task["state"] == "REFUSED"
+    assert (
+        task["outcome_code"] is None
+        and task["reason"] is None
+        and task["state"] == "REFUSED"
+    )
 
 
 def test_an_ambiguous_prefix_and_suffix_refuses_and_lists_nothing(store):
@@ -161,11 +203,19 @@ def test_a_full_hotkey_lists_only_its_own_tasks_without_the_long_reason(store):
     ids = [t.get("task_id") for t in document["tasks"]]
     assert set(ids) == {TASK, TASK_B, TASK_C}
     assert all("reason" not in t for t in document["tasks"])
-    assert "rtsk_" + "12" * 32 not in text and SAME_ENDS not in text and "entry-7" not in text
+    assert (
+        "rtsk_" + "12" * 32 not in text
+        and SAME_ENDS not in text
+        and "entry-7" not in text
+    )
 
 
 def test_a_withdrawn_task_is_cancelled_and_says_withdrawn(tmp_path):
-    _seed(tmp_path / "attempts.sqlite3", [(T0, "RECEIVED", None, HOTKEY, TASK, None)], withdrawals=[(TASK, HOTKEY)])
+    _seed(
+        tmp_path / "attempts.sqlite3",
+        [(T0, "RECEIVED", None, HOTKEY, TASK, None)],
+        withdrawals=[(TASK, HOTKEY)],
+    )
     task = _ask(tmp_path, "task", TASK)[0]["task"]
     assert task["state"] == "CANCELLED" and task["withdrawn"] is True
 
@@ -189,7 +239,7 @@ def test_an_entry_id_that_is_not_a_task_is_echoed_as_an_entry(store):
 
 
 class _Feed(BaseHTTPRequestHandler):
-    def do_GET(self):  # noqa: N802
+    def do_GET(self):
         body = json.dumps(
             {
                 "door_state": "grading",
@@ -197,7 +247,12 @@ class _Feed(BaseHTTPRequestHandler):
                 "building_now": 1,
                 "waiting_to_grade": 2,
                 "grading_now": 1,
-                "wait_24h": {"verdicts": 9, "median_s": 7200, "p90_s": 9000, "reason": CANARY},
+                "wait_24h": {
+                    "verdicts": 9,
+                    "median_s": 7200,
+                    "p90_s": 9000,
+                    "reason": CANARY,
+                },
                 "as_of": "2026-11-20T12:00:00Z",
                 "internal_reason": CANARY,
                 "rows": [
@@ -208,7 +263,12 @@ class _Feed(BaseHTTPRequestHandler):
                         "in_queue_s": 600,
                         "x": CANARY,
                     },
-                    {"position": 2, "hotkey": OTHER, "state": "waiting to grade", "in_queue_s": 300},
+                    {
+                        "position": 2,
+                        "hotkey": OTHER,
+                        "state": "waiting to grade",
+                        "in_queue_s": 300,
+                    },
                 ],
             }
         ).encode()
@@ -247,11 +307,18 @@ def test_a_hotkeys_own_queue_rows_are_the_only_rows_in_its_answer(store, feed):
 def test_the_public_board_shows_short_hotkeys_and_only_rank_total_status(store):
     board = _ask(store, "public", "board")[0]["board"]
     assert [row["rank"] for row in board] == [1, 2]
-    assert board[0] == {"rank": 1, "total": 0.123, "status": "SCORED", "hotkey": HOTKEY[:4] + "…" + HOTKEY[-4:]}
+    assert board[0] == {
+        "rank": 1,
+        "total": 0.123,
+        "status": "SCORED",
+        "hotkey": HOTKEY[:4] + "…" + HOTKEY[-4:],
+    }
     assert HOTKEY not in json.dumps(board)
 
 
-def test_the_one_switch_turns_every_own_subcommand_off_and_leaves_public_working(store, monkeypatch):
+def test_the_one_switch_turns_every_own_subcommand_off_and_leaves_public_working(
+    store, monkeypatch
+):
     monkeypatch.setattr(ml, "OWN_READ", "off")
     for name, argument in (("hotkey", HOTKEY), ("task", TASK), ("entry", "entry-7")):
         with pytest.raises(ml.Refused) as refused:
@@ -295,7 +362,9 @@ def test_finish_refuses_a_document_with_anything_off_the_list(store):
         ("outcome_code", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0+/"),
     ],
 )
-def test_finish_refuses_secret_shaped_text_outside_the_named_id_fields(store, field, value):
+def test_finish_refuses_secret_shaped_text_outside_the_named_id_fields(
+    store, field, value
+):
     document = ml.lookup(_root(store), "task", TASK)
     document["task"][field] = value
     with pytest.raises(ml.Refused) as refused:
@@ -352,14 +421,18 @@ def _config(store, **extra):
     return str(path)
 
 
-def test_main_prints_json_and_audits_subcommand_asked_and_bytes_but_no_output(store, capsys):
+def test_main_prints_json_and_audits_subcommand_asked_and_bytes_but_no_output(
+    store, capsys
+):
     config = _config(store)
     assert ml.main(["--config", config, "hotkey", HOTKEY]) == 0
     out = capsys.readouterr().out
     assert CANARY not in out and json.loads(out)["tasks"]
     audit = store / "audit.tsv"
     fields = audit.read_text().splitlines()[-1].split("\t")
-    assert fields[1:3] == ["hotkey", HOTKEY] and int(fields[3]) == len(out.rstrip("\n").encode("utf-8"))
+    assert fields[1:3] == ["hotkey", HOTKEY] and int(fields[3]) == len(
+        out.rstrip("\n").encode("utf-8")
+    )
     assert stat.S_IMODE(audit.stat().st_mode) == 0o600
     assert TASK not in audit.read_text()
     assert ml.main(["--config", config, "hotkey", "x"]) == 2
@@ -399,10 +472,14 @@ def test_the_word_tables_are_the_launchpads_own_words():
     assert ml.WORDS_GRADE == projection.GRADE_STATE_WORDS
     source = Path(ml.__file__).read_text(encoding="utf-8")
     start, end = source.index(ml.START), source.index(ml.END) + len(ml.END)
-    assert source[start:end] == ml.words_block(), "run: python -m scripts.dev.miner_lookup --write-words"
+    assert (
+        source[start:end] == ml.words_block()
+    ), "run: python -m scripts.dev.miner_lookup --write-words"
 
 
 def test_the_tool_is_one_self_contained_file_that_imports_no_repository_code():
     source = Path(ml.__file__).read_text(encoding="utf-8")
     before_generator = source[: source.index("# --- generator")]
-    assert not re.search(r"^\s*(from|import)\s+(carbon|scripts)\b", before_generator, re.MULTILINE)
+    assert not re.search(
+        r"^\s*(from|import)\s+(carbon|scripts)\b", before_generator, re.MULTILINE
+    )

@@ -46,7 +46,16 @@ QUEUE_TIMEOUT_S = 5
 
 #: What may be printed, by section. Nothing outside it is ever produced; `finish` enforces it.
 ALLOWED_FIELDS = {
-    "lookup": {"asked", "tasks", "task", "queue", "queue_rows", "board", "not_available", "refused"},
+    "lookup": {
+        "asked",
+        "tasks",
+        "task",
+        "queue",
+        "queue_rows",
+        "board",
+        "not_available",
+        "refused",
+    },
     "task": {
         "task_id",
         "entry_id",
@@ -160,8 +169,6 @@ WORDS_NEXT = {
     "bounded_hypothesis_required": "Send hypothesis (and expected_effect, if given) as 1 to 2048 characters of text.",
     "bounded_note_required": "Send 1 to 2000 characters of plain text.",
     "bounded_reason_required": "Send reason as 1 to 4096 characters of text.",
-    "bundle_graph_caps_refused": "Your graph went over one of the registered graph limits. The one to check first is the 32 KiB size limit: the compressed (zlib level 9) size of the whole graph, in bytes, not tokens. Nothing was graded. Your frozen candidate is kept.",
-    "bundle_graph_oversized": "Your graph file is larger than this validator reads, before the 32 KiB size limit (compressed size of the whole graph, in bytes, not tokens) is even measured. This file limit is not published here: ask us for it. Nothing was graded. Your frozen candidate is kept.",
     "call_in_flight": "A model call of this campaign is still being admitted or in flight (it holds the campaign's provider-call lease), or this host cannot show that none is; settle once it has ended or its process has exited.",
     "campaign_busy": "Another session holds this campaign: an attached agent, the Control Center's tools, or an operation still running. Right after a launch the campaign is busy until its launch run finishes (state QUEUED, then READY): wait for it (carbon_wait with the campaign, or watch the page) and try again. Otherwise detach it (carbon_detach_campaign) or close the tools, then try again.",
     "campaign_complete": "This campaign is complete. Launch a new one to continue.",
@@ -179,7 +186,7 @@ WORDS_NEXT = {
     "campaign_runtime_differs": "This campaign was frozen with a runtime this host no longer composes. Launch a new campaign; this one stays readable.",
     "campaign_stopped": "This campaign is stopped. Launch a new one to continue.",
     "candidate_awaits_submission": "A frozen candidate is waiting. Submit it before freezing another.",
-    "cap_exceeded": "Your graph went over one of the registered graph limits. The one to check first is the 32 KiB size limit: the compressed (zlib level 9) size of the whole graph, in bytes, not tokens. Nothing was graded. Your frozen candidate is kept.",
+    "candidate_build_refused": "Carbon's build refused your graph because of something in it (not a feature Carbon is missing): for example a malformed graph, a limit the kit names, or a policy rule. One thing to check first is the 32 KiB size limit: the compressed (zlib level 9) size of the whole graph, in bytes, not tokens. Nothing was graded. Your frozen candidate is kept.",
     "capacity": "The validator intake is busy. Submit again in a few minutes; the frozen candidate is kept.",
     "carbon_capability_gap": "Carbon capability gap: this doesn't count against you; the op is on Carbon's add list; see the kit's supported-ops notes for an alternative (the carbon.level4.tooling.lower_torch module docs).",
     "carbon_mcp_failed": "Carbon MCP stopped unexpectedly. Start it again; if it keeps failing, open the Control Center to check your setup.",
@@ -236,7 +243,7 @@ WORDS_NEXT = {
     "construction_level_not_offered_for_challenge": "This Challenge's campaign does not compile at construction levels yet. Launch at Level 0 (omit construction_level).",
     "construction_recipe_binding_mismatch": "The recipe names another Challenge, version or kit: copy challenge and output from the toolbox's catalog recipe for this campaign's exact version.",
     "construction_recipe_graph_workspace_missing": "Your graph is not staged at the receiver yet. Stage it first (the Control Center's stage button, or the stage_construction_graph action), then submit again. Nothing was submitted.",
-    "construction_recipe_malformed": "That is not a construction recipe. A recipe is a JSON object with exactly these keys: schema (\"carbon.construction-recipe.v1\"), challenge, source, procedure and output; a Strategy 1.0 ({schema_version, backbone, parameters}) is not one. Easiest: call toolbox {challenge, challenge_version}; its catalog list holds a ready recipe for every backbone. Copy one and change only procedure.configuration.",
+    "construction_recipe_malformed": 'That is not a construction recipe. A recipe is a JSON object with exactly these keys: schema ("carbon.construction-recipe.v1"), challenge, source, procedure and output; a Strategy 1.0 ({schema_version, backbone, parameters}) is not one. Easiest: call toolbox {challenge, challenge_version}; its catalog list holds a ready recipe for every backbone. Copy one and change only procedure.configuration.',
     "construction_recipe_procedure_invalid": "The recipe's procedure is not valid: keep entrypoint, train_use and initial_state as the toolbox's catalog recipe has them, and change only configuration, with the settings the entry lists.",
     "construction_recipe_source_invalid": "The recipe's source is not one this version takes. Copy a catalog recipe from toolbox {challenge, challenge_version} (source {kind: catalog, catalog_id, catalog_digest}) and keep its source as it is.",
     "construction_request_deadline": "Your construction receiver did not answer before the submit's deadline. The frozen candidate is kept. If the receiver did get your submission, submitting again returns that submission's result; it is never graded twice. Submit again later.",
@@ -484,7 +491,9 @@ WORDS_GRADE = {
 
 def _utc(ns=None, seconds=None):
     value = ns / 1e9 if seconds is None else seconds
-    return datetime.datetime.fromtimestamp(int(value), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.datetime.fromtimestamp(int(value), datetime.UTC).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
 
 def _words(code):
@@ -492,7 +501,12 @@ def _words(code):
     if code in WORDS_NEXT:
         return WORDS_NEXT[code]
     if code in WORDS_GRADE:
-        return "Grade state: " + WORDS_GRADE[code][:1].upper() + WORDS_GRADE[code][1:] + "."
+        return (
+            "Grade state: "
+            + WORDS_GRADE[code][:1].upper()
+            + WORDS_GRADE[code][1:]
+            + "."
+        )
     return None
 
 
@@ -515,7 +529,11 @@ class Root:
 
     def db(self):
         try:
-            db = sqlite3.connect(self.ledger.resolve().as_uri() + "?mode=ro", uri=True, timeout=SQL_TIMEOUT_S)
+            db = sqlite3.connect(
+                self.ledger.resolve().as_uri() + "?mode=ro",
+                uri=True,
+                timeout=SQL_TIMEOUT_S,
+            )
             db.execute("PRAGMA query_only=ON")
             return db
         except sqlite3.Error as error:
@@ -534,7 +552,8 @@ class Root:
         return {
             key: body[key]
             for key in ("state", "code")
-            if type(body.get(key)) is str and re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", body[key])
+            if type(body.get(key)) is str
+            and re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", body[key])
         }
 
 
@@ -549,9 +568,15 @@ def _owed(path):
         return out
     for line in lines:
         parts = line.split("\t")
-        if len(parts) != 4 or not OWED_ID.fullmatch(parts[0]) or not TASK_ID.fullmatch(parts[1]):
+        if (
+            len(parts) != 4
+            or not OWED_ID.fullmatch(parts[0])
+            or not TASK_ID.fullmatch(parts[1])
+        ):
             continue
-        if parts[2] not in OWED_STATES or not (parts[3] == "-" or TASK_ID.fullmatch(parts[3])):
+        if parts[2] not in OWED_STATES or not (
+            parts[3] == "-" or TASK_ID.fullmatch(parts[3])
+        ):
             continue
         row = {"owed_id": parts[0], "state": parts[2]}
         if parts[3] != "-":
@@ -567,7 +592,9 @@ def _queue(root):
     document = None
     for suffix in ("/v4", "/v3"):
         try:
-            with urllib.request.urlopen(root.queue_url.rstrip("/") + suffix, timeout=QUEUE_TIMEOUT_S) as answer:  # noqa: S310
+            with urllib.request.urlopen(
+                root.queue_url.rstrip("/") + suffix, timeout=QUEUE_TIMEOUT_S
+            ) as answer:
                 raw = answer.read(MAX_BYTES + 1)
             found = json.loads(raw) if len(raw) <= MAX_BYTES else None
         except (OSError, ValueError):
@@ -580,30 +607,61 @@ def _queue(root):
     wait = document.get("wait_24h") if type(document.get("wait_24h")) is dict else {}
     rows = []
     for row in document.get("rows") or ():
-        if type(row) is dict and type(row.get("position")) is int and type(row.get("in_queue_s")) is int:
+        if (
+            type(row) is dict
+            and type(row.get("position")) is int
+            and type(row.get("in_queue_s")) is int
+        ):
             short = row.get("hotkey")
             state = row.get("state")
             rows.append(
                 {
                     "position": row["position"],
-                    "hotkey": short if type(short) is str and SHORT_FORM.fullmatch(short) else None,
-                    "state": state if type(state) is str and len(state) <= 40 and state.isprintable() else None,
+                    "hotkey": (
+                        short
+                        if type(short) is str and SHORT_FORM.fullmatch(short)
+                        else None
+                    ),
+                    "state": (
+                        state
+                        if type(state) is str
+                        and len(state) <= 40
+                        and state.isprintable()
+                        else None
+                    ),
                     "in_queue_s": row["in_queue_s"],
                 }
             )
     door = document.get("door_state")
-    shown_wait = {k: wait[k] for k in ("verdicts", "median_s", "p90_s") if type(wait.get(k)) in (int, type(None))}
+    shown_wait = {
+        k: wait[k]
+        for k in ("verdicts", "median_s", "p90_s")
+        if type(wait.get(k)) in (int, type(None))
+    }
     if wait.get("reason") == "fewer_than_5_verdicts_in_24h":
         shown_wait["reason"] = wait["reason"]
     return {
-        "door_state": door if type(door) is str and len(door) <= 40 and door.isprintable() else None,
+        "door_state": (
+            door
+            if type(door) is str and len(door) <= 40 and door.isprintable()
+            else None
+        ),
         **{
             key: document[key]
-            for key in ("waiting_to_build", "building_now", "waiting_to_grade", "grading_now")
+            for key in (
+                "waiting_to_build",
+                "building_now",
+                "waiting_to_grade",
+                "grading_now",
+            )
             if type(document.get(key)) is int
         },
         "wait_24h": shown_wait,
-        "as_of": document["as_of"] if type(document.get("as_of")) is str and UTC.fullmatch(document["as_of"]) else None,
+        "as_of": (
+            document["as_of"]
+            if type(document.get("as_of")) is str and UTC.fullmatch(document["as_of"])
+            else None
+        ),
         "rows": rows,
     }
 
@@ -618,14 +676,22 @@ def _board(root):
         return {}
     out = {}
     for row in (document.get("ladder") or ()) if type(document) is dict else ():
-        if type(row) is not dict or type(row.get("hotkey")) is not str or not SS58.fullmatch(row["hotkey"]):
+        if (
+            type(row) is not dict
+            or type(row.get("hotkey")) is not str
+            or not SS58.fullmatch(row["hotkey"])
+        ):
             continue
         shown = {}
         if type(row.get("rank")) is int and 1 <= row["rank"] <= 10**6:
             shown["rank"] = row["rank"]
         if type(row.get("total")) in (int, float) and 0 <= row["total"] <= 1:
             shown["total"] = round(float(row["total"]), 3)
-        if type(row.get("status")) is str and len(row["status"]) <= 40 and row["status"].isprintable():
+        if (
+            type(row.get("status")) is str
+            and len(row["status"]) <= 40
+            and row["status"].isprintable()
+        ):
             shown["status"] = row["status"]
         out[row["hotkey"]] = shown
     return out
@@ -633,11 +699,17 @@ def _board(root):
 
 def _task(root, db, task, owed, *, detail):
     rows = db.execute(
-        "SELECT at_ns, kind, code, state, hotkey FROM attempts WHERE submission_id=? ORDER BY seq", (task,)
+        "SELECT at_ns, kind, code, state, hotkey FROM attempts WHERE submission_id=? ORDER BY seq",
+        (task,),
     ).fetchall()
     if not rows:
         return None
-    withdrawn = db.execute("SELECT 1 FROM miner_withdrawals WHERE submission_id=?", (task,)).fetchone() is not None
+    withdrawn = (
+        db.execute(
+            "SELECT 1 FROM miner_withdrawals WHERE submission_id=?", (task,)
+        ).fetchone()
+        is not None
+    )
     marker_code = root.marker(task).get("code")
     stopped = marker_code in MARKER_TO_CODE
     latest = next((row[1] for row in reversed(rows) if row[1] in TERMINAL_KINDS), None)
@@ -653,7 +725,15 @@ def _task(root, db, task, owed, *, detail):
         state = "RUNNING"
     code = _vocab_code(rows[-1][2], rows[-1][3], MARKER_TO_CODE.get(marker_code))
     states = {row[3] for row in rows if row[3]}
-    charged = "yes" if COUNTED in states else "no" if RELEASED in states or latest in ("FAILED_INFRA", "UNAVAILABLE") else "not stated"
+    charged = (
+        "yes"
+        if COUNTED in states
+        else (
+            "no"
+            if RELEASED in states or latest in ("FAILED_INFRA", "UNAVAILABLE")
+            else "not stated"
+        )
+    )
     shown = {
         "task_id" if TASK_ID.fullmatch(task) else "entry_id": task,
         "submitted_utc": _utc(rows[0][0]),
@@ -681,7 +761,9 @@ def resolve_hotkeys(db, text):
     """Hotkeys matching a full address or `first4...last4`: at most two come back (ambiguity, never a list)."""
     short = SHORT.fullmatch(text)
     if SS58.fullmatch(text):
-        rows = db.execute("SELECT DISTINCT hotkey FROM attempts WHERE hotkey=? LIMIT 2", (text,)).fetchall()
+        rows = db.execute(
+            "SELECT DISTINCT hotkey FROM attempts WHERE hotkey=? LIMIT 2", (text,)
+        ).fetchall()
     elif short:
         rows = db.execute(
             "SELECT DISTINCT hotkey FROM attempts WHERE substr(hotkey,1,4)=? AND substr(hotkey,-4)=? LIMIT 2",
@@ -726,9 +808,20 @@ def lookup(root, name, argument=None):
                     raise Refused("task_form")
                 found = db.execute(
                     "SELECT DISTINCT submission_id FROM attempts WHERE submission_id LIKE ? LIMIT 2",
-                    ((argument if argument.startswith("rtsk_") else "rtsk_" + argument) + "%",),
+                    (
+                        (
+                            argument
+                            if argument.startswith("rtsk_")
+                            else "rtsk_" + argument
+                        )
+                        + "%",
+                    ),
                 ).fetchall()
-                task = found[0][0] if len(found) == 1 and TASK_ID.fullmatch(str(found[0][0])) else None
+                task = (
+                    found[0][0]
+                    if len(found) == 1 and TASK_ID.fullmatch(str(found[0][0]))
+                    else None
+                )
                 if task is None and len(found) == 1:
                     raise Refused("task_not_found")
                 if len(found) != 1:
@@ -740,7 +833,9 @@ def lookup(root, name, argument=None):
             shown = _task(root, db, task, owed, detail=True)
             if shown is None:
                 raise Refused("entry_not_found")
-            hotkey = db.execute("SELECT hotkey FROM attempts WHERE submission_id=? LIMIT 1", (task,)).fetchone()
+            hotkey = db.execute(
+                "SELECT hotkey FROM attempts WHERE submission_id=? LIMIT 1", (task,)
+            ).fetchone()
             return {
                 "asked": name,
                 "task": shown,
@@ -751,7 +846,11 @@ def lookup(root, name, argument=None):
         if name == "hotkey":
             keys = resolve_hotkeys(db, argument or "")
             if len(keys) != 1:
-                raise Refused("hotkey_not_found" if not keys else "hotkey_ambiguous_send_more_characters")
+                raise Refused(
+                    "hotkey_not_found"
+                    if not keys
+                    else "hotkey_ambiguous_send_more_characters"
+                )
             ids = db.execute(
                 "SELECT submission_id, MIN(seq) FROM attempts WHERE hotkey=? AND submission_id LIKE 'rtsk\\_%' ESCAPE '\\' "
                 "GROUP BY submission_id ORDER BY MIN(seq) DESC LIMIT ?",
@@ -760,7 +859,9 @@ def lookup(root, name, argument=None):
             tasks = [
                 shown
                 for shown in (
-                    _task(root, db, i[0], owed, detail=False) for i in ids if TASK_ID.fullmatch(str(i[0]))
+                    _task(root, db, i[0], owed, detail=False)
+                    for i in ids
+                    if TASK_ID.fullmatch(str(i[0]))
                 )
                 if shown
             ]
@@ -821,7 +922,9 @@ def finish(document):
     for row in board if type(board) is list else ([board] if board else []):
         _check(row, "board")
     _scan(document)
-    text = json.dumps(document, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    text = json.dumps(
+        document, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
     if len(text.encode("utf-8")) > MAX_BYTES:
         raise Refused("answer_too_large")
     return text
@@ -841,7 +944,8 @@ def parse_words(words):
 
 def parse_ssh_command(text):
     """`SSH_ORIGINAL_COMMAND` -> (name, argument): an optional leading `miner_lookup`, then one subcommand. The asker can
-    never name a path, host or option; the operator's paths come from the config file the forced command names."""
+    never name a path, host or option; the operator's paths come from the config file the forced command names.
+    """
     try:
         words = shlex.split(text or "")
     except ValueError as error:
@@ -858,7 +962,7 @@ def _audit(path, name, asked, size):
     try:
         fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
         with os.fdopen(fd, "a", encoding="utf-8") as handle:
-            now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+            now = datetime.datetime.now(datetime.UTC).timestamp()
             handle.write(f"{_utc(seconds=now)}\t{name}\t{asked}\t{size}\n")
     except OSError:
         pass
@@ -870,7 +974,11 @@ def _config(path):
     except (OSError, ValueError) as error:
         raise Refused("config_unreadable") from error
     allowed = {"ledger", "markers", "owed_tasks", "queue_url", "board", "audit"}
-    if type(body) is not dict or set(body) - allowed or type(body.get("ledger")) is not str:
+    if (
+        type(body) is not dict
+        or set(body) - allowed
+        or type(body.get("ledger")) is not str
+    ):
         raise Refused("config_invalid")
     return body
 
@@ -879,8 +987,14 @@ def main(argv=None, env=None):
     env = os.environ if env is None else env
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", default=CONFIG_PATH)
-    parser.add_argument("--write-words", action="store_true", help="regenerate the word tables in this file")
-    parser.add_argument("words", nargs="*", help="`ssh`, or one subcommand with its argument")
+    parser.add_argument(
+        "--write-words",
+        action="store_true",
+        help="regenerate the word tables in this file",
+    )
+    parser.add_argument(
+        "words", nargs="*", help="`ssh`, or one subcommand with its argument"
+    )
     args = parser.parse_args(argv)
     if args.write_words:
         write_words(Path(__file__))
@@ -894,7 +1008,13 @@ def main(argv=None, env=None):
         else:
             name, argument = parse_words(args.words)
         asked = argument if type(argument) is str and ASKED.fullmatch(argument) else "-"
-        root = Root(config["ledger"], config.get("markers"), config.get("owed_tasks"), config.get("queue_url"), config.get("board"))
+        root = Root(
+            config["ledger"],
+            config.get("markers"),
+            config.get("owed_tasks"),
+            config.get("queue_url"),
+            config.get("board"),
+        )
         text = finish(lookup(root, name, argument))
         code = "ok"
     except Refused as refused:
@@ -911,14 +1031,24 @@ START = "# --- words:start (generated: python -m scripts.dev.miner_lookup --writ
 END = "# --- words:end ---"
 
 
+def _literal(text):
+    """A string literal as black writes it: double quotes unless that would need more escapes than single quotes."""
+    if text.count('"') > text.count("'") and text.isprintable() and "\\" not in text:
+        return "'" + text.replace("'", "\\'") + "'"
+    return json.dumps(text, ensure_ascii=False)
+
+
 def words_block():
     from scripts.dev.miner_launchpad import projection, supervisor
 
     lines = [START, "WORDS_NEXT = {"]
-    lines += [f"    {json.dumps(k)}: {json.dumps(v, ensure_ascii=False)}," for k, v in sorted(supervisor.NEXT_ACTIONS.items())]
+    lines += [
+        f"    {json.dumps(k)}: {_literal(v)},"
+        for k, v in sorted(supervisor.NEXT_ACTIONS.items())
+    ]
     lines += ["}", "WORDS_GRADE = {"]
     lines += [
-        f"    {json.dumps(k)}: {json.dumps(v, ensure_ascii=False)},"
+        f"    {json.dumps(k)}: {_literal(v)},"
         for k, v in sorted(projection.GRADE_STATE_WORDS.items())
     ]
     lines += ["}", END]
