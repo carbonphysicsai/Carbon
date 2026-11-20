@@ -5,10 +5,11 @@ Claims:
 (a) only the structured recipe-side end files a spot: REFUSED + ``candidate_program_failed`` + a FAILED_MINER build or
     build-pipeline inference child; every look-alike files none (a GPU-lane FAILED_MINER under FAILED_INFRA, a campaign
     limit, a refused graph, the door's CPU worker wall, no FAILED_MINER child);
-(b) ONE spot per task in its own table (idempotent), counted in the day and the round like a grade, never an exam_graded
-    row (no score, no copy rule, no board / ladder / crown input);
+(b) ONE spot per task in its own table (idempotent), counted against the DAILY allowance only (not the round: V2 23:2xZ),
+    never an exam_graded row (no score, no copy rule, no board / ladder / crown input);
 (c) a later Carbon-side ruling gives it back (``return-build-spot``), once, logged;
-(d) the miner's v10 row says side yours, charged, spot used; a returned or never-filed spot shows no row;
+(d) the miner's v11 row says side yours, charged, spot used (v10 keeps None); a returned or never-filed spot shows no
+    row;
 (e) prospective: nothing reads past REFUSED builds, the door files only right after a build run ends.
 SYNTHETIC ledgers, tasks and providers; no build runs.
 """
@@ -84,21 +85,33 @@ def _reserve(cap, task, block):
 # --- (b) the spot counts like a grade, in its own table ------------------------------------------------------------
 
 
-def test_a_recipe_spot_uses_the_day_and_the_round_and_is_filed_once(tmp_path):
+def test_a_recipe_spot_uses_the_day_not_the_round_and_is_filed_once(tmp_path):
     cap = _cap(tmp_path)
     assert _spend(cap, TASK, 360 * 5 + 1) is True
     assert _spend(cap, TASK, 360 * 5 + 1) is False  # idempotent: one spot per task
-    # the round: one graded exam per round, and the crashed build took it
-    with pytest.raises(exam_cap.ExamCapRefused) as refused:
-        _reserve(cap, OTHER, 360 * 5 + 300)
-    assert refused.value.code == "epoch_limit_reached"
+    # the round stays open (a build sees only public inputs: a retry in the round probes no exam)
+    cap.settle(_reserve(cap, OTHER, 360 * 5 + 300), "SCORED_DEVELOPMENT_CANDIDATE")
     # the day: 2 a day here; the spot + one grade use both
-    cap.settle(_reserve(cap, OTHER, 360 * 6), "SCORED_DEVELOPMENT_CANDIDATE")
     with pytest.raises(exam_cap.ExamCapRefused) as refused:
         _reserve(cap, THIRD, 360 * 7)
     assert refused.value.code == "exam_daily_allowance_reached"
     # the rolling day moves on
     cap.settle(_reserve(cap, THIRD, 360 * 26), "SCORED_DEVELOPMENT_CANDIDATE")
+
+
+def test_a_spot_only_group_is_not_an_active_miner(tmp_path):
+    """V2 (2): the allowance's M sizes GRADE lane capacity; a group whose only use is a crashed build is not in it."""
+    cap = _cap(tmp_path, capacity=9.4)
+    other = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    cap.file_build_spent(
+        hotkey=other,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        submission_id=OTHER,
+        block=360,
+        code=lean_recipe.RECIPE_SPOT_CODE,
+    )
+    assert cap.allowance(hotkey=HOTKEY, block=360)["active_miners"] == 1
 
 
 def test_the_spot_is_never_an_exam_row_or_a_grade(tmp_path):
@@ -125,11 +138,12 @@ def test_the_spot_is_never_an_exam_row_or_a_grade(tmp_path):
 def test_a_returned_spot_no_longer_counts(tmp_path):
     cap = _cap(tmp_path)
     _spend(cap, TASK, 360 * 5 + 1)
+    cap.settle(_reserve(cap, OTHER, 360 * 6), "SCORED_DEVELOPMENT_CANDIDATE")
     assert cap.return_build_spot(TASK)["code"] == lean_recipe.RECIPE_SPOT_CODE
     with pytest.raises(exam_cap.ExamCapRefused) as refused:
         cap.return_build_spot(TASK)
     assert refused.value.code == "build_spot_return_no_row"
-    _reserve(cap, OTHER, 360 * 5 + 300)  # the round is open again
+    _reserve(cap, THIRD, 360 * 7)  # the day has room again (2 a day: the grade only)
     assert cap.build_spent(TASK)["returned"] is True
 
 
@@ -319,3 +333,20 @@ def test_the_miner_row_says_yours_charged_and_spot_used(tmp_path):
     assert (
         DirectRecipeIntake._recipe_spot_row(intake, TASK) is None
     )  # given back: no row
+
+
+def test_only_a_v11_reply_carries_the_recipe_row():
+    """V2 (3): a versioned change (AGENTS s12): v11 is opt-in and advertised; v10 keeps its closed rows."""
+    from pathlib import Path
+
+    from carbon.challenge_validator import direct_intake
+
+    assert direct_intake.feedback_reply({"reply": "v11", "submission_id": "t"}) == "v11"
+    assert direct_intake.FEEDBACK_REPLY_SCHEMA_V11.endswith(".v11")
+    text = Path(direct_intake.__file__).read_text(encoding="utf-8")
+    assert '"exam_feedback_v11"' in text
+    assert (
+        'v11 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED"'
+        in text
+    )
+    assert 'v10=reply in ("v10", "v11")' in text

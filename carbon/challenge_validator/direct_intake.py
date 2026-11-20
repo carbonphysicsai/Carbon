@@ -126,11 +126,15 @@ FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
 FEEDBACK_REPLY_SCHEMA_V9 = "carbon.private-exam.ladder-feedback-reply.v9"
 #: v10 (owner P0 20 Nov 2026 "better failure labels and explanations"; V2 FAILURE_LABELS_RULING_20261120 section 4) = v9
 #: plus ``submission.failure_class``: for the caller's own submission whose build ended FAILED_INFRA, the closed public row of
-#: its failure class (`infra_diagnosis.public_row`: code, what happened, side, charged, next step, retried or owed); for one
-#: whose build ended RECONSTRUCTION_FAILED on its own program with its daily spot used (G-LEAD-10 row 1), the recipe-side
-#: row (`infra_diagnosis.RECIPE_SPOT_ROW`, side yours, charged); else None. Never a host, path, id, traceback or log text. Opt-in (a kit pins v9's closed keys); advertised as
+#: its failure class (`infra_diagnosis.public_row`: code, what happened, side, charged, next step, retried or owed), else
+#: None. Never a host, path, id, traceback or log text. Opt-in (a kit pins v9's closed keys); advertised as
 #: ``exam_feedback_v10``.
 FEEDBACK_REPLY_SCHEMA_V10 = "carbon.private-exam.ladder-feedback-reply.v10"
+#: v11 (G-LEAD-10 row 1, RECIPE CRASHED: spot used; V2 23:2xZ (3): a versioned change, not a v10 widening) = v10 plus, for
+#: the caller's own submission whose build ended RECONSTRUCTION_FAILED on its own program with its daily spot used, the
+#: recipe-side row in ``submission.failure_class`` (`infra_diagnosis.RECIPE_SPOT_ROW`: side yours, charged). v10 keeps None
+#: there. Opt-in (a kit pins v10's closed rows); advertised as ``exam_feedback_v11``.
+FEEDBACK_REPLY_SCHEMA_V11 = "carbon.private-exam.ladder-feedback-reply.v11"
 #: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
 WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
 #: A miner withdraws its OWN queued, not-yet-building submission (owner GO 15 Nov 2026 via the Lead): signed by the same hotkey,
@@ -214,6 +218,7 @@ def feedback_reply(fields):
         "v8",
         "v9",
         "v10",
+        "v11",
     ):
         return fields["reply"]
     return None
@@ -503,6 +508,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v11": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V11,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 **(
@@ -770,13 +782,14 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9", "v10"),
-                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10"),
-                v6=reply in ("v6", "v7", "v8", "v9", "v10"),
-                v7=reply in ("v7", "v8", "v9", "v10"),
-                v8=reply in ("v8", "v9", "v10"),
-                v9=reply in ("v9", "v10"),
-                v10=reply == "v10",
+                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"),
+                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10", "v11"),
+                v6=reply in ("v6", "v7", "v8", "v9", "v10", "v11"),
+                v7=reply in ("v7", "v8", "v9", "v10", "v11"),
+                v8=reply in ("v8", "v9", "v10", "v11"),
+                v9=reply in ("v9", "v10", "v11"),
+                v10=reply in ("v10", "v11"),
+                v11=reply == "v11",
             )
         if received.call.tool == WITHDRAW_TOOL:
             return self._withdraw(received.receipt.hotkey, fields)
@@ -955,6 +968,7 @@ class DirectRecipeIntake(BatteryIntake):
         v8=False,
         v9=False,
         v10=False,
+        v11=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -1004,7 +1018,7 @@ class DirectRecipeIntake(BatteryIntake):
         if v10 and submission_id is not None and grade_state == "FAILED_INFRA":
             failure_class = self._failure_class_row(submission_id)
         elif (
-            v10 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED"
+            v11 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED"
         ):
             failure_class = self._recipe_spot_row(submission_id)
         if v8 and submission_id is not None and failure is not None:
@@ -1057,38 +1071,22 @@ class DirectRecipeIntake(BatteryIntake):
                     {}
                     if submission_id is None
                     else {
-                        "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V10
-                            if v10
-                            else (
-                                FEEDBACK_REPLY_SCHEMA_V9
-                                if v9
-                                else (
-                                    FEEDBACK_REPLY_SCHEMA_V8
-                                    if v8
-                                    else (
-                                        FEEDBACK_REPLY_SCHEMA_V7
-                                        if v7
-                                        else (
-                                            FEEDBACK_REPLY_SCHEMA_V6
-                                            if v6
-                                            else (
-                                                FEEDBACK_REPLY_SCHEMA_V5
-                                                if v5
-                                                else (
-                                                    FEEDBACK_REPLY_SCHEMA_V4
-                                                    if v4
-                                                    else (
-                                                        FEEDBACK_REPLY_SCHEMA_V3
-                                                        if v3
-                                                        else FEEDBACK_REPLY_SCHEMA_V2
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
+                        # the newest reply the caller asked for (each implies the older ones' flags)
+                        "schema": next(
+                            schema
+                            for flag, schema in (
+                                (v11, FEEDBACK_REPLY_SCHEMA_V11),
+                                (v10, FEEDBACK_REPLY_SCHEMA_V10),
+                                (v9, FEEDBACK_REPLY_SCHEMA_V9),
+                                (v8, FEEDBACK_REPLY_SCHEMA_V8),
+                                (v7, FEEDBACK_REPLY_SCHEMA_V7),
+                                (v6, FEEDBACK_REPLY_SCHEMA_V6),
+                                (v5, FEEDBACK_REPLY_SCHEMA_V5),
+                                (v4, FEEDBACK_REPLY_SCHEMA_V4),
+                                (v3, FEEDBACK_REPLY_SCHEMA_V3),
+                                (True, FEEDBACK_REPLY_SCHEMA_V2),
                             )
+                            if flag
                         ),
                         "submission": {
                             "submission_id": submission_id,

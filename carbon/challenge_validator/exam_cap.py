@@ -586,18 +586,13 @@ class ExamCap:
             f"challenge_id=? AND epoch=? AND {held}",
             (group, hotkey, challenge_id, epoch, submission_id),
         ).fetchone()[0]
-        # G-LEAD-10 row 1 (RECIPE CRASHED, spot USED): a build its own program failed takes the slot a grade would
-        # have, in the day and in its round, from its own table (`file_build_spent`), never an exam_graded row
-        spent = "returned_ns IS NULL AND submission_id<>?"
+        # G-LEAD-10 row 1 (RECIPE CRASHED, spot USED): a build its own program failed takes one of the DAY's spots,
+        # from its own table (`file_build_spent`), never an exam_graded row. Not the round (V2 23:2xZ: the owner's
+        # table says the daily limit, and a build sees only public inputs, so a retry in the same round probes no exam)
         used += db.execute(
             f"SELECT COUNT(*) FROM exam_build_spent WHERE {mine} AND "
-            f"challenge_id=? AND epoch>? AND epoch<=? AND {spent}",
+            "challenge_id=? AND epoch>? AND epoch<=? AND returned_ns IS NULL AND submission_id<>?",
             (group, hotkey, challenge_id, low, high, submission_id),
-        ).fetchone()[0]
-        in_epoch += db.execute(
-            f"SELECT COUNT(*) FROM exam_build_spent WHERE {mine} AND "
-            f"challenge_id=? AND epoch=? AND {spent}",
-            (group, hotkey, challenge_id, epoch, submission_id),
         ).fetchone()[0]
         used += sum(1 for other in pending if low < other <= high)
         in_epoch += sum(1 for other in pending if other == epoch)
@@ -1123,8 +1118,9 @@ class ExamCap:
     ) -> bool:
         """G-LEAD-10 row 1 (owner, 20 Nov 2026; V2 part (1) spec 13:11Z): a build that ended on the candidate's OWN
         failure uses the daily spot. ONE row per task in its own table (``exam_build_spent``), never an exam_graded row:
-        no score, no exam row, nothing the copy rule, board, ladder or crown reads as a grade. It counts against the day
-        and the round of its submission's block (`_limit_refusal`), under the allowance group at filing (as `reserve`).
+        no score, no exam row, nothing the copy rule, board, ladder or crown reads as a grade. It counts against the DAILY
+        allowance of its submission's block (`_limit_refusal`; not the round, V2), under the allowance group at filing
+        (as `reserve`); a spot-only group is not an active miner of the allowance's M (V2 (2)).
         Idempotent: True when this call filed it, False when the task was filed already. Prospective only: the caller
         files a build as it ends (`lean_recipe._file_recipe_spot`), never one that ended before.
         """

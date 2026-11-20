@@ -638,9 +638,11 @@ def test_feedback_v9_is_opt_in_recognised_and_advertised():
     assert direct_intake.feedback_reply({"reply": "v9", "submission_id": sid}) == "v9"
     # v10 (failure classes, 20 Nov 2026) asks for v9's states too; an unknown reply is still refused
     assert direct_intake.feedback_reply({"reply": "v10", "submission_id": sid}) == "v10"
-    assert direct_intake.feedback_reply({"reply": "v11", "submission_id": sid}) is None
+    # v11 (G-LEAD-10 row 1's recipe-side row) asks for them too
+    assert direct_intake.feedback_reply({"reply": "v11", "submission_id": sid}) == "v11"
+    assert direct_intake.feedback_reply({"reply": "v12", "submission_id": sid}) is None
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")
-    assert '"exam_feedback_v9"' in text and 'v9=reply in ("v9", "v10")' in text
+    assert '"exam_feedback_v9"' in text and 'v9=reply in ("v9", "v10", "v11")' in text
     assert client.FEEDBACK_V9_FACTS["reply_schema"] == (
         direct_intake.FEEDBACK_REPLY_SCHEMA_V9
     )
