@@ -218,12 +218,16 @@ def test_no_record_and_no_row_is_no_lane(host):
     assert _pool(host, values) is None
 
 
-def test_the_checked_in_values_file_names_only_motor_1_8_on_the_a100():
-    """Lead, 16 Nov (for V2's read): Motor 1.8 builds on the Lambda A100 40GB, 4 shared slots to start. A door uses it
-    only with the operator's boxes directory (or a local slot lane) installed."""
+def test_the_checked_in_values_file_names_motor_and_cooling_1_8_on_the_a100():
+    """Lead, 16 Nov (for V2's read): Motor 1.8 builds on the Lambda A100 40GB, 4 shared slots to start; Cooling 1.8
+    (C5g, 20 Nov) on the same class and shape. A door uses it only with the operator's boxes directory (or a local slot
+    lane) installed."""
     document = json.loads(remote_gpu_build.VALUES.read_bytes())
     assert document["schema"] == remote_gpu_build.VALUES_SCHEMA
-    assert set(document["rows"]) == {"electric-motor-magnetics 1.8"}
+    assert set(document["rows"]) == {
+        "electric-motor-magnetics 1.8",
+        "chip-cold-plate 1.8",
+    }
     # Lead pick (A), 20 Nov 2026 (owner's line replacing C8 / G19): 4 shared slots per box, same per-slot envelope
     assert remote_gpu_build.values_row("electric-motor-magnetics", "1.8") == {
         "device_kind": "NVIDIA A100-SXM4-40GB",
