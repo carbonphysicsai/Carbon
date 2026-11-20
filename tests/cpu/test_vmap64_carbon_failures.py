@@ -288,15 +288,19 @@ def test_graded_bytes_of_another_inference_are_never_compared(
     assert retention._regrade_generation(fixture.base, e2e.TASK) == 1
     _requeue(fixture, root)
     outcome, marker = _graded_by(auto_grade.AutoGrader(_Intake(fixture), root), root)
-    assert outcome == (e2e.TASK, "GRADED"), marker
     assert fixture.calls == ["bank", "bank", "pair", "single"]
     rows = e2e._cap_rows(fixture)
     if switch == "image_id":
-        # a moved worker image: the fresh graded pass runs, then the grade cannot be computed on that image (a typed
-        # reason in the marker, the slot released: uncharged), as for any image move; never compared, never charged
-        assert marker.get("code"), (marker, rows)
+        # a moved worker image: the fresh graded pass runs, then the grade cannot be computed on that image: Carbon's
+        # version-wide gap (V2-L2-RETENTION-20261120), raised to the grader as FAILED_INFRA (not retried), the slot
+        # released: uncharged, as for any image move; never compared, never charged
+        assert outcome == (e2e.TASK, "FAILED"), marker
+        assert marker["code"] == "leg_minimum_platform_mismatch", marker
+        assert marker["next_step"] == "resubmit_after_fix", marker
+        assert auto_retry.retryable(marker["code"]) is False
         assert all(row[2] == "RELEASED" for row in rows), (marker, rows)
     else:
+        assert outcome == (e2e.TASK, "GRADED"), marker
         assert rows[-1][2] == "COUNTED", (marker, rows)
 
 
