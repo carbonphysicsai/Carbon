@@ -2338,7 +2338,9 @@ def test_an_empty_gpu_list_or_a_one_read_flicker_never_refuses_the_box(
         with pytest.raises(RemoteLaneDown) as raised:
             remote_gpu_build.check_host(_FakeCLI(), _image(), record)
         assert raised.value.private_diagnostic == b"remote_gpu_build_box_gpu_mismatch"
-        assert not path.exists() and Path(str(path) + ".refused").exists()
+        # MISMATCHED (over-broad rules audit #13): the box file stays, the box is skipped until a re-probe reads it equal
+        assert path.exists() and not Path(str(path) + ".refused").exists()
+        assert remote_gpu_build.mismatched(binding.lane)
 
 
 def _image(image_id=IMAGE):
@@ -2370,7 +2372,10 @@ def test_a_per_build_re_read_that_differs_from_the_box_file_refuses_the_box(
             remote_gpu_build.check_host(_FakeCLI(), _image(), record)
         assert raised.value.code is WorkerCode.UNAVAILABLE
         assert raised.value.private_diagnostic == b"remote_gpu_build_box_gpu_mismatch"
-        assert not path.exists() and Path(str(path) + ".refused").exists()
+        # MISMATCHED, never renamed (audit #13): the file stays; skipped until a re-probe reads it equal again
+        assert path.exists() and not Path(str(path) + ".refused").exists()
+        assert remote_gpu_build.mismatched(binding.lane)
+    mismatch = Path(binding.lane.lane_dir) / remote_gpu_build.MISMATCH_NOTE
 
     calls = []
 
@@ -2379,6 +2384,7 @@ def test_a_per_build_re_read_that_differs_from_the_box_file_refuses_the_box(
         raise WorkerFailure(WorkerCode.POLICY)
 
     # an image the box file never admitted (a door switched its image since): Carbon's, the box is NOT refused
+    mismatch.unlink()  # the box reads equal again (`reprobe`): offered again
     write_box(host)
     rows["value"] = f"{UUID}, {KIND}\n".encode()
     with (
@@ -2400,8 +2406,9 @@ def test_a_per_build_re_read_that_differs_from_the_box_file_refuses_the_box(
     ):
         remote_gpu_build.check_host(_FakeCLI(), _image(), binding.lane.device)
     assert raised.value.private_diagnostic.endswith(b"mismatch") and len(calls) == 2
-    assert not path.exists()
+    assert path.exists() and mismatch.exists()  # MISMATCHED, its file kept
     # a link that is down is the box DOWN, never refused
+    mismatch.unlink()
     write_box(host)
     monkeypatch.setattr(remote_gpu_build, "link_up", lambda binding=None, **k: False)
     with (
@@ -2772,3 +2779,104 @@ def test_door_box_up_is_false_only_while_every_box_is_down(host):
         remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values)
         is False
     )
+
+
+# --- over-broad rules audit #13: an identity mismatch is re-probed, never a permanent rename ---------------------------
+
+
+def _mismatched_box(host, monkeypatch, rows):
+    values = _install(host)
+    monkeypatch.setattr(remote_gpu_build, "_ssh_capture", lambda *a, **k: rows["value"])
+    (box,) = remote_gpu_build.boxes(_pool(host, values))
+    remote_gpu_build.refuse_identity(box, b"remote_gpu_build_box_gpu_mismatch")
+    return values, box
+
+
+def _usable(host, values, box):
+    offer = type("Offer", (), {"serves": lambda self, lane: True})()
+    return remote_gpu_build._usable_box(offer, box)
+
+
+def test_a_mismatched_box_is_skipped_until_its_re_probe_is_due(host, monkeypatch):
+    rows = {"value": b"GPU-other, NVIDIA A100-SXM4-80GB\n"}
+    values, box = _mismatched_box(host, monkeypatch, rows)
+    probes = []
+    monkeypatch.setattr(
+        remote_gpu_build, "reprobe", lambda lane: probes.append(lane) or True
+    )
+    assert remote_gpu_build.mismatched(box)
+    assert (
+        _usable(host, values, box) is False and probes == []
+    )  # inside REPROBE_SECONDS
+    assert (
+        remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values)
+        is False
+    )
+    mark = Path(box.lane_dir) / remote_gpu_build.MISMATCH_NOTE
+    old = json.loads(mark.read_text())
+    old["unix"] -= remote_gpu_build.REPROBE_SECONDS + 1
+    mark.write_text(json.dumps(old))
+    # due: a round may start (the door counts the box), and taking the op reads the box again
+    assert (
+        remote_gpu_build.door_box_up("electric-motor-magnetics", "1.8", values=values)
+        is True
+    )
+    assert _usable(host, values, box) is True and probes == [box]
+
+
+def test_a_re_probe_that_reads_the_box_file_again_clears_the_mark(host, monkeypatch):
+    rows = {"value": f"{UUID}, {KIND}\n".encode()}
+    _, box = _mismatched_box(host, monkeypatch, rows)
+    monkeypatch.setattr(remote_gpu_build, "_image_ids", lambda binding: [IMAGE])
+    assert remote_gpu_build.reprobe(box) is True
+    assert not remote_gpu_build.mismatched(box)
+    assert (_boxes_dir(host) / f"{BOX}.json").exists()  # the box file never moved
+
+
+def test_a_re_probe_that_still_differs_keeps_the_mark_and_renews_its_time(
+    host, monkeypatch
+):
+    rows = {"value": b"GPU-other, NVIDIA A100-SXM4-80GB\n"}
+    _, box = _mismatched_box(host, monkeypatch, rows)
+    monkeypatch.setattr(remote_gpu_build, "_image_ids", lambda binding: [IMAGE])
+    mark = Path(box.lane_dir) / remote_gpu_build.MISMATCH_NOTE
+    old = json.loads(mark.read_text())
+    old["unix"] -= remote_gpu_build.REPROBE_SECONDS + 1
+    mark.write_text(json.dumps(old))
+    assert remote_gpu_build.reprobe(box) is False
+    assert remote_gpu_build.mismatched(box)
+    assert (
+        json.loads(mark.read_text())["unix"] > old["unix"]
+    )  # the next read is a full spacing later
+    # the GPU is ours again but an admitted image is gone or another id: still mismatched
+    rows["value"] = f"{UUID}, {KIND}\n".encode()
+    monkeypatch.setattr(remote_gpu_build, "_image_ids", lambda binding: None)
+    assert remote_gpu_build.reprobe(box) is False and remote_gpu_build.mismatched(box)
+    monkeypatch.setattr(
+        remote_gpu_build, "_image_ids", lambda binding: ["sha256:" + "f" * 64]
+    )
+    assert remote_gpu_build.reprobe(box) is False and remote_gpu_build.mismatched(box)
+
+
+def test_a_mismatch_mark_of_another_admission_is_not_this_boxs(host, monkeypatch):
+    rows = {"value": b"GPU-other, NVIDIA A100-SXM4-80GB\n"}
+    values, box = _mismatched_box(host, monkeypatch, rows)
+    # the operator admits the box again with another document (gpu_box_up door PASS): a new digest, no mark
+    write_box(host, box_document(images=(IMAGE, "sha256:" + "d" * 64)))
+    (again,) = remote_gpu_build.boxes(_pool(host, values))
+    assert again.spec.box_digest != box.spec.box_digest
+    assert not remote_gpu_build.mismatched(again)
+
+
+def test_an_identity_mismatch_is_never_a_loss_and_a_shadow_refusal_is_still_permanent(
+    host, monkeypatch
+):
+    rows = {"value": b"GPU-other, NVIDIA A100-SXM4-80GB\n"}
+    _, box = _mismatched_box(host, monkeypatch, rows)
+    error = remote_gpu_build.refuse_identity(box, b"remote_gpu_build_box_gpu_mismatch")
+    assert error.box_refused is True and error.code is WorkerCode.UNAVAILABLE
+    assert not remote_gpu_build.is_down(box)
+    # `refuse` (a box that BUILDS differently: an unequal first-build shadow) still renames its file for good
+    path = _boxes_dir(host) / f"{BOX}.json"
+    remote_gpu_build.refuse(box, b"remote_gpu_build_shadow_state_digest_differs")
+    assert not path.exists() and Path(str(path) + ".refused").exists()

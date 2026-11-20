@@ -50,8 +50,13 @@ so that is the only extra build. With no proven box at all, the first box is pro
 **Per build** (Validator-2's re-read): before the container is created, the box's GPU name and uuid (``nvidia-smi``) and
 the image id (``docker image inspect``, `check_host`) are read again on the box; a mismatch with the box file, read
 twice (an image the daemon answers for without the admitted one; ``nvidia-smi`` naming GPUs, none of them the box file's),
-is FAILED_INFRA and the box file is renamed ``.refused``. A GPU list that is empty or unreadable is the box lost (DOWN),
-never refused (audit #13: ``.refused`` only on a verified identity change).
+is FAILED_INFRA and the box is MISMATCHED (`refuse_identity`): skipped, its file kept, and re-probed every
+`REPROBE_SECONDS` (`reprobe`: the box's GPU uuid and kind, and every admitted image id, read again with no op); it
+is offered again once they equal its box file, and the per-build re-read above still runs before every container, so no
+build ever runs on a box whose identity differs from its file (over-broad rules audit #13: a permanent rename idled a
+Lium box for good on a passing mismatch). A GPU list that is empty or unreadable is the box lost (DOWN), never
+mismatched. Only an unequal first-build shadow (`refuse`: the box BUILDS differently, which no identity read can clear)
+renames the box file ``.refused`` for good.
 
 **Local slot lanes** (Lead, Mon 16 Nov: one design for both): the OLD lane record ``<HOST_ROOT>/remote-gpu-build-lanes.json``
 (`RECORD`) is kept ONLY for a lane with ``"docker_host": null`` and ``"stage_root": null``: THIS host's own GPU (the
@@ -119,6 +124,10 @@ PROVEN_MARKER = "proven"
 FIRST_BUILD = "first-build"
 BOX_COPY = "box.json"
 REFUSED_NOTE = "refused.json"
+#: In a box's directory: its identity re-read differed from its box file (`refuse_identity`), with when and why.
+MISMATCH_NOTE = "mismatch.json"
+#: How long a MISMATCHED box is skipped before its identity is read again (`reprobe`); an operational bound.
+REPROBE_SECONDS = 600
 #: How long a box marked down is skipped (an operational bound, not a scientific value).
 DOWN_SECONDS = 600
 #: Lost ops in a row (each within `DOWN_SECONDS` of the one before) that mark a box DOWN (`note_loss`); the first only
@@ -559,7 +568,8 @@ def door_box_up(challenge_id, version, *, root=None, values=None):
     pool = door_pool(challenge_id, version, root=root, values=values)
     if pool is None or pool.local is not None:
         return True
-    return any(not is_down(box) for box in boxes(pool))
+    # a MISMATCHED box counts once its re-probe is due, so a round starts and `_candidates` reads it again (`reprobe`)
+    return any(not is_down(box) and not _mismatch_waits(box) for box in boxes(pool))
 
 
 def door_build_slots(challenge_id, version, *, root=None, values=None):
@@ -954,9 +964,107 @@ def mark_proven(lane, how):
     )
 
 
+def refuse_identity(lane, reason):
+    """``lane``'s box re-read another GPU or image than its box file names (`check_host`, read twice): it is MISMATCHED,
+    skipped until `reprobe` reads its identity equal to its file again (every `REPROBE_SECONDS`); its box file stays.
+    Returns the `RemoteLaneDown` (FAILED_INFRA, never a loss: `box_refused`) the caller raises.
+    """
+    error = RemoteLaneDown(bytes(reason)[:512])
+    error.box_refused = True
+    if lane is None or lane.spec.local or lane.spec.box_file is None:
+        return error
+    _write_mark(
+        Path(lane.lane_dir) / MISMATCH_NOTE,
+        {
+            "box_digest": lane.spec.box_digest,
+            "reason": bytes(reason)[:200].decode("utf-8", "replace"),
+            "unix": time.time(),
+        },
+    )
+    return error
+
+
+def _mismatch(lane):
+    """``lane``'s live mismatch mark (`refuse_identity`), or None. A mark of another admission (a new box file, another
+    digest) is not this box's."""
+    if lane.spec.local:
+        return None
+    mark = _read_mark(Path(lane.lane_dir) / MISMATCH_NOTE)
+    if (
+        mark is None
+        or mark.get("box_digest") != lane.spec.box_digest
+        or type(mark.get("unix")) not in (int, float)
+    ):
+        return None
+    return mark
+
+
+def _mismatch_waits(lane):
+    """Whether ``lane``'s box is MISMATCHED and its next identity read (`reprobe`) is not due yet."""
+    mark = _mismatch(lane)
+    return mark is not None and time.time() - mark["unix"] < REPROBE_SECONDS
+
+
+def mismatched(lane):
+    """Whether ``lane``'s box is MISMATCHED now (`refuse_identity`, not yet re-probed equal)."""
+    return _mismatch(lane) is not None
+
+
+def _image_ids(binding):
+    """The ids the box's daemon answers for each image its box file admitted, in order, or None on any fault."""
+    found = []
+    prefix, environment = box_docker(binding)
+    for image in binding.lane.spec.images:
+        try:
+            done = subprocess.run(
+                [*prefix, "image", "inspect", "--format", "{{.Id}}", image],
+                env=environment,
+                capture_output=True,
+                timeout=PROBE_SECONDS,
+                check=False,
+                cwd=os.sep,
+            )
+        except (OSError, subprocess.TimeoutExpired, WorkerFailure):
+            return None
+        if done.returncode != 0:
+            return None
+        found.append(done.stdout.decode("utf-8", "replace").strip())
+    return found
+
+
+def reprobe(lane):
+    """Read a MISMATCHED box's identity again with no op: True (its mark cleared) when ``nvidia-smi`` names its box
+    file's GPU (uuid and kind) and its daemon answers every admitted image by that same id; else False, and the mark's
+    time is renewed, so the next read is `REPROBE_SECONDS` later. A box offered again is still re-read before every
+    build (`check_host`)."""
+    mark = _mismatch(lane)
+    if mark is None:
+        return True
+    binding = OpBinding(lane=lane, slot=0)
+    try:
+        rows = _gpu_rows(binding)
+        same = (
+            rows is not None
+            and (lane.device.device_uuid, lane.device.device_kind) in rows
+            and _image_ids(binding) == list(lane.spec.images)
+        )
+    except Exception:  # noqa: BLE001 - an unreadable box stays mismatched
+        same = False
+    if same:
+        try:
+            (Path(lane.lane_dir) / MISMATCH_NOTE).unlink(missing_ok=True)
+        except OSError:
+            return False
+        return True
+    _write_mark(Path(lane.lane_dir) / MISMATCH_NOTE, {**mark, "unix": time.time()})
+    return False
+
+
 def refuse(lane, reason):
-    """Drop ``lane``'s box out of the pool: its box file is renamed ``<name>.json.refused`` (atomic), and the reason is
-    noted in its directory. Returns the `RemoteLaneDown` (FAILED_INFRA) the caller raises.
+    """Drop ``lane``'s box out of the pool FOR GOOD: its box file is renamed ``<name>.json.refused`` (atomic), and the
+    reason is noted in its directory. Only for a box that BUILDS differently (an unequal first-build shadow), which no
+    identity read can clear; an identity mismatch is `refuse_identity`. Returns the `RemoteLaneDown` (FAILED_INFRA) the
+    caller raises.
     """
     error = RemoteLaneDown(bytes(reason)[:512])
     error.box_refused = True
@@ -1231,6 +1339,9 @@ def _usable_box(offer, box):
     logged with why (`_note_skip`)."""
     if is_down(box):
         _note_skip(box.spec.name, "down")
+        return False
+    if mismatched(box) and (_mismatch_waits(box) or not reprobe(box)):
+        _note_skip(box.spec.name, "identity_mismatch")
         return False
     if not offer.serves(box):
         _note_skip(box.spec.name, "image_not_admitted")
@@ -2307,7 +2418,7 @@ def check_host(cli_, image, record, pins=None):
     """The GPU readiness a build needs on its box's daemon, read again on the box before the container is created
     (Validator-2's per-build re-read): the image the box file admitted, present on the box by its id (and lock and
     labels) with the NVIDIA runtime, and ``nvidia-smi`` naming the box file's GPU (uuid and name). A mismatch with the
-    box file refuses the box (`refuse`); a link or GPU that cannot be read is the box DOWN. Both are Carbon's
+    box file marks the box MISMATCHED (`refuse_identity`, re-probed); a link or GPU that cannot be read is the box DOWN. Both are Carbon's
     (`RemoteLaneDown`). Success is the box's health probe (its down mark is cleared).
     """
     binding = _current()
@@ -2333,14 +2444,16 @@ def check_host(cli_, image, record, pins=None):
                 raise
             if attempt == 2:
                 # twice, with the daemon answering: the image the box file admitted is not there as it was
-                raise refuse(lane, b"remote_gpu_build_box_image_mismatch") from error
+                raise refuse_identity(
+                    lane, b"remote_gpu_build_box_image_mismatch"
+                ) from error
     ours = (lane.device.device_uuid, lane.device.device_kind)
     rows = _gpu_rows(binding)
     if rows and ours not in rows and not lane.spec.local:
         # a verified identity change only (audit #13): read again; a flicker that names ours the second time is not one
         rows = _gpu_rows(binding)
         if rows and ours not in rows:
-            raise refuse(lane, b"remote_gpu_build_box_gpu_mismatch")
+            raise refuse_identity(lane, b"remote_gpu_build_box_gpu_mismatch")
     if not rows or ours not in rows:
         # unreadable or empty: the GPU is lost (the box DOWN through the op's failure), never a refusal
         raise RemoteLaneDown(b"remote_gpu_build_device_absent")
@@ -2519,6 +2632,7 @@ __all__ = [
     "MAX_LANES",
     "MAX_SLOTS",
     "RECORD",
+    "REPROBE_SECONDS",
     "SCHEMA",
     "SHADOW_SUFFIX",
     "SLOT_PRELUDE",
@@ -2556,6 +2670,7 @@ __all__ = [
     "mark_down",
     "mark_proven",
     "mirror",
+    "mismatched",
     "note_loss",
     "offered",
     "offered_for",
@@ -2567,8 +2682,10 @@ __all__ = [
     "read_box",
     "recorded",
     "refuse",
+    "refuse_identity",
     "reject_crowded",
     "remote_box",
+    "reprobe",
     "request_fields",
     "retyped",
     "shadowing",
