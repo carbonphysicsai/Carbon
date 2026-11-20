@@ -2876,12 +2876,7 @@ def _retain_selected_pack_evaluation(
         if carbon_code is not None:
             # Carbon's own failure (review of 15 Nov, finding 2; over-broad rules audit, V2-L2-RETENTION-20261120): the
             # grader gives it back as FAILED_INFRA (the slot is already back above, once), under its own closed code
-            try:
-                from carbon.battery.intake import log
-
-                log("retention_carbon_failure", code=carbon_code)
-            except Exception:  # noqa: BLE001, S110 - never the ending
-                pass
+            _journal("retention_carbon_failure", task=submission_id, code=carbon_code)
             if isinstance(exc, RetentionUnavailable) and exc.code == carbon_code:
                 raise
             raise RetentionUnavailable(carbon_code) from exc

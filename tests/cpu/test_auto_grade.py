@@ -364,6 +364,22 @@ def test_a_grade_that_could_not_be_computed_keeps_its_own_reason_in_the_marker(
     assert _marker(tmp_path, B)["code"] is None
 
 
+def test_an_operator_retain_that_raises_leaves_the_task_to_the_grader(tmp_path):
+    """V2 MUST-SHOW on L2 (V2-L2-RETENTION-20261120): the operator's one-shot ``--retain-task`` (direct_receiver ->
+    ``intake.retain_result``) now RAISES a Carbon reason where it returned UNAVAILABLE. The one-shot writes no marker
+    (it prints ``{"unavailable": code}``), so the task stays pending for the grader, which ends it FAILED under the
+    same code (FAILED_INFRA, slot given back, auto-retry decides): never a released slot nothing picks up.
+    """
+    code = "dual_measurement_producer_unavailable"
+    grader, intake = _grader(tmp_path, [A], {A: RetentionUnavailable(code)})
+    with pytest.raises(RetentionUnavailable, match=code):
+        intake.retain_result(A, artifact_directory=None, entry_directory=None)
+    assert grader.marker(A) is None and A in grader.pending()
+    assert grader.run_once() == (A, "FAILED")
+    assert _marker(tmp_path, A)["code"] == code
+    assert A not in grader.pending()
+
+
 # ---------------------------------------------------------------- the bank wall stop is the candidate's (interim)
 
 
