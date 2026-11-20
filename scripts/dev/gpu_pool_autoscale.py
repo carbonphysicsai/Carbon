@@ -45,6 +45,10 @@ this tool did not launch (``name_prefix``) count toward the box and dollar caps 
 17 Nov 2026, "I don't think we need an always on one"). ``tick --dry-run`` reads everything and changes nothing
 (no rent, drain, release, state or log line): it prints what a tick would do. It decides nothing scientific and reads
 no hidden value: the queue counts are public, and the box files are the door's own.
+
+A Lium node (`LiumCli`, not in ``tick`` yet) is rented only after its operator passes the door's identity check
+(``operator_check.py``: the node's SN51 hotkey, and that hotkey's owner coldkey, are not netuid-116 participants; fail
+closed), LIUM_ADA_SWITCH_PLAN S2 (V2 third-party compute condition 4).
 """
 
 from __future__ import annotations
@@ -94,6 +98,7 @@ FAIL_BACKOFF_S = 30 * 60
 DAY_MARGIN_H = 0.5
 RENT_MIN_H = 1.0
 LAMBDA_API = "https://cloud.lambdalabs.com/api/v1"
+LIUM_API = "https://lium.io/api"
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 _REL_DIR = re.compile(r"[A-Za-z0-9._-][A-Za-z0-9._/-]{0,199}")
 #: ``tick --dry-run``: no rent, drain, release, state write or log-file line (printed only, marked ``dry``).
@@ -194,6 +199,11 @@ class Config:
     #: the pool's provider. Only "lambda" runs today: a Lium pool (`LiumCli`) waits for the Lium pod bring-up and the
     #: owner's Lium build budget (codex-queue/reports/INFRA/LIUM_ADA_SWITCH_PLAN_20261119.md, S3 and O1)
     provider: str = "lambda"
+    #: argv prefix run on the door for a Lium node's operator-identity check (LIUM_ADA_SWITCH_PLAN S2): the door
+    #: python with bittensor, ``-I``, ``scripts/dev/operator_check.py`` of a door checkout, ``--network``,
+    #: ``--endpoint``, ``--provider``, ``--genesis-hash``, ``--netuid 116``; each ``--hotkey`` is appended. Empty: no
+    #: Lium node passes the check, so none is rented
+    door_operator_check_args: tuple = ()
 
     @property
     def boxes_dir(self):
@@ -203,7 +213,12 @@ class Config:
 def load_config(path) -> Config:
     raw = json.loads(Path(path).read_text())
     raw.pop("_comment", None)
-    for key in ("door_ssh_options", "door_phase_args", "regions"):
+    for key in (
+        "door_ssh_options",
+        "door_phase_args",
+        "regions",
+        "door_operator_check_args",
+    ):
         if key in raw:
             raw[key] = tuple(raw[key])
     if "prewarm_utc" in raw:
@@ -231,6 +246,17 @@ def load_config(path) -> Config:
         config.name_prefix.rstrip("-") or "x"
     ):
         raise SystemExit("name_prefix")
+    check = config.door_operator_check_args
+    at = check.index("--netuid") + 1 if "--netuid" in check else len(check)
+    if check and (
+        any(type(a) is not str or not a or "\0" in a for a in check)
+        or not check[at : at + 1]
+        or not check[at].isdigit()
+        or "--hotkey" in check
+    ):
+        raise SystemExit(
+            "door_operator_check_args: [python, ..., operator_check.py, ..., --netuid, <n>], no --hotkey"
+        )
     if config.provider != "lambda":
         # bring_up knows a Lambda VM only (port 22, apt, sudo); a Lium pod needs the pod-mode bring-up first
         raise SystemExit(
@@ -458,6 +484,58 @@ class LiumError(RuntimeError):
     """A `lium` CLI call failed (non-zero exit or unreadable JSON); the message is the CLI's own reason line."""
 
 
+#: a Lium node id as ``lium up`` takes it (uuid or huid); never a flag
+_NODE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,63}")
+#: SS58 shape (`carbon.chain.external_signer`)
+_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{46,48}")
+OPERATOR_CHECK_SCHEMA = "carbon.operator-check.v1"
+
+
+def parse_operator_check(returncode, stdout, hotkeys, netuid=None):
+    """``{hotkey: refuse}`` from ``operator_check.py``'s v1 reply; `LiumError` when the reply is not one (non-zero
+    exit, unreadable JSON, wrong schema or netuid, a hotkey missing or answered without a Boolean).
+    """
+    if returncode != 0:
+        raise LiumError(f"operator check: exit {returncode}")
+    try:
+        reply = json.loads(stdout)
+    except (ValueError, TypeError) as error:
+        raise LiumError("operator check: unreadable JSON") from error
+    if (
+        type(reply) is not dict
+        or reply.get("schema") != OPERATOR_CHECK_SCHEMA
+        or (netuid is not None and reply.get("netuid") != netuid)
+        or type(reply.get("results")) is not list
+    ):
+        raise LiumError("operator check: not a v1 reply")
+    verdicts = {}
+    for row in reply["results"]:
+        if type(row) is not dict or type(row.get("refuse")) is not bool:
+            raise LiumError("operator check: not a v1 reply")
+        verdicts[row.get("hotkey")] = row["refuse"]
+    if any(hotkey not in verdicts for hotkey in hotkeys):
+        raise LiumError("operator check: a hotkey is unanswered")
+    return {hotkey: verdicts[hotkey] for hotkey in hotkeys}
+
+
+def door_operator_check(config, *, door=None):
+    """The production ``operator_check`` of `LiumCli`: one door call of ``door_operator_check_args`` with every
+    hotkey, its reply parsed (`parse_operator_check`). Unconfigured, it raises: no node passes.
+    """
+
+    def check(hotkeys):
+        args = list(config.door_operator_check_args)
+        if not args:
+            raise LiumError("operator check: door_operator_check_args is not set")
+        netuid = int(args[args.index("--netuid") + 1]) if "--netuid" in args else None
+        for hotkey in hotkeys:
+            args += ["--hotkey", hotkey]
+        done = (door or _door)(config, args, timeout=180)
+        return parse_operator_check(done.returncode, done.stdout, hotkeys, netuid)
+
+    return check
+
+
 class LiumCli:
     """Lium (Bittensor SN51) 1-GPU pods through the ``lium`` CLI's JSON mode, with `Lambda`'s interface (owner G15/G16:
     RTX 6000 Ada builds on Lium, Lambda the fallback; LIUM_ADA_SWITCH_PLAN S1). Not wired into `tick` yet: a Lium
@@ -475,6 +553,10 @@ class LiumCli:
       slice of a 104-thread node had cgroup cpu.max = 51, 19 Nov 2026): the bring-up measures cpu.max.
     - A rent the CLI cannot confirm raises `LiumError`; a pod it did create carries the prefix, so it is listed and
       counts toward the caps, and its hard ``ttl``/``budget_usd`` bound what it costs.
+    - ``offer`` picks a concrete node and ``launch`` rents exactly that node: a node is a candidate only with its SN51
+      ``miner_hotkey`` (Lium's REST ``/executors``) and no ``frequent_rent_failures``, and is chosen only when
+      ``operator_check`` says its operator is no netuid-116 participant (LIUM_ADA_SWITCH_PLAN S2, V2 third-party
+      compute condition 4); a check that fails refuses every node.
     """
 
     def __init__(
@@ -490,6 +572,8 @@ class LiumCli:
         template_id=None,
         min_runway_h=3.0,
         run=subprocess.run,
+        opener=None,
+        operator_check=None,
     ):
         if not name_prefix or not _NAME.fullmatch(name_prefix.rstrip("-") or "x"):
             raise ValueError("name_prefix")
@@ -501,8 +585,14 @@ class LiumCli:
             template_id,
         )
         self.min_runway_h = float(min_runway_h)
-        #: why the last ``offer`` returned None ("no_node" / "low_balance"), for the tick's log line
+        self._open = opener or urllib.request.urlopen
+        #: ``(hotkeys) -> {hotkey: refuse}`` (`door_operator_check`); None refuses every node
+        self._operator_check = operator_check
+        #: why the last ``offer`` returned None ("no_node" / "operator" / "operator_check_failed" / "low_balance"),
+        #: for the tick's log line
         self.refused = None
+        #: the node the last passing ``offer`` chose, which ``launch`` rents (once)
+        self.node_id = None
 
     def _call(self, *args, timeout=300):
         env = {
@@ -528,6 +618,26 @@ class LiumCli:
             return json.loads(done.stdout)
         except ValueError as error:
             raise LiumError(f"{args[0]}: unreadable JSON") from error
+
+    def _executors(self):
+        """Lium's REST node list (``GET /api/executors``): its rows carry each node's SN51 ``miner_hotkey``, which
+        the CLI's ``ls`` does not print. The key goes in a header, never a URL."""
+        request = urllib.request.Request(
+            LIUM_API + "/executors",
+            headers={
+                "X-API-KEY": Path(self._key_file).read_text().strip(),
+                "Accept": "application/json",
+                "User-Agent": "carbon-gpu-pool/1",
+            },
+        )
+        try:
+            with self._open(request, timeout=60) as response:
+                rows = json.loads(response.read())
+        except (OSError, ValueError) as error:
+            raise LiumError(f"executors: {type(error).__name__}") from error
+        if not isinstance(rows, list):
+            raise LiumError("executors: not a list")
+        return rows
 
     def _pods(self):
         rows = self._call("ps", "--format", "json")
@@ -562,10 +672,12 @@ class LiumCli:
         return float("inf") if burn <= 0 else balance / burn
 
     def offer(self, instance_type=None, regions=()):
-        """``(price_usd_h, "lium")`` of the cheapest node with a free GPU of ``gpu`` and at least ``min_cpus`` listed
-        threads, or None (``refused`` says why). ``instance_type``/``regions`` are `Lambda`'s and unused here.
+        """``(price_usd_h, "lium")`` of the cheapest node with a free GPU of ``gpu``, at least ``min_cpus`` listed
+        threads, a ``miner_hotkey`` and no ``frequent_rent_failures``, whose operator ``operator_check`` passes; or
+        None (``refused`` says why). ``node_id`` is the chosen node. ``instance_type``/``regions`` are `Lambda`'s and
+        unused here.
         """
-        self.refused = None
+        self.refused, self.node_id = None, None
         rows = self._call(
             "ls",
             "--format",
@@ -575,36 +687,70 @@ class LiumCli:
             "--min-cpus",
             str(self.min_cpus),
         )
-        prices = [
-            float(r["price_per_gpu_hour"])
+        listed = [
+            (float(r["price_per_gpu_hour"]), str(r["id"]))
             for r in rows
             if int(r.get("available_gpu_count") or 0) >= 1
             and int(r.get("cpu_count") or 0) >= self.min_cpus
             and r.get("price_per_gpu_hour") is not None
+            and _NODE_ID.fullmatch(str(r.get("id") or ""))
         ]
-        if not prices:
+        if not listed:
             self.refused = "no_node"
             return None
-        price = min(prices)
+        operators = {
+            str(e.get("id")): e.get("miner_hotkey")
+            for e in self._executors()
+            if isinstance(e, dict) and not e.get("frequent_rent_failures")
+        }
+        candidates = sorted(
+            (price, node, operators[node])
+            for price, node in listed
+            if isinstance(operators.get(node), str) and _SS58.fullmatch(operators[node])
+        )
+        if not candidates:
+            self.refused = "no_node"
+            return None
+        # one door call; operator_check.py takes at most 64 hotkeys (the cheapest candidates' operators)
+        hotkeys = list(dict.fromkeys(hotkey for _, _, hotkey in candidates))[:64]
+        try:
+            if self._operator_check is None:
+                raise LiumError("operator check: none configured")
+            verdicts = dict(self._operator_check(hotkeys))
+        # an unanswered check rents nothing (fail closed)
+        except Exception:  # noqa: BLE001
+            self.refused = "operator_check_failed"
+            return None
+        passing = [
+            (price, node)
+            for price, node, hotkey in candidates
+            if hotkey in hotkeys and verdicts.get(hotkey) is False
+        ]
+        if not passing:
+            self.refused = "operator"
+            return None
+        price, node = passing[0]
         if self.runway_h(price) < self.min_runway_h:
             self.refused = "low_balance"
             return None
+        self.node_id = node
         return (price, "lium")
 
     def launch(self, *, region=None, instance_type=None, ssh_key_name=None, name):
-        """Rent ONE GPU of the cheapest matching node; the new pod's id. ``region``/``instance_type``/``ssh_key_name``
-        are `Lambda`'s: Lium picks the node, and the CLI's registered key opens the pod.
+        """Rent ONE GPU of the node the last passing ``offer`` chose (``node_id``, used once); the new pod's id.
+        ``region``/``instance_type``/``ssh_key_name`` are `Lambda`'s: the CLI's registered key opens the pod. Without
+        a chosen node it raises: never a node the backend picks, whose operator nobody checked.
         """
         if not name.startswith(self.name_prefix) or not _NAME.fullmatch(name):
             raise ValueError("launch: the pod name must carry the pool's name_prefix")
+        node, self.node_id = self.node_id, None
+        if not node or not _NODE_ID.fullmatch(node):
+            raise ValueError("launch: no node chosen by a passing offer")
         args = [
             "up",
-            "--gpu",
-            self.gpu,
+            node,
             "--count",
             "1",
-            "--min-cpus",
-            str(self.min_cpus),
             "--name",
             name,
             "--ttl",

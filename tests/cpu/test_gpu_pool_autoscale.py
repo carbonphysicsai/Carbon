@@ -6,6 +6,7 @@ USD 6/h) or the daily cap, every rent and release logged with cost, failures pag
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import sys
 from pathlib import Path
@@ -1030,7 +1031,7 @@ def test_bring_up_pins_the_keyscan_host_key_and_runs_both_phases(tmp_path, monke
     assert admin[admin.index("--host-key-fingerprint") + 1] == _TEST_FP
 
 
-# -- the Lium client (LIUM_ADA_SWITCH_PLAN S1; not wired into tick until the pod bring-up and the owner's budget) --
+# -- the Lium client (LIUM_ADA_SWITCH_PLAN S1/S2; not wired into tick until the pod bring-up and the owner's budget) --
 
 
 class _Done:
@@ -1051,9 +1052,14 @@ def _pod(name, status="RUNNING", price=0.79, pod_id=None):
     }
 
 
+def _hk(tag):
+    """An SS58-shaped fake SN51 hotkey (``tag``: one base58 letter)."""
+    return ("5Hk" + tag * 45)[:48]
+
+
 def _node(price, available=1, cpus=31, gpus=1):
     return {
-        "id": f"node-{price}-{cpus}",
+        "id": f"node-{round(price * 100)}-{cpus}",
         "huid": "noble-shark-59",
         "gpu_type": "RTX6000",
         "gpu_count": gpus,
@@ -1063,9 +1069,34 @@ def _node(price, available=1, cpus=31, gpus=1):
     }
 
 
-def _lium(tmp_path, *, pods=(), nodes=(), balance=86.0, fail=None, up=None, **kw):
+def _executor(node, hotkey=None, **extra):
+    """Lium's REST row of a node (``GET /api/executors``)."""
+    return {"id": node["id"], "miner_hotkey": hotkey or _hk("a"), **extra}
+
+
+def _lium(
+    tmp_path,
+    *,
+    pods=(),
+    nodes=(),
+    balance=86.0,
+    fail=None,
+    up=None,
+    executors=None,
+    refuse=(),
+    **kw,
+):
     calls = []
     (tmp_path / "lium_key").write_text("sk_test_never_in_argv\n")
+    rest = [_executor(n) for n in nodes] if executors is None else list(executors)
+
+    def opener(request, timeout):
+        calls.append({"url": request.full_url, "headers": dict(request.header_items())})
+        return io.BytesIO(json.dumps(rest).encode())
+
+    def operator_check(hotkeys):
+        calls.append({"operator_check": list(hotkeys)})
+        return {h: h in refuse for h in hotkeys}
 
     def run(argv, **options):
         calls.append({"argv": list(argv), "env": options.get("env", {})})
@@ -1097,6 +1128,8 @@ def _lium(tmp_path, *, pods=(), nodes=(), balance=86.0, fail=None, up=None, **kw
         "ttl": "12h",
         "budget_usd": 10,
         "run": run,
+        "opener": opener,
+        "operator_check": operator_check,
     }
     settings.update(kw)
     return scale.LiumCli("lium", str(tmp_path / "lium_key"), **settings), calls
@@ -1129,6 +1162,7 @@ def test_lium_offers_the_cheapest_free_node_with_enough_threads(tmp_path):
         ],
     )
     assert client.offer() == (0.79, "lium")
+    assert client.node_id == "node-79-31"
     listed = calls[0]["argv"]
     assert listed[1:3] == ["ls", "--format"] and "--min-cpus" in listed
 
@@ -1147,15 +1181,18 @@ def test_lium_refuses_to_rent_when_the_balance_would_not_last_three_hours(tmp_pa
     assert empty.offer() is None and empty.refused == "no_node"
 
 
-def test_lium_launch_rents_one_gpu_with_a_hard_ttl_and_budget(tmp_path):
-    client, calls = _lium(tmp_path, template_id="tpl-1")
+def test_lium_launch_rents_one_gpu_of_the_offered_node_with_a_hard_ttl_and_budget(
+    tmp_path,
+):
+    client, calls = _lium(tmp_path, nodes=[_node(0.79)], template_id="tpl-1")
+    assert client.offer() == (0.79, "lium")
     assert client.launch(name="carbon-ada-11200103") == "pod-new"
     argv = calls[-1]["argv"]
-    assert argv[:2] == ["lium", "up"]
+    # the exact node the offer's operator check passed, never a node the backend picks
+    assert argv[:3] == ["lium", "up", "node-79-31"]
+    assert "--gpu" not in argv and "--min-cpus" not in argv
     for flag, value in (
-        ("--gpu", "RTX6000"),
         ("--count", "1"),
-        ("--min-cpus", "28"),
         ("--name", "carbon-ada-11200103"),
         ("--ttl", "12h"),
         ("--budget", "10"),
@@ -1182,16 +1219,18 @@ def test_lium_never_launches_a_pod_outside_its_prefix_and_never_puts_the_key_in_
         "--format",
         "json",
     ]
-    for call in calls:
+    for call in (c for c in calls if "argv" in c):
         assert "sk_test_never_in_argv" not in " ".join(call["argv"])
         assert call["env"]["LIUM_API_KEY"] == "sk_test_never_in_argv"
 
 
 def test_lium_failures_raise_with_the_clis_reason(tmp_path):
-    client, _ = _lium(tmp_path, fail="up")
+    client, _ = _lium(tmp_path, nodes=[_node(0.79)], fail="up")
+    client.offer()
     with pytest.raises(scale.LiumError, match="No GPUs available"):
         client.launch(name="carbon-ada-11200104")
-    noid, _ = _lium(tmp_path, up={"status": "RUNNING"})
+    noid, _ = _lium(tmp_path, nodes=[_node(0.79)], up={"status": "RUNNING"})
+    noid.offer()
     with pytest.raises(scale.LiumError, match="no pod id"):
         noid.launch(name="carbon-ada-11200105")
     with pytest.raises(scale.LiumError):
@@ -1209,3 +1248,200 @@ def test_config_refuses_a_lium_pool_until_its_bring_up_and_budget_exist(tmp_path
         scale.load_config(path)
     path.write_text(json.dumps(values))
     assert scale.load_config(path).provider == "lambda"
+
+
+# -- S2: the operator-identity check (V2 third-party compute condition 4) --
+
+
+def test_lium_offers_the_cheapest_node_whose_operator_passes(tmp_path):
+    nodes = [_node(0.85), _node(0.60), _node(0.79)]
+    client, calls = _lium(
+        tmp_path,
+        nodes=nodes,
+        executors=[
+            _executor(nodes[0], _hk("c")),
+            _executor(nodes[1], _hk("a")),
+            _executor(nodes[2], _hk("b")),
+        ],
+        refuse={_hk("a")},
+    )
+    # the cheaper node's operator is a netuid-116 participant: skipped
+    assert client.offer() == (0.79, "lium")
+    assert client.node_id == "node-79-31" and client.refused is None
+    checks = [c["operator_check"] for c in calls if "operator_check" in c]
+    assert checks == [[_hk("a"), _hk("b"), _hk("c")]]  # one door call, cheapest first
+
+
+def test_lium_rents_nothing_when_every_operator_is_refused(tmp_path):
+    nodes = [_node(0.60), _node(0.79)]
+    client, _ = _lium(
+        tmp_path,
+        nodes=nodes,
+        executors=[_executor(nodes[0], _hk("a")), _executor(nodes[1], _hk("b"))],
+        refuse={_hk("a"), _hk("b")},
+    )
+    assert client.offer() is None
+    assert client.refused == "operator" and client.node_id is None
+    with pytest.raises(ValueError, match="no node chosen"):
+        client.launch(name="carbon-ada-11200106")
+
+
+def test_lium_drops_a_node_without_an_operator_hotkey_or_with_frequent_rent_failures(
+    tmp_path,
+):
+    nodes = [_node(0.50), _node(0.55), _node(0.60), _node(0.79)]
+    client, calls = _lium(
+        tmp_path,
+        nodes=nodes,
+        executors=[
+            {"id": nodes[0]["id"]},
+            _executor(nodes[1], "not-an-ss58"),
+            _executor(nodes[2], _hk("c"), frequent_rent_failures=True),
+            _executor(nodes[3], _hk("b")),
+        ],
+    )
+    assert client.offer() == (0.79, "lium") and client.node_id == "node-79-31"
+    checks = [c["operator_check"] for c in calls if "operator_check" in c]
+    assert checks == [[_hk("b")]]
+    unknown, _ = _lium(tmp_path, nodes=nodes[:1], executors=[{"id": nodes[0]["id"]}])
+    assert unknown.offer() is None and unknown.refused == "no_node"
+
+
+def test_lium_reads_executors_with_the_key_in_a_header_never_the_url(tmp_path):
+    client, calls = _lium(tmp_path, nodes=[_node(0.79)])
+    client.offer()
+    (rest,) = [c for c in calls if "url" in c]
+    assert rest["url"] == "https://lium.io/api/executors"
+    assert rest["headers"]["X-api-key"] == "sk_test_never_in_argv"
+    assert "sk_test" not in rest["url"]
+
+
+def _check_config(tmp_path, args=None):
+    if args is None:
+        args = (
+            "/door/venv/bin/python",
+            "-I",
+            "/door/carbon/scripts/dev/operator_check.py",
+            "--network",
+            "finney",
+            "--netuid",
+            "116",
+        )
+    return _config(tmp_path, door_operator_check_args=tuple(args))
+
+
+def _reply(hotkeys, refuse=(), netuid=116, **override):
+    reply = {
+        "schema": "carbon.operator-check.v1",
+        "netuid": netuid,
+        "finalized_block": 100,
+        "block_hash": "0x" + "ab" * 32,
+        "results": [
+            {
+                "hotkey": h,
+                "owner_coldkey": None,
+                "refuse": h in refuse,
+                "why": "carbon_hotkey" if h in refuse else None,
+            }
+            for h in hotkeys
+        ],
+    }
+    reply.update(override)
+    return json.dumps(reply).encode()
+
+
+def test_the_door_operator_check_runs_one_door_call_and_reads_its_v1_reply(tmp_path):
+    seen = []
+
+    def door(config, argv, timeout=120, **_):
+        seen.append(list(argv))
+        hotkeys = argv[argv.index("--hotkey") + 1 :: 2]
+        return _Done(_reply(hotkeys, refuse={_hk("a")}))
+
+    check = scale.door_operator_check(_check_config(tmp_path), door=door)
+    assert check([_hk("a"), _hk("b")]) == {_hk("a"): True, _hk("b"): False}
+    (argv,) = seen
+    assert argv[:3] == [
+        "/door/venv/bin/python",
+        "-I",
+        "/door/carbon/scripts/dev/operator_check.py",
+    ]
+    assert argv[-4:] == ["--hotkey", _hk("a"), "--hotkey", _hk("b")]
+
+
+@pytest.mark.parametrize(
+    "door_reply",
+    [
+        "raise",
+        _Done(b"", returncode=1, stderr=b"operator_check: chain read failed"),
+        _Done(b"not json"),
+        _Done(_reply([_hk("b")], schema="carbon.operator-check.v0")),
+        _Done(_reply([_hk("b")], netuid=567)),
+        _Done(_reply([])),  # a hotkey unanswered
+        _Done(
+            json.dumps(
+                {
+                    "schema": "carbon.operator-check.v1",
+                    "netuid": 116,
+                    "results": [{"hotkey": _hk("b"), "refuse": "no"}],
+                }
+            ).encode()
+        ),
+    ],
+)
+def test_a_failed_operator_check_rents_nothing(tmp_path, door_reply):
+    def door(config, argv, timeout=120, **_):
+        if door_reply == "raise":
+            raise TimeoutError("ssh")
+        return door_reply
+
+    nodes = [_node(0.79)]
+    client, _ = _lium(
+        tmp_path,
+        nodes=nodes,
+        executors=[_executor(nodes[0], _hk("b"))],
+        operator_check=scale.door_operator_check(_check_config(tmp_path), door=door),
+    )
+    assert client.offer() is None
+    assert client.refused == "operator_check_failed" and client.node_id is None
+    with pytest.raises(ValueError):
+        client.launch(name="carbon-ada-11200107")
+
+
+def test_no_operator_check_configured_rents_nothing(tmp_path):
+    unset, _ = _lium(tmp_path, nodes=[_node(0.79)], operator_check=None)
+    assert unset.offer() is None and unset.refused == "operator_check_failed"
+    empty, _ = _lium(
+        tmp_path,
+        nodes=[_node(0.79)],
+        operator_check=scale.door_operator_check(_config(tmp_path)),
+    )
+    assert empty.offer() is None and empty.refused == "operator_check_failed"
+
+
+def test_lium_launch_without_a_passing_offer_raises_and_a_node_is_rented_once(
+    tmp_path,
+):
+    client, calls = _lium(tmp_path, nodes=[_node(0.79)])
+    with pytest.raises(ValueError, match="no node chosen"):
+        client.launch(name="carbon-ada-11200108")
+    assert not [c for c in calls if c.get("argv", [None, None])[1] == "up"]
+    client.offer()
+    assert client.launch(name="carbon-ada-11200108") == "pod-new"
+    with pytest.raises(ValueError, match="no node chosen"):
+        client.launch(name="carbon-ada-11200109")
+
+
+def test_config_checks_the_door_operator_check_args(tmp_path):
+    values = {
+        k: (list(v) if isinstance(v, tuple) else v)
+        for k, v in _check_config(tmp_path).__dict__.items()
+    }
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps(values))
+    assert scale.load_config(path).door_operator_check_args[-2:] == ("--netuid", "116")
+    good = values["door_operator_check_args"]
+    for bad in (good[:-2], good[:-1], [*good, "--hotkey", _hk("a")], [*good, ""]):
+        path.write_text(json.dumps({**values, "door_operator_check_args": bad}))
+        with pytest.raises(SystemExit, match="door_operator_check_args"):
+            scale.load_config(path)
