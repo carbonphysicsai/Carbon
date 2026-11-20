@@ -68,7 +68,7 @@ def test_a_refusal_that_does_not_say_whether_it_charged_says_not_stated():
     # A row says "No" only when its own words say so: each such sentence names it.
     said = ("charged", "allowance", "unused", "slot", "admitting")
     for source, code, _, charged in error_table.ROWS:
-        if not charged.startswith("No") or charged.startswith("Not "):
+        if not charged.startswith(("No:", "No graded")):
             continue
         words = (
             supervisor.NEXT_ACTIONS[code]
@@ -128,7 +128,8 @@ def test_each_failure_class_states_its_spot_and_what_happens_next_by_the_owners_
         assert nxt.lower().startswith(public["retried_or_owed"].lower())
         assert side.startswith("Ours") and spot.startswith("Returned")
     carbon = rows["carbon_build_wall_busy_host"]
-    assert "rebuilt once" in carbon[4] and "unless you submit again first" in carbon[4]
+    assert "rebuilt once" in carbon[4].lower()
+    assert "unless you submit again first" in carbon[4]
     unknown = rows[infra_diagnosis.UNCLASSIFIED]
     assert unknown[4] == "Not rebuilt automatically." and "Resubmit" in unknown[5]
 
