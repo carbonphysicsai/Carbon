@@ -61,6 +61,17 @@ def test_pinned_helpers_match_their_files():
         assert hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == pin, rel
 
 
+def test_changed_feasibility_helper_pin_still_refuses(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        producer,
+        "PINNED",
+        {**producer.PINNED, "scripts/dev/battery/feasibility02.py": "0" * 64},
+    )
+    with pytest.raises(producer.Refused) as refused:
+        _load(tmp_path, _context())
+    assert refused.value.code == "HELPER_PIN_MISMATCH"
+
+
 def test_a_registered_train_context_loads(tmp_path):
     context, vcpus, reuse = _load(tmp_path, _context())
     assert (context["family"], vcpus, reuse) == ("f02", 4, [])
