@@ -18,7 +18,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_graph_pool_counted_e2e import TASK, _grade, _setup
-from test_pool_dual_e2e import case  # noqa: F401  (the imported case fixture is received by tests)
+from test_pool_dual_e2e import (
+    case,  # noqa: F401  (the imported case fixture is received by tests)
+)
 
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.development_session.data import link_once

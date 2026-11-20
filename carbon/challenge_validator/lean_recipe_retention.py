@@ -887,7 +887,8 @@ def _operation_sources(provider, evidence):
     """``{retained file name: the operation snapshot file it was read from}`` for a served task's retention: the build's
     state, the graded predictions and the timed query's predictions are each byte-for-byte that operation's output
     (`_snapshot` read and checked them), so the retained file is stored as a hard link to it (`data.link_once`, which
-    re-checks the bytes; owner rule #13: the predictions are on disk once). Anything unreadable names no source."""
+    re-checks the bytes; owner rule #13: the predictions are on disk once). Anything unreadable names no source.
+    """
     try:
         root = Path(provider.ledger.root)
     except (AttributeError, TypeError):
@@ -904,7 +905,8 @@ def _operation_sources(provider, evidence):
 
 def _write_retained(task_root, artifacts, sources=None):
     """Write each retained file once (`write_once`); a file whose source is known is a hard link to it when the bytes
-    are identical (`link_once`): the same names, bytes and digests for every reader and custody check, stored once."""
+    are identical (`link_once`): the same names, bytes and digests for every reader and custody check, stored once.
+    """
     from carbon.development_session.data import link_once, write_once
 
     sources = sources or {}
