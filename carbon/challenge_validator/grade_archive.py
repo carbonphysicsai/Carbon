@@ -45,6 +45,7 @@ _HEX = re.compile(r"[0-9a-f]{64}")
 #: failures, its total SE and accuracy record (data harvest plan action 1: the breakdown survives every trim)
 KEPT_LOCAL_SUFFIXES = (
     ".grade-breakdown.json",
+    ".grade-breakdown.recomputed.json",
     "exam-total-se.json",
     "accuracy-record.json",
 )
