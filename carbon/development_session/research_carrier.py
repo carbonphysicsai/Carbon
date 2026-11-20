@@ -3725,7 +3725,7 @@ def _run_locked(
     }
     # owner rule #13: the stream's bodies are the snapshot's own files, so only its framing stays (`export.frames`);
     # the stream is rebuilt byte for byte from both (the same output_digest), else it is kept as it is
-    compact_output_stream(output, snapshot)
+    compact_output_stream(output, snapshot, expected=result["output_digest"])
     elapsed = math.ceil((time.monotonic() - started) * 1000)
     actual = {
         **resources,

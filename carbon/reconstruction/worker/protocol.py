@@ -1341,12 +1341,15 @@ def _one_line(line: bytes):
     return io.BytesIO(line)
 
 
-def compact_output_stream(source: Path, snapshot: Path) -> bool:
+def compact_output_stream(
+    source: Path, snapshot: Path, *, expected: str | None = None
+) -> bool:
     """Store a decoded output stream once (owner rule #13): its member bodies are the snapshot's own files, so only its
     framing is kept (`OUTPUT_FRAMES` beside it) and the stream is removed, after the framing and the snapshot are shown
     to rebuild it byte for byte (the same SHA-256, so a recorded ``output_digest`` stays checkable). True when compacted;
     False (the stream kept as it is, nothing else changed) for anything that does not fit: a link, a framing file
-    already there, a body that differs from its snapshot file, a stream that does not parse.
+    already there, a body that differs from its snapshot file, a stream that does not parse, or (``expected``, a
+    recorded ``"sha256:<hex>"`` output digest) a stream whose own SHA-256 is not that digest.
     """
     frames = source.parent / OUTPUT_FRAMES
     staged = None
@@ -1393,7 +1396,9 @@ def compact_output_stream(source: Path, snapshot: Path) -> bool:
         rebuilt = hashlib.sha256()
         for block in reassembled_output_stream(Path(staged), snapshot):
             rebuilt.update(block)
-        if rebuilt.digest() != whole.digest():
+        if rebuilt.digest() != whole.digest() or (
+            expected is not None and expected != "sha256:" + whole.hexdigest()
+        ):
             return False
         os.chmod(staged, stat.S_IMODE(os.lstat(source).st_mode) & 0o700)
         os.link(staged, frames)

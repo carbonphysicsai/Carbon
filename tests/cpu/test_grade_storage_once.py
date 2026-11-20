@@ -55,7 +55,12 @@ def test_a_decoded_stream_is_kept_as_its_framing_and_rebuilds_byte_for_byte(tmp_
     source, body = _stream(tmp_path, MEMBERS)
     snapshot = source.parent / "snapshot"
     decode_output_stream(source, snapshot)
-    assert compact_output_stream(source, snapshot) is True
+    assert (
+        compact_output_stream(source, snapshot, expected="sha256:" + "1" * 64) is False
+    )
+    assert source.exists()
+    expected = "sha256:" + hashlib.sha256(body).hexdigest()
+    assert compact_output_stream(source, snapshot, expected=expected) is True
     assert not source.exists()
     frames = source.parent / OUTPUT_FRAMES
     assert frames.stat().st_size < 400
@@ -207,23 +212,100 @@ def test_the_archive_has_no_default_age_or_store(tmp_path):
         grade_archive.DirectoryStore(tmp_path / "absent")
 
 
-def test_the_backfill_compacts_only_settled_streams(tmp_path):
+def _ledger_row(ledger, state, result):
+    import sqlite3
+
+    db = sqlite3.connect(ledger / "campaign.sqlite3")
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, state TEXT NOT NULL, result BLOB)"
+    )
+    db.execute(
+        "INSERT INTO operations VALUES(?,?,?)",
+        (str(len(db.execute("SELECT id FROM operations").fetchall())), state, result),
+    )
+    db.commit()
+    db.close()
+
+
+def _counts(**changes):
+    return {
+        "streams": 0,
+        "not_succeeded": 0,
+        "compacted": 0,
+        "kept": 0,
+        "bytes": 0,
+        **changes,
+    }
+
+
+def test_the_backfill_compacts_only_settled_succeeded_streams_with_their_digest(
+    tmp_path,
+):
     state = tmp_path / "state"
     ledger = state / "owners" / "o1" / "ledger"
     ledger.mkdir(parents=True)
     source, body = _stream(ledger, MEMBERS)
     decode_output_stream(source, source.parent / "snapshot")
-    fresh = grade_archive.compact_streams(state, apply=True)
-    assert fresh == {"streams": 0, "compacted": 0, "bytes": 0}
+    recorded = "sha256:" + hashlib.sha256(body).hexdigest()
     old = time.time() - 7200
     os.utime(source, (old, old))
-    dry = grade_archive.compact_streams(state)
-    assert dry == {"streams": 1, "compacted": 0, "bytes": len(body)}
+    # no ledger row (running, left running, adopted, unknown): never touched
+    assert grade_archive.compact_streams(state, apply=True) == _counts(not_succeeded=1)
+    _ledger_row(ledger, "RESERVED", json.dumps({"operation": "operation-1"}))
+    assert grade_archive.compact_streams(state, apply=True) == _counts(not_succeeded=1)
+    _ledger_row(
+        ledger,
+        "SUCCEEDED",
+        json.dumps({"operation": "operation-1", "output_digest": recorded}),
+    )
+    listing = tmp_path / "streams.tsv"
+    dry = grade_archive.compact_streams(state, listing=listing)
+    assert dry == _counts(streams=1, bytes=len(body))
+    assert listing.read_text() == f"{source}\t{len(body)}\t{recorded}\n"
     assert source.exists()
     done = grade_archive.compact_streams(state, apply=True)
-    assert done == {"streams": 1, "compacted": 1, "bytes": len(body)}
+    assert done == _counts(streams=1, compacted=1, bytes=len(body))
     assert not source.exists()
     assert (source.parent / OUTPUT_FRAMES).exists()
+
+
+def test_the_backfill_keeps_a_stream_that_is_not_its_recorded_digest(tmp_path):
+    state = tmp_path / "state"
+    ledger = state / "owners" / "o1" / "ledger"
+    ledger.mkdir(parents=True)
+    source, body = _stream(ledger, MEMBERS)
+    decode_output_stream(source, source.parent / "snapshot")
+    old = time.time() - 7200
+    os.utime(source, (old, old))
+    _ledger_row(
+        ledger,
+        "SUCCEEDED",
+        json.dumps({"operation": "operation-1", "output_digest": "sha256:" + "0" * 64}),
+    )
+    done = grade_archive.compact_streams(state, apply=True)
+    assert done == _counts(streams=1, kept=1)
+    assert source.read_bytes() == body
+    assert not (source.parent / OUTPUT_FRAMES).exists()
+
+
+def test_a_fresh_stream_is_never_backfilled(tmp_path):
+    state = tmp_path / "state"
+    ledger = state / "owners" / "o1" / "ledger"
+    ledger.mkdir(parents=True)
+    source, body = _stream(ledger, MEMBERS)
+    decode_output_stream(source, source.parent / "snapshot")
+    _ledger_row(
+        ledger,
+        "SUCCEEDED",
+        json.dumps(
+            {
+                "operation": "operation-1",
+                "output_digest": "sha256:" + hashlib.sha256(body).hexdigest(),
+            }
+        ),
+    )
+    assert grade_archive.compact_streams(state, apply=True) == _counts()
+    assert source.exists()
 
 
 def test_a_grades_breakdown_and_gate_records_stay_on_the_host_at_any_size(tmp_path):

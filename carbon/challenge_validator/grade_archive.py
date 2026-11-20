@@ -15,7 +15,8 @@ mounted on the host; the age an owner/sre choice). Run by an operator; dry run u
     python -I -m carbon.challenge_validator.grade_archive --state STATE --store DIR --older-than-days N [--operations]
     python -I -m carbon.challenge_validator.grade_archive --restore FOLDER
 
-``--compact-streams`` (dry run unless ``--apply``) does once, for the operations already on the host, what every new
+``--compact-streams`` (dry run unless ``--apply``; ``--list FILE`` writes the candidates as TSV for a receipt) does
+once, for the SUCCEEDED operations already on the host, what every new
 operation now does itself (`protocol.compact_output_stream`): a decoded ``export.stream`` older than an hour is kept as
 its framing only, after its framing and snapshot are shown to rebuild it byte for byte.
 
@@ -279,14 +280,53 @@ def candidates(state, *, older_than_days, operations=False, now=None):
     ]
 
 
-def compact_streams(state, *, apply=False, settled_seconds=3600, now=None):
-    """`protocol.compact_output_stream` for every decoded stream under ``state`` older than ``settled_seconds`` (its
-    operation finished: the carrier reads its digest within seconds of decoding). Returns the counts and bytes.
-    """
+def _succeeded_outputs(ledger):
+    """``{operation folder name: recorded output_digest}`` of ``ledger``'s SUCCEEDED operations, read from its
+    ``campaign.sqlite3`` opened read-only. An op still RESERVED (running, left running, adopted) or settled any other
+    way names none; an unreadable ledger names none."""
+    import sqlite3
+
+    path = Path(ledger) / "campaign.sqlite3"
+    if path.is_symlink() or not path.is_file():
+        return {}
+    try:
+        db = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True, timeout=10)
+        try:
+            rows = db.execute(
+                "SELECT result FROM operations WHERE state='SUCCEEDED' AND result IS NOT NULL"
+            ).fetchall()
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return {}
+    found = {}
+    for (raw,) in rows:
+        try:
+            result = json.loads(raw)
+        except (TypeError, ValueError):
+            continue
+        if (
+            type(result) is dict
+            and type(result.get("operation")) is str
+            and type(result.get("output_digest")) is str
+        ):
+            found[result["operation"]] = result["output_digest"]
+    return found
+
+
+def compact_streams(
+    state, *, apply=False, settled_seconds=3600, now=None, listing=None
+):
+    """`protocol.compact_output_stream` for every decoded stream under ``state`` of an operation its ledger records
+    SUCCEEDED, older than ``settled_seconds``, removed only when its own SHA-256 is that op's recorded output digest and
+    framing + snapshot rebuild it byte for byte (V2 11:13:29Z). ``listing``: a TSV path written with every candidate
+    (path, bytes, recorded digest). Returns the counts and bytes."""
     from carbon.reconstruction.worker.protocol import compact_output_stream
 
     cutoff = (time.time() if now is None else now) - settled_seconds
-    totals = {"streams": 0, "compacted": 0, "bytes": 0}
+    totals = {"streams": 0, "not_succeeded": 0, "compacted": 0, "kept": 0, "bytes": 0}
+    rows = []
+    outputs = {}
     for stream in sorted(Path(state).glob("owners/*/ledger/operation-*/export.stream")):
         info = os.lstat(stream)
         snapshot = stream.parent / "snapshot"
@@ -296,12 +336,24 @@ def compact_streams(state, *, apply=False, settled_seconds=3600, now=None):
             or not snapshot.is_dir()
         ):
             continue
+        ledger = stream.parent.parent
+        if ledger not in outputs:
+            outputs[ledger] = _succeeded_outputs(ledger)
+        expected = outputs[ledger].get(stream.parent.name)
+        if expected is None:
+            totals["not_succeeded"] += 1
+            continue
         totals["streams"] += 1
+        rows.append(f"{stream}\t{info.st_size}\t{expected}\n")
         if not apply:
             totals["bytes"] += info.st_size
-        elif compact_output_stream(stream, snapshot):
+        elif compact_output_stream(stream, snapshot, expected=expected):
             totals["compacted"] += 1
             totals["bytes"] += info.st_size if info.st_nlink == 1 else 0
+        else:
+            totals["kept"] += 1
+    if listing is not None:
+        _place(Path(listing), [("".join(rows)).encode()], 0o600)
     return totals
 
 
@@ -314,13 +366,17 @@ def main(argv=None):
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--restore")
     parser.add_argument("--compact-streams", action="store_true")
+    parser.add_argument("--list")
     args = parser.parse_args(argv)
     if args.compact_streams:
         if not args.state:
             parser.error("--state is required")
         print(
             json.dumps(
-                {"apply": args.apply, **compact_streams(args.state, apply=args.apply)}
+                {
+                    "apply": args.apply,
+                    **compact_streams(args.state, apply=args.apply, listing=args.list),
+                }
             )
         )
         return 0
