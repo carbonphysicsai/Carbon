@@ -112,7 +112,7 @@ LONG_HEX = re.compile(r"[0-9a-fA-F]{32,}")
 LONG_TOKEN = re.compile(r"[A-Za-z0-9+/_=-]{40,}")
 #: The door's marker codes the tool can state in the miner's words (a marker code is internal text, so only these map).
 MARKER_TO_CODE = {"cancelled_by_carbon_stop": "direct_task_cancelled"}
-COUNTED, RELEASED = "COUNTED", "RELEASED"
+LIMIT_CODES = ("epoch_limit_reached", "exam_daily_allowance_reached")
 TERMINAL_KINDS = ("OUTCOME", "FAILED_INFRA", "UNAVAILABLE", "REFUSED")
 
 
@@ -697,6 +697,48 @@ def _board(root):
     return out
 
 
+def _slot(db, task):
+    """`(state, status)` of the task's latest graded-exam slot row (`exam_graded`), or `(None, None)`: nothing is read but
+    those two tokens, and a ledger without the table says nothing rather than failing."""
+    try:
+        row = db.execute(
+            "SELECT state, status FROM exam_graded WHERE submission_id=? AND kind='GRADED' ORDER BY id DESC LIMIT 1",
+            (task,),
+        ).fetchone()
+    except sqlite3.Error:
+        return None, None
+    return (row[0], row[1]) if row else (None, None)
+
+
+def _grade_state(marker, slot, latest):
+    """`(state, code, charged, slot_given_back)`: the validator's own grade state of one task, the way the receiver derives it
+    (`direct_intake._grade_state_v4`): from the auto-grade marker's state and the task's exam slot row. A task that was only
+    admitted is QUEUED; it is never "succeeded" because the ledger holds an admission."""
+    mstate, mcode = marker.get("state"), marker.get("code")
+    slot_state, slot_status = slot
+    if not mstate:
+        if slot_status == "FAILED_INFRA" or latest in ("FAILED_INFRA", "UNAVAILABLE"):
+            return "FAILED_INFRA", "FAILED_INFRA", "no", "yes"
+        if latest == "REFUSED":
+            return "REFUSED", None, "not stated", "not stated"
+        return "QUEUED", "QUEUED", "not stated", "not stated"
+    if mstate == "CANDIDATE_FAILED":
+        return "CANDIDATE_FAILED", "CANDIDATE_FAILED", "yes", "not stated"
+    if mstate == "DUPLICATE":
+        return "GRADED", "GRADED", "yes", "not stated"
+    if mstate == "FAILED":
+        return "FAILED_INFRA", "FAILED_INFRA", "no", "yes"
+    if mstate == "VERSION_CLOSED":
+        return "NOT_GRADED", "version_closed", "no", "yes"
+    if mstate == "GRADED" and mcode in LIMIT_CODES:
+        return "ROUND_LIMIT_REACHED", mcode, "no", "not stated"
+    if slot_state in ("RESERVED", "COUNTED"):
+        return "GRADED", "GRADED", "yes", "not stated"
+    if slot_state == "RELEASED" and slot_status == "SLOT_RETURNED":
+        return "GRADED", "GRADED", "no", "yes"
+    return "NOT_GRADED", "NOT_GRADED", "no", "yes"
+
+
 def _task(root, db, task, owed, *, detail):
     rows = db.execute(
         "SELECT at_ns, kind, code, state, hotkey FROM attempts WHERE submission_id=? ORDER BY seq",
@@ -710,43 +752,33 @@ def _task(root, db, task, owed, *, detail):
         ).fetchone()
         is not None
     )
-    marker_code = root.marker(task).get("code")
+    marker = root.marker(task)
+    marker_code = marker.get("code")
     stopped = marker_code in MARKER_TO_CODE
     latest = next((row[1] for row in reversed(rows) if row[1] in TERMINAL_KINDS), None)
-    if withdrawn or stopped:
-        state = "CANCELLED"
-    elif latest in ("FAILED_INFRA", "UNAVAILABLE"):
-        state = "carbon_failure"
-    elif latest == "OUTCOME":
-        state = "SUCCEEDED"
-    elif latest == "REFUSED":
-        state = "REFUSED"
-    else:
-        state = "RUNNING"
-    code = _vocab_code(rows[-1][2], rows[-1][3], MARKER_TO_CODE.get(marker_code))
-    states = {row[3] for row in rows if row[3]}
-    charged = (
-        "yes"
-        if COUNTED in states
-        else (
-            "no"
-            if RELEASED in states or latest in ("FAILED_INFRA", "UNAVAILABLE")
-            else "not stated"
+    if withdrawn or stopped or marker.get("state") == "WITHDRAWN_BY_MINER":
+        state, code = "CANCELLED", _vocab_code(
+            MARKER_TO_CODE.get(marker_code), rows[-1][2], rows[-1][3]
         )
-    )
+        charged, given_back = "no", "not stated"
+        withdrawn = withdrawn or marker.get("state") == "WITHDRAWN_BY_MINER"
+    else:
+        state, code, charged, given_back = _grade_state(marker, _slot(db, task), latest)
+        if code is None:
+            code = _vocab_code(rows[-1][2], rows[-1][3])
     shown = {
         "task_id" if TASK_ID.fullmatch(task) else "entry_id": task,
         "submitted_utc": _utc(rows[0][0]),
         "last_change_utc": _utc(rows[-1][0]),
         "state": state,
-        "outcome_code": code,
+        "outcome_code": code if code is None or _words(code) else None,
         "charged": charged,
-        "slot_given_back": "yes" if RELEASED in states else "not stated",
+        "slot_given_back": given_back,
         "withdrawn": withdrawn,
         "owed": owed.get(task, []),
     }
     if detail:
-        shown["reason"] = None if code is None else _words(code)
+        shown["reason"] = None if shown["outcome_code"] is None else _words(shown["outcome_code"])
     return shown
 
 

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from carbon.challenge_validator import exam_cap
 from carbon.challenge_validator import ledger as attempt_ledger
 from scripts.dev import miner_lookup as ml
 from scripts.dev.miner_launchpad import projection, supervisor
@@ -26,6 +27,8 @@ TASK = "rtsk_" + "ab" * 32
 TASK_B = "rtsk_" + "cd" * 32
 TASK_C = "rtsk_" + "ef" * 32
 TASK_NEW = "rtsk_" + "34" * 32
+TASK_D = "rtsk_" + "d1" * 32
+TASK_E = "rtsk_" + "e2" * 32
 T0 = 1_763_600_000
 
 
@@ -33,9 +36,10 @@ def _ns(seconds):
     return int(seconds * 1e9)
 
 
-def _seed(path, rows, withdrawals=()):
+def _seed(path, rows, withdrawals=(), slots=()):
     db = sqlite3.connect(path)
     db.executescript(attempt_ledger.DDL)
+    db.executescript(exam_cap._DDL)  # the receiver's own exam_graded / exam_requeues schema
     for at, kind, code, hotkey, task, state in rows:
         db.execute(
             "INSERT INTO attempts(at_ns,kind,code,hotkey,contract_digest,receipt,submission_sha256,submission_id,state)"
@@ -57,8 +61,19 @@ def _seed(path, rows, withdrawals=()):
             "INSERT INTO miner_withdrawals VALUES(?,?,?,?)",
             ("d" * 8, task, hotkey, _ns(T0)),
         )
+    for task, hotkey, state, status in slots:
+        db.execute(
+            "INSERT INTO exam_graded(hotkey,challenge_id,challenge_version,exam_key,kind,epoch,submission_id,state,status,"
+            "reserved_ns) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (hotkey, "c", "1.8", "k", "GRADED", 1, task, state, status, _ns(T0)),
+        )
     db.commit()
     db.close()
+
+
+def _marker(store, task, **body):
+    (store / "markers").mkdir(exist_ok=True)
+    (store / "markers" / (task + ".json")).write_text(json.dumps(body))
 
 
 @pytest.fixture
@@ -67,16 +82,26 @@ def store(tmp_path):
         tmp_path / "attempts.sqlite3",
         [
             (T0, "RECEIVED", None, HOTKEY, TASK, None),
-            (T0 + 600, "OUTCOME", "CANDIDATE_FAILED", HOTKEY, TASK, "COUNTED"),
+            (T0 + 600, "OUTCOME", None, HOTKEY, TASK, "ADMITTED"),
             (T0 + 10, "RECEIVED", None, HOTKEY, TASK_B, None),
-            (T0 + 900, "FAILED_INFRA", "FAILED_INFRA", HOTKEY, TASK_B, "RELEASED"),
+            (T0 + 900, "OUTCOME", None, HOTKEY, TASK_B, "ADMITTED"),
+            (T0 + 50, "OUTCOME", None, HOTKEY, TASK_D, "ADMITTED"),
+            (T0 + 60, "OUTCOME", None, HOTKEY, TASK_E, "ADMITTED"),
             (T0 + 20, "RECEIVED", None, HOTKEY, TASK_C, None),
             (T0 + 30, "RECEIVED", None, HOTKEY, "entry-" + "7", None),
             (T0 + 40, "RECEIVED", None, SAME_ENDS, "rtsk_" + "12" * 32, None),
         ],
+        slots=[
+            (TASK, HOTKEY, "COUNTED", "WORKER_WALL_LIMIT_REACHED"),
+            (TASK_B, HOTKEY, "RELEASED", "FAILED_INFRA"),
+            (TASK_D, HOTKEY, "COUNTED", "MANDATORY_GATE_FAILED"),
+        ],
     )
+    _marker(tmp_path, TASK, state="CANDIDATE_FAILED", code="WORKER_WALL_LIMIT_REACHED")
+    _marker(tmp_path, TASK_B, state="FAILED", code="WorkerFailure", detail=CANARY)
+    _marker(tmp_path, TASK_D, state="GRADED", code=None)
     markers = tmp_path / "markers"
-    markers.mkdir()
+    markers.mkdir(exist_ok=True)
     (markers / (TASK_C + ".json")).write_text(
         json.dumps(
             {
@@ -142,7 +167,7 @@ def test_a_task_comes_out_as_the_allow_listed_fields_only(store):
     task = document["task"]
     assert set(task) <= ml.ALLOWED_FIELDS["task"]
     assert task["task_id"] == TASK
-    assert task["state"] == "SUCCEEDED"
+    assert task["state"] == "CANDIDATE_FAILED"
     assert task["outcome_code"] == "CANDIDATE_FAILED"
     assert task["reason"].startswith("Grade state: ")
     assert task["charged"] == "yes"
@@ -154,11 +179,11 @@ def test_a_task_comes_out_as_the_allow_listed_fields_only(store):
     assert document["not_available"] == list(ml.NOT_AVAILABLE)
 
 
-def test_an_infrastructure_failure_is_carbon_failure_uncharged_with_the_slot_given_back(
+def test_an_infrastructure_failure_is_failed_infra_uncharged_with_the_slot_given_back(
     store,
 ):
     task = _ask(store, "task", TASK_B)[0]["task"]
-    assert task["state"] == "carbon_failure"
+    assert task["state"] == "FAILED_INFRA"
     assert task["charged"] == "no" and task["slot_given_back"] == "yes"
     assert task["outcome_code"] == "FAILED_INFRA"
     # V2's own owed ids and their state, never the ruling text
@@ -201,7 +226,7 @@ def test_an_ambiguous_prefix_and_suffix_refuses_and_lists_nothing(store):
 def test_a_full_hotkey_lists_only_its_own_tasks_without_the_long_reason(store):
     document, text = _ask(store, "hotkey", HOTKEY)
     ids = [t.get("task_id") for t in document["tasks"]]
-    assert set(ids) == {TASK, TASK_B, TASK_C}
+    assert set(ids) == {TASK, TASK_B, TASK_C, TASK_D, TASK_E}
     assert all("reason" not in t for t in document["tasks"])
     assert (
         "rtsk_" + "12" * 32 not in text
@@ -483,3 +508,63 @@ def test_the_tool_is_one_self_contained_file_that_imports_no_repository_code():
     assert not re.search(
         r"^\s*(from|import)\s+(carbon|scripts)\b", before_generator, re.MULTILINE
     )
+
+
+def test_a_task_that_was_only_admitted_is_queued_never_succeeded(store):
+    # sre's 22:44Z check on the live ledger: an ADMITTED attempt row said SUCCEEDED, whatever happened after.
+    task = _ask(store, "task", TASK_E)[0]["task"]
+    assert task["state"] == "QUEUED" and task["charged"] == "not stated"
+    assert task["outcome_code"] == "QUEUED"
+
+
+def test_a_graded_task_that_failed_its_gate_is_graded_and_counted_not_succeeded(store):
+    task = _ask(store, "task", TASK_D)[0]["task"]
+    assert task["state"] == "GRADED" and task["charged"] == "yes"
+
+
+def test_the_state_follows_the_receivers_own_rule_for_every_marker_and_slot(tmp_path):
+    cases = [
+        # marker, slot (state, status), expected state, charged, slot given back
+        (dict(state="GRADED", code=None), ("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE"), "GRADED", "yes", "not stated"),
+        (dict(state="GRADED", code=None), ("RESERVED", None), "GRADED", "yes", "not stated"),
+        (dict(state="GRADED", code=None), ("RELEASED", "SLOT_RETURNED"), "GRADED", "no", "yes"),
+        (dict(state="GRADED", code=None), (None, None), "NOT_GRADED", "no", "yes"),
+        (dict(state="GRADED", code=None), ("RELEASED", "FAILED_INFRA"), "NOT_GRADED", "no", "yes"),
+        (dict(state="GRADED", code="epoch_limit_reached"), (None, None), "ROUND_LIMIT_REACHED", "no", "not stated"),
+        (dict(state="GRADED", code="exam_daily_allowance_reached"), (None, None), "ROUND_LIMIT_REACHED", "no", "not stated"),
+        (dict(state="DUPLICATE"), ("COUNTED", "DUPLICATE_OF_EARLIER"), "GRADED", "yes", "not stated"),
+        (dict(state="CANDIDATE_FAILED"), ("COUNTED", "WORKER_WALL_LIMIT_REACHED"), "CANDIDATE_FAILED", "yes", "not stated"),
+        (dict(state="FAILED", code="WorkerFailure"), ("RELEASED", "FAILED_INFRA"), "FAILED_INFRA", "no", "yes"),
+        (dict(state="VERSION_CLOSED"), (None, None), "NOT_GRADED", "no", "yes"),
+    ]
+    for number, (marker, slot, state, charged, given_back) in enumerate(cases):
+        folder = tmp_path / f"c{number}"
+        folder.mkdir()
+        task = "rtsk_" + f"{number:02x}" * 32
+        _seed(
+            folder / "attempts.sqlite3",
+            [(T0, "OUTCOME", None, HOTKEY, task, "ADMITTED")],
+            slots=[(task, HOTKEY) + slot] if slot[0] else [],
+        )
+        _marker(folder, task, **marker)
+        shown = _ask(folder, "task", task)[0]["task"]
+        assert (shown["state"], shown["charged"], shown["slot_given_back"]) == (
+            state,
+            charged,
+            given_back,
+        ), (number, marker, slot, shown)
+        assert shown["outcome_code"] is not None and shown["reason"] is not None
+
+
+def test_a_ledger_without_the_slot_table_still_answers_and_says_not_stated(tmp_path):
+    db = sqlite3.connect(tmp_path / "attempts.sqlite3")
+    db.executescript(attempt_ledger.DDL)
+    db.execute(
+        "INSERT INTO attempts(at_ns,kind,hotkey,contract_digest,submission_sha256,submission_id,state) VALUES(?,?,?,?,?,?,?)",
+        (_ns(T0), "OUTCOME", HOTKEY, "d" * 8, "s", TASK, "ADMITTED"),
+    )
+    db.commit()
+    db.close()
+    _marker(tmp_path, TASK, state="GRADED", code=None)
+    task = _ask(tmp_path, "task", TASK)[0]["task"]
+    assert task["state"] == "NOT_GRADED"
