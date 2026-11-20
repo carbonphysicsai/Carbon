@@ -362,6 +362,34 @@ def compact_streams(
     return totals
 
 
+def prune_objects(state, *, apply=False, older_than_seconds=86400, now=None):
+    """The door-wide stored objects (`data.store_once`: ``<state>/objects``) no name links any more (link count 1,
+    older than ``older_than_seconds``): removed with ``apply``, else only counted. A name staged meanwhile is not lost: a
+    store that finds its object gone stores it again. Returns the count and bytes."""
+    from carbon.development_session.data import DOOR_OBJECTS
+
+    cutoff = (time.time() if now is None else now) - older_than_seconds
+    totals = {"orphans": 0, "removed": 0, "bytes": 0}
+    folder = Path(state) / DOOR_OBJECTS
+    if folder.is_symlink() or not folder.is_dir():
+        return totals
+    for path in sorted(folder.iterdir()):
+        info = os.lstat(path)
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_nlink != 1
+            or info.st_mtime >= cutoff
+            or not re.fullmatch(r"[0-9a-f]{64}-[0-7]{3,4}", path.name)
+        ):
+            continue
+        totals["orphans"] += 1
+        totals["bytes"] += info.st_size
+        if apply:
+            os.unlink(path)
+            totals["removed"] += 1
+    return totals
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--state")
@@ -372,7 +400,17 @@ def main(argv=None):
     parser.add_argument("--restore")
     parser.add_argument("--compact-streams", action="store_true")
     parser.add_argument("--list")
+    parser.add_argument("--prune-objects", action="store_true")
     args = parser.parse_args(argv)
+    if args.prune_objects:
+        if not args.state:
+            parser.error("--state is required")
+        print(
+            json.dumps(
+                {"apply": args.apply, **prune_objects(args.state, apply=args.apply)}
+            )
+        )
+        return 0
     if args.compact_streams:
         if not args.state:
             parser.error("--state is required")

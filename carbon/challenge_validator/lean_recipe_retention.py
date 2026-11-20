@@ -907,13 +907,22 @@ def _write_retained(task_root, artifacts, sources=None):
     """Write each retained file once (`write_once`); a file whose source is known is a hard link to it when the bytes
     are identical (`link_once`): the same names, bytes and digests for every reader and custody check, stored once.
     """
-    from carbon.development_session.data import link_once, write_once
+    from carbon.development_session.data import (
+        link_once,
+        retained_objects,
+        store_once,
+    )
 
     sources = sources or {}
+    # every other retained file of a receiver's grade is stored once door-wide by its bytes (`data.store_once`, mode
+    # 0600 as `write_once` writes it): the public train, fixture, allowlist, kit and image of every grade of one
+    # version are the same bytes (sre 20 Nov 2026); same names, bytes and digests for every reader
+    objects = retained_objects(task_root)
     for name, raw in artifacts.items():
         source = sources.get(name)
         if source is None:
-            write_once(task_root / name, raw)
+            # an existing name must hold exactly these bytes (`write_once`'s check, in `store_once`'s fallback)
+            store_once(objects, task_root / name, raw, 0o600)
         else:
             link_once(source, task_root / name, raw)
 

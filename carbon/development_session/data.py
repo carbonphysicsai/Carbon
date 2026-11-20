@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import stat
 import tempfile
+from contextlib import suppress
 from pathlib import Path
 
 import numpy as np
@@ -92,6 +95,102 @@ def link_once(source, path: Path, payload: bytes) -> bool:
             return linked
     write_once(path, payload)
     return False
+
+
+#: A ledger's own stored objects (`store_once`) where it is not in a receiver's ``owners/`` layout.
+INPUT_OBJECTS = "input-objects"
+#: A receiver state root's door-wide stored objects (`store_once`): one file per bytes and mode, shared by every owner
+#: ledger's op inputs and every retained grade file of the same bytes (owner rule #13; sre 20 Nov 2026).
+DOOR_OBJECTS = "objects"
+
+
+def ledger_objects(ledger_root) -> Path:
+    """Where an owner ledger's op inputs are stored once: ``<state>/objects`` for a receiver's
+    ``<state>/owners/<owner>/ledger``, else the ledger's own `INPUT_OBJECTS`."""
+    root = Path(ledger_root)
+    if root.name == "ledger" and root.parent.parent.name == "owners":
+        return root.parent.parent.parent / DOOR_OBJECTS
+    return root / INPUT_OBJECTS
+
+
+def retained_objects(task_root):
+    """Where a retained grade's files are stored once: ``<state>/objects`` for a receiver's
+    ``<state>/auto-grade/artifacts/<task>``, else None (written as before)."""
+    root = Path(task_root)
+    if root.parent.name == "artifacts" and root.parent.parent.name == "auto-grade":
+        return root.parent.parent.parent / DOOR_OBJECTS
+    return None
+
+
+def store_once(objects, path: Path, payload: bytes, mode: int) -> bool:
+    """Place the NEW name ``path`` holding ``payload`` with ``mode`` as a hard link to ``objects``'
+    ``<sha256>-<octal mode>`` file, storing that file first when absent (owner rule #13: identical bytes on disk once).
+    Same name, bytes and mode for every reader. Anything that does not fit (no objects folder given, a linked or foreign
+    folder or object, other bytes or mode, a filesystem or link count that refuses the link, a host without POSIX
+    owners) is an ordinary `write_once` + chmod. Nothing stored is ever modified. True when linked.
+    """
+    if objects is not None and hasattr(os, "getuid"):
+        objects = Path(objects)
+        stored = objects / (
+            hashlib.sha256(payload).hexdigest() + "-" + format(mode, "o")
+        )
+        try:
+            objects.mkdir(mode=0o700, exist_ok=True)
+            found = os.lstat(objects)
+            if stat.S_ISDIR(found.st_mode) and found.st_uid == os.getuid():
+                for _ in range(2):
+                    if _link_stored(stored, path, payload, mode):
+                        return True
+                    if os.path.lexists(stored):
+                        break
+                    descriptor, staged = tempfile.mkstemp(prefix=".store.", dir=objects)
+                    try:
+                        with os.fdopen(descriptor, "wb") as stream:
+                            stream.write(payload)
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                        os.chmod(staged, mode)
+                        with suppress(FileExistsError):
+                            os.link(staged, stored)
+                    finally:
+                        os.unlink(staged)
+        except OSError:
+            pass
+    write_once(path, payload)
+    os.chmod(path, mode)
+    return False
+
+
+def _link_stored(stored, path, payload, mode):
+    """True when ``path`` is now a hard link to ``stored``, this user's regular file holding exactly ``payload`` with
+    exactly ``mode``; False (nothing placed) otherwise."""
+    try:
+        descriptor = os.open(stored, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return False
+    try:
+        found = os.fstat(descriptor)
+        if not (
+            stat.S_ISREG(found.st_mode)
+            and found.st_uid == os.getuid()
+            and stat.S_IMODE(found.st_mode) == mode
+            and found.st_size == len(payload)
+        ):
+            return False
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            if stream.read() != payload:
+                return False
+        os.link(stored, path)
+        placed = os.lstat(path)
+        if (placed.st_dev, placed.st_ino) == (found.st_dev, found.st_ino):
+            return True
+        # the object moved between the read and the link: never keep it
+        os.unlink(path)
+        return False
+    except OSError:
+        return False
+    finally:
+        os.close(descriptor)
 
 
 def _link_from(source, path: Path, payload: bytes) -> bool | None:

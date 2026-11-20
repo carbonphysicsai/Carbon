@@ -13,6 +13,7 @@ import time
 import pytest
 
 from carbon.challenge_validator import grade_archive
+from carbon.development_session import data
 from carbon.development_session import research_carrier as carrier
 from carbon.reconstruction.worker.protocol import (
     OUTPUT_FRAMES,
@@ -33,9 +34,9 @@ def _line(value):
 def _stream(tmp_path, members):
     body = _line({"schema": "carbon.c03.output-stream.v1"})
     total = 0
-    for path, data in members:
-        body += _line({"path": path, "size": len(data)}) + data
-        total += len(data)
+    for path, payload in members:
+        body += _line({"path": path, "size": len(payload)}) + payload
+        total += len(payload)
     body += _line({"bytes": total, "end": True, "members": len(members)})
     operation = tmp_path / "operation-1"
     operation.mkdir()
@@ -117,9 +118,9 @@ def test_an_ops_inputs_are_stored_once_per_ledger_with_their_own_mode(tmp_path):
         assert stat.S_IMODE(a.st_mode) == mode
         assert (second / name).read_bytes() == body
         assert a.st_nlink == 3  # the object and two ops
-    objects = sorted(p.name for p in (tmp_path / carrier.INPUT_OBJECTS).iterdir())
+    objects = sorted(p.name for p in (tmp_path / data.INPUT_OBJECTS).iterdir())
     assert len(objects) == 3
-    assert stat.S_IMODE(os.stat(tmp_path / carrier.INPUT_OBJECTS).st_mode) == 0o700
+    assert stat.S_IMODE(os.stat(tmp_path / data.INPUT_OBJECTS).st_mode) == 0o700
     # the same bytes with another mode: another object
     third = _stage(tmp_path, "operation-c", {"program.py": (b"print(1)\n", 0o444)})
     assert stat.S_IMODE(os.stat(third / "program.py").st_mode) == 0o444
@@ -129,9 +130,7 @@ def test_an_ops_inputs_are_stored_once_per_ledger_with_their_own_mode(tmp_path):
 def test_an_object_that_changed_is_never_linked(tmp_path):
     body = b"x" * 5000
     first = _stage(tmp_path, "operation-a", {"inputs.npz": (body, 0o444)})
-    stored = (
-        tmp_path / carrier.INPUT_OBJECTS / (hashlib.sha256(body).hexdigest() + "-444")
-    )
+    stored = tmp_path / data.INPUT_OBJECTS / (hashlib.sha256(body).hexdigest() + "-444")
     os.chmod(stored, 0o644)
     second = _stage(tmp_path, "operation-b", {"inputs.npz": (body, 0o444)})
     assert os.stat(second / "inputs.npz").st_ino != os.stat(first / "inputs.npz").st_ino
@@ -328,3 +327,64 @@ def test_a_grades_breakdown_and_gate_records_stay_on_the_host_at_any_size(tmp_pa
     for name, raw in kept.items():
         assert (evaluation / name).read_bytes() == raw
     assert not (evaluation / "subset-repeat-x.json").exists()
+
+
+def test_every_owners_op_inputs_share_one_door_wide_object(tmp_path):
+    state = tmp_path / "state"
+    files = {"carbon.level4.tooling.lower_torch.py": (b"def lower(): pass\n", 0o444)}
+    first = _stage(state / "owners" / "o1" / "ledger", "operation-a", files)
+    second = _stage(state / "owners" / "o2" / "ledger", "operation-b", files)
+    name = "carbon.level4.tooling.lower_torch.py"
+    assert os.stat(first / name).st_ino == os.stat(second / name).st_ino
+    assert len(list((state / data.DOOR_OBJECTS).iterdir())) == 1
+    assert not (state / "owners" / "o1" / "ledger" / data.INPUT_OBJECTS).exists()
+    assert data.ledger_objects(tmp_path / "x") == tmp_path / "x" / data.INPUT_OBJECTS
+
+
+def _retained(state, task, artifacts):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    root = state / "auto-grade" / "artifacts" / task
+    root.mkdir(parents=True, mode=0o700)
+    retention._write_retained(root, artifacts)
+    return root
+
+
+def test_identical_retained_files_of_two_grades_are_stored_once_owner_only(tmp_path):
+    state = tmp_path / "state"
+    allowlist = b'{"ops": ["add"]}' * 1000
+    a = _retained(
+        state, "rtsk_" + "1" * 64, {"allowlist.json": allowlist, "recipe.json": b"one"}
+    )
+    b = _retained(
+        state, "rtsk_" + "2" * 64, {"allowlist.json": allowlist, "recipe.json": b"two"}
+    )
+    assert os.stat(a / "allowlist.json").st_ino == os.stat(b / "allowlist.json").st_ino
+    assert os.stat(a / "recipe.json").st_ino != os.stat(b / "recipe.json").st_ino
+    for root in (a, b):
+        for name in ("allowlist.json", "recipe.json"):
+            assert stat.S_IMODE(os.stat(root / name).st_mode) == 0o600
+    assert (b / "recipe.json").read_bytes() == b"two"
+    # an existing name keeps write_once's check: other bytes are refused, the same bytes are accepted
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    with pytest.raises(ValueError):
+        retention._write_retained(a, {"recipe.json": b"changed"})
+    retention._write_retained(a, {"recipe.json": b"one"})
+    # outside a receiver's layout: written as before
+    assert data.retained_objects(tmp_path / "elsewhere" / "t") is None
+
+
+def test_an_orphan_object_is_pruned_and_a_linked_one_is_kept(tmp_path):
+    state = tmp_path / "state"
+    files = {"a.py": (b"a\n", 0o444), "b.py": (b"b\n", 0o444)}
+    stage = _stage(state / "owners" / "o1" / "ledger", "operation-a", files)
+    (stage / "b.py").unlink()  # b's only name gone: its object is an orphan
+    later = time.time() + 2 * 86400
+    dry = grade_archive.prune_objects(state, now=later)
+    assert (dry["orphans"], dry["removed"]) == (1, 0)
+    done = grade_archive.prune_objects(state, apply=True, now=later)
+    assert (done["orphans"], done["removed"]) == (1, 1)
+    assert (stage / "a.py").read_bytes() == b"a\n"
+    assert len(list((state / data.DOOR_OBJECTS).iterdir())) == 1
+    assert grade_archive.prune_objects(state, apply=True)["orphans"] == 0  # too new
