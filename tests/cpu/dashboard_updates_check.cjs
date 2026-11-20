@@ -92,6 +92,17 @@ updates.challenges.forEach((c, i) => {
   assert.ok(!D.textOf(card).includes("No live board yet."), c.id + ": live");
 });
 
+// An incident line is drawn first, as a status notice; with none, no notice is drawn.
+assert.equal(nodes(D.updatesPage(live, updates), n => n.attrs["data-incident"]).length, 0, "no incident, no notice");
+const withIncident = D.updatesPage(live, {...updates, incident: "Submissions are slow right now."});
+check(withIncident, "incident");
+const notice = nodes(withIncident, n => n.attrs["data-incident"]);
+assert.equal(notice.length, 1, "one incident notice");
+assert.equal(notice[0].attrs.role, "status");
+assert.equal(D.textOf(notice[0]), "Submissions are slow right now.");
+const paragraphs = nodes(withIncident, n => n.tag === "p");
+assert.ok(paragraphs.indexOf(notice[0]) < paragraphs.findIndex(n => n.attrs.class === "lede"), "the incident comes before the intro");
+
 // A missing or broken file still draws every section, each saying there is nothing.
 for (const broken of [null, {}, {challenges: "x", faq: [1]}]) {
   const text = check(D.updatesPage(live, broken), "broken " + JSON.stringify(broken));

@@ -115,6 +115,21 @@ def test_the_build_writes_the_updates_and_refuses_anything_else(tmp_path):
     assert not (tmp_path / "refused" / "updates.json").exists()
 
 
+def test_an_incident_line_is_optional_plain_text_and_absent_by_default(tmp_path):
+    assert "incident" not in _updates()
+    ok = copy.deepcopy(_updates())
+    ok["incident"] = "Submissions are slow right now; nothing is lost."
+    build.write_updates(tmp_path / "ok", ok)
+    written = json.loads((tmp_path / "ok" / "updates.json").read_text("utf-8"))
+    assert written["incident"] == ok["incident"]
+    for bad in ("<b>x</b>", "two\nlines", "", "x" * 401, ["a list"]):
+        doc = copy.deepcopy(_updates())
+        doc["incident"] = bad
+        with pytest.raises(ValueError):
+            build.write_updates(tmp_path / "refused", doc)
+    assert not (tmp_path / "refused" / "updates.json").exists()
+
+
 def test_the_nav_offers_the_updates_page():
     html = (ROOT / "carbon" / "dashboard" / "web" / "index.html").read_text(
         encoding="utf-8"

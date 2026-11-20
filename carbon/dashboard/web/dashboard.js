@@ -1159,6 +1159,7 @@
     return h("div", {class: "page"},
       h("p", {class: "eyebrow section-label"}, "Updates"),
       h("h1", null, "What changes on each Challenge"),
+      texts([u.incident]).map(s => h("p", {class: "notice", role: "status", "data-incident": "1"}, s)),
       texts([u.intro]).map(s => h("p", {class: "lede"}, s)),
       part("challenges", "By Challenge", h("div", {class: "board-grid"}, cards)),
       part("every-version", "In every new version", items(u.every_version)),

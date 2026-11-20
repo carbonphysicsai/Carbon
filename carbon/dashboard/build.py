@@ -265,6 +265,8 @@ UPDATES_FIELDS = {
     "known_issues",
     "faq",
 }
+#: Present only while something is wrong right now; shown at the top of the page, owned by Live ops.
+UPDATES_OPTIONAL = {"incident"}
 #: One line of the Updates page: plain text, no markup, at most 400 characters.
 UPDATE_LINE = re.compile(r"^[^<>\x00-\x1f]{1,400}$")
 VERSION_PATTERN = re.compile(r"^\d{1,3}(\.\d{1,3}){1,2}$")
@@ -285,8 +287,13 @@ def write_updates(out, updates=None):
     doc = updates
     if doc is None:
         doc = json.loads(UPDATES.read_text(encoding="utf-8"))
-    if not isinstance(doc, dict) or set(doc) != UPDATES_FIELDS:
+    if (
+        not isinstance(doc, dict)
+        or not UPDATES_FIELDS <= set(doc) <= UPDATES_FIELDS | UPDATES_OPTIONAL
+    ):
         raise ValueError("updates: not the Updates page's fields")
+    if "incident" in doc:
+        _lines([doc["incident"]], "incident")
     if doc["schema"] != UPDATES_SCHEMA:
         raise ValueError("updates: unknown schema")
     _lines([doc["intro"]], "intro")
