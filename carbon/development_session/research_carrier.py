@@ -7,12 +7,14 @@ a separate invocation with a controller-selected fixed program and staged data.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
 import re
 import shutil
 import stat as stat_module
+import tempfile
 import threading
 import time
 from contextlib import ExitStack, contextmanager, suppress
@@ -45,7 +47,10 @@ from carbon.reconstruction.worker.model import (
 from carbon.reconstruction.worker.model import (
     worker_resources_version as resources_version_for,
 )
-from carbon.reconstruction.worker.protocol import decode_output_stream
+from carbon.reconstruction.worker.protocol import (
+    compact_output_stream,
+    decode_output_stream,
+)
 
 from .data import write_once
 from .profile import canonical, digest
@@ -113,6 +118,85 @@ def _stage_verified_overlay(source, target, receipt):
 #: overlay tree. Both are content-pinned and rebuildable from their caches; everything else in the input (the program,
 #: the caller's files such as a build's ``example.npz``, which retention reads) stays.
 RECLAIMED_STAGE = "reclaimed.json"
+
+
+#: An owner ledger's staged input files, each stored once by its bytes and mode (owner rule #13; live 116 20 Nov: a
+#: miner's source, state and data were written again into every build, inference and timed query's ``input/``, ~10% of
+#: the new bytes). Each op's ``input/`` file is a hard link to one of them: the same name, bytes and mode for the
+#: container, which sees ``/input`` read-only (`docker_runtime`: bind ``readonly``, checked ``RW`` false), so a shared
+#: file is one no worker can change. Nothing here is ever modified; an op's reclaim only unlinks its own names.
+INPUT_OBJECTS = "input-objects"
+#: Staged per op and reclaimed when it ends (`reclaim_trusted_stage`): never a shared object.
+_NOT_STORED_ONCE = frozenset({"uv-bin"})
+
+
+def _stage_once(path, body, mode):
+    """Stage ``path`` with ``body`` and ``mode`` (a new name in a fresh ``input/``) as a hard link to its ledger's
+    `INPUT_OBJECTS` file of the same bytes and mode, storing that file first when absent. Anything that does not fit (a
+    linked or foreign objects folder or file, other bytes or mode, a filesystem or link count that refuses the link) is
+    an ordinary `write_once` + chmod, as before."""
+    objects = path.parent.parent.parent / INPUT_OBJECTS
+    stored = objects / (hashlib.sha256(body).hexdigest() + "-" + format(mode, "o"))
+    try:
+        if not hasattr(os, "getuid"):
+            # a development host without POSIX owners (Windows): written as before
+            raise OSError("no POSIX owner")
+        objects.mkdir(mode=0o700, exist_ok=True)
+        found = os.lstat(objects)
+        if not stat_module.S_ISDIR(found.st_mode) or found.st_uid != os.getuid():
+            raise OSError("input objects folder not this user's own")
+        for _ in range(2):
+            if _link_stored(stored, path, body, mode):
+                return
+            if os.path.lexists(stored):
+                break
+            descriptor, staged = tempfile.mkstemp(prefix=".stage.", dir=objects)
+            try:
+                with os.fdopen(descriptor, "wb") as stream:
+                    stream.write(body)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.chmod(staged, mode)
+                with suppress(FileExistsError):
+                    os.link(staged, stored)
+            finally:
+                os.unlink(staged)
+    except OSError:
+        pass
+    write_once(path, body)
+    path.chmod(mode)
+
+
+def _link_stored(stored, path, body, mode):
+    """True when ``path`` is now a hard link to ``stored``, this user's regular file holding exactly ``body`` with
+    exactly ``mode``; False (nothing placed) otherwise."""
+    try:
+        descriptor = os.open(stored, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return False
+    try:
+        found = os.fstat(descriptor)
+        if not (
+            stat_module.S_ISREG(found.st_mode)
+            and found.st_uid == os.getuid()
+            and stat_module.S_IMODE(found.st_mode) == mode
+            and found.st_size == len(body)
+        ):
+            return False
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            if stream.read() != body:
+                return False
+        os.link(stored, path)
+        placed = os.lstat(path)
+        if (placed.st_dev, placed.st_ino) == (found.st_dev, found.st_ino):
+            return True
+        # the object moved between the read and the link: never keep it
+        os.unlink(path)
+        return False
+    except OSError:
+        return False
+    finally:
+        os.close(descriptor)
 
 
 def _make_writable(path):
@@ -3012,8 +3096,12 @@ def _run_locked(
                     program_name: source.encode(),
                 }.items():
                     path = stage / filename
-                    write_once(path, body)
-                    path.chmod(0o555 if filename in executable_files else 0o444)
+                    mode = 0o555 if filename in executable_files else 0o444
+                    if filename in _NOT_STORED_ONCE:
+                        write_once(path, body)
+                        path.chmod(mode)
+                    else:
+                        _stage_once(path, body, mode)
                 if trusted_overlay is not None:
                     _stage_verified_overlay(
                         trusted_overlay.path, stage / "overlay", overlay_receipt
@@ -3635,6 +3723,9 @@ def _run_locked(
         "scientific_qualification": False,
         "official_eligible": False,
     }
+    # owner rule #13: the stream's bodies are the snapshot's own files, so only its framing stays (`export.frames`);
+    # the stream is rebuilt byte for byte from both (the same output_digest), else it is kept as it is
+    compact_output_stream(output, snapshot)
     elapsed = math.ceil((time.monotonic() - started) * 1000)
     actual = {
         **resources,

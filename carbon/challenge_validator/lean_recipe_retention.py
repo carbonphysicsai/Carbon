@@ -5596,6 +5596,13 @@ def _regrade_origin(
     if owner is None:
         raise RetentionUnavailable("regrade_owner_unavailable")
     task_root = _owner_directory(base / origin, "task_artifacts")
+    try:
+        # an origin an operator archived (`grade_archive`): its files back, bytes checked, before any is read
+        from carbon.challenge_validator.grade_archive import restore_if_archived
+
+        restore_if_archived(task_root)
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise RetentionUnavailable("regrade_origin_archived") from exc
     manifest = json.loads(
         _private_measurement_bytes(base / (origin + ".roles.json"), 1024**2)
     )
