@@ -179,7 +179,9 @@ def test_on_the_real_discovery_path_the_second_and_third_requests_skip_the_full_
     discovery = DirectFixtureDiscovery(material, task_admission=True, pack_check=check)
     assert len(full) == 1
     key = discovery.info.challenge_key
-    discovery.get_interaction_manifest(key)  # request 1, as the research service asks it
+    discovery.get_interaction_manifest(
+        key
+    )  # request 1, as the research service asks it
     assert len(full) == 2
     for _ in range(2):  # requests 2 and 3, both calls each
         discovery.get_interaction_manifest(key)
