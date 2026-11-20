@@ -10,6 +10,11 @@ when the document and this table differ, so editing a sentence means regeneratin
 
     python -m scripts.dev.miner_launchpad.error_table --write docs/MINING.md
 
+A second table, "build and grade failures", is generated from the receiver's own failure classes
+(`carbon.development_session.infra_diagnosis.CLASSES` / `public_row`): a new class appears here with no row written by hand.
+Its "your daily spot" and "what happens next" cells come from the three failure classes of the owner's failure-handling
+rule (OWNER_LINES G-LEAD-10, 20 Nov 2026; `CLASS_TERMS` below), so a class's terms change in one place.
+
 Ordered by what miners actually quote (miner-x, 20 Nov 2026), ours-first within each group. No hidden value, allowance
 formula, hardware name or per-output detail appears; the codes are the closed ones a miner already sees.
 """
@@ -77,6 +82,62 @@ ROWS = (
 )
 
 
+#: The owner's failure-handling rule (G-LEAD-10, "Go with the table"; prospective): per class of failure, whether the daily
+#: spot is used, whether Carbon rebuilds by itself, and what the miner does. V2's ruling revision owns the exact terms; a change
+#: there is a change to these three entries and nothing else.
+CLASS_TERMS = {
+    "recipe": (
+        "Yours (your recipe)",
+        "Used: it counts against your daily limit.",
+        "Carbon does not rebuild it.",
+    ),
+    "carbon": (
+        "Ours (Carbon's)",
+        "Returned: it uses none of your daily limit.",
+        "Carbon rebuilds it once, automatically, on a healthy machine. If you submit again before then, the automatic "
+        "rebuild is skipped.",
+    ),
+    "unknown": (
+        "Ours (Carbon's); the cause is not known yet",
+        "Returned: it uses none of your daily limit.",
+        "Carbon does not rebuild it by itself.",
+    ),
+}
+#: What the miner does, by class (a recipe-side row adds its own fix).
+CLASS_TODO = {
+    "carbon": "Nothing: wait for the rebuild, or submit again if you prefer.",
+    "unknown": "Submit again once, when you are ready.",
+}
+#: The recipe-side codes a build or an inference can already end in (the receiver's `failure` observation words), each with
+#: the public rule to fit; both are yours and counted as your try, as today.
+RECIPE_FAILURES = (
+    ("WORKER_WALL_LIMIT_REACHED", "Reduce the work so it fits the public time limit (the Challenge's How you're tested page)."),
+    ("WORKER_MEMORY_LIMIT_REACHED", "Reduce memory use so it fits the public memory limit (the Challenge's How you're tested page)."),
+)
+
+
+def failure_rows():
+    """The failure-class table rows `(code, what happened, whose side, daily spot, what happens next, what to do)`, read
+    from the receiver's class table: recipe-side first, then every Carbon-side class, the unclassified one last."""
+    from carbon.development_session import infra_diagnosis as diagnosis
+    from scripts.dev.miner_launchpad import projection
+
+    rows = []
+    for code, todo in RECIPE_FAILURES:
+        side, spot, nxt = CLASS_TERMS["recipe"]
+        what = "Your recipe's run " + projection.FAILURE_OBSERVATION_WORDS[code] + "."
+        rows.append((code, what, side, spot, nxt, todo))
+    for code in sorted(diagnosis.CLASSES, key=lambda name: (name == diagnosis.UNCLASSIFIED, name)):
+        public = diagnosis.public_row(code)
+        kind = "unknown" if code == diagnosis.UNCLASSIFIED else "carbon"
+        side, spot, nxt = CLASS_TERMS[kind]
+        if code in diagnosis.RECIPE_CLASSES:
+            side, spot, nxt = CLASS_TERMS["recipe"]
+            kind = "recipe"
+        rows.append((code, public["what_happened"], side, spot, nxt, CLASS_TODO.get(kind, "See the line above.")))
+    return rows
+
+
 def _cell(text):
     return re.sub(r"\s+", " ", str(text)).replace("|", "/").strip()
 
@@ -97,6 +158,8 @@ def render():
     lines = [
         START,
         "",
+        "#### Refusals, rules and grade states",
+        "",
         "| You see | What it means and what to do | Whose side | Charged? |",
         "|---|---|---|---|",
     ]
@@ -104,6 +167,15 @@ def render():
         lines.append(
             f"| `{_cell(code)}` | {_cell(_words(source, code))} | {_cell(side)} | {_cell(charged)} |"
         )
+    lines += [
+        "",
+        "#### Build and grade failures",
+        "",
+        "| You see | What happened | Whose side | Your daily spot | What happens next | What to do |",
+        "|---|---|---|---|---|---|",
+    ]
+    for row in failure_rows():
+        lines.append("| `" + _cell(row[0]) + "` | " + " | ".join(_cell(cell) for cell in row[1:]) + " |")
     lines += [
         "",
         "*Not stated* means that code's own words do not say, so this table does not guess. If a message repeats, "
