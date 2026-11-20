@@ -30,6 +30,29 @@ THEIR OWN key. It changes the box and writes nothing on the door side (no box fi
 
 It prints a JSON summary (``carbon.gpu-box-admin.v1``, ``"admin": "PASS"``) the operator may copy to the door.
 
+Pod mode (``--provider lium``, LIUM_ADA_SWITCH_PLAN S3/S4): the box is a rented sysbox Docker-in-Docker POD, not a VM,
+reached as ``root`` (the default ``--user`` there; nothing else is accepted) on the pod's own ``--port``. The same steps,
+with no sudo (refused by the guard), no apt, no driver install and no systemd (`plan_admin_pod` prints each command):
+
+  shape        from the pod's own cgroup (`POD_SHAPE`, `pod_shape`): usable CPUs = floor(cpu.max quota / period)
+               ("max": nproc); >= 28 -> the 7 x 4 slots, 16..27 -> the door's legacy 4 x 4, else ``slot_shape_cpus``;
+               every slot CPU in the pod's allowed cpuset; 16 GiB per slot + 8 GiB within memory.max (or MemTotal).
+               The box file's ``slot_cpusets`` is that list
+  driver       the host's driver, read and checked against the floor, never installed
+  docker       nvidia-ctk and nvidia-container-runtime must already be there (else ``pod_nvidia_toolkit_missing``);
+               daemon.json merged with the containerd snapshotter and ``"storage-driver": "native"`` (other keys kept);
+               dockerd restarted by hand (`POD_DOCKER_RESTART`: TERM the pid file's daemon, bounded wait, start it
+               detached, bounded wait for ``docker info``); ``docker info`` must show the native driver, the socket the
+               docker group (made before the restart when missing)
+  lane_user    as on a VM, run as root
+  sshd         refused unless sshd_config Includes sshd_config.d (never rewritten); the same drop-in; reloaded with
+               ``kill -HUP`` of sshd's master; ``sshd -T`` must show both limits
+  stage_root   as on a VM;  python: one must already be there (never installed)
+
+The door phase is the same in pod mode (its shape re-check is the pod's), and ``--cpu-image`` (optional, either
+provider) adds the CPU inference image: streamed and listed in the box file like every ``--image``, never class-checked
+(an op reaches a box only when the box file lists its image).
+
 ``door``: run on the door as the door user, logging in to the box ONLY as ``carbon-grade`` with the lane key, and
 never using sudo there (every door-phase command is checked for it). It re-verifies the admin work READ-ONLY (a
 mismatch is ``admin_incomplete:<admin step to re-run>``), then:
@@ -145,8 +168,14 @@ TREE_PATHS = (
     "docs/development/evidence/ai-cooling-counted-v1/completion.json",
 )
 #: The provider the owner accepted the A100 40GB build class on (OWNER-A100-40GB-BUILD-CLASS-01: "the Lambda 1x A100
-#: 40GB SXM4"). Another provider is a new owner decision, not an operator flag.
-ACCEPTED_PROVIDERS = ("lambda",)
+#: 40GB SXM4"), and Lium (Bittensor SN51) for the RTX 6000 Ada pods of LIUM_ADA_SWITCH_PLAN (S3/S4). Another provider is
+#: a new owner decision, not an operator flag.
+ACCEPTED_PROVIDERS = ("lambda", "lium")
+#: Providers whose box is a POD, not a VM (`Config.pod`): a sysbox Docker-in-Docker container we rent and are root in.
+#: The host's NVIDIA driver and a dockerd are already there; there is no sudo, no systemd, and nothing is installed.
+POD_PROVIDERS = ("lium",)
+#: A pod's admin user: we are root inside it, and every admin command runs as root directly (`unsudo`).
+POD_ADMIN_USER = "root"
 #: A case's CPU parity run. A lane box never runs a CPU build: `remote_gpu_build.eligible` requires an accelerator
 #: (carbon/reconstruction/remote_gpu_build.py:469) and `remote_gpu_build.op` yields None - the door's own daemon - for
 #: anything not eligible (:617). These fields are therefore not compared with the class record.
@@ -158,6 +187,17 @@ CPU_FIELDS = frozenset({"cpu_state_digest", "parity_vs_cpu", "cpu_error"})
 SLOT_CPUSETS = ("0-3", "4-7", "8-11", "12-15", "16-19", "20-23", "24-27")
 MIN_CPUS = 28
 MIN_MEM_KIB = (len(SLOT_CPUSETS) * 16 + 8) * 1024 * 1024
+#: The door's other accepted shape, 4 x 4 (`remote_gpu_build.LEGACY_BOX_SLOT_CPUSETS`, mirrored exactly): a pod with
+#: 16 <= usable CPUs < 28 (`pod_shape`). The door accepts a box file ONLY with one of these two lists.
+LEGACY_SLOT_CPUSETS = SLOT_CPUSETS[:4]
+MIN_LEGACY_CPUS = 16
+
+
+def slot_mem_kib(slots: int) -> int:
+    """16 GiB per slot plus 8 GiB for the host, in KiB."""
+    return (slots * 16 + 8) * 1024 * 1024
+
+
 WORKER_UID = "65532"
 WORKER_USER = f"{WORKER_UID}:{WORKER_UID}"
 WORKER_PYTHON = "/opt/carbon-worker/bin/python"
@@ -176,6 +216,8 @@ _VERSION = re.compile(r"[0-9]+(\.[0-9]+)*")
 _FINGERPRINT = re.compile(r"SHA256:[A-Za-z0-9+/]{43}")
 _PACKAGE = re.compile(r"[a-z0-9][a-z0-9.+-]{1,99}")
 _DEVICE_KIND = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _.\-]{0,95}")
+#: sudo as a command word (a pod-mode command never has one); never matched inside a base64 key, which has no spaces
+_SUDO = re.compile(r"\bsudo\s")
 _PUBLIC_KEY_TYPES = frozenset(
     {
         "ssh-ed25519",
@@ -265,6 +307,13 @@ class Config:
     class_ops_record_sha256: str = ""
     admin_summary: dict | None = None
     admin_summary_sha256: str | None = None
+    #: the optional CPU inference image (``--cpu-image``): streamed and listed in the box file, never class-checked
+    cpu_image: str = ""
+
+    @property
+    def pod(self) -> bool:
+        """Whether the box is a pod (`POD_PROVIDERS`): no sudo, no systemd, nothing installed."""
+        return self.provider in POD_PROVIDERS
 
 
 def public_key_line(text: str) -> str:
@@ -466,25 +515,49 @@ def _common(args, *, user: str) -> dict:
     }
 
 
-def config_from_args(args) -> Config:
-    if args.phase == "admin":
-        # The admin phase is the box admin's, never the lane user's: the two phases cannot be confused.
-        if args.user == LANE_USER:
-            raise Refused(
-                "admin_user_is_lane_user",
-                f"the admin phase runs as the box's admin user, never {LANE_USER}",
-            )
-        if not _ADMIN.fullmatch(args.user):
-            raise Refused("bad_argument", "--user")
-        return Config(phase="admin", **_common(args, user=args.user))
-    common = _common(args, user=LANE_USER)
-    if not _NAME.fullmatch(args.box_name):
-        raise Refused("bad_argument", "--box-name: letters, digits, '-', '_'")
+def _provider(args) -> str:
     if args.provider not in ACCEPTED_PROVIDERS:
         raise Refused(
             "provider_not_accepted", f"accepted: {', '.join(ACCEPTED_PROVIDERS)}"
         )
-    images = list(dict.fromkeys([args.jax_image, *args.image]))
+    return args.provider
+
+
+def config_from_args(args) -> Config:
+    if args.phase == "admin":
+        pod = args.provider in POD_PROVIDERS
+        user = args.user
+        if user is None:
+            user = POD_ADMIN_USER if pod else DEFAULT_ADMIN_USER
+        # The admin phase is the box admin's, never the lane user's: the two phases cannot be confused.
+        if user == LANE_USER:
+            raise Refused(
+                "admin_user_is_lane_user",
+                f"the admin phase runs as the box's admin user, never {LANE_USER}",
+            )
+        if not _ADMIN.fullmatch(user):
+            raise Refused("bad_argument", "--user")
+        provider = _provider(args)
+        if pod and user != POD_ADMIN_USER:
+            # every pod-mode admin command runs as root directly: there is no sudo in a pod
+            raise Refused(
+                "pod_admin_user_not_root", f"a {provider} pod's admin user is root"
+            )
+        return Config(phase="admin", provider=provider, **_common(args, user=user))
+    common = _common(args, user=LANE_USER)
+    if not _NAME.fullmatch(args.box_name):
+        raise Refused("bad_argument", "--box-name: letters, digits, '-', '_'")
+    provider = _provider(args)
+    cpu_image = args.cpu_image or ""
+    if cpu_image and cpu_image == args.jax_image:
+        raise Refused(
+            "bad_argument", "--cpu-image is not the class check's --jax-image"
+        )
+    images = list(
+        dict.fromkeys(
+            [args.jax_image, *args.image, *([cpu_image] if cpu_image else [])]
+        )
+    )
     for image in images:
         if not _IMAGE_ID.fullmatch(image):
             raise Refused("bad_argument", f"image ids are full sha256 ids: {image}")
@@ -513,7 +586,7 @@ def config_from_args(args) -> Config:
         phase="door",
         **common,
         name=args.box_name,
-        provider=args.provider,
+        provider=provider,
         images=tuple(images),
         jax_image=args.jax_image,
         boxes_dir=Path(args.boxes_dir).expanduser(),
@@ -525,6 +598,7 @@ def config_from_args(args) -> Config:
         class_ops_record_sha256=ops_sha,
         admin_summary=summary,
         admin_summary_sha256=summary_sha,
+        cpu_image=cpu_image,
     )
 
 
@@ -732,6 +806,73 @@ CMD_PYTHON_INSTALL = (
 )
 _PYTHON_PATH = re.compile(r"/[A-Za-z0-9._/-]{0,200}/python3\.1[1-9]")
 
+# -- admin phase, pod mode: as root in the pod, never sudo, apt, a driver install or systemd ------------------------------
+
+
+def unsudo(command: str) -> str:
+    """A VM admin command run as root directly, as pod mode does: the same command without its ``sudo -n``."""
+    prefix = "sudo -n "
+    if not command.startswith(prefix):
+        raise ValueError(f"not a sudo command: {command}")
+    return command[len(prefix) :]
+
+
+#: The pod's shape from its OWN cgroup, not the host's ``nproc --all`` (measured on Lium pods, 19-20 Nov 2026): one line
+#: each, ``cpu.max`` ("<quota> <period>" or "max <period>"), ``nproc`` (affinity), the CPUs the pod may run on
+#: (``cpuset.cpus.effective``, else ``Cpus_allowed_list``), ``memory.max`` (bytes or "max"), and ``MemTotal``.
+POD_SHAPE = (
+    "set -eu; cat /sys/fs/cgroup/cpu.max; nproc; "
+    "c=$(cat /sys/fs/cgroup/cpuset.cpus.effective 2>/dev/null || true); "
+    "[ -n \"$c\" ] || c=$(sed -n 's/^Cpus_allowed_list:[[:space:]]*//p' /proc/self/status); "
+    "printf '%s\\n' \"$c\"; cat /sys/fs/cgroup/memory.max; grep '^MemTotal:' /proc/meminfo"
+)
+#: The NVIDIA container toolkit must already be in the pod (nothing is installed there): both paths, or a refusal.
+POD_CTK_PRESENT = "command -v nvidia-ctk nvidia-container-runtime || true"
+#: dockerd gives its socket the ``docker`` group when the group exists (its default ``--group``): made before a restart,
+#: so carbon-grade reaches the daemon exactly as on a VM (the docker group), never through a wider socket mode.
+POD_DOCKER_GROUP = "getent group docker >/dev/null || groupadd docker"
+POD_DOCKER_SOCKET = "stat -c '%G %a' /var/run/docker.sock"
+POD_DOCKER_SOCKET_WANT = "docker 660"
+#: The containerd image store (image ids equal to the door's) on the ``native`` snapshotter: the overlayfs snapshotter
+#: is refused inside the pod, and the pod's classic overlay2 store gives other image ids (measured, 19-20 Nov 2026).
+POD_STORAGE_DRIVER = "native"
+POD_DOCKERD_LOG = "/var/log/dockerd-carbon.log"
+POD_DOCKERD = (
+    "dockerd --host=unix:///var/run/docker.sock "
+    "--containerd=/var/run/docker/containerd/containerd.sock"
+)
+#: How long a pod restart waits for the old dockerd to exit, and for the new one to answer ``docker info``.
+POD_WAIT_SECONDS = 60
+#: No systemd in a pod: the running dockerd (``/var/run/docker.pid``, only when that pid IS a dockerd) is stopped with
+#: TERM and awaited (gone or a zombie), then started by hand, detached, and awaited until ``docker info`` answers. Bounded both ways: a daemon that does not stop or does not
+#: come back is ``docker_restart_failed`` (with the log's tail), never a hang.
+POD_DOCKER_RESTART = "sh -c " + shlex.quote(
+    "set -eu; "
+    "p=$(cat /var/run/docker.pid 2>/dev/null || true); "
+    'if [ -n "$p" ] && [ "$(cat /proc/$p/comm 2>/dev/null || true)" = dockerd ]; then '
+    'kill -TERM "$p"; i=0; '
+    'while kill -0 "$p" 2>/dev/null && ! grep -q "^State:[[:space:]]*Z" /proc/$p/status 2>/dev/null; do '
+    "i=$((i+1)); "
+    f'if [ "$i" -gt {POD_WAIT_SECONDS} ]; then echo "dockerd $p did not exit" >&2; exit 1; fi; sleep 1; done; fi; '
+    f"nohup {POD_DOCKERD} </dev/null >{POD_DOCKERD_LOG} 2>&1 & "
+    "i=0; until docker info >/dev/null 2>&1; do i=$((i+1)); "
+    f'if [ "$i" -gt {POD_WAIT_SECONDS} ]; then echo "dockerd did not answer" >&2; tail -n 20 {POD_DOCKERD_LOG} >&2; '
+    "exit 1; fi; sleep 1; done"
+)
+#: A pod's sshd reads the drop-in only through ``Include .../sshd_config.d/*.conf``; the main config is never rewritten.
+POD_SSHD_INCLUDES = (
+    "grep -Eiq '^[[:space:]]*Include[[:space:]]+(/etc/ssh/)?sshd_config\\.d/\\*\\.conf' /etc/ssh/sshd_config "
+    "&& echo include || true"
+)
+#: No systemd in a pod: sshd's master (``/var/run/sshd.pid``, else the oldest ``sshd``) re-reads its config on HUP; open
+#: sessions stay. The pause lets the re-executed listener come back before the next login.
+POD_SSHD_RELOAD = "sh -c " + shlex.quote(
+    "set -eu; p=; if [ -s /var/run/sshd.pid ]; then p=$(cat /var/run/sshd.pid); fi; "
+    'if [ -z "$p" ]; then p=$(pgrep -o -x sshd || true); fi; test -n "$p"; kill -HUP "$p"; sleep 1'
+)
+#: What the device record says of a pod's platform (descriptive only: `host_inventory.PLATFORMS`).
+POD_PLATFORM = "HOSTED_COMPUTE_INSTANCE"
+
 # -- door phase: as carbon-grade, never sudo ---------------------------------------------------------------------------
 
 DOOR_DOCKER_VERSION = _DOCKER_VERSION_FORMAT
@@ -808,7 +949,7 @@ def cmd_prepare(cfg: Config, commit: str, python: str) -> str:
             "--container-runtime",
             "DOCKER_ENGINE",
             "--platform",
-            "LINUX_VIRTUAL_MACHINE",
+            POD_PLATFORM if cfg.pod else "LINUX_VIRTUAL_MACHINE",
         ]
     )
 
@@ -939,9 +1080,10 @@ def cmd_class_check(cfg: Config, commit: str, uuid: str) -> str:
 # -- pure checks --------------------------------------------------------------------------------------------------------
 
 
-def merge_daemon_json(text: str) -> dict:
+def merge_daemon_json(text: str, *, storage_driver: str | None = None) -> dict:
     """daemon.json with the containerd image store switched on, keeping every other key (the nvidia runtime that
-    ``nvidia-ctk runtime configure`` merged in among them)."""
+    ``nvidia-ctk runtime configure`` merged in among them); in pod mode also ``"storage-driver": storage_driver``
+    (`POD_STORAGE_DRIVER`, the containerd snapshotter that works inside a pod)."""
     value = (
         _json_object(text, "daemon_json_invalid", "daemon.json") if text.strip() else {}
     )
@@ -949,6 +1091,8 @@ def merge_daemon_json(text: str) -> dict:
     if type(features) is not dict:
         raise Refused("daemon_json_invalid", "features is not an object")
     merged = {**value, "features": {**features, "containerd-snapshotter": True}}
+    if storage_driver is not None:
+        merged["storage-driver"] = storage_driver
     if "nvidia" not in (merged.get("runtimes") or {}):
         raise Refused(
             "docker_nvidia_runtime_missing", "nvidia-ctk added no nvidia runtime"
@@ -977,6 +1121,62 @@ def cpu_list(text: str) -> set:
             raise ValueError(text)
         cpus.update(range(first, last + 1))
     return cpus
+
+
+def pod_shape(text: str) -> dict:
+    """A pod's shape from `POD_SHAPE`'s output, or Refused. Usable CPUs = floor(quota / period) of its cgroup
+    ``cpu.max`` ("max": ``nproc``), never the host's CPU count. The slots are the door's two accepted lists only: usable
+    >= 28 -> the 7 x 4 `SLOT_CPUSETS`, 16 <= usable < 28 -> the 4 x 4 `LEGACY_SLOT_CPUSETS`, else ``slot_shape_cpus``;
+    every CPU of them must be in the pod's own allowed cpuset, and its memory limit (``memory.max``, at most MemTotal)
+    must hold 16 GiB per slot + 8 GiB. This is the upper bound on slots: the door's slot COUNT is its own values row.
+    """
+    lines = [line.strip() for line in text.splitlines()]
+    try:
+        if len(lines) != 5 or not lines[4].startswith("MemTotal:"):
+            raise ValueError
+        quota, period = lines[0].split()
+        nproc = int(lines[1])
+        allowed = lines[2]
+        allowed_set = cpu_list(allowed)
+        mem_total = int(lines[4].split()[1])
+        if quota == "max":
+            usable = nproc
+        else:
+            if int(quota) <= 0 or int(period) <= 0:
+                raise ValueError
+            usable = int(quota) // int(period)
+        limit = (
+            mem_total if lines[3] == "max" else min(mem_total, int(lines[3]) // 1024)
+        )
+    except (IndexError, ValueError):
+        raise Refused("shape_unreadable", text.strip()[-200:]) from None
+    if usable >= MIN_CPUS:
+        slots = SLOT_CPUSETS
+    elif usable >= MIN_LEGACY_CPUS:
+        slots = LEGACY_SLOT_CPUSETS
+    else:
+        raise Refused(
+            "slot_shape_cpus",
+            f"{usable} usable CPUs (cpu.max {quota} {period}) < {MIN_LEGACY_CPUS}",
+        )
+    wanted = set().union(*(cpu_list(cpuset) for cpuset in slots))
+    if not wanted <= allowed_set:
+        raise Refused(
+            "slot_cpus_not_allowed",
+            f"slots {','.join(slots)} are not all in the pod's cpuset {allowed}",
+        )
+    if limit < slot_mem_kib(len(slots)):
+        raise Refused(
+            "slot_shape_memory",
+            f"memory limit {limit} kB < {slot_mem_kib(len(slots))} kB for {len(slots)} slots",
+        )
+    return {
+        "cpu_max": f"{quota} {period}",
+        "cpus": usable,
+        "allowed": allowed,
+        "mem_limit_kib": limit,
+        "slot_cpusets": list(slots),
+    }
 
 
 def case_id(case: dict) -> str:
@@ -1298,6 +1498,8 @@ class Session:
             raise Refused(
                 "door_sudo_refused", "the door phase never uses sudo on the box"
             )
+        if self.cfg.pod and argv and argv[0] == "ssh" and _SUDO.search(argv[-1]):
+            raise Refused("pod_sudo_refused", "a pod has no sudo: root runs directly")
         if pipe_from is None:
             return
         pipe_from = list(pipe_from)
@@ -1383,7 +1585,13 @@ class Session:
         Path(self.known_hosts).write_text(line + "\n", encoding="utf-8")
         return line
 
+    def _root(self, command: str) -> str:
+        """A VM admin command as this box runs it: with its ``sudo -n`` on a VM, as root directly in a pod."""
+        return unsudo(command) if self.cfg.pod else command
+
     def shape(self) -> dict:
+        if self.cfg.pod:
+            return pod_shape(self.remote(POD_SHAPE, reason="shape_unreadable"))
         out = self.remote(CMD_SHAPE, reason="shape_unreadable")
         lines = out.splitlines()
         try:
@@ -1443,6 +1651,8 @@ class Session:
             return "containerd_version_mismatch", engine or "unreadable"
         if "io.containerd.snapshotter.v1" not in json.dumps(info.get("DriverStatus")):
             return "docker_snapshotter_missing", json.dumps(info.get("DriverStatus"))
+        if self.cfg.pod and info.get("Driver") != POD_STORAGE_DRIVER:
+            return "docker_snapshotter_not_native", str(info.get("Driver"))
         runtimes = info.get("Runtimes")
         if type(runtimes) is not dict or "nvidia" not in runtimes:
             return (
@@ -1517,10 +1727,62 @@ class Session:
             raise Refused(*problem)
         return self._engine().split()
 
+    def pod_docker(self):
+        """Pod mode: nothing installed and no systemd. The toolkit must be there; daemon.json gets the containerd store
+        on the native snapshotter (`merge_daemon_json`, every other key kept); dockerd is restarted by hand
+        (`POD_DOCKER_RESTART`) when daemon.json changed, or once when the daemon does not show it.
+        """
+        found = self.remote(POD_CTK_PRESENT, reason="docker_unreadable").split()
+        if len(found) != 2:
+            raise Refused(
+                "pod_nvidia_toolkit_missing",
+                "nvidia-ctk and nvidia-container-runtime must be in the pod (nothing is installed in a pod)",
+            )
+        self.remote(POD_DOCKER_GROUP, reason="docker_configure_failed")
+        before = self.remote(self._root(CMD_DAEMON_READ), reason="docker_unreadable")
+        self.remote(self._root(CMD_CTK_CONFIGURE), reason="docker_configure_failed")
+        after_ctk = self.remote(self._root(CMD_DAEMON_READ), reason="docker_unreadable")
+        merged = merge_daemon_json(after_ctk, storage_driver=POD_STORAGE_DRIVER)
+        text = daemon_json_text(merged)
+        if text != after_ctk:
+            self.remote(
+                self._root(cmd_daemon_write(text)), reason="docker_configure_failed"
+            )
+        try:
+            previous = json.loads(before) if before.strip() else None
+        except ValueError:
+            previous = None
+        restarted = previous != merged
+        if restarted:
+            self.remote(POD_DOCKER_RESTART, reason="docker_restart_failed")
+        problem = self._pod_docker_problem()
+        if problem and not restarted:
+            self.remote(POD_DOCKER_RESTART, reason="docker_restart_failed")
+            problem = self._pod_docker_problem()
+        if problem:
+            raise Refused(*problem)
+        return self._engine().split()
+
+    def _pod_docker_problem(self):
+        """`docker_problem` (with the native snapshotter), a daemon that does not answer counted as a problem, and the
+        socket in the docker group (`POD_DOCKER_SOCKET_WANT`)."""
+        try:
+            problem = self.docker_problem(
+                self._root(CMD_DOCKER_INFO), self._root(CMD_DOCKER_VERSION)
+            )
+        except Refused as refusal:
+            return refusal.reason, refusal.detail
+        if problem:
+            return problem
+        seen = self.remote(POD_DOCKER_SOCKET, reason="docker_unreadable").strip()
+        if seen != POD_DOCKER_SOCKET_WANT:
+            return "docker_socket_not_group_docker", seen
+        return None
+
     def lane_user(self):
         if not self.remote(CMD_LANE_UID, reason="lane_user_failed").strip():
-            self.remote(CMD_LANE_CREATE, reason="lane_user_failed")
-        self.remote(CMD_LANE_GROUP, reason="lane_user_failed")
+            self.remote(self._root(CMD_LANE_CREATE), reason="lane_user_failed")
+        self.remote(self._root(CMD_LANE_GROUP), reason="lane_user_failed")
         lines = self.remote(CMD_LANE_ID, reason="lane_user_failed").splitlines()
         if not lines or lines[0].strip() == "0":
             raise Refused("lane_user_is_root", f"{LANE_USER} has uid 0")
@@ -1529,7 +1791,9 @@ class Session:
         if len(lines) < 3 or lines[2].strip() != LANE_HOME:
             raise Refused("lane_home_mismatch", lines[2] if len(lines) > 2 else "")
         line = authorized_keys_line(self.cfg.door_ip, self.cfg.lane_pubkey)
-        before = self.remote(CMD_AUTHORIZED_KEYS_BEFORE, reason="lane_user_failed")
+        before = self.remote(
+            self._root(CMD_AUTHORIZED_KEYS_BEFORE), reason="lane_user_failed"
+        )
         wanted, dropped = merged_authorized_keys(before, line, self.cfg.other_door_ips)
         if dropped:
             self.log(
@@ -1542,19 +1806,40 @@ class Session:
                 )
             )
         # merged, never a plain replace: a configured other door's lane key on this box stays
-        self.remote(cmd_authorized_keys_write(wanted[:-1]), reason="lane_user_failed")
-        if self.remote(CMD_AUTHORIZED_KEYS_READ, reason="lane_user_failed") != wanted:
+        self.remote(
+            self._root(cmd_authorized_keys_write(wanted[:-1])),
+            reason="lane_user_failed",
+        )
+        if (
+            self.remote(self._root(CMD_AUTHORIZED_KEYS_READ), reason="lane_user_failed")
+            != wanted
+        ):
             raise Refused(
                 "authorized_keys_mismatch",
                 "authorized_keys is not this door's line plus other doors' lane keys",
             )
 
     def sshd(self):
-        if self.remote(CMD_SSHD_READ, reason="sshd_failed") != SSHD_DROPIN_TEXT:
-            self.remote(CMD_SSHD_WRITE, reason="sshd_failed")
-        self.remote(CMD_SSHD_RELOAD, reason="sshd_failed")
+        if (
+            self.cfg.pod
+            and not self.remote(POD_SSHD_INCLUDES, reason="sshd_failed").strip()
+        ):
+            # the main config is never rewritten: without the Include the drop-in could not be in force
+            raise Refused(
+                "sshd_no_include",
+                "/etc/ssh/sshd_config does not Include /etc/ssh/sshd_config.d/*.conf",
+            )
+        if (
+            self.remote(self._root(CMD_SSHD_READ), reason="sshd_failed")
+            != SSHD_DROPIN_TEXT
+        ):
+            self.remote(self._root(CMD_SSHD_WRITE), reason="sshd_failed")
+        self.remote(
+            POD_SSHD_RELOAD if self.cfg.pod else CMD_SSHD_RELOAD, reason="sshd_failed"
+        )
         seen = {}
-        for line in self.remote(CMD_SSHD_EFFECTIVE, reason="sshd_failed").splitlines():
+        effective = self.remote(self._root(CMD_SSHD_EFFECTIVE), reason="sshd_failed")
+        for line in effective.splitlines():
             key, _, value = line.strip().partition(" ")
             if key in SSHD_EFFECTIVE:
                 seen[key] = value.strip()
@@ -1563,7 +1848,7 @@ class Session:
         return SSHD_DROPIN
 
     def stage_root(self):
-        self.remote(CMD_STAGE_ROOT, reason="stage_root_failed")
+        self.remote(self._root(CMD_STAGE_ROOT), reason="stage_root_failed")
         self._stage_root_seen()
 
     def _python_seen(self):
@@ -1802,12 +2087,18 @@ def run_admin(cfg: Config, runner, *, log=None) -> dict:
     try:
         host_key = session.run_step("host_key", session.host_key)
         shape = session.run_step("shape", session.shape)
-        uuid, driver = session.run_step("driver", session.driver)
-        docker, containerd = session.run_step("docker", session.docker)
+        # A pod has its host's driver and its own dockerd and Python: read and checked there, never installed.
+        pod = cfg.pod
+        uuid, driver = session.run_step(
+            "driver", session.door_driver if pod else session.driver
+        )
+        docker, containerd = session.run_step(
+            "docker", session.pod_docker if pod else session.docker
+        )
         session.run_step("lane_user", session.lane_user)
         session.run_step("sshd", session.sshd)
         session.run_step("stage_root", session.stage_root)
-        session.run_step("python", session.python_ready)
+        session.run_step("python", session.door_python if pod else session.python_ready)
     except Refused as refusal:
         return {
             "schema": ADMIN_SCHEMA,
@@ -1865,7 +2156,7 @@ def door_link_files(cfg, host_key: str, directory: str) -> str:
         os.path.join(bin_dir, "ssh"): (rgb.ssh_shim_text(lane, ssh_binary), 0o500),
         os.path.join(directory, "docker"): (
             rgb.wrapper_text(
-                f"ssh://{cfg.user}@{cfg.ip}",
+                box_docker_host(cfg),
                 os.environ.get("HOME", "/"),
                 docker_binary,
                 bin_dir,
@@ -1994,6 +2285,7 @@ def box_document(
     raw_ops,
     commit,
     now,
+    slot_cpusets=SLOT_CPUSETS,
 ):
     docker_host = box_docker_host(cfg)
     parse_docker_host(docker_host)
@@ -2002,7 +2294,7 @@ def box_document(
         "name": cfg.name,
         "docker_host": docker_host,
         "stage_root": STAGE_ROOT,
-        "slot_cpusets": list(SLOT_CPUSETS),
+        "slot_cpusets": list(slot_cpusets),
         "device": device,
         "device_digest": device_digest,
         "driver_version": driver,
@@ -2098,6 +2390,8 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
             raw_ops=raw_ops,
             commit=commit,
             now=now(),
+            # a pod's slots come from its own cgroup (`pod_shape`); a VM has the one shape
+            slot_cpusets=shape["slot_cpusets"] if cfg.pod else SLOT_CPUSETS,
         )
         session.step = "box_file"
         path = write_box_files(cfg, document, raw_output, raw_ops)
@@ -2132,6 +2426,8 @@ def _planner(cfg: Config):
 
 def plan_admin(cfg: Config) -> list[tuple[str, str]]:
     """Every command the admin phase may send, in order."""
+    if cfg.pod:
+        return plan_admin_pod(cfg)
     remote = _planner(cfg)
     steps = [("host_key", shlex.join(cmd_keyscan(cfg)))]
     steps.append(remote("shape", CMD_SHAPE))
@@ -2192,6 +2488,61 @@ def plan_admin(cfg: Config) -> list[tuple[str, str]]:
     return steps
 
 
+def plan_admin_pod(cfg: Config) -> list[tuple[str, str]]:
+    """Every command the pod-mode admin phase may send, in order: as root, with no sudo, apt, driver install or
+    systemd."""
+    remote = _planner(cfg)
+    steps = [("host_key", shlex.join(cmd_keyscan(cfg)))]
+    steps.append(remote("shape", POD_SHAPE))
+    steps.append(remote("driver (read only: the host's driver)", CMD_DRIVER_QUERY))
+    steps.append(remote("docker (refused when either is missing)", POD_CTK_PRESENT))
+    steps.append(remote("docker", POD_DOCKER_GROUP))
+    steps.append(remote("docker", unsudo(CMD_DAEMON_READ)))
+    steps.append(remote("docker", unsudo(CMD_CTK_CONFIGURE)))
+    steps.append(remote("docker", unsudo(CMD_DAEMON_READ)))
+    steps.append(
+        remote(
+            "docker (only when it differs)",
+            unsudo(
+                cmd_daemon_write(
+                    "<merged daemon.json: + containerd-snapshotter, storage-driver native>"
+                )
+            ),
+        )
+    )
+    steps.append(remote("docker (only when it changed)", POD_DOCKER_RESTART))
+    steps.append(remote("docker", unsudo(CMD_DOCKER_INFO)))
+    steps.append(remote("docker", unsudo(CMD_DOCKER_VERSION)))
+    steps.append(remote("docker", POD_DOCKER_SOCKET))
+    steps.append(
+        remote("docker (only when docker info does not show it)", POD_DOCKER_RESTART)
+    )
+    steps.append(remote("lane_user", CMD_LANE_UID))
+    steps.append(remote("lane_user (only when missing)", unsudo(CMD_LANE_CREATE)))
+    for command in (
+        unsudo(CMD_LANE_GROUP),
+        CMD_LANE_ID,
+        unsudo(CMD_AUTHORIZED_KEYS_BEFORE),
+        unsudo(
+            cmd_authorized_keys_write(
+                authorized_keys_line(cfg.door_ip, cfg.lane_pubkey)
+                + "\n<the --other-door-ip doors' restrict,from= lane-key lines already there>"
+            )
+        ),
+        unsudo(CMD_AUTHORIZED_KEYS_READ),
+    ):
+        steps.append(remote("lane_user", command))
+    steps.append(remote("sshd (refused without the Include)", POD_SSHD_INCLUDES))
+    steps.append(remote("sshd", unsudo(CMD_SSHD_READ)))
+    steps.append(remote("sshd (only when it differs)", unsudo(CMD_SSHD_WRITE)))
+    steps.append(remote("sshd", POD_SSHD_RELOAD))
+    steps.append(remote("sshd", unsudo(CMD_SSHD_EFFECTIVE)))
+    steps.append(remote("stage_root", unsudo(CMD_STAGE_ROOT)))
+    steps.append(remote("stage_root", CMD_STAGE_ROOT_STAT))
+    steps.append(remote("python (refused when none is present)", CMD_PYTHON_FIND))
+    return steps
+
+
 def plan_door(cfg: Config) -> list[tuple[str, str]]:
     """Every command the door phase may send, in order, with what is only known on the box as a placeholder."""
     remote = _planner(cfg)
@@ -2199,7 +2550,7 @@ def plan_door(cfg: Config) -> list[tuple[str, str]]:
     steps = [("host_key", shlex.join(cmd_keyscan(cfg)))]
     steps.append(remote("lane_user (verify)", DOOR_WHOAMI))
     steps.append(remote("lane_user (verify)", DOOR_AUTHORIZED_KEYS_READ))
-    steps.append(remote("shape (verify)", CMD_SHAPE))
+    steps.append(remote("shape (verify)", POD_SHAPE if cfg.pod else CMD_SHAPE))
     steps.append(remote("driver (verify)", CMD_DRIVER_QUERY))
     steps.append(remote("docker (verify)", DOOR_DOCKER_INFO))
     steps.append(remote("docker (verify)", DOOR_DOCKER_VERSION))
@@ -2275,8 +2626,14 @@ def build_parser() -> argparse.ArgumentParser:
     _box_arguments(admin)
     admin.add_argument(
         "--user",
-        default=DEFAULT_ADMIN_USER,
-        help=f"the box's admin user (default {DEFAULT_ADMIN_USER}; never {LANE_USER})",
+        default=None,
+        help=f"the box's admin user (default {DEFAULT_ADMIN_USER}, {POD_ADMIN_USER} for a pod; never {LANE_USER})",
+    )
+    admin.add_argument(
+        "--provider",
+        default="lambda",
+        help=f"the box's provider (default lambda; a pod for: {', '.join(POD_PROVIDERS)}); "
+        f"accepted: {', '.join(ACCEPTED_PROVIDERS)}",
     )
     admin.add_argument(
         "--ssh-key", help="the admin's private key (stays on their machine)"
@@ -2300,6 +2657,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="a worker image id to load (repeat)",
+    )
+    door.add_argument(
+        "--cpu-image",
+        help="the CPU inference image id (optional): streamed and listed in the box file like --image, no class check",
     )
     door.add_argument(
         "--jax-image",

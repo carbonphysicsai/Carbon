@@ -10,6 +10,11 @@ one box file with exactly the documented fields, 0600 in a 0700 directory, and e
 leaves no box file; the class check must repeat on the GPU under allowlist v8, match the class record's digests and
 reproduce the class's ops record; nothing but public material reaches the box; a dry run runs nothing. It also
 documents the limit: a box that replays another box's output passes (PASS is not security qualification).
+
+Claims, pod mode (``--provider lium``, against `FakePod`): as root with no sudo, apt, driver install or systemd; the
+containerd store on the native snapshotter by a daemon.json merge and a dockerd restart by hand; sshd reloaded by HUP and
+verified; slots from the pod's cgroup cpu.max (7 x 4, the door's legacy 4 x 4, or refused) inside its own cpuset and
+memory limit. And ``--cpu-image`` is listed in the box file but never class-checked.
 """
 
 from __future__ import annotations
@@ -42,6 +47,9 @@ DOOR = "198.51.100.2"
 HEAD = "c" * 40
 JAX = "sha256:" + "a" * 64
 TORCH = "sha256:" + "b" * 64
+CPU = "sha256:" + "d" * 64
+#: a Lium pod's ssh port (pods are reached on their own port, not 22)
+PORT = 40022
 
 
 def _key_body(seed: int) -> str:
@@ -189,6 +197,7 @@ class FakeBox:
         self.cfg = cfg
         self.calls = []
         self.users = []
+        self.port = 22
         self.keyscan = f"{IP} ssh-ed25519 {HOST_KEY}\n"
         self.nproc = 30
         self.online = "0-29"
@@ -250,7 +259,7 @@ class FakeBox:
     def __call__(self, argv, pipe_from=None):
         self.calls.append((list(argv), pipe_from))
         if argv[0] == "ssh-keyscan":
-            assert argv == ["ssh-keyscan", "-t", "ed25519", "-p", "22", IP]
+            assert argv == ["ssh-keyscan", "-t", "ed25519", "-p", str(self.port), IP]
             return 0, self.keyscan, ""
         if argv[:3] == ["git", "-C", str(box_up.ROOT)]:
             if argv == box_up.cmd_git_on_main(HEAD):
@@ -264,13 +273,17 @@ class FakeBox:
         assert argv[0] == "ssh" and "StrictHostKeyChecking=yes" in argv
         known = next(a for a in argv if a.startswith("UserKnownHostsFile="))
         pinned = Path(known.split("=", 1)[1]).read_text()
-        assert pinned == f"{IP} ssh-ed25519 {HOST_KEY}\n"
+        assert pinned == f"{self._host()} ssh-ed25519 {HOST_KEY}\n"
         assert argv[-2] == "--" and argv[-3].endswith(f"@{IP}")
         self.user = argv[-3].split("@")[0]
         self.users.append(self.user)
         if "sudo" in argv[-1]:
             assert self.user != "carbon-grade", argv[-1]
         return self.remote(argv[-1], pipe_from)
+
+    def _host(self):
+        """The box's address as known_hosts names it (``[ip]:port`` off port 22)."""
+        return IP if self.port == 22 else f"[{IP}]:{self.port}"
 
     def _info(self):
         live = self.daemon_live or {}
@@ -303,9 +316,9 @@ class FakeBox:
     def _watchdog_link(self, argv):
         """A door watchdog's own docker call: read back the per-box ssh files its ssh would use."""
         assert argv[:3] == ["env", "-i", "PATH=/usr/local/bin:/usr/bin:/bin"], argv
-        assert argv[3] == f"DOCKER_HOST=ssh://carbon-grade@{IP}" and argv[4].startswith(
-            "HOME="
-        )
+        port = "" if self.port == 22 else f":{self.port}"
+        assert argv[3] == f"DOCKER_HOST=ssh://carbon-grade@{IP}{port}"
+        assert argv[4].startswith("HOME=")
         assert argv[5:] == ["docker", "version", "--format", "{{.Server.Version}}"]
         conf, known = box_up.box_ssh_files(self.cfg)
         self.watchdog_links.append(
@@ -455,6 +468,150 @@ class FakeBox:
         return [argv[-1] for argv, _ in self.calls if argv[0] == "ssh"]
 
 
+POD_FOREIGN_DAEMON = {
+    "log-opts": {"max-size": "10m"},
+    "default-address-pools": [{"base": "172.80.0.0/16", "size": 24}],
+}
+POD_MERGED_DAEMON = {
+    **POD_FOREIGN_DAEMON,
+    "features": {"containerd-snapshotter": True},
+    "storage-driver": "native",
+    "runtimes": {"nvidia": {"args": [], "path": "nvidia-container-runtime"}},
+}
+#: The VM admin commands a pod runs as root without their ``sudo -n``: answered as the VM's are.
+_POD_ROOT_FORMS = frozenset(
+    {
+        box_up.CMD_DAEMON_READ,
+        box_up.CMD_CTK_CONFIGURE,
+        box_up.CMD_LANE_CREATE,
+        box_up.CMD_LANE_GROUP,
+        box_up.CMD_AUTHORIZED_KEYS_READ,
+        box_up.CMD_AUTHORIZED_KEYS_BEFORE,
+        box_up.CMD_SSHD_READ,
+        box_up.CMD_SSHD_WRITE,
+        box_up.CMD_STAGE_ROOT,
+    }
+)
+
+
+class FakePod(FakeBox):
+    """A Lium RTX 6000 Ada pod (sysbox Docker-in-Docker), as measured 19-20 Nov 2026 and ASSUMED here: we are root on
+    the pod's own ssh port; no sudo, apt or systemd (any such command fails the test); the host's driver answers
+    nvidia-smi; a dockerd runs on the classic overlay2 store; the NVIDIA toolkit is present; a Python 3.11 is present.
+    The containerd store on the native snapshotter is in force only after a restart by hand; sshd's drop-in only after a
+    HUP. Fresh for the admin phase; as the admin phase leaves it for the door phase (``prepared``).
+    """
+
+    def __init__(self, cfg, *, prepared=None, **state):
+        ready = prepared if prepared is not None else cfg.phase == "door"
+        pod = {
+            "port": PORT,
+            "keyscan": f"[{IP}]:{PORT} ssh-ed25519 {HOST_KEY}\n",
+            "cpu_max": "3100000 100000",
+            "nproc": 32,
+            "allowed": "0-31",
+            "memory_max": "max",
+            "mem_kib": 250 * 1024 * 1024,
+            "docker": "29.1.3",
+            "ctk": True,
+            "runtime_bin": True,
+            "python": "/usr/bin/python3.11",
+            "docker_group": False,
+            "socket": "root 660",
+            "info_answers": True,
+            "driver_seen": None,
+            "dockerd_restarts": 0,
+            "sshd_include": True,
+            "sshd_live": "",
+            "sshd_hups": 0,
+            "daemon": json.dumps(POD_FOREIGN_DAEMON, indent=2),
+            "daemon_live": dict(POD_FOREIGN_DAEMON),
+            "device": json.dumps(
+                {
+                    **_device_document(),
+                    "provider": "lium",
+                    "platform": "HOSTED_COMPUTE_INSTANCE",
+                },
+                sort_keys=True,
+            ),
+        }
+        if ready:
+            pod.update(
+                daemon=box_up.daemon_json_text(POD_MERGED_DAEMON),
+                daemon_live=dict(POD_MERGED_DAEMON),
+                docker_group=True,
+                socket="docker 660",
+                sshd_live=box_up.SSHD_DROPIN_TEXT,
+            )
+        super().__init__(cfg, prepared=prepared, **{**pod, **state})
+
+    def _info(self):
+        info = json.loads(super()._info())
+        live = self.daemon_live or {}
+        snapshotter = (live.get("features") or {}).get("containerd-snapshotter")
+        driver = live.get("storage-driver", "overlayfs") if snapshotter else "overlay2"
+        info["Driver"] = self.driver_seen or driver
+        return json.dumps(info)
+
+    def remote(self, cmd, pipe_from):
+        for word in ("sudo ", "apt-get", "apt ", "dpkg", "systemctl"):
+            assert word not in cmd, cmd
+        g = box_up
+        if cmd == g.POD_SHAPE:
+            return (
+                0,
+                (
+                    f"{self.cpu_max}\n{self.nproc}\n{self.allowed}\n{self.memory_max}\n"
+                    f"MemTotal: {self.mem_kib} kB\n"
+                ),
+                "",
+            )
+        if cmd == g.POD_CTK_PRESENT:
+            found = [
+                path
+                for path, there in (
+                    ("/usr/bin/nvidia-ctk", self.ctk),
+                    ("/usr/bin/nvidia-container-runtime", self.runtime_bin),
+                )
+                if there
+            ]
+            return 0, "".join(path + "\n" for path in found), ""
+        if cmd == g.POD_DOCKER_GROUP:
+            self.docker_group = True
+            return 0, "", ""
+        if cmd == g.POD_DOCKER_RESTART:
+            self.dockerd_restarts += 1
+            if not self.info_answers:
+                return 1, "", "dockerd did not answer\n"
+            self.daemon_live = json.loads(self.daemon)
+            self.socket = ("docker" if self.docker_group else "root") + " 660"
+            return 0, "", ""
+        if cmd == g.POD_DOCKER_SOCKET:
+            return 0, self.socket + "\n", ""
+        if cmd == g.POD_SSHD_INCLUDES:
+            return 0, "include\n" if self.sshd_include else "", ""
+        if cmd == g.POD_SSHD_RELOAD:
+            self.sshd_hups += 1
+            self.sshd_live = self.sshd_dropin
+            return 0, "", ""
+        if cmd == g.unsudo(g.CMD_SSHD_EFFECTIVE):
+            on = self.sshd_live == g.SSHD_DROPIN_TEXT
+            limits = ("100:30:200", "64") if on else ("10:30:100", "10")
+            return (
+                0,
+                f"port {PORT}\nmaxstartups {limits[0]}\nmaxsessions {limits[1]}\n",
+                "",
+            )
+        if cmd == g.unsudo(g.CMD_LANE_GROUP) and not self.docker_group:
+            return 6, "", "usermod: group 'docker' does not exist\n"
+        if ("sudo -n " + cmd) in _POD_ROOT_FORMS or (
+            cmd.startswith("sh -c ") and "printf" in cmd
+        ):
+            # the VM's root command, run as root without sudo: the same effect
+            return super().remote("sudo -n " + cmd, pipe_from)
+        return super().remote(cmd, pipe_from)
+
+
 def _pub(tmp_path):
     pub = tmp_path / "lane.pub"
     pub.write_text(LANE_PUBKEY + "\n")
@@ -534,6 +691,17 @@ def _config_refusal(argv):
     with pytest.raises(box_up.Refused) as refused:
         _parse(argv)
     return refused.value.reason
+
+
+def _pod_admin_config(tmp_path, *extra):
+    return _admin_config(tmp_path, "--provider", "lium", "--port", str(PORT), *extra)
+
+
+def _pod_config(tmp_path, *extra, **kwargs):
+    """The door phase's config for a Lium pod (the later ``--provider`` wins)."""
+    return _config(
+        tmp_path, "--provider", "lium", "--port", str(PORT), *extra, **kwargs
+    )
 
 
 def _admin(cfg, box):
@@ -2204,3 +2372,434 @@ def test_a_door_link_missing_an_admitted_image_is_refused(tmp_path):
     outcome = _run(cfg, box)
     _refused(outcome, "door_link_failed")
     assert _no_box_file(tmp_path)
+
+
+# == pod mode: a Lium RTX 6000 Ada pod (LIUM_ADA_SWITCH_PLAN S3/S4) ====================================================
+
+
+def test_a_pod_is_brought_up_by_the_admin_phase_then_admitted_by_the_door(tmp_path):
+    admin_cfg = _pod_admin_config(tmp_path)
+    assert admin_cfg.pod and admin_cfg.user == "root" and admin_cfg.port == PORT
+    box = FakePod(admin_cfg)
+    summary = _admin(admin_cfg, box)
+    assert summary["admin"] == "PASS", summary
+    assert set(box.users) == {"root"}
+    assert summary["host_key"] == f"[{IP}]:{PORT} ssh-ed25519 {HOST_KEY}"
+    assert summary["shape"] == {
+        "cpu_max": "3100000 100000",
+        "cpus": 31,
+        "allowed": "0-31",
+        "mem_limit_kib": 250 * 1024 * 1024,
+        "slot_cpusets": list(box_up.SLOT_CPUSETS),
+    }
+    (tmp_path / "admin.json").write_text(json.dumps(summary))
+    box.cfg = _pod_config(
+        tmp_path, "--cpu-image", CPU, "--admin-summary", str(tmp_path / "admin.json")
+    )
+    box.users.clear()
+    outcome = _run(box.cfg, box)
+    assert outcome["status"] == "ADMITTED", outcome
+    assert set(box.users) == {"carbon-grade"}
+    path = tmp_path / "boxes" / "a100-1.json"
+    document = json.loads(path.read_text())
+    assert document["docker_host"] == f"ssh://carbon-grade@{IP}:{PORT}"
+    assert document["slot_cpusets"] == list(box_up.SLOT_CPUSETS)
+    assert document["images"] == [JAX, TORCH, CPU]
+    assert document["device"]["provider"] == "lium"
+    from carbon.reconstruction import remote_gpu_build
+
+    lane = remote_gpu_build.read_box(path, kind=KIND, slots=7, root=tmp_path / "host")
+    assert lane.spec.slot_cpusets == remote_gpu_build.BOX_SLOT_CPUSETS
+    assert lane.spec.images == (JAX, TORCH, CPU)
+    # the door's own build link reached the pod on its own port
+    (link,) = box.door_links
+    assert f"ssh://carbon-grade@{IP}:{PORT}" in link["wrapper"]
+
+
+def test_the_pod_admin_phase_runs_no_sudo_apt_driver_install_or_systemd(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    commands = box.remote_commands()
+    for command in commands:
+        for word in ("sudo ", "apt-get", "systemctl", "dpkg"):
+            assert word not in command, command
+    for vm_only in (
+        box_up.cmd_driver_install(cfg.driver_package),
+        box_up.cmd_docker_install(cfg.docker_version, cfg.containerd_version),
+        box_up.CMD_TOOLKIT_INSTALL,
+        box_up.CMD_PYTHON_INSTALL,
+        box_up.CMD_SHAPE,
+    ):
+        assert vm_only not in commands
+    assert box.driver_installs == 0 and box.python_installs == 0
+    # what ran as root is the VM's own command without its sudo
+    assert box_up.unsudo(box_up.CMD_LANE_CREATE) in commands
+    assert box_up.unsudo(box_up.CMD_STAGE_ROOT) in commands
+    assert box.lane_uid == "1001" and "docker" in box.groups and box.docker_group
+    assert box.authorized_keys == LANE_LINE + "\n"
+    for _step, command in box_up.plan_admin(cfg):
+        for word in ("sudo ", "apt-get", "systemctl", "dpkg"):
+            assert word not in command, command
+
+
+def test_the_pod_guard_refuses_any_sudo_command(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    session = box_up.Session(cfg, FakePod(cfg), log=lambda _l: None)
+    with pytest.raises(box_up.Refused) as refused:
+        session.call(box_up.ssh(cfg, "kh", "sudo -n true"))
+    assert refused.value.reason == "pod_sudo_refused"
+    with pytest.raises(ValueError):
+        box_up.unsudo("true")
+
+
+def test_a_pods_admin_user_is_root(tmp_path):
+    assert _pod_admin_config(tmp_path).user == "root"
+    argv = [*_admin_argv(tmp_path, "--provider", "lium"), "--user", "ubuntu"]
+    assert _config_refusal(argv) == "pod_admin_user_not_root"
+    # a VM's default admin user is unchanged
+    assert _admin_config(tmp_path).user == "ubuntu" and not _admin_config(tmp_path).pod
+
+
+def test_the_pod_daemon_json_merge_keeps_foreign_keys_and_sets_the_store_and_snapshotter():
+    ctk = {**POD_FOREIGN_DAEMON, "runtimes": POD_MERGED_DAEMON["runtimes"]}
+    merged = box_up.merge_daemon_json(
+        json.dumps(ctk, indent=4), storage_driver="native"
+    )
+    assert merged == POD_MERGED_DAEMON
+    assert (
+        box_up.merge_daemon_json(
+            box_up.daemon_json_text(merged), storage_driver="native"
+        )
+        == merged
+    )
+    # a VM's merge sets no storage driver
+    assert "storage-driver" not in box_up.merge_daemon_json(json.dumps(ctk))
+
+
+def test_the_pod_daemon_json_ends_with_the_store_the_snapshotter_and_its_own_keys(
+    tmp_path,
+):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    final = json.loads(box.daemon)
+    assert final == POD_MERGED_DAEMON
+    assert box.daemon_live == POD_MERGED_DAEMON
+
+
+def test_the_pod_dockerd_is_restarted_by_hand_after_daemon_json_changes(tmp_path):
+    restart = shlex.split(box_up.POD_DOCKER_RESTART)
+    assert restart[:2] == ["sh", "-c"]
+    script = restart[2]
+    for part in (
+        "/var/run/docker.pid",
+        "/proc/$p/comm",
+        'kill -TERM "$p"',
+        (
+            "nohup dockerd --host=unix:///var/run/docker.sock "
+            "--containerd=/var/run/docker/containerd/containerd.sock </dev/null "
+            ">/var/log/dockerd-carbon.log 2>&1 &"
+        ),
+        "until docker info >/dev/null 2>&1",
+        '[ "$i" -gt 60 ]',
+    ):
+        assert part in script, part
+    assert script.index("kill -TERM") < script.index("nohup dockerd")
+    assert script.index("nohup dockerd") < script.index("until docker info")
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    commands = box.remote_commands()
+    write = next(i for i, c in enumerate(commands) if "daemon.json.part" in c)
+    assert commands.index(box_up.POD_DOCKER_GROUP) < commands.index(
+        box_up.POD_DOCKER_RESTART
+    )
+    assert write < commands.index(box_up.POD_DOCKER_RESTART)
+    assert box.dockerd_restarts == 1 and box.socket == "docker 660"
+    # a second run on a ready pod restarts nothing
+    box.calls.clear()
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box_up.POD_DOCKER_RESTART not in box.remote_commands()
+    assert box.dockerd_restarts == 1
+
+
+def test_a_pod_whose_daemon_does_not_show_its_daemon_json_gets_one_restart(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(
+        cfg,
+        daemon=box_up.daemon_json_text(POD_MERGED_DAEMON),
+        daemon_live=dict(POD_FOREIGN_DAEMON),
+    )
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.dockerd_restarts == 1
+
+
+def test_a_pod_dockerd_that_does_not_come_back_is_refused(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg, info_answers=False)
+    outcome = _admin(cfg, box)
+    _admin_refused(outcome, "docker_restart_failed")
+    assert outcome["step"] == "docker"
+
+
+def test_a_pod_dockerd_on_another_snapshotter_is_refused(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg, driver_seen="overlayfs")
+    outcome = _admin(cfg, box)
+    _admin_refused(outcome, "docker_snapshotter_not_native")
+    assert outcome["step"] == "docker" and box.dockerd_restarts == 1
+
+
+def test_a_pod_without_the_nvidia_toolkit_is_refused_not_installed(tmp_path):
+    for missing in ({"ctk": False}, {"runtime_bin": False}):
+        cfg = _pod_admin_config(tmp_path)
+        box = FakePod(cfg, **missing)
+        outcome = _admin(cfg, box)
+        _admin_refused(outcome, "pod_nvidia_toolkit_missing")
+        assert box_up.CMD_TOOLKIT_INSTALL not in box.remote_commands()
+        assert box.dockerd_restarts == 0
+
+
+def test_a_pod_without_python_is_refused_not_installed(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg, python="")
+    outcome = _admin(cfg, box)
+    _admin_refused(outcome, "python_missing")
+    assert box.python_installs == 0
+
+
+def test_a_pod_whose_driver_is_below_the_floor_is_refused_not_upgraded(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg, smi=(0, f"{KIND}, {UUID}, 40960 MiB, 570.172.08\n"))
+    _admin_refused(_admin(cfg, box), "driver_below_floor")
+    assert box.driver_installs == 0
+
+
+def test_the_pod_sshd_gets_the_drop_in_reloaded_by_hup_and_verified(tmp_path):
+    reload = shlex.split(box_up.POD_SSHD_RELOAD)[2]
+    assert "/var/run/sshd.pid" in reload and "pgrep -o -x sshd" in reload
+    assert 'kill -HUP "$p"' in reload
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg)
+    assert _admin(cfg, box)["admin"] == "PASS"
+    assert box.sshd_dropin == box_up.SSHD_DROPIN_TEXT
+    assert box.sshd_writes == 1 and box.sshd_hups == 1
+    commands = box.remote_commands()
+    assert commands.index(box_up.POD_SSHD_RELOAD) < commands.index(
+        box_up.unsudo(box_up.CMD_SSHD_EFFECTIVE)
+    )
+    assert box_up.CMD_SSHD_RELOAD not in commands
+
+
+def test_a_pod_whose_sshd_did_not_take_the_hup_is_refused(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+
+    class Deaf(FakePod):
+        def remote(self, cmd, pipe_from):
+            if cmd == box_up.POD_SSHD_RELOAD:
+                return 0, "", ""
+            return super().remote(cmd, pipe_from)
+
+    _admin_refused(_admin(cfg, Deaf(cfg)), "sshd_limits_not_in_force")
+
+
+def test_a_pod_whose_sshd_config_has_no_include_is_refused_untouched(tmp_path):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg, sshd_include=False)
+    outcome = _admin(cfg, box)
+    _admin_refused(outcome, "sshd_no_include")
+    assert outcome["step"] == "sshd" and box.sshd_writes == 0
+
+
+@pytest.mark.parametrize(
+    "cpu_max, nproc, slots",
+    [
+        ("3100000 100000", 32, box_up.SLOT_CPUSETS),
+        ("2800000 100000", 32, box_up.SLOT_CPUSETS),
+        ("1600000 100000", 32, box_up.LEGACY_SLOT_CPUSETS),
+        ("2799999 100000", 32, box_up.LEGACY_SLOT_CPUSETS),
+        ("max 100000", 30, box_up.SLOT_CPUSETS),
+        ("max 100000", 20, box_up.LEGACY_SLOT_CPUSETS),
+    ],
+)
+def test_a_pods_slots_come_from_its_cgroup_cpu_max(cpu_max, nproc, slots):
+    out = f"{cpu_max}\n{nproc}\n0-31\nmax\nMemTotal: {250 * 1024 * 1024} kB\n"
+    shape = box_up.pod_shape(out)
+    assert shape["slot_cpusets"] == list(slots)
+
+
+@pytest.mark.parametrize("cpu_max, nproc", [("1500000 100000", 32), ("max 100000", 15)])
+def test_a_pod_with_too_few_usable_cpus_is_refused(tmp_path, cpu_max, nproc):
+    cfg = _pod_admin_config(tmp_path)
+    outcome = _admin(cfg, FakePod(cfg, cpu_max=cpu_max, nproc=nproc))
+    _admin_refused(outcome, "slot_shape_cpus")
+    assert outcome["step"] == "shape"
+
+
+def test_a_legacy_pod_gets_the_doors_4x4_box_file(tmp_path):
+    from carbon.reconstruction import remote_gpu_build
+
+    assert box_up.SLOT_CPUSETS == remote_gpu_build.BOX_SLOT_CPUSETS
+    assert box_up.LEGACY_SLOT_CPUSETS == remote_gpu_build.LEGACY_BOX_SLOT_CPUSETS
+    cfg = _pod_config(tmp_path)
+    box = FakePod(cfg, cpu_max="1600000 100000", mem_kib=80 * 1024 * 1024)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    path = tmp_path / "boxes" / "a100-1.json"
+    document = json.loads(path.read_text())
+    assert document["slot_cpusets"] == ["0-3", "4-7", "8-11", "12-15"]
+    lane = remote_gpu_build.read_box(path, kind=KIND, slots=7, root=tmp_path / "host")
+    assert lane.spec.slot_cpusets == remote_gpu_build.LEGACY_BOX_SLOT_CPUSETS
+    assert lane.slots == 4
+
+
+@pytest.mark.parametrize(
+    "allowed, cpu_max",
+    [
+        ("32-63", "3100000 100000"),
+        ("0-15", "3100000 100000"),
+        ("0-14", "1600000 100000"),
+    ],
+)
+def test_slot_cpus_outside_the_pods_cpuset_are_refused(tmp_path, allowed, cpu_max):
+    cfg = _pod_admin_config(tmp_path)
+    outcome = _admin(cfg, FakePod(cfg, allowed=allowed, cpu_max=cpu_max))
+    _admin_refused(outcome, "slot_cpus_not_allowed")
+
+
+def test_the_pod_shape_reads_its_cpuset_and_cgroup_files():
+    for path in (
+        "/sys/fs/cgroup/cpu.max",
+        "/sys/fs/cgroup/cpuset.cpus.effective",
+        "Cpus_allowed_list",
+        "/sys/fs/cgroup/memory.max",
+        "MemTotal",
+    ):
+        assert path in box_up.POD_SHAPE, path
+    assert "nproc --all" not in box_up.POD_SHAPE
+    for broken in (
+        "",
+        "3100000 100000\n32\n0-31\nmax\n",
+        "x y\n32\n0-31\nmax\nMemTotal: 1 kB\n",
+    ):
+        with pytest.raises(box_up.Refused) as refused:
+            box_up.pod_shape(broken)
+        assert refused.value.reason == "shape_unreadable"
+
+
+@pytest.mark.parametrize(
+    "cpu_max, memory_max, mem_kib",
+    [
+        # 7 x 16 GiB + 8 GiB = 120 GiB; the cgroup limit, not MemTotal, decides
+        ("3100000 100000", str(120 * 1024**3 - 1), 250 * 1024 * 1024),
+        ("3100000 100000", "max", 120 * 1024 * 1024 - 1),
+        # a limit above MemTotal counts as MemTotal
+        ("3100000 100000", str(500 * 1024**3), 100 * 1024 * 1024),
+        # 4 x 16 GiB + 8 GiB = 72 GiB
+        ("1600000 100000", str(72 * 1024**3 - 1024), 250 * 1024 * 1024),
+    ],
+)
+def test_a_pod_short_of_memory_is_refused(tmp_path, cpu_max, memory_max, mem_kib):
+    cfg = _pod_admin_config(tmp_path)
+    box = FakePod(cfg, cpu_max=cpu_max, memory_max=memory_max, mem_kib=mem_kib)
+    _admin_refused(_admin(cfg, box), "slot_shape_memory")
+
+
+def test_exactly_the_pod_memory_floor_passes():
+    out = (
+        f"3100000 100000\n32\n0-31\n{120 * 1024**3}\nMemTotal: {250 * 1024 * 1024} kB\n"
+    )
+    assert box_up.pod_shape(out)["mem_limit_kib"] == 120 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    ("step", "missing"),
+    [
+        ("shape", {"cpu_max": "1500000 100000"}),
+        ("docker", {"driver_seen": "overlayfs"}),
+        ("docker", {"daemon_live": dict(POD_FOREIGN_DAEMON)}),
+        ("driver", {"smi": (0, f"{KIND}, {UUID}, 40960 MiB, 570.172.08\n")}),
+    ],
+)
+def test_the_door_refuses_a_pod_whose_admin_item_is_missing(tmp_path, step, missing):
+    cfg = _pod_config(tmp_path)
+    box = FakePod(cfg, **missing)
+    outcome = _run(cfg, box)
+    _refused(outcome, f"admin_incomplete:{step}")
+    assert box.dockerd_restarts == 0 and not box.loaded
+    assert _no_box_file(tmp_path)
+
+
+def test_the_door_phase_on_a_pod_never_uses_sudo_and_prepares_a_pod_record(tmp_path):
+    cfg = _pod_config(tmp_path)
+    box = FakePod(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    prepare = shlex.split(box_up.cmd_prepare(cfg, HEAD, "/usr/bin/python3.11"))
+    assert prepare[prepare.index("--provider") + 1] == "lium"
+    assert prepare[prepare.index("--platform") + 1] == "HOSTED_COMPUTE_INSTANCE"
+    for _step, command in box_up.plan_door(cfg):
+        assert "sudo" not in command, command
+    planned = box_up.plan_door(cfg)
+    assert planned[3][0] == "shape (verify)"
+    assert shlex.split(planned[3][1])[-1] == box_up.POD_SHAPE
+
+
+def test_a_pod_admin_dry_run_prints_every_pod_command_and_runs_none(tmp_path, capsys):
+    def boom(argv, pipe_from=None):
+        raise AssertionError("the dry run ran a command")
+
+    argv = [
+        *_admin_argv(tmp_path),
+        "--provider",
+        "lium",
+        "--port",
+        str(PORT),
+        "--dry-run",
+    ]
+    assert box_up.main(argv, runner=boom) == 0
+    out = capsys.readouterr().out
+    assert f"ssh-keyscan -t ed25519 -p {PORT} {IP}" in out
+    assert f"root@{IP}" in out and "ubuntu@" not in out
+    for part in (
+        "cpu.max",
+        "storage-driver native",
+        "kill -HUP",
+        "nohup dockerd",
+        "groupadd docker",
+    ):
+        assert part in out, part
+    for word in ("sudo ", "apt-get", "systemctl"):
+        assert word not in out, word
+    printed = [line for line in out.splitlines() if line.startswith("[")]
+    assert len(printed) == len(box_up.plan_admin(_pod_admin_config(tmp_path)))
+
+
+# == S4: every image the door passes is listed in the box file ========================================================
+
+
+def test_the_cpu_image_is_streamed_and_listed_but_never_class_checked(tmp_path):
+    cfg = _config(tmp_path, "--cpu-image", CPU)
+    assert cfg.images == (JAX, TORCH, CPU) and cfg.cpu_image == CPU
+    box = FakeBox(cfg)
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    document = json.loads((tmp_path / "boxes" / "a100-1.json").read_text())
+    # an op reaches a box only when the box file lists its image
+    assert document["images"] == [JAX, TORCH, CPU]
+    assert document["class_check_image_id"] == JAX
+    assert box.loaded[CPU] == CPU
+    class_checks = [c for c in box.remote_commands() if "gpu_rebuild_class_check" in c]
+    assert class_checks and all(CPU not in c for c in class_checks)
+    planned = [command for _, command in box_up.plan_door(cfg)]
+    assert any(command.startswith(f"docker save {CPU} | ") for command in planned)
+
+
+def test_a_cpu_image_that_is_not_a_full_id_or_is_the_jax_image_is_refused(tmp_path):
+    assert _config_refusal(_door_argv(tmp_path, "--cpu-image", "cpu:latest")) == (
+        "bad_argument"
+    )
+    assert _config_refusal(_door_argv(tmp_path, "--cpu-image", JAX)) == "bad_argument"
+
+
+def test_without_a_cpu_image_the_box_file_lists_what_it_did_before(tmp_path):
+    cfg = _config(tmp_path)
+    assert cfg.images == (JAX, TORCH) and cfg.cpu_image == "" and not cfg.pod
