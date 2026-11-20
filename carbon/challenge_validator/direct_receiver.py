@@ -1111,6 +1111,8 @@ GRADING_PATHS = (
     "carbon/measurement/",
     "carbon/measurement_runtime/",
     "carbon/challenge_validator/lean_recipe_retention.py",
+    # the same-ceiling gate the grade's pair reads hold (owner LO-3; `pair_read_bound`'s lock replaced at runtime)
+    "carbon/challenge_validator/pair_read_gate.py",
     "carbon/challenge_validator/scoring.py",
     "carbon/challenge_validator/koth_registry.py",
     "carbon/challenge_validator/crown_average.py",

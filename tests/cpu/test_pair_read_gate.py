@@ -1,5 +1,6 @@
 """Owner LO-3: grades that read the repeat pair under the same ceiling read together (`pair_read_gate`), while
-`pair_read_bound.py`, a Motor 1.8 producer file, keeps every byte (v2 20 Nov 16:12:44Z)."""
+`pair_read_bound.py`, a Motor 1.8 producer file, keeps every byte (v2 20 Nov 16:12:44Z).
+"""
 
 from __future__ import annotations
 
