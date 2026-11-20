@@ -1,5 +1,7 @@
 # Carbon Business Canon v1
 
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
+
 **Status:** OWNER-CANONICAL business section of the Carbon canon.  
 **Purpose:** define Carbon's commercial principles, product sequence, and evidence requirements.
 **Scope:** company/business architecture outside the scientific loop.  
@@ -9,11 +11,13 @@
 
 # 1. Business identity
 
-Carbon is building **discovery and evidence infrastructure for Physics AI**: research and evaluation that help engineers find better fast models and establish where they can rely on them.
+Carbon focuses on **custom model discovery and design for engineering problems**: finding useful model-building approaches and developing fast physical models around a customer's required outputs, conditions and decisions.
 
-The company plans to start with independent Evidence Audits, expand into sponsored research and qualification, and develop recurring evidence software as customers repeat those workflows. Carbon can work across customers' existing solvers, models, and engineering tools.
+The primary commercial offer combines Sponsored Discovery and Model Development as appropriate to the problem. Independent reconstruction and evaluation are integral to that work. Qualification, deployment integration and lifecycle support address later needs; a standalone Evidence Audit is complementary rather than the default entry point.
 
-These are commercial principles and product plans. The [project status](../docs/publications/PROJECT_STATUS.md) records current implementation and research evidence; customer records must establish commercial traction.
+Model design here means the candidate's architecture, construction method and problem-specific behavior. It does not imply an unrestricted physical-product design service, universal model compatibility or a guarantee of scientific improvement. Customers can retain their existing solvers and engineering tools.
+
+These are commercial principles and product plans. Implementation, scientific qualification and customer traction require their own evidence.
 
 ---
 
@@ -67,11 +71,14 @@ Canon law:
 
 # 4. Customer problem doctrine
 
-As fast physical models become easier to build, the bottleneck increasingly shifts toward:
+Engineering teams need models that serve a specific job. The commercial questions are:
 
 ```text
 DISCOVERY
-Which method should we try?
+Which approach can meet this engineering need?
+
+MODEL DESIGN AND DEVELOPMENT
+How do we turn it into a reproducible model for the required conditions?
 
 EVIDENCE
 Does the model actually survive?
@@ -91,16 +98,17 @@ Carbon should sell into these problems rather than forcing customers to buy a ge
 
 ## Land
 
-- Carbon Evidence Audit
-- Challenge Design / Feasibility
-- truth / solver / dataset integration
+- custom model discovery and design through Sponsored Discovery / Model Development;
+- Challenge Design / Feasibility to scope the modeling program;
+- truth / solver / dataset integration needed for the agreed task.
 
 ## Expand
 
-- Sponsored Discovery Program
-- Model Development Program
-- Qualified Model Program
-- deployment / workflow integration
+- additional model requirements, operating ranges or related engineering problems;
+- Qualified Model Program;
+- deployment / workflow integration.
+
+Evidence Audit remains a complementary scoped service for customers with an existing model. It is not a prerequisite for the primary discovery and development offer.
 
 ## Recur
 
@@ -134,21 +142,17 @@ Canon law:
 
 # 6. First-product doctrine
 
-Preferred first wedge:
+The primary commercial focus is **custom model discovery and design**. Start with the customer's modeling need and scope the program around its inputs, outputs, operating conditions, reference and decision criteria.
 
-> **Carbon Evidence Audit** — independently evaluate a customer's existing fast physical model against a qualified, problem-specific exam and return evidence about what survives, where it fails, and what stronger evidence or remediation would be required.
+- **Carbon Sponsored Discovery Program** searches for useful construction methods through competitive research and independent comparison.
+- **Model Development Program** designs and develops a reproducible candidate from a suitable method, within the supported technical scope.
+- Independent reconstruction and evaluation establish what the resulting candidate achieves and where further work is needed.
 
-Why:
+The intended handoff includes the agreed candidate or method, reproducibility material, evaluation findings and known limitations, with rights and acceptance defined in the contract. A discovery program may find no suitable candidate; commercial terms must address that outcome without manufacturing a favorable scientific result.
 
-- monetizes the strongest near-term Carbon capability: the judge;
-- does not require a mature open discovery market;
-- can produce value even when the model fails;
-- naturally expands into remediation, discovery, qualification, deployment, and lifecycle;
-- creates reusable evidence workflows.
+Challenge Feasibility / Design may be needed before a program can be proposed. Evidence Audit remains an optional route when the customer's primary need is evaluation of an existing model. Neither creates a mandatory audit-first sales sequence.
 
-Preferred first network-differentiated product:
-
-> **Carbon Sponsored Discovery Program** — qualify a customer problem, open competitive search, independently determine whether the frontier moved, and deliver candidate/evidence outputs.
+The business direction selects the offer and message. It does not declare every model family, private deployment or customer use supported, and it does not replace technical feasibility review.
 
 ---
 
@@ -159,11 +163,14 @@ Scientific success and commercial delivery are distinct.
 Examples:
 
 ```text
-Customer model fails the Audit
-→ commercially successful delivery if the agreed evidence program was delivered honestly.
+No candidate meets a discovery program's requirements
+→ commercially successful delivery only if the agreed research work and honest findings satisfy its contract.
 
-No contender advances a Sponsored Discovery frontier
-→ commercially successful program if the qualified search/evidence program was delivered.
+A development program produces a candidate with a narrower supported range
+→ assess delivery against the agreed scope and acceptance terms; do not claim the original engineering goal was achieved.
+
+An optional Evidence Audit finds a model failure
+→ commercially successful delivery if the agreed evaluation and findings were delivered.
 ```
 
 Canon law:
@@ -238,11 +245,11 @@ Canon law:
 Default account expansion architecture:
 
 ```text
-Evidence Audit / Feasibility
+Engineering problem / Feasibility
         ↓
-Remediation / Sponsored Discovery
+Sponsored Discovery / Custom Model Design
         ↓
-Model Development
+Model Development + Independent Evaluation
         ↓
 Qualification
         ↓
@@ -338,7 +345,7 @@ Do not lead enterprise sales with Bittensor or Alpha.
 
 Lead with the customer's engineering problem:
 
-> **Do you already build or use fast physical models, and what prevents you from relying on them more broadly?**
+> **What engineering decision needs a better model, what must it predict, and what prevents your current approach from meeting that need?**
 
 Primary early direct-selling verticals to validate:
 
@@ -362,14 +369,17 @@ Carbon should not position itself as a smaller generic AI-native engineering pla
 Preferred stack position:
 
 ```text
-HIGH-FIDELITY PHYSICS / CAE / EXPERIMENTS
-        ↓
-MODEL BUILDERS / ENGINEERING-AI SYSTEMS
+ENGINEERING PROBLEM + HIGH-FIDELITY PHYSICS / CAE / EXPERIMENTS
         ↓
 CARBON
-independent discovery + evidence + qualification
+custom model discovery + design + development
+with independent reconstruction and evaluation
         ↓
-ENGINEERING DEPLOYMENT / DECISION WORKFLOWS
+CANDIDATE MODEL / METHOD + FINDINGS
+        ↓
+QUALIFICATION / INTEGRATION FOR THE INTENDED USE
+        ↓
+ENGINEERING DECISION WORKFLOWS
 ```
 
 Differentiation is the combination of:
@@ -459,13 +469,13 @@ Investor story:
 
 ```text
 PROBLEM
-fast physical models are becoming easier to create than to trust, compare, and maintain
+engineering teams need fast models suited to their specific tasks and constraints
         ↓
 WEDGE
-independent Evidence Audit
+custom model discovery and design, with independent evaluation
         ↓
 EXPANSION
-Sponsored Discovery / Model Development / Qualification
+additional modeling programs / Qualification / Integration
         ↓
 RECURRENCE
 Lifecycle / Requalification / Enterprise Platform
@@ -540,4 +550,4 @@ And the non-negotiable boundary remains:
 
 # 23. Research productivity doctrine (2026-09-08)
 
-Carbon may monetize research productivity, workflow, hosted non-official work, and rights-cleared non-exam evidence without selling privileged access to the scientific judge. Official-derived scientific content and release timing remain equal for free and paid miners. Research Access/Copilot is an adjacent candidate validated only through `G-PR0..5`; Evidence Audit remains the established first entry product. Interest, questions, budget intent, and design do not prove demand, authorize spend, or establish revenue.
+Carbon may monetize research productivity, workflow, hosted non-official work, and rights-cleared non-exam evidence without selling privileged access to the scientific judge. Official-derived scientific content and release timing remain equal for free and paid miners. Research Access/Copilot is an adjacent candidate validated only through `G-PR0..5`. The custom model discovery and design focus supersedes the earlier audit-first entry sequence; Evidence Audit remains complementary. Interest, questions, budget intent, and design do not prove demand, authorize spend, or establish revenue.

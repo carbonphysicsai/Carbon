@@ -8,7 +8,9 @@
 
 # Business canon synthesis
 
-> **Carbon is building the discovery, evidence, and qualification infrastructure for fast physical models.**
+> **Carbon focuses on custom model discovery and design for engineering problems, with independent evaluation integral to development.**
+
+Current commercial emphasis: [OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01, 20 November 2026](../../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
 
 > **Services get Carbon into the customer. Platform makes the relationship recurring. The network makes discovery scalable. Qualification increases contract value. Lifecycle increases retention. Physics intelligence compounds the moat.**
 
@@ -49,8 +51,8 @@ Investor and public materials must not present a designed revenue stream, assume
 1. **Carbon OpCo must stand on its own without speculative Alpha appreciation.**
 2. **Services are the wedge, not the terminal margin structure.**
 3. **Repeated expert workflows should become productized infrastructure.**
-4. **The first preferred SKU is Carbon Evidence Audit.**
-5. **The first preferred network-differentiated SKU is Sponsored Discovery.**
+4. **Custom model discovery and design is the primary commercial focus, delivered through Sponsored Discovery and Model Development.**
+5. **Feasibility supports the modeling program; Evidence Audit remains complementary and is not a prerequisite.**
 6. **Qualification and lifecycle are recurring revenue layers, not afterthoughts.**
 7. **Enterprise platform, API/OEM, and marketplace are scale layers.**
 8. **Physics Intelligence is sold only after prospective utility is demonstrated.**

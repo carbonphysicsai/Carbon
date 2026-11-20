@@ -1,6 +1,8 @@
 # Carbon: business and market
 
-Carbon is building **discovery and evidence infrastructure for Physics AI**. Its opportunity lies in helping engineering teams choose better fast models, test their physical behavior, and maintain evidence as their designs and models change.
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
+
+Carbon focuses on **custom model discovery and design for engineering problems**. Its opportunity is to help teams find useful modeling approaches and develop fast models for their particular decisions, with independent evaluation establishing how candidates perform.
 
 This document describes the investment thesis and its remaining tests. [Project status](../docs/publications/PROJECT_STATUS.md) records implementation and research evidence as of 28 September 2026. The commercial plan does not establish customer traction or forecast revenue.
 
@@ -10,20 +12,22 @@ An engineer may use a fast model to evaluate thousands of cooling designs or cha
 
 Average prediction error leaves several questions open: performance near a physical limit, behavior outside familiar training conditions, reproducibility, and the effect of changing a solver, model, or runtime. Engineering teams must answer those questions before they can expand a model's use.
 
-Carbon aims to make that work reusable. The company combines a defined engineering task, a defensible reference, independent reconstruction, and an evaluation program with explicit limits on what the evidence supports.
+Finding a suitable model also requires choosing and adapting methods for the required outputs, geometry and operating range. Carbon aims to make that work reusable through competitive method discovery, custom model design and independent reconstruction and evaluation against a defensible reference.
 
 ## First customer engagement
 
-The **Carbon Evidence Audit** starts with a customer's existing model. Carbon and the customer agree the decision, operating range, reference source, and evaluation scope. The intended deliverable is an evidence package identifying supported behavior, failures, and the next work needed.
+The customer brings a modeling need: required outputs, operating conditions, the engineering decision and the limitation of its current approach. Carbon checks feasibility and reference access, then scopes **Sponsored Discovery** and/or **Model Development** around that problem.
 
-| Audit finding | Potential next engagement |
+The intended deliverable combines the agreed candidate model or method, reproducibility material and independent evaluation findings. Carbon charges for the scoped research and development work under agreed acceptance terms, including the possibility that no suitable candidate is found. A standalone Evidence Audit remains a complementary offer for an existing model.
+
+| Program outcome or customer need | Potential next engagement |
 |---|---|
-| The model fails in important conditions | Remediation or Sponsored Discovery |
-| The model shows promise within a narrower range | Qualification for that defined use |
-| The customer changes the model or operating conditions | Re-evaluation and lifecycle support |
-| Multiple teams repeat the same evaluation workflow | Enterprise evidence software or API integration |
+| A useful approach needs further development | Model design and development against additional requirements |
+| A candidate supports further investigation | Qualification for a defined engineering use |
+| A customer changes the model or operating conditions | Further development and lifecycle support |
+| Multiple teams repeat modeling and evaluation workflows | Reusable software or API integration |
 
-This sequence lets Carbon learn the customer's workflow before building a broad platform. Repeat purchases and lower delivery cost would provide evidence that the approach can scale.
+The initial offer tests whether customers value the resulting modeling capability and findings. Repeat purchases and lower custom effort would provide evidence that delivery can scale.
 
 ## How Carbon can compete
 
@@ -31,8 +35,8 @@ Carbon's position is compatible with customers continuing to use their existing 
 
 | Adjacent category | Carbon's intended role |
 |---|---|
-| CAE and high-fidelity simulation | Integrate trusted reference calculations into model evaluation |
-| Physics AI and engineering-AI model builders | Evaluate candidates and organize research on unmet requirements |
+| CAE and high-fidelity simulation | Use trusted reference calculations to develop and evaluate fast models for repeated engineering decisions |
+| Physics AI and engineering-AI model builders | Collaborate or compete on custom model development, with independent comparison against the same requirements |
 | Engineering validation and data platforms | Add challenge-specific reconstruction, physical checks, and evidence records |
 | Compute and orchestration providers | Use their infrastructure for research and evaluation |
 
@@ -50,7 +54,7 @@ The company plans to treat the subnet as a research team and pay for useful outp
 
 ## Revenue and expansion
 
-The initial revenue design combines scoped evaluation services, reference integration, and finite research programs. As customers repeat those workflows, Carbon plans to add qualification, lifecycle support, subscriptions, usage fees, and API or OEM distribution.
+The initial revenue design combines scoped model discovery, design and development, reference integration and independent evaluation. As customers repeat those workflows, Carbon plans to add qualification, lifecycle support, subscriptions, usage fees, and API or OEM distribution.
 
 The company must demonstrate that repeat work requires fewer custom engineering hours. Reusable adapters and evidence workflows matter economically only when they reduce cost or improve delivery for a subsequent customer.
 
@@ -60,7 +64,7 @@ Longer-term research products could use permitted experiment records to recommen
 
 The initial direct-sales focus remains aerospace, space and defense, followed by energy, turbomachinery and industrial physics. The partner track includes CAE vendors, engineering-AI platforms, and simulation infrastructure providers.
 
-The engineering launch portfolio is battery fast charging and ageing, AI-chip cold plates, electric motors, and silicon photonics. Those are selected research directions at different stages of readiness. They are not evidence of four commercial products or customers in those industries.
+Challenge research provides bounded demonstrations of the workflow. Use current technical records for the active portfolio and exact readiness; a research direction is not a commercial product or a customer in that industry.
 
 Carbon's market model uses target enterprises, relevant model programs, and addressable evaluation and research spend. A simulation-market total would provide category context, not Carbon's obtainable revenue. A credible near-term model needs named opportunities, procurement evidence, delivery costs, and repeat demand.
 
@@ -74,9 +78,9 @@ Over time, those assets could shorten setup, support repeat evaluation, and give
 
 | Milestone | Evidence an investor can inspect | Main risk it tests |
 |---|---|---|
-| Reliable battery development journey | Retained research, reconstruction, evaluation, recovery, and resource records | A working interface may still fail to support useful research |
+| Reliable discovery-to-model journey | Retained research, reconstruction, evaluation, recovery, and resource records for the selected challenge | A working interface may still fail to support useful research |
 | Qualified challenge and deployment | Reference, scientific, security, and operating evidence for the exact configuration | Correct software may still apply an inadequate exam |
-| First paid Evidence Audit | An agreed scope, delivered evidence, and payment | Engineering interest may not convert to budget |
+| First paid discovery or model-development program | An agreed scope, delivered work and findings, and payment | Engineering interest may not convert to budget |
 | Repeat delivery and expansion | Further engagements with measured effort and margin | Carbon may remain dependent on bespoke services |
 | Useful network research | Comparison of cost, quality, and time against credible alternatives | The subnet may add more overhead than value |
 | Recurring evidence software | Renewals and repeated workflow usage | Customers may need occasional projects rather than a platform |

@@ -4,9 +4,9 @@
 
 **Want to mine?** Start with [Mining on Carbon](docs/MINING.md).
 
-**Discovery and evidence infrastructure for Physics AI.**
+**Custom model discovery and design for Physics AI.**
 
-Carbon is building a research network that helps engineers find better fast physics models and establish where they can rely on them. Researchers and AI agents compete to develop model-building methods. Carbon's evaluators rebuild and test candidates against reference physics, with the model producer kept outside the official grading process.
+Carbon focuses on discovering and designing fast physics models for specific engineering problems. Engineering teams bring the predictions they need, the conditions that matter and the decisions a model must support. Researchers and AI agents explore model-building methods; Carbon's evaluators independently rebuild and test candidates against reference physics, with the model producer kept outside the official grading process.
 
 Fast physics models approximate expensive simulations. An engineer might use one to compare battery charging protocols, explore a cooling design, or optimize an electric motor. Speed makes more design iterations possible. The engineer still needs evidence that the model predicts the right quantities under the conditions that matter.
 
@@ -56,13 +56,15 @@ See the [MCP guide](carbon/miner_mcp/README.md), [Control Center programme](docs
 
 ## Commercial model
 
-The first planned customer engagement is a **Carbon Evidence Audit**. An engineering team brings an existing fast model and a proposed use. Carbon scopes an independent evaluation to identify supported behavior, failure regions, and the evidence still needed before wider use.
+Carbon's commercial focus is **custom model discovery and design**. An engineering team brings a modeling problem, such as predicting cooling performance across a design range or comparing motor geometries. Carbon scopes the required outputs, constraints, reference access and success criteria, then proposes a bounded discovery and development program.
 
-**Sponsored Discovery** extends that work to finding a better model-building method. A customer brings a defined problem; Carbon organizes research and independent evaluation. Customers pay for the agreed research and evidence program, with outcomes that can include a useful candidate, a narrower operating range, or a finding that the current approach is inadequate.
+**Sponsored Discovery** searches for useful model-building approaches through competitive research. **Model Development** designs and develops a reproducible candidate around the agreed problem. Independent reconstruction and evaluation are part of that work: they establish what each candidate achieves, where it fails and whether it improves on the relevant baseline.
 
-The expansion path is qualification, model lifecycle support, and recurring evidence software for teams managing multiple models. Reusable solver integrations, evaluation workflows, and permitted experiment records could reduce the cost of each subsequent engagement. Paid demand, repeatability, and delivery economics still need commercial evidence.
+The intended delivery is the agreed candidate model or construction method, reproducibility material and evaluation findings, subject to feasibility and agreed rights. A program can also conclude that no suitable candidate was found. Contracts define those outcomes before work starts; Carbon does not guarantee a scientific improvement.
 
-Carbon can work with model developers, CAE vendors, and engineering software platforms. Customers keep their existing simulation and design tools; Carbon aims to supply the research and evidence they need to use fast models within those workflows.
+Qualification for a specific use, workflow integration and lifecycle support are potential follow-on services. Repeated customer needs can justify software, APIs and reusable infrastructure. **Evidence Audit** remains a complementary option for an existing model, not the default entry point or a prerequisite for discovery.
+
+Customers can keep their existing simulation and design tools. This is the [20 November commercial direction](.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md), not a claim of universal model support, paid demand or customer-qualified delivery. The development summary above is a dated September snapshot.
 
 [Products and revenue](Business/Product_and_Revenue_Architecture.md) · [Go-to-market](Business/Go_To_Market.md) · [Business plan](Business/Business_Plan.md)
 

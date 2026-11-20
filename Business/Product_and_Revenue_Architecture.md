@@ -1,27 +1,31 @@
 # Products and revenue
 
-Carbon's commercial plan starts with evidence for a model a customer already owns, then expands into discovery, qualification, and ongoing model support. Customers can retain their existing solvers and engineering tools.
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
+
+Carbon's commercial focus is custom model discovery and design. Customers bring an engineering problem and the model capability they need; Carbon scopes discovery and development around that job, with independent evaluation built into the work. Customers can retain their existing solvers and engineering tools.
 
 The offerings below describe product design and the intended delivery sequence. They are not a list of production services or evidence of sales. See [Project status](../docs/publications/PROJECT_STATUS.md) for the implementation record.
 
-## Start with the customer's model
+## Start with the customer's engineering problem
 
-**Carbon Evidence Audit** is the preferred first engagement. The customer supplies a candidate model, its intended engineering use, and access to an adequate reference. Carbon scopes and runs an independent evaluation, then reports supported behavior, failure regions, limitations, and proposed follow-up work.
+Define the decision, required inputs and outputs, operating conditions, reference access and constraints before proposing a program. **Challenge Feasibility / Design** establishes whether the work is supportable and what the customer must supply.
 
-A customer without a well-defined evaluation problem starts with **Challenge Feasibility / Design**. That engagement establishes the inputs and outputs, operating conditions, reference access, rights, and evidence needed for a useful program.
+**Sponsored Discovery** searches for useful model-building approaches. **Model Development** designs and develops a reproducible candidate around the agreed requirements. These are the primary product families for custom model discovery and design; a customer may need one or both.
 
-Both engagements have finite scope. A negative finding can still satisfy the contract when Carbon delivers the agreed evidence.
+The intended deliverables are the agreed candidate or construction method, reproducibility material and independent evaluation findings. Scope must define rights, limitations and treatment of a negative or unresolved result. Qualification for a particular deployment remains a separate decision.
+
+**Evidence Audit** is a complementary option when a customer specifically needs an existing model evaluated. It is not the default first product or a prerequisite for discovery and development.
 
 ## Product families
 
-The existing P1–P11 identifiers remain the commercial planning taxonomy.
+The existing P1–P11 identifiers remain the commercial planning taxonomy, not a purchase order. P3 and P4 lead the current offer; P2 supports feasibility and scoping. Their identifiers and revenue rails are unchanged.
 
 | ID | Product | Customer need and intended deliverable | Revenue design |
 |---|---|---|---|
 | P1 | Evidence Audit | Assess an existing model for a defined use; deliver an evidence and failure report | Scoped audit, integration, and evaluation fees |
 | P2 | Challenge Feasibility / Design | Establish whether a problem supports a defensible evaluation or discovery program | Authoring and feasibility fee |
 | P3 | Sponsored Discovery | Search for a better method against agreed requirements; deliver research outcomes and evidence | Program, integration, evaluation, and reward-administration fees |
-| P4 | Model Development | Turn a promising method into a reproducible candidate artifact | Development and integration fees |
+| P4 | Model Development | Design and develop a reproducible candidate for the agreed engineering problem, with independent evaluation findings | Development and integration fees |
 | P5 | Qualified Model Program | Assess one exact model or system for a bounded engineering use | Qualification, evidence, and deployment fees |
 | P6 | Model Lifecycle | Revisit evidence after changes to a model, reference, runtime, or operating range | Recurring support, lifecycle, and requalification fees |
 | P7 | Enterprise Evidence Platform | Manage repeated evaluations across teams and model portfolios | Subscription, usage, private deployment, and support |
@@ -30,7 +34,7 @@ The existing P1–P11 identifiers remain the commercial planning taxonomy.
 | P10 | Model / Method Licensing | Obtain permitted rights to reproduced or qualified work | License or royalty, subject to Carbon's rights |
 | P11 | Physics Intelligence / Experiment Allocation | Use accumulated evidence to choose better future experiments | Future project, subscription, or API fees after prospective validation |
 
-P1 and P2 are the initial commercial focus. P3 is the first planned expansion that depends on competitive research supply. The later offerings require their own implementation, customer evidence, and qualification.
+P3 and P4 are the primary commercial focus, supported by P2 and the necessary reference integration. P1 remains complementary. P5–P11 depend on the customer need, implementation, evidence and rights required for each offering. This ordering does not establish production availability or sales.
 
 ## Sponsored Discovery
 
@@ -44,7 +48,9 @@ The contract separates Carbon's fees from any sponsor-funded participant reward 
 
 | Customer situation | Next potential engagement |
 |---|---|
-| Audit identifies important failure regions | Discovery or model development |
+| Discovery identifies a promising method | Further model design and development |
+| Customer needs another output, operating range or related model | A further scoped discovery or development program |
+| An optional audit identifies important failure regions | Discovery or model development where appropriate |
 | Candidate supports further investigation | Qualification for a defined use |
 | Customer deploys or changes a model | Lifecycle support and requalification |
 | Teams repeat evaluation across a portfolio | Enterprise software and APIs |
@@ -75,4 +81,4 @@ Each offering needs a buyer, deliverable, cost model, rights agreement, bounded 
 
 ## Research services
 
-Research Concierge / Copilot remains a candidate workflow offering under `OWNER-EVIDENCE-RESEARCH-01`. `G-PR0` freezes the pilot; `G-PR1..5` govern entitlement and rights, campaign memory, non-official execution, billing and spend, and the commercial decision. Evidence Audit remains the first entry product. Free and paid miners receive official-derived scientific content on equal release terms. Interest or a stated budget does not establish revenue or authorize spending.
+Research Concierge / Copilot remains a candidate workflow offering under `OWNER-EVIDENCE-RESEARCH-01`. `G-PR0` freezes the pilot; `G-PR1..5` govern entitlement and rights, campaign memory, non-official execution, billing and spend, and the commercial decision. Custom model discovery and design is the primary commercial focus; Evidence Audit remains complementary. Free and paid miners receive official-derived scientific content on equal release terms. Interest or a stated budget does not establish revenue or authorize spending.

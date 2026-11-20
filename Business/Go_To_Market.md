@@ -1,30 +1,34 @@
 # Go-to-market
 
-Carbon's first sales conversation starts with the customer's engineering decision: the fast model they want to use, the simulation work they want to accelerate, and the evidence they need before relying on its predictions.
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
 
-The preferred entry product is a scoped **Evidence Audit**. **Sponsored Discovery** follows when the customer needs a better method and the problem supports a defensible research program. These are target sales motions; the plan does not establish signed customers or pilots.
+Carbon's first sales conversation starts with the customer's engineering problem: the predictions they need, the design decisions those predictions support and the cost or limitations of their current approach. The offer is custom model discovery and design, with independent evaluation as part of delivery.
+
+**Sponsored Discovery** and **Model Development** lead the sales motion. Feasibility work defines a supportable program before commitment. An **Evidence Audit** is complementary when an existing-model evaluation is the actual need. These are target sales motions, not evidence of signed customers or pilots.
 
 ## Initial focus
 
 | Segment | Engineering need to investigate | Likely technical buyers |
 |---|---|---|
-| Aerospace, space, and defense | Repeated simulation, surrogate credibility, regime coverage, and model change control | Simulation directors, chief engineers, digital engineering, V&V, and R&D leaders |
+| Aerospace, space, and defense | Fast models for repeated simulation and design exploration across defined regimes | Simulation directors, chief engineers, digital engineering, and R&D leaders |
 | Energy, turbomachinery, and industrial physics | Thermal, flow, and structural modeling; optimization and revalidation | CAE leads, R&D teams, control/digital-twin teams, and engineering platform owners |
-| CAE and engineering-AI partners | Independent evidence for customer models; reference integration; embedded evaluation | Product, engineering, research, and partnership leaders |
+| CAE and engineering-AI partners | Custom modeling for unmet requirements; reference integration and independent model comparison | Product, engineering, research, and partnership leaders |
 
-Carbon's battery, cold-plate, motor, and photonics launch research creates concrete examples for these conversations. Research selection does not establish that a customer has validated the use case.
+Use relevant challenge research as a concrete example, with its exact scope and current status. A selected research problem or mock buyer brief is not validated demand or a customer engagement.
 
-## First engagement: Evidence Audit
+## First engagement: custom model discovery and design
 
-A suitable customer has an existing fast model and a decision they cannot support with current evidence. Carbon scopes the operating range, reference access, and evaluation, then delivers findings and limitations.
+A suitable prospect has a valuable modeling problem, defined outputs and conditions, a reference path and a reason to improve on existing methods. The customer may have an inadequate model or no suitable model at all.
 
-The customer keeps its model-development stack. Negative findings can help the team narrow the model's use, identify remediation, or avoid an unsupported deployment. The initial engagement should be finite enough to price, deliver, and evaluate before proposing broader work.
+Carbon establishes feasibility and proposes a finite program: search for useful methods, design and develop candidate models, then independently compare them against the agreed requirements and baseline. The deliverables, cost, capacity and treatment of a negative or unresolved outcome are agreed before execution.
 
-## Discovery and qualification
+The customer keeps its engineering workflow. A useful candidate can support further qualification or integration; a finding that the problem is unsupported can stop wasted development. Carbon does not guarantee a better model or a deployment-ready result.
 
-A Sponsored Discovery prospect has a valuable modeling problem, an adequate reference path, and a reason to search beyond its current methods. Carbon's proposed deliverable is a research and evidence program. A better candidate is a possible outcome, not a contractual certainty.
+## Follow-on work
 
-Qualification addresses a particular artifact and engineering use. Lifecycle support becomes relevant when the customer changes a model, dataset, reference, runtime, or operating range. Multiple recurring evaluations can justify enterprise software or API integration.
+Further development can address additional outputs, conditions or related engineering problems. Qualification addresses an exact artifact and use. Lifecycle support becomes relevant when the model, data, reference, runtime or operating range changes. Repeated needs can justify software or API integration.
+
+Offer a standalone Evidence Audit when evaluating an existing model is the customer's actual objective. Do not make it a mandatory first step for discovery or development.
 
 ## Opportunity qualification
 
@@ -75,6 +79,6 @@ An API or OEM engagement needs a maintained interface and qualified delivery pat
 
 ## Measures of progress
 
-Early measures are qualified interviews, repeated pain, willingness-to-pay evidence, proposal conversion, and the first paid audit. Later measures include delivery cost, repeat purchases, expansion, recurring share, renewals, and partner usage.
+Early measures are clarity of the modeling need, reference access, technical feasibility, useful discovery conversations and evidence that a buyer values the proposed program. When commercial delivery is appropriate, track proposal conversion, paid discovery/development, candidate usefulness, delivery cost and repeat demand. Later measures include expansion, renewals and partner usage. Do not substitute contact volume or hypothetical model value for customer evidence.
 
 [Products and revenue](Product_and_Revenue_Architecture.md) defines the offering sequence. [Commercial operating model](Commercial_Operating_Model.md) governs scope, rights, and acceptance.
