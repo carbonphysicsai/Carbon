@@ -1028,6 +1028,7 @@ class AutoGrader:
         opened = getattr(provider_for, "_providers", None)
         found = set()
         ended = set()
+        alive = set()
         if type(opened) is dict:
             for provider in tuple(opened.values()):
                 views = getattr(provider, "_views", None)
@@ -1039,6 +1040,10 @@ class AutoGrader:
                         found.add(task)
                         if getattr(state, "value", None) in ENDED_STATES:
                             ended.add(task)
+                        else:
+                            alive.add(task)
+                    elif state is succeeded:
+                        alive.add(task)
         lazy = getattr(provider_for, "lazy_index", None)
         if callable(lazy):
             try:
@@ -1051,15 +1056,23 @@ class AutoGrader:
                     found.add(task)
                     if state in ENDED_STATES:
                         ended.add(task)
-        self._note_ended(ended)
+                    else:
+                        alive.add(task)
+                elif state == succeeded.value:
+                    alive.add(task)
+        self._note_ended(ended, alive)
         return frozenset(found)
 
-    def _note_ended(self, tasks):
+    def _note_ended(self, tasks, alive=()):
         """Keep each newly seen ended build (`ENDED_STATES`) in `ended`, so `pending` skips it from now on. A
-        withdrawal still waiting for its marker is left to `_settle_withdrawn`. Never raises (a file not written is
-        read again next scan, as before)."""
+        withdrawal still waiting for its marker is left to `_settle_withdrawn`. Backstop (V2 23:2xZ condition): a kept
+        task the views now show in any other state (``alive``: SUCCEEDED or not yet ended) is taken out again, so no
+        path that brought a task back under the SAME id could leave it skipped for ever (every build re-run is a new
+        generation id: `LeanRecipeAdapter._request` ``INFRA_RERUN`` / ``CROWN_REBUILD``, the ledger refusing
+        ``same_task``). Never raises (a file not written is read again next scan, as before).
+        """
         directory = getattr(self, "ended", None)
-        if directory is None or not tasks:
+        if directory is None or not (tasks or alive):
             return
         known = self.__dict__.get("_ended_known")
         if known is None:
@@ -1074,6 +1087,14 @@ class AutoGrader:
                 continue
             if note_ended(directory, task):
                 known.add(task)
+        for task in known & set(alive):
+            try:
+                (Path(directory) / task).unlink()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                continue  # left as is: read again next scan
+            known.discard(task)
 
     def _hotkey_of(self, submission_id):
         """The hotkey whose open (or lazy) provider holds ``submission_id``, from the providers' own keys, never opening

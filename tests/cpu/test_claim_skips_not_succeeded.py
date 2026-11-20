@@ -137,3 +137,49 @@ def test_a_grader_without_an_ended_directory_behaves_as_before():
     assert grader._building_views() == {
         REFUSED
     }  # no `ended` attribute: nothing kept, no error
+
+
+def test_a_kept_task_seen_alive_again_is_taken_out(tmp_path):
+    """V2 23:2xZ condition: no path may leave a task skipped for ever under the SAME id. Every build re-run is a new
+    generation id (`_request` INFRA_RERUN; the ledger refuses ``same_task``, test_build_requeue); as a backstop, a kept
+    task the views show SUCCEEDED or not ended again is removed from ``ended`` and is pending again.
+    """
+    grader, _asked = _grader({FAILED: DirectTaskStateV3.FAILED_INFRA}, {})
+    grader.ended = tmp_path / "auto-grade" / "ended"
+    grader.markers = tmp_path / "auto-grade" / "markers"
+    grader.intake.adapter.contract_digest = "sha256:c"
+    grader.intake.adapter.ledger = SimpleNamespace(
+        submitted_outcomes=lambda contract: [FAILED, LAZY_DEAD]
+    )
+    grader._building_views()
+    assert grader.pending() == [LAZY_DEAD]
+    # the same id now shows built (the views of an open provider), then not ended (lazy index)
+    provider = grader.intake.adapter.provider_for._providers["5Open"]
+    provider._views[FAILED] = SimpleNamespace(state=DirectTaskStateV3.SUCCEEDED)
+    grader._building_views()
+    assert auto_grade.ended_tasks(grader.ended) == set()
+    assert grader.pending() == [FAILED, LAZY_DEAD]
+    # kept again when it ends again; a lazy owner's QUEUED entry also brings it back
+    provider._views[FAILED] = SimpleNamespace(state=DirectTaskStateV3.FAILED_INFRA)
+    grader._building_views()
+    assert grader.pending() == [LAZY_DEAD]
+    del provider._views[FAILED]
+    grader.intake.adapter.provider_for.lazy_index = lambda: {FAILED: ("QUEUED", 1.0)}
+    grader._building_views()
+    assert FAILED in grader.pending()
+
+
+def test_every_build_rerun_is_a_new_task_id():
+    """The code map behind the condition: a build re-run (the door's requeue, a stop-cancel re-run, an operator
+    rebuild, a crown rebuild) always binds a different task id; grade re-runs (auto retry, rearm, regrade, restore,
+    reclass) only hand back SUCCEEDED builds, which are never kept as ended."""
+    import inspect
+
+    from carbon.challenge_validator import lean_recipe
+
+    source = inspect.getsource(lean_recipe.LeanRecipeAdapter._request)
+    assert '"\0INFRA_RERUN\0" + str(rerun)' in source
+    assert '"\0CROWN_REBUILD\0" + rebuild' in source
+    requeue = inspect.getsource(lean_recipe.LeanRecipeAdapter._requeue_failed_build)
+    assert "requests[rerun + 1]" in requeue
+    assert "SUCCEEDED" not in auto_grade.ENDED_STATES
