@@ -124,6 +124,12 @@ FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
 #: state WITHDRAWN_BY_MINER for a submission its owner withdrew while it was still queued. Opt-in (a kit in the field pins its own
 #: closed state set): every older reply (v4..v8) says NOT_GRADED for it, which it already reads. Advertised as ``exam_feedback_v9``.
 FEEDBACK_REPLY_SCHEMA_V9 = "carbon.private-exam.ladder-feedback-reply.v9"
+#: v10 (owner P0 20 Nov 2026 "better failure labels and explanations"; V2 FAILURE_LABELS_RULING_20261120 section 4) = v9
+#: plus ``submission.failure_class``: for the caller's own submission whose build ended FAILED_INFRA, the closed public row of
+#: its failure class (`infra_diagnosis.public_row`: code, what happened, side, charged, next step, retried or owed), else
+#: None. Never a host, path, id, traceback or log text. Opt-in (a kit pins v9's closed keys); advertised as
+#: ``exam_feedback_v10``.
+FEEDBACK_REPLY_SCHEMA_V10 = "carbon.private-exam.ladder-feedback-reply.v10"
 #: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
 WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
 #: A miner withdraws its OWN queued, not-yet-building submission (owner GO 15 Nov 2026 via the Lead): signed by the same hotkey,
@@ -206,6 +212,7 @@ def feedback_reply(fields):
         "v7",
         "v8",
         "v9",
+        "v10",
     ):
         return fields["reply"]
     return None
@@ -488,6 +495,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v10": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V10,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 **(
@@ -755,12 +769,13 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9"),
-                v5=reply in ("v5", "v6", "v7", "v8", "v9"),
-                v6=reply in ("v6", "v7", "v8", "v9"),
-                v7=reply in ("v7", "v8", "v9"),
-                v8=reply in ("v8", "v9"),
-                v9=reply == "v9",
+                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9", "v10"),
+                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10"),
+                v6=reply in ("v6", "v7", "v8", "v9", "v10"),
+                v7=reply in ("v7", "v8", "v9", "v10"),
+                v8=reply in ("v8", "v9", "v10"),
+                v9=reply in ("v9", "v10"),
+                v10=reply == "v10",
             )
         if received.call.tool == WITHDRAW_TOOL:
             return self._withdraw(received.receipt.hotkey, fields)
@@ -938,6 +953,7 @@ class DirectRecipeIntake(BatteryIntake):
         v7=False,
         v8=False,
         v9=False,
+        v10=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -983,6 +999,9 @@ class DirectRecipeIntake(BatteryIntake):
                 grade_state = (
                     None  # CANDIDATE_FAILED is v3's; a v2 reply keeps its closed set
                 )
+        failure_class = None
+        if v10 and submission_id is not None and grade_state == "FAILED_INFRA":
+            failure_class = self._failure_class_row(submission_id)
         if v8 and submission_id is not None and failure is not None:
             # which pass a counted wall stop ended (the grade marker's closed name), else None
             marker = self.grade_marker(submission_id) or {}
@@ -1034,27 +1053,31 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V9
-                            if v9
+                            FEEDBACK_REPLY_SCHEMA_V10
+                            if v10
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V8
-                                if v8
+                                FEEDBACK_REPLY_SCHEMA_V9
+                                if v9
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V7
-                                    if v7
+                                    FEEDBACK_REPLY_SCHEMA_V8
+                                    if v8
                                     else (
-                                        FEEDBACK_REPLY_SCHEMA_V6
-                                        if v6
+                                        FEEDBACK_REPLY_SCHEMA_V7
+                                        if v7
                                         else (
-                                            FEEDBACK_REPLY_SCHEMA_V5
-                                            if v5
+                                            FEEDBACK_REPLY_SCHEMA_V6
+                                            if v6
                                             else (
-                                                FEEDBACK_REPLY_SCHEMA_V4
-                                                if v4
+                                                FEEDBACK_REPLY_SCHEMA_V5
+                                                if v5
                                                 else (
-                                                    FEEDBACK_REPLY_SCHEMA_V3
-                                                    if v3
-                                                    else FEEDBACK_REPLY_SCHEMA_V2
+                                                    FEEDBACK_REPLY_SCHEMA_V4
+                                                    if v4
+                                                    else (
+                                                        FEEDBACK_REPLY_SCHEMA_V3
+                                                        if v3
+                                                        else FEEDBACK_REPLY_SCHEMA_V2
+                                                    )
                                                 )
                                             )
                                         )
@@ -1069,6 +1092,7 @@ class DirectRecipeIntake(BatteryIntake):
                             **({"held_position": held_position} if v5 else {}),
                             **({"gate_failures": gate_failures} if v6 else {}),
                             **({"grade_worker": self.grade_worker()} if v8 else {}),
+                            **({"failure_class": failure_class} if v10 else {}),
                         },
                     }
                 ),
@@ -1163,6 +1187,25 @@ class DirectRecipeIntake(BatteryIntake):
             submission_id=submission_id,
         )
         return ("GRADED" if held else "NOT_GRADED"), None
+
+    def _failure_class_row(self, submission_id):
+        """The closed public row (`infra_diagnosis.public_row`) of the caller's own FAILED_INFRA build's failure class, or
+        None (a grade-side FAILED marker, no diagnosis, unreadable). Only the closed keys are ever served.
+        """
+        from carbon.development_session import infra_diagnosis
+
+        if self.grade_marker(submission_id) is not None:
+            return None  # a grade's own Carbon failure: its own table (case-procs), not a build's
+        reader = getattr(self.adapter, "failure_class", None)
+        try:
+            failure_class = None if reader is None else reader(submission_id)
+        # unreadable: no row, the state alone as before
+        except Exception:  # noqa: BLE001
+            return None
+        row = infra_diagnosis.public_row(failure_class)
+        if row is None or tuple(row) != infra_diagnosis.PUBLIC_ROW_KEYS:
+            return None
+        return row
 
     def grade_worker(self):
         """The PUBLIC facts of the machine that grades (exam_feedback v8): ``cpu_model`` (this host's own /proc/cpuinfo model

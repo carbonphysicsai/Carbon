@@ -131,7 +131,9 @@ def _class_refusal(failure_class, same):
     allowed = infra_diagnosis.RETRIES.get(failure_class, 1)
     if allowed is None or same < allowed:
         return None
-    return "recipe_side" if allowed == 0 else "class_cap_spent"
+    # a recipe-side class is never re-run; an unclassified one, re-run once, goes to the owed path with an alert for a
+    # new detector (V2 FAILURE_LABELS_RULING_20261120 section 1)
+    return "recipe_side" if allowed == 0 else "unclassified_owed"
 
 
 def _build_retry_counts(directory, task, code):
@@ -1000,17 +1002,6 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     )
                 )
             }
-            if state in (DirectTaskStateV3.FAILED_INFRA, DirectTaskStateV3.UNRESOLVED):
-                # owner P0 (20 Nov 2026): the failure's closed class and its one fixed plain-English line (never the
-                # private diagnosis itself); absent when the task has no diagnosis
-                failure_class = _failure_class(provider, task.task_id)
-                if failure_class is not None:
-                    from carbon.development_session import infra_diagnosis
-
-                    outcome["failure"]["class"] = failure_class
-                    outcome["failure"]["explanation"] = infra_diagnosis.EXPLANATIONS[
-                        failure_class
-                    ]
             if state is DirectTaskStateV3.FAILED_INFRA:
                 advisory = provider.public_result(task)
                 if advisory is not None:
@@ -1024,6 +1015,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
                         }
                     ]
         return outcome
+
+    def failure_class(self, submission_id):
+        """The closed failure class (`infra_diagnosis.classify`) of ``submission_id``'s FAILED_INFRA / UNRESOLVED task
+        from its retained diagnosis, or None (no diagnosis, another state, unreadable).
+        """
+        from carbon.research import ResearchTaskId
+
+        owner = self.owner(submission_id)
+        if owner is None:
+            return None
+        return _failure_class(self._provider(owner), ResearchTaskId(submission_id))
 
     @contextlib.contextmanager
     def deriving(self, task_value, host_owner):

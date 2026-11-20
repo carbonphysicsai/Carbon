@@ -137,7 +137,7 @@ UNAVAILABLE = "reconstruction.worker.infrastructure.unavailable"
                 "exit=1\nstderr:\nTraceback (most recent call last):\nValueError: bad shape",
                 "docker_runtime.py:441:stream_to_file",
             ),
-            "recipe_program_exited",
+            d.UNCLASSIFIED,
         ),
         (
             _record(
@@ -154,15 +154,26 @@ def test_every_live_shape_maps_to_one_closed_class(record, expected):
     assert d.classify(record) in d.CLASSES
 
 
-def test_every_class_has_one_fixed_line_and_a_retry_rule():
-    assert set(d.EXPLANATIONS) == d.CLASSES == set(d.RETRIES)
-    assert not d.CARBON_CLASSES & d.RECIPE_CLASSES
+def test_every_class_has_one_fixed_carbon_side_row_and_a_retry_rule():
+    assert set(d.EXPLANATIONS) == set(d.FAILURE_TABLE) == d.CLASSES == set(d.RETRIES)
+    assert (
+        d.RECIPE_CLASSES == frozenset()
+    )  # recipe-side needs a structured detector (V2 FAILURE_LABELS ruling)
     for name in d.CLASSES:
-        line = d.EXPLANATIONS[name]
-        assert type(line) is str and 20 < len(line) < 300 and "\n" not in line
-    assert all(d.RETRIES[name] == 0 for name in d.RECIPE_CLASSES)
+        row = d.public_row(name)
+        assert tuple(row) == d.PUBLIC_ROW_KEYS
+        assert (
+            row["code"] == name and row["side"] == "carbon" and row["charged"] is False
+        )
+        for key in ("what_happened", "next_step", "retried_or_owed"):
+            assert (
+                type(row[key]) is str
+                and 10 < len(row[key]) < 300
+                and chr(10) not in row[key]
+            )
     assert d.RETRIES[d.UNCLASSIFIED] == 1
     assert all(d.RETRIES[name] is None for name in d.CARBON_CLASSES)
+    assert d.public_row("not_a_class") is None and d.public_row(None) is None
 
 
 def test_a_class_never_carries_the_private_tail():
@@ -177,8 +188,7 @@ def test_a_class_never_carries_the_private_tail():
         (None, 9, None),  # no diagnosis: D16's caps as before
         ("carbon_build_wall_busy_host", 2, None),  # Carbon's: D16's caps decide
         (d.UNCLASSIFIED, 0, None),
-        (d.UNCLASSIFIED, 1, "class_cap_spent"),  # once only
-        ("recipe_program_exited", 0, "recipe_side"),  # never re-run
+        (d.UNCLASSIFIED, 1, "unclassified_owed"),  # once only, then owed
     ],
 )
 def test_the_retry_rule_by_class(failure_class, same, expected):
@@ -204,3 +214,29 @@ def test_the_class_is_read_from_the_retained_diagnosis_and_unreadable_is_none():
         is None
     )
     assert lean_recipe._failure_class(SimpleNamespace(), "t") is None
+
+
+def test_feedback_v10_is_opt_in_and_serves_only_the_closed_row():
+    from carbon.challenge_validator import direct_intake
+
+    assert direct_intake.feedback_reply({"reply": "v10", "submission_id": "t"}) == "v10"
+    assert direct_intake.feedback_reply({"reply": "v11", "submission_id": "t"}) is None
+    door = SimpleNamespace(
+        grade_marker=lambda sid: None,
+        adapter=SimpleNamespace(
+            failure_class=lambda sid: "carbon_build_wall_busy_host"
+        ),
+    )
+    row = direct_intake.DirectRecipeIntake._failure_class_row(door, "t")
+    assert tuple(row) == d.PUBLIC_ROW_KEYS and row["side"] == "carbon"
+    door.grade_marker = lambda sid: {
+        "state": "FAILED"
+    }  # a grade's own failure: not a build row
+    assert direct_intake.DirectRecipeIntake._failure_class_row(door, "t") is None
+    door.grade_marker = lambda sid: None
+
+    def unreadable(sid):
+        raise ValueError("custody differs")
+
+    door.adapter = SimpleNamespace(failure_class=unreadable)
+    assert direct_intake.DirectRecipeIntake._failure_class_row(door, "t") is None

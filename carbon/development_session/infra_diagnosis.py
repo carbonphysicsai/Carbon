@@ -148,14 +148,17 @@ def stage_of(child_states, provisioning=False) -> str:
     return "orchestration"
 
 
-# --- failure classes (owner P0, 20 Nov 2026: "better failure labels and explanations") ---------------------------------
+# --- failure classes (owner P0, 20 Nov 2026: "better failure labels and explanations"; V2 FAILURE_LABELS_RULING_20261120) ---
 # A FAILED_INFRA task's closed CLASS, read from its retained diagnosis (stage, reason, where raised, sanitized tail), so
 # every record classifies, old ones included, and nothing stored changes. Live 116, 20 Nov: 270 of 343 FAILED_INFRA were
 # one catch-all ("build / reconstruction.worker.runtime.failed"): 255 build walls reached on a box shared by other
-# builds, 14 lost box links, 1 killed command; none was the recipe's. A wall reached on a QUIET box is the candidate's
-# and never FAILED_INFRA (`research_carrier._candidate_resource_stop`), so a FAILED_INFRA wall is Carbon's.
+# builds, 14 lost box links, 1 killed command; none was the recipe's. Every class here is CARBON-SIDE (the ruling's
+# section 1): a recipe-side failure is never FAILED_INFRA. It ends through the existing recipe-side paths (the candidate's
+# own program failure, FAILED_MINER, and the quiet-box wall stop WORKER_WALL_LIMIT_REACHED), charged and counted as those
+# are today, and a NEW recipe-side code needs a closed detector on structured fields with positive and look-alike Runner
+# fixtures (never text matching alone). Unknown = Carbon's: one automatic re-run, then the owed path with an alert.
 
-#: Carbon's side: re-run automatically within owner D16's caps (`lean_recipe.BUILD_CODE_RETRIES`), owed as V2 rules.
+#: Carbon's side, re-run automatically within owner D16's caps (`lean_recipe.BUILD_CODE_RETRIES`), owed after the cap.
 CARBON_CLASSES = frozenset(
     {
         "carbon_build_wall_busy_host",
@@ -171,62 +174,95 @@ CARBON_CLASSES = frozenset(
         "carbon_cleanup_uncertain",
     }
 )
-#: The recipe's own side: never re-run automatically (the owed list is told, for review).
-RECIPE_CLASSES = frozenset({"recipe_program_exited"})
-#: Anything else: Carbon's (invariant 7) but re-run ONCE only, never the full cap.
+#: Recipe-side classes of a FAILED_INFRA record: none (see above; a detector head adds one with its fixtures).
+RECIPE_CLASSES = frozenset()
+#: Anything else: Carbon's (invariant 7), re-run ONCE, then owed with an alert for a new detector.
 UNCLASSIFIED = "carbon_unclassified"
 CLASSES = CARBON_CLASSES | RECIPE_CLASSES | {UNCLASSIFIED}
 #: Automatic re-runs a class allows within one task's chain: None = owner D16's per-code cap as before.
 RETRIES = {**{name: None for name in CARBON_CLASSES}, UNCLASSIFIED: 1}
-RETRIES.update({name: 0 for name in RECIPE_CLASSES})
-#: The one plain-English line a miner reads for each class (fixed text: never the diagnosis tail).
-EXPLANATIONS = {
+_OURS_NEXT = "Nothing to do: Carbon re-runs it. It is not charged and uses none of your allowance."
+_AUTO = "re-run automatically up to Carbon's retry limit, then owed a re-run"
+#: The miner's table (the ruling's section 4), one row per class: what happened (one sentence, a public cause class:
+#: never a host, path, id or log text), whose side, charged or not, what to do next, retried or owed.
+FAILURE_TABLE = {
     "carbon_build_wall_busy_host": (
-        "Your build reached its time limit while Carbon's build machine was busy with other builds, so it counts as "
-        "Carbon's failure, not yours. Carbon re-runs it automatically, up to its retry limit."
+        "Your build reached its time limit because Carbon's build machine was busy with other builds.",
+        _AUTO,
     ),
     "carbon_inference_wall_busy_host": (
-        "Your model's inference reached its time limit while Carbon's machine was busy, so it counts as Carbon's "
-        "failure, not yours. Carbon re-runs it automatically, up to its retry limit."
+        "Your model's inference reached its time limit because Carbon's machine was busy.",
+        _AUTO,
     ),
     "carbon_box_link_lost": (
-        "Carbon lost its connection to the build machine during your build. Carbon re-runs it automatically, up to its retry limit."
+        "Carbon lost its connection to the build machine during your build.",
+        _AUTO,
     ),
     "carbon_worker_killed": (
-        "Carbon stopped the worker running your build (a restart or maintenance). Carbon re-runs it automatically, up to its retry limit."
+        "Carbon stopped the worker running your build (a restart or maintenance).",
+        _AUTO,
     ),
     "carbon_docker_command_timeout": (
-        "A Carbon container command did not answer in time during your build. Carbon re-runs it automatically, up to its retry limit."
+        "A Carbon container command did not answer in time during your build.",
+        _AUTO,
     ),
     "carbon_box_unavailable": (
-        "No Carbon build machine was available to run your build. Carbon re-runs it automatically, up to its retry limit."
+        "No Carbon build machine was available to run your build.",
+        _AUTO,
     ),
     "carbon_dependency_unavailable": (
-        "A Carbon image or file your build needs was not available. Carbon re-runs it automatically, up to its retry limit."
+        "A Carbon image or file your build needs was not available.",
+        _AUTO,
     ),
     "carbon_construction_deadline": (
-        "Your build and inference ran out of their combined time on a busy Carbon machine. Carbon re-runs it "
-        "automatically, up to its retry limit."
+        "Your build and inference ran out of their combined time on a busy Carbon machine.",
+        _AUTO,
     ),
     "carbon_restart_lost": (
-        "Carbon restarted while your build was running and could not recover it. Carbon re-runs it automatically, up to its retry limit."
+        "Carbon restarted while your build ran and could not recover it.",
+        _AUTO,
     ),
     "carbon_state_conflict": (
-        "Carbon's own records for this build did not agree, so it was stopped on Carbon's side. Carbon re-runs it "
-        "automatically, up to its retry limit."
+        "Carbon's own records for your build did not agree, so Carbon stopped it.",
+        _AUTO,
     ),
     "carbon_cleanup_uncertain": (
-        "Carbon could not confirm the cleanup after your build. Carbon re-runs it automatically, up to its retry limit."
-    ),
-    "recipe_program_exited": (
-        "Your build program stopped with an error before it finished. Check your recipe and resubmit it; Carbon does "
-        "not re-run this automatically."
+        "Carbon could not confirm the cleanup after your build.",
+        _AUTO,
     ),
     UNCLASSIFIED: (
-        "Your build failed on Carbon's side for a reason Carbon has not classified yet. Carbon re-runs it once "
-        "automatically."
+        "Your build failed on Carbon's side for a reason Carbon has not classified yet.",
+        "re-run automatically once, then owed a re-run",
     ),
 }
+#: The one plain-English line per class.
+EXPLANATIONS = {name: row[0] for name, row in FAILURE_TABLE.items()}
+#: The closed keys of a public failure row (the ruling's section 4 columns): nothing else is ever served.
+PUBLIC_ROW_KEYS = (
+    "code",
+    "what_happened",
+    "side",
+    "charged",
+    "next_step",
+    "retried_or_owed",
+)
+
+
+def public_row(failure_class):
+    """The closed public row of ``failure_class`` (`PUBLIC_ROW_KEYS`), or None for a name not in `CLASSES`."""
+    if failure_class not in FAILURE_TABLE:
+        return None
+    what, retried = FAILURE_TABLE[failure_class]
+    return {
+        "code": failure_class,
+        "what_happened": what,
+        "side": "carbon",
+        "charged": False,
+        "next_step": _OURS_NEXT,
+        "retried_or_owed": retried,
+    }
+
+
 _LINK_LOST = (
     "dial-stdio",
     "Broken pipe",
@@ -244,13 +280,13 @@ _EXIT = re.compile(r"(?:^|\n)exit=([0-9]{1,3})\n")
 
 def classify(record) -> str:
     """The closed class (`CLASSES`) of a retained diagnosis record, `UNCLASSIFIED` for anything not recognised (or not a
-    record). Deterministic from the record alone."""
+    record). Deterministic from the record alone. Every class is Carbon's: this only names WHICH Carbon failure.
+    """
     if type(record) is not dict:
         return UNCLASSIFIED
     stage = record.get("failed_stage")
     reason = record.get("reason_code")
     tail = record.get("tail") if type(record.get("tail")) is str else ""
-    place = record.get("raised_at") if type(record.get("raised_at")) is str else ""
     if any(marker in tail for marker in _LINK_LOST):
         return "carbon_box_link_lost"
     if "stream command timed out" in tail:
@@ -265,18 +301,8 @@ def classify(record) -> str:
     if "construction_total_deadline_reached" in tail:
         return "carbon_construction_deadline"
     exited = _EXIT.search(tail)
-    if exited is not None:
-        code = int(exited.group(1))
-        if code in (137, 143):
-            return "carbon_worker_killed"
-        if (
-            stage == "build"
-            and 1 <= code <= 125
-            and place.endswith(":stream_to_file")
-            and "ssh" not in tail
-        ):
-            # the build PROGRAM's own non-zero exit, the box and its link up
-            return "recipe_program_exited"
+    if exited is not None and int(exited.group(1)) in (137, 143):
+        return "carbon_worker_killed"
     if stage == "dependency_check" or reason == "dependency_unavailable":
         return "carbon_dependency_unavailable"
     if stage == "restart_reconcile":
