@@ -1264,12 +1264,14 @@ class AutoGrader:
                     pass_name=getattr(failure, "carbon_pass", None),
                 )
                 return submission_id, "CANDIDATE_FAILED"
+            from . import auto_retry
+
             self._fail(
                 submission_id,
                 (
                     REPLAYED_NOT_RERUN
                     if getattr(failure, "replayed", False) is True
-                    else type(failure).__name__
+                    else auto_retry.failure_code(failure)
                 ),
             )
             return submission_id, "FAILED"

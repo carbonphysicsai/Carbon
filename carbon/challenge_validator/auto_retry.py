@@ -58,6 +58,17 @@ TASK_RETRIES = 5
 #: A smaller bound for a code whose repeat is not plainly Carbon's: a timed answer beyond the speed-match tolerance
 #: keeps its one retry (Validator-2B ruling, 15 Nov; the speed gate stays honest), a second stays FAILED.
 CAUSE_RETRIES = {"speed_outputs_disagree": 1}
+#: A graded inference whose worker program refused its own output (`bundle_construction_worker`'s check: shape, dtype,
+#: kind or a non-finite value; the carrier's marker OUTPUT_CONTRACT_DIFFERS). Deterministic: the same state and query
+#: give byte-identical failures (live-ops 20 Nov 20:27Z: 3 Motor 1.8 tasks, 4 attempts each, about 96 lane-min). Its
+#: side is not proven yet (V2 rules it from the output_finite_counter counts), so under owner G-LEAD-10 it is UNKNOWN:
+#: ONE automatic retry, then the owed list (Lead 20 Nov: "Unknown means one retry, not three"). Nothing here charges or
+#: types it the candidate's.
+OUTPUT_CONTRACT_DIFFERS = "output_contract_differs"
+CAUSE_RETRIES[OUTPUT_CONTRACT_DIFFERS] = 1
+#: The worker program's own closed raise (`bundle_construction_worker`, its inference program text), matched in the
+#: failure's private diagnostic only to NAME the code: a candidate that printed it could only lower its own free retries.
+_OUTPUT_CONTRACT_RAISE = b"bundle inference output contract differs"
 LOG_NAME = "auto-retry.jsonl"
 ALERT_NAME = "auto-retry-alerts.jsonl"
 
@@ -95,6 +106,22 @@ _PER_TASK_CODES = frozenset(
 _VERSION_WIDE_CLASSES = frozenset(
     {"PoolConstantsNotRegistered", "ExamRefused", "MenuRefused", "ExamCapRefused"}
 )
+
+
+def failure_code(failure) -> str:
+    """The marker code of a graded failure that is not otherwise typed: `OUTPUT_CONTRACT_DIFFERS` for a worker failure
+    whose program refused its own output, else the failure's class name (today's code, e.g. ``WorkerFailure``).
+    """
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    diagnostic = getattr(failure, "private_diagnostic", None)
+    if (
+        isinstance(failure, WorkerFailure)
+        and type(diagnostic) is bytes
+        and _OUTPUT_CONTRACT_RAISE in diagnostic
+    ):
+        return OUTPUT_CONTRACT_DIFFERS
+    return type(failure).__name__
 
 
 def retryable(code) -> bool:

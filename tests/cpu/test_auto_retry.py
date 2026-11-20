@@ -480,3 +480,90 @@ def test_a_graded_program_change_is_retried_like_any_transient_carbon_code():
     assert auto_retry.retryable("graded_program_changed") is True
     assert auto_retry.retryable("vmap64_grade_needs_sealed_pack") is False
     assert "graded_program_changed" not in auto_retry.OWN_NEXT_STEPS
+
+
+def _contract_failure(
+    diagnostic=b"Traceback (most recent call last):\nValueError: bundle inference output contract "
+    b"differs\n",
+):
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    return WorkerFailure(WorkerCode.POLICY, private_diagnostic=diagnostic)
+
+
+def test_the_output_contract_raise_is_named_and_gets_one_retry_not_three(tmp_path):
+    """live-ops 20 Nov 20:27Z: a graded inference whose worker program refused its own output failed byte-identically
+    4 times per task (3 automatic retries as ``WorkerFailure``). Its side is unproven (V2 rules it from the counter's
+    counts), so owner G-LEAD-10's UNKNOWN: ONE retry, then the owed list. Every other worker failure keeps its code.
+    """
+    import inspect
+
+    from carbon.development_session import bundle_construction_worker, research_carrier
+
+    assert (
+        auto_retry.failure_code(_contract_failure())
+        == auto_retry.OUTPUT_CONTRACT_DIFFERS
+    )
+    # the matched bytes are the worker program's own closed raise and the carrier's OUTPUT_CONTRACT_DIFFERS marker
+    raised = 'raise ValueError("' + auto_retry._OUTPUT_CONTRACT_RAISE.decode() + '")'
+    assert raised in inspect.getsource(bundle_construction_worker)
+    assert (
+        research_carrier._PRACTICE_FAILURE_MARKERS[auto_retry._OUTPUT_CONTRACT_RAISE]
+        == "OUTPUT_CONTRACT_DIFFERS"
+    )
+    # look-alikes keep today's code: another worker failure, the same words outside a worker failure, an empty one
+    assert (
+        auto_retry.failure_code(
+            _contract_failure(b"XlaRuntimeError: RESOURCE_EXHAUSTED\n")
+        )
+        == "WorkerFailure"
+    )
+    assert auto_retry.failure_code(_contract_failure(b"")) == "WorkerFailure"
+    assert (
+        auto_retry.failure_code(ValueError("bundle inference output contract differs"))
+        == "ValueError"
+    )
+    assert auto_retry.failure_code(OSError("x")) == "OSError"
+    # one retry for this cause, then cap spent (owed); other causes keep PER_CAUSE_RETRIES
+    root = tmp_path
+    assert auto_retry.retryable(auto_retry.OUTPUT_CONTRACT_DIFFERS)
+    assert auto_retry.schedule(root, A, auto_retry.OUTPUT_CONTRACT_DIFFERS)
+    _close(root, A, 1)
+    assert not auto_retry.schedule(root, A, auto_retry.OUTPUT_CONTRACT_DIFFERS)
+    assert _log(root, auto_retry.ALERT_NAME)[-1]["event"] == "auto_retry_cap_spent"
+    assert (
+        auto_retry.CAUSE_RETRIES.get("WorkerFailure", auto_retry.PER_CAUSE_RETRIES) == 3
+    )
+
+
+def test_the_real_grader_gives_an_output_contract_failure_one_retry_then_owes_it(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import auto_grade
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause="x")
+    (root / "auto-grade" / "markers" / (A + ".json")).unlink()
+    attempts = []
+
+    def retain(task):
+        attempts.append(task)
+        raise _contract_failure()
+
+    monkeypatch.setattr(auto_retry, "RETRY_SECONDS", 0)
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
+    assert grader.run_once() == (A, "FAILED")
+    marker = grader.marker(A)
+    assert marker["code"] == auto_retry.OUTPUT_CONTRACT_DIFFERS
+    assert marker["next_step"] == "retry_scheduled"
+    assert grader.run_once() == (A, "FAILED")  # its one retry, failed the same way
+    assert grader.marker(A)["next_step"] == "slot_returned"
+    assert grader.run_once() is None  # owed: no third grade
+    assert attempts == [A, A]
+    assert _rows(ledger, A) == [
+        ("RELEASED", "FAILED_INFRA")
+    ]  # uncharged, never typed the candidate's here
+    assert (
+        _log(root, auto_retry.ALERT_NAME)[-1]["code"]
+        == auto_retry.OUTPUT_CONTRACT_DIFFERS
+    )
