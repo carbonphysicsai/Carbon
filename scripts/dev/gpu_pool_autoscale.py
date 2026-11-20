@@ -59,6 +59,7 @@ import fcntl
 import hashlib
 import json
 import os
+import random
 import re
 import shlex
 import subprocess
@@ -574,6 +575,7 @@ class LiumCli:
         run=subprocess.run,
         opener=None,
         operator_check=None,
+        rng=None,
     ):
         if not name_prefix or not _NAME.fullmatch(name_prefix.rstrip("-") or "x"):
             raise ValueError("name_prefix")
@@ -591,8 +593,12 @@ class LiumCli:
         #: why the last ``offer`` returned None ("no_node" / "operator" / "operator_check_failed" / "low_balance"),
         #: for the tick's log line
         self.refused = None
-        #: the node the last passing ``offer`` chose, which ``launch`` rents (once)
+        #: ``offer(pick="random")``'s chooser (``.choice``); the OS's randomness unless a test injects one
+        self._rng = rng or random.SystemRandom()
+        #: the node the last passing ``offer`` chose, which ``launch`` rents (once), and that node's SN51 operator
+        #: hotkey (the spot re-build control's ``exclude_hotkeys``, owner O3)
         self.node_id = None
+        self.node_hotkey = None
 
     def _call(self, *args, timeout=300):
         env = {
@@ -671,13 +677,20 @@ class LiumCli:
         burn += extra_usd_h
         return float("inf") if burn <= 0 else balance / burn
 
-    def offer(self, instance_type=None, regions=()):
-        """``(price_usd_h, "lium")`` of the cheapest node with a free GPU of ``gpu``, at least ``min_cpus`` listed
-        threads, a ``miner_hotkey`` and no ``frequent_rent_failures``, whose operator ``operator_check`` passes; or
-        None (``refused`` says why). ``node_id`` is the chosen node. ``instance_type``/``regions`` are `Lambda`'s and
-        unused here.
+    def offer(
+        self, instance_type=None, regions=(), *, exclude_hotkeys=(), pick="cheapest"
+    ):
+        """``(price_usd_h, "lium")`` of a node with a free GPU of ``gpu``, at least ``min_cpus`` listed threads, a
+        ``miner_hotkey`` not in ``exclude_hotkeys`` and no ``frequent_rent_failures``, whose operator
+        ``operator_check`` passes; or None (``refused`` says why). ``pick``: the cheapest passing node, or ``random``
+        (uniform among the passing nodes: the spot re-build control's second node from a different operator, owner
+        O3). ``node_id``/``node_hotkey`` are the chosen node and its operator. ``instance_type``/``regions`` are
+        `Lambda`'s and unused here.
         """
-        self.refused, self.node_id = None, None
+        if pick not in ("cheapest", "random"):
+            raise ValueError("offer: pick is 'cheapest' or 'random'")
+        excluded = set(exclude_hotkeys)
+        self.refused, self.node_id, self.node_hotkey = None, None, None
         rows = self._call(
             "ls",
             "--format",
@@ -706,7 +719,9 @@ class LiumCli:
         candidates = sorted(
             (price, node, operators[node])
             for price, node in listed
-            if isinstance(operators.get(node), str) and _SS58.fullmatch(operators[node])
+            if isinstance(operators.get(node), str)
+            and _SS58.fullmatch(operators[node])
+            and operators[node] not in excluded
         )
         if not candidates:
             self.refused = "no_node"
@@ -722,18 +737,20 @@ class LiumCli:
             self.refused = "operator_check_failed"
             return None
         passing = [
-            (price, node)
+            (price, node, hotkey)
             for price, node, hotkey in candidates
             if hotkey in hotkeys and verdicts.get(hotkey) is False
         ]
         if not passing:
             self.refused = "operator"
             return None
-        price, node = passing[0]
+        price, node, hotkey = (
+            self._rng.choice(passing) if pick == "random" else passing[0]
+        )
         if self.runway_h(price) < self.min_runway_h:
             self.refused = "low_balance"
             return None
-        self.node_id = node
+        self.node_id, self.node_hotkey = node, hotkey
         return (price, "lium")
 
     def launch(self, *, region=None, instance_type=None, ssh_key_name=None, name):

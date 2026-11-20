@@ -1316,6 +1316,59 @@ def test_lium_reads_executors_with_the_key_in_a_header_never_the_url(tmp_path):
     assert "sk_test" not in rest["url"]
 
 
+def test_lium_offer_skips_an_excluded_operator(tmp_path):
+    """The spot re-build control rents a second node from a DIFFERENT operator (owner O3)."""
+    nodes = [_node(0.60), _node(0.79), _node(0.85)]
+    client, calls = _lium(
+        tmp_path,
+        nodes=nodes,
+        executors=[
+            _executor(nodes[0], _hk("a")),
+            _executor(nodes[1], _hk("a")),
+            _executor(nodes[2], _hk("b")),
+        ],
+    )
+    assert client.offer() == (0.60, "lium") and client.node_hotkey == _hk("a")
+    assert client.offer(exclude_hotkeys=[client.node_hotkey]) == (0.85, "lium")
+    assert client.node_id == "node-85-31" and client.node_hotkey == _hk("b")
+    checks = [c["operator_check"] for c in calls if "operator_check" in c]
+    assert checks[-1] == [_hk("b")]  # the excluded operator is not even checked
+    assert client.offer(exclude_hotkeys={_hk("a"), _hk("b")}) is None
+    assert client.refused == "no_node" and client.node_hotkey is None
+
+
+def test_lium_random_pick_returns_only_a_passing_node(tmp_path):
+    class _Rng:
+        def __init__(self):
+            self.seen = []
+
+        def choice(self, options):
+            self.seen.append(list(options))
+            return options[-1]
+
+    nodes = [_node(0.60), _node(0.70), _node(0.79), _node(0.85)]
+    rng = _Rng()
+    client, _ = _lium(
+        tmp_path,
+        nodes=nodes,
+        executors=[
+            _executor(nodes[0], _hk("a")),
+            _executor(nodes[1], _hk("b")),
+            _executor(nodes[2], _hk("c")),
+            _executor(nodes[3], _hk("d")),
+        ],
+        refuse={_hk("b"), _hk("d")},
+        rng=rng,
+    )
+    assert client.offer(pick="random") == (0.79, "lium")
+    assert client.node_id == "node-79-31" and client.node_hotkey == _hk("c")
+    (options,) = rng.seen
+    # the chooser only ever sees passing nodes (the refused operators b and d are gone)
+    assert [node for _, node, _ in options] == ["node-60-31", "node-79-31"]
+    with pytest.raises(ValueError, match="pick"):
+        client.offer(pick="priciest")
+
+
 def _check_config(tmp_path, args=None):
     if args is None:
         args = (
