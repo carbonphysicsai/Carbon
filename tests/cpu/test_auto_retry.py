@@ -308,6 +308,27 @@ def test_a_version_wide_gap_is_given_back_for_a_resubmit_after_the_fix(tmp_path)
     assert _log(root) == []
 
 
+@pytest.mark.parametrize(
+    "code, retried",
+    [
+        # one task's pack-source registration: per task, retried (V2-L2-RETENTION-20261120 (3))
+        ("evaluation_pack_source_registration_unavailable", True),
+        ("evaluation_pack_binding_unavailable", True),
+        # the version's own pack, reference solves and calibrated inference image: version-wide, never retried
+        ("evaluation_pack.json", False),
+        ("evaluation_pack.train_mismatch", False),
+        ("dual_native_reference_infra", False),
+        ("dual_native_reference_unresolved", False),
+        ("leg_minimum_platform_mismatch", False),
+        ("evaluation_pack_source_roster", False),
+        # an untyped retention error under its closed class code: Carbon's, retried by the caps
+        ("retention_keyerror", True),
+    ],
+)
+def test_the_retention_codes_are_typed_per_task_or_version_wide(code, retried):
+    assert auto_retry.retryable(code) is retried
+
+
 class _Pool:
     def __init__(self, bodies=()):
         self.bodies = list(bodies)

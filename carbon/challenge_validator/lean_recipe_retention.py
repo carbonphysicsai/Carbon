@@ -2427,6 +2427,63 @@ def _propagated_carbon_failures():
     )
 
 
+#: The reasons a miner's grade still ends as an UNAVAILABLE evaluation (filed as graded: terminal, its slot returned) when
+#: the retention catch-all meets them; every other reason there is Carbon's (`_carbon_failure`). V2-L2-RETENTION-20261120:
+#: (a) the candidate's own: a timed query that scores differently from its graded run; (b) the miner's quota (with its
+#: plain message, `_limit_message`); (c) MIXED codes that also wrap the miner's own program failure (OOM, exit, refused
+#: output), until a follow-up splits them with `_candidate_outcome`; (d) bytes a bundle's Python can write in the same
+#: container (the single-call receipt, the producer's authentication of retained receipts), until a read shows they are
+#: out of the miner's reach; plus the early wall stop, the candidate's typed outcome.
+_KEPT_UNAVAILABLE = frozenset(
+    {
+        "timed_query_disagrees",
+        "epoch_limit_reached",
+        "exam_daily_allowance_reached",
+        "inference_pair_incomplete",
+        "subset_repeat_incomplete",
+        "menu_rowcheck_incomplete",
+        "single_call_receipt_differs",
+        "dual_native_inference_binding",
+        "early_wall_stop",
+    }
+)
+#: A closed code (the grader's marker vocabulary, `auto_grade._code`): never a value.
+_CLOSED_CODE = re.compile(r"[a-z0-9_.:-]{1,96}")
+
+
+def _reason_code(exc):
+    """The closed code of a reason the catch-all met: a typed refusal's own code (``.code``, or the first argument of the
+    scoring refusals that carry it there), else ``retention_<class name>``. Fixed strings only, never a value.
+    """
+    code = (
+        exc.code
+        if isinstance(exc, RetentionUnavailable)
+        else getattr(exc, "code", None)
+    )
+    if type(code) is not str and type(exc).__name__ in (
+        "PrivateEvaluationEvidenceRefused",
+        "DualScoreRefused",
+    ):
+        code = exc.args[0] if exc.args else None
+    if type(code) is str and _CLOSED_CODE.fullmatch(code):
+        return code
+    return "retention_" + type(exc).__name__.lower()
+
+
+def _carbon_failure(exc, *, miner_grade, filing):
+    """The code to give a reason back as Carbon's (the grader's FAILED_INFRA: uncharged, re-run by `auto_retry`'s rules and
+    caps), or None to end the grade UNAVAILABLE as before. The five `_propagated_carbon_failures` always go back; any other
+    reason goes back only for a miner's own grade (an uncounted regrade's UNAVAILABLE is already retried by its caller),
+    never once the pool filing has started (from there the grade may be a crown input, V2 18 Nov 2026), and never for a
+    `_KEPT_UNAVAILABLE` reason (V2-L2-RETENTION-20261120)."""
+    code = _reason_code(exc)
+    if code in _propagated_carbon_failures():
+        return code
+    if not miner_grade or filing or code.split(":", 1)[0] in _KEPT_UNAVAILABLE:
+        return None
+    return code
+
+
 def _retain_selected_pack_evaluation(
     adapter,
     submission_id,
@@ -2446,6 +2503,9 @@ def _retain_selected_pack_evaluation(
     cap = reservation = None
     #: the reservation this grade settled COUNTED, until its result reaches the miner (the Ladder write, after the try)
     counted = None
+    #: a miner's own grade (not an uncounted operator/rehearsal regrade), and whether its pool filing has started
+    miner_grade = regrade is None or getattr(regrade, "counted", False) is True
+    filing = False
     try:
         from carbon.development_session.data import write_once
         from carbon.scoring import dual_score
@@ -2770,8 +2830,9 @@ def _retain_selected_pack_evaluation(
             # 4 MiB refused it as benchmark_reduction_refused, which `_contend` turned into koth_comparison {"error"}
             # (nothing filed in the pool, no contention), with the grade itself bound (13 Nov, found by the whole-chain read).
             # V2 (18 Nov 2026): from here the grade may become a crown input, so the slot is never given back after this
-            # point (a free grade that could crown)
+            # point (a free grade that could crown), nor is any failure from here given back as Carbon's (`_carbon_failure`)
             counted = None
+            filing = True
             with _sized_pair_ceiling(adapter, artifacts):
                 koth = _contend(
                     adapter,
@@ -2811,12 +2872,19 @@ def _retain_selected_pack_evaluation(
             # V2 (18 Nov 2026, funds): the slot was settled COUNTED and a later step failed before the result reached the
             # miner (the Ladder is written only after this block): the charge is ours, the slot goes back
             cap.give_back_unfinished(counted)
-        if (
-            isinstance(exc, RetentionUnavailable)
-            and exc.code in _propagated_carbon_failures()
-        ):
-            # Carbon's own failure (review of 15 Nov, finding 2): the grader gives it back as FAILED_INFRA.
-            raise
+        carbon_code = _carbon_failure(exc, miner_grade=miner_grade, filing=filing)
+        if carbon_code is not None:
+            # Carbon's own failure (review of 15 Nov, finding 2; over-broad rules audit, V2-L2-RETENTION-20261120): the
+            # grader gives it back as FAILED_INFRA (the slot is already back above, once), under its own closed code
+            try:
+                from carbon.battery.intake import log
+
+                log("retention_carbon_failure", code=carbon_code)
+            except Exception:  # noqa: BLE001, S110 - never the ending
+                pass
+            if isinstance(exc, RetentionUnavailable) and exc.code == carbon_code:
+                raise
+            raise RetentionUnavailable(carbon_code) from exc
         reason = (
             str(exc)
             if isinstance(exc, RetentionUnavailable)

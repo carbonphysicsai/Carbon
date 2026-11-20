@@ -71,6 +71,11 @@ _VERSION_WIDE_PREFIXES = (
     "exam_cadence_",
     "exam_key_expired",
     "evaluation_pack_",
+    # a dotted reason of the version's own pack (`evaluation_pack.<role>`), its reference solves (invariant 7.5) and its
+    # calibrated inference image: every grade of the version meets the same gap (V2-L2-RETENTION-20261120 (3))
+    "evaluation_pack.",
+    "dual_native_reference_",
+    "leg_minimum_platform_mismatch",
     "pack_",
     "menu_",
     "contract_not_served",
@@ -79,7 +84,13 @@ _VERSION_WIDE_SUFFIXES = ("_unregistered",)
 #: Per-task codes under a version-wide prefix: retried as usual. ``evaluation_pack_binding_unavailable`` is one task's
 #: write-once binding sidecar (an interrupted grade's leftover; `infra_requeue.set_aside_interrupted` moves it aside
 #: before the re-grade), never a gap of the version's pack.
-_PER_TASK_CODES = frozenset({"evaluation_pack_binding_unavailable"})
+_PER_TASK_CODES = frozenset(
+    {
+        "evaluation_pack_binding_unavailable",
+        # one task's pack-source registration, not the version's pack (V2-L2-RETENTION-20261120)
+        "evaluation_pack_source_registration_unavailable",
+    }
+)
 #: Typed Carbon exception names that are version-wide (the grader writes a class name for untyped failures).
 _VERSION_WIDE_CLASSES = frozenset(
     {"PoolConstantsNotRegistered", "ExamRefused", "MenuRefused", "ExamCapRefused"}

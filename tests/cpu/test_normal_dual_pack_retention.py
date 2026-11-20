@@ -398,13 +398,15 @@ def test_normal_retention_routes_trusted_fixture_to_same_core(
 
 
 def test_missing_producer_does_not_invalidate_retained_model(tmp_path, monkeypatch):
+    """A missing producer is Carbon's failure (V2-L2-RETENTION-20261120): the grade goes back as FAILED_INFRA under its
+    own code, never an UNAVAILABLE evaluation filed as graded; the retained model stays in custody.
+    """
     fixture = _fixture(tmp_path, monkeypatch)
-    result = fixture.retain()
-    assert result["status"] == "CREATED" and result["score_state"] == "NOT_COMPUTED"
-    assert result["private_evaluation_state"] == "UNAVAILABLE"
-    assert (
-        result["private_evaluation_reason"] == "dual_measurement_producer_unavailable"
-    )
+    with pytest.raises(
+        retention.RetentionUnavailable, match="^dual_measurement_producer_unavailable$"
+    ):
+        fixture.retain()
+    assert list(fixture.artifact_root.iterdir())
 
 
 def test_a_graph_graded_by_its_batched_query_is_never_retained(tmp_path, monkeypatch):
@@ -435,10 +437,11 @@ def test_normal_retention_refuses_tampered_or_cross_challenge_evaluation(
     )
     if tamper == "reference":
         (fixture.private / "reference_rows.bin").write_bytes(b"[]")
-    result = fixture.retain()
-    assert result["status"] == "CREATED" and result["official_eligible"] is False
-    assert result["private_evaluation_state"] == "UNAVAILABLE"
-    assert "private_evaluation_path" not in result
+    # our own pack or producer state: refused, as Carbon's failure (V2-L2-RETENTION-20261120), never a graded outcome
+    with pytest.raises(retention.RetentionUnavailable) as refused:
+        fixture.retain()
+    assert refused.value.code not in retention._KEPT_UNAVAILABLE
+    assert not list(fixture.artifact_root.rglob("private-evaluation-binding.json"))
 
 
 def test_unverified_bundle_dual_evidence_stays_unavailable(tmp_path, monkeypatch):
@@ -448,14 +451,12 @@ def test_unverified_bundle_dual_evidence_stays_unavailable(tmp_path, monkeypatch
         "score_state": "NOT_COMPUTED",
         "official_eligible": False,
     }
-    actual = retention._retain_selected_pack_evaluation(
-        fixture.adapter, fixture.task_id, result, {}
-    )
-    assert actual["private_evaluation_state"] == "UNAVAILABLE"
-    assert actual["private_evaluation_reason"] == "dual_model_originals_unavailable"
-    assert (
-        actual["score_state"] == "NOT_COMPUTED" and actual["official_eligible"] is False
-    )
+    with pytest.raises(
+        retention.RetentionUnavailable, match="^dual_model_originals_unavailable$"
+    ):
+        retention._retain_selected_pack_evaluation(
+            fixture.adapter, fixture.task_id, result, {}
+        )
 
 
 def test_legacy_pack_does_not_enter_dual_dispatch():
