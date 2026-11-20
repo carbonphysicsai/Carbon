@@ -46,16 +46,20 @@ _HEX = re.compile(r"[0-9a-f]{64}")
 KEPT_LOCAL_SUFFIXES = (
     ".grade-breakdown.json",
     ".grade-breakdown.recomputed.json",
-    "exam-total-se.json",
-    "accuracy-record.json",
 )
 KEPT_LOCAL_PARTS = ("gate-failures", "gate_failures")
 
 
 def kept_local(name):
-    """True for a file the archive never moves (`KEPT_LOCAL_SUFFIXES`, `KEPT_LOCAL_PARTS`)."""
-    return name.endswith(KEPT_LOCAL_SUFFIXES) or any(
-        part in name for part in KEPT_LOCAL_PARTS
+    """True for a file the archive never moves (`KEPT_LOCAL_SUFFIXES`, `KEPT_LOCAL_PARTS`, and the exam's two custody
+    sidecars by the names their writer owns, `exam_rotation`; never opened here: only kept where they are).
+    """
+    from carbon.challenge_validator.exam_rotation import ACCURACY_SIDECAR, SE_SIDECAR
+
+    return (
+        name.endswith(KEPT_LOCAL_SUFFIXES)
+        or name in (SE_SIDECAR, ACCURACY_SIDECAR)
+        or any(part in name for part in KEPT_LOCAL_PARTS)
     )
 
 
