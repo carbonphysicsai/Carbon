@@ -4415,8 +4415,6 @@ def _record_ladder(
     the one source the KOTH comparator also reads (`koth_registry`). Its own
     failure never unbinds the evaluation: the state says RECORDED or names the
     refusal."""
-    from carbon.challenge_validator.interface import Unavailable
-
     try:
         from carbon.challenge_validator import koth_registry, part_feedback
         from carbon.challenge_validator.ladder_store import LadderStore
@@ -4457,10 +4455,16 @@ def _record_ladder(
                 version=_registry_version(adapter),
             ),
         )
-    except (ImportError, OSError, ValueError, KeyError, TypeError, Unavailable) as exc:
-        # (live 116, 20 Nov 2026 14:09:50Z: an owner open refused while the receiver stopped escaped here and failed a
-        # grade that had already COUNTED; the Ladder's own failure only names itself)
+    except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))
+    except RuntimeError as exc:
+        # the door's typed refusals (`interface.Unavailable` and kin carry a str ``code``): live 116, 20 Nov 2026
+        # 14:09:50Z, an owner open refused while the receiver stopped escaped here and failed a grade that had already
+        # COUNTED; the Ladder's own failure only names itself. Any other RuntimeError is raised as before.
+        code = getattr(exc, "code", None)
+        if type(code) is not str:
+            raise
+        return "UNAVAILABLE: " + code
     return "RECORDED" + _record_gate_failures(
         adapter, submission_id, exam_key, shown, accuracy
     )

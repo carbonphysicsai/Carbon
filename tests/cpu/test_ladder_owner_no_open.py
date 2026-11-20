@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.interface import Unavailable
 
@@ -36,4 +38,20 @@ def test_a_stopping_receiver_never_fails_the_grade_in_its_ladder_step():
     state = retention._record_ladder(
         adapter, "rtsk_x", exam_key="k", exam_version="v", gates={}, graded={}
     )
-    assert state.startswith("UNAVAILABLE: ")
+    assert state == "UNAVAILABLE: direct_receiver_stopping"
+
+
+def test_any_other_runtime_error_is_raised_as_before():
+    def broken(task):
+        raise RuntimeError("not a typed refusal")
+
+    adapter = SimpleNamespace(
+        provider_for=SimpleNamespace(hotkey_of=lambda task: None),
+        ledger=SimpleNamespace(owned_outcome=lambda contract, task: None),
+        contract_digest="sha256:" + "c" * 64,
+        owner=broken,
+    )
+    with pytest.raises(RuntimeError, match="not a typed refusal"):
+        retention._record_ladder(
+            adapter, "rtsk_x", exam_key="k", exam_version="v", gates={}, graded={}
+        )
