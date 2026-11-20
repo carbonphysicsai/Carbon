@@ -105,6 +105,8 @@ GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build"
 CATALOG_ROUTE = "/api/v1/page/catalog_install"
 #: The "Current king" card (`king.for_profile`).
 KING_ROUTE = "/api/v1/page/king"
+#: The "Your place in line" card (`queue_place.for_profile`): the validator's own public queue feed, read here.
+QUEUE_ROUTE = "/api/v1/page/queue"
 
 
 class Rejected(Exception):
@@ -1096,6 +1098,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(
                     200,
                     king.for_profile(None if runner is None else runner.configuration),
+                )
+            elif self.path == QUEUE_ROUTE:
+                # This miner's own place in each validator's public queue, the door's state and the 24 h median wait,
+                # all from the route any visitor reads (nothing new is disclosed, nothing is signed or sent).
+                from scripts.dev.miner_launchpad import queue_place
+
+                runner = self.server.research_runner
+                self.reply(
+                    200,
+                    queue_place.for_profile(
+                        None if runner is None else runner.configuration
+                    ),
                 )
             elif self.path.startswith("/api/v1/guide/"):
                 # The wiring guide, read from this checkout and rendered by

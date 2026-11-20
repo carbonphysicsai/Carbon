@@ -2834,6 +2834,8 @@
     });
     renderKings();
     if (connected) loadKings();
+    renderQueue();
+    if (connected) loadQueue();
   }
   // The "Current king" card (`king.for_profile`, Validator OWNER-INTAKE-EXPOSURE-03K):
   // each Challenge's lines come worded from the controller; read at most once a minute.
@@ -2867,6 +2869,34 @@
         card.append(el("h3", String(subnet.title || "").slice(0, 80)));
         for (const row of Array.isArray(subnet.rows) ? subnet.rows : []) card.append(el("p", String(row.hotkey).slice(0, 48) + " · " + Number(row.share_percent).toFixed(1) + "% of incentive"));
         card.append(el("p", String(subnet.words || "").slice(0, 400), "hint"));
+        target.append(card);
+      }
+    });
+  }
+  // The "Your place in line" card (`queue_place.for_profile`): the validator's own public queue feed, worded by the
+  // controller (your place, the door's state, the typical wait); read at most once a minute.
+  let queueCard = null, queueAt = 0, queueLoading = false;
+  async function loadQueue() {
+    if (queueLoading || Date.now() - queueAt < 60000) return;
+    queueLoading = true;
+    try { queueCard = await api("/api/v1/page/queue", undefined, undefined, 20000); } catch (_) { queueCard = {unreadable: true}; }
+    queueAt = Date.now();
+    queueLoading = false;
+    renderQueue();
+  }
+  function renderQueue() {
+    const box = $("overview-queue");
+    if (!box) return;
+    rebuild(box, JSON.stringify([connected, queueCard]), target => {
+      if (!connected) { target.append(el("p", "Connect to see where your submission waits.", "hint")); return; }
+      if (!queueCard) { target.append(el("p", "Reading each validator's queue...", "hint")); return; }
+      if (queueCard.unreadable) { target.append(el("p", "The queue couldn't be read just now; try again later.", "hint")); return; }
+      if (typeof queueCard.words === "string") target.append(el("p", queueCard.words.slice(0, 400), "hint"));
+      for (const item of Array.isArray(queueCard.challenges) ? queueCard.challenges : []) {
+        const card = el("article", undefined, "card");
+        const entry = (caps?.challenges || []).find(c => c.challenge_id === item.challenge_id);
+        card.append(el("h3", entry ? plainTitle(entry.title) : String(item.challenge_id).slice(0, 64)));
+        for (const line of Array.isArray(item.lines) ? item.lines : []) card.append(el("p", String(line).slice(0, 400)));
         target.append(card);
       }
     });
