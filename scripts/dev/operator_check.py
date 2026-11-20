@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Operator-identity check for a Lium GPU build node (LIUM_ADA_SWITCH_PLAN S2, V2 third-party compute condition 4).
 
 Before the autoscaler rents a Lium (Bittensor SN51) node, it asks the door: is this node's operator a registered

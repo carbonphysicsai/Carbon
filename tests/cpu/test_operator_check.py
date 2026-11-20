@@ -20,7 +20,8 @@ spec.loader.exec_module(check)
 
 
 def _ss58(tag):
-    return ("5Op" + tag * 45)[:48]
+    # a base58 SS58 shape: "O", "I", "l" and "0" are not in the alphabet
+    return ("5Fp" + tag * 45)[:48]
 
 
 CARBON_HOT, CARBON_COLD = _ss58("a"), _ss58("b")
@@ -43,7 +44,7 @@ BASE = [
 def _many(count):
     letters = "ABCDEFGHJKLMNPQRSTUV"
     return [
-        ("5Op" + "a" * 43 + letters[i // 20] + letters[i % 20]) for i in range(count)
+        ("5Fp" + "a" * 43 + letters[i // 20] + letters[i % 20]) for i in range(count)
     ]
 
 
