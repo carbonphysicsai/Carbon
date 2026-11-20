@@ -680,20 +680,13 @@ NEXT_ACTIONS = {
         "in your ops' parameters all count. Nothing was graded. Your frozen candidate is kept; the kit's rules for "
         "your graph say what counts, and a graph with repeated layers compresses far below pasted numbers."
     ),
-    "bundle_graph_caps_refused": (
-        "Your graph went over one of the registered graph limits. The one to check first is the 32 KiB size limit: the "
+    # One line for the whole class (OWNER-BUILD-REFUSAL-SPLIT-01): the public receipt carries only this code, never the
+    # private reason (`build_refusal.CODES`: bundle_graph_caps_refused, cap_exceeded, bundle_graph_oversized, ...).
+    "candidate_build_refused": (
+        "Carbon's build refused your graph because of something in it (not a feature Carbon is missing): for example a "
+        "malformed graph, a limit the kit names, or a policy rule. One thing to check first is the 32 KiB size limit: the "
         "compressed (zlib level 9) size of the whole graph, in bytes, not tokens. Nothing was graded. Your frozen "
         "candidate is kept."
-    ),
-    "cap_exceeded": (
-        "Your graph went over one of the registered graph limits. The one to check first is the 32 KiB size limit: the "
-        "compressed (zlib level 9) size of the whole graph, in bytes, not tokens. Nothing was graded. Your frozen "
-        "candidate is kept."
-    ),
-    "bundle_graph_oversized": (
-        "Your graph file is larger than this validator reads, before the 32 KiB size limit (compressed size of the "
-        "whole graph, in bytes, not tokens) is even measured. This file limit is not published here: ask us for it. "
-        "Nothing was graded. Your frozen candidate is kept."
     ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.

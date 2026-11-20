@@ -80,9 +80,7 @@ def test_every_new_code_has_its_own_sentence():
     "code",
     [
         "fitted_info_over_budget",
-        "bundle_graph_caps_refused",
-        "cap_exceeded",
-        "bundle_graph_oversized",
+        "candidate_build_refused",
     ],
 )
 def test_a_graph_budget_refusal_names_the_32_kib_budget_in_bytes_not_tokens(code):
