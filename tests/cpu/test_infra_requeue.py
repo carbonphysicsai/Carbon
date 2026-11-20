@@ -1367,6 +1367,65 @@ def test_a_rerun_of_the_same_recipe_stops_the_second_requeue(tmp_path):
     }
 
 
+def _chain(root, *links):
+    """The door's build re-run log: one ``from_task -> new_task`` line per link."""
+    path = root / "auto-grade" / "requeued" / "build-retries.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "from_task": old,
+                    "new_task": new,
+                    "chain_root": links[0][0],
+                    "code": "direct_task_cancelled",
+                    "at_ns": 1,
+                }
+            )
+            + "\n"
+            for old, new in links
+        )
+    )
+
+
+def test_a_build_retry_predecessor_of_the_same_recipe_is_not_a_fresh_rerun(tmp_path):
+    """Live 116, 19 Nov 2026 (rtsk_bd87af02): a door build re-run's own predecessors (the miner's submit B, an earlier
+    re-run C) share its recipe and never graded; they are not a fresh rerun, so the given-back task is re-queued. A
+    LATER re-run of it, or a predecessor with a marker, still refuses."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("shared")
+    _failed(root, ledger, A, recipe=recipe)
+    infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
+    _first_attempt_binding(root, A)
+    assert _grader_that_wrote_them(
+        _DoorIntake(root, ledger, "sha256:" + "2" * 64), root
+    ).run_once() == (A, "FAILED")
+    _store(root, B, recipe)  # the miner's submit
+    _store(root, C, recipe)  # the door's first build re-run of it
+    _chain(root, (B, C), (C, A))
+    out = infra_requeue.requeue(root, [A])  # dry run
+    assert out["requeued"] == [A] and out["refused"] == {}
+    assert infra_requeue._build_ancestors(root, A) == {B, C}
+    assert infra_requeue._build_ancestors(root, B) == set()
+    # A re-run AFTER this task (A -> D) is a real rerun
+    _store(root, D, recipe)
+    _chain(root, (B, C), (C, A), (A, D))
+    assert infra_requeue.requeue(root, [A])["refused"] == {A: "given_back_rerun_exists"}
+    # a predecessor that has its own marker is not excused
+    _chain(root, (B, C), (C, A))
+    marker = infra_requeue._paths(root, C)["marker"]
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps({"schema": "carbon.auto-grade.marker.v0"}))
+    assert infra_requeue.requeue(root, [A])["refused"] == {A: "given_back_rerun_exists"}
+    # a cycle or a torn log never loops and excuses nothing it cannot read
+    (root / "auto-grade" / "requeued" / "build-retries.jsonl").write_text("{torn\n")
+    assert infra_requeue._build_ancestors(root, A) == set()
+    _chain(root, (A, C), (C, A))
+    assert infra_requeue._build_ancestors(root, A) == {C}
+
+
 def test_exam_cap_rearms_the_bypass_once_per_later_attempt(tmp_path):
     _root_dir, ledger = _root(tmp_path)
     cap = _cap(ledger)

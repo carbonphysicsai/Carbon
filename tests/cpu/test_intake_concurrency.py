@@ -206,27 +206,31 @@ def test_rate_and_capacity_refusals_carry_retry_after_and_arrive_as_responses():
     assert headers["Retry-After"] == "1"
 
 
-def test_state_changing_calls_run_one_writer_at_a_time():
-    """Admission and source staging share one writer; the cap and idempotency stay exact."""
-    state = {"inside": 0, "max": 0}
+def test_state_changing_calls_run_one_writer_per_owner_and_stay_idempotent():
+    """An owner's admissions run one at a time (its owner lock, then its scopes); a duplicate is admitted once. Owners
+    of other groups are not held behind it (LOCK + CACHE AUDIT #2: no door-wide writer).
+    """
+    inside = {}
+    peak = {}
     guard = threading.Lock()
     admitted = {}
 
     def evaluate(submitted):
+        hotkey = submitted[0]
         with guard:
-            state["inside"] += 1
-            state["max"] = max(state["max"], state["inside"])
+            inside[hotkey] = inside.get(hotkey, 0) + 1
+            peak[hotkey] = max(peak.get(hotkey, 0), inside[hotkey])
         time.sleep(0.01)
         # an idempotent admission: the first of a (hotkey, recipe) wins, a duplicate is the same task
-        first = admitted.setdefault(submitted, len(admitted) + 1)
         with guard:
-            state["inside"] -= 1
+            first = admitted.setdefault(submitted, len(admitted) + 1)
+            inside[hotkey] -= 1
         return {"kind": "OUTCOME", "task": first}
 
     intake = object.__new__(DirectRecipeIntake)
-    intake._write = threading.Lock()
     intake.door = SimpleNamespace(evaluate=evaluate)
-    keys = [("hotkey-a", "recipe-1")] * 8 + [("hotkey-b", "recipe-1")] * 8
+    intake._note_recipe_digest = lambda result: None
+    keys = [_Submitted((h, "recipe-1")) for h in ["hotkey-a"] * 8 + ["hotkey-b"] * 8]
     results = []
     threads = [
         threading.Thread(target=lambda k=k: results.append(intake._admit(k)))
@@ -236,9 +240,20 @@ def test_state_changing_calls_run_one_writer_at_a_time():
         t.start()
     for t in threads:
         t.join(20)
-    assert state["max"] == 1
+    assert peak == {"hotkey-a": 1, "hotkey-b": 1}
     assert len(results) == 16
     assert len({r["task"] for r in results}) == 2  # duplicates admitted once each
+
+
+class _Submitted(tuple):
+    """A (hotkey, recipe) submission double that names its hotkey, hashable as its pair."""
+
+    def __new__(cls, pair):
+        return super().__new__(cls, pair)
+
+    @property
+    def hotkey(self):
+        return self[0]
 
 
 def test_the_busy_reply_is_valid_http():

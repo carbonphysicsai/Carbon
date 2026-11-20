@@ -206,9 +206,10 @@ def test_a_counted_regrade_object_is_graded_under_the_miners_own_submission(cap)
     counted = retention._Regrade(
         HOTKEY, None, "rtsk_a", "sha256:origin", None, False, True
     )
-    # The fixture pack cannot be graded, so the evaluation is unavailable and its slot returned;
-    # what this pins is WHOSE slot it was.
-    assert run(counted)["private_evaluation_state"] == "UNAVAILABLE"
+    # The fixture pack cannot be graded: Carbon's failure, raised for the grader's FAILED_INFRA (a miner's own grade,
+    # V2-L2-RETENTION-20261120), its slot returned; what this pins is WHOSE slot it was.
+    with pytest.raises(retention.RetentionUnavailable):
+        run(counted)
     assert _rows(cap) == [("rtsk_a", "GRADED", "RELEASED", HOTKEY, 5)]
 
     plain = retention._Regrade(

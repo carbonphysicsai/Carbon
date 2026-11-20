@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import stat as stat_module
+import threading
 import time
 from contextlib import ExitStack, contextmanager, suppress
 from contextvars import ContextVar
@@ -182,6 +183,512 @@ os.execv('/opt/carbon-worker/bin/python',['python','-I','/input/program.py'])
 """
 
 
+#: Where a remote GPU build's program keeps its output and exit status in its own container (`DETACHABLE_FRONT`).
+DETACHABLE_RUN_DIR = "/scratch/.carbon-run"
+
+#: The detachable front end of a remote GPU build's program (owner, 20 Nov 2026: a door restart must never cancel an
+#: in-flight build; live 116 01:52Z: ~22 cancelled and re-run from zero). Run as ``python -I -c DETACHABLE_FRONT
+#: <bootstrap> <run dir> <stdout cap> <stderr cap>`` in place of ``-c <bootstrap>``: it runs the bootstrap (which
+#: ``execv``s into the program) as its ONE child and relays the child's stdout and stderr unchanged, then exits with the
+#: child's status (a signal as 128+n, as `docker exec` reports one), so the door sees what it saw before. Besides, it
+#: keeps the first <cap> bytes of each stream and the exit status in <run dir> (``stdout``, ``stderr``, ``exit``, the
+#: last written whole), and keeps running when the door's end of the stream goes away (a write there that fails is
+#: dropped, never fatal), so the program outlives the door and its result can be read later (``detachable_program`` in
+#: the intent). It stays the exec's root process (the box's program-age read, `_BOX_PROGRAM_AGE`, still finds exactly
+#: one) and starts before its child, as the bootstrap did. A run dir that cannot be made keeps the relay, no files.
+DETACHABLE_FRONT = r"""
+import os,selectors,sys
+boot,run=sys.argv[1],sys.argv[2]
+caps={1:int(sys.argv[3]),2:int(sys.argv[4])}
+try:
+    os.mkdir(run,0o700)
+except OSError:
+    run=None
+if run is not None:
+    try:
+        with open(run+'/front.pid','w') as record:
+            record.write(str(os.getpid()))
+    except OSError:
+        pass
+o_r,o_w=os.pipe()
+e_r,e_w=os.pipe()
+pid=os.fork()
+if pid==0:
+    os.close(o_r);os.close(e_r)
+    os.dup2(o_w,1);os.dup2(e_w,2)
+    os.close(o_w);os.close(e_w)
+    code=0
+    try:
+        exec(compile(boot,'<string>','exec'),{'__name__':'__main__'})
+    except SystemExit as stop:
+        code=stop.code if type(stop.code) is int else (0 if stop.code is None else 1)
+        if stop.code is not None and type(stop.code) is not int:
+            print(stop.code,file=sys.stderr)
+    except BaseException:
+        import traceback
+        traceback.print_exc()
+        code=1
+    for stream in (sys.stdout,sys.stderr):
+        try:
+            stream.flush()
+        except Exception:
+            pass
+    os._exit(code)
+os.close(o_w);os.close(e_w)
+files={}
+if run is not None:
+    for fd,name in ((1,'stdout'),(2,'stderr')):
+        try:
+            files[fd]=os.open(run+'/'+name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        except OSError:
+            pass
+kept={1:0,2:0}
+pending={1:bytearray(),2:bytearray()}
+gone=set()
+for fd in (1,2):
+    try:
+        os.set_blocking(fd,False)
+    except OSError:
+        gone.add(fd)
+def push(fd):
+    while pending[fd] and fd not in gone:
+        try:
+            sent=os.write(fd,pending[fd])
+        except BlockingIOError:
+            return
+        except OSError:
+            gone.add(fd);pending[fd].clear();return
+        del pending[fd][:sent]
+selector=selectors.DefaultSelector()
+selector.register(o_r,selectors.EVENT_READ,1)
+selector.register(e_r,selectors.EVENT_READ,2)
+while selector.get_map():
+    for fd in (1,2):
+        push(fd)
+    waiting=any(pending[fd] for fd in (1,2) if fd not in gone)
+    for key,_ in selector.select(0.05 if waiting else None):
+        fd=key.data
+        block=os.read(key.fd,65536)
+        if not block:
+            selector.unregister(key.fd);os.close(key.fd)
+            continue
+        part=block[:max(0,caps[fd]-kept[fd])]
+        if not part:
+            continue
+        kept[fd]+=len(part)
+        if fd in files:
+            try:
+                os.write(files[fd],part)
+            except OSError:
+                pass
+        if fd not in gone:
+            pending[fd]+=part
+status=os.waitpid(pid,0)[1]
+code=os.waitstatus_to_exitcode(status)
+code=128-code if code<0 else code
+for fd in files.values():
+    try:
+        os.fsync(fd);os.close(fd)
+    except OSError:
+        pass
+if run is not None:
+    try:
+        with open(run+'/exit.part','w') as record:
+            record.write(str(code)+'\n')
+        os.replace(run+'/exit.part',run+'/exit')
+    except OSError:
+        pass
+for fd in (1,2):
+    if fd not in gone and pending[fd]:
+        try:
+            os.set_blocking(fd,True)
+            os.write(fd,bytes(pending[fd]))
+        except OSError:
+            pass
+os._exit(code)
+"""
+
+
+def _detachable(session=None):
+    """Whether this op's program runs under `DETACHABLE_FRONT`: a remote GPU build slot op (its container on a box's
+    daemon, `remote_gpu_build.docker_host`), never a grade session's member op; every other op is unchanged.
+    """
+    return (
+        session is None
+        and remote_gpu_build.current_op() is not None
+        and remote_gpu_build.docker_host() is not None
+    )
+
+
+def _program_command(name, bootstrap, *, detachable, maximum, adopting=False):
+    """The PROGRAM stage's ``docker exec``: today's ``-c <bootstrap>``, or for a detachable op the same bootstrap under
+    `DETACHABLE_FRONT`, which keeps one byte past each stream's cap (a stream over its cap is still refused here, as
+    before); for an adopted op (``adopting``), the running program's recorded result (`DETACHABLE_WAIT`).
+    """
+    from carbon.reconstruction.worker.model import DIAGNOSTIC_BYTES
+
+    command = ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c"]
+    if adopting:
+        return [*command, DETACHABLE_WAIT, DETACHABLE_RUN_DIR]
+    if not detachable:
+        return [*command, bootstrap]
+    return [
+        *command,
+        DETACHABLE_FRONT,
+        bootstrap,
+        DETACHABLE_RUN_DIR,
+        str(maximum + 1),
+        str(DIAGNOSTIC_BYTES + 1),
+    ]
+
+
+#: The wait mode of `DETACHABLE_FRONT` (Head B): ``python -I -c DETACHABLE_WAIT <run dir>`` waits for the program's
+#: recorded exit status, then writes the kept stdout and stderr and exits with that status: what the front end relayed
+#: (the same bytes up to its caps, the same status). A front end that is gone with no status recorded (the program's
+#: result cannot be known) prints `PROGRAM_LOST` to stderr and exits 254: the adopting door reads that as Carbon's.
+DETACHABLE_WAIT = r"""
+import os,sys,time
+run=sys.argv[1]
+def alive():
+    try:
+        os.kill(int(open(run+'/front.pid').read()),0)
+    except (OSError,ValueError):
+        return False
+    return True
+while not os.path.exists(run+'/exit'):
+    if not alive() and not os.path.exists(run+'/exit'):
+        sys.stderr.write('carbon_detached_program_lost\n')
+        sys.stderr.flush()
+        os._exit(254)
+    time.sleep(0.5)
+for fd,name in ((1,'stdout'),(2,'stderr')):
+    try:
+        with open(run+'/'+name,'rb') as kept:
+            data=kept.read()
+    except OSError:
+        data=b''
+    while data:
+        data=data[os.write(fd,data):]
+os._exit(int(open(run+'/exit').read()))
+"""
+
+#: What `DETACHABLE_WAIT` prints when the program's result cannot be known (its front end is gone, no status).
+PROGRAM_LOST = b"carbon_detached_program_lost"
+#: An op is adopted only with at least this long left before its recorded deadline (its export, cleanup and settle).
+ADOPT_MARGIN_SECONDS = 120
+#: How long a program stream that ended by a signal waits for the stop to be announced (systemd stops the unit's
+#: processes together, so the docker client can die a moment before this process reads its own signal).
+_STOP_ANNOUNCE_SECONDS = 10.0
+#: How long one start reuses a box's list of running containers (`_running_on_box`): one probe per box per restore.
+_BOX_LIST_SECONDS = 60.0
+#: How long a stopping door waits for its detachable programs' docker clients to end on SIGTERM before it kills them
+#: (`_release_detachable_streams`): the docker CLI keeps an attached exec stream open on one SIGTERM (live 116, 20 Nov
+#: 2026: one client outlived the receiver, and systemd waited its 90 s stop timeout for it). Only the local client
+#: ends; the program runs on under its front end on the box (`DETACHABLE_FRONT`).
+_STREAM_RELEASE_SECONDS = 2.0
+
+#: The receiver is stopping (`door_stopping`).
+_STOPPING = threading.Event()
+#: Container names of the detachable programs this process streams now (`_release_detachable_streams`).
+_LIVE_PROGRAMS = set()
+#: Ops a start found adoptable (`register_adoptable`): ``{(ledger root, identity): recorded slot binding}``.
+_ADOPTABLE = {}
+#: A start's box lists (`_running_on_box`): ``{docker host: (read at, container names)}``.
+_BOX_LISTS = {}
+_ADOPT_LOCK = threading.Lock()
+
+
+class Detached(BaseException):
+    """The receiver is stopping and this op is left as it is (owner, 20 Nov 2026: a restart must never cancel an
+    in-flight build): a remote GPU build whose program runs on under `DETACHABLE_FRONT`, or an op that would start
+    now. Nothing is cleaned up or settled and its task stays RUNNING: the next start adopts the op
+    (`register_adoptable`) or, when it cannot, settles it as before and re-runs the build at its place. A
+    BaseException, so no ``except Exception`` on the way reads it as a failure of the op.
+    """
+
+
+def door_stopping():
+    """The receiver is stopping (its signal, or its cancel step): no remote GPU build starts from now on (`Detached`),
+    and this process's own docker clients of the detachable programs are ended, so each such op leaves its container
+    running on its box for the next start. Idempotent."""
+    _STOPPING.set()
+    _release_detachable_streams()
+
+
+def clear_process_state():
+    """This module's process state as a new receiver process has it (no stop announced, nothing adopted or streamed,
+    no box list): for tests, which share one process (`tests/conftest.py`)."""
+    _STOPPING.clear()
+    _LIVE_PROGRAMS.clear()
+    with _ADOPT_LOCK:
+        _ADOPTABLE.clear()
+        _BOX_LISTS.clear()
+
+
+def announce_stop():
+    """The receiver's stop signal (its handler: flag only): a detachable op whose stream the stop cuts is left for the
+    next start (`_detached_by_stop`). `door_stopping` follows from the stop itself."""
+    _STOPPING.set()
+
+
+def _raise_if_stopping():
+    if _STOPPING.is_set():
+        raise Detached()
+
+
+def _detached_by_stop(error):
+    """Whether a detachable op's failure is the receiver's stop: the stop is announced, or the docker client itself
+    died by a signal (``exit=-N``) and the stop is announced within `_STOP_ANNOUNCE_SECONDS`.
+    """
+    if _STOPPING.is_set():
+        return True
+    diagnostic = getattr(error, "private_diagnostic", b"")
+    return (
+        type(diagnostic) is bytes
+        and diagnostic.startswith(b"exit=-")
+        and _STOPPING.wait(_STOP_ANNOUNCE_SECONDS)
+    )
+
+
+def _release_detachable_streams():
+    """End this process's own docker clients (its children) of the detachable programs it streams now: each stream
+    then ends, and its op leaves as `Detached`. Read from /proc; best effort (nothing to end is not an error).
+    """
+    import signal
+
+    names = {name.encode() for name in tuple(_LIVE_PROGRAMS)}
+    if not names:
+        return
+    me = str(os.getpid())
+    try:
+        entries = os.listdir("/proc")
+    except OSError:
+        return
+    ended = []
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/stat", "rb") as stream:
+                text = stream.read()
+            if text[text.rindex(b")") + 2 :].split()[1].decode() != me:
+                continue
+            with open(f"/proc/{entry}/cmdline", "rb") as stream:
+                argv = stream.read().split(b"\0")
+        except (OSError, ValueError, IndexError):
+            continue
+        if b"exec" in argv and names.intersection(argv):
+            with suppress(OSError):
+                os.kill(int(entry), signal.SIGTERM)
+                ended.append(int(entry))
+    deadline = time.monotonic() + _STREAM_RELEASE_SECONDS
+    while ended and time.monotonic() < deadline:
+        time.sleep(0.05)
+        ended = [pid for pid in ended if _own_live_child(pid, me)]
+    for pid in ended:
+        if _own_live_child(pid, me):
+            with suppress(OSError):
+                os.kill(pid, signal.SIGKILL)
+
+
+def _own_live_child(pid, me):
+    """Whether ``pid`` is still this process's child and has not exited (not a zombie): read from /proc."""
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as stream:
+            text = stream.read()
+        fields = text[text.rindex(b")") + 2 :].split()
+        return fields[0] != b"Z" and fields[1].decode() == me
+    except (OSError, ValueError, IndexError):
+        return False
+
+
+def _slot_names(binding, name, launch):
+    """Whether the recorded slot's allocation record names exactly this container and launch."""
+    try:
+        record = json.loads((binding.slot_dir / "active-allocation.json").read_bytes())
+    except (OSError, ValueError):
+        return False
+    return (
+        type(record) is dict
+        and record.get("container_name") == name
+        and record.get("launch_digest") == launch
+    )
+
+
+def _running_on_box(binding):
+    """The names of the containers running on ``binding``'s box now: one ``docker ps`` per box per start (reused for
+    `_BOX_LIST_SECONDS`), through the box's pinned wrapper. Unreadable: empty (nothing is adopted).
+    """
+    host = binding.docker_host
+    now = time.monotonic()
+    with _ADOPT_LOCK:
+        cached = _BOX_LISTS.get(host)
+        if cached is not None and now - cached[0] < _BOX_LIST_SECONDS:
+            return cached[1]
+    try:
+        with remote_gpu_build.bound(binding):
+            listed = remote_gpu_build.cli(binding).run(
+                ["ps", "--filter", "status=running", "--format", "{{.Names}}"],
+                timeout=remote_lane.PROBE_SECONDS,
+            )
+        printed = listed.stdout
+        if type(printed) is bytes:
+            printed = printed.decode("ascii", "replace")
+        names = frozenset(line.strip() for line in printed.splitlines())
+    except Exception:  # noqa: BLE001 - an unreadable box adopts nothing
+        names = frozenset()
+    with _ADOPT_LOCK:
+        _BOX_LISTS[host] = (now, names)
+    return names
+
+
+def adoption_check(ledger, *, owner, identity):
+    """``(binding, None)`` for an op a restart can ADOPT (Head B of the build re-attach design, owner 20 Nov 2026),
+    else ``(None, why)``, ``why`` a closed code. Every condition must hold, any doubt refuses and the op is settled as
+    before: the op is RESERVED (``not_reserved``) with exactly one intent (``intent_not_one``) whose identity checks
+    pass, as `reconcile_worker`'s (``intent_mismatch``); the intent says its program runs under `DETACHABLE_FRONT`
+    (``not_detachable``) and the program was started (``not_started``); at least `ADOPT_MARGIN_SECONDS` remain before
+    its recorded deadline (``deadline_near``); its box is still the door's (`remote_gpu_build.recorded`, not gone:
+    ``box_gone``); the binding gives the request it reserved (`remote_gpu_build.as_recorded`: ``slot_class_differs``);
+    its slot's allocation record names this container and launch (``slot_record_differs``); and the container is
+    running on that box with this name (``not_running_on_box``). Anything unreadable: ``unreadable``.
+    """
+    try:
+        if ledger.operation_state(identity, owner=owner) != "RESERVED":
+            return None, "not_reserved"
+        intents = []
+        for path in ledger.root.glob("operation-*/intent.json"):
+            if path.is_symlink() or path.stat().st_size > 65536:
+                return None, "unreadable"
+            value = json.loads(path.read_bytes())
+            if value.get("owner") == owner and value.get("identity") == identity:
+                intents.append((path, value))
+        if len(intents) != 1:
+            return None, "intent_not_one"
+        path, intent = intents[0]
+        launch = digest(
+            canonical(
+                {"owner": owner, "identity": identity, "request": intent["request"]}
+            )
+        )
+        name, _ = _intent_container(intent, launch)
+        if (
+            intent["launch"] != launch
+            or intent["container"] != name
+            or path.parent.name != "operation-" + launch[7:]
+        ):
+            return None, "intent_mismatch"
+        if intent.get("detachable_program") != 1:
+            return None, "not_detachable"
+        if not (path.parent / "program-started").is_file():
+            return None, "not_started"
+        deadline = intent.get("deadline_unix")
+        if (
+            type(deadline) not in (int, float)
+            or deadline - time.time() < ADOPT_MARGIN_SECONDS
+        ):
+            return None, "deadline_near"
+        binding = remote_gpu_build.recorded(intent)
+        if binding is None or binding.gone:
+            return None, "box_gone"
+        binding = remote_gpu_build.as_recorded(binding, intent["request"])
+        if binding is None:
+            return None, "slot_class_differs"
+        if not _slot_names(binding, name, launch):
+            return None, "slot_record_differs"
+        if name not in _running_on_box(binding):
+            return None, "not_running_on_box"
+        return binding, None
+    except Exception:  # noqa: BLE001 - any doubt: settled as before
+        return None, "unreadable"
+
+
+def adoptable(ledger, *, owner, identity):
+    """The slot binding of an op a restart can ADOPT (`adoption_check`), or None."""
+    return adoption_check(ledger, owner=owner, identity=identity)[0]
+
+
+def register_adoptable(ledger, *, owner, identity):
+    """At a start: record ``identity`` for adoption when it is adoptable (`adoption_check`). Returns None when it was
+    registered, else the closed code why not (the caller's journal line). A registered op is left RESERVED by the
+    start's settles (`settle_previous_runs`, `_settle_dead_numerical`) until its task resumes and `_run` adopts it.
+    """
+    binding, why = adoption_check(ledger, owner=owner, identity=identity)
+    if binding is None:
+        return why
+    with _ADOPT_LOCK:
+        _ADOPTABLE[(str(ledger.root), identity)] = binding
+    return None
+
+
+def _adoption(ledger, identity):
+    root = getattr(ledger, "root", None)
+    if root is None:
+        return None
+    with _ADOPT_LOCK:
+        return _ADOPTABLE.get((str(root), identity))
+
+
+def forget_adoption(ledger, identity):
+    """The op's adoption ended (its run here, or its task's settle): it is never adopted again in this process."""
+    root = getattr(ledger, "root", None)
+    if root is not None:
+        with _ADOPT_LOCK:
+            _ADOPTABLE.pop((str(root), identity), None)
+
+
+def program_runs_on(ledger, *, owner, identity):
+    """Whether a stopping receiver may leave ``identity`` for the next start (read from this host's own records only,
+    no box call): the op is RESERVED with exactly one intent, which says its program runs under `DETACHABLE_FRONT`,
+    and the program was started (``program-started``). The next start still adopts it only when `adoptable` holds.
+    """
+    try:
+        if ledger.operation_state(identity, owner=owner) != "RESERVED":
+            return False
+        found = []
+        for path in ledger.root.glob("operation-*/intent.json"):
+            if path.is_symlink() or path.stat().st_size > 65536:
+                return False
+            value = json.loads(path.read_bytes())
+            if value.get("owner") == owner and value.get("identity") == identity:
+                found.append((path, value))
+        return (
+            len(found) == 1
+            and found[0][1].get("detachable_program") == 1
+            and (found[0][0].parent / "program-started").is_file()
+        )
+    except Exception:  # noqa: BLE001 - any doubt: cancelled as before
+        return False
+
+
+def _run_adopted(ledger, binding, **kwargs):
+    """`_run` for an op this start adopted (`register_adoptable`): on the very slot its intent recorded
+    (`remote_gpu_build.adopted`), off this host, read as any remote build (its box guard and retyping); `_run_locked`
+    then follows the running program (`adopt`) instead of launching one. The adoption ends with this attempt.
+    """
+    from carbon.reconstruction import grade_lanes
+
+    identity = kwargs["identity"]
+    try:
+        with (
+            grade_lanes.running_op(identity),
+            grade_lanes.released(),
+            remote_gpu_build.adopted(binding) as remote_build,
+        ):
+            try:
+                with _remote_build_guarded(remote_build):
+                    return _run_supervised(ledger, adopt=remote_build, **kwargs)
+            except MinerProgramFailure:
+                raise
+            except Exception as error:
+                down = remote_gpu_build.retyped(error)
+                if down is not None:
+                    raise down from error
+                raise
+    finally:
+        forget_adoption(ledger, identity)
+
+
 def run_script(
     ledger, *, owner, identity, source, files, image, seconds=600, accelerator=None
 ):
@@ -285,6 +792,8 @@ def _settle_dead_numerical(ledger, *, owner, keep):
         if (
             op.get("state") != "RESERVED"
             or op.get("id") == keep
+            # adopted by this start (`register_adoptable`): its task resumes it
+            or _adoption(ledger, op.get("id")) is not None
             or not reservation.get("numerical_milliseconds", 0)
         ):
             continue
@@ -339,6 +848,9 @@ def settle_previous_runs(ledger, *, owner, before):
     try:
         with _numerical_lease(ledger):
             for identity, phase in rows:
+                if _adoption(ledger, identity) is not None:
+                    # adopted by this start (`register_adoptable`): its program runs on, its task resumes it
+                    continue
                 try:
                     _reconcile_locked(ledger, owner=owner, identity=identity)
                 except Exception as kept:  # noqa: BLE001 - any doubt keeps the op
@@ -451,6 +963,10 @@ def _run(ledger, **kwargs):
     # Every op of a REMOTE grade lane's round, its speed stage included, sends its docker calls to the lane's daemon (owner
     # D6: timed on the box, on the lane's pinned cores); ``timed`` (a control that asks for a timing measurement) only
     # keeps such an op off a remote GPU build slot.
+    # an op this start adopted (a remote GPU build whose program ran on through a restart): followed, never relaunched
+    adoption = _adoption(ledger, identity)
+    if adoption is not None:
+        return _run_adopted(ledger, adoption, **kwargs)
     timed = _timed_control(kwargs.get("files"))
     # A GPU BUILD of a build offered a remote GPU build lane takes one of its slots for its whole life and runs on that
     # machine (`remote_gpu_build.op`); every other op (inference, timing, grading) is unchanged. An op the ledger has
@@ -493,18 +1009,10 @@ def _run(ledger, **kwargs):
             check=(
                 None
                 if ledger is None or owner is None
-                else lambda: _check_cancel(ledger, owner, identity)
-            ),
-            # the build's content key: a build marked for an ALONE retry (`remote_gpu_build.needs_alone`) holds the lane;
-            # only computed where a multi-slot lane is offered
-            key=(
-                remote_gpu_build.alone_key(
-                    source=kwargs.get("source"),
-                    files=kwargs.get("files"),
-                    image_id=getattr(kwargs.get("image"), "image_id", None),
+                else lambda: (
+                    _raise_if_stopping(),
+                    _check_cancel(ledger, owner, identity),
                 )
-                if getattr(remote_gpu_build.offered_lane(), "slots", 1) > 1
-                else None
             ),
         ) as remote_build,
     ):
@@ -513,13 +1021,9 @@ def _run(ledger, **kwargs):
                 return _run_supervised(ledger, **kwargs)
             # a REMOTE GPU build's wall is read against its own box (CV-Motor L12624 (b) + (c))
             with _remote_build_guarded(remote_build):
-                result = _run_supervised(ledger, **kwargs)
-            # an alone retry that reached a verdict: its build's mark is done
-            remote_gpu_build.clear_alone(remote_build)
-            return result
+                return _run_supervised(ledger, **kwargs)
         except MinerProgramFailure:
             # settled in the ledger as the candidate's (a resource stop is retyped BEFORE it is settled): never retyped
-            remote_gpu_build.clear_alone(remote_build)
             raise
         except Exception as error:
             # A GPU shared by more than one build: a device memory exhaustion beside a neighbour is Carbon's.
@@ -1693,16 +2197,6 @@ _GRADE_SESSION: ContextVar = ContextVar("carbon_grade_session", default=None)
 BUILD_WALL_GUARD: ContextVar = ContextVar("carbon_build_wall_guard", default=None)
 
 
-def _program_wall_reached(error, *, program_started, program_timeout):
-    """Whether ``error`` is the program stage's own wall elapsing (the stream timed out at the program's allowance)."""
-    diagnostic = error.private_diagnostic if isinstance(error, WorkerFailure) else b""
-    return (
-        type(diagnostic) is bytes
-        and b"stream command timed out" in diagnostic
-        and time.monotonic() >= program_started + program_timeout - 1
-    )
-
-
 def _build_wall_quiet():
     guard = BUILD_WALL_GUARD.get()
     return True if guard is None else bool(guard())
@@ -2126,6 +2620,7 @@ def _run_locked(
     trusted_stage_identity=None,
     worker_resources_version=None,
     rebuild_wall_seconds=None,
+    adopt=None,
 ):
     before_finish = before_finish or (lambda: None)
     # A GPU build slot of a lane split into N > 1 slots: the program caps its own share of the device first, JAX's and
@@ -2381,6 +2876,9 @@ def _run_locked(
         "retained_bytes": reservation_bytes,
         **_one_trial_per_task(ledger, identity, extra_resources),
     }
+    if not miner_lane and _detachable(session):
+        # the receiver is stopping: no remote GPU build starts now (`Detached`); every other op is as before
+        _raise_if_stopping()
     try:
         admission = ledger.reserve(
             identity, owner=owner, phase=phase, request=request, resources=resources
@@ -2396,8 +2894,14 @@ def _run_locked(
         admission = ledger.reserve(
             identity, owner=owner, phase=phase, request=request, resources=resources
         )
+    # an adopted op (`_run_adopted`): its RESERVED row is the running program's own, followed below, never relaunched
+    adopting = (
+        adopt is not None
+        and not admission["dispatch"]
+        and admission["state"] == "RESERVED"
+    )
     if not admission["dispatch"]:
-        if admission["state"] == "RESERVED":
+        if admission["state"] == "RESERVED" and not adopting:
             raise ValueError("research operation ambiguous; reconcile, never duplicate")
         if admission["state"] == "FAILED_MINER":
             # A replay reports the same typed outcome, never a success, and says that it IS a replay: the worker did not
@@ -2414,9 +2918,21 @@ def _run_locked(
             replay = WorkerFailure(WorkerCode.UNAVAILABLE)
             replay.replayed = True
             raise replay
-        return admission["result"]
+        if not adopting:
+            return admission["result"]
     started = time.monotonic()
     started_unix = time.time()
+    recorded_deadline = None
+    if adopting:
+        # the adopted op keeps its own start and deadline (its intent's ``deadline_unix``), so its walls are the ones
+        # it was launched with; its intent is rewritten below with the identical bytes, or the adoption stops there
+        recorded_deadline = json.loads((operation / "intent.json").read_bytes())[
+            "deadline_unix"
+        ]
+        if type(recorded_deadline) not in (int, float) or seconds is None:
+            raise ValueError("adopted operation deadline unreadable")
+        started_unix = recorded_deadline + 30 - seconds
+        started -= time.time() - started_unix
     name = "carbon-d4-" + launch[7:31] if session is None else session.name
     # The label of the container the op runs in: its own launch, or its grade session's.
     clabel = launch if session is None else session.launch
@@ -2424,12 +2940,14 @@ def _run_locked(
     # or the host doctor: an interruption anywhere after the reservation then
     # leaves an operation reconcile_worker can settle, rather than a RESERVED
     # row with no record of what might have been launched.
-    operation.mkdir()
+    operation.mkdir(exist_ok=adopting)
     # What removes a miner-lane container if its owner cannot: the deadline
     # watchdog when the miner set a time budget, otherwise a reaper that
     # watches this controller process and removes the container only once it
     # is gone. An unbounded run has no time limit, but it is never unguarded.
     guard = _miner_guard(seconds) if miner_lane else None
+    # a remote GPU build's program can outlive this process (`DETACHABLE_FRONT`); its intent says so, for recovery
+    detachable = not miner_lane and _detachable(session)
     write_once(
         operation / "intent.json",
         canonical(
@@ -2440,13 +2958,16 @@ def _run_locked(
                 "owner": owner,
                 "identity": identity,
                 "deadline_unix": (
-                    None if seconds is None else started_unix + seconds - 30
+                    recorded_deadline
+                    if adopting
+                    else (None if seconds is None else started_unix + seconds - 30)
                 ),
                 **({} if guard is None else {"reaper": guard}),
                 # a REMOTE grade lane: the daemon (and mirror root) recovery must use
                 **remote_lane.intent_fields(),
                 # a remote GPU build slot: its daemon, mirror root, lane and slot
                 **remote_gpu_build.intent_fields(),
+                **({"detachable_program": 1} if detachable else {}),
                 **(
                     {}
                     if session is None
@@ -2473,39 +2994,41 @@ def _run_locked(
         }
     )
     try:
-        with _fixed_practice_stage(operation, provenance, "STAGING"):
-            stage.mkdir(mode=0o755)
-            stage.chmod(0o755)
-            staged_files = files
-            if trusted_stage_provider is not None:
-                _check_cancel(ledger, owner, identity)
-                added = _checked_pinned_uv_stage(
-                    trusted_stage_provider(cli), trusted_stage_identity
-                )
-                _check_cancel(ledger, owner, identity)
-                staged_files = {**files, **added}
-            for filename, body in {
-                **staged_files,
-                program_name: source.encode(),
-            }.items():
-                path = stage / filename
-                write_once(path, body)
-                path.chmod(0o555 if filename in executable_files else 0o444)
-            if trusted_overlay is not None:
-                _stage_verified_overlay(
-                    trusted_overlay.path, stage / "overlay", overlay_receipt
-                )
-            if session is not None:
-                session.link(stage)
-            # an upload to another machine (a REMOTE grade lane's box, or a remote GPU build slot's): the container's
-            # /input at the same path there. No timing gate (owner, 17 Nov 2026: lane core pinning is the protection)
-            if session is not None:
-                remote_lane.mirror(session.input)
-            elif remote_gpu_build.docker_host() is not None:
-                # a remote GPU build slot: the build's public stage at the same path on the lane machine
-                remote_gpu_build.mirror(stage)
-            elif remote_lane.current() is not None:
-                remote_lane.mirror(stage)
+        # an adopted op's stage and its box copy exist since its first launch
+        if not adopting:
+            with _fixed_practice_stage(operation, provenance, "STAGING"):
+                stage.mkdir(mode=0o755)
+                stage.chmod(0o755)
+                staged_files = files
+                if trusted_stage_provider is not None:
+                    _check_cancel(ledger, owner, identity)
+                    added = _checked_pinned_uv_stage(
+                        trusted_stage_provider(cli), trusted_stage_identity
+                    )
+                    _check_cancel(ledger, owner, identity)
+                    staged_files = {**files, **added}
+                for filename, body in {
+                    **staged_files,
+                    program_name: source.encode(),
+                }.items():
+                    path = stage / filename
+                    write_once(path, body)
+                    path.chmod(0o555 if filename in executable_files else 0o444)
+                if trusted_overlay is not None:
+                    _stage_verified_overlay(
+                        trusted_overlay.path, stage / "overlay", overlay_receipt
+                    )
+                if session is not None:
+                    session.link(stage)
+                # an upload to another machine (a REMOTE grade lane's box, or a remote GPU build slot's): the container's
+                # /input at the same path there. No timing gate (owner, 17 Nov 2026: lane core pinning is the protection)
+                if session is not None:
+                    remote_lane.mirror(session.input)
+                elif remote_gpu_build.docker_host() is not None:
+                    # a remote GPU build slot: the build's public stage at the same path on the lane machine
+                    remote_gpu_build.mirror(stage)
+                elif remote_lane.current() is not None:
+                    remote_lane.mirror(stage)
         # Every doctor here is sized as the worker it launches (``sizing``: the same resources version), so the cpuset it
         # resolves has exactly the worker's CPU count (`host_execution._fitted`) and the kernel's quota equals its size.
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
@@ -2555,6 +3078,9 @@ def _run_locked(
                     raise shortfall
                 raise ValueError("research host ineligible")
     except Exception:
+        if adopting:
+            # an adopted op's container runs: its task's settle removes it (`reconcile_worker`), never "nothing made"
+            raise
         if session is not None:
             with suppress(Exception):
                 session.after_op(cli, ok=False)
@@ -2604,11 +3130,30 @@ def _run_locked(
     create_attempted = False
     session_op_ok = False
     candidate_stop = None
+    # left as it is for the next start (`Detached`): nothing cleaned up or settled
+    detached = False
     output = operation / "export.stream"
     lease = ExitStack()
     slot = ExitStack()
     try:
-        if session is None:
+        if session is None and adopting:
+            # an adopted op: its container runs since its first launch (no device lease, create or start here); a
+            # fresh watchdog holds it to its recorded deadline (one that survived the restart is harmless: the same one)
+            create_attempted = True
+            with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+                _check_cancel(ledger, owner, identity)
+            with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
+                remote_gpu_build.spawn_watchdog(
+                    container_name=name,
+                    launch_digest=launch,
+                    deadline_unix=float(recorded_deadline),
+                    **(
+                        {"intent_path": operation / "intent.json"}
+                        if provenance == LIBRARY_PREP_PROVENANCE
+                        else {}
+                    ),
+                )
+        elif session is None:
             with _fixed_practice_stage(operation, provenance, "DEVICE_LEASE"):
                 if device is not None and remote_gpu_build.current_op() is not None:
                     from carbon.reconstruction.worker.accelerator_runtime import (
@@ -2754,21 +3299,40 @@ def _run_locked(
             program_started = time.monotonic()
             program_timeout = max(1, seconds - 45 - (program_started - started))
             program_deadline = program_started + program_timeout
+            if detachable:
+                # its docker client is this process's own: a stop ends that client (`door_stopping`), never the program
+                _LIVE_PROGRAMS.add(name)
+                if adopting:
+                    # a stream the stop cut kept nothing whole: read again from the program's own record
+                    (operation / "stdout.txt").unlink(missing_ok=True)
+                else:
+                    write_once(operation / "program-started", b"")
             try:
                 cli.stream_to_file(
-                    [
-                        "exec",
+                    # a remote GPU build's program under its detachable front end (`DETACHABLE_FRONT`); an adopted
+                    # one's recorded result (`DETACHABLE_WAIT`)
+                    _program_command(
                         name,
-                        "/opt/carbon-worker/bin/python",
-                        "-I",
-                        "-c",
                         bootstrap,
-                    ],
+                        detachable=detachable,
+                        maximum=1024**2,
+                        adopting=adopting,
+                    ),
                     operation / "stdout.txt",
                     maximum=1024**2,
                     timeout=program_timeout,
                 )
             except Exception as error:
+                if detachable and _detached_by_stop(error):
+                    # the receiver is stopping: the program runs on, for the next start
+                    detached = True
+                    raise Detached() from error
+                lost = getattr(error, "private_diagnostic", None)
+                if adopting and type(lost) is bytes and PROGRAM_LOST in lost:
+                    # the adopted program's result cannot be known: Carbon's
+                    raise remote_lane.RemoteLaneDown(
+                        b"remote_gpu_build_adopted_program_lost"
+                    ) from error
                 failure_observation = None
                 if provenance in _PROGRAM_EVIDENCE_PROVENANCES:
                     try:
@@ -2875,21 +3439,14 @@ def _run_locked(
                     )
                     if stop is not None:
                         raise _CandidateResourceStop(*stop, error) from error
-                    if (
-                        remote_gpu_build.current_op() is not None
-                        and _program_wall_reached(
-                            error,
-                            program_started=program_started,
-                            program_timeout=program_timeout,
-                        )
-                    ):
-                        # a wall stop not counted on a GPU shared by more than one build: its retry runs ALONE
-                        remote_gpu_build.note_uncounted_wall()
                 raise
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)
         with _fixed_practice_stage(operation, provenance, "EXPORT"):
             export_started = time.monotonic()
+            if adopting:
+                # an export the stop cut kept nothing whole
+                output.unlink(missing_ok=True)
             export_timeout = max(1, seconds - 35 - (export_started - started))
             try:
                 cli.stream_to_file(
@@ -2989,13 +3546,22 @@ def _run_locked(
             raise down from stop.original
         # Settled below, once cleanup of this exact container is observed.
         candidate_stop = stop
+    except Exception as error:
+        if detachable and create_attempted and _detached_by_stop(error):
+            # the receiver is stopping (its stream cut after the program): the container is left for the next start
+            detached = True
+            raise Detached() from error
+        raise
     finally:
+        _LIVE_PROGRAMS.discard(name)
         try:
             with (
                 _fixed_practice_stage(operation, provenance, "CLEANUP"),
-                _remote_inputs_discarded(stage if session is None else None),
+                _remote_inputs_discarded(
+                    stage if session is None and not detached else None
+                ),
             ):
-                if create_attempted:
+                if create_attempted and not detached:
                     # C-03 checks the exact launch label, removes the entire
                     # container, and confirms absence before any output becomes an
                     # associated result.

@@ -491,14 +491,121 @@ def _private_directory(path: Path) -> Path:
     return path
 
 
+def _pack_file_identity(base, relative_path):
+    """``(device, inode, size, mtime_ns, ctime_ns)`` of one pack file, opened exactly as the pack check opens it
+    (descriptor-relative, no symbolic link anywhere on the path) and never read; None when it cannot be opened that way
+    or is not a regular file."""
+    import stat as stat_module
+
+    from carbon.registry import digest as artifact_digest
+
+    try:
+        descriptor = artifact_digest._secure_open(
+            Path(base), artifact_digest._artifact_parts(relative_path)
+        )
+    except Exception:  # noqa: BLE001 - unopenable: the full check decides
+        return None
+    try:
+        found = os.fstat(descriptor)
+    except OSError:
+        return None
+    finally:
+        os.close(descriptor)
+    if not stat_module.S_ISREG(found.st_mode):
+        return None
+    return (
+        found.st_dev,
+        found.st_ino,
+        found.st_size,
+        found.st_mtime_ns,
+        found.st_ctime_ns,
+    )
+
+
+def _pack_files(root, relative_path, snapshot, public_root, private_root):
+    """Every file the pack check reads: the manifest, then each role's artifact (inline bytes, a hidden batch store and an
+    unavailable role read no file here)."""
+    from collections.abc import Mapping
+
+    from carbon.challenge_validator.evaluation_pack import UNAVAILABLE
+
+    files = [(root, relative_path)]
+    for roles, base in (
+        (snapshot.public, public_root),
+        (snapshot.private, private_root),
+    ):
+        for entry in roles.values():
+            if (
+                entry != UNAVAILABLE
+                # a parsed pack's role entry is a read-only mapping (`parse_pack`: MappingProxyType), never a dict
+                and isinstance(entry, Mapping)
+                and "inline_bytes" not in entry
+                and entry.get("kind") != "hidden_batch_store"
+                and "path" in entry
+            ):
+                files.append((base, entry["path"]))
+    return tuple(files)
+
+
 def _pack_check(root, relative_path, digest, public_root, private_root, challenge):
-    """Bind an opted-in pack to registered construction bytes at every use."""
+    """Bind an opted-in pack to registered construction bytes at every use.
+
+    CACHED BY FILE IDENTITY (TEAM_RULES #13; live 116, 19 Nov 2026: every research request ran this twice, so every
+    source-upload chunk re-hashed the whole pack and re-read TRAIN). Every use still opens each file the check reads,
+    exactly as the check opens it, and reads its identity (device, inode, size, mtime, ctime: a write moves ctime).
+    The full check (load the manifest, digest every artifact, compare the construction roles and TRAIN) runs again
+    whenever any identity differs, a file cannot be opened that way, the material's TRAIN is another object, or its
+    three construction documents differ. A result is trusted only after a full check that ran BETWEEN two equal
+    identity readings (so a write during the check is never trusted), and a failed check is never cached.
+    """
     from carbon.challenge_validator.evaluation_pack import (
         EvaluationPackUnavailable,
         load_pack,
     )
 
+    #: ``files`` (the files the last full check read) and ``trusted`` ((identities, TRAIN object, documents) or None)
+    memo = {"files": None, "trusted": None}
+    memo_lock = threading.Lock()  # guards the two references only (no I/O under it)
+
+    def identities(files):
+        if files is None:
+            return None
+        found = tuple(_pack_file_identity(base, path) for base, path in files)
+        return None if any(item is None for item in found) else found
+
     def checked(material):
+        documents = canonical(
+            [
+                material["construction_kit"],
+                material["interface_document"],
+                material["physics_contract"],
+            ]
+        )
+        train = material["train"]
+        before = identities(memo["files"])
+        trusted = memo["trusted"]
+        if (
+            before is not None
+            and trusted is not None
+            and trusted[0] == before
+            # the same TRAIN, or equal bytes (as safe: the full check compares content; V2 20:30Z)
+            and (trusted[1] is train or trusted[1] == train)
+            and trusted[2] == documents
+        ):
+            return
+        try:
+            files = full(material)
+        except BaseException:
+            with memo_lock:
+                memo["trusted"] = None  # a failed check is never trusted
+            raise
+        after = identities(files)
+        with memo_lock:
+            memo["files"] = files
+            stable = after is not None and after == before
+            memo["trusted"] = (after, train, documents) if stable else None
+
+    def full(material):
         snapshot = load_pack(
             root,
             relative_path,
@@ -525,6 +632,7 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
             != material["train"]
         ):
             raise EvaluationPackUnavailable("evaluation_pack.train_mismatch")
+        return _pack_files(root, relative_path, snapshot, public_root, private_root)
 
     return checked
 
@@ -2291,6 +2399,19 @@ class OwnerProviders:
                 task for index in self._lazy_index.values() for task in index
             )
 
+    def lazy_tasks_of(self, hotkeys):
+        """The task ids the LAZY owners among ``hotkeys`` hold (all terminal): `lazy_tasks` for one allowance group's
+        hotkeys only, so an admission never gathers every lazy owner's tasks (LOCK + CACHE AUDIT #2b). Memory only.
+        """
+        wanted = frozenset(hotkeys)
+        with self._lock:
+            return frozenset(
+                task
+                for directory, index in self._lazy_index.items()
+                if self._lazy.get(directory) in wanted
+                for task in index
+            )
+
     def lazy_index(self):
         """``{task id: (state name, created unix seconds)}`` over every lazy owner, read by `restore`'s scan (the public
         queue's index of the providers not open yet, `QueueView._index`)."""
@@ -2554,12 +2675,21 @@ class OwnerProviders:
         submission (13 Nov: two stops cancelled 75 and left every identical resubmission waiting behind them). A task
         RUNNING or already CANCEL_REQUESTED is still cancelled: it holds a worker that must be reconciled. A revoked or
         recycled owner's queue is still cancelled, at the restore (`_open`: ``restoring and not live``).
+
+        EXCEPT a RUNNING task whose remote GPU build program runs on (owner, 20 Nov 2026: a restart must never cancel an
+        in-flight build; live 116 01:52Z, ~22 cancelled and re-run from zero): first the stop is announced
+        (`research_carrier.door_stopping`: nothing new starts, this process's own stream clients of those programs end),
+        then such a task (`detached_build`) is left RUNNING with its program running on its box, and the next start
+        adopts it (`register_adoptable`) or, when it cannot, settles it as before. Each is still listed in the stop's
+        record (`_record_stop_cancelled`), so one the next start cannot adopt is re-run at its place as before.
         """
+        from carbon.development_session.research_carrier import door_stopping
         from carbon.research import DirectTaskStateV3
 
         with self._lock:
             self._closing = True
             providers = tuple(self._providers.values())
+        door_stopping()
         errors = []
         stopped = []
         for provider in providers:
@@ -2572,6 +2702,20 @@ class OwnerProviders:
                     DirectTaskStateV3.RUNNING,
                     DirectTaskStateV3.CANCEL_REQUESTED,
                 )
+                if view.state is DirectTaskStateV3.RUNNING and _left_detached(
+                    provider, view.task_id
+                ):
+                    # left by an earlier cancel of this stop (`serve` cancels, then its last step again): listed once
+                    continue
+                left = getattr(provider, "detached_build", None)
+                if (
+                    view.state is DirectTaskStateV3.RUNNING
+                    and callable(left)
+                    and left(view.task_id)
+                ):
+                    # its build's program runs on: left for the next start, never cancelled
+                    stopped.append(getattr(view.task_id, "value", view.task_id))
+                    continue
                 try:
                     provider.cancel_observed_task(
                         view.task_id, self.discovery.info.challenge_key
@@ -2588,8 +2732,10 @@ class OwnerProviders:
     def close(self):
         """Release no provider lock while its children need reconciliation."""
         providers = tuple(self._providers.values())
+        # a task this stop left for the next start (`cancel`: its build's program runs on) holds its op on purpose
         if any(
             provider.requires_reconciliation(view.task_id)
+            and not _left_detached(provider, view.task_id)
             for provider in providers
             for view in tuple(provider._views.values())
         ):
@@ -2599,7 +2745,10 @@ class OwnerProviders:
                 state = self._controls[hotkey].settled(
                     provider.ledger.generation, cleanup_verified=True, ready=True
                 )
-                if state == "RECONCILIATION_REQUIRED":
+                if state == "RECONCILIATION_REQUIRED" and not any(
+                    _left_detached(provider, view.task_id)
+                    for view in tuple(provider._views.values())
+                ):
                     raise ReceiverUnavailable("direct_receiver_cleanup_unresolved")
             provider.close()
 
@@ -2612,6 +2761,24 @@ def _open_crown_owners(grader):
     try:
         grader._prelude_owners()
     except Exception:  # noqa: BLE001, S110 - opens on first touch
+        pass
+
+
+def _left_detached(provider, task_id):
+    """Whether this stop left ``task_id`` for the next start (`OwnerProviders.cancel`, the provider's `detached`)."""
+    detached = getattr(provider, "detached", None)
+    return callable(detached) and bool(detached(task_id))
+
+
+def _announce_stop():
+    """The receiver's stop signal: announced to the carrier at once (`research_carrier.announce_stop`), so a remote
+    GPU build whose stream the stop cuts is left for the next start, never cleaned up as a failure. Never raises.
+    """
+    try:
+        from carbon.development_session.research_carrier import announce_stop
+
+        announce_stop()
+    except Exception:  # noqa: BLE001, S110 - a stop never fails on its announcement
         pass
 
 
@@ -3924,7 +4091,8 @@ def main(argv=None):
         return 1
     stop = threading.Event()
     for number in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(number, lambda *_: stop.set())
+        # announced to the carrier first: a remote build whose stream the stop cuts is left running (`_announce_stop`)
+        signal.signal(number, lambda *_: (_announce_stop(), stop.set()))
     register_stack_dump()
     try:
         result = serve(

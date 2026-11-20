@@ -30,7 +30,7 @@ its address) and its device record is well formed with its digest; and it is not
 op keeps its binding to the end). The receiver binds the CLASS (`GpuClass`: ``{"kind", "class": true}``), never a box.
 
 **Per box**, under ``<HOST_ROOT>/remote-gpu-build/box-<name>/`` (`BOX_DIR`): the slot locks and per-slot allocation
-records, the lane gate, a copy of the box file (`BOX_COPY`, what recovery reads once the file is gone), and the ssh
+records, a copy of the box file (`BOX_COPY`, what recovery reads once the file is gone), and the ssh
 material: ``known_hosts`` holding exactly the box's pinned host key, ``bin/ssh`` (a shim that runs the system ssh with
 ``StrictHostKeyChecking=yes`` and ``UserKnownHostsFile`` = that file, ``GlobalKnownHostsFile=/dev/null``) and the docker
 wrapper ``docker`` (the local docker CLI with the box's ``DOCKER_HOST`` and ``PATH`` = the box's ``bin`` first, so
@@ -38,16 +38,20 @@ Docker's ssh:// connection helper, which runs ``ssh`` from ``PATH``, takes the s
 a box (mirror, discard, probes) passes the same pinned options itself (`_box_ssh`). ``~/.ssh/config`` is never edited.
 
 **Choice, down, proven.** Each op takes a free slot on an eligible box: the box with the most free slots, then the name.
-A box whose op failed with its link or GPU unhealthy is marked DOWN (`DOWN_MARKER`, a timestamp) and skipped for
-`DOWN_SECONDS`, or until its next successful health probe, so a retry lands on another box. A box's FIRST real build is
+A box whose op failed with its link or GPU unhealthy is SUSPECT; a second such loss within `DOWN_SECONDS`
+(`DOWN_AFTER_LOSSES` in a row, over-broad rules audit #13: one blip must not idle a box) marks it DOWN (`DOWN_MARKER`, a
+timestamp), skipped for `DOWN_SECONDS` or until its next successful health probe (which also clears a suspect mark), so
+a retry lands on another box. A box's FIRST real build is
 also built, with the same graph/seed/recipe, on an already PROVEN box (the graph route's ``<task>~shadow``,
 `research_tasks`): equal state digests mark the new box PROVEN (`PROVEN_MARKER`, bound to its box file's digest); unequal
 ones refuse it and the task is FAILED_INFRA. While a box's first build runs, no other op starts there (`FIRST_BUILD`),
 so that is the only extra build. With no proven box at all, the first box is proven by its own class check at once.
 
 **Per build** (Validator-2's re-read): before the container is created, the box's GPU name and uuid (``nvidia-smi``) and
-the image id (``docker image inspect``, `check_host`) are read again on the box; a mismatch with the box file is
-FAILED_INFRA and the box file is renamed ``.refused``.
+the image id (``docker image inspect``, `check_host`) are read again on the box; a mismatch with the box file, read
+twice (an image the daemon answers for without the admitted one; ``nvidia-smi`` naming GPUs, none of them the box file's),
+is FAILED_INFRA and the box file is renamed ``.refused``. A GPU list that is empty or unreadable is the box lost (DOWN),
+never refused (audit #13: ``.refused`` only on a verified identity change).
 
 **Local slot lanes** (Lead, Mon 16 Nov: one design for both): the OLD lane record ``<HOST_ROOT>/remote-gpu-build-lanes.json``
 (`RECORD`) is kept ONLY for a lane with ``"docker_host": null`` and ``"stage_root": null``: THIS host's own GPU (the
@@ -95,7 +99,7 @@ RECORD = "remote-gpu-build-lanes.json"
 SCHEMA = "carbon.remote-gpu-build-lanes.v1"
 #: The per-lane directory under HOST_ROOT of a local slot lane: its slot locks and records.
 LANE_DIR = "remote-gpu-build/lane-{index}"
-#: Under HOST_ROOT: what the pool shares (the alone marks, the pool lock), and each box's own directory.
+#: Under HOST_ROOT: what the pool shares (the pool lock), and each box's own directory.
 POOL_DIR = "remote-gpu-build"
 BOX_DIR = "remote-gpu-build/box-{name}"
 #: Under HOST_ROOT: the box files `gpu_box_up.py door` writes (``--boxes-dir``), read at every op.
@@ -117,6 +121,10 @@ BOX_COPY = "box.json"
 REFUSED_NOTE = "refused.json"
 #: How long a box marked down is skipped (an operational bound, not a scientific value).
 DOWN_SECONDS = 600
+#: Lost ops in a row (each within `DOWN_SECONDS` of the one before) that mark a box DOWN (`note_loss`); the first only
+#: marks it SUSPECT, still offered (over-broad rules audit #13, Validator-2 ruling 18 Nov 2026: one blip idled a box for
+#: 10 min, with 1-3 boxes 33-100 pct of GPU build capacity). An operational bound, not a scientific value.
+DOWN_AFTER_LOSSES = 2
 #: The graph route's first-build shadow op: ``<task>~shadow``, on a proven box other than the new one.
 SHADOW_SUFFIX = "~shadow"
 #: The values rows: ``{"schema", "rows": {"<challenge> <version>": {"device_kind": str, "slots"?: int}}}``.
@@ -248,10 +256,6 @@ class OpBinding:
 
     lane: DoorLane
     slot: int
-    #: the build's content key (`alone_key`): where an uncounted wall stop marks the build for an ALONE retry
-    key: str | None = None
-    #: whether this op holds every slot of its machine (an alone retry)
-    alone: bool = False
     #: a recorded op whose box file is gone (`recorded`): recovery only clears its local slot record
     gone: bool = False
 
@@ -292,10 +296,6 @@ class _Offer:
             or not lane.spec.images
             or self.image_id in lane.spec.images
         )
-
-    @property
-    def slots(self):
-        return (self.fixed or self.pool).slots
 
     @property
     def offered(self):
@@ -824,12 +824,48 @@ def mark_down(lane, reason=b""):
     )
 
 
+def note_loss(lane, reason=b""):
+    """One lost op on ``lane``'s box (its link or GPU unhealthy after a failure): the box is DOWN (`mark_down`) once
+    `DOWN_AFTER_LOSSES` losses come in a row, each within `DOWN_SECONDS` of the last; before that it is only SUSPECT
+    (the mark counts the losses; `is_down` is False, so the box is still offered). A healthy probe clears it.
+    """
+    if lane is None or lane.spec.local:
+        return False
+    path = Path(lane.lane_dir) / DOWN_MARKER
+    mark = _read_mark(path)
+    now = time.time()
+    if is_down(lane):
+        # a live DOWN mark stays DOWN (its window unchanged): a box that lost its link fails every op it was running, and
+        # a later loss must never turn it back into SUSPECT (offered) while it is still dead (Validator-2, B1a 20 Nov)
+        return True
+    losses = 1
+    if (
+        mark is not None
+        and type(mark.get("losses")) is int
+        and type(mark.get("unix")) in (int, float)
+        and now - mark["unix"] < DOWN_SECONDS
+    ):
+        losses = mark["losses"] + 1
+    if losses >= DOWN_AFTER_LOSSES:
+        return mark_down(lane, reason)
+    return _write_mark(
+        path,
+        {
+            "unix": now,
+            "losses": losses,
+            "reason": bytes(reason)[:200].decode("utf-8", "replace"),
+        },
+    )
+
+
 def is_down(lane):
-    """Whether ``lane``'s box was marked down less than `DOWN_SECONDS` ago."""
+    """Whether ``lane``'s box was marked down less than `DOWN_SECONDS` ago (a SUSPECT mark, `note_loss`, is not)."""
     if lane.spec.local:
         return False
     mark = _read_mark(Path(lane.lane_dir) / DOWN_MARKER)
     if mark is None or type(mark.get("unix")) not in (int, float):
+        return False
+    if "losses" in mark:
         return False
     return time.time() - mark["unix"] < DOWN_SECONDS
 
@@ -1132,119 +1168,6 @@ def current_op():
     return _current()
 
 
-# -- the alone retry (Validator-2, 16 Nov: a wall stop beside a neighbour is never counted, so its retry runs ALONE) ----
-
-
-#: Where builds marked for an alone retry are recorded, in the pool's directory: one file per build content key (a
-#: retry may land on any box).
-ALONE_DIR = "alone"
-#: Live alone retries waiting for a box: while one waits, no new op starts on that box.
-ALONE_WANTED_DIR = "alone.wanted"
-#: Every op of a box with more than one slot holds this SHARED for its life; an alone retry holds it EXCLUSIVE.
-GATE_LOCK = "gate.lock"
-_KEY = re.compile(r"[0-9a-f]{64}")
-
-
-def alone_key(*, source, files, image_id):
-    """A build's content key: its program, its staged files and its worker image. A retry of the same build (same
-    recipe, TRAIN, seed and image) has the same key whatever its task or operation identity.
-    """
-    import hashlib
-
-    if type(source) is not str or type(files) is not dict or type(image_id) is not str:
-        return None
-    entries = []
-    for name in sorted(files):
-        body = files[name]
-        if type(name) is not str or type(body) not in (bytes, str):
-            return None
-        data = body.encode() if type(body) is str else body
-        entries.append([name, hashlib.sha256(data).hexdigest()])
-    document = json.dumps(
-        {
-            "source": hashlib.sha256(source.encode()).hexdigest(),
-            "files": entries,
-            "image": image_id,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
-    return hashlib.sha256(document).hexdigest()
-
-
-def _marker(where, key):
-    if type(key) is not str or not _KEY.fullmatch(key):
-        return None
-    return where.pool_dir / ALONE_DIR / key
-
-
-#: How long a mark stands: a build not retried within this is not waiting for its retry any more (an operational
-#: bound, so a mark nothing cleared, e.g. a repeat probe's or a withdrawn build's, never costs a box for good).
-ALONE_MARK_SECONDS = 24 * 3600
-
-
-def needs_alone(where, key):
-    """Whether the build of ``key`` is marked for an alone retry in ``where``'s pool (a `DoorPool` or a `DoorLane`; a
-    mark younger than `ALONE_MARK_SECONDS`; an older one is removed)."""
-    marker = None if where is None else _marker(where, key)
-    if marker is None:
-        return False
-    try:
-        age = time.time() - marker.stat().st_mtime
-    except OSError:
-        return False
-    if age > ALONE_MARK_SECONDS:
-        marker.unlink(missing_ok=True)
-        return False
-    return True
-
-
-def note_uncounted_wall(binding=None):
-    """Mark the running op's build for an ALONE retry: its wall stop was not counted on a box shared by more than one
-    slot (a busy box is never quiet, so only a retry with the GPU to itself can give a decisive verdict). Best effort:
-    a marker that cannot be written leaves the build to an ordinary retry."""
-    binding = _current() if binding is None else binding
-    if binding is None or binding.lane.slots == 1:
-        return False
-    marker = _marker(binding.lane, binding.key)
-    if marker is None:
-        return False
-    if binding.alone:
-        # the alone retry itself was not counted (a foreign process or the link, not a neighbour): it is not retried
-        # alone again, so a box that cannot be read never holds the whole box over and over; its retry is ordinary
-        marker.unlink(missing_ok=True)
-        return False
-    try:
-        marker.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        marker.write_text(json.dumps({"key": binding.key, "unix": time.time()}) + "\n")
-        marker.chmod(0o600)
-    except OSError:
-        return False
-    return True
-
-
-def clear_alone(binding=None):
-    """The running alone retry reached a verdict: its build's mark is removed."""
-    binding = _current() if binding is None else binding
-    if binding is None or not binding.alone:
-        return
-    marker = _marker(binding.lane, binding.key)
-    if marker is not None:
-        marker.unlink(missing_ok=True)
-
-
-def _wanted_by_others(directory, own):
-    """Whether a live alone retry other than ``own`` waits for the box."""
-    from carbon.reconstruction import grade_lanes
-
-    folder = directory / ALONE_WANTED_DIR
-    try:
-        names = [entry.name for entry in folder.iterdir()]
-    except OSError:
-        return False
-    return any(name != own and grade_lanes._live(name) for name in names)
-
-
 def _usable_box(offer, box):
     """Whether ``box`` may take ``offer``'s op now (not down, admitted with the build's image); a box passed over is
     logged with why (`_note_skip`)."""
@@ -1288,7 +1211,6 @@ def op(
     sleep=None,
     check=None,
     settled=False,
-    key=None,
     recorded=None,
 ):
     """Bind an eligible op (`eligible`) of a build that was offered a pool to one free slot of one machine for its
@@ -1297,10 +1219,9 @@ def op(
     `SLOT_WAIT_SECONDS` too. ``check`` is called while waiting (the op's cancellation), and may raise. A slot whose
     allocation record a lost controller left behind is passed over until recovery clears it.
 
-    On a machine with more than one slot every op holds its gate (`GATE_LOCK`) SHARED. A build whose ``key`` is marked
-    for an ALONE retry (`needs_alone`) announces itself on the box it chose (`ALONE_WANTED_DIR`), so no new op starts
-    there; takes the gate EXCLUSIVE once the running ops have ended; and holds EVERY slot for its life, so its box is
-    quiet and its wall can count (CV-Motor L12624).
+    The retry of a build whose wall stop was not counted is an ordinary op on any free slot (over-broad rules audit #7,
+    V2 timing ruling): its wall counts only when its slot and its box are uncontended (`wall_counts`,
+    `wall_stop_observable`, the op's box guard); no box is drained for it.
 
     An op whose link or GPU is found unhealthy when it fails as Carbon's marks its box DOWN (`mark_down`).
     ``recorded``: a settled op's recorded binding (`recorded`), which its replay binds (its request names that box).
@@ -1317,7 +1238,7 @@ def op(
         # an op the ledger has settled replays its recorded result: bound to the box it ran on (its request, its
         # device, its program are that box's, so the replay matches what was reserved), but it runs nothing and takes
         # no slot
-        token = _OP.set(_settled_binding(offer, recorded, key))
+        token = _OP.set(_settled_binding(offer, recorded))
         try:
             yield _OP.get()
         finally:
@@ -1338,7 +1259,6 @@ def op(
             binding = _take(
                 offer,
                 identity,
-                key,
                 held=held,
                 check=check,
                 pause=pause,
@@ -1355,7 +1275,7 @@ def op(
             _OP.reset(token)
 
 
-def _settled_binding(offer, recorded, key):
+def _settled_binding(offer, recorded):
     if recorded is not None and recorded.lane.device is not None:
         lane = recorded.lane
         if offer.fixed is None:
@@ -1366,30 +1286,30 @@ def _settled_binding(offer, recorded, key):
                 # a build settled on a box never proven (a restart during its shadow): it is still that box's first
                 # build, so the task shadows it again (`first_build_box`); no claim file is taken for a replay
                 offer.claims.append((lane, None))
-        return OpBinding(lane, recorded.slot, key)
+        return OpBinding(lane, recorded.slot)
     if offer.fixed is None:
         # a pool: the box a settled op ran on is never guessed (a wrong box's request is a replay conflict)
         raise RemoteLaneDown(b"remote_gpu_build_settled_box_unknown")
     lanes = _candidates(offer, shadow=False)
     if not lanes:
         raise RemoteLaneDown(b"remote_gpu_build_no_box")
-    return OpBinding(lanes[0], 0, key)
+    return OpBinding(lanes[0], 0)
 
 
 def _note_loss(binding, error):
-    """A box op that failed as Carbon's with its link or GPU lost: its box is DOWN (`DOWN_SECONDS`)."""
+    """A box op that failed as Carbon's with its link or GPU lost: one loss (`note_loss`; DOWN after
+    `DOWN_AFTER_LOSSES` in a row)."""
     if binding.lane.spec.local or getattr(error, "box_refused", False):
         return
     diagnostic = getattr(error, "private_diagnostic", b"")
     if diagnostic == b"remote_gpu_build_unhealthy_after_failure" or not healthy(
         binding
     ):
-        mark_down(binding.lane, diagnostic)
+        note_loss(binding.lane, diagnostic)
 
 
-def _take(offer, identity, key, *, held, check, pause, poll, deadline):
+def _take(offer, identity, *, held, check, pause, poll, deadline):
     shadow = type(identity) is str and identity.endswith(SHADOW_SUFFIX)
-    alone = offer.slots > 1 and needs_alone(offer.offered, key)
     while True:
         lanes = _candidates(offer, shadow=shadow)
         if not lanes:
@@ -1399,31 +1319,10 @@ def _take(offer, identity, key, *, held, check, pause, poll, deadline):
                 else b"remote_gpu_build_no_box"
             )
         order = sorted(lanes, key=lambda lane: (-_free_slots(lane), lane.spec.name))
-        if alone:
-            lane = next((lane for lane in order if shadow or _admit(offer, lane)), None)
-            if lane is not None:
-                _ensure_box_files(lane)
-                held.enter_context(
-                    _gate(
-                        lane,
-                        alone=True,
-                        check=check,
-                        pause=pause,
-                        poll=poll,
-                        deadline=deadline,
-                    )
-                )
-                held.enter_context(
-                    _all_slots(
-                        lane, check=check, pause=pause, poll=poll, deadline=deadline
-                    )
-                )
-                return OpBinding(lane, 0, key, alone=True)
-        else:
-            for lane in order:
-                binding = _try_lane(offer, lane, key, held=held, shadow=shadow)
-                if binding is not None:
-                    return binding
+        for lane in order:
+            binding = _try_lane(offer, lane, held=held, shadow=shadow)
+            if binding is not None:
+                return binding
         if offer.fixed is None and any(_live_ops(lane) for lane in lanes):
             # a pool's build rounds are sized for its most boxes (`door_build_slots`), so a round may wait behind
             # live builds on the boxes up: that wait is progress, never Carbon's failure; the wall-clock bound is for
@@ -1432,15 +1331,10 @@ def _take(offer, identity, key, *, held, check, pause, poll, deadline):
         _wait(check, deadline, pause, poll, b"remote_gpu_build_slots_busy")
 
 
-def _try_lane(offer, lane, key, *, held, shadow):
-    """One free slot of ``lane`` (with its gate SHARED on a multi-slot machine) for an ordinary op, or None."""
+def _try_lane(offer, lane, *, held, shadow):
+    """One free slot of ``lane`` for an op, or None."""
     inner = ExitStack()
     try:
-        if lane.slots > 1:
-            fd = _try_gate(lane)
-            if fd is None:
-                return None
-            inner.callback(_unlock, fd)
         got = _try_slot(lane)
         if got is None:
             inner.close()
@@ -1455,7 +1349,7 @@ def _try_lane(offer, lane, key, *, held, shadow):
         inner.close()
         raise
     held.enter_context(inner)
-    return OpBinding(lane, slot, key)
+    return OpBinding(lane, slot)
 
 
 def _unlock(fd):
@@ -1479,20 +1373,6 @@ def _wait(check, deadline, pause, poll, reason):
     if time.monotonic() >= deadline:
         raise RemoteLaneDown(reason)
     pause(poll)
-
-
-def _try_gate(lane):
-    """``lane``'s gate SHARED now (no alone retry waiting for it), or None."""
-    directory = Path(lane.lane_dir)
-    fd = _open(directory / GATE_LOCK)
-    if not _wanted_by_others(directory, None):
-        try:
-            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
-            return fd
-        except BlockingIOError:
-            pass
-    os.close(fd)
-    return None
 
 
 def _try_slot(lane):
@@ -1553,74 +1433,6 @@ def _free_slots(lane):
         finally:
             os.close(fd)
     return free
-
-
-@contextmanager
-def _gate(lane, *, alone, check, pause, poll, deadline):
-    """The box gate for one op: SHARED (an ordinary op, which waits while an alone retry is announced) or EXCLUSIVE (an
-    alone retry, announced in `ALONE_WANTED_DIR` while it waits). Yields whether the op runs alone.
-    """
-    from carbon.reconstruction import grade_lanes
-
-    directory = Path(lane.lane_dir)
-    fd = _open(directory / GATE_LOCK)
-    wanted = None
-    own = f"{os.getpid()}-{grade_lanes.process_start(os.getpid())}-{id(fd)}"
-    try:
-        if alone:
-            try:
-                (directory / ALONE_WANTED_DIR).mkdir(mode=0o700, exist_ok=True)
-                wanted = directory / ALONE_WANTED_DIR / own
-                wanted.touch(mode=0o600)
-            except OSError as error:
-                raise RemoteLaneDown(repr(error).encode()[:512]) from None
-            while True:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except BlockingIOError:
-                    _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
-        else:
-            while True:
-                if not _wanted_by_others(directory, own):
-                    try:
-                        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
-                        break
-                    except BlockingIOError:
-                        pass
-                _wait(check, deadline, pause, poll, b"remote_gpu_build_slots_busy")
-        yield alone
-    finally:
-        if wanted is not None:
-            wanted.unlink(missing_ok=True)
-        _unlock(fd)
-
-
-@contextmanager
-def _all_slots(lane, *, check, pause, poll, deadline):
-    """Every slot of ``lane`` (an alone retry, holding the gate EXCLUSIVE, so none is being taken meanwhile)."""
-    held = []
-    try:
-        for slot in range(lane.slots):
-            fd = _open(Path(lane.lane_dir) / f"slot-{slot}" / "slot.lock")
-            held.append(fd)
-            while True:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                except BlockingIOError:
-                    _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
-                    continue
-                if not (
-                    Path(lane.lane_dir) / f"slot-{slot}" / "active-allocation.json"
-                ).exists():
-                    break
-                # a lost controller's record: its container may still run, so the box is not this op's alone yet
-                fcntl.flock(fd, fcntl.LOCK_UN)
-                _wait(check, deadline, pause, poll, b"remote_gpu_build_alone_busy")
-        yield
-    finally:
-        for fd in held:
-            _unlock(fd)
 
 
 # -- what the carrier asks of a bound op ------------------------------------------------------------------------------------
@@ -2106,6 +1918,70 @@ def bound(binding):
         _OP.reset(token)
 
 
+def as_recorded(binding, request):
+    """An adopted op's binding (`recorded`) in the slot class its own reservation recorded (`request_fields`: the slot
+    count and memory mode it was launched with) and on the device it recorded, so the adopting run reserves the very
+    request it reserved; None when this binding cannot give that request (the op is then settled, never adopted).
+    `recorded` reads a box's own record (memory ``capped``) while a pool's class may be ``shared``: live 116, 20 Nov
+    2026, both adopted builds ended in "operation replay conflict" at their re-reservation.
+    """
+    accelerator = request.get("accelerator") if type(request) is dict else None
+    if type(binding) is not OpBinding or type(accelerator) is not dict:
+        return None
+    fields = {
+        key: accelerator[key]
+        for key in ("remote_gpu_slots", "slot_memory")
+        if key in accelerator
+    }
+    slots = fields.get("remote_gpu_slots", 1)
+    if type(slots) is not int or not binding.slot < slots:
+        return None
+    memory = "shared" if fields.get("slot_memory") == "shared" else "capped"
+    device = binding.lane.device
+    if getattr(device, "digest", None) != accelerator.get("device"):
+        return None
+    try:
+        rebound = OpBinding(
+            dataclasses.replace(binding.lane, slots=slots, memory=memory),
+            binding.slot,
+            gone=binding.gone,
+        )
+        if request_fields(rebound) != fields:
+            return None
+    except (TypeError, ValueError):
+        return None
+    return rebound
+
+
+@contextmanager
+def adopted(binding):
+    """Bind an op a restart ADOPTS (`research_carrier.register_adoptable`: its program still runs on this binding's box)
+    to the very slot its intent recorded, for the rest of its life: that slot's lock is taken (a live op holding it
+    refuses: Carbon's) and its allocation record, which names the adopted container, stays; no other slot is taken.
+    The same box files as any op (`_ensure_box_files`); a link or GPU loss marks the box as any op's does.
+    """
+    if type(binding) is not OpBinding or binding.gone or binding.lane.spec.local:
+        raise RemoteLaneDown(b"remote_gpu_build_adopt_unbound")
+    fd = _open(binding.slot_dir / "slot.lock")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        raise RemoteLaneDown(b"remote_gpu_build_adopt_slot_held") from None
+    try:
+        _ensure_box_files(binding.lane)
+        token = _OP.set(binding)
+        try:
+            yield binding
+        except RemoteLaneDown as error:
+            _note_loss(binding, error)
+            raise
+        finally:
+            _OP.reset(token)
+    finally:
+        _unlock(fd)
+
+
 # -- the remote machine ---------------------------------------------------------------------------------------------------
 
 
@@ -2376,13 +2252,16 @@ def check_host(cli_, image, record, pins=None):
             if attempt == 2:
                 # twice, with the daemon answering: the image the box file admitted is not there as it was
                 raise refuse(lane, b"remote_gpu_build_box_image_mismatch") from error
+    ours = (lane.device.device_uuid, lane.device.device_kind)
     rows = _gpu_rows(binding)
-    if rows is None:
+    if rows and ours not in rows and not lane.spec.local:
+        # a verified identity change only (audit #13): read again; a flicker that names ours the second time is not one
+        rows = _gpu_rows(binding)
+        if rows and ours not in rows:
+            raise refuse(lane, b"remote_gpu_build_box_gpu_mismatch")
+    if not rows or ours not in rows:
+        # unreadable or empty: the GPU is lost (the box DOWN through the op's failure), never a refusal
         raise RemoteLaneDown(b"remote_gpu_build_device_absent")
-    if (lane.device.device_uuid, lane.device.device_kind) not in rows:
-        if lane.spec.local:
-            raise RemoteLaneDown(b"remote_gpu_build_device_absent")
-        raise refuse(lane, b"remote_gpu_build_box_gpu_mismatch")
     clear_down(lane)
 
 
@@ -2433,8 +2312,7 @@ def reject_crowded(cli_, binding=None):
         timeout=10,
     ).stdout
     running = len([line for line in raw.splitlines() if line.strip()])
-    # an alone retry needs the device to itself: no other Carbon container on it at all
-    if running >= (1 if binding.alone else binding.lane.slots):
+    if running >= binding.lane.slots:
         raise WorkerFailure(WorkerCode.CONFLICT)
 
 
@@ -2497,8 +2375,7 @@ def wall_counts(binding=None):
     binding = _current() if binding is None else binding
     if binding is None or not binding.lane.spec.local:
         return True
-    # an alone retry holds every slot: its lane is, for this op, a one-slot lane
-    return binding.lane.slots == 1 or binding.alone
+    return binding.lane.slots == 1
 
 
 def wall_stop_observable(observation, *, box_seconds=None, needed=None):
@@ -2530,12 +2407,7 @@ def shared_memory_exhausted(error, markers, binding=None):
     neighbour is never the miner's.
     """
     binding = _current() if binding is None else binding
-    if (
-        binding is None
-        or binding.lane.slots == 1
-        or binding.alone
-        or isinstance(error, RemoteLaneDown)
-    ):
+    if binding is None or binding.lane.slots == 1 or isinstance(error, RemoteLaneDown):
         return False
     diagnostic = getattr(error, "private_diagnostic", b"")
     return type(diagnostic) is bytes and any(marker in diagnostic for marker in markers)
@@ -2555,15 +2427,13 @@ def retyped(error, binding=None):
 
 
 __all__ = [
-    "ALONE_DIR",
-    "ALONE_MARK_SECONDS",
     "BOXES_DIR",
     "BOX_DIR",
     "BOX_SCHEMA",
     "BOX_SLOT_CPUSETS",
     "DEFAULT_SLOTS",
+    "DOWN_AFTER_LOSSES",
     "DOWN_SECONDS",
-    "GATE_LOCK",
     "MAX_LANES",
     "MAX_SLOTS",
     "RECORD",
@@ -2578,13 +2448,11 @@ __all__ = [
     "GpuClass",
     "OpBinding",
     "allocation_root",
-    "alone_key",
     "bound",
     "box_docker",
     "box_output",
     "boxes",
     "check_host",
-    "clear_alone",
     "cli",
     "cpuset",
     "current_op",
@@ -2606,8 +2474,7 @@ __all__ = [
     "mark_down",
     "mark_proven",
     "mirror",
-    "needs_alone",
-    "note_uncounted_wall",
+    "note_loss",
     "offered",
     "offered_for",
     "offered_lane",

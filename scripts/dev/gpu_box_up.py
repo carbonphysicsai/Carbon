@@ -44,6 +44,10 @@ mismatch is ``admin_incomplete:<admin step to re-run>``), then:
                ``--graph-gpu-image-manifest``), on the box's GPU: every case bit-identical and on the GPU, the ops
                record measured against allowlist v8 and bound to this run, every digest equal to the class record's
                (CPU parity fields aside) and the ops record equal to the class's ops record
+  door_link    the door's own build link (its generated ssh shim + docker wrapper) finds every admitted image
+  watchdog_link  ``<--ssh-boxes-dir>/<name>.conf`` + ``.known_hosts`` written (the pinned key, the lane key), then the
+               box's Docker reached exactly as a door watchdog does (`cmd_watchdog_link`: plain ``DOCKER_HOST``, the
+               door's own ``~/.ssh/config``, which includes that directory through one receipted line)
 
 The class check's container runs as uid 65532 and writes into a fresh ``~/carbon-box-up/class-check`` of mode 0703:
 its owner (carbon-grade) can read and remove what is written there, the container can create files in it, and no
@@ -252,6 +256,8 @@ class Config:
     images: tuple[str, ...] = ()
     jax_image: str = ""
     boxes_dir: Path | None = None
+    #: the door user's per-box ssh files for its watchdogs (`write_box_ssh_files`)
+    ssh_boxes_dir: Path | None = None
     class_record_digests: dict | None = None
     class_record: dict | None = None
     class_record_sha256: str = ""
@@ -511,6 +517,7 @@ def config_from_args(args) -> Config:
         images=tuple(images),
         jax_image=args.jax_image,
         boxes_dir=Path(args.boxes_dir).expanduser(),
+        ssh_boxes_dir=Path(args.ssh_boxes_dir).expanduser(),
         class_record_digests=reference,
         class_record=record,
         class_record_sha256=record_sha,
@@ -1624,6 +1631,24 @@ class Session:
         finally:
             shutil.rmtree(directory, ignore_errors=True)
 
+    def watchdog_link(self, host_key):
+        """The door's watchdogs reach the box (`cmd_watchdog_link`) through its per-box ssh files, or Refused: no box
+        is admitted whose containers the door could not see or stop."""
+        try:
+            write_box_ssh_files(self.cfg, host_key)
+        except (OSError, Refused) as error:
+            raise Refused(
+                "watchdog_link_failed", f"{type(error).__name__}: {error}"[:300]
+            ) from None
+        rc, out, err = self.call(cmd_watchdog_link(self.cfg))
+        if rc != 0 or not out.strip():
+            tail = (err or out or "").strip()[-300:]
+            raise Refused(
+                "watchdog_link_failed",
+                f"rc={rc}: {tail} (the door's ~/.ssh/config needs "
+                f"'Include {self.cfg.ssh_boxes_dir}/*.conf' before its first Host block)",
+            )
+
     def door_driver(self):
         seen = self.read_driver()
         if seen is None:
@@ -1861,6 +1886,102 @@ def cmd_door_link(wrapper: str, cfg) -> list[str]:
     return [wrapper, "image", "inspect", "--format", "{{.Id}}", *cfg.images]
 
 
+#: The door's watchdogs and reapers reach a box's Docker as the door user with only ``PATH``, ``DOCKER_HOST`` and
+#: ``HOME`` (`carbon.reconstruction.remote_lane.docker_environment`): their ssh reads the door's OWN ``~/.ssh/config``,
+#: not the build link's pinned shim. That file reads one ``<box>.conf`` per box from here through ONE line placed once
+#: (V2 receipt), before its first Host block: ``Include ~/.ssh/config.d/carbon-boxes/*.conf``. Live 116, 20 Nov 2026:
+#: the first autoscaled A100 built fine, but its 7 watchdogs got "Host key verification failed" on every poll (no Host
+#: block for its address), so none could see or stop its containers. `gpu_pool_autoscale` removes the files at release.
+DEFAULT_SSH_BOXES_DIR = "~/.ssh/config.d/carbon-boxes"
+WATCHDOG_PATH = "/usr/local/bin:/usr/bin:/bin"
+
+
+def box_docker_host(cfg) -> str:
+    return f"ssh://{LANE_USER}@{cfg.ip}" + ("" if cfg.port == 22 else f":{cfg.port}")
+
+
+def box_ssh_files(cfg) -> tuple[Path, Path]:
+    """The box's ssh config block and the pinned host key it names."""
+    return (
+        cfg.ssh_boxes_dir / f"{cfg.name}.conf",
+        cfg.ssh_boxes_dir / f"{cfg.name}.known_hosts",
+    )
+
+
+def box_ssh_conf_text(cfg, known_hosts: Path) -> str:
+    """The build link's settings (`pinned_ssh_options`): the pinned host key strictly, the lane key alone."""
+    lines = [
+        f"# {cfg.name}: written by gpu_box_up door at admission; gpu_pool_autoscale removes it at release",
+        f"Host {cfg.ip}",
+        f"  User {LANE_USER}",
+    ]
+    if cfg.port != 22:
+        lines.append(f"  Port {cfg.port}")
+    key = box_ssh_key(cfg)
+    if key:
+        lines += [f"  IdentityFile {key}", "  IdentitiesOnly yes"]
+    lines += [
+        f"  UserKnownHostsFile {known_hosts}",
+        "  StrictHostKeyChecking yes",
+        "  ForwardAgent no",
+        "  ForwardX11 no",
+        "  ClearAllForwardings yes",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _replace_private(path: Path, text: str) -> None:
+    fd, part = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".part", dir=path.parent
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(part, 0o600)
+        os.replace(part, path)
+    finally:
+        if os.path.lexists(part):
+            os.unlink(part)
+
+
+def write_box_ssh_files(cfg, host_key: str) -> None:
+    """This box's ``<name>.known_hosts`` (the pinned key line) and ``<name>.conf`` (0600, each replaced atomically).
+    Another box's files naming the same address go first: ssh takes the FIRST matching Host block, and a provider
+    recycles addresses."""
+    directory = ready_boxes_dir(cfg.ssh_boxes_dir)
+    conf, known = box_ssh_files(cfg)
+    host = f"Host {cfg.ip}\n"
+    for other in sorted(directory.glob("*.conf")):
+        if other != conf and host in other.read_text(encoding="utf-8"):
+            other.unlink()
+            other.with_suffix(".known_hosts").unlink(missing_ok=True)
+    _replace_private(known, host_key + "\n")
+    _replace_private(conf, box_ssh_conf_text(cfg, known))
+
+
+def remove_box_ssh_files(cfg) -> None:
+    for path in box_ssh_files(cfg):
+        if os.path.lexists(path):
+            os.unlink(path)
+
+
+def cmd_watchdog_link(cfg) -> list[str]:
+    """The box's Docker exactly as a door watchdog reaches it (`remote_lane.docker_environment`)."""
+    return [
+        "env",
+        "-i",
+        f"PATH={WATCHDOG_PATH}",
+        f"DOCKER_HOST={box_docker_host(cfg)}",
+        f"HOME={os.environ.get('HOME', '/')}",
+        "docker",
+        "version",
+        "--format",
+        "{{.Server.Version}}",
+    ]
+
+
 def box_document(
     cfg,
     *,
@@ -1874,9 +1995,7 @@ def box_document(
     commit,
     now,
 ):
-    docker_host = f"ssh://{LANE_USER}@{cfg.ip}" + (
-        "" if cfg.port == 22 else f":{cfg.port}"
-    )
+    docker_host = box_docker_host(cfg)
     parse_docker_host(docker_host)
     document = {
         "schema": BOX_SCHEMA,
@@ -1926,8 +2045,10 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         ready_boxes_dir(cfg.boxes_dir)
     except Refused as refusal:
         return refused("boxes_dir", refusal)
-    # A box being (re)brought up is not offered until it passes again.
+    # A box being (re)brought up is not offered until it passes again. Its ssh files stay while it is re-checked
+    # (a watchdog of a build still running on it needs them); a run that wrote them for a new box removes them.
     remove_box_files(cfg)
+    had_ssh_files = os.path.lexists(box_ssh_files(cfg)[0])
     session = Session(cfg, runner, log=log)
     scratch, session.known_hosts = _known_hosts_scratch()
     admitted = False
@@ -1965,6 +2086,7 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         )
         session.run_step("images_rest", streaming.result)
         session.run_step("door_link", session.door_link, host_key)
+        session.run_step("watchdog_link", session.watchdog_link, host_key)
         document = box_document(
             cfg,
             host_key=host_key,
@@ -1988,6 +2110,8 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
         # any end but a full PASS (a refusal, an OSError, an interrupt) leaves none of the three files
         if not admitted:
             remove_box_files(cfg)
+            if not had_ssh_files:
+                remove_box_ssh_files(cfg)
         shutil.rmtree(scratch, ignore_errors=True)
     return {
         "status": "ADMITTED",
@@ -2101,6 +2225,7 @@ def plan_door(cfg: Config) -> list[tuple[str, str]]:
     steps.append(remote("class_check", CMD_CLASS_OPS_READ))
     steps.append(remote("class_check", cmd_class_clean(cfg)))
     steps.append(("door_link", shlex.join(cmd_door_link("<link>/docker", cfg))))
+    steps.append(("watchdog_link", shlex.join(cmd_watchdog_link(cfg))))
     return steps
 
 
@@ -2196,6 +2321,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     door.add_argument(
         "--boxes-dir", required=True, help="where the door's box files live (0700)"
+    )
+    door.add_argument(
+        "--ssh-boxes-dir",
+        default=DEFAULT_SSH_BOXES_DIR,
+        help="the door user's per-box ssh config files (0700), read by its ~/.ssh/config through one Include line",
     )
     door.add_argument(
         "--admin-summary",

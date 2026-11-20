@@ -101,6 +101,22 @@ def _no_installed_crown_rule():
     clear()
 
 
+@pytest.fixture(autouse=True)
+def _no_receiver_stop_or_adoption():
+    """A receiver stop (`research_carrier.door_stopping`) and a start's adoptions are process state: no test leaves
+    them for the next (a stopped process starts no remote GPU build)."""
+    import sys
+
+    def clear():
+        loaded = sys.modules.get("carbon.development_session.research_carrier")
+        if loaded is not None and hasattr(loaded, "clear_process_state"):
+            loaded.clear_process_state()
+
+    clear()
+    yield
+    clear()
+
+
 #: Tools a canonical run must have. A test that skips because one is missing is a
 #: FAILURE there (a gate that skipped the browser-page tests silently proved nothing);
 #: elsewhere the skip stands. `CARBON_CANONICAL_DEV_ENV` is set only by the canonical

@@ -66,6 +66,11 @@ def test_only_a_transient_carbon_code_is_retried(code, expected):
     assert auto_retry.retryable(code) is expected
 
 
+def test_a_repeat_of_the_same_cause_waits_five_minutes_not_fifteen():
+    # V2's ruling on the over-broad rules audit #6 (18 Nov 2026): next tick, then 5 min
+    assert auto_retry.RETRY_SECONDS == 5 * 60
+
+
 def test_a_task_has_one_pending_retry_at_a_time_and_it_is_spaced(tmp_path):
     root, ledger = _root(tmp_path)
     t0 = 10_000 * S
@@ -301,6 +306,27 @@ def test_a_version_wide_gap_is_given_back_for_a_resubmit_after_the_fix(tmp_path)
     assert grader.run_once() == (A, "FAILED")
     assert grader.marker(A)["next_step"] == "resubmit_after_fix"
     assert _log(root) == []
+
+
+@pytest.mark.parametrize(
+    "code, retried",
+    [
+        # one task's pack-source registration: per task, retried (V2-L2-RETENTION-20261120 (3))
+        ("evaluation_pack_source_registration_unavailable", True),
+        ("evaluation_pack_binding_unavailable", True),
+        # the version's own pack, reference solves and calibrated inference image: version-wide, never retried
+        ("evaluation_pack.json", False),
+        ("evaluation_pack.train_mismatch", False),
+        ("dual_native_reference_infra", False),
+        ("dual_native_reference_unresolved", False),
+        ("leg_minimum_platform_mismatch", False),
+        ("evaluation_pack_source_roster", False),
+        # an untyped retention error under its closed class code: Carbon's, retried by the caps
+        ("retention_keyerror", True),
+    ],
+)
+def test_the_retention_codes_are_typed_per_task_or_version_wide(code, retried):
+    assert auto_retry.retryable(code) is retried
 
 
 class _Pool:

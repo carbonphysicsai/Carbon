@@ -429,19 +429,25 @@ def test_through_the_real_adapter_with_no_registered_limit_nothing_changes(
 
 
 def test_the_lock_is_held_until_the_task_has_started(tmp_path, monkeypatch):
-    """Two hotkeys of one coldkey can never both pass: the guard's lock is held from the check to the task's start."""
+    """Two hotkeys of one coldkey can never both pass: the guard's lock FOR THAT COLDKEY is held from the check to the
+    task's start; it is that coldkey's lock only, never one for the whole door (LOCK + CACHE AUDIT #14).
+    """
     request, adapter, _ledger, door, provider = _door(tmp_path, monkeypatch)
+    guard = adapter.coldkey_waiting
     seen = []
     real_start = provider.start_research_task
 
     def start(*args, **kwargs):
-        seen.append(adapter.coldkey_waiting.lock.locked())
+        seen.append(sorted(key for key, lock in guard._locks.items() if lock.locked()))
         return real_start(*args, **kwargs)
 
     monkeypatch.setattr(provider, "start_research_task", start)
     assert _submit(door, adapter, request.recipe, 1)["kind"] == "OUTCOME"
-    assert seen == [True] and not adapter.coldkey_waiting.lock.locked()
-    assert isinstance(adapter.coldkey_waiting.lock, type(threading.Lock()))
+    assert len(seen) == 1 and len(seen[0]) == 1 and seen[0][0].startswith("c:")
+    assert not any(lock.locked() for lock in guard._locks.values())
+    assert all(
+        isinstance(lock, type(threading.Lock())) for lock in guard._locks.values()
+    )
 
 
 def _race(monkeypatch, *, locked):
@@ -464,9 +470,8 @@ def _race(monkeypatch, *, locked):
         snapshot=lambda: _Snapshot(COLDKEYS),
     )
     if not locked:
-        guard.lock = (
-            contextlib.nullcontext()
-        )  # the control: the same check with no lock
+        # the control: the same check with no lock
+        guard.lock_for = lambda key: contextlib.nullcontext()
     monkeypatch.setattr(cw, "rule_for", lambda challenge, version: (1, "coldkey"))
     adapter = SimpleNamespace(
         coldkey_waiting=guard, challenge_id="c", challenge_version="1.0"

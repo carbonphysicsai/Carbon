@@ -86,9 +86,11 @@ def test_unconfigured_the_migrated_grade_still_refuses_the_platform_mismatch(
     migrated,
 ):
     assert retention.GRADED_INFERENCE_IMAGE is None
-    result = _grade(migrated, counted=True)
-    assert result["private_evaluation_state"] == "UNAVAILABLE", result
-    assert "leg_minimum_platform_mismatch" in result["private_evaluation_reason"]
+    # Carbon's version-wide gap (V2-L2-RETENTION-20261120): FAILED_INFRA, resubmit after the fix, never graded
+    with pytest.raises(
+        retention.RetentionUnavailable, match="^leg_minimum_platform_mismatch$"
+    ):
+        _grade(migrated, counted=True)
     assert {image for _, image in migrated.used} == {BUILD}
     root = _regrade_root(migrated)
     worker = json.loads((root / "worker-evidence.json").read_bytes())
@@ -141,8 +143,11 @@ def test_a_grade_refused_before_the_configuration_grades_fresh_after_it(
     its retained regrade bytes. Configured, the retry runs under its own regrade id on the pack's image (fresh
     identities), never reading those bytes back, and binds; the first attempt's files are left as they were.
     """
-    first = _grade(migrated, counted=True)
-    assert "leg_minimum_platform_mismatch" in first["private_evaluation_reason"]
+    # Carbon's version-wide gap (V2-L2-RETENTION-20261120): raised to the grader (FAILED_INFRA), slot returned
+    with pytest.raises(
+        retention.RetentionUnavailable, match="^leg_minimum_platform_mismatch$"
+    ):
+        _grade(migrated, counted=True)
     old_root = _regrade_root(migrated)
     old_worker = (old_root / "worker-evidence.json").read_bytes()
     migrated.used.clear()

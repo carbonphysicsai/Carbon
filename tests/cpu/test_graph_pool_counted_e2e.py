@@ -611,8 +611,9 @@ def test_a_failure_after_the_counted_settle_gives_the_slot_back(
 ):
     """V2 (18 Nov 2026, funds): three grades ended FAILED with their slot COUNTED. The slot is settled when the exam is
     applied, and a later step (the binding, the sidecars, the filing) can still fail before the Ladder carries the result
-    to the miner: that charge is ours, so the slot goes back (RELEASED / FAILED_INFRA), whether the failure is given back
-    as Carbon's (raised) or returned UNAVAILABLE."""
+    to the miner: that charge is ours, so the slot goes back (RELEASED / FAILED_INFRA). Since V2-L2-RETENTION-20261120
+    any such reason of a miner's grade (not only the five propagated ones) is given back as Carbon's (raised).
+    """
     fixture = _setup(case, tmp_path, monkeypatch)
     code = (
         min(retention._propagated_carbon_failures())
@@ -629,14 +630,172 @@ def test_a_failure_after_the_counted_settle_gives_the_slot_back(
     monkeypatch.setattr(
         private_evaluation_evidence, "bind_private_evaluation_evidence", fails
     )
-    if propagated:
-        with pytest.raises(retention.RetentionUnavailable):
-            _grade(fixture, counted=True)
-    else:
-        result = _grade(fixture, counted=True)
-        assert result["private_evaluation_state"] == "UNAVAILABLE"
+    with pytest.raises(retention.RetentionUnavailable, match=f"^{code}$"):
+        _grade(fixture, counted=True)
     rows = _cap_rows(fixture)
     assert [(row[2], row[3]) for row in rows] == [("RELEASED", "FAILED_INFRA")]
+
+
+def test_the_catch_all_names_each_reason_by_its_closed_code_and_keeps_only_the_ruled_ones():
+    """V2-L2-RETENTION-20261120: which reasons go back as Carbon's, and under which code (condition (4): the typed
+    code, else the class; never a value)."""
+    from carbon.scoring.dual_score import DualScoreRefused
+    from carbon.scoring.private_evaluation_evidence import (
+        PrivateEvaluationEvidenceRefused,
+    )
+    from carbon.scoring.private_evaluation_source import (
+        PrivateEvaluationSourceRefused,
+    )
+
+    def carbon(exc, miner_grade=True, filing=False):
+        return retention._carbon_failure(exc, miner_grade=miner_grade, filing=filing)
+
+    assert carbon(PrivateEvaluationEvidenceRefused("result_digest_mismatch")) == (
+        "result_digest_mismatch"
+    )
+    assert carbon(DualScoreRefused("dual_shape")) == "dual_shape"
+    assert carbon(PrivateEvaluationSourceRefused("evaluation_pack_source_roster")) == (
+        "evaluation_pack_source_roster"
+    )
+    assert carbon(KeyError("sha256:" + "a" * 64)) == "retention_keyerror"
+    assert carbon(OSError(28, "No space left on device")) == "retention_oserror"
+    assert carbon(DualScoreRefused("Not A Code")) == "retention_dualscorerefused"
+    for kept in retention._KEPT_UNAVAILABLE:
+        assert carbon(retention.RetentionUnavailable(kept)) is None
+    assert carbon(PrivateEvaluationSourceRefused("timed_query_disagrees")) is None
+    # an uncounted regrade, or a grade whose pool filing started, keeps its UNAVAILABLE ending
+    assert carbon(KeyError("x"), miner_grade=False) is None
+    assert carbon(KeyError("x"), filing=True) is None
+    # the five propagated codes go back as before, whatever the grade
+    for code in retention._propagated_carbon_failures():
+        assert (
+            carbon(retention.RetentionUnavailable(code), miner_grade=False, filing=True)
+            == code
+        )
+
+
+def _grader_gives_back(fixture):
+    """What the grader's FAILED_INFRA path does next (`AutoGrader._give_back`): the row's state after it."""
+    from carbon.challenge_validator.exam_cap import ExamCap
+
+    with fixture.adapter.ledger._db() as db:
+        (row,) = db.execute(
+            "SELECT hotkey, challenge_id, challenge_version, exam_key, submission_id FROM exam_graded"
+        ).fetchall()
+    hotkey, challenge_id, challenge_version, exam_key, submission_id = row
+    return ExamCap(fixture.adapter.ledger).give_back_on_infra(
+        hotkey=hotkey,
+        challenge_id=challenge_id,
+        challenge_version=challenge_version,
+        exam_key=exam_key,
+        submission_id=submission_id,
+    )
+
+
+def _once(error):
+    """A patch that raises ``error`` on its first call only, then runs the real step."""
+    calls = []
+
+    def wrap(real):
+        def step(*args, **kwargs):
+            if not calls:
+                calls.append(1)
+                raise error
+            return real(*args, **kwargs)
+
+        return step
+
+    return wrap
+
+
+@pytest.mark.parametrize("when", ["before_settle", "after_counted_settle"])
+def test_a_carbon_failure_gives_the_slot_back_exactly_once_and_the_rerun_reserves_anew(
+    case, tmp_path, monkeypatch, when
+):
+    """V2-L2-RETENTION-20261120 condition (2), funds: a reason converted to Carbon's failure, raised while the
+    reservation is still open (the scoring) or after it was settled COUNTED (the binding), leaves the slot back ONCE
+    (RELEASED / FAILED_INFRA); the grader's FAILED_INFRA give-back after it changes nothing more; and the automatic
+    re-run reserves anew and is counted as any grade. Condition (4): the raise carries the reason's own closed code
+    (a scoring refusal's code; an untyped error's class), never a value."""
+    from carbon.scoring import dual_score, private_evaluation_evidence
+    from carbon.scoring.engine import ScoreEngine
+
+    fixture = _setup(case, tmp_path, monkeypatch)
+    if when == "before_settle":
+        wrap = _once(dual_score.DualScoreRefused("dual_score_shape"))
+        monkeypatch.setattr(
+            ScoreEngine,
+            "score_dual_benchmark_v4",
+            staticmethod(wrap(ScoreEngine.score_dual_benchmark_v4)),
+        )
+        expected = "dual_score_shape"
+    else:
+        wrap = _once(KeyError("sha256:" + "a" * 64))
+        monkeypatch.setattr(
+            private_evaluation_evidence,
+            "bind_private_evaluation_evidence",
+            wrap(private_evaluation_evidence.bind_private_evaluation_evidence),
+        )
+        expected = "retention_keyerror"
+    with pytest.raises(retention.RetentionUnavailable) as raised:
+        _grade(fixture, counted=True)
+    assert raised.value.code == expected and "sha256" not in str(raised.value)
+    # back once: an open reservation is settled UNAVAILABLE (released), a COUNTED one given back unfinished
+    assert [(row[2], row[3]) for row in _cap_rows(fixture)] == [
+        (
+            "RELEASED",
+            "UNAVAILABLE" if when == "before_settle" else "FAILED_INFRA",
+        )
+    ]
+    assert _grader_gives_back(fixture) == "RELEASED"
+    assert [(row[2], row[3]) for row in _cap_rows(fixture)] == [
+        ("RELEASED", "FAILED_INFRA")
+    ]
+    # the automatic re-run: a fresh reservation of the same submission's row, counted
+    result = _grade(fixture, counted=True)
+    assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+    assert [row[2] for row in _cap_rows(fixture)] == ["COUNTED"]
+
+
+def test_a_kept_reason_still_ends_unavailable_with_the_slot_back(
+    case, tmp_path, monkeypatch
+):
+    """V2-L2-RETENTION-20261120 (a): the candidate's own timed query that disagrees with its graded run stays an
+    UNAVAILABLE evaluation (no free automatic re-runs for a timing cheat), its slot back as before.
+    """
+    from carbon.scoring import private_evaluation_evidence
+
+    fixture = _setup(case, tmp_path, monkeypatch)
+
+    def disagrees(**kwargs):
+        raise retention.RetentionUnavailable("timed_query_disagrees")
+
+    monkeypatch.setattr(
+        private_evaluation_evidence, "bind_private_evaluation_evidence", disagrees
+    )
+    result = _grade(fixture, counted=True)
+    assert result["private_evaluation_state"] == "UNAVAILABLE"
+    assert result["private_evaluation_reason"] == "timed_query_disagrees"
+    assert [(row[2], row[3]) for row in _cap_rows(fixture)] == [
+        ("RELEASED", "FAILED_INFRA")
+    ]
+
+
+def test_a_failure_once_the_filing_started_is_never_given_back_as_carbons(
+    case, tmp_path, monkeypatch
+):
+    """V2-L2-RETENTION-20261120 condition (1): from the pool filing on the grade may be a crown input, so a failure
+    there is never re-raised for a free re-run: it ends UNAVAILABLE as before, and the slot stays COUNTED.
+    """
+    fixture = _setup(case, tmp_path, monkeypatch)
+
+    def contend(*args, **kwargs):
+        raise ValueError("filing_failed")
+
+    monkeypatch.setattr(retention, "_contend", contend)
+    result = _grade(fixture, counted=True)
+    assert result["private_evaluation_state"] == "UNAVAILABLE"
+    assert [row[2] for row in _cap_rows(fixture)] == ["COUNTED"]
 
 
 def test_a_receiver_stop_after_the_counted_settle_gives_the_slot_back(

@@ -875,8 +875,51 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     return artifacts
 
 
+#: The retained files whose bytes are an operation output's own file, by the evidence field naming the operation.
+_OPERATION_FILES = (
+    ("build_operation", "state.npz", "state.npz"),
+    ("inference_operation", "predictions.json", "predictions.json"),
+    ("timed_operation", "predictions.json", "timed-query-predictions.json"),
+)
+
+
+def _operation_sources(provider, evidence):
+    """``{retained file name: the operation snapshot file it was read from}`` for a served task's retention: the build's
+    state, the graded predictions and the timed query's predictions are each byte-for-byte that operation's output
+    (`_snapshot` read and checked them), so the retained file is stored as a hard link to it (`data.link_once`, which
+    re-checks the bytes; owner rule #13: the predictions are on disk once). Anything unreadable names no source.
+    """
+    try:
+        root = Path(provider.ledger.root)
+    except (AttributeError, TypeError):
+        return {}
+    sources = {}
+    for field, name, retained in _OPERATION_FILES:
+        operation = evidence.get(field) if type(evidence) is dict else None
+        if type(operation) is str and re.fullmatch(
+            r"operation-[0-9a-f]{64}", operation
+        ):
+            sources[retained] = root / operation / "snapshot" / name
+    return sources
+
+
+def _write_retained(task_root, artifacts, sources=None):
+    """Write each retained file once (`write_once`); a file whose source is known is a hard link to it when the bytes
+    are identical (`link_once`): the same names, bytes and digests for every reader and custody check, stored once.
+    """
+    from carbon.development_session.data import link_once, write_once
+
+    sources = sources or {}
+    for name, raw in artifacts.items():
+        source = sources.get(name)
+        if source is None:
+            write_once(task_root / name, raw)
+        else:
+            link_once(source, task_root / name, raw)
+
+
 def _retain_graph_artifacts(
-    artifacts, submission_id, *, artifact_directory, entry_directory
+    artifacts, submission_id, *, artifact_directory, entry_directory, sources=None
 ):
     from carbon.development_session.data import write_once
 
@@ -942,8 +985,7 @@ def _retain_graph_artifacts(
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
     try:
-        for name, raw in artifacts.items():
-            write_once(task_root / name, raw)
+        _write_retained(task_root, artifacts, sources)
         manifest_path = base / (submission_id + ".roles.json")
         write_once(manifest_path, _json(role_manifest))
         custody = prepare_custody_v5(task_root, manifest_path)
@@ -2385,6 +2427,63 @@ def _propagated_carbon_failures():
     )
 
 
+#: The reasons a miner's grade still ends as an UNAVAILABLE evaluation (filed as graded: terminal, its slot returned) when
+#: the retention catch-all meets them; every other reason there is Carbon's (`_carbon_failure`). V2-L2-RETENTION-20261120:
+#: (a) the candidate's own: a timed query that scores differently from its graded run; (b) the miner's quota (with its
+#: plain message, `_limit_message`); (c) MIXED codes that also wrap the miner's own program failure (OOM, exit, refused
+#: output), until a follow-up splits them with `_candidate_outcome`; (d) bytes a bundle's Python can write in the same
+#: container (the single-call receipt, the producer's authentication of retained receipts), until a read shows they are
+#: out of the miner's reach; plus the early wall stop, the candidate's typed outcome.
+_KEPT_UNAVAILABLE = frozenset(
+    {
+        "timed_query_disagrees",
+        "epoch_limit_reached",
+        "exam_daily_allowance_reached",
+        "inference_pair_incomplete",
+        "subset_repeat_incomplete",
+        "menu_rowcheck_incomplete",
+        "single_call_receipt_differs",
+        "dual_native_inference_binding",
+        "early_wall_stop",
+    }
+)
+#: A closed code (the grader's marker vocabulary, `auto_grade._code`): never a value.
+_CLOSED_CODE = re.compile(r"[a-z0-9_.:-]{1,96}")
+
+
+def _reason_code(exc):
+    """The closed code of a reason the catch-all met: a typed refusal's own code (``.code``, or the first argument of the
+    scoring refusals that carry it there), else ``retention_<class name>``. Fixed strings only, never a value.
+    """
+    code = (
+        exc.code
+        if isinstance(exc, RetentionUnavailable)
+        else getattr(exc, "code", None)
+    )
+    if type(code) is not str and type(exc).__name__ in (
+        "PrivateEvaluationEvidenceRefused",
+        "DualScoreRefused",
+    ):
+        code = exc.args[0] if exc.args else None
+    if type(code) is str and _CLOSED_CODE.fullmatch(code):
+        return code
+    return "retention_" + type(exc).__name__.lower()
+
+
+def _carbon_failure(exc, *, miner_grade, filing):
+    """The code to give a reason back as Carbon's (the grader's FAILED_INFRA: uncharged, re-run by `auto_retry`'s rules and
+    caps), or None to end the grade UNAVAILABLE as before. The five `_propagated_carbon_failures` always go back; any other
+    reason goes back only for a miner's own grade (an uncounted regrade's UNAVAILABLE is already retried by its caller),
+    never once the pool filing has started (from there the grade may be a crown input, V2 18 Nov 2026), and never for a
+    `_KEPT_UNAVAILABLE` reason (V2-L2-RETENTION-20261120)."""
+    code = _reason_code(exc)
+    if code in _propagated_carbon_failures():
+        return code
+    if not miner_grade or filing or code.split(":", 1)[0] in _KEPT_UNAVAILABLE:
+        return None
+    return code
+
+
 def _retain_selected_pack_evaluation(
     adapter,
     submission_id,
@@ -2404,6 +2503,9 @@ def _retain_selected_pack_evaluation(
     cap = reservation = None
     #: the reservation this grade settled COUNTED, until its result reaches the miner (the Ladder write, after the try)
     counted = None
+    #: a miner's own grade (not an uncounted operator/rehearsal regrade), and whether its pool filing has started
+    miner_grade = regrade is None or getattr(regrade, "counted", False) is True
+    filing = False
     try:
         from carbon.development_session.data import write_once
         from carbon.scoring import dual_score
@@ -2580,7 +2682,13 @@ def _retain_selected_pack_evaluation(
                 produce_registered_dual_measurement,
             )
         _unblock_timing()  # the produce takes the process-wide pair-read lock
-        with pool_menu.staged_rowcheck(menu_rowcheck):
+        # A pool-graded version's measure also hands back THIS grade's custody accuracy record and SE basis (`captured`,
+        # empty for every other version), never through a producer file: the sidecars below come from the official grade
+        # itself, not from a second measure (door-code item 5, 19 Nov 2026)
+        with (
+            pool_menu.staged_rowcheck(menu_rowcheck),
+            pool_exam.staged_capture() as captured,
+        ):
             prepared = produce_registered_dual_measurement(
                 selected_pack=snapshot,
                 public_root=discovery.evaluation_pack_public_root,
@@ -2685,7 +2793,27 @@ def _retain_selected_pack_evaluation(
         if uncounted and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
         accuracy_record = None
-        if (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
+        if captured:
+            # A pool-graded version (Motor 1.8 on 116 among them, whose development adapter `_pool_graded` reads is not
+            # the sealed pool adapter, so it kept neither sidecar nor any gate failure): both from this grade's measure.
+            # Operator evidence after the binding exists: whatever goes wrong here, the grade goes on (V2 on d31ca579).
+            try:
+                accuracy_record = _write_captured_exam_se(
+                    submission_id,
+                    snapshot,
+                    directory,
+                    scoring,
+                    benchmark,
+                    captured,
+                )
+            except Exception as failure:  # noqa: BLE001 - never the grade
+                accuracy_record = None
+                _journal(
+                    "grade_exam_se_failed",
+                    task=submission_id,
+                    error=type(failure).__name__,
+                )
+        elif (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
             accuracy_record = _write_exam_se(
                 adapter,
                 snapshot,
@@ -2702,8 +2830,9 @@ def _retain_selected_pack_evaluation(
             # 4 MiB refused it as benchmark_reduction_refused, which `_contend` turned into koth_comparison {"error"}
             # (nothing filed in the pool, no contention), with the grade itself bound (13 Nov, found by the whole-chain read).
             # V2 (18 Nov 2026): from here the grade may become a crown input, so the slot is never given back after this
-            # point (a free grade that could crown)
+            # point (a free grade that could crown), nor is any failure from here given back as Carbon's (`_carbon_failure`)
             counted = None
+            filing = True
             with _sized_pair_ceiling(adapter, artifacts):
                 koth = _contend(
                     adapter,
@@ -2743,12 +2872,14 @@ def _retain_selected_pack_evaluation(
             # V2 (18 Nov 2026, funds): the slot was settled COUNTED and a later step failed before the result reached the
             # miner (the Ladder is written only after this block): the charge is ours, the slot goes back
             cap.give_back_unfinished(counted)
-        if (
-            isinstance(exc, RetentionUnavailable)
-            and exc.code in _propagated_carbon_failures()
-        ):
-            # Carbon's own failure (review of 15 Nov, finding 2): the grader gives it back as FAILED_INFRA.
-            raise
+        carbon_code = _carbon_failure(exc, miner_grade=miner_grade, filing=filing)
+        if carbon_code is not None:
+            # Carbon's own failure (review of 15 Nov, finding 2; over-broad rules audit, V2-L2-RETENTION-20261120): the
+            # grader gives it back as FAILED_INFRA (the slot is already back above, once), under its own closed code
+            _journal("retention_carbon_failure", task=submission_id, code=carbon_code)
+            if isinstance(exc, RetentionUnavailable) and exc.code == carbon_code:
+                raise
+            raise RetentionUnavailable(carbon_code) from exc
         reason = (
             str(exc)
             if isinstance(exc, RetentionUnavailable)
@@ -2839,6 +2970,148 @@ def _pool_graded(adapter) -> bool:
     except Exception:  # noqa: BLE001
         return False
     return getattr(module, "POOL_GRADED", False) is True
+
+
+#: The resamples of a pool grade's exam-total SE (as `_write_exam_se`).
+_SE_RESAMPLES = 200
+
+
+def _journal(event, **fields):
+    """One JSON line on stderr (the receiver's journal): the event, its UTC time and closed fields only (a task id, a
+    status, a refusal code, an exception type name), never a value. Guarded: a log line never stops a grade (V2 on
+    46560738 / d31ca579)."""
+    try:
+        import sys
+        import time
+
+        print(
+            json.dumps(
+                {
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "event": event,
+                    **fields,
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+    except Exception:  # noqa: BLE001, S110 - a log line never stops a grade
+        pass
+
+
+def _official_basis(captured, benchmark):
+    """The captured SE basis, checked to be the OFFICIAL grade's: its total must be the benchmark's own
+    0.5 A + 0.5 D (the dual measurement the grade was scored from), else ``capture_not_official`` (V2 on d31ca579,
+    evidence A). A grade with any failed mandatory gate has no total: ``gated``."""
+    from carbon.scoring import physical_dual_pack as physical
+    from carbon.scoring import pool_exam
+
+    model = benchmark["models"][0]
+    gates = model["gates"]
+    if type(gates) is not dict or any(v != "PASS" for v in gates.values()):
+        return {"gated": True}
+    if "se_basis" in captured:
+        return captured["se_basis"]  # the measure's own gated basis (no total)
+    basis = captured["se_basis_of"]()
+    legs = model["measurements"]
+    a_value = legs[physical.METRICS["A"]]["value"]
+    d_value = legs[physical.METRICS["D"]]["value"]
+    official = 0.5 * a_value + 0.5 * d_value
+    total = basis.get("total") if type(basis) is dict else None
+    bound = 1e-12 * max(1.0, abs(official))
+    if type(total) is not float or abs(total - official) > bound:
+        raise pool_exam.ExamRefused("capture_not_official")
+    return basis
+
+
+def _write_captured_exam_se(
+    submission_id, snapshot, directory, scoring, benchmark, captured
+):
+    """A pool grade's two custody sidecars from THIS grade's own measure (`pool_exam.staged_capture`), write-once beside
+    the binding, and its accuracy record (None when the version has none, or on any failure here) for the gate-failure
+    feedback.
+
+    - `exam_rotation.SE_SIDECAR`: the target-cluster SE of the exam total (`pool_exam.target_bootstrap_se`, the same
+      computation as `pool_exam_se`), or UNAVAILABLE with the reason: ``gated`` when any mandatory gate failed (the
+      subset repeat's own gates included, which the pool measure never sees), ``capture_not_official`` when the
+      captured basis is not the scored measure's (`_official_basis`), the measure's refusal code, or
+      ``bootstrap_failed:<type>``. The scored basis is derived here (``se_basis_of``), after the producer call, never
+      under its lock.
+    - `exam_rotation.ACCURACY_SIDECAR`: the custody accuracy record, gate-failed grades included.
+
+    Never raises: these are operator evidence, never the grade, and never on the crown's path (lesson 5). A write that
+    fails is one journal line (``grade_sidecar_unwritten``); each grade logs ``grade_exam_se`` (status, reason and
+    its seconds); anything else is ``grade_exam_se_failed`` with the exception type and returns None.
+    """
+    try:
+        import time
+
+        from carbon.challenge_validator import exam_rotation
+        from carbon.development_session.data import write_once
+        from carbon.scoring import pool_exam
+
+        started = time.monotonic()
+        accuracy = captured.get("accuracy")
+        exam_key = snapshot.manifest_digest
+        document = {
+            "schema": exam_rotation.SE_SCHEMA,
+            "exam_key": exam_key,
+            "resamples": _SE_RESAMPLES,
+        }
+        try:
+            document["total"] = scoring["models"][0].get("score")
+            spread, sizes = pool_exam.target_bootstrap_se(
+                _official_basis(captured, benchmark),
+                exam_key,
+                resamples=_SE_RESAMPLES,
+            )
+            document.update(standard_error=spread, status="MEASURED", n_targets=sizes)
+        except pool_exam.ExamRefused as refused:
+            document.update(status="UNAVAILABLE", reason=refused.code)
+        except Exception as failure:  # noqa: BLE001
+            document.pop("standard_error", None)
+            document.update(
+                status="UNAVAILABLE",
+                reason="bootstrap_failed:" + type(failure).__name__,
+            )
+        sidecars = [(exam_rotation.SE_SIDECAR, document)]
+        if accuracy is not None:
+            sidecars.append(
+                (
+                    exam_rotation.ACCURACY_SIDECAR,
+                    {
+                        "schema": exam_rotation.ACCURACY_SIDECAR_SCHEMA,
+                        "exam_key": exam_key,
+                        "record": accuracy,
+                    },
+                )
+            )
+        for name, body in sidecars:
+            try:
+                write_once(directory / name, _json(body))
+            except Exception as failure:  # noqa: BLE001
+                _journal(
+                    "grade_sidecar_unwritten",
+                    task=submission_id,
+                    sidecar=name,
+                    error=type(failure).__name__,
+                )
+        _journal(
+            "grade_exam_se",
+            task=submission_id,
+            status=document["status"],
+            reason=document.get("reason"),
+            accuracy=accuracy is not None,
+            # what this adds to the grade (basis + bootstrap + writes), measured on the grade class (V2 evidence B)
+            seconds=round(time.monotonic() - started, 3),
+        )
+        return accuracy
+    except Exception as failure:  # noqa: BLE001 - operator evidence, never the grade
+        _journal(
+            "grade_exam_se_failed", task=submission_id, error=type(failure).__name__
+        )
+        return None
 
 
 def _write_exam_se(
@@ -4291,6 +4564,7 @@ def _retain_served_artifacts(
             submission_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
+            sources=_operation_sources(provider, evidence),
         )
         return provider, task, result, artifacts, evidence
     if recipe.to_dict()["source"]["kind"] != "bundle":
@@ -4651,9 +4925,10 @@ def _retain_served_artifacts(
     task_root = base / submission_id
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
+    # stored once on disk: the operation outputs it retains are hard links to them (owner rule #13)
+    sources = _operation_sources(provider, evidence)
     try:
-        for name, raw in artifacts.items():
-            write_once(task_root / name, raw)
+        _write_retained(task_root, artifacts, sources)
         manifest_path = base / (submission_id + ".roles.json")
         write_once(manifest_path, _json(role_manifest))
         custody = prepare_custody_v5(task_root, manifest_path)
@@ -6286,9 +6561,26 @@ def _regrade_retained_entry(
 
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
+    # Stored once on disk (owner rule #13): every retained file whose bytes equal the origin's retained file of the
+    # same name is a hard link to it (kept unchanged, or re-made byte for byte), and this grade's predictions, when
+    # new, to its inference operation's output (`link_once` tries each candidate in order, links identical bytes only)
+    sources = {name: (base / origin / name,) for name in artifacts}
+    for retained, field in (
+        ("predictions.json", "inference_operation"),
+        ("timed-query-predictions.json", "timed_operation"),
+    ):
+        operation = operations.get(field) if type(operations) is dict else None
+        if (
+            type(operation) is str
+            and re.fullmatch(r"operation-[0-9a-f]{64}", operation)
+            and retained in artifacts
+        ):
+            sources[retained] = (
+                base / origin / retained,
+                provider.ledger.root / operation / "snapshot" / "predictions.json",
+            )
     try:
-        for name, raw in artifacts.items():
-            write_once(task_root / name, raw)
+        _write_retained(task_root, artifacts, sources)
         # Beside the task (not in it): the custody inventory is exactly the declared files.
         write_once(
             base / (regrade_id + ".regrade-operation.json"),

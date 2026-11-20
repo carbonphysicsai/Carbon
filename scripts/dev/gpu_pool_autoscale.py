@@ -12,7 +12,9 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    the door, each box file and whether any of the box's slots is busy, and when one last was (`DOOR_PROBE`). The
    Lambda account's instances and the instance type's live price.
 2. **Scale up** (policy v2, Lead 18 Nov 2026; values from live 116's data, see `RENT_MANY`). When `RENT_MANY`
-   builds wait in every sample across `RENT_MANY_S` (5 min), or any build waits across `RENT_ANY_S` (10 min), no
+   builds wait in every sample across `RENT_MANY_S` (5 min), or any build waits across `RENT_ANY_S` (10 min), and
+   in every sample of that window at most `GRADE_SHORT` tasks wait to grade (builds, not grading, are the bottleneck:
+   owner, 19 Nov 2026; otherwise the tick logs ``grade_bound`` and rents nothing), no
    box up has all its slots free (then the door, not the box count, holds the queue), nothing is being brought up,
    no bring-up failed in the last `FAIL_BACKOFF_S`, the account holds fewer than ``max_boxes`` instances, one more
    keeps the hourly total within ``max_usd_per_hour`` and today's spend leaves room under ``max_usd_per_day``: launch
@@ -28,9 +30,11 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    its admission. A box file put back with an old admission time therefore does not start out idle (carbon-a100 was
    released 18 Nov 2026 13:51Z, 6 min after a rollback restored its file, with builds queued). The LAST box is never
    drained or released while builds wait: a draining last box gets its file back (``undrain``) when a tick sees
-   ``waiting_to_build > 0`` (Lead, 18 Nov 2026). The one exception is the daily cap: once today's spend reaches
-   ``max_usd_per_day`` every box of this tool drains and is released, nothing is rented until 00:00Z, and a page
-   goes out if builds wait.
+   ``waiting_to_build > 0`` (Lead, 18 Nov 2026). The one exception is the daily cap (`over_day_budget`): the
+   OLDEST box of this tool is reserved the rest of the UTC day, and a newer box drains (``day_budget``), newest
+   first, once today's spend plus that reserve leaves it less than `DAY_MARGIN_H` of running; a rent needs
+   `RENT_MIN_H` of room after the same reserve. Only when today's spend itself reaches ``max_usd_per_day`` does every
+   box drain (``day_cap``): nothing is rented until 00:00Z, and a page goes out if builds wait.
 
 Pages are ALERT lines in the door's pager outbox (``page_outbox``; the pager dedupes and sends them): a failed
 bring-up, a failed release, the daily cap reached while builds wait. They name boxes, counts and USD only.
@@ -71,14 +75,27 @@ from pathlib import Path
 RENT_MANY = 3
 RENT_MANY_S = 300
 RENT_ANY_S = 600
+#: A box is added only while BUILDS are the bottleneck (owner "good fix", Lead 19 Nov 2026): the grade queue must be
+#: short in every sample of the same window. GRADE_SHORT = the door's remote grade lanes (8 today: FSN1 + HEL1, 4 each):
+#: a queue that one round of the lanes clears (~7.5 min at ~453 s per grade) means grading keeps up and more built
+#: tasks would be graded soon; a longer one means a new box only moves tasks from the build queue to the grade queue
+#: (19 Nov 13:0xZ: 31 waiting to build, 35 waiting to grade). An unreadable grade count never rents.
+GRADE_SHORT = 8
 #: Samples kept (2 h at the 5-minute timer).
 KEEP_SAMPLES = 24
 #: A bring-up that has not finished in this long is failed (gpu_box_up: under 20 min).
 BRING_UP_LIMIT_S = 45 * 60
 #: After a failed bring-up, no new rent for this long.
 FAIL_BACKOFF_S = 30 * 60
+#: The daily cap keeps the oldest box (owner INFRA-3, 20 Nov 2026: USD 65/day, up to 2 A100s). Draining every box at
+#: the cap meant a 2nd A100 run from the morning (2 x USD 1.99/h) took the 1st down with it at ~16:20Z, leaving no
+#: build box until 00:00Z. A newer box keeps at least DAY_MARGIN_H of budget for its drain (running builds finish:
+#: A100 p90 353 s, plus a 5-min tick), and a rent needs RENT_MIN_H of room (~25 min cold start, then builds).
+DAY_MARGIN_H = 0.5
+RENT_MIN_H = 1.0
 LAMBDA_API = "https://cloud.lambdalabs.com/api/v1"
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+_REL_DIR = re.compile(r"[A-Za-z0-9._-][A-Za-z0-9._/-]{0,199}")
 #: ``tick --dry-run``: no rent, drain, release, state write or log-file line (printed only, marked ``dry``).
 DRY = [False]
 
@@ -168,8 +185,15 @@ class Config:
     max_usd_per_day: float | None = None
     #: the door's pager outbox (relative to the door user's home); "" pages nothing
     page_outbox: str = "ops-watch/outbox.jsonl"
+    #: where ``gpu_box_up door`` writes each box's ssh files for the door's watchdogs (``--ssh-boxes-dir``, relative to
+    #: the door user's home: ``.ssh/config.d/carbon-boxes``); a released box's ``<name>.conf`` + ``.known_hosts`` are
+    #: removed there. "" removes nothing
+    door_ssh_boxes_dir: str = ""
     #: [[start_hour, end_hour], ...] UTC: keep one box warm inside a window (a hook; empty until 24 h+ of G7 data)
     prewarm_utc: tuple = ()
+    #: the pool's provider. Only "lambda" runs today: a Lium pool (`LiumCli`) waits for the Lium pod bring-up and the
+    #: owner's Lium build budget (codex-queue/reports/INFRA/LIUM_ADA_SWITCH_PLAN_20261119.md, S3 and O1)
+    provider: str = "lambda"
 
     @property
     def boxes_dir(self):
@@ -198,24 +222,63 @@ def load_config(path) -> Config:
         raise SystemExit(
             "prewarm_utc: [[start_hour, end_hour], ...], 0 <= start < end <= 24"
         )
+    if config.door_ssh_boxes_dir and (
+        not _REL_DIR.fullmatch(config.door_ssh_boxes_dir)
+        or ".." in config.door_ssh_boxes_dir.split("/")
+    ):
+        raise SystemExit("door_ssh_boxes_dir: a plain path under the door user's home")
     if not config.name_prefix or not _NAME.fullmatch(
         config.name_prefix.rstrip("-") or "x"
     ):
         raise SystemExit("name_prefix")
+    if config.provider != "lambda":
+        # bring_up knows a Lambda VM only (port 22, apt, sudo); a Lium pod needs the pod-mode bring-up first
+        raise SystemExit(
+            "provider: only 'lambda' runs; a Lium pool waits for the pod bring-up and the owner's Lium build budget"
+        )
     return config
 
 
 # -- the policy (pure) ------------------------------------------------------------------------------------------------
 
 
-def _held(samples, now, span, least) -> bool:
-    """Every sample of the last ``span`` s showed at least ``least`` builds waiting, with one sample per 5-minute tick
-    across it and the oldest at least ``span`` ago (a gap in the timer, or an unreadable queue, never counts).
+def _window(samples, now, span):
+    """The samples of the last ``span`` s, or None unless there is one per tick across it and the oldest is at least
+    ``span`` ago (a gap in the timer never counts). The edge allows 90 s: the 5-minute timer fires every 360 s
+    (systemd's default 1-min accuracy), so a 60 s edge dropped the older sample whenever a tick ran late.
     """
-    window = [s for s in samples if now - s["t"] <= span + 60]
+    window = [s for s in samples if now - s["t"] <= span + 90]
     if len(window) < 1 + span // 300 or now - min(s["t"] for s in window) < span - 60:
+        return None
+    return window
+
+
+def _held(samples, now, span, least) -> bool:
+    """Every sample of the last ``span`` s showed at least ``least`` builds waiting (`_window`; an unreadable queue
+    never counts) AND at most `GRADE_SHORT` tasks waiting to grade (an unreadable grade count never counts).
+    """
+    window = _window(samples, now, span)
+    if window is None:
         return False
-    return all(s["waiting"] is not None and s["waiting"] >= least for s in window)
+    return all(
+        s["waiting"] is not None
+        and s["waiting"] >= least
+        and s.get("grade") is not None
+        and s["grade"] <= GRADE_SHORT
+        for s in window
+    )
+
+
+def grade_bound(samples, now) -> bool:
+    """Builds would want a box but the grade queue is the limit: `RENT_MANY` builds waited through `RENT_MANY_S` while
+    a sample of that window showed more than `GRADE_SHORT` waiting to grade (or no readable count).
+    """
+    window = _window(samples, now, RENT_MANY_S)
+    return (
+        bool(window)
+        and all(s["waiting"] is not None and s["waiting"] >= RENT_MANY for s in window)
+        and not _held(samples, now, RENT_MANY_S, RENT_MANY)
+    )
 
 
 def want_box(samples, now) -> str | None:
@@ -248,6 +311,41 @@ def spent_today(state, now) -> float:
     """USD this tool's boxes cost today: the released ones (``state["spent"]``) and the ones it holds now."""
     closed = state.get("spent", {}).get(_day(now), 0.0)
     return closed + sum(_cost_today(r, now) for r in state["boxes"].values())
+
+
+def _rest_of_day_h(now) -> float:
+    return (86400 - now % 86400) / 3600
+
+
+def _kept(state):
+    """This tool's boxes that run on (being brought up or ACTIVE), oldest launch or adoption first."""
+    return sorted(
+        (record["launched"], name, record["price_usd_h"])
+        for name, record in state["boxes"].items()
+        if record["phase"] in ("UP", "ACTIVE")
+    )
+
+
+def day_reserve(state, now) -> float:
+    """USD the boxes this tool runs on would cost to the end of the UTC day."""
+    return _rest_of_day_h(now) * sum(price for _, _, price in _kept(state))
+
+
+def over_day_budget(state, now, config) -> set:
+    """Boxes to drain for the daily cap. At ``max_usd_per_day`` every one; below it, newest first, each newer box
+    whose running leaves under `DAY_MARGIN_H` once today's spend and the rest of the day of every older box are paid.
+    The oldest box drains only at the cap itself."""
+    spent = spent_today(state, now)
+    kept = _kept(state)
+    if spent >= config.max_usd_per_day:
+        return {name for _, name, _ in kept}
+    over, reserve = set(), _rest_of_day_h(now) * kept[0][2] if kept else 0.0
+    for _, name, price in kept[1:]:
+        if spent + reserve + DAY_MARGIN_H * price > config.max_usd_per_day:
+            over.add(name)
+        else:
+            reserve += _rest_of_day_h(now) * price
+    return over
 
 
 def _close_cost(state, record, now):
@@ -352,6 +450,189 @@ class Lambda:
         )
 
 
+#: a Lium pod status as `Lambda`'s instance status (``active`` is the one `bring_up` waits for)
+LIUM_STATUS = {"RUNNING": "active", "PENDING": "booting", "CREATING": "booting"}
+
+
+class LiumError(RuntimeError):
+    """A `lium` CLI call failed (non-zero exit or unreadable JSON); the message is the CLI's own reason line."""
+
+
+class LiumCli:
+    """Lium (Bittensor SN51) 1-GPU pods through the ``lium`` CLI's JSON mode, with `Lambda`'s interface (owner G15/G16:
+    RTX 6000 Ada builds on Lium, Lambda the fallback; LIUM_ADA_SWITCH_PLAN S1). Not wired into `tick` yet: a Lium
+    pool needs the pod-mode bring-up (S3) and the owner's Lium build budget (O1), and `load_config` refuses it.
+
+    The CLI, not raw REST: its rent call carries an idempotency key and looks for a half-created pod before it ever
+    re-sends, and it registers our ssh key. The API key goes to the CLI by environment (``LIUM_API_KEY``), never argv.
+
+    - Only pods named with ``name_prefix`` are this pool's: the account also holds gate and exam pods, which this
+      client never lists, counts or removes.
+    - ``offer`` refuses (None) when the account balance would not cover ``min_runway_h`` hours of every pod on the
+      account plus the new one: Lium deletes EVERY pod of an account whose balance reaches zero (1 Nov 2026).
+    - ``launch`` rents ONE GPU of the cheapest node of ``gpu`` with at least ``min_cpus`` listed CPU threads, with a
+      hard ``ttl`` and ``budget_usd`` (Lium cannot extend either). The listed threads are not the pod's quota (a 1-GPU
+      slice of a 104-thread node had cgroup cpu.max = 51, 19 Nov 2026): the bring-up measures cpu.max.
+    - A rent the CLI cannot confirm raises `LiumError`; a pod it did create carries the prefix, so it is listed and
+      counts toward the caps, and its hard ``ttl``/``budget_usd`` bound what it costs.
+    """
+
+    def __init__(
+        self,
+        cli,
+        key_file,
+        *,
+        name_prefix,
+        gpu,
+        min_cpus,
+        ttl,
+        budget_usd,
+        template_id=None,
+        min_runway_h=3.0,
+        run=subprocess.run,
+    ):
+        if not name_prefix or not _NAME.fullmatch(name_prefix.rstrip("-") or "x"):
+            raise ValueError("name_prefix")
+        self._cli, self._key_file, self._run = cli, key_file, run
+        self.name_prefix, self.gpu, self.min_cpus = name_prefix, gpu, int(min_cpus)
+        self.ttl, self.budget_usd, self.template_id = (
+            ttl,
+            float(budget_usd),
+            template_id,
+        )
+        self.min_runway_h = float(min_runway_h)
+        #: why the last ``offer`` returned None ("no_node" / "low_balance"), for the tick's log line
+        self.refused = None
+
+    def _call(self, *args, timeout=300):
+        env = {
+            **os.environ,
+            "LIUM_API_KEY": Path(self._key_file).read_text().strip(),
+            "PYTHONIOENCODING": "utf-8",
+        }
+        done = self._run(
+            [self._cli, *args],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=timeout,
+            check=False,
+        )
+        if done.returncode != 0:
+            raise LiumError(
+                ((done.stderr or done.stdout or "").strip().splitlines() or ["?"])[-1][
+                    :200
+                ]
+            )
+        try:
+            return json.loads(done.stdout)
+        except ValueError as error:
+            raise LiumError(f"{args[0]}: unreadable JSON") from error
+
+    def _pods(self):
+        rows = self._call("ps", "--format", "json")
+        return rows if isinstance(rows, list) else rows.get("pods", [])
+
+    def instances(self):
+        found = []
+        for pod in self._pods():
+            name = pod.get("name") or ""
+            if not name.startswith(self.name_prefix):
+                continue
+            status = str(pod.get("status") or "").upper()
+            found.append(
+                {
+                    "id": pod["id"],
+                    "name": name,
+                    "status": LIUM_STATUS.get(status, status.lower()),
+                    "ip": pod.get("ip"),
+                    "ssh_port": (pod.get("ports") or {}).get("22"),
+                    "region": pod.get("huid"),
+                    "type": pod.get("gpu_type"),
+                    "price_usd_h": float(pod.get("price_per_hour") or 0),
+                }
+            )
+        return found
+
+    def runway_h(self, extra_usd_h=0.0):
+        """Hours the account balance lasts at the burn of EVERY pod on it (pool or not) plus ``extra_usd_h``."""
+        balance = float(self._call("balance", "--format", "json")["balance_usd"])
+        burn = sum(float(p.get("price_per_hour") or 0) for p in self._pods())
+        burn += extra_usd_h
+        return float("inf") if burn <= 0 else balance / burn
+
+    def offer(self, instance_type=None, regions=()):
+        """``(price_usd_h, "lium")`` of the cheapest node with a free GPU of ``gpu`` and at least ``min_cpus`` listed
+        threads, or None (``refused`` says why). ``instance_type``/``regions`` are `Lambda`'s and unused here.
+        """
+        self.refused = None
+        rows = self._call(
+            "ls",
+            "--format",
+            "json",
+            "--gpu",
+            self.gpu,
+            "--min-cpus",
+            str(self.min_cpus),
+        )
+        prices = [
+            float(r["price_per_gpu_hour"])
+            for r in rows
+            if int(r.get("available_gpu_count") or 0) >= 1
+            and int(r.get("cpu_count") or 0) >= self.min_cpus
+            and r.get("price_per_gpu_hour") is not None
+        ]
+        if not prices:
+            self.refused = "no_node"
+            return None
+        price = min(prices)
+        if self.runway_h(price) < self.min_runway_h:
+            self.refused = "low_balance"
+            return None
+        return (price, "lium")
+
+    def launch(self, *, region=None, instance_type=None, ssh_key_name=None, name):
+        """Rent ONE GPU of the cheapest matching node; the new pod's id. ``region``/``instance_type``/``ssh_key_name``
+        are `Lambda`'s: Lium picks the node, and the CLI's registered key opens the pod.
+        """
+        if not name.startswith(self.name_prefix) or not _NAME.fullmatch(name):
+            raise ValueError("launch: the pod name must carry the pool's name_prefix")
+        args = [
+            "up",
+            "--gpu",
+            self.gpu,
+            "--count",
+            "1",
+            "--min-cpus",
+            str(self.min_cpus),
+            "--name",
+            name,
+            "--ttl",
+            self.ttl,
+            "--budget",
+            f"{self.budget_usd:g}",
+            "--yes",
+            "--no-ssh",
+            "--json",
+            "--timeout",
+            "900",
+        ]
+        if self.template_id:
+            args += ["--template_id", self.template_id]
+        pod = self._call(*args, timeout=960)
+        pod = pod.get("pod", pod) if isinstance(pod, dict) else {}
+        if not pod.get("id"):
+            raise LiumError("up: no pod id in the reply")
+        return pod["id"]
+
+    def terminate(self, instance_id):
+        self._call("rm", str(instance_id), "--yes", "--name-only", "--format", "json")
+
+    def restart(self, instance_id):
+        # Lambda's restart is for the driver step of a VM; a Lium pod has no driver step
+        raise LiumError("restart: not available for a Lium pod")
+
+
 def _door(config, argv, *, stdin=None, timeout=120):
     return subprocess.run(
         [
@@ -370,7 +651,8 @@ def _door(config, argv, *, stdin=None, timeout=120):
 
 
 def read_door(config):
-    """``(waiting_to_build or None, boxes)`` read on the door (`DOOR_PROBE`, the public queue)."""
+    """``(waiting_to_build or None, boxes, waiting_to_grade or None)`` read on the door (`DOOR_PROBE`, the public
+    queue)."""
     probe = _door(
         config,
         ["python3", "-I", "-", config.door_host_root, config.boxes_dir],
@@ -380,13 +662,20 @@ def read_door(config):
     queue = _door(config, ["curl", "-sf", "--max-time", "20", config.door_queue_url])
     try:
         public = json.loads(queue.stdout)
-        waiting = int(public["waiting_to_build"])
-        if public.get("door_state") == "draining":
-            # a draining door builds nothing new: as unreadable (no idle clock, no drain, release or rent)
-            waiting = None
-    except (ValueError, KeyError, TypeError):
+    except (ValueError, TypeError):
+        public = None
+
+    def count(key):
+        try:
+            return int(public[key])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    waiting = count("waiting_to_build")
+    if type(public) is dict and public.get("door_state") == "draining":
+        # a draining door builds nothing new: as unreadable (no idle clock, no drain, release or rent)
         waiting = None
-    return waiting, boxes
+    return waiting, boxes, count("waiting_to_grade")
 
 
 # -- state and log ----------------------------------------------------------------------------------------------------
@@ -456,6 +745,28 @@ def _hours(record, now):
     return round((now - record["launched"]) / 3600, 3)
 
 
+def _forget_box_ssh(config, name):
+    """The released box's ssh files on the door (``gpu_box_up``'s watchdog link) go with it. A failure is logged, not
+    retried: a stale block is harmless (its own pinned key refuses any other host) and the next bring-up on a recycled
+    address replaces it."""
+    if not config.door_ssh_boxes_dir:
+        return
+    base = f"{config.door_ssh_boxes_dir}/{name}"
+    if DRY[0]:
+        log(config, action="would_remove_box_ssh", box=name)
+        return
+    try:
+        ok = (
+            _door(
+                config, ["rm", "-f", f"{base}.conf", f"{base}.known_hosts"]
+            ).returncode
+            == 0
+        )
+    except (OSError, subprocess.SubprocessError):
+        ok = False
+    log(config, action="box_ssh_removed", box=name, ok=ok)
+
+
 def _released(config, state, name, record, client, now, why):
     if DRY[0]:
         log(config, action="would_release", box=name, id=record["id"], why=why)
@@ -479,6 +790,7 @@ def _released(config, state, name, record, client, now, why):
         )
         return
     _close_cost(state, record, now)
+    _forget_box_ssh(config, name)
     hours = _hours(record, now)
     log(
         config,
@@ -516,10 +828,10 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
     now = time.time() if now is None else now
     client = client or Lambda(config.lambda_key_file)
     state = load_state(config)
-    waiting, boxes = (door or read_door)(config)
-    state["samples"] = (state["samples"] + [{"t": now, "waiting": waiting}])[
-        -KEEP_SAMPLES:
-    ]
+    waiting, boxes, grading = (door or read_door)(config)
+    state["samples"] = (
+        state["samples"] + [{"t": now, "waiting": waiting, "grade": grading}]
+    )[-KEEP_SAMPLES:]
     instances = client.instances()
     by_id = {i["id"]: i for i in instances}
     ours = state["boxes"]
@@ -534,6 +846,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
             "terminated",
         ):
             _close_cost(state, record, now)
+            _forget_box_ssh(config, name)
             hours = _hours(record, now)
             log(
                 config,
@@ -582,6 +895,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
 
     spent = spent_today(state, now)
     at_day_cap = spent >= config.max_usd_per_day
+    over = over_day_budget(state, now, config)
     if at_day_cap and waiting:
         page(
             config,
@@ -602,8 +916,8 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
             if record["phase"] == "ACTIVE" and entry is not None and entry.get("file"):
                 idle = idle_for(entry, now, record)
                 why = (
-                    "day_cap"
-                    if at_day_cap
+                    ("day_cap" if at_day_cap else "day_budget")
+                    if name in over
                     else (
                         "idle"
                         if idle > config.idle_release_s
@@ -628,6 +942,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 record["phase"] == "DRAINING"
                 and waiting > 0
                 and not at_day_cap
+                and name not in over
                 and not any(
                     e.get("file") for other, e in boxes.items() if other != name
                 )
@@ -676,6 +991,9 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
     # a box up with every slot free while builds wait: more boxes would sit free too (the door holds the queue)
     idle_box = any(e.get("file") and not e.get("busy") for e in (boxes or {}).values())
     why = want_box(state["samples"], now)
+    if why is None and grade_bound(state["samples"], now) and not bringing:
+        # builds wait, but grading is the limit: a box would only move tasks into the grade queue (owner, 19 Nov)
+        log(config, action="grade_bound", waiting=waiting, grading=grading)
     if why is None and waiting is not None and up < prewarm(config, now):
         why = "prewarm"
     if (
@@ -696,14 +1014,18 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 rule=why,
                 instances=len(instances),
             )
-        elif spent + offer[0] / 2 > config.max_usd_per_day:
-            # a new box costs at least its ~25 min bring-up and the first builds
+        elif (
+            spent + day_reserve(state, now) + offer[0] * RENT_MIN_H
+            > config.max_usd_per_day
+        ):
+            # the boxes up keep running to 00:00Z; a new one needs its bring-up and some builds on top
             log(
                 config,
                 action="at_day_cap",
                 waiting=waiting,
                 rule=why,
                 spent_usd=round(spent, 2),
+                reserve_usd=round(day_reserve(state, now), 2),
             )
         elif DRY[0]:
             log(
@@ -749,11 +1071,14 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 {
                     "dry": True,
                     "waiting_to_build": waiting,
+                    "waiting_to_grade": grading,
                     "boxes_up": up,
                     "want_box": why,
                     "idle_box_up": idle_box,
                     "spent_today_usd": round(spent, 2),
                     "max_usd_per_day": config.max_usd_per_day,
+                    "day_reserve_usd": round(day_reserve(state, now), 2),
+                    "over_day_budget": sorted(over),
                     "backoff_until": state.get("backoff_until", 0),
                     "door_boxes": boxes,
                     "ours": ours,
@@ -779,7 +1104,7 @@ def adopt(config, name, ip, *, client=None, door=None, now=None):
     state = load_state(config)
     if name in state["boxes"]:
         raise SystemExit(f"adopt: {name} is already this tool's")
-    _, boxes = (door or read_door)(config)
+    _, boxes, _ = (door or read_door)(config)
     if boxes is None or not boxes.get(name, {}).get("file"):
         raise SystemExit(f"adopt: no box file {name}.json on the door")
     found = [i for i in client.instances() if i["ip"] == ip and i["status"] == "active"]
@@ -818,10 +1143,12 @@ def _spawn_bring_up(config, name):
             sys.executable,
             "-I",
             os.path.abspath(__file__),
+            # the name right after the command: argparse refuses a "?" positional after an option ("unrecognized
+            # arguments: <name>"), which left every rented box un-brought-up until the timeout (19 Nov 2026, 11:55Z)
             "bring-up",
+            name,
             "--config",
             CONFIG_PATH[0],
-            name,
         ],
         check=False,
     )
@@ -834,7 +1161,13 @@ CONFIG_PATH = [""]
 
 
 def _fingerprint(line):
-    blob = base64.b64decode(line.split()[1])
+    """The SHA256 fingerprint (``ssh-keygen -l`` form) of an ed25519 key line: an ``ssh-keyscan`` line ``<host>
+    ssh-ed25519 <base64>`` or a bare ``ssh-ed25519 <base64>``. The key is the field AFTER the type: reading field 1 of
+    a keyscan line decoded the type name and crashed every bring-up 5 min in (``Incorrect padding``), so all three
+    rents of 19-20 Nov timed out and were released while builds waited (20 Nov 2026, 02:1xZ).
+    """
+    fields = line.split()
+    blob = base64.b64decode(fields[fields.index("ssh-ed25519") + 1])
     return "SHA256:" + base64.b64encode(hashlib.sha256(blob).digest()).decode().rstrip(
         "="
     )
@@ -969,7 +1302,7 @@ def _reason(output):
     return "unknown"
 
 
-def main(argv=None):
+def _parser():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("command", choices=("tick", "bring-up", "status", "adopt"))
     parser.add_argument("name", nargs="?")
@@ -978,7 +1311,11 @@ def main(argv=None):
     parser.add_argument(
         "--dry-run", action="store_true", help="tick/adopt: print, change nothing"
     )
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv=None):
+    args = _parser().parse_args(argv)
     DRY[0] = args.dry_run
     CONFIG_PATH[0] = os.path.abspath(args.config)
     config = load_config(args.config)

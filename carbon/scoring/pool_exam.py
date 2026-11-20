@@ -31,6 +31,8 @@ Every constant the owner picks (`policies`) is a required argument. Nothing here
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import copy
 import hashlib
 import json
@@ -74,6 +76,32 @@ class ExamRefused(ValueError):
 def _require(condition, code):
     if not condition:
         raise ExamRefused(code)
+
+
+#: The capture staged for the grade being produced in THIS context (`staged_capture`): set by the receiver around its producer
+#: call, never through a producer file (as `pool_menu.staged_rowcheck`: producer bytes never move).
+_STAGED_CAPTURE = contextvars.ContextVar("carbon_pool_capture", default=None)
+
+
+@contextlib.contextmanager
+def staged_capture():
+    """Yield a dict the FIRST pool measure called inside this block fills as its ``capture`` argument would be filled
+    (``accuracy``, ``menu``, a gated grade's ``se_basis``), so the receiver keeps the official grade's own custody accuracy
+    record and SE basis without measuring the model a second time (door-code item 5, 19 Nov 2026). Write-only: the grade
+    is the same with or without it.
+
+    One difference: a scored grade's SE basis is NOT derived inside the measure. The block holds ``se_basis_of``, a
+    function of the grade's own values that returns it, called by the receiver AFTER the producer call: so the extra work
+    never runs under a lock the produce holds (`pair_read_bound`'s process-wide lock), and its failure can never change
+    or refuse the grade. Cleared on exit. A ``capture`` passed explicitly (the operator's SE tools) is filled as before
+    and the stage is ignored.
+    """
+    found = {}
+    token = _STAGED_CAPTURE.set(found)
+    try:
+        yield found
+    finally:
+        _STAGED_CAPTURE.reset(token)
 
 
 def split_rows(bank_rows):
@@ -198,7 +226,13 @@ def measure_pool(
     With a physics rule A is the family value (`pool_physics_score.family_value`, per set), and the grade adds the
     mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
     accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
+
+    With no ``capture`` given, a receiver's `staged_capture` block (still empty: only the first measure) is filled instead,
+    its scored SE basis deferred to ``se_basis_of`` (see `staged_capture`).
     """
+    staged = capture is None and _STAGED_CAPTURE.get() == {}
+    if staged:
+        capture = _STAGED_CAPTURE.get()
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
     policies = attach_physics(
         policies, scoring_cells, sets, a_multiplier, in_range_cases
@@ -514,69 +548,83 @@ def measure_pool(
     if a_only:
         # The owner's "physics score alone" for this version: D := A per set, so the dual pack's 0.5 A + 0.5 D is A.
         d_values = list(a_values)
-    if capture is not None and policies.physics is not None:
-        # A version with physics scoring: each target carries its d and its sums per scored cell (`target_cells`), so a
-        # resample recomposes cell -> family -> A exactly as the grade did (`total_of_targets`).
-        predict = suite.pool_predictor(plugin, descriptor, all_specs)
-        capture["se_basis"] = {
-            "gated": False,
-            "physics": True,
-            "a_only": a_only,
-            # in memory only (never serialized): the rule a resample recomposes headroom skill with
-            "physics_rule": policies.physics,
-            "c": legs["C"],
-            # a menu version: the resample holds the menu D fixed (it conditions on the epoch's draw); absent otherwise
-            **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
-            "a_sets": list(a_values),
-            "sets": [
-                [
-                    {
-                        # an accuracy-only target has no pick d (the basis holds the menu D fixed)
-                        "d": None if target is None else target.d,
-                        "cells": pool_physics_score.target_cells(
-                            spec,
-                            predict,
-                            policies.agen_scales,
-                            policies.optimizer.coverage_plan,
-                            policies.physics,
-                        ),
-                    }
-                    for spec, target in zip(
-                        specs,
-                        [None] * len(specs) if grade is None else grade.targets,
-                        strict=True,
+
+    def se_basis():
+        """The per-target decomposition of the final total (`se_basis`), from this grade's own values."""
+        if policies.physics is not None:
+            # A version with physics scoring: each target carries its d and its sums per scored cell (`target_cells`), so a
+            # resample recomposes cell -> family -> A exactly as the grade did (`total_of_targets`).
+            predict = suite.pool_predictor(plugin, descriptor, all_specs)
+            basis = {
+                "gated": False,
+                "physics": True,
+                "a_only": a_only,
+                # in memory only (never serialized): the rule a resample recomposes headroom skill with
+                "physics_rule": policies.physics,
+                "c": legs["C"],
+                # a menu version: the resample holds the menu D fixed (it conditions on the epoch's draw); absent otherwise
+                **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
+                "a_sets": list(a_values),
+                "sets": [
+                    [
+                        {
+                            # an accuracy-only target has no pick d (the basis holds the menu D fixed)
+                            "d": None if target is None else target.d,
+                            "cells": pool_physics_score.target_cells(
+                                spec,
+                                predict,
+                                policies.agen_scales,
+                                policies.optimizer.coverage_plan,
+                                policies.physics,
+                            ),
+                        }
+                        for spec, target in zip(
+                            specs,
+                            [None] * len(specs) if grade is None else grade.targets,
+                            strict=True,
+                        )
+                    ]
+                    for specs, (_t, grade, _g, _l) in zip(
+                        plugin.sets, per_set, strict=True
                     )
-                ]
-                for specs, (_t, grade, _g, _l) in zip(plugin.sets, per_set, strict=True)
-            ],
-            "total": 0.5 * statistics.fmean(a_values)
-            + 0.5 * statistics.fmean(d_values),
-        }
-        _basis_regions(capture["se_basis"], policies.optimizer, plugin.sets)
+                ],
+                "total": 0.5 * statistics.fmean(a_values)
+                + 0.5 * statistics.fmean(d_values),
+            }
+            _basis_regions(basis, policies.optimizer, plugin.sets)
+        else:
+            predict = suite.pool_predictor(plugin, descriptor, all_specs)
+            basis = {
+                "gated": False,
+                "a_bank": a_bank,
+                "c": legs["C"],
+                **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
+                "a_rule": dict(policies.a_rule),
+                "sets": [
+                    [
+                        {
+                            "d": target.d,
+                            "agen": pool_grader.agen_accuracy(
+                                [spec], predict, policies.agen_scales
+                            ),
+                        }
+                        for spec, target in zip(specs, grade.targets, strict=True)
+                    ]
+                    for specs, (_t, grade, _g, _l) in zip(
+                        plugin.sets, per_set, strict=True
+                    )
+                ],
+                "total": 0.5 * statistics.fmean(a_values)
+                + 0.5 * statistics.fmean(d_values),
+            }
+            _basis_regions(basis, policies.optimizer, plugin.sets)
+        return basis
+
+    if staged:
+        # derived by the receiver AFTER the producer call: outside every lock the produce holds, its failure never the grade's
+        capture["se_basis_of"] = se_basis
     elif capture is not None:
-        predict = suite.pool_predictor(plugin, descriptor, all_specs)
-        capture["se_basis"] = {
-            "gated": False,
-            "a_bank": a_bank,
-            "c": legs["C"],
-            **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
-            "a_rule": dict(policies.a_rule),
-            "sets": [
-                [
-                    {
-                        "d": target.d,
-                        "agen": pool_grader.agen_accuracy(
-                            [spec], predict, policies.agen_scales
-                        ),
-                    }
-                    for spec, target in zip(specs, grade.targets, strict=True)
-                ]
-                for specs, (_t, grade, _g, _l) in zip(plugin.sets, per_set, strict=True)
-            ],
-            "total": 0.5 * statistics.fmean(a_values)
-            + 0.5 * statistics.fmean(d_values),
-        }
-        _basis_regions(capture["se_basis"], policies.optimizer, plugin.sets)
+        capture["se_basis"] = se_basis()
     return {
         **base,
         "A": statistics.fmean(a_values),

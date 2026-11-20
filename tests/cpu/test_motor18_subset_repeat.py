@@ -968,6 +968,42 @@ def test_real_adapter_one_ulp_off_in_one_repeated_row_leaves_the_grade_unscored(
     assert scored["models"][0]["score"] is None
 
 
+def test_real_adapter_the_staged_capture_is_the_official_subset_grades_measure(
+    case, as_subset
+):
+    """Door-code item 5, V2 evidence A: inside the subset producer (`produce_registered_dual_measurement` ->
+    `_produce` -> `measure_subset` -> PoolVariant.measure -> `pool_exam.measure_pool`, the ONE measure of the grade),
+    the receiver's staged capture holds THAT measure: its basis total is the benchmark's own 0.5 A + 0.5 D; a grade the
+    subset repeat leaves unscored has no SE (gated), whatever the pool measure staged.
+    """
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.scoring import pool_exam
+
+    originals, _sealed, _keyed = _fixture_side(case)
+    with pool_exam.staged_capture() as captured:
+        _src, measured = _subset_produce(case, originals)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    assert set(benchmark["models"][0]["gates"].values()) == {"PASS"}
+    assert callable(captured["se_basis_of"])
+    basis = retention._official_basis(
+        captured, benchmark
+    )  # raises capture_not_official otherwise
+    legs = benchmark["models"][0]["measurements"]
+    graded = 0.5 * legs[physical.METRICS["A"]]["value"]
+    graded += 0.5 * legs[physical.METRICS["D"]]["value"]
+    assert basis["total"] == pytest.approx(graded, abs=1e-12)
+
+    def change(answers, positions):
+        answers[0][-1] = math.nextafter(answers[0][-1], math.inf)
+
+    originals, _sealed, _keyed = _fixture_side(case, change=change)
+    with pool_exam.staged_capture() as captured:
+        _src, measured = _subset_produce(case, originals)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    assert "FAIL" in benchmark["models"][0]["gates"].values()
+    assert retention._official_basis(captured, benchmark) == {"gated": True}
+
+
 def test_real_adapter_repeat_values_reach_gates_only(case, as_subset, monkeypatch):
     """A-5: the twin rows the measure receives never reach a score input. Perturb every twin row that is not a sealed
     cell (pool and probe rows: never read) wildly, and every sealed cell's twin inside Motor's torque rule (read only by
@@ -1443,13 +1479,23 @@ def test_no_key_refuses_at_grade_time(tmp_path, monkeypatch):
     assert str(caught.value) == "subset_repeat_key_unavailable" and not calls
 
 
-def _retain(tmp_path, monkeypatch, version, repeat, regrade=None, material=None):
-    """`_retain_selected_pack_evaluation` up to and including the repeat (``repeat`` replaces it)."""
+def _retain(
+    tmp_path,
+    monkeypatch,
+    version,
+    repeat,
+    regrade=None,
+    material=None,
+    seen=None,
+    settled=None,
+):
+    """`_retain_selected_pack_evaluation` up to and including the repeat (``repeat`` replaces it). ``seen`` and
+    ``settled``: the caller's lists, filled even when the retention raises."""
     from carbon.challenge_validator import exam_cap
     from carbon.challenge_validator import lean_recipe_retention as retention
     from carbon.scoring import dual_score
 
-    settled = []
+    settled = [] if settled is None else settled
 
     class Cap:
         def __init__(self, *_a, **_k):
@@ -1469,7 +1515,7 @@ def _retain(tmp_path, monkeypatch, version, repeat, regrade=None, material=None)
         lambda *a, **k: {"entry": {"state_digest": "sd", "recipe_digest": "rd"}},
     )
     monkeypatch.setattr(retention, "_record_stop_ladder", lambda *a: "LADDER")
-    seen = []
+    seen = [] if seen is None else seen
 
     def record(name):
         def call(*_a, **_k):
@@ -1593,13 +1639,25 @@ def test_a_recorded_graded_inference_reaches_the_subset_op(tmp_path, monkeypatch
 def test_the_retention_runs_the_subset_repeat_and_never_the_pair_for_motor_18(
     tmp_path, monkeypatch
 ):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
     for version, expected in (("1.8", ["subset"]), ("1.5", ["pair"])):
-        result, seen, settled = _retain(
-            tmp_path, monkeypatch, version, lambda: b"subset-evidence"
-        )
+        seen, settled = [], []
+        # the stop after the repeat is a Carbon failure on a miner's grade (V2-L2-RETENTION-20261120): it reaches the
+        # grader raised (FAILED_INFRA there), its slot returned once here
+        with pytest.raises(
+            retention.RetentionUnavailable, match="^stopped_after_the_repeat$"
+        ):
+            _retain(
+                tmp_path,
+                monkeypatch,
+                version,
+                lambda: b"subset-evidence",
+                seen=seen,
+                settled=settled,
+            )
         assert seen == expected, version
-        assert result["private_evaluation_reason"] == "stopped_after_the_repeat"
-        assert settled == ["UNAVAILABLE"]
+        assert settled == ["UNAVAILABLE"], version
 
 
 def test_a_second_subset_wall_hit_settles_candidate_failed_with_pass_inference_pair(

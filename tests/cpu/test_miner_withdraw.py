@@ -16,6 +16,7 @@ Synthetic hotkeys, ids and fixture material only.
 
 from __future__ import annotations
 
+import functools
 import json
 import sqlite3
 import sys
@@ -49,7 +50,12 @@ def _door(tmp_path, monkeypatch, *, per="hotkey"):
     request, adapter, ledger, door, provider = coldkey_door(
         tmp_path, monkeypatch, per=per
     )
-    intake = SimpleNamespace(adapter=adapter, _write=threading.Lock(), window=None)
+    intake = SimpleNamespace(adapter=adapter, window=None)
+    # the intake's REAL per-owner lock (`DirectRecipeIntake._owner_lock`), which a withdrawal holds (LEAD #1: no
+    # door-wide `_write` any more), bound to this stand-in intake
+    intake._owner_lock = functools.partial(
+        direct_intake.DirectRecipeIntake._owner_lock, intake
+    )
     grader = auto_grade.AutoGrader(intake, ledger.path.parent)
     intake.grade_marker = grader.marker
     intake.withdraw_marker = grader.withdrawn

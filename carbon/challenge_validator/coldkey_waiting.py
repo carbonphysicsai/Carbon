@@ -22,9 +22,10 @@ refusal at grading time would still have spent a whole build.
   attempt it cannot read), which would otherwise hold the coldkey for good. ANY terminal state frees the place: the round
   writes a marker for every grade it settles (graded, refused, wall or early stop, failed incl. an infra give-back), and a
   submission its owner WITHDREW while queued (`LeanRecipeAdapter.withdraw`) is CANCELLED, never a waiting state.
-- ATOMIC: on the live door every submit is already decided under the intake's one writer lock
-  (`DirectRecipeIntake._write`); the guard's own lock, held from this check to the task's start (a just-started task is
-  QUEUED in its view at once), keeps that true for any other caller.
+- ATOMIC: on the live door every submit is decided under its coldkey's admission lock (`DirectRecipeIntake.
+  _admission_scope`); the guard's own lock FOR THAT COLDKEY (or hotkey, per the row: `lock_for(key_of(...))`), held from
+  this check to the task's start (a just-started task is QUEUED in its view at once), keeps that true for any other
+  caller. Never one lock for the whole door (LOCK + CACHE AUDIT #14): submissions of other coldkeys never wait for it.
 - The submission's OWN task (a resend of the same recipe; the same task id) is never counted against it.
 - Submissions already waiting when the rule is switched on are KEPT: nothing is cancelled or judged again.
 - A read that cannot be made (the views changing too fast, no snapshot) never refuses: the door takes the submission as
@@ -104,9 +105,31 @@ class Guard:
     def __init__(self, *, opened, pending, snapshot, stalled=frozenset):
         self._opened, self._pending, self._snapshot = opened, pending, snapshot
         self._stalled = stalled
-        #: held from the check to the task's start (`LeanRecipeAdapter.evaluate`): one submission decided at a time
-        self.lock = threading.Lock()
+        #: one lock per counted scope (``c:<coldkey>`` or ``h:<hotkey>``), held from the check to the task's start
+        #: (`LeanRecipeAdapter._coldkey_place`): one submission of that scope decided at a time; memory only
+        self._locks = {}
+        self._locks_guard = threading.Lock()
         self._said_unreadable = False
+
+    def key_of(self, hotkey, per="coldkey"):
+        """The scope ``hotkey``'s submission is counted in: ``h:<hotkey>`` for a per-hotkey row, else ``c:<coldkey>``
+        from the door's latest snapshot (``h:<hotkey>`` when it cannot be resolved: such a submitter is refused).
+        """
+        if per != "hotkey":
+            try:
+                snapshot = self._snapshot()
+                member = None if snapshot is None else snapshot.resolve(hotkey)
+            except Exception:  # noqa: BLE001 - unresolved: its own scope
+                member = None
+            coldkey = getattr(member, "coldkey", None)
+            if type(coldkey) is str:
+                return "c:" + coldkey
+        return "h:" + hotkey
+
+    def lock_for(self, key):
+        """The lock of one counted scope (created on first use)."""
+        with self._locks_guard:
+            return self._locks.setdefault(key, threading.Lock())
 
     def _unreadable(self):
         """Fail open, said once (counts only): a wiring fault must never turn the rule off silently."""

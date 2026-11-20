@@ -972,6 +972,7 @@ class AutoGrader:
                 if decision == "wait":
                     self.recipe_copy_waits = getattr(self, "recipe_copy_waits", 0) + 1
                     self._log_copy_waits()
+                    self._log_copy_wait_first(submission_id, first)
                     if spent:
                         return None
                     if claims is not None and taken:
@@ -1314,6 +1315,24 @@ class AutoGrader:
             entry_id=entry if type(entry) is str else None,
         )
         return submission_id, "GRADED"
+
+    def _log_copy_wait_first(self, submission_id, first):
+        """One private ``recipe_copy_wait_first`` journal line per (waiting task, its first), the first time this
+        process sees that pair (live-ops 20 Nov 2026: a 24 h hold could not be traced, the hourly count names no task).
+        The receiver's own journal only, never a miner surface; never raises."""
+        try:
+            seen = getattr(self, "_copy_wait_pairs", None)
+            if seen is None or len(seen) > 10000:
+                seen = self._copy_wait_pairs = set()
+            pair = (submission_id, first)
+            if pair in seen:
+                return
+            seen.add(pair)
+            from carbon.battery.intake import log
+
+            log("recipe_copy_wait_first", task=submission_id, first=first)
+        except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
+            return
 
     def _log_copy_waits(self):
         """At most one ``recipe_copy_waits_hourly`` line per hour: how many grade rounds left a copy waiting for its

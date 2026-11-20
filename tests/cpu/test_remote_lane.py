@@ -546,6 +546,38 @@ def test_the_remote_watchdog_rides_out_a_link_fault_and_stops_on_absence(monkeyp
     assert code == 0 and answers == []
 
 
+def test_the_remote_watchdog_reads_the_remote_daemons_lowercase_absence(monkeypatch):
+    """Live 116, 19 Nov 2026: the remote lanes' docker prints a lowercase absence line; the watchdog must stop on it
+    at once (it used to poll inspect until its deadline)."""
+    import subprocess
+
+    from carbon.reconstruction.worker import watchdog
+
+    assert watchdog._says_absent(b"error: no such object: carbon-d4-x")
+    assert watchdog._says_absent(b"Error: No such container: carbon-d4-x")
+    assert watchdog._says_absent(b"Error response from daemon: No such object: x")
+    assert not watchdog._says_absent(b"error during connect")
+    assert not watchdog._says_absent(None)
+    monkeypatch.setenv("DOCKER_HOST", HOST)
+    calls = []
+
+    class CLI:
+        def run(self, arguments, timeout=None, accepted=(0,)):
+            calls.append(arguments)
+            return subprocess.CompletedProcess(
+                [], 1, b"", b"error: no such object: carbon-d4-" + b"1" * 24
+            )
+
+    monkeypatch.setattr(watchdog, "DockerCLI", CLI)
+    monkeypatch.setattr(
+        watchdog.time, "sleep", lambda s: pytest.fail("polled again after absence")
+    )
+    code = watchdog.main(
+        ["carbon-d4-" + "1" * 24, "sha256:" + "1" * 64, str(time.time() + 600)]
+    )
+    assert code == 0 and len(calls) == 1
+
+
 def test_the_local_watchdog_is_unchanged(monkeypatch):
     import subprocess
 

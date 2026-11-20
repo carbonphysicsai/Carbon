@@ -87,14 +87,23 @@ class _Client:
 
 
 def _ticks(
-    config, client, waiting, *, boxes=None, start=T0, every=300, count=4, spawned=None
+    config,
+    client,
+    waiting,
+    *,
+    boxes=None,
+    start=T0,
+    every=300,
+    count=4,
+    spawned=None,
+    grading=0,
 ):
     state = None
     for k in range(count):
         state = scale.tick(
             config,
             client=client,
-            door=lambda c: (waiting, {} if boxes is None else boxes),
+            door=lambda c: (waiting, {} if boxes is None else boxes, grading),
             now=start + k * every,
             spawn=lambda c, name: (spawned if spawned is not None else []).append(name),
         )
@@ -108,8 +117,11 @@ def _log(config):
     ]
 
 
-def _samples(*waiting, every=300):
-    return [{"t": T0 + k * every, "waiting": w} for k, w in enumerate(waiting)]
+def _samples(*waiting, every=300, grade=0):
+    return [
+        {"t": T0 + k * every, "waiting": w, "grade": grade}
+        for k, w in enumerate(waiting)
+    ]
 
 
 def test_rent_when_three_wait_five_minutes_or_any_waits_ten():
@@ -125,8 +137,13 @@ def test_rent_when_three_wait_five_minutes_or_any_waits_ten():
     s = _samples(5, None, 5)
     assert scale.want_box(s, end(s)) is None  # an unreadable queue never counts
     # a gap in the timer is not five minutes of waiting
-    s = [{"t": T0, "waiting": 9}]
+    s = [{"t": T0, "waiting": 9, "grade": 0}]
     assert scale.want_box(s, T0 + 300) is None
+    # builds wait, but the grade queue is the limit (owner, 19 Nov 2026)
+    s = _samples(31, 31, grade=scale.GRADE_SHORT + 1)
+    assert scale.want_box(s, end(s)) is None and scale.grade_bound(s, end(s))
+    s = _samples(31, 31, grade=scale.GRADE_SHORT)
+    assert scale.want_box(s, end(s)) == "many" and not scale.grade_bound(s, end(s))
 
 
 def test_three_builds_waiting_five_minutes_rents_one_box(tmp_path):
@@ -207,6 +224,44 @@ def _active_box(config, client, name="carbon-pool-a"):
     }
     scale.save_state(config, state)
     return name
+
+
+def test_a_released_box_takes_its_door_ssh_files_with_it(tmp_path, monkeypatch):
+    """``gpu_box_up door`` writes each box's ssh block for the door's watchdogs; the release removes it (a recycled
+    address must not keep an old block). With ``door_ssh_boxes_dir`` empty nothing is removed.
+    """
+    config = _config(tmp_path, door_ssh_boxes_dir=".ssh/config.d/carbon-boxes")
+    client = _Client()
+    name = _active_box(config, client)
+    calls = []
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    idle = {
+        name: {"file": True, "busy": False, "last": T0 - 3700, "admitted": T0 - 7200}
+    }
+    _ticks(config, client, 0, boxes=idle, count=1)
+    assert ["rm"] not in [
+        a[:1] for a, _ in calls
+    ]  # drained only: its builds and watchdogs still run
+    free = {name: dict(idle[name], file=False)}
+    _ticks(config, client, 0, boxes=free, start=T0 + 300, count=1)
+    assert client.terminated == ["i-a"]
+    base = f".ssh/config.d/carbon-boxes/{name}"
+    assert (["rm", "-f", f"{base}.conf", f"{base}.known_hosts"], None) in calls
+    assert any(e["action"] == "box_ssh_removed" and e["ok"] for e in _log(config))
+
+
+def test_the_door_ssh_boxes_dir_is_a_plain_path_under_the_door_home(tmp_path):
+    config = _config(tmp_path)
+    raw = {k: list(v) if type(v) is tuple else v for k, v in config.__dict__.items()}
+    path = tmp_path / "c.json"
+    for bad in ("/home/carbon/.ssh", "../x", ".ssh/../../x", ".ssh/a b"):
+        path.write_text(json.dumps({**raw, "door_ssh_boxes_dir": bad}))
+        with pytest.raises(SystemExit, match="door_ssh_boxes_dir"):
+            scale.load_config(path)
+    path.write_text(
+        json.dumps({**raw, "door_ssh_boxes_dir": ".ssh/config.d/carbon-boxes"})
+    )
+    assert scale.load_config(path).door_ssh_boxes_dir == ".ssh/config.d/carbon-boxes"
 
 
 def test_an_idle_box_is_drained_then_released_with_its_cost(tmp_path, monkeypatch):
@@ -362,7 +417,7 @@ def test_an_adopted_box_is_drained_and_released_after_an_idle_hour(
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, busy),
+        door=lambda c: (0, busy, 0),
         now=T0,
     )
     record = scale.load_state(config)["boxes"]["carbon-a100"]
@@ -407,7 +462,7 @@ def test_adopt_refuses_without_one_active_instance_and_its_box_file(
             "carbon-a100",
             ip,
             client=_Client(instances),
-            door=lambda c: (0, boxes),
+            door=lambda c: (0, boxes, 0),
             now=T0,
         )
     assert scale.load_state(config)["boxes"] == {}
@@ -423,7 +478,7 @@ def test_a_dry_tick_changes_nothing(tmp_path, monkeypatch, capsys):
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, {"carbon-a100": {"file": True}}),
+        door=lambda c: (0, {"carbon-a100": {"file": True}}, 0),
         now=T0,
     )
     before = (Path(config.state_dir) / "state.json").read_text()
@@ -456,7 +511,7 @@ def test_no_rent_while_a_box_up_sits_idle_or_just_after_an_idle_release(
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (80, idle),
+        door=lambda c: (80, idle, 0),
         now=T0,
     )
     monkeypatch.setattr(
@@ -496,7 +551,7 @@ def test_an_unreadable_queue_drains_and_releases_nothing(tmp_path, monkeypatch):
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, idle),
+        door=lambda c: (0, idle, 0),
         now=T0,
     )
     monkeypatch.setattr(scale, "_door", lambda *a, **k: pytest.fail("door write"))
@@ -513,7 +568,7 @@ def _adopted(config, client, entry):
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, {"carbon-a100": entry}),
+        door=lambda c: (0, {"carbon-a100": entry}, 0),
         now=T0,
     )
 
@@ -616,12 +671,17 @@ def test_a_draining_door_is_read_as_unreadable(monkeypatch):
         return type("R", (), {"returncode": 0, "stdout": stdout})()
 
     monkeypatch.setattr(scale, "_door", door)
-    out["queue"] = json.dumps({"waiting_to_build": 4, "door_state": "grading"}).encode()
-    assert scale.read_door(config) == (4, {})
     out["queue"] = json.dumps(
-        {"waiting_to_build": 4, "door_state": "draining"}
+        {"waiting_to_build": 4, "waiting_to_grade": 6, "door_state": "grading"}
     ).encode()
-    assert scale.read_door(config) == (None, {})
+    assert scale.read_door(config) == (4, {}, 6)
+    out["queue"] = json.dumps(
+        {"waiting_to_build": 4, "waiting_to_grade": 6, "door_state": "draining"}
+    ).encode()
+    assert scale.read_door(config) == (None, {}, 6)
+    # no grade count on the board: unreadable, so no rent (`_held`)
+    out["queue"] = json.dumps({"waiting_to_build": 4, "door_state": "grading"}).encode()
+    assert scale.read_door(config) == (4, {}, None)
 
 
 _CFG_MIN = {
@@ -660,7 +720,7 @@ def test_the_daily_cap_drains_releases_pages_once_and_rents_nothing(
         "carbon-a100",
         A100["ip"],
         client=client,
-        door=lambda c: (0, {"carbon-a100": busy}),
+        door=lambda c: (0, {"carbon-a100": busy}, 0),
         now=day0 + 3600,
     )
     calls = []
@@ -698,6 +758,121 @@ def test_the_daily_cap_drains_releases_pages_once_and_rents_nothing(
     # the next UTC day starts from zero: the backlog rents again
     _ticks(config, client, 9, boxes={}, start=day0 + 86400 + 60, count=2)
     assert len(client.launched) == 1
+
+
+def _two_boxes(tmp_path, monkeypatch, day_cap):
+    """carbon-a100 adopted at 00:00Z and a 2nd box of this tool ACTIVE from 06:00Z, both busy, builds waiting."""
+    day0 = T0 - T0 % 86400
+    config = _config(tmp_path, max_usd_per_day=day_cap, max_boxes=2)
+    second = dict(A100, id="i-b", name="carbon-pool-b", ip="203.0.113.22")
+    client = _Client([A100, second])
+    busy = {"file": True, "busy": True, "last": day0, "admitted": day0}
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, {"carbon-a100": busy}, 0),
+        now=day0,
+    )
+    state = scale.load_state(config)
+    state["boxes"]["carbon-pool-b"] = {
+        "id": "i-b",
+        "launched": day0 + 6 * 3600,
+        "price_usd_h": PRICE,
+        "phase": "ACTIVE",
+    }
+    scale.save_state(config, state)
+    calls = []
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    both = {"carbon-a100": busy, "carbon-pool-b": dict(busy)}
+    return config, client, calls, both, day0
+
+
+def test_the_daily_cap_drains_the_newest_box_and_keeps_the_oldest_all_day(
+    tmp_path, monkeypatch
+):
+    """Owner INFRA-3 (20 Nov 2026, USD 65/day, up to 2 A100s): the 2nd box runs while today's spend plus carbon-a100's
+    rest of the day leaves it DAY_MARGIN_H; then only it drains (no page). carbon-a100 builds to 00:00Z inside the cap,
+    and the backlog rents no new box that day.
+    """
+    config, client, calls, both, day0 = _two_boxes(tmp_path, monkeypatch, 65.0)
+    # at 14:00Z: spent 14 h + 8 h = 43.78, carbon-a100 to 00:00Z 19.90, + 0.5 h of the 2nd = 64.67 <= 65: kept
+    _ticks(config, client, 30, boxes=both, start=day0 + 14 * 3600, count=1)
+    assert calls == []
+    # at 14:30Z: spent 14.5 h + 8.5 h = 45.77, carbon-a100 to 00:00Z 18.91, + 0.5 h of the 2nd = 65.67 > 65: drains
+    late = day0 + 14 * 3600 + 1800
+    state = scale.load_state(config)
+    assert scale.over_day_budget(state, late, config) == {"carbon-pool-b"}
+    _ticks(config, client, 30, boxes=both, start=late, count=1)
+    moves = [a for a, _ in calls if a[0] == "mv"]
+    assert len(moves) == 1 and moves[0][-1].endswith("carbon-pool-b.json.drained")
+    assert not [a for a, _ in calls if a[0] == "sh"]  # no page: the cap is not reached
+    gone = {
+        "carbon-a100": both["carbon-a100"],
+        "carbon-pool-b": dict(both["carbon-pool-b"], file=False, busy=False),
+    }
+    _ticks(config, client, 30, boxes=gone, start=late + 300, count=1)
+    assert client.terminated == ["i-b"]
+    release = next(e for e in _log(config) if e["action"] == "release")
+    assert release["why"] == "day_budget"
+    # carbon-a100 alone to 00:00Z stays inside the cap: never drained, and no new box is rented that day
+    only = {"carbon-a100": both["carbon-a100"]}
+    _ticks(config, client, 30, boxes=only, start=late + 600, count=4)
+    _ticks(config, client, 30, boxes=only, start=day0 + 86400 - 400, count=1)
+    assert client.launched == [] and client.terminated == ["i-b"]
+    assert [a for a, _ in calls if a[0] == "mv"] == moves
+    assert scale.load_state(config)["boxes"]["carbon-a100"]["phase"] == "ACTIVE"
+    assert any(e["action"] == "at_day_cap" for e in _log(config))
+    assert scale.spent_today(scale.load_state(config), day0 + 86400 - 1) <= 65.0
+
+
+def test_the_day_reserve_lets_a_second_box_rent_only_where_the_cap_holds_both(
+    tmp_path, monkeypatch
+):
+    """With carbon-a100 up all day (USD 47.76), a USD 48 cap rents no 2nd box; USD 65 rents one."""
+    day0 = T0 - T0 % 86400
+    for cap, rents in ((48.0, 0), (65.0, 1)):
+        (tmp_path / str(cap)).mkdir()
+        config = _config(tmp_path / str(cap), max_usd_per_day=cap, max_boxes=2)
+        client = _Client([A100])
+        busy = {"file": True, "busy": True, "last": day0, "admitted": day0}
+        scale.adopt(
+            config,
+            "carbon-a100",
+            A100["ip"],
+            client=client,
+            door=lambda c, busy=busy: (0, {"carbon-a100": busy}, 0),
+            now=day0,
+        )
+        monkeypatch.setattr(scale, "_door", _recording_door([]))
+        _ticks(
+            config, client, 30, boxes={"carbon-a100": busy}, start=day0 + 3600, count=3
+        )
+        assert len(client.launched) == rents
+        assert any(e["action"] == "at_day_cap" for e in _log(config)) == (not rents)
+
+
+def test_over_day_budget_keeps_the_oldest_below_the_cap_and_drains_all_at_it(tmp_path):
+    config = _config(tmp_path, max_usd_per_day=65.0, max_boxes=2)
+    day0 = T0 - T0 % 86400
+    state = {
+        "boxes": {
+            "old": {"launched": day0, "price_usd_h": PRICE, "phase": "ACTIVE"},
+            "new": {"launched": day0 + 3600, "price_usd_h": PRICE, "phase": "ACTIVE"},
+            "gone": {
+                "launched": day0 + 12 * 3600,
+                "price_usd_h": PRICE,
+                "phase": "DRAINING",
+            },
+        },
+        "spent": {},
+    }
+    assert scale.over_day_budget(state, day0 + 3600, config) == set()
+    # 12:00Z: spent 12 h + 11 h = 45.77 < 65, but "old" to 00:00Z (23.88) leaves "new" no half hour
+    assert scale.over_day_budget(state, day0 + 12 * 3600, config) == {"new"}
+    state["spent"][scale._day(day0)] = 65.0
+    assert scale.over_day_budget(state, day0 + 3600, config) == {"old", "new"}
 
 
 def test_a_failed_bring_up_pages(tmp_path, monkeypatch):
@@ -744,3 +919,293 @@ def test_config_refuses_a_missing_or_too_high_daily_cap(tmp_path):
             scale.load_config(path)
     path.write_text(json.dumps({**raw, "prewarm_utc": [[6, 9]]}))
     assert scale.load_config(path).prewarm_utc == ((6, 9),)
+
+
+def test_the_spawned_bring_up_command_parses(tmp_path, monkeypatch):
+    """The detached bring-up's own command line must parse: a "?" name after ``--config`` did not (19 Nov 2026), so
+    every box the autoscaler rented sat until the bring-up timeout."""
+    seen = []
+    monkeypatch.setattr(scale.subprocess, "run", lambda argv, **_: seen.append(argv))
+    monkeypatch.setattr(scale, "CONFIG_PATH", [str(tmp_path / "config.json")])
+    scale._spawn_bring_up(_config(tmp_path), "carbon-pool-11191155")
+    argv = seen[0]
+    script = argv.index(scale.os.path.abspath(scale.__file__))
+    args = scale._parser().parse_args(argv[script + 1 :])
+    assert args.command == "bring-up"
+    assert args.name == "carbon-pool-11191155"
+    assert args.config == str(tmp_path / "config.json")
+
+
+def test_no_box_while_the_grade_queue_is_the_limit(tmp_path):
+    """Builds wait, but more than GRADE_SHORT tasks wait to grade: a box would only move tasks into the grade queue."""
+    config = _config(tmp_path)
+    client = _Client()
+    _ticks(config, client, 31, grading=35)
+    assert client.launched == []
+    assert "grade_bound" in [line["action"] for line in _log(config)]
+
+
+def test_an_unreadable_grade_queue_never_rents(tmp_path):
+    config = _config(tmp_path)
+    client = _Client()
+    _ticks(config, client, 31, grading=None)
+    assert client.launched == []
+
+
+def test_a_short_grade_queue_rents_at_the_six_minute_tick(tmp_path):
+    """The 5-minute timer fires every 360 s (systemd's 1-min accuracy): two samples 360 s apart still hold."""
+    config = _config(tmp_path)
+    client = _Client()
+    _ticks(config, client, 31, grading=scale.GRADE_SHORT, every=360, count=2)
+    assert len(client.launched) == 1
+
+
+#: a throwaway ed25519 public key made for this test (no private half kept) and its `ssh-keygen -lf` fingerprint
+_TEST_KEY = (
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIManWiRHmMhNw1kEbOqy0SArUbLppCj81daXQv9iDAIW"
+)
+_TEST_FP = "SHA256:Ly3uqeEksDw8h+KyEKpCDf0a1gADf5fLx4l0rX7CU8g"
+
+
+def test_the_host_key_fingerprint_reads_a_keyscan_line():
+    """ssh-keyscan prints `<host> ssh-ed25519 <base64>`: the key is the field after the type (field 1 crashed every
+    bring-up, 20 Nov 2026)."""
+    assert scale._fingerprint("203.0.113.9 " + _TEST_KEY) == _TEST_FP
+    assert (
+        scale._fingerprint("[203.0.113.9]:20301 " + _TEST_KEY + " comment") == _TEST_FP
+    )
+    assert scale._fingerprint(_TEST_KEY) == _TEST_FP
+
+
+def test_bring_up_pins_the_keyscan_host_key_and_runs_both_phases(tmp_path, monkeypatch):
+    config = _config(tmp_path)
+    (tmp_path / "key").write_text("k")
+    state = {
+        "samples": [],
+        "boxes": {
+            "carbon-pool-a": {
+                "id": "i-1",
+                "launched": T0,
+                "phase": "UP",
+                "price_usd_h": PRICE,
+            }
+        },
+        "backoff_until": 0,
+    }
+    scale.save_state(config, state)
+    client = _Client(
+        [
+            {
+                "id": "i-1",
+                "name": "carbon-pool-a",
+                "status": "active",
+                "ip": "203.0.113.9",
+                "type": "gpu_1x_a100_sxm4",
+                "price_usd_h": PRICE,
+            }
+        ]
+    )
+    runs = []
+
+    class _Run:
+        def __init__(self, stdout, returncode=0):
+            self.stdout, self.returncode = stdout, returncode
+
+    def run(argv, **_):
+        runs.append(argv)
+        if argv[0] == "ssh-keyscan":
+            return _Run(
+                "# 203.0.113.9:22 SSH-2.0-OpenSSH\n203.0.113.9 " + _TEST_KEY + "\n"
+            )
+        return _Run('{"status": "PASS"}\n')
+
+    monkeypatch.setattr(
+        scale, "_door", lambda config, argv, **_: _Run(b'{"status": "ADMITTED"}\n')
+    )
+    scale.bring_up(config, "carbon-pool-a", client=client, run=run, wait=lambda s: None)
+    record = scale.load_state(config)["boxes"]["carbon-pool-a"]
+    assert record["result"] == "ADMITTED"
+    assert record["host_key_fingerprint"] == _TEST_FP
+    admin = next(a for a in runs if "admin" in a)
+    assert admin[admin.index("--host-key-fingerprint") + 1] == _TEST_FP
+
+
+# -- the Lium client (LIUM_ADA_SWITCH_PLAN S1; not wired into tick until the pod bring-up and the owner's budget) --
+
+
+class _Done:
+    def __init__(self, stdout="", returncode=0, stderr=""):
+        self.stdout, self.returncode, self.stderr = stdout, returncode, stderr
+
+
+def _pod(name, status="RUNNING", price=0.79, pod_id=None):
+    return {
+        "id": pod_id or f"id-{name}",
+        "name": name,
+        "huid": "calm-fox-1a",
+        "status": status,
+        "gpu_type": "RTX6000",
+        "price_per_hour": price,
+        "ip": "203.0.113.7",
+        "ports": {"22": 20050, "20000": 20000},
+    }
+
+
+def _node(price, available=1, cpus=31, gpus=1):
+    return {
+        "id": f"node-{price}-{cpus}",
+        "huid": "noble-shark-59",
+        "gpu_type": "RTX6000",
+        "gpu_count": gpus,
+        "available_gpu_count": available,
+        "cpu_count": cpus,
+        "price_per_gpu_hour": price,
+    }
+
+
+def _lium(tmp_path, *, pods=(), nodes=(), balance=86.0, fail=None, up=None, **kw):
+    calls = []
+    (tmp_path / "lium_key").write_text("sk_test_never_in_argv\n")
+
+    def run(argv, **options):
+        calls.append({"argv": list(argv), "env": options.get("env", {})})
+        command = argv[1]
+        if fail == command:
+            return _Done(returncode=2, stderr="error\nNo GPUs available on that node")
+        if command == "ps":
+            return _Done(json.dumps(list(pods)))
+        if command == "ls":
+            return _Done(json.dumps(list(nodes)))
+        if command == "balance":
+            return _Done(json.dumps({"balance_usd": balance, "currency": "USD"}))
+        if command == "up":
+            return _Done(
+                json.dumps(
+                    up
+                    if up is not None
+                    else _pod(argv[argv.index("--name") + 1], pod_id="pod-new")
+                )
+            )
+        if command == "rm":
+            return _Done(json.dumps([{"id": argv[2]}]))
+        return _Done(returncode=2, stderr="unknown")
+
+    settings = {
+        "name_prefix": "carbon-ada-",
+        "gpu": "RTX6000",
+        "min_cpus": 28,
+        "ttl": "12h",
+        "budget_usd": 10,
+        "run": run,
+    }
+    settings.update(kw)
+    return scale.LiumCli("lium", str(tmp_path / "lium_key"), **settings), calls
+
+
+def test_lium_lists_only_its_own_pods_never_the_gate_or_exam_pods(tmp_path):
+    client, _ = _lium(
+        tmp_path,
+        pods=[
+            _pod("carbon-ada-11200101"),
+            _pod("carbon-ada-11200102", status="PENDING"),
+            _pod("claude-runner-gate-136"),
+            _pod("claude-exam-rb-s4-box", price=1.59),
+        ],
+    )
+    found = client.instances()
+    assert [i["name"] for i in found] == ["carbon-ada-11200101", "carbon-ada-11200102"]
+    assert [i["status"] for i in found] == ["active", "booting"]
+    assert found[0]["ssh_port"] == 20050 and found[0]["price_usd_h"] == 0.79
+
+
+def test_lium_offers_the_cheapest_free_node_with_enough_threads(tmp_path):
+    client, calls = _lium(
+        tmp_path,
+        nodes=[
+            _node(0.85),
+            _node(0.79),
+            _node(0.60, available=0),
+            _node(0.50, cpus=16),
+        ],
+    )
+    assert client.offer() == (0.79, "lium")
+    listed = calls[0]["argv"]
+    assert listed[1:3] == ["ls", "--format"] and "--min-cpus" in listed
+
+
+def test_lium_refuses_to_rent_when_the_balance_would_not_last_three_hours(tmp_path):
+    """Lium deletes every pod of an account whose balance reaches zero: all pods' burn counts, not only the pool's."""
+    pods = [
+        _pod("claude-runner-gate-136", price=0.79),
+        _pod("claude-exam-rb-s4-box", price=1.59),
+    ]
+    rich, _ = _lium(tmp_path, pods=pods, nodes=[_node(0.79)], balance=86.0)
+    assert rich.offer() == (0.79, "lium")
+    poor, _ = _lium(tmp_path, pods=pods, nodes=[_node(0.79)], balance=9.0)
+    assert poor.offer() is None and poor.refused == "low_balance"
+    empty, _ = _lium(tmp_path, nodes=[_node(0.79, available=0)])
+    assert empty.offer() is None and empty.refused == "no_node"
+
+
+def test_lium_launch_rents_one_gpu_with_a_hard_ttl_and_budget(tmp_path):
+    client, calls = _lium(tmp_path, template_id="tpl-1")
+    assert client.launch(name="carbon-ada-11200103") == "pod-new"
+    argv = calls[-1]["argv"]
+    assert argv[:2] == ["lium", "up"]
+    for flag, value in (
+        ("--gpu", "RTX6000"),
+        ("--count", "1"),
+        ("--min-cpus", "28"),
+        ("--name", "carbon-ada-11200103"),
+        ("--ttl", "12h"),
+        ("--budget", "10"),
+        ("--template_id", "tpl-1"),
+    ):
+        assert argv[argv.index(flag) + 1] == value
+    assert {"--yes", "--no-ssh", "--json"} <= set(argv)
+
+
+def test_lium_never_launches_a_pod_outside_its_prefix_and_never_puts_the_key_in_argv(
+    tmp_path,
+):
+    client, calls = _lium(tmp_path, nodes=[_node(0.79)])
+    with pytest.raises(ValueError):
+        client.launch(name="claude-runner-gate-137")
+    client.offer()
+    client.terminate("pod-x")
+    assert calls[-1]["argv"] == [
+        "lium",
+        "rm",
+        "pod-x",
+        "--yes",
+        "--name-only",
+        "--format",
+        "json",
+    ]
+    for call in calls:
+        assert "sk_test_never_in_argv" not in " ".join(call["argv"])
+        assert call["env"]["LIUM_API_KEY"] == "sk_test_never_in_argv"
+
+
+def test_lium_failures_raise_with_the_clis_reason(tmp_path):
+    client, _ = _lium(tmp_path, fail="up")
+    with pytest.raises(scale.LiumError, match="No GPUs available"):
+        client.launch(name="carbon-ada-11200104")
+    noid, _ = _lium(tmp_path, up={"status": "RUNNING"})
+    with pytest.raises(scale.LiumError, match="no pod id"):
+        noid.launch(name="carbon-ada-11200105")
+    with pytest.raises(scale.LiumError):
+        client.restart("pod-x")
+
+
+def test_config_refuses_a_lium_pool_until_its_bring_up_and_budget_exist(tmp_path):
+    values = {
+        k: (list(v) if isinstance(v, tuple) else v)
+        for k, v in _config(tmp_path).__dict__.items()
+    }
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({**values, "provider": "lium"}))
+    with pytest.raises(SystemExit, match="only 'lambda' runs"):
+        scale.load_config(path)
+    path.write_text(json.dumps(values))
+    assert scale.load_config(path).provider == "lambda"
