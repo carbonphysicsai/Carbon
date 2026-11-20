@@ -224,3 +224,25 @@ def test_the_backfill_compacts_only_settled_streams(tmp_path):
     assert done == {"streams": 1, "compacted": 1, "bytes": len(body)}
     assert not source.exists()
     assert (source.parent / OUTPUT_FRAMES).exists()
+
+
+def test_a_grades_breakdown_and_gate_records_stay_on_the_host_at_any_size(tmp_path):
+    _state, root, _big, store_root = _grade(tmp_path, 10)
+    evaluation = root.parent / (root.name + ".evaluation")
+    evaluation.mkdir(mode=0o700)
+    kept = {
+        root.name + ".grade-breakdown.json": os.urandom(grade_archive.MIN_BYTES + 1),
+        "exam-total-se.json": os.urandom(grade_archive.MIN_BYTES + 1),
+        "gate-failures.json": os.urandom(grade_archive.MIN_BYTES + 1),
+    }
+    for name, raw in kept.items():
+        (evaluation / name).write_bytes(raw)
+    moved = os.urandom(grade_archive.MIN_BYTES + 1)
+    (evaluation / "subset-repeat-x.json").write_bytes(moved)
+    result = grade_archive.archive_tree(
+        evaluation, grade_archive.DirectoryStore(store_root)
+    )
+    assert result["moved"] == 1
+    for name, raw in kept.items():
+        assert (evaluation / name).read_bytes() == raw
+    assert not (evaluation / "subset-repeat-x.json").exists()

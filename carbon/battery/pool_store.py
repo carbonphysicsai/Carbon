@@ -2014,6 +2014,57 @@ class PoolStore:
                 (op, "crown_rebuild.v1", "RECORDED", record),
             )
 
+    def record_crown_rebuild_attempt(
+        self, submission_id, key, seed, again, *, reason, contended, body=None
+    ):
+        """Keep one crown rebuild attempt its decision did not use (a busy host's, an infrastructure failure, a grade
+        that is not a measurement, a disagreeing host-fault repeat) as private data (data harvest plan G6, Lead 20 Nov
+        2026), ``contended`` true for a busy host's. Every attempt is its own row (append-only); no decision reads them
+        (`crown_rebuild_attempts` is for operators and the catalog). Never published."""
+        if (
+            not is_digest_like(key)
+            or type(seed) is not int
+            or type(again) is not bool
+            or type(reason) is not str
+            or type(contended) is not bool
+        ):
+            raise StateError("crown_rebuild_attempt_invalid")
+        at_ns = time.time_ns()
+        op = self._bank_operation(
+            "crown_rebuild_attempt.v1", submission_id, [key, seed, again, at_ns]
+        )
+        record = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-rebuild-attempt.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "seed": seed,
+                "again": again,
+                "reason": reason,
+                "contended": contended,
+                "at_ns": at_ns,
+                "body": body,
+            }
+        )
+        with self.transaction() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                (op, "crown_rebuild_attempt.v1", "KEPT", record),
+            )
+
+    def crown_rebuild_attempts(self, submission_id=None):
+        """The kept crown rebuild attempts in filing order, optionally of one submission (private; data only)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_rebuild_attempt.v1' ORDER BY rowid"
+            ).fetchall()
+        found = [json.loads(raw) for (raw,) in rows]
+        return [
+            r
+            for r in found
+            if submission_id is None or r["submission_id"] == submission_id
+        ]
+
     # --- a king REBUILT on the current judge image (Carbon Validator 5 Nov 10:53 + 10:57, route (b)) ----------------
     # The king's own models row and every evaluation on it stay byte-unchanged as history. His recipe rebuilt on the
     # current judge image is retained as its OWN row under a DERIVED, host-owned id (never an entry, never crowned,

@@ -40,6 +40,21 @@ STUB = "ARCHIVED.json"
 #: files smaller than this stay on the host (receipts, intents, framings, markers)
 MIN_BYTES = 64 * 1024
 _HEX = re.compile(r"[0-9a-f]{64}")
+#: a grade's own aggregate records stay on the host at any size: its breakdown (`grade_breakdown.SUFFIX`), its gate
+#: failures, its total SE and accuracy record (data harvest plan action 1: the breakdown survives every trim)
+KEPT_LOCAL_SUFFIXES = (
+    ".grade-breakdown.json",
+    "exam-total-se.json",
+    "accuracy-record.json",
+)
+KEPT_LOCAL_PARTS = ("gate-failures", "gate_failures")
+
+
+def kept_local(name):
+    """True for a file the archive never moves (`KEPT_LOCAL_SUFFIXES`, `KEPT_LOCAL_PARTS`)."""
+    return name.endswith(KEPT_LOCAL_SUFFIXES) or any(
+        part in name for part in KEPT_LOCAL_PARTS
+    )
 
 
 class ArchiveRefused(RuntimeError):
@@ -121,7 +136,11 @@ def _payload_files(folder, min_bytes):
         for name in sorted(files):
             path = Path(directory) / name
             info = os.lstat(path)
-            if not stat.S_ISREG(info.st_mode) or info.st_size < min_bytes:
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_size < min_bytes
+                or kept_local(name)
+            ):
                 continue
             relative = path.relative_to(folder).as_posix()
             if relative != STUB:

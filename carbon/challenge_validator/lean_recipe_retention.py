@@ -1067,7 +1067,8 @@ def _keep_grade_breakdown(
                 file=sys.stderr,
                 flush=True,
             )
-        except Exception:  # noqa: BLE001, S110 - a log line never stops a grade (V2 on 46560738)
+        # a log line never stops a grade (V2 on 46560738)
+        except Exception:  # noqa: BLE001, S110
             pass
 
 

@@ -352,6 +352,7 @@ class Active:
                 king_mean=king_mean if status == bp.SCORED else None,
                 baseline_floor=comparator.get("baseline_total"),
                 tolerance=(comparator.get("rebuild_noise") or {}).get("value"),
+                keep=_kept_attempts(store, submission_id, evaluation_key),
             )
         except RebuildStep:
             # One new rebuild ran and was kept; the rest wait for the sweep's next tick (the contender stays filed).
@@ -405,6 +406,7 @@ class Active:
             king_mean=None,
             baseline_floor=comparator.get("baseline_total"),
             tolerance=(comparator.get("rebuild_noise") or {}).get("value"),
+            keep=_kept_attempts(store, submission_id, evaluation_key),
         )
         private = result.get("private")
         host_checked = result["reason"] not in (
@@ -499,9 +501,10 @@ def _result(outcome, reason, **extra):
     return {"outcome": outcome, "reason": reason, **extra}
 
 
-def _one(rebuild, seed, retries):
+def _one(rebuild, seed, retries, keep=None):
     """The scored grade of one seed's rebuild, retrying infrastructure failures. Returns ``(status, total)`` or
-    raises `RebuildInfra` when every attempt failed."""
+    raises `RebuildInfra` when every attempt failed. ``keep`` (`_kept_attempts`) keeps each attempt the decision does
+    not use as private data; it decides nothing."""
     contended = 0
     for _ in range(retries + 1):
         try:
@@ -509,10 +512,12 @@ def _one(rebuild, seed, retries):
         except RebuildInfra as failed:
             # a busy host's failure (`host_quiet`) is retried like any infrastructure failure, never the model's
             contended += str(failed) == REBUILD_HOST_CONTENDED
+            _keep(keep, seed, False, str(failed), None)
             continue
         model = ((body or {}).get("evidence") or {}).get("model_p")
         status = model.get("score_status") if type(model) is dict else None
         if status in bp.NOT_MEASURED:
+            _keep(keep, seed, False, status, body)
             continue
         if type(status) is not str:
             raise CrownAverageInvalid("crown_average_grade_invalid")
@@ -529,6 +534,39 @@ def _one(rebuild, seed, retries):
     raise RebuildInfra("every attempt failed")
 
 
+def _keep(keep, seed, again, reason, body):
+    if keep is not None:
+        keep(seed, again, reason, body)
+
+
+def _kept_attempts(store, submission_id, key):
+    """A ``keep(seed, again, reason, body)`` for `run_average`: each crown rebuild attempt the decision did not use (a
+    busy host's, an infrastructure failure, a grade that is not a measurement, a host-fault repeat that disagreed) is
+    kept as private data, ``contended`` set for a busy host's (`PoolStore.record_crown_rebuild_attempt`; data harvest
+    plan G6, Lead 20 Nov 2026). No decision reads it; the decision rule is unchanged. Never raises.
+    """
+    record = getattr(store, "record_crown_rebuild_attempt", None)
+    if record is None or not is_digest(key):
+        return None
+
+    def keep(seed, again, reason, body):
+        try:
+            record(
+                submission_id,
+                key,
+                seed,
+                again,
+                reason=str(reason),
+                contended=reason == REBUILD_HOST_CONTENDED,
+                body=body,
+            )
+        # kept data never changes or stops a decision
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    return keep
+
+
 def run_average(
     *,
     key,
@@ -541,6 +579,7 @@ def run_average(
     baseline_floor,
     tolerance,
     retries=2,
+    keep=None,
 ):
     """The N-rebuild decision for one triggered challenger.
 
@@ -562,7 +601,7 @@ def run_average(
     grades = []
     for seed in seeds:
         try:
-            grades.append((seed, *_one(rebuild, seed, retries)))
+            grades.append((seed, *_one(rebuild, seed, retries, keep)))
         except RebuildInfra as failed:
             # every try met a busy host: said as such (never UNSTABLE, never a loss); otherwise as before
             reason = (
@@ -591,9 +630,12 @@ def run_average(
     try:
         second_body = rebuild_again(first_seed)
         same = bp.repeat_agrees(first_body, second_body, tolerance)
-    except Exception:  # noqa: BLE001 - a repeat that cannot run is not a grade
+    # a repeat that cannot run is not a grade
+    except Exception as failed:  # noqa: BLE001
+        _keep(keep, first_seed, True, str(failed) or type(failed).__name__, None)
         return _result(bp.UNAVAILABLE, bp.REPEAT_UNAVAILABLE, private=private)
     if not same:
+        _keep(keep, first_seed, True, bp.REPEAT_MISMATCH, second_body)
         return _result(
             bp.FAILED_INFRA,
             bp.REPEAT_MISMATCH,
