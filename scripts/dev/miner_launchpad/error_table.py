@@ -50,15 +50,35 @@ ROWS = (
     ("next", "direct_task_cancelled", OURS, "No: nothing was graded or charged"),
     ("next", "version_closed", OURS, "No: nothing was charged"),
     ("grade", "FAILED_INFRA", OURS, "No: a counted slot is given back"),
-    ("grade", "NOT_GRADED", NOT_STATED, "No: the slot was given back and nothing was charged"),
+    (
+        "grade",
+        "NOT_GRADED",
+        NOT_STATED,
+        "No: the slot was given back and nothing was charged",
+    ),
     # --- a rule of the exam ---
     ("next", "hotkey_submission_waiting", RULE, "No: it used none of your allowance"),
     ("next", "coldkey_submission_waiting", RULE, "No: it used none of your allowance"),
     ("next", "epoch_limit_reached", RULE, "No: it used none of your allowance"),
-    ("next", "exam_daily_allowance_reached", RULE, "No: it used none of your allowance"),
-    ("next", "same_recipe_already_submitted", RULE, "No: this final exam is still unused"),
+    (
+        "next",
+        "exam_daily_allowance_reached",
+        RULE,
+        "No: it used none of your allowance",
+    ),
+    (
+        "next",
+        "same_recipe_already_submitted",
+        RULE,
+        "No: this final exam is still unused",
+    ),
     ("grade", "ROUND_LIMIT_REACHED", RULE, "Not graded"),
-    ("grade", "SUPERSEDED_BY_OWN_LATER_SUBMIT", YOURS + " (your own later submission)", "Not graded"),
+    (
+        "grade",
+        "SUPERSEDED_BY_OWN_LATER_SUBMIT",
+        YOURS + " (your own later submission)",
+        "Not graded",
+    ),
     # --- yours to fix ---
     ("next", "TRANSPORT_RATE", YOURS + " (too many requests at once)", NOT_STATED),
     ("next", "rate", YOURS + " (too many requests)", NOT_STATED),
@@ -114,7 +134,9 @@ def failure_rows():
     for code, todo in RECIPE_FAILURES.items():
         what = "Your recipe's run " + projection.FAILURE_OBSERVATION_WORDS[code] + "."
         rows.append((code, what, RECIPE_SIDE, RECIPE_SPOT, RECIPE_NEXT, todo))
-    for code in sorted(diagnosis.CLASSES, key=lambda name: (name == diagnosis.UNCLASSIFIED, name)):
+    for code in sorted(
+        diagnosis.CLASSES, key=lambda name: (name == diagnosis.UNCLASSIFIED, name)
+    ):
         public = diagnosis.public_row(code)
         ours = public["side"] == "carbon"
         rows.append(
@@ -167,7 +189,13 @@ def render():
         "|---|---|---|---|---|---|",
     ]
     for row in failure_rows():
-        lines.append("| `" + _cell(row[0]) + "` | " + " | ".join(_cell(cell) for cell in row[1:]) + " |")
+        lines.append(
+            "| `"
+            + _cell(row[0])
+            + "` | "
+            + " | ".join(_cell(cell) for cell in row[1:])
+            + " |"
+        )
     lines += [
         "",
         (
@@ -191,7 +219,9 @@ def document_block(text):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--write", metavar="MINING_MD", help="rewrite the block in this file")
+    parser.add_argument(
+        "--write", metavar="MINING_MD", help="rewrite the block in this file"
+    )
     args = parser.parse_args(argv)
     block = render()
     if not args.write:
@@ -201,7 +231,9 @@ def main(argv=None):
     text = path.read_bytes().decode("utf-8")
     old = document_block(text)
     if old is None:
-        sys.stderr.write("the markers are not in the file; add them where the table goes\n")
+        sys.stderr.write(
+            "the markers are not in the file; add them where the table goes\n"
+        )
         return 2
     path.write_bytes(text.replace(old, block).encode("utf-8"))
     return 0

@@ -1,5 +1,6 @@
 """The one error table (miner-ux item 4): docs/MINING.md carries exactly what `error_table.render()` produces, every row's
-words come from the code's own source, and the table says "Not stated" rather than guess."""
+words come from the code's own source, and the table says "Not stated" rather than guess.
+"""
 
 from __future__ import annotations
 
@@ -24,7 +25,11 @@ def test_the_document_carries_exactly_the_generated_table():
 
 def test_every_row_reads_its_words_from_the_code_source():
     for source, code, side, charged in error_table.ROWS:
-        table = supervisor.NEXT_ACTIONS if source == "next" else projection.GRADE_STATE_WORDS
+        table = (
+            supervisor.NEXT_ACTIONS
+            if source == "next"
+            else projection.GRADE_STATE_WORDS
+        )
         assert code in table, code
         assert side and charged
     codes = [code for _, code, _, _ in error_table.ROWS]
@@ -83,7 +88,11 @@ def test_the_stale_lines_are_gone_from_the_miner_page(stale):
 
 def test_the_dashboards_getting_started_does_not_call_itself_the_test_network():
     page = (
-        Path(__file__).resolve().parents[2] / "carbon" / "dashboard" / "web" / "dashboard.js"
+        Path(__file__).resolve().parents[2]
+        / "carbon"
+        / "dashboard"
+        / "web"
+        / "dashboard.js"
     ).read_text(encoding="utf-8")
     assert "This is the test network (subnet 567)" not in page
     assert "Motor runs on mainnet (subnet 116)" in page
@@ -95,7 +104,9 @@ def test_every_failure_class_the_receiver_can_emit_has_its_row_without_a_hand_wr
     for code in infra_diagnosis.CLASSES:
         row = infra_diagnosis.public_row(code)
         assert f"| `{code}` | {row['what_happened']} |" in text, code
-    assert {row[0] for row in error_table.failure_rows()} >= set(infra_diagnosis.CLASSES)
+    assert {row[0] for row in error_table.failure_rows()} >= set(
+        infra_diagnosis.CLASSES
+    )
 
 
 def test_each_failure_class_states_its_spot_and_what_happens_next_by_the_owners_rule():
@@ -105,7 +116,11 @@ def test_each_failure_class_states_its_spot_and_what_happens_next_by_the_owners_
     rows = {row[0]: row for row in error_table.failure_rows()}
     for code in ("WORKER_WALL_LIMIT_REACHED", "WORKER_MEMORY_LIMIT_REACHED"):
         _, _, side, spot, nxt, todo = rows[code]
-        assert spot.startswith("Used") and "does not rebuild" in nxt and side.startswith("Yours")
+        assert (
+            spot.startswith("Used")
+            and "does not rebuild" in nxt
+            and side.startswith("Yours")
+        )
     for code in infra_diagnosis.CLASSES:
         public = infra_diagnosis.public_row(code)
         _, what, side, spot, nxt, todo = rows[code]
