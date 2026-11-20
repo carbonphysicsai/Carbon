@@ -1603,6 +1603,33 @@ class DirectDevelopmentTasksV3:
             DirectCancelTaskRequestV3(challenge, task_id, cancellation)
         )
 
+    def detached_build(self, task_id):
+        """Whether a stopping receiver leaves ``task_id`` RUNNING instead of cancelling it (owner, 20 Nov 2026): its
+        one RESERVED op is a remote GPU build whose program was started under `DETACHABLE_FRONT`
+        (`research_carrier.program_runs_on`), so the program runs on and the next start adopts it. Marked here, so the
+        provider's close accepts it (`detached`)."""
+        from .research_carrier import program_runs_on
+
+        with self._lock:
+            view = self._views.get(task_id.value)
+            if view is None or view.state is not DirectTaskStateV3.RUNNING:
+                return False
+        reserved = [
+            child
+            for child in (*self._all_children(task_id), *self._probe_children(task_id))
+            if self.ledger.operation_state(child, owner=self.owner) == "RESERVED"
+        ]
+        if len(reserved) != 1 or not program_runs_on(
+            self.ledger, owner=self.owner, identity=reserved[0]
+        ):
+            return False
+        self.__dict__.setdefault("_detached", set()).add(task_id.value)
+        return True
+
+    def detached(self, task_id):
+        """Whether this stop left ``task_id`` for the next start (`detached_build`); read only."""
+        return task_id.value in self.__dict__.get("_detached", ())
+
     def requires_reconciliation(self, task_id):
         with self._lock:
             view = self._views.get(task_id.value)
@@ -2104,6 +2131,48 @@ class DirectDevelopmentTasksV3:
                     request_cancel(self.ledger, owner=self.owner, identity=child)
             return DirectCancelTaskResultV3(view, CancellationDisposition.ACCEPTED)
 
+    def _adopt_on_restore(self, task_id):
+        """Whether a RUNNING task a start finds is RESUMED instead of settled (owner, 20 Nov 2026: a restart must never
+        cancel an in-flight build): exactly one of its ops is RESERVED and that op is adoptable
+        (`research_carrier.register_adoptable`: a remote GPU build whose program still runs on its box), and every other
+        op of it is SUCCEEDED or not started. It is then left RUNNING and listed for `resume_task`; anything else is
+        settled as before."""
+        from .research_carrier import register_adoptable
+
+        reserved = []
+        for child in (*self._all_children(task_id), *self._probe_children(task_id)):
+            state = self.ledger.operation_state(child, owner=self.owner)
+            if state == "RESERVED":
+                reserved.append(child)
+            elif state not in (None, "SUCCEEDED"):
+                return False
+        if len(reserved) != 1 or not register_adoptable(
+            self.ledger, owner=self.owner, identity=reserved[0]
+        ):
+            return False
+        self.__dict__.setdefault("_resumable", set()).add(task_id.value)
+        return True
+
+    def resumable(self, task_id):
+        """Whether ``task_id`` waits to be resumed (`_adopt_on_restore`); read only."""
+        return task_id.value in self.__dict__.get("_resumable", ())
+
+    def resume_task(self, task_id):
+        """Run again a task this start left RUNNING for adoption (`_adopt_on_restore`), as `run_queued_task` runs a
+        QUEUED one: every op it finished replays its recorded result, and its adopted op follows its running program
+        (`research_carrier._run_adopted`) instead of launching one."""
+        return self.run_queued_task(task_id, resume=True)
+
+    def _settle_reserved_children(self, task_id):
+        """A resumed task that ends before its adopted op ran here: that op is settled as a restart settles one
+        (`reconcile_worker`: its container removed, Carbon's), and never adopted again."""
+        from .research_carrier import forget_adoption, reconcile_worker
+
+        for child in (*self._all_children(task_id), *self._probe_children(task_id)):
+            forget_adoption(self.ledger, child)
+            if self.ledger.operation_state(child, owner=self.owner) == "RESERVED":
+                reconcile_worker(self.ledger, owner=self.owner, identity=child)
+
     def _reconcile_interrupted(self):
         from .research_carrier import reconcile_worker
 
@@ -2112,6 +2181,11 @@ class DirectDevelopmentTasksV3:
                 DirectTaskStateV3.RUNNING,
                 DirectTaskStateV3.CANCEL_REQUESTED,
             ):
+                continue
+            if view.state is DirectTaskStateV3.RUNNING and self._adopt_on_restore(
+                view.task_id
+            ):
+                # its remote build's program ran on through the restart: resumed, never settled (`resume_task`)
                 continue
             if view.state is DirectTaskStateV3.CANCEL_REQUESTED:
                 for child in (
@@ -2183,11 +2257,11 @@ class DirectDevelopmentTasksV3:
                 ),
             )
 
-    def run_queued_task(self, task_id):
-        """Run one admitted task. An overlay it was given stays leased against cache
-        eviction until the task ends, whatever the outcome."""
+    def run_queued_task(self, task_id, *, resume=False):
+        """Run one admitted task (``resume``: one a start left RUNNING, `resume_task`). An overlay it was given stays
+        leased against cache eviction until the task ends, whatever the outcome."""
         try:
-            return self._run_queued_task(task_id)
+            return self._run_queued_task(task_id, resume=resume)
         finally:
             self._release_overlay(task_id.value)
 
@@ -2205,7 +2279,7 @@ class DirectDevelopmentTasksV3:
         if overlay is not None:
             release(overlay)
 
-    def _run_queued_task(self, task_id):
+    def _run_queued_task(self, task_id, resume=False):
         from .bundle_construction_worker import (
             CandidateBuildRefused,
             DirectReconstructionResult,
@@ -2229,7 +2303,18 @@ class DirectDevelopmentTasksV3:
             view = self._views.get(task_id.value)
             if view is None:
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
-            if view.state is not DirectTaskStateV3.QUEUED:
+            resumable = self.__dict__.setdefault("_resumable", set())
+            if resume:
+                # a task a start resumes (`_adopt_on_restore`): RUNNING since before the restart, run again here once
+                if (
+                    view.state is not DirectTaskStateV3.RUNNING
+                    or task_id.value not in resumable
+                ):
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                    )
+                resumable.discard(task_id.value)
+            elif view.state is not DirectTaskStateV3.QUEUED:
                 raise ResearchTaskProviderError(
                     ResearchServiceErrorCode.INVALID_TASK_TRANSITION
                 )
@@ -2300,6 +2385,9 @@ class DirectDevelopmentTasksV3:
                             )
                         self._task_image_bindings[task_id.value] = expected_binding
             except (FileNotFoundError, ValueError, OSError, WorkerFailure):
+                if resume:
+                    # its adopted op never ran here: settled as a restart settles one, before the task ends
+                    self._settle_reserved_children(task_id)
                 receipt = self._receipt(
                     view,
                     DirectTaskStateV3.FAILED_INFRA,
@@ -2316,7 +2404,8 @@ class DirectDevelopmentTasksV3:
                         error=sys.exc_info()[1],
                     ),
                 )
-            view = self._transition(view, DirectTaskStateV3.RUNNING)
+            if not resume:
+                view = self._transition(view, DirectTaskStateV3.RUNNING)
         provisioning = False
         graph_gpu = None
         try:

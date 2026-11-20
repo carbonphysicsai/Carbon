@@ -1918,6 +1918,34 @@ def bound(binding):
         _OP.reset(token)
 
 
+@contextmanager
+def adopted(binding):
+    """Bind an op a restart ADOPTS (`research_carrier.register_adoptable`: its program still runs on this binding's box)
+    to the very slot its intent recorded, for the rest of its life: that slot's lock is taken (a live op holding it
+    refuses: Carbon's) and its allocation record, which names the adopted container, stays; no other slot is taken.
+    The same box files as any op (`_ensure_box_files`); a link or GPU loss marks the box as any op's does."""
+    if type(binding) is not OpBinding or binding.gone or binding.lane.spec.local:
+        raise RemoteLaneDown(b"remote_gpu_build_adopt_unbound")
+    fd = _open(binding.slot_dir / "slot.lock")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        raise RemoteLaneDown(b"remote_gpu_build_adopt_slot_held") from None
+    try:
+        _ensure_box_files(binding.lane)
+        token = _OP.set(binding)
+        try:
+            yield binding
+        except RemoteLaneDown as error:
+            _note_loss(binding, error)
+            raise
+        finally:
+            _OP.reset(token)
+    finally:
+        _unlock(fd)
+
+
 # -- the remote machine ---------------------------------------------------------------------------------------------------
 
 

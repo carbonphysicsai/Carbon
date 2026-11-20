@@ -2675,12 +2675,21 @@ class OwnerProviders:
         submission (13 Nov: two stops cancelled 75 and left every identical resubmission waiting behind them). A task
         RUNNING or already CANCEL_REQUESTED is still cancelled: it holds a worker that must be reconciled. A revoked or
         recycled owner's queue is still cancelled, at the restore (`_open`: ``restoring and not live``).
+
+        EXCEPT a RUNNING task whose remote GPU build program runs on (owner, 20 Nov 2026: a restart must never cancel an
+        in-flight build; live 116 01:52Z, ~22 cancelled and re-run from zero): first the stop is announced
+        (`research_carrier.door_stopping`: nothing new starts, this process's own stream clients of those programs end),
+        then such a task (`detached_build`) is left RUNNING with its program running on its box, and the next start
+        adopts it (`register_adoptable`) or, when it cannot, settles it as before. Each is still listed in the stop's
+        record (`_record_stop_cancelled`), so one the next start cannot adopt is re-run at its place as before.
         """
+        from carbon.development_session.research_carrier import door_stopping
         from carbon.research import DirectTaskStateV3
 
         with self._lock:
             self._closing = True
             providers = tuple(self._providers.values())
+        door_stopping()
         errors = []
         stopped = []
         for provider in providers:
@@ -2693,6 +2702,15 @@ class OwnerProviders:
                     DirectTaskStateV3.RUNNING,
                     DirectTaskStateV3.CANCEL_REQUESTED,
                 )
+                left = getattr(provider, "detached_build", None)
+                if (
+                    view.state is DirectTaskStateV3.RUNNING
+                    and callable(left)
+                    and left(view.task_id)
+                ):
+                    # its build's program runs on: left for the next start, never cancelled
+                    stopped.append(getattr(view.task_id, "value", view.task_id))
+                    continue
                 try:
                     provider.cancel_observed_task(
                         view.task_id, self.discovery.info.challenge_key
@@ -2709,8 +2727,10 @@ class OwnerProviders:
     def close(self):
         """Release no provider lock while its children need reconciliation."""
         providers = tuple(self._providers.values())
+        # a task this stop left for the next start (`cancel`: its build's program runs on) holds its op on purpose
         if any(
             provider.requires_reconciliation(view.task_id)
+            and not _left_detached(provider, view.task_id)
             for provider in providers
             for view in tuple(provider._views.values())
         ):
@@ -2720,7 +2740,10 @@ class OwnerProviders:
                 state = self._controls[hotkey].settled(
                     provider.ledger.generation, cleanup_verified=True, ready=True
                 )
-                if state == "RECONCILIATION_REQUIRED":
+                if state == "RECONCILIATION_REQUIRED" and not any(
+                    _left_detached(provider, view.task_id)
+                    for view in tuple(provider._views.values())
+                ):
                     raise ReceiverUnavailable("direct_receiver_cleanup_unresolved")
             provider.close()
 
@@ -2733,6 +2756,23 @@ def _open_crown_owners(grader):
     try:
         grader._prelude_owners()
     except Exception:  # noqa: BLE001, S110 - opens on first touch
+        pass
+
+
+def _left_detached(provider, task_id):
+    """Whether this stop left ``task_id`` for the next start (`OwnerProviders.cancel`, the provider's `detached`)."""
+    detached = getattr(provider, "detached", None)
+    return callable(detached) and bool(detached(task_id))
+
+
+def _announce_stop():
+    """The receiver's stop signal: announced to the carrier at once (`research_carrier.announce_stop`), so a remote
+    GPU build whose stream the stop cuts is left for the next start, never cleaned up as a failure. Never raises."""
+    try:
+        from carbon.development_session.research_carrier import announce_stop
+
+        announce_stop()
+    except Exception:  # noqa: BLE001, S110 - a stop never fails on its announcement
         pass
 
 
@@ -4045,7 +4085,8 @@ def main(argv=None):
         return 1
     stop = threading.Event()
     for number in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(number, lambda *_: stop.set())
+        # announced to the carrier first: a remote build whose stream the stop cuts is left running (`_announce_stop`)
+        signal.signal(number, lambda *_: (_announce_stop(), stop.set()))
     register_stack_dump()
     try:
         result = serve(

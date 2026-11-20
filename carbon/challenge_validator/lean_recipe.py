@@ -1383,8 +1383,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
             views = getattr(provider, "_views", None)
             if type(views) is not dict:
                 continue
+            resumable = getattr(provider, "_resumable", ())
             for task, view in tuple(views.items()):
-                if getattr(view, "state", None) is not DirectTaskStateV3.QUEUED:
+                if getattr(view, "state", None) is not DirectTaskStateV3.QUEUED and (
+                    # a task a start left RUNNING to resume (its remote build ran on): taken at its place
+                    task not in resumable
+                ):
                     skipped.add(task)
         # a lazy owner's tasks (not opened yet, every one terminal: `OwnerProviders.restore`) are never QUEUED either
         lazy = getattr(self.provider_for, "lazy_tasks", None)
@@ -1433,6 +1437,21 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 raise
             finally:
                 # Order 3: a build that ended on Carbon's infrastructure is queued again once, at its place
+                self._requeue_failed_build(owner, task_id, provider)
+            return 1
+        resumable = getattr(provider, "resumable", None)
+        if (
+            task.state is DirectTaskStateV3.RUNNING
+            and callable(resumable)
+            and resumable(task_id)
+        ):
+            # a task a start left RUNNING (owner, 20 Nov 2026: a restart never cancels an in-flight build): resumed at
+            # its place, its remote build adopted (`resume_task`); one that ends on Carbon's side re-runs as any build
+            self.check_served_source()
+            try:
+                with _build_wall_guard(getattr(self, "owner_claims", None)):
+                    provider.resume_task(task_id)
+            finally:
                 self._requeue_failed_build(owner, task_id, provider)
             return 1
         return None

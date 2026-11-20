@@ -2820,6 +2820,8 @@ STARTUP_PRELUDE_WAIT_SECONDS = 60
 
 
 def _advance_loop(intake, stop, work=None, since=None, idle_s=1, ready=None):
+    from carbon.development_session.research_carrier import Detached
+
     work = work or _WorkLock(stop=stop)
     failures = 0
     if ready is not None:
@@ -2841,6 +2843,9 @@ def _advance_loop(intake, stop, work=None, since=None, idle_s=1, ready=None):
                 wait = idle_s  # nothing queued: N parallel build rounds take no lane every second
         except WorkDeclined:
             pass  # stopping, draining, or the host lock is another door's: never a failure
+        except Detached:
+            # the receiver is stopping and this round's remote build runs on, for the next start: never a failure
+            break
         except Exception as failure:  # noqa: BLE001 - no private content in log
             failures += 1
             wait = _backoff_s(failures)
