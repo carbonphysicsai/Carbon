@@ -5,6 +5,10 @@
     python3 -I -B scripts/dev/release/door_drain.py status STATE_DIR
     python3 -I -B scripts/dev/release/door_drain.py wait   STATE_DIR --timeout SECONDS
     python3 -I -B scripts/dev/release/door_drain.py clear  STATE_DIR
+    python3 -I -B scripts/dev/release/door_drain.py pause       STATE_DIR
+    python3 -I -B scripts/dev/release/door_drain.py grades      STATE_DIR
+    python3 -I -B scripts/dev/release/door_drain.py wait-grades STATE_DIR --timeout SECONDS
+    python3 -I -B scripts/dev/release/door_drain.py resume      STATE_DIR
 
 ``start`` writes the door's DRAINING flag (``STATE_DIR/draining``). The receiver keeps serving every route and
 keeps admitting submissions; it starts no new construction or grade round (`direct_intake._WorkLock` reads the flag
@@ -19,7 +23,16 @@ record held by a live process (pid + process start time; a record whose process 
 ``clear`` (abort the switch: the door takes work again, nothing was stopped or lost) or wait longer. A door still
 having worker containers is the caller's second check (``docker ps`` by the door's names), not done here.
 
-Writes only the flag file (atomically, owner-only). Never touches a lock, a task, a marker or a store.
+GRADES-ONLY PAUSE (owner LO-5, 20 Nov 2026; live-ops 14:43:05Z), the step before a stop: ``pause`` writes
+``STATE_DIR/grades-paused``. The door starts no NEW grade round (no claim, regrade or crown/king upkeep round) and lets
+every started one finish; the front stays open (submits, uploads and build rounds go on: DRAINING refuses every POST).
+``grades``/``wait-grades`` read the door's live GRADE rounds only (``grades-inflight.json``, and a one-lane door's
+``work-inflight.json`` of kind ``grade``), alive by pid + start time, twice ``READ_GAP_S`` apart: GRADES_IDLE when the
+pause is set and none is live. ``wait-grades`` returns GRADES_IDLE (exit 0) or, at its timeout (the kit's cap),
+TIMED_OUT (exit 3) leaving the pause set; the kit then stops or ``resume``s (removes the pause only). ``clear`` (the
+kit's UNDRAINED step) removes BOTH flags.
+
+Writes only the flag files (atomically, owner-only). Never touches a lock, a task, a marker or a store.
 """
 
 from __future__ import annotations
@@ -34,6 +47,8 @@ from pathlib import Path
 DRAIN_NAME = "draining"
 INFLIGHT_NAME = "work-inflight.json"
 WAIT_NAME = "work-wait.json"
+GRADES_PAUSE_NAME = "grades-paused"
+GRADES_INFLIGHT_NAME = "grades-inflight.json"
 READ_GAP_S = 2.0
 POLL_S = 5.0
 
@@ -53,24 +68,134 @@ def _state(state_dir) -> Path:
     return path
 
 
-def start(state_dir) -> dict:
-    root = _state(state_dir)
-    flag = root / DRAIN_NAME
+def _set_flag(root: Path, name: str) -> None:
+    flag = root / name
     if not flag.exists():
-        staged = root / f".{DRAIN_NAME}.{os.getpid()}"
+        staged = root / f".{name}.{os.getpid()}"
         with open(staged, "w", encoding="utf-8") as handle:
             json.dump({"since_ns": time.time_ns()}, handle)
             handle.flush()
             os.fsync(handle.fileno())
         os.chmod(staged, 0o600)
         os.replace(staged, flag)
+
+
+def start(state_dir) -> dict:
+    root = _state(state_dir)
+    _set_flag(root, DRAIN_NAME)
     return {"state": "DRAINING", **read_once(root)}
 
 
 def clear(state_dir) -> dict:
+    """UNDRAINED: removes DRAINING and the grades-only pause."""
     root = _state(state_dir)
     (root / DRAIN_NAME).unlink(missing_ok=True)
-    return {"state": "NOT_DRAINING"}
+    (root / GRADES_PAUSE_NAME).unlink(missing_ok=True)
+    return {"state": "NOT_DRAINING", "grades_paused": False}
+
+
+def pause(state_dir) -> dict:
+    root = _state(state_dir)
+    _set_flag(root, GRADES_PAUSE_NAME)
+    return {"state": "GRADES_PAUSED", **read_grades_once(root)}
+
+
+def resume(state_dir) -> dict:
+    """Removes the grades-only pause only (DRAINING, if set, stays)."""
+    root = _state(state_dir)
+    (root / GRADES_PAUSE_NAME).unlink(missing_ok=True)
+    return {"state": "GRADES_NOT_PAUSED"}
+
+
+def _live_record(path: Path):
+    """``(record, busy)``: busy only for a record whose process (pid + start) is alive now; ``busy`` None when the
+    record is unreadable or mid-replace (the caller counts that as busy: never idle on doubt).
+    """
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, False
+    except (OSError, ValueError):
+        return "UNREADABLE", None
+    if type(record) is not dict:
+        return record, False
+    pid, started = record.get("pid"), record.get("pid_start")
+    alive = type(pid) is int and _process_start(pid) is not None
+    return record, alive and (started is None or _process_start(pid) == started)
+
+
+def read_grades_once(root: Path) -> dict:
+    """``grades_busy``: a live GRADE round on this door (its ``grades-inflight.json``, or a one-lane door's
+    ``work-inflight.json`` of kind ``grade``); builds never count."""
+    paused = (root / GRADES_PAUSE_NAME).exists()
+    grades, busy = _live_record(root / GRADES_INFLIGHT_NAME)
+    one, one_busy = _live_record(root / INFLIGHT_NAME)
+    if busy is None or one_busy is None:
+        return {"grades_paused": paused, "grades_busy": True, "grades": "UNREADABLE"}
+    one_grade = one_busy and type(one) is dict and one.get("kind") == "grade"
+    count = grades.get("grades") if busy and type(grades) is dict else None
+    return {
+        "grades_paused": paused,
+        "grades_busy": bool(busy or one_grade),
+        "grades": (
+            (count if type(count) is int else 1) if busy else (1 if one_grade else 0)
+        ),
+        "oldest_since_ns": (
+            grades.get("since_ns")
+            if busy and type(grades) is dict
+            else (one.get("since_ns") if one_grade else None)
+        ),
+        "stale_record": grades is not None and not busy,
+    }
+
+
+def grades_status(state_dir, *, gap=READ_GAP_S, sleep=time.sleep) -> dict:
+    root = _state(state_dir)
+    first = read_grades_once(root)
+    sleep(gap)
+    second = read_grades_once(root)
+    idle = (
+        first["grades_paused"]
+        and second["grades_paused"]
+        and not first["grades_busy"]
+        and not second["grades_busy"]
+    )
+    return {
+        "state": (
+            "GRADES_IDLE"
+            if idle
+            else ("GRADES_BUSY" if second["grades_paused"] else "GRADES_NOT_PAUSED")
+        ),
+        "read": second,
+    }
+
+
+def wait_grades(
+    state_dir,
+    timeout,
+    *,
+    gap=READ_GAP_S,
+    poll=POLL_S,
+    sleep=time.sleep,
+    clock=time.monotonic,
+) -> dict:
+    """Bounded: GRADES_IDLE as soon as no grade round is live, else TIMED_OUT at ``timeout`` s (the pause stays)."""
+    root = _state(state_dir)
+    if not (root / GRADES_PAUSE_NAME).exists():
+        return {"state": "GRADES_NOT_PAUSED"}
+    started = clock()
+    while True:
+        result = grades_status(root, gap=gap, sleep=sleep)
+        if result["state"] != "GRADES_BUSY":
+            result["waited_s"] = round(clock() - started, 3)
+            return result
+        if clock() - started >= timeout:
+            return {
+                "state": "TIMED_OUT",
+                "waited_s": round(clock() - started, 3),
+                "read": result["read"],
+            }
+        sleep(poll)
 
 
 def read_once(root: Path) -> dict:
@@ -150,11 +275,12 @@ def wait(
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="door_drain.py")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("start", "status", "clear"):
+    for name in ("start", "status", "clear", "pause", "grades", "resume"):
         sub.add_parser(name).add_argument("state_dir", type=Path)
-    w = sub.add_parser("wait")
-    w.add_argument("state_dir", type=Path)
-    w.add_argument("--timeout", type=float, required=True)
+    for name in ("wait", "wait-grades"):
+        w = sub.add_parser(name)
+        w.add_argument("state_dir", type=Path)
+        w.add_argument("--timeout", type=float, required=True)
     args = parser.parse_args(argv)
     if args.command == "start":
         result = start(args.state_dir)
@@ -162,11 +288,20 @@ def main(argv=None) -> int:
         result = clear(args.state_dir)
     elif args.command == "status":
         result = status(args.state_dir)
+    elif args.command == "pause":
+        result = pause(args.state_dir)
+    elif args.command == "resume":
+        result = resume(args.state_dir)
+    elif args.command == "grades":
+        result = grades_status(args.state_dir)
+    elif args.command == "wait-grades":
+        result = wait_grades(args.state_dir, args.timeout)
     else:
         result = wait(args.state_dir, args.timeout)
     print(json.dumps(result, sort_keys=True))
-    return {"IDLE": 0, "TIMED_OUT": 3}.get(
-        result["state"], 0 if args.command != "wait" else 4
+    waits = args.command in ("wait", "wait-grades")
+    return {"IDLE": 0, "GRADES_IDLE": 0, "TIMED_OUT": 3}.get(
+        result["state"], 4 if waits else 0
     )
 
 

@@ -104,6 +104,7 @@ LIBRARY = "environment/campaigns/.direct-development/library-cache"
 OVERLAYS = LIBRARY + "/overlays"
 STATE = "receiver/state"
 DRAIN_NAME = "draining"
+GRADES_PAUSE_NAME = "grades-paused"
 BUILD_INPUTS_CHANGED = "build_inputs"
 _HEX40 = re.compile(r"[0-9a-f]{40}")
 _EVIDENCE = re.compile(r"sha256:[0-9a-f]{64}")
@@ -1088,9 +1089,14 @@ def chain_item(old_root, allow=None) -> dict:
 
 def drain_item(old_root) -> dict:
     """OLD's drain flag, in the state directory its own config names (`door_drain.py`)."""
-    flag = Door(old_root).state / DRAIN_NAME
+    state = Door(old_root).state
+    flag = state / DRAIN_NAME
     if flag.exists() or flag.is_symlink():
         return {"state": REFUSE, "code": "old_door_draining"}
+    # a door left with the grades-only pause (LO-5) grades nothing, silently: as DRAINING
+    paused = state / GRADES_PAUSE_NAME
+    if paused.exists() or paused.is_symlink():
+        return {"state": REFUSE, "code": "old_door_grades_paused"}
     return {"state": PASS}
 
 

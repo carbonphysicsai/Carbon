@@ -1595,6 +1595,15 @@ def _keep_failure(subject, loop, failure):
 DRAIN_NAME = "draining"
 INFLIGHT_NAME = "work-inflight.json"
 WAIT_NAME = "work-wait.json"
+#: GRADES-ONLY PAUSE (owner LO-5, 20 Nov 2026: "Whatever stops this"; live-ops 14:43:05Z): while this flag is in the
+#: state directory the door starts no NEW grade round (no claim, no regrade, no crown or king upkeep round) and every
+#: grade round already started finishes; the front, uploads and build rounds go on (unlike DRAINING, nothing is
+#: refused). The stop kit sets it (``door_drain.py pause``), waits for no live grade round (``wait-grades``, which
+#: reads `GRADES_INFLIGHT_NAME`), stops, and clears it at UNDRAINED (``door_drain.py clear``).
+GRADES_PAUSE_NAME = "grades-paused"
+#: The OLDEST live grade round's in-flight record plus ``grades`` (how many grade rounds are live), parallel mode only;
+#: absent when none is. A one-lane door's grade round is its `INFLIGHT_NAME` record (``kind`` ``grade``).
+GRADES_INFLIGHT_NAME = "grades-inflight.json"
 #: The host's list of doors waiting for the grading lock with a grade to run (in the lock's own directory).
 WAITING_DIR = "official-grading.waiting"
 #: Set-aside (stale) records kept per kind; older ones are removed at start.
@@ -1817,6 +1826,7 @@ class _WorkLock:
         self._legacy = threading.local()
         self._yield_until = 0.0
         self._was_draining = None
+        self._was_grades_paused = None
         #: This door's place in the host's waiting list (`_mark_waiting`): the acceptance time of its oldest ungraded
         #: submission when the round knows it (``since``, slow-tail F1a), else the time its current GRADE round began to
         #: wait; None while not queued. A queued round takes the host lock only when no live other door is ahead of it.
@@ -1828,21 +1838,22 @@ class _WorkLock:
         #: host's waiting list, or every younger door starves (RB + Motor vs BT + Cooling, 10 Nov 06:15).
         self._served = {}
         if self._state is not None:
-            for name in (INFLIGHT_NAME, WAIT_NAME):
+            for name in (INFLIGHT_NAME, WAIT_NAME, GRADES_INFLIGHT_NAME):
                 left = self._state / name
                 if left.exists():
                     # This process holds nothing yet: whatever is there is a previous process's, never trusted.
                     aside = left.with_name(f"{name}.stale-{time.time_ns()}")
                     os.replace(left, aside)
                     log("direct_work_record_stale", record=name, kept_as=aside.name)
-            for name in (INFLIGHT_NAME, WAIT_NAME):
+            for name in (INFLIGHT_NAME, WAIT_NAME, GRADES_INFLIGHT_NAME):
                 # A writer's temp files (a crash mid-write) are never records: removed. Set-aside records: newest kept.
                 for staged in self._state.glob(f".{name}.*"):
                     staged.unlink(missing_ok=True)
                 for old in sorted(self._state.glob(f"{name}.stale-*"))[:-STALE_KEPT]:
                     old.unlink(missing_ok=True)
-        # Said once at start, and on every change: a door left DRAINING after a switch is never silent.
+        # Said once at start, and on every change: a door left DRAINING (or grades-paused) after a switch is never silent.
         self.draining()
+        self.grades_paused()
 
     def draining(self):
         draining = self._state is not None and (self._state / DRAIN_NAME).exists()
@@ -1851,6 +1862,15 @@ class _WorkLock:
             if self._state is not None:
                 log("direct_work_draining", draining=draining)
         return draining
+
+    def grades_paused(self):
+        """Whether the GRADES-ONLY pause is set (`GRADES_PAUSE_NAME`); said once at start and on every change."""
+        paused = self._state is not None and (self._state / GRADES_PAUSE_NAME).exists()
+        if paused != self._was_grades_paused:
+            self._was_grades_paused = paused
+            if self._state is not None:
+                log("direct_work_grades_paused", paused=paused)
+        return paused
 
     def _declined(self):
         if self._stop.is_set():
@@ -2404,6 +2424,22 @@ class _WorkLock:
             )
         else:
             (self._state / INFLIGHT_NAME).unlink(missing_ok=True)
+        # the grade rounds alone: a grades-only pause waits for these, never for the builds
+        grades = [
+            record
+            for kind, record in self._live.values()
+            if kind == "grade" and record is not None
+        ]
+        if grades:
+            _write_record(
+                self._state / GRADES_INFLIGHT_NAME,
+                {
+                    **min(grades, key=lambda record: record["since_ns"]),
+                    "grades": len(grades),
+                },
+            )
+        else:
+            (self._state / GRADES_INFLIGHT_NAME).unlink(missing_ok=True)
 
     def taking(self, kind, *, has_work=None, since=None):
         """A context for one round of ``kind`` work (``advance`` or ``grade``). ``has_work`` (called under the
@@ -2475,6 +2511,17 @@ class _Taking:
         if reason is not None:
             raise WorkDeclined(reason)
 
+    def _refused(self):
+        """Why this NEW round may not start: the door's stop or DRAINING (`_WorkLock._declined`), or, for a GRADE round,
+        the grades-only pause (`GRADES_PAUSE_NAME`). Read at every check of the round's start, the last one after its
+        in-flight record is down, so a kit that sets the pause and then reads no live grade record never sees a grade
+        start after it. A started round (its re-takes included) never reads the pause: it finishes.
+        """
+        reason = self.work._declined()
+        if reason is None and self.kind == "grade" and self.work.grades_paused():
+            reason = "grades_paused"
+        return reason
+
     def _inflight(self):
         lane = self.work._lane if not self._parallel else self._held[2]
         return {
@@ -2490,6 +2537,9 @@ class _Taking:
     def __enter__(self):
         work = self.work
         self._parallel = work._parallel
+        reason = self._refused()
+        if reason is not None:
+            raise WorkDeclined(reason)
         if (
             self._parallel
             and self.kind == "advance"
@@ -2502,7 +2552,7 @@ class _Taking:
             work._enter_parallel(self.kind)
         try:
             while not work._lock.acquire(timeout=work._poll):
-                reason = work._declined()
+                reason = self._refused()
                 if reason is not None:
                     raise WorkDeclined(reason)
         except BaseException:
@@ -2518,7 +2568,7 @@ class _Taking:
         work._held_since, work._promoted = None, False
         waiting = False
         try:
-            reason = work._declined()
+            reason = self._refused()
             if reason is not None:
                 raise WorkDeclined(reason)
             if self.has_work is not None and not self.has_work():
@@ -2562,7 +2612,7 @@ class _Taking:
                         True
                     )  # refresh this door's place: it is still waiting
                 work._stop.wait(work._poll)
-                reason = work._declined()
+                reason = self._refused()
                 if reason is not None:
                     raise WorkDeclined(reason)
             if waiting:
@@ -2582,7 +2632,7 @@ class _Taking:
                 else:
                     _write_record(work._state / INFLIGHT_NAME, self._inflight())
                 recorded = True
-            reason = work._declined()
+            reason = self._refused()
             if reason is not None:
                 raise WorkDeclined(reason)
             lane = self._held[2] if self._parallel else work._lane

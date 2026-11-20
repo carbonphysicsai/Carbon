@@ -299,7 +299,7 @@ def test_door_drain_tool_reads_this_door_only(dirs):
         )
         assert timed["state"] == "TIMED_OUT" and (state / DRAIN_NAME).exists()
         assert (
-            door_drain.clear(state) == {"state": "NOT_DRAINING"}
+            door_drain.clear(state) == {"state": "NOT_DRAINING", "grades_paused": False}
             and not (state / DRAIN_NAME).exists()
         )
     finally:
