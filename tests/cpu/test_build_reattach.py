@@ -23,6 +23,7 @@ from carbon.challenge_validator import direct_receiver
 from carbon.development_session import research_carrier as carrier
 from carbon.development_session import research_tasks
 from carbon.development_session.profile import canonical, digest
+from carbon.reconstruction import remote_gpu_build
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 from carbon.research import DirectTaskStateV3
 
@@ -164,6 +165,34 @@ def test_a_stopping_door_ends_only_its_own_clients_of_detachable_programs(tmp_pa
                 process.wait()
 
 
+def test_a_client_that_outlives_its_sigterm_is_killed_within_the_release_window(
+    tmp_path,
+):
+    """Live 116, 20 Nov 2026: one docker client outlived the receiver and systemd waited its 90 s stop timeout."""
+    name = "carbon-d4-" + "c" * 24
+    stubborn = (
+        "import signal,sys,time\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        "print('ready', flush=True)\n"
+        "time.sleep(60)"
+    )
+    client = subprocess.Popen(
+        [sys.executable, "-c", stubborn, "exec", name], stdout=subprocess.PIPE
+    )
+    try:
+        assert client.stdout.readline() == b"ready\n"
+        carrier._LIVE_PROGRAMS.add(name)
+        started = time.monotonic()
+        carrier.door_stopping()
+        assert client.wait(timeout=10) == -9
+        assert time.monotonic() - started < carrier._STREAM_RELEASE_SECONDS + 3
+    finally:
+        if client.poll() is None:
+            client.kill()
+            client.wait()
+        client.stdout.close()
+
+
 def test_a_stopping_door_starts_no_remote_build_and_its_slot_wait_ends():
     carrier.announce_stop()
     with pytest.raises(carrier.Detached):
@@ -226,6 +255,10 @@ def _operation(tmp_path, *, detachable=True, started=True, left=600.0):
 def box(monkeypatch):
     running = set()
     monkeypatch.setattr(carrier, "_running_on_box", lambda binding: frozenset(running))
+    # the fixture binding is not an `OpBinding`: its slot class is read as recorded (tested below on real bindings)
+    monkeypatch.setattr(
+        carrier.remote_gpu_build, "as_recorded", lambda binding, request: binding
+    )
     return running
 
 
@@ -241,7 +274,7 @@ def test_a_start_adopts_an_op_only_when_every_condition_holds(
     assert carrier.adoptable(ledger, owner=OWNER, identity=IDENTITY) is binding
     assert carrier.program_runs_on(ledger, owner=OWNER, identity=IDENTITY) is True
     # registered: the settles of dead or previous runs leave it, its run adopts it, then it is forgotten
-    assert carrier.register_adoptable(ledger, owner=OWNER, identity=IDENTITY) is True
+    assert carrier.register_adoptable(ledger, owner=OWNER, identity=IDENTITY) is None
     assert carrier._adoption(ledger, IDENTITY) is binding
     carrier.forget_adoption(ledger, IDENTITY)
     assert carrier._adoption(ledger, IDENTITY) is None
@@ -258,7 +291,19 @@ def test_a_start_adopts_an_op_only_when_every_condition_holds(
         "recorded",
         lambda intent: SimpleNamespace(**{**vars(binding), "gone": True}),
     )
-    assert carrier.adoptable(ledger, owner=OWNER, identity=IDENTITY) is None
+    assert carrier.adoption_check(ledger, owner=OWNER, identity=IDENTITY) == (
+        None,
+        "box_gone",
+    )
+    # its binding cannot give the request it reserved
+    monkeypatch.setattr(carrier.remote_gpu_build, "recorded", lambda intent: binding)
+    monkeypatch.setattr(
+        carrier.remote_gpu_build, "as_recorded", lambda binding, request: None
+    )
+    assert carrier.adoption_check(ledger, owner=OWNER, identity=IDENTITY) == (
+        None,
+        "slot_class_differs",
+    )
 
 
 @pytest.mark.parametrize(
@@ -279,10 +324,87 @@ def test_any_doubt_settles_the_op_as_before(tmp_path, monkeypatch, box, broken):
     monkeypatch.setattr(carrier.remote_gpu_build, "recorded", lambda intent: binding)
     ledger = _Ledger(tmp_path)
     assert carrier.adoptable(ledger, owner=OWNER, identity=IDENTITY) is None
-    assert carrier.register_adoptable(ledger, owner=OWNER, identity=IDENTITY) is False
+    assert carrier.register_adoptable(ledger, owner=OWNER, identity=IDENTITY) == {
+        "not_detachable": "not_detachable",
+        "never_started": "not_started",
+        "deadline_near": "deadline_near",
+        "slot_names_another": "slot_record_differs",
+    }[broken]
     if broken in ("not_detachable", "never_started"):
         # a stopping door cancels it as before
         assert carrier.program_runs_on(ledger, owner=OWNER, identity=IDENTITY) is False
+
+
+def _box_binding(*, slots=7, memory="capped", slot=1, device="sha256:" + "d" * 64):
+    spec = remote_gpu_build.GpuBuildSpec(
+        0,
+        "ssh://carbon@box",
+        "/srv/stage",
+        remote_gpu_build.BOX_SLOT_CPUSETS,
+        "box-a",
+    )
+    lane = remote_gpu_build.DoorLane(
+        spec, slots, SimpleNamespace(digest=device), "/nowhere/box-a", memory
+    )
+    return remote_gpu_build.OpBinding(lane, slot)
+
+
+@pytest.mark.parametrize("memory", ["shared", "capped"])
+def test_an_adopted_binding_takes_the_slot_class_its_reservation_recorded(memory):
+    """Live 116, 20 Nov 2026: the box's own record reads ``capped``, the pool's class was ``shared``, and both adopted
+    builds ended in "operation replay conflict" at their re-reservation."""
+    ran = _box_binding(memory=memory)
+    request = {
+        "accelerator": {
+            "kind": "MINER_OWN_GPU",
+            "device": "sha256:" + "d" * 64,
+            **remote_gpu_build.request_fields(ran),
+        }
+    }
+    want = remote_gpu_build.request_fields(ran)
+    for read in (_box_binding(memory="capped"), _box_binding(memory="shared")):
+        rebound = remote_gpu_build.as_recorded(read, request)
+        assert rebound.lane.memory == memory and rebound.slot == read.slot
+        assert rebound.slot_dir == read.slot_dir
+        assert remote_gpu_build.request_fields(rebound) == want
+
+
+def test_an_adopted_binding_that_cannot_give_its_request_is_refused():
+    read = _box_binding()
+    accelerator = {
+        "device": "sha256:" + "d" * 64,
+        **remote_gpu_build.request_fields(_box_binding(memory="shared")),
+    }
+    assert remote_gpu_build.as_recorded(read, {"accelerator": accelerator}) is not None
+    # another device
+    assert (
+        remote_gpu_build.as_recorded(
+            read, {"accelerator": {**accelerator, "device": "sha256:" + "e" * 64}}
+        )
+        is None
+    )
+    # a slot the recorded class has no room for
+    assert (
+        remote_gpu_build.as_recorded(
+            _box_binding(slot=3),
+            {"accelerator": {**accelerator, "remote_gpu_slots": 2}},
+        )
+        is None
+    )
+    # a memory record no class gives
+    assert (
+        remote_gpu_build.as_recorded(
+            read, {"accelerator": {**accelerator, "slot_memory": {"fraction": "x"}}}
+        )
+        is None
+    )
+    # one slot: no class fields at all
+    one = remote_gpu_build.as_recorded(
+        _box_binding(slot=0), {"accelerator": {"device": accelerator["device"]}}
+    )
+    assert one.lane.slots == 1 and remote_gpu_build.request_fields(one) == {}
+    assert remote_gpu_build.as_recorded(read, {}) is None
+    assert remote_gpu_build.as_recorded(SimpleNamespace(), {"accelerator": {}}) is None
 
 
 def test_the_box_is_listed_once_per_start(monkeypatch):
@@ -341,11 +463,17 @@ class _Provider:
 def test_a_running_task_is_resumed_only_with_one_adoptable_op_and_nothing_failed(
     monkeypatch, states, adopt, resumed
 ):
-    asked = []
+    asked, lines = [], []
+
+    def register(ledger, owner, identity):
+        asked.append(identity)
+        return None if adopt else "not_running_on_box"
+
+    monkeypatch.setattr(carrier, "register_adoptable", register)
     monkeypatch.setattr(
-        carrier,
-        "register_adoptable",
-        lambda ledger, owner, identity: asked.append(identity) or adopt,
+        research_tasks,
+        "_log_build",
+        lambda event, task_id, **fields: lines.append((event, task_id.value, fields)),
     )
     provider = _Provider(states)
     task = provider.task
@@ -356,6 +484,11 @@ def test_a_running_task_is_resumed_only_with_one_adoptable_op_and_nothing_failed
     assert research_tasks.DirectDevelopmentTasksV3.resumable(provider, task) is resumed
     if resumed:
         assert asked == ["build"]
+    # one journal line per RUNNING task a start finds: resumed, or settled and why
+    [(event, logged, fields)] = lines
+    assert (event, logged) == ("build_adoption", task.value)
+    assert fields["decision"] == ("resume" if resumed else "settle")
+    assert (fields["reason"] is None) is resumed
 
 
 @pytest.mark.parametrize(("runs_on", "left"), [(True, True), (False, False)])
@@ -365,12 +498,22 @@ def test_a_stopping_door_leaves_a_running_build_whose_program_runs_on(
     monkeypatch.setattr(
         carrier, "program_runs_on", lambda ledger, owner, identity: runs_on
     )
+    lines = []
+    monkeypatch.setattr(
+        research_tasks,
+        "_log_build",
+        lambda event, task_id, **fields: lines.append((event, task_id.value)),
+    )
     provider = _Provider({"build": "RESERVED", "prep": "SUCCEEDED"})
     task = provider.task
-    assert (
-        research_tasks.DirectDevelopmentTasksV3.detached_build(provider, task) is left
-    )
+    for _ in range(2):
+        assert (
+            research_tasks.DirectDevelopmentTasksV3.detached_build(provider, task)
+            is left
+        )
     assert research_tasks.DirectDevelopmentTasksV3.detached(provider, task) is left
+    # one journal line per build the stop leaves running, however often it is asked
+    assert lines == ([("build_left_running", task.value)] if left else [])
     # a QUEUED task is never left (it holds nothing; kept QUEUED by the stop as before)
     queued = _Provider({"build": "RESERVED"}, state=DirectTaskStateV3.QUEUED)
     assert (
@@ -452,3 +595,87 @@ def test_the_close_accepts_a_task_left_for_the_next_start_and_nothing_else(monke
     held = SimpleNamespace(_providers={"a": _Owner(False)}, _controls={})
     with pytest.raises(direct_receiver.ReceiverUnavailable):
         direct_receiver.OwnerProviders.close(held)
+
+
+def test_a_second_cancel_of_the_same_stop_neither_cancels_nor_relists_a_left_task(
+    monkeypatch, tmp_path
+):
+    """Live 116, 20 Nov 2026: `serve` cancels at the stop and its last step cancels again; the left task was listed in
+    the stop's record twice."""
+    recorded = []
+    monkeypatch.setattr(carrier, "door_stopping", lambda: None)
+    monkeypatch.setattr(
+        direct_receiver,
+        "_record_stop_cancelled",
+        lambda root, tasks: recorded.append(list(tasks)),
+    )
+
+    class _Owner:
+        def __init__(self):
+            self._lock = threading.RLock()
+            self.task = SimpleNamespace(value="rtsk_kept")
+            self._views = {
+                "rtsk_kept": SimpleNamespace(
+                    state=DirectTaskStateV3.RUNNING, task_id=self.task
+                )
+            }
+            self.left = set()
+            self.cancelled = []
+
+        def detached_build(self, task_id):
+            self.left.add(task_id.value)
+            return True
+
+        def detached(self, task_id):
+            return task_id.value in self.left
+
+        def cancel_observed_task(self, task_id, key):
+            self.cancelled.append(task_id.value)
+
+    owner = _Owner()
+    door = SimpleNamespace(
+        _lock=threading.RLock(),
+        _providers={"a": owner},
+        _closing=False,
+        discovery=SimpleNamespace(info=SimpleNamespace(challenge_key="k")),
+        root=tmp_path / "owners",
+    )
+    direct_receiver.OwnerProviders.cancel(door)
+    direct_receiver.OwnerProviders.cancel(door)
+    assert recorded == [["rtsk_kept"], []]
+    assert owner.cancelled == []
+
+
+def test_a_resumed_build_logs_how_its_task_ended(monkeypatch):
+    lines = []
+    monkeypatch.setattr(
+        research_tasks,
+        "_log_build",
+        lambda event, task_id, **fields: lines.append((event, task_id.value, fields)),
+    )
+
+    class _Tasks:
+        def __init__(self, raises):
+            self._lock = threading.RLock()
+            self.raises = raises
+            self._views = {}
+
+        def run_queued_task(self, task_id, *, resume):
+            assert resume is True
+            self._views[task_id.value] = SimpleNamespace(
+                state=DirectTaskStateV3.SUCCEEDED
+            )
+            if self.raises:
+                raise WorkerFailure(WorkerCode.UNAVAILABLE)
+            return "done"
+
+    task = SimpleNamespace(value="rtsk_" + "d" * 64)
+    resume = research_tasks.DirectDevelopmentTasksV3.resume_task
+    assert resume(_Tasks(False), task) == "done"
+    with pytest.raises(WorkerFailure):
+        resume(_Tasks(True), task)
+    state = DirectTaskStateV3.SUCCEEDED.value
+    assert lines == [
+        ("build_resumed", task.value, {"state": state, "failure": None}),
+        ("build_resumed", task.value, {"state": state, "failure": "WorkerFailure"}),
+    ]

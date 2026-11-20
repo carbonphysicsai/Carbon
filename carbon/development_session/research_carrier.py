@@ -381,6 +381,11 @@ ADOPT_MARGIN_SECONDS = 120
 _STOP_ANNOUNCE_SECONDS = 10.0
 #: How long one start reuses a box's list of running containers (`_running_on_box`): one probe per box per restore.
 _BOX_LIST_SECONDS = 60.0
+#: How long a stopping door waits for its detachable programs' docker clients to end on SIGTERM before it kills them
+#: (`_release_detachable_streams`): the docker CLI keeps an attached exec stream open on one SIGTERM (live 116, 20 Nov
+#: 2026: one client outlived the receiver, and systemd waited its 90 s stop timeout for it). Only the local client
+#: ends; the program runs on under its front end on the box (`DETACHABLE_FRONT`).
+_STREAM_RELEASE_SECONDS = 2.0
 
 #: The receiver is stopping (`door_stopping`).
 _STOPPING = threading.Event()
@@ -459,6 +464,7 @@ def _release_detachable_streams():
         entries = os.listdir("/proc")
     except OSError:
         return
+    ended = []
     for entry in entries:
         if not entry.isdigit():
             continue
@@ -474,6 +480,26 @@ def _release_detachable_streams():
         if b"exec" in argv and names.intersection(argv):
             with suppress(OSError):
                 os.kill(int(entry), signal.SIGTERM)
+                ended.append(int(entry))
+    deadline = time.monotonic() + _STREAM_RELEASE_SECONDS
+    while ended and time.monotonic() < deadline:
+        time.sleep(0.05)
+        ended = [pid for pid in ended if _own_live_child(pid, me)]
+    for pid in ended:
+        if _own_live_child(pid, me):
+            with suppress(OSError):
+                os.kill(pid, signal.SIGKILL)
+
+
+def _own_live_child(pid, me):
+    """Whether ``pid`` is still this process's child and has not exited (not a zombie): read from /proc."""
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as stream:
+            text = stream.read()
+        fields = text[text.rindex(b")") + 2 :].split()
+        return fields[0] != b"Z" and fields[1].decode() == me
+    except (OSError, ValueError, IndexError):
+        return False
 
 
 def _slot_names(binding, name, launch):
@@ -516,26 +542,29 @@ def _running_on_box(binding):
     return names
 
 
-def adoptable(ledger, *, owner, identity):
-    """The recorded slot binding of an op a restart can ADOPT (Head B of the build re-attach design, owner 20 Nov
-    2026), or None. Every condition must hold, any doubt is None and the op is settled as before: the op is RESERVED
-    with exactly one intent whose identity checks pass (as `reconcile_worker`'s); the intent says its program runs
-    under `DETACHABLE_FRONT` and the program was started (``program-started``); its box is still the door's
-    (`remote_gpu_build.recorded`, not gone); its slot's allocation record names this container and launch; the
-    container is running on that box with this name; and at least `ADOPT_MARGIN_SECONDS` remain before its recorded
-    deadline."""
+def adoption_check(ledger, *, owner, identity):
+    """``(binding, None)`` for an op a restart can ADOPT (Head B of the build re-attach design, owner 20 Nov 2026),
+    else ``(None, why)``, ``why`` a closed code. Every condition must hold, any doubt refuses and the op is settled as
+    before: the op is RESERVED (``not_reserved``) with exactly one intent (``intent_not_one``) whose identity checks
+    pass, as `reconcile_worker`'s (``intent_mismatch``); the intent says its program runs under `DETACHABLE_FRONT`
+    (``not_detachable``) and the program was started (``not_started``); at least `ADOPT_MARGIN_SECONDS` remain before
+    its recorded deadline (``deadline_near``); its box is still the door's (`remote_gpu_build.recorded`, not gone:
+    ``box_gone``); the binding gives the request it reserved (`remote_gpu_build.as_recorded`: ``slot_class_differs``);
+    its slot's allocation record names this container and launch (``slot_record_differs``); and the container is
+    running on that box with this name (``not_running_on_box``). Anything unreadable: ``unreadable``.
+    """
     try:
         if ledger.operation_state(identity, owner=owner) != "RESERVED":
-            return None
+            return None, "not_reserved"
         intents = []
         for path in ledger.root.glob("operation-*/intent.json"):
             if path.is_symlink() or path.stat().st_size > 65536:
-                return None
+                return None, "unreadable"
             value = json.loads(path.read_bytes())
             if value.get("owner") == owner and value.get("identity") == identity:
                 intents.append((path, value))
         if len(intents) != 1:
-            return None
+            return None, "intent_not_one"
         path, intent = intents[0]
         launch = digest(
             canonical(
@@ -547,36 +576,49 @@ def adoptable(ledger, *, owner, identity):
             intent["launch"] != launch
             or intent["container"] != name
             or path.parent.name != "operation-" + launch[7:]
-            or intent.get("detachable_program") != 1
-            or not (path.parent / "program-started").is_file()
         ):
-            return None
+            return None, "intent_mismatch"
+        if intent.get("detachable_program") != 1:
+            return None, "not_detachable"
+        if not (path.parent / "program-started").is_file():
+            return None, "not_started"
         deadline = intent.get("deadline_unix")
         if (
             type(deadline) not in (int, float)
             or deadline - time.time() < ADOPT_MARGIN_SECONDS
         ):
-            return None
+            return None, "deadline_near"
         binding = remote_gpu_build.recorded(intent)
-        if binding is None or binding.gone or not _slot_names(binding, name, launch):
-            return None
+        if binding is None or binding.gone:
+            return None, "box_gone"
+        binding = remote_gpu_build.as_recorded(binding, intent["request"])
+        if binding is None:
+            return None, "slot_class_differs"
+        if not _slot_names(binding, name, launch):
+            return None, "slot_record_differs"
         if name not in _running_on_box(binding):
-            return None
-        return binding
+            return None, "not_running_on_box"
+        return binding, None
     except Exception:  # noqa: BLE001 - any doubt: settled as before
-        return None
+        return None, "unreadable"
+
+
+def adoptable(ledger, *, owner, identity):
+    """The slot binding of an op a restart can ADOPT (`adoption_check`), or None."""
+    return adoption_check(ledger, owner=owner, identity=identity)[0]
 
 
 def register_adoptable(ledger, *, owner, identity):
-    """At a start: record ``identity`` for adoption when it is `adoptable`; returns whether it was. A registered op is
-    left RESERVED by the start's settles (`settle_previous_runs`, `_settle_dead_numerical`) until its task resumes
-    and `_run` adopts it."""
-    binding = adoptable(ledger, owner=owner, identity=identity)
+    """At a start: record ``identity`` for adoption when it is adoptable (`adoption_check`). Returns None when it was
+    registered, else the closed code why not (the caller's journal line). A registered op is left RESERVED by the
+    start's settles (`settle_previous_runs`, `_settle_dead_numerical`) until its task resumes and `_run` adopts it.
+    """
+    binding, why = adoption_check(ledger, owner=owner, identity=identity)
     if binding is None:
-        return False
+        return why
     with _ADOPT_LOCK:
         _ADOPTABLE[(str(ledger.root), identity)] = binding
-    return True
+    return None
 
 
 def _adoption(ledger, identity):

@@ -2702,6 +2702,11 @@ class OwnerProviders:
                     DirectTaskStateV3.RUNNING,
                     DirectTaskStateV3.CANCEL_REQUESTED,
                 )
+                if view.state is DirectTaskStateV3.RUNNING and _left_detached(
+                    provider, view.task_id
+                ):
+                    # left by an earlier cancel of this stop (`serve` cancels, then its last step again): listed once
+                    continue
                 left = getattr(provider, "detached_build", None)
                 if (
                     view.state is DirectTaskStateV3.RUNNING

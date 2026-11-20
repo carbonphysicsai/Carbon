@@ -1918,6 +1918,41 @@ def bound(binding):
         _OP.reset(token)
 
 
+def as_recorded(binding, request):
+    """An adopted op's binding (`recorded`) in the slot class its own reservation recorded (`request_fields`: the slot
+    count and memory mode it was launched with) and on the device it recorded, so the adopting run reserves the very
+    request it reserved; None when this binding cannot give that request (the op is then settled, never adopted).
+    `recorded` reads a box's own record (memory ``capped``) while a pool's class may be ``shared``: live 116, 20 Nov
+    2026, both adopted builds ended in "operation replay conflict" at their re-reservation.
+    """
+    accelerator = request.get("accelerator") if type(request) is dict else None
+    if type(binding) is not OpBinding or type(accelerator) is not dict:
+        return None
+    fields = {
+        key: accelerator[key]
+        for key in ("remote_gpu_slots", "slot_memory")
+        if key in accelerator
+    }
+    slots = fields.get("remote_gpu_slots", 1)
+    if type(slots) is not int or not binding.slot < slots:
+        return None
+    memory = "shared" if fields.get("slot_memory") == "shared" else "capped"
+    device = binding.lane.device
+    if getattr(device, "digest", None) != accelerator.get("device"):
+        return None
+    try:
+        rebound = OpBinding(
+            dataclasses.replace(binding.lane, slots=slots, memory=memory),
+            binding.slot,
+            gone=binding.gone,
+        )
+        if request_fields(rebound) != fields:
+            return None
+    except (TypeError, ValueError):
+        return None
+    return rebound
+
+
 @contextmanager
 def adopted(binding):
     """Bind an op a restart ADOPTS (`research_carrier.register_adoptable`: its program still runs on this binding's box)

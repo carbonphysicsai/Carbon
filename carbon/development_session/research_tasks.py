@@ -283,6 +283,17 @@ def _failure_is_carbons(exc, child_states) -> bool:
     )
 
 
+def _log_build(event, task_id, **fields):
+    """One journal line about a build across a door restart (the unit's journal, operator-only): its task id and closed
+    codes only. Never raises: a build never fails on its line."""
+    try:
+        from carbon.battery.intake import log
+
+        log(event, task=getattr(task_id, "value", task_id), **fields)
+    except Exception:  # noqa: BLE001, S110 - a line never fails a build
+        pass
+
+
 def _log_unresolved(exc, child_states):
     """One journal line per task ended UNRESOLVED: the exception type and the child states (no message text)."""
     try:
@@ -1623,7 +1634,10 @@ class DirectDevelopmentTasksV3:
             self.ledger, owner=self.owner, identity=reserved[0]
         ):
             return False
-        self.__dict__.setdefault("_detached", set()).add(task_id.value)
+        left = self.__dict__.setdefault("_detached", set())
+        if task_id.value not in left:
+            left.add(task_id.value)
+            _log_build("build_left_running", task_id)
         return True
 
     def detached(self, task_id):
@@ -2140,15 +2154,27 @@ class DirectDevelopmentTasksV3:
         from .research_carrier import register_adoptable
 
         reserved = []
+        why = None
         for child in (*self._all_children(task_id), *self._probe_children(task_id)):
             state = self.ledger.operation_state(child, owner=self.owner)
             if state == "RESERVED":
                 reserved.append(child)
             elif state not in (None, "SUCCEEDED"):
-                return False
-        if len(reserved) != 1 or not register_adoptable(
-            self.ledger, owner=self.owner, identity=reserved[0]
-        ):
+                why = "op_settled_" + str(state).lower()
+        if why is None and len(reserved) != 1:
+            why = "reserved_ops_" + str(min(len(reserved), 2))
+        if why is None:
+            why = register_adoptable(
+                self.ledger, owner=self.owner, identity=reserved[0]
+            )
+        # one line per RUNNING task a start finds: resumed, or settled and why (live-ops: "the next stop proves it")
+        _log_build(
+            "build_adoption",
+            task_id,
+            decision="settle" if why else "resume",
+            reason=why,
+        )
+        if why is not None:
             return False
         self.__dict__.setdefault("_resumable", set()).add(task_id.value)
         return True
@@ -2160,8 +2186,19 @@ class DirectDevelopmentTasksV3:
     def resume_task(self, task_id):
         """Run again a task this start left RUNNING for adoption (`_adopt_on_restore`), as `run_queued_task` runs a
         QUEUED one: every op it finished replays its recorded result, and its adopted op follows its running program
-        (`research_carrier._run_adopted`) instead of launching one."""
-        return self.run_queued_task(task_id, resume=True)
+        (`research_carrier._run_adopted`) instead of launching one. One journal line when it ends (``build_resumed``:
+        the task's state, and the failure's type when it raised)."""
+        failure = None
+        try:
+            return self.run_queued_task(task_id, resume=True)
+        except BaseException as error:
+            failure = type(error).__name__
+            raise
+        finally:
+            with self._lock:
+                view = self._views.get(task_id.value)
+            state = getattr(getattr(view, "state", None), "value", None)
+            _log_build("build_resumed", task_id, state=state, failure=failure)
 
     def _settle_reserved_children(self, task_id):
         """A resumed task that ends before its adopted op ran here: that op is settled as a restart settles one
