@@ -59,6 +59,18 @@ def test_identical_bytes_are_linked_and_everything_else_is_written(tmp_path):
     target = tmp_path / "via-link.json"
     assert link_once(pointer, target, b'{"a": 1}') is False
     assert not _same_file(source, target) and not target.is_symlink()
+    # candidates are tried in order: the first holding exactly the bytes is linked (a missing file, other bytes of the
+    # same size and a link are passed over)
+    decoy = tmp_path / "decoy.json"
+    decoy.write_bytes(b'{"c": 3}')
+    chosen = tmp_path / "chosen.json"
+    candidates = (tmp_path / "nope", None, decoy, pointer, source)
+    assert link_once(candidates, chosen, b'{"a": 1}') is True
+    assert _same_file(source, chosen) and not _same_file(decoy, chosen)
+    # no candidate holds the bytes: written
+    alone = tmp_path / "alone.json"
+    assert link_once((decoy, source), alone, b'{"d": 4}') is False
+    assert alone.read_bytes() == b'{"d": 4}' and not _same_file(source, alone)
 
 
 def test_the_operation_sources_name_only_well_formed_operations(tmp_path):
@@ -106,10 +118,13 @@ def test_a_counted_grade_stores_its_origins_files_once_and_every_reader_reads_ol
         if (origin / p.name).exists()
         and p.read_bytes() == (origin / p.name).read_bytes()
     }
+    # (this fixture's counted bank and inference re-make the origin's inputs, predictions and receipt byte for byte:
+    # those too are the origin's files, not copies)
     assert set(shared) == unchanged
     assert "recipe.json" in shared and "state.npz" in shared
-    # a file the grade changed (its bank inputs, its own predictions) is its own
-    assert not _same_file(root / "inputs.npz", origin / "inputs.npz")
+    # the graded predictions are on disk once either way: the origin's file of the same bytes, else the inference
+    # operation's own output
+    assert (root / "predictions.json").stat().st_nlink >= 2
     # every reader reads the new root as the old: a regrade of the counted grade's own entry reads its retained files by
     # name with their digests (`_regrade_origin`), and the retry re-reads them create-only
     again = _grade(fixture, counted=True)

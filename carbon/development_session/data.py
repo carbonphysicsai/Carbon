@@ -69,66 +69,73 @@ def link_once(source, path: Path, payload: bytes) -> bool:
     """`write_once` that stores the bytes ONCE on disk: when ``source`` is a regular file of this user (never a link)
     that holds exactly ``payload``, ``path`` becomes a hard link to it (the same inode: the same name and bytes for every
     reader, no copy; owner rule #13, live 116 19 Nov 2026: a counted grade copied its 12.6 MB graded predictions and
-    its origin's files into each task root). Anything else (no source, other bytes, another user, a link, a filesystem
+    its origin's files into each task root). ``source`` may be a tuple of candidate files, tried in order: the first
+    that holds exactly ``payload`` is linked. Anything else (no source, other bytes, another user, a link, a filesystem
     that cannot link) is an ordinary `write_once`. Returns True when linked. Same immutability: an existing ``path``
     must hold exactly ``payload``; nothing is ever replaced.
 
     The linked inode is made owner-only (its group and other bits cleared) like `write_once`'s files, and is checked
     to be the very file whose bytes were compared (same device and inode after the link), else the link is removed
-    and the bytes are written.
+    and the next candidate is tried, else the bytes are written.
     """
-    import stat
-
     if path.is_symlink():
         raise ValueError("symlink rejected")
     if path.exists():
         if path.read_bytes() != payload:
             raise ValueError("immutable session artifact conflict")
         return False
-    if source is not None:
-        try:
-            descriptor = os.open(source, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        except OSError:
-            descriptor = None
-        if descriptor is not None:
-            linked = False
-            try:
-                found = os.fstat(descriptor)
-                if (
-                    stat.S_ISREG(found.st_mode)
-                    and found.st_size == len(payload)
-                    and found.st_uid == os.getuid()
-                ):
-                    with os.fdopen(descriptor, "rb", closefd=False) as stream:
-                        same = stream.read() == payload
-                    if same:
-                        if stat.S_IMODE(found.st_mode) & 0o077:
-                            # owner-only, never wider than it was (a read-only output stays read-only)
-                            os.fchmod(descriptor, stat.S_IMODE(found.st_mode) & 0o700)
-                        try:
-                            os.link(source, path)
-                        except FileExistsError:
-                            if path.is_symlink() or path.read_bytes() != payload:
-                                raise ValueError(
-                                    "immutable session artifact conflict"
-                                ) from None
-                            return False
-                        placed = os.stat(path, follow_symlinks=False)
-                        if (placed.st_dev, placed.st_ino) == (
-                            found.st_dev,
-                            found.st_ino,
-                        ):
-                            linked = True
-                        else:  # the source moved between the read and the link: never keep it
-                            os.unlink(path)
-            except (OSError, AttributeError):
-                linked = False  # cannot link here (another filesystem, no fchmod): written below
-            finally:
-                os.close(descriptor)
-            if linked:
-                return True
+    for candidate in source if type(source) is tuple else (source,):
+        if candidate is None:
+            continue
+        linked = _link_from(candidate, path, payload)
+        if linked is not None:
+            return linked
     write_once(path, payload)
     return False
+
+
+def _link_from(source, path: Path, payload: bytes) -> bool | None:
+    """One `link_once` candidate: True when ``path`` is now a hard link to ``source``; False when ``path`` appeared
+    meanwhile holding exactly ``payload`` (nothing left to write); None when ``source`` cannot be linked (not this
+    user's regular file, other bytes, another filesystem): the next candidate is tried, else the bytes are written.
+    """
+    import stat
+
+    try:
+        descriptor = os.open(source, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return None
+    try:
+        found = os.fstat(descriptor)
+        if not (
+            stat.S_ISREG(found.st_mode)
+            and found.st_size == len(payload)
+            and found.st_uid == os.getuid()
+        ):
+            return None
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            if stream.read() != payload:
+                return None
+        if stat.S_IMODE(found.st_mode) & 0o077:
+            # owner-only, never wider than it was (a read-only output stays read-only)
+            os.fchmod(descriptor, stat.S_IMODE(found.st_mode) & 0o700)
+        try:
+            os.link(source, path)
+        except FileExistsError:
+            if path.is_symlink() or path.read_bytes() != payload:
+                raise ValueError("immutable session artifact conflict") from None
+            return False
+        placed = os.stat(path, follow_symlinks=False)
+        if (placed.st_dev, placed.st_ino) == (found.st_dev, found.st_ino):
+            return True
+        # the source moved between the read and the link: never keep it
+        os.unlink(path)
+        return None
+    except (OSError, AttributeError):
+        # cannot link here (another filesystem, no fchmod): the next candidate, else written
+        return None
+    finally:
+        os.close(descriptor)
 
 
 def _failure_resource_summary(resources: object) -> dict[str, int | None]:

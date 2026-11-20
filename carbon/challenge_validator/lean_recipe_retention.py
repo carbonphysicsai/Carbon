@@ -6498,13 +6498,10 @@ def _regrade_retained_entry(
 
     task_root.mkdir(mode=0o700, exist_ok=True)
     _owner_directory(task_root, "task_artifacts")
-    # Stored once on disk (owner rule #13): a file kept unchanged from the origin is a hard link to the origin's own
-    # retained file, and this grade's predictions to its inference operation's output (`link_once` re-checks the bytes)
-    sources = {
-        name: base / origin / name
-        for name, raw in files.items()
-        if artifacts.get(name) is raw
-    }
+    # Stored once on disk (owner rule #13): every retained file whose bytes equal the origin's retained file of the
+    # same name is a hard link to it (kept unchanged, or re-made byte for byte), and this grade's predictions, when
+    # new, to its inference operation's output (`link_once` tries each candidate in order, links identical bytes only)
+    sources = {name: (base / origin / name,) for name in artifacts}
     for retained, field in (
         ("predictions.json", "inference_operation"),
         ("timed-query-predictions.json", "timed_operation"),
@@ -6516,7 +6513,8 @@ def _regrade_retained_entry(
             and retained in artifacts
         ):
             sources[retained] = (
-                provider.ledger.root / operation / "snapshot" / "predictions.json"
+                base / origin / retained,
+                provider.ledger.root / operation / "snapshot" / "predictions.json",
             )
     try:
         _write_retained(task_root, artifacts, sources)
