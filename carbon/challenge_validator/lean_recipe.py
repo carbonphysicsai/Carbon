@@ -104,6 +104,36 @@ def _build_failure_code(task):
     return "direct_task_" + task.state.value.lower()
 
 
+def _failure_class(provider, task_id):
+    """The closed failure class (`infra_diagnosis.classify`) of a FAILED_INFRA / UNRESOLVED task from its retained
+    diagnosis, or None when it has none (a task from before diagnoses, a stop's cancellation) or it cannot be read.
+    """
+    from carbon.development_session import infra_diagnosis
+
+    read = getattr(provider, "private_infra_diagnosis", None)
+    if read is None:
+        return None
+    try:
+        record = read(task_id)
+    except Exception:  # noqa: BLE001 - unreadable: counted as before
+        return None
+    return None if record is None else infra_diagnosis.classify(record)
+
+
+def _class_refusal(failure_class, same):
+    """Why a build of ``failure_class`` is not re-run automatically after ``same`` re-runs of it in its chain, or None
+    (re-run within owner D16's caps as before): a recipe-side class never is; an unclassified one once only.
+    """
+    from carbon.development_session import infra_diagnosis
+
+    if failure_class is None:
+        return None
+    allowed = infra_diagnosis.RETRIES.get(failure_class, 1)
+    if allowed is None or same < allowed:
+        return None
+    return "recipe_side" if allowed == 0 else "class_cap_spent"
+
+
 def _build_retry_counts(directory, task, code):
     """``(chain_root, re-runs in the chain, re-runs of ``code`` in it)`` from `BUILD_RETRIES`: the chain is the miner's
     task and every door re-run made from it (each line names its chain's root)."""
@@ -970,6 +1000,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     )
                 )
             }
+            if state in (DirectTaskStateV3.FAILED_INFRA, DirectTaskStateV3.UNRESOLVED):
+                # owner P0 (20 Nov 2026): the failure's closed class and its one fixed plain-English line (never the
+                # private diagnosis itself); absent when the task has no diagnosis
+                failure_class = _failure_class(provider, task.task_id)
+                if failure_class is not None:
+                    from carbon.development_session import infra_diagnosis
+
+                    outcome["failure"]["class"] = failure_class
+                    outcome["failure"]["explanation"] = infra_diagnosis.EXPLANATIONS[
+                        failure_class
+                    ]
             if state is DirectTaskStateV3.FAILED_INFRA:
                 advisory = provider.public_result(task)
                 if advisory is not None:
@@ -1606,9 +1647,31 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 return None
             request = requests[rerun + 1]
             new_task = provider._task_id(request).value
-            code = _build_failure_code(task)
+            # owner P0 (20 Nov 2026): a classified failure is counted under its class (the catch-all code told
+            # nothing apart); a recipe-side class is never re-run, an unclassified one once (`_class_refusal`)
+            failure_class = (
+                None if stop_cancelled else _failure_class(provider, task_id)
+            )
+            code = failure_class or _build_failure_code(task)
             retries = Path(self.ledger.path).parent / "auto-grade" / "requeued"
             root, chain, same = _build_retry_counts(retries, task_id.value, code)
+            by_class = _class_refusal(failure_class, same)
+            if by_class is not None:
+                _append_line(
+                    retries / BUILD_ALERTS,
+                    {
+                        "task": task_id.value,
+                        "event": "build_not_rerun",
+                        "reason": by_class,
+                        "code": code,
+                        "chain_root": root,
+                        "chain_retries": chain,
+                        "code_retries": same,
+                        "at_ns": time.time_ns(),
+                    },
+                )
+                refused(by_class)
+                return None
             if chain >= BUILD_CHAIN_RETRIES or same >= BUILD_CODE_RETRIES:
                 _append_line(
                     retries / BUILD_ALERTS,

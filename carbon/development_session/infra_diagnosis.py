@@ -146,3 +146,145 @@ def stage_of(child_states, provisioning=False) -> str:
         if index < len(child_states) and child_states[index] == "FAILED_INFRA":
             return name
     return "orchestration"
+
+
+# --- failure classes (owner P0, 20 Nov 2026: "better failure labels and explanations") ---------------------------------
+# A FAILED_INFRA task's closed CLASS, read from its retained diagnosis (stage, reason, where raised, sanitized tail), so
+# every record classifies, old ones included, and nothing stored changes. Live 116, 20 Nov: 270 of 343 FAILED_INFRA were
+# one catch-all ("build / reconstruction.worker.runtime.failed"): 255 build walls reached on a box shared by other
+# builds, 14 lost box links, 1 killed command; none was the recipe's. A wall reached on a QUIET box is the candidate's
+# and never FAILED_INFRA (`research_carrier._candidate_resource_stop`), so a FAILED_INFRA wall is Carbon's.
+
+#: Carbon's side: re-run automatically within owner D16's caps (`lean_recipe.BUILD_CODE_RETRIES`), owed as V2 rules.
+CARBON_CLASSES = frozenset(
+    {
+        "carbon_build_wall_busy_host",
+        "carbon_inference_wall_busy_host",
+        "carbon_box_link_lost",
+        "carbon_worker_killed",
+        "carbon_docker_command_timeout",
+        "carbon_box_unavailable",
+        "carbon_dependency_unavailable",
+        "carbon_construction_deadline",
+        "carbon_restart_lost",
+        "carbon_state_conflict",
+        "carbon_cleanup_uncertain",
+    }
+)
+#: The recipe's own side: never re-run automatically (the owed list is told, for review).
+RECIPE_CLASSES = frozenset({"recipe_program_exited"})
+#: Anything else: Carbon's (invariant 7) but re-run ONCE only, never the full cap.
+UNCLASSIFIED = "carbon_unclassified"
+CLASSES = CARBON_CLASSES | RECIPE_CLASSES | {UNCLASSIFIED}
+#: Automatic re-runs a class allows within one task's chain: None = owner D16's per-code cap as before.
+RETRIES = {**{name: None for name in CARBON_CLASSES}, UNCLASSIFIED: 1}
+RETRIES.update({name: 0 for name in RECIPE_CLASSES})
+#: The one plain-English line a miner reads for each class (fixed text: never the diagnosis tail).
+EXPLANATIONS = {
+    "carbon_build_wall_busy_host": (
+        "Your build reached its time limit while Carbon's build machine was busy with other builds, so it counts as "
+        "Carbon's failure, not yours. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_inference_wall_busy_host": (
+        "Your model's inference reached its time limit while Carbon's machine was busy, so it counts as Carbon's "
+        "failure, not yours. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_box_link_lost": (
+        "Carbon lost its connection to the build machine during your build. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_worker_killed": (
+        "Carbon stopped the worker running your build (a restart or maintenance). Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_docker_command_timeout": (
+        "A Carbon container command did not answer in time during your build. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_box_unavailable": (
+        "No Carbon build machine was available to run your build. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_dependency_unavailable": (
+        "A Carbon image or file your build needs was not available. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_construction_deadline": (
+        "Your build and inference ran out of their combined time on a busy Carbon machine. Carbon re-runs it "
+        "automatically, up to its retry limit."
+    ),
+    "carbon_restart_lost": (
+        "Carbon restarted while your build was running and could not recover it. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "carbon_state_conflict": (
+        "Carbon's own records for this build did not agree, so it was stopped on Carbon's side. Carbon re-runs it "
+        "automatically, up to its retry limit."
+    ),
+    "carbon_cleanup_uncertain": (
+        "Carbon could not confirm the cleanup after your build. Carbon re-runs it automatically, up to its retry limit."
+    ),
+    "recipe_program_exited": (
+        "Your build program stopped with an error before it finished. Check your recipe and resubmit it; Carbon does "
+        "not re-run this automatically."
+    ),
+    UNCLASSIFIED: (
+        "Your build failed on Carbon's side for a reason Carbon has not classified yet. Carbon re-runs it once "
+        "automatically."
+    ),
+}
+_LINK_LOST = (
+    "dial-stdio",
+    "Broken pipe",
+    "BrokenPipeError",
+    "Connection reset",
+    "remote_gpu_build_unhealthy",
+)
+_BOX_UNAVAILABLE = (
+    "remote_gpu_build_no_box",
+    "remote_gpu_build_no_proven_box",
+    "remote_gpu_build_slots_busy",
+)
+_EXIT = re.compile(r"(?:^|\n)exit=([0-9]{1,3})\n")
+
+
+def classify(record) -> str:
+    """The closed class (`CLASSES`) of a retained diagnosis record, `UNCLASSIFIED` for anything not recognised (or not a
+    record). Deterministic from the record alone."""
+    if type(record) is not dict:
+        return UNCLASSIFIED
+    stage = record.get("failed_stage")
+    reason = record.get("reason_code")
+    tail = record.get("tail") if type(record.get("tail")) is str else ""
+    place = record.get("raised_at") if type(record.get("raised_at")) is str else ""
+    if any(marker in tail for marker in _LINK_LOST):
+        return "carbon_box_link_lost"
+    if "stream command timed out" in tail:
+        if stage == "build":
+            return "carbon_build_wall_busy_host"
+        if stage == "inference":
+            return "carbon_inference_wall_busy_host"
+    if "bounded command timed out" in tail:
+        return "carbon_docker_command_timeout"
+    if any(marker in tail for marker in _BOX_UNAVAILABLE):
+        return "carbon_box_unavailable"
+    if "construction_total_deadline_reached" in tail:
+        return "carbon_construction_deadline"
+    exited = _EXIT.search(tail)
+    if exited is not None:
+        code = int(exited.group(1))
+        if code in (137, 143):
+            return "carbon_worker_killed"
+        if (
+            stage == "build"
+            and 1 <= code <= 125
+            and place.endswith(":stream_to_file")
+            and "ssh" not in tail
+        ):
+            # the build PROGRAM's own non-zero exit, the box and its link up
+            return "recipe_program_exited"
+    if stage == "dependency_check" or reason == "dependency_unavailable":
+        return "carbon_dependency_unavailable"
+    if stage == "restart_reconcile":
+        return "carbon_restart_lost"
+    if reason == "reconstruction.worker.cleanup.uncertain":
+        return "carbon_cleanup_uncertain"
+    if reason == "reconstruction.worker.infrastructure.unavailable":
+        return "carbon_box_unavailable"
+    if reason == "custody_or_state_invalid":
+        return "carbon_state_conflict"
+    return UNCLASSIFIED
