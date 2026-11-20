@@ -224,9 +224,10 @@ def test_the_checked_in_values_file_names_only_motor_1_8_on_the_a100():
     document = json.loads(remote_gpu_build.VALUES.read_bytes())
     assert document["schema"] == remote_gpu_build.VALUES_SCHEMA
     assert set(document["rows"]) == {"electric-motor-magnetics 1.8"}
+    # Lead pick (A), 20 Nov 2026 (owner's line replacing C8 / G19): 4 shared slots per box, same per-slot envelope
     assert remote_gpu_build.values_row("electric-motor-magnetics", "1.8") == {
         "device_kind": "NVIDIA A100-SXM4-40GB",
-        "slots": 7,
+        "slots": 4,
         "memory": "shared",
     }
     assert remote_gpu_build.values_row("electric-motor-magnetics", "1.4") is None

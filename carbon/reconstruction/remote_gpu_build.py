@@ -759,6 +759,42 @@ def _note_skip(name, reason):
         return
 
 
+def _slot_held(directory):
+    """Whether a slot folder is in use now: a live op holds its lock, or a lost controller's record names it."""
+    if (directory / "active-allocation.json").exists():
+        return True
+    try:
+        fd = os.open(directory / "slot.lock", os.O_RDWR)
+    except OSError:
+        return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return False
+    except BlockingIOError:
+        return True
+    finally:
+        os.close(fd)
+
+
+def slots_held_from(challenge_id, version, first, *, root=None, values=None):
+    """``{box name: [slot numbers >= first in use now]}`` for the door's boxes (every slot a box can have, whatever the
+    values row says now), read only. A slot-count change waits until this is empty for every box: the door pins the
+    class at start, so the change applies at a restart, and a build still running in a slot the new count drops must
+    finish first (V2 12:41:12Z condition 2)."""
+    pool = door_pool(challenge_id, version, root=root, values=values)
+    if pool is None:
+        return {}
+    return {
+        lane.spec.name: [
+            slot
+            for slot in range(first, len(BOX_SLOT_CPUSETS))
+            if _slot_held(Path(lane.lane_dir) / f"slot-{slot}")
+        ]
+        for lane in boxes(pool)
+    }
+
+
 def boxes(pool):
     """Every well-formed box of ``pool``'s class, read now, by name (down boxes included: `_candidates` skips them). A
     boxes directory that is not this user's 0700 directory holds no box. Each one passed over is logged (`_note_skip`).
@@ -2501,3 +2537,25 @@ __all__ = [
     "wrapper",
     "wrapper_text",
 ]
+
+
+def main(argv=None):
+    """``held-from <first slot> <challenge> <version>``: the JSON of `slots_held_from` and the in-flight count, for an
+    operator about to restart the door on a lower slot count. Read only."""
+    import sys
+
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 4 or args[0] != "held-from" or not args[1].isdigit():
+        print("usage: held-from <first slot> <challenge> <version>", file=sys.stderr)
+        return 2
+    held = slots_held_from(args[2], args[3], int(args[1]))
+    print(
+        json.dumps(
+            {"held": held, "in_flight": sum(map(len, held.values()))}, sort_keys=True
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
