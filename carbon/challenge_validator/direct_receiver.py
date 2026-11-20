@@ -2767,7 +2767,8 @@ def _left_detached(provider, task_id):
 
 def _announce_stop():
     """The receiver's stop signal: announced to the carrier at once (`research_carrier.announce_stop`), so a remote
-    GPU build whose stream the stop cuts is left for the next start, never cleaned up as a failure. Never raises."""
+    GPU build whose stream the stop cuts is left for the next start, never cleaned up as a failure. Never raises.
+    """
     try:
         from carbon.development_session.research_carrier import announce_stop
 

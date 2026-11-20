@@ -2165,7 +2165,8 @@ class DirectDevelopmentTasksV3:
 
     def _settle_reserved_children(self, task_id):
         """A resumed task that ends before its adopted op ran here: that op is settled as a restart settles one
-        (`reconcile_worker`: its container removed, Carbon's), and never adopted again."""
+        (`reconcile_worker`: its container removed, Carbon's), and never adopted again.
+        """
         from .research_carrier import forget_adoption, reconcile_worker
 
         for child in (*self._all_children(task_id), *self._probe_children(task_id)):

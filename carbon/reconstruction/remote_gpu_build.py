@@ -1923,7 +1923,8 @@ def adopted(binding):
     """Bind an op a restart ADOPTS (`research_carrier.register_adoptable`: its program still runs on this binding's box)
     to the very slot its intent recorded, for the rest of its life: that slot's lock is taken (a live op holding it
     refuses: Carbon's) and its allocation record, which names the adopted container, stays; no other slot is taken.
-    The same box files as any op (`_ensure_box_files`); a link or GPU loss marks the box as any op's does."""
+    The same box files as any op (`_ensure_box_files`); a link or GPU loss marks the box as any op's does.
+    """
     if type(binding) is not OpBinding or binding.gone or binding.lane.spec.local:
         raise RemoteLaneDown(b"remote_gpu_build_adopt_unbound")
     fd = _open(binding.slot_dir / "slot.lock")

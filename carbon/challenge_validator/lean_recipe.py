@@ -1387,7 +1387,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
             for task, view in tuple(views.items()):
                 if getattr(view, "state", None) is not DirectTaskStateV3.QUEUED and (
                     # a task a start left RUNNING to resume (its remote build ran on): taken at its place
-                    task not in resumable
+                    task
+                    not in resumable
                 ):
                     skipped.add(task)
         # a lazy owner's tasks (not opened yet, every one terminal: `OwnerProviders.restore`) are never QUEUED either

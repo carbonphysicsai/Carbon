@@ -60,9 +60,7 @@ PROGRAMS = {
 
 
 @pytest.mark.parametrize("which", sorted(PROGRAMS))
-def test_the_front_end_relays_exactly_what_the_bare_bootstrap_shows(
-    which, tmp_path
-):
+def test_the_front_end_relays_exactly_what_the_bare_bootstrap_shows(which, tmp_path):
     boot = _boot(PROGRAMS[which])
     bare = _bare(boot)
     run = tmp_path / "run"
@@ -153,7 +151,9 @@ def test_a_stream_over_its_cap_is_relayed_one_byte_past_it_so_the_door_still_ref
         caps=(cap + 1, cap + 1),
     )
     assert front.returncode == 0
-    assert front.stdout == b"z" * (cap + 1)  # more than the door's maximum: refused there, as before
+    assert front.stdout == b"z" * (
+        cap + 1
+    )  # more than the door's maximum: refused there, as before
     assert (tmp_path / "run" / "stdout").read_bytes() == b"z" * (cap + 1)
 
 
@@ -174,9 +174,7 @@ def test_only_a_remote_gpu_build_op_runs_detachable_and_every_other_command_is_u
     monkeypatch,
 ):
     today = ["exec", "c1", "/opt/carbon-worker/bin/python", "-I", "-c", BOOTSTRAP]
-    assert (
-        _program_command("c1", BOOTSTRAP, detachable=False, maximum=1024**2) == today
-    )
+    assert _program_command("c1", BOOTSTRAP, detachable=False, maximum=1024**2) == today
     assert _program_command("c1", BOOTSTRAP, detachable=True, maximum=1024**2) == [
         *today[:5],
         DETACHABLE_FRONT,

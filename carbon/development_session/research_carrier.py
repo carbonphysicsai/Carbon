@@ -398,7 +398,8 @@ class Detached(BaseException):
     in-flight build): a remote GPU build whose program runs on under `DETACHABLE_FRONT`, or an op that would start
     now. Nothing is cleaned up or settled and its task stays RUNNING: the next start adopts the op
     (`register_adoptable`) or, when it cannot, settles it as before and re-runs the build at its place. A
-    BaseException, so no ``except Exception`` on the way reads it as a failure of the op."""
+    BaseException, so no ``except Exception`` on the way reads it as a failure of the op.
+    """
 
 
 def door_stopping():
@@ -432,7 +433,8 @@ def _raise_if_stopping():
 
 def _detached_by_stop(error):
     """Whether a detachable op's failure is the receiver's stop: the stop is announced, or the docker client itself
-    died by a signal (``exit=-N``) and the stop is announced within `_STOP_ANNOUNCE_SECONDS`."""
+    died by a signal (``exit=-N``) and the stop is announced within `_STOP_ANNOUNCE_SECONDS`.
+    """
     if _STOPPING.is_set():
         return True
     diagnostic = getattr(error, "private_diagnostic", b"")
@@ -445,7 +447,8 @@ def _detached_by_stop(error):
 
 def _release_detachable_streams():
     """End this process's own docker clients (its children) of the detachable programs it streams now: each stream
-    then ends, and its op leaves as `Detached`. Read from /proc; best effort (nothing to end is not an error)."""
+    then ends, and its op leaves as `Detached`. Read from /proc; best effort (nothing to end is not an error).
+    """
     import signal
 
     names = {name.encode() for name in tuple(_LIVE_PROGRAMS)}
@@ -488,7 +491,8 @@ def _slot_names(binding, name, launch):
 
 def _running_on_box(binding):
     """The names of the containers running on ``binding``'s box now: one ``docker ps`` per box per start (reused for
-    `_BOX_LIST_SECONDS`), through the box's pinned wrapper. Unreadable: empty (nothing is adopted)."""
+    `_BOX_LIST_SECONDS`), through the box's pinned wrapper. Unreadable: empty (nothing is adopted).
+    """
     host = binding.docker_host
     now = time.monotonic()
     with _ADOPT_LOCK:
@@ -594,7 +598,8 @@ def forget_adoption(ledger, identity):
 def program_runs_on(ledger, *, owner, identity):
     """Whether a stopping receiver may leave ``identity`` for the next start (read from this host's own records only,
     no box call): the op is RESERVED with exactly one intent, which says its program runs under `DETACHABLE_FRONT`,
-    and the program was started (``program-started``). The next start still adopts it only when `adoptable` holds."""
+    and the program was started (``program-started``). The next start still adopts it only when `adoptable` holds.
+    """
     try:
         if ledger.operation_state(identity, owner=owner) != "RESERVED":
             return False
@@ -617,7 +622,8 @@ def program_runs_on(ledger, *, owner, identity):
 def _run_adopted(ledger, binding, **kwargs):
     """`_run` for an op this start adopted (`register_adoptable`): on the very slot its intent recorded
     (`remote_gpu_build.adopted`), off this host, read as any remote build (its box guard and retyping); `_run_locked`
-    then follows the running program (`adopt`) instead of launching one. The adoption ends with this attempt."""
+    then follows the running program (`adopt`) instead of launching one. The adoption ends with this attempt.
+    """
     from carbon.reconstruction import grade_lanes
 
     identity = kwargs["identity"]
@@ -2877,9 +2883,9 @@ def _run_locked(
     if adopting:
         # the adopted op keeps its own start and deadline (its intent's ``deadline_unix``), so its walls are the ones
         # it was launched with; its intent is rewritten below with the identical bytes, or the adoption stops there
-        recorded_deadline = json.loads(
-            (operation / "intent.json").read_bytes()
-        )["deadline_unix"]
+        recorded_deadline = json.loads((operation / "intent.json").read_bytes())[
+            "deadline_unix"
+        ]
         if type(recorded_deadline) not in (int, float) or seconds is None:
             raise ValueError("adopted operation deadline unreadable")
         started_unix = recorded_deadline + 30 - seconds

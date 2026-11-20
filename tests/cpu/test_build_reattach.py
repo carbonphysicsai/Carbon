@@ -62,15 +62,21 @@ def _wait(run):
 
 def test_the_wait_mode_reads_exactly_what_the_front_end_relayed(tmp_path):
     run = tmp_path / "run"
-    program = "import sys\nsys.stdout.write('built');sys.stderr.write('note');sys.exit(3)"
+    program = (
+        "import sys\nsys.stdout.write('built');sys.stderr.write('note');sys.exit(3)"
+    )
     front = _front(_boot(program), run)
     out, err = front.communicate(timeout=60)
     adopted = _wait(run)
-    assert (adopted.returncode, adopted.stdout, adopted.stderr) == (
-        front.returncode,
-        out,
-        err,
-    ) == (3, b"built", b"note")
+    assert (
+        (adopted.returncode, adopted.stdout, adopted.stderr)
+        == (
+            front.returncode,
+            out,
+            err,
+        )
+        == (3, b"built", b"note")
+    )
 
 
 def test_the_wait_mode_waits_for_a_program_that_still_runs(tmp_path):
@@ -113,9 +119,9 @@ def test_an_adopted_op_runs_the_wait_mode_and_every_other_command_is_unchanged()
         carrier.DETACHABLE_WAIT,
         carrier.DETACHABLE_RUN_DIR,
     ]
-    assert carrier._program_command("c1", "boot", detachable=False, maximum=10)[
-        5
-    ] == ("boot")
+    assert carrier._program_command("c1", "boot", detachable=False, maximum=10)[5] == (
+        "boot"
+    )
 
 
 # -- the stop --------------------------------------------------------------------------------------------------------
@@ -209,7 +215,9 @@ def _operation(tmp_path, *, detachable=True, started=True, left=600.0):
     (slot_dir / "active-allocation.json").write_text(
         json.dumps({"container_name": name, "launch_digest": launch})
     )
-    binding = SimpleNamespace(gone=False, slot_dir=slot_dir, docker_host="ssh://carbon@box")
+    binding = SimpleNamespace(
+        gone=False, slot_dir=slot_dir, docker_host="ssh://carbon@box"
+    )
     return name, binding
 
 
@@ -220,7 +228,9 @@ def box(monkeypatch):
     return running
 
 
-def test_a_start_adopts_an_op_only_when_every_condition_holds(tmp_path, monkeypatch, box):
+def test_a_start_adopts_an_op_only_when_every_condition_holds(
+    tmp_path, monkeypatch, box
+):
     name, binding = _operation(tmp_path)
     monkeypatch.setattr(carrier.remote_gpu_build, "recorded", lambda intent: binding)
     ledger = _Ledger(tmp_path)
@@ -235,10 +245,17 @@ def test_a_start_adopts_an_op_only_when_every_condition_holds(tmp_path, monkeypa
     carrier.forget_adoption(ledger, IDENTITY)
     assert carrier._adoption(ledger, IDENTITY) is None
     # the op is no longer RESERVED
-    assert carrier.adoptable(_Ledger(tmp_path, "SUCCEEDED"), owner=OWNER, identity=IDENTITY) is None
+    assert (
+        carrier.adoptable(
+            _Ledger(tmp_path, "SUCCEEDED"), owner=OWNER, identity=IDENTITY
+        )
+        is None
+    )
     # its box is gone for the door
     monkeypatch.setattr(
-        carrier.remote_gpu_build, "recorded", lambda intent: SimpleNamespace(**{**vars(binding), "gone": True})
+        carrier.remote_gpu_build,
+        "recorded",
+        lambda intent: SimpleNamespace(**{**vars(binding), "gone": True}),
     )
     assert carrier.adoptable(ledger, owner=OWNER, identity=IDENTITY) is None
 
@@ -277,7 +294,9 @@ def test_the_box_is_listed_once_per_start(monkeypatch):
 
     monkeypatch.setattr(carrier.remote_gpu_build, "cli", lambda binding: _Cli())
     monkeypatch.setattr(
-        carrier.remote_gpu_build, "bound", lambda binding: contextlib.nullcontext(binding)
+        carrier.remote_gpu_build,
+        "bound",
+        lambda binding: contextlib.nullcontext(binding),
     )
     binding = SimpleNamespace(docker_host="ssh://carbon@box")
     first = carrier._running_on_box(binding)
@@ -293,7 +312,8 @@ class _Provider:
     def __init__(self, states, state=DirectTaskStateV3.RUNNING):
         self.owner = OWNER
         self.ledger = SimpleNamespace(
-            operation_state=lambda child, owner: states.get(child), root=Path("/nowhere")
+            operation_state=lambda child, owner: states.get(child),
+            root=Path("/nowhere"),
         )
         self._lock = threading.RLock()
         self.task = SimpleNamespace(value="rtsk_" + "c" * 64)
@@ -322,40 +342,62 @@ def test_a_running_task_is_resumed_only_with_one_adoptable_op_and_nothing_failed
 ):
     asked = []
     monkeypatch.setattr(
-        carrier, "register_adoptable", lambda ledger, owner, identity: asked.append(identity) or adopt
+        carrier,
+        "register_adoptable",
+        lambda ledger, owner, identity: asked.append(identity) or adopt,
     )
     provider = _Provider(states)
     task = provider.task
-    assert research_tasks.DirectDevelopmentTasksV3._adopt_on_restore(provider, task) is resumed
+    assert (
+        research_tasks.DirectDevelopmentTasksV3._adopt_on_restore(provider, task)
+        is resumed
+    )
     assert research_tasks.DirectDevelopmentTasksV3.resumable(provider, task) is resumed
     if resumed:
         assert asked == ["build"]
 
 
 @pytest.mark.parametrize(("runs_on", "left"), [(True, True), (False, False)])
-def test_a_stopping_door_leaves_a_running_build_whose_program_runs_on(monkeypatch, runs_on, left):
-    monkeypatch.setattr(carrier, "program_runs_on", lambda ledger, owner, identity: runs_on)
+def test_a_stopping_door_leaves_a_running_build_whose_program_runs_on(
+    monkeypatch, runs_on, left
+):
+    monkeypatch.setattr(
+        carrier, "program_runs_on", lambda ledger, owner, identity: runs_on
+    )
     provider = _Provider({"build": "RESERVED", "prep": "SUCCEEDED"})
     task = provider.task
-    assert research_tasks.DirectDevelopmentTasksV3.detached_build(provider, task) is left
+    assert (
+        research_tasks.DirectDevelopmentTasksV3.detached_build(provider, task) is left
+    )
     assert research_tasks.DirectDevelopmentTasksV3.detached(provider, task) is left
     # a QUEUED task is never left (it holds nothing; kept QUEUED by the stop as before)
     queued = _Provider({"build": "RESERVED"}, state=DirectTaskStateV3.QUEUED)
-    assert research_tasks.DirectDevelopmentTasksV3.detached_build(queued, queued.task) is False
+    assert (
+        research_tasks.DirectDevelopmentTasksV3.detached_build(queued, queued.task)
+        is False
+    )
 
 
-def test_the_stop_cancels_every_running_task_except_one_left_for_the_next_start(monkeypatch, tmp_path):
+def test_the_stop_cancels_every_running_task_except_one_left_for_the_next_start(
+    monkeypatch, tmp_path
+):
     announced, recorded = [], []
     monkeypatch.setattr(carrier, "door_stopping", lambda: announced.append(True))
     monkeypatch.setattr(
-        direct_receiver, "_record_stop_cancelled", lambda root, tasks: recorded.extend(tasks)
+        direct_receiver,
+        "_record_stop_cancelled",
+        lambda root, tasks: recorded.extend(tasks),
     )
 
     class _Owner:
         def __init__(self, task, left):
             self._lock = threading.RLock()
             self.task = SimpleNamespace(value=task)
-            self._views = {task: SimpleNamespace(state=DirectTaskStateV3.RUNNING, task_id=self.task)}
+            self._views = {
+                task: SimpleNamespace(
+                    state=DirectTaskStateV3.RUNNING, task_id=self.task
+                )
+            }
             self.left = left
             self.cancelled = []
 
