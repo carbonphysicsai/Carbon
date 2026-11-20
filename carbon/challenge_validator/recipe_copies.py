@@ -27,6 +27,7 @@ recipe digest, immutable, written at admission: `note_admitted`), ``recipe_copy_
 
 from __future__ import annotations
 
+import sqlite3
 import time
 
 #: The cap status a counted copy settles with (`exam_cap.COUNTED`).
@@ -216,6 +217,22 @@ def _ended_index(adapter):
         return frozenset()
 
 
+def _gave_place(db, contract_digest):
+    """The tasks that gave their queue place to a later task (`AttemptLedger.grant_queue_place`: a task a receiver stop
+    cancelled, or a failed build the door requeued): each ended without a grade and was replaced, so it is never a
+    first. Empty where the ledger has no such table (a test double)."""
+    try:
+        return {
+            row[0]
+            for row in db.execute(
+                "SELECT from_task FROM queue_place_grants WHERE contract_digest=?",
+                (contract_digest,),
+            )
+        }
+    except sqlite3.Error:
+        return set()
+
+
 def decide(
     *,
     adapter,
@@ -267,6 +284,7 @@ def decide(
                 (challenge_id, challenge_version, exam_key),
             ).fetchall()
         )
+        gave_place = _gave_place(db, adapter.contract_digest)
     if own <= start:
         return GRADE, None  # admitted before the rule: never matched
     digest = mine if mine is not None else recipe_digest(adapter, submission_id, ledger)
@@ -288,6 +306,11 @@ def decide(
             continue  # before the rule: never a first
         if seq >= own:
             break
+        if states.get(earlier) is None and earlier in gave_place:
+            # live 116, 20 Nov 2026 (rtsk_7f5e880a held 24 h: its two stop-cancelled same-recipe ancestors, no exam row
+            # and no marker, each WAITed every claim scan): a task that gave its queue place to a later one ended
+            # without a grade and was replaced, so it is never a first, whatever its digest
+            continue
         if earlier in known:
             if earlier not in same:
                 continue  # a stored digest, another recipe: compared without opening its owner
@@ -309,6 +332,10 @@ def decide(
         if (
             row is None
             and marker(earlier) is None
+            # the door's own index first (never opening an owner): a STORED-digest task ended unbuilt (CANCELLED,
+            # REFUSED, FAILED_INFRA, UNRESOLVED) whose owner cannot be opened now read as unsettled and held every
+            # later task of its recipe (live 116, 20 Nov 2026)
+            and earlier not in ended
             and not _ended_unbuilt(adapter, earlier)
         ):
             return WAIT, earlier  # still building or queued: unsettled
