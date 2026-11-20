@@ -875,3 +875,184 @@ def test_bring_up_pins_the_keyscan_host_key_and_runs_both_phases(tmp_path, monke
     assert record["host_key_fingerprint"] == _TEST_FP
     admin = next(a for a in runs if "admin" in a)
     assert admin[admin.index("--host-key-fingerprint") + 1] == _TEST_FP
+
+
+# -- the Lium client (LIUM_ADA_SWITCH_PLAN S1; not wired into tick until the pod bring-up and the owner's budget) --
+
+
+class _Done:
+    def __init__(self, stdout="", returncode=0, stderr=""):
+        self.stdout, self.returncode, self.stderr = stdout, returncode, stderr
+
+
+def _pod(name, status="RUNNING", price=0.79, pod_id=None):
+    return {
+        "id": pod_id or f"id-{name}",
+        "name": name,
+        "huid": "calm-fox-1a",
+        "status": status,
+        "gpu_type": "RTX6000",
+        "price_per_hour": price,
+        "ip": "203.0.113.7",
+        "ports": {"22": 20050, "20000": 20000},
+    }
+
+
+def _node(price, available=1, cpus=31, gpus=1):
+    return {
+        "id": f"node-{price}-{cpus}",
+        "huid": "noble-shark-59",
+        "gpu_type": "RTX6000",
+        "gpu_count": gpus,
+        "available_gpu_count": available,
+        "cpu_count": cpus,
+        "price_per_gpu_hour": price,
+    }
+
+
+def _lium(tmp_path, *, pods=(), nodes=(), balance=86.0, fail=None, up=None, **kw):
+    calls = []
+    (tmp_path / "lium_key").write_text("sk_test_never_in_argv\n")
+
+    def run(argv, **options):
+        calls.append({"argv": list(argv), "env": options.get("env", {})})
+        command = argv[1]
+        if fail == command:
+            return _Done(returncode=2, stderr="error\nNo GPUs available on that node")
+        if command == "ps":
+            return _Done(json.dumps(list(pods)))
+        if command == "ls":
+            return _Done(json.dumps(list(nodes)))
+        if command == "balance":
+            return _Done(json.dumps({"balance_usd": balance, "currency": "USD"}))
+        if command == "up":
+            return _Done(
+                json.dumps(
+                    up
+                    if up is not None
+                    else _pod(argv[argv.index("--name") + 1], pod_id="pod-new")
+                )
+            )
+        if command == "rm":
+            return _Done(json.dumps([{"id": argv[2]}]))
+        return _Done(returncode=2, stderr="unknown")
+
+    settings = {
+        "name_prefix": "carbon-ada-",
+        "gpu": "RTX6000",
+        "min_cpus": 28,
+        "ttl": "12h",
+        "budget_usd": 10,
+        "run": run,
+    }
+    settings.update(kw)
+    return scale.LiumCli("lium", str(tmp_path / "lium_key"), **settings), calls
+
+
+def test_lium_lists_only_its_own_pods_never_the_gate_or_exam_pods(tmp_path):
+    client, _ = _lium(
+        tmp_path,
+        pods=[
+            _pod("carbon-ada-11200101"),
+            _pod("carbon-ada-11200102", status="PENDING"),
+            _pod("claude-runner-gate-136"),
+            _pod("claude-exam-rb-s4-box", price=1.59),
+        ],
+    )
+    found = client.instances()
+    assert [i["name"] for i in found] == ["carbon-ada-11200101", "carbon-ada-11200102"]
+    assert [i["status"] for i in found] == ["active", "booting"]
+    assert found[0]["ssh_port"] == 20050 and found[0]["price_usd_h"] == 0.79
+
+
+def test_lium_offers_the_cheapest_free_node_with_enough_threads(tmp_path):
+    client, calls = _lium(
+        tmp_path,
+        nodes=[
+            _node(0.85),
+            _node(0.79),
+            _node(0.60, available=0),
+            _node(0.50, cpus=16),
+        ],
+    )
+    assert client.offer() == (0.79, "lium")
+    listed = calls[0]["argv"]
+    assert listed[1:3] == ["ls", "--format"] and "--min-cpus" in listed
+
+
+def test_lium_refuses_to_rent_when_the_balance_would_not_last_three_hours(tmp_path):
+    """Lium deletes every pod of an account whose balance reaches zero: all pods' burn counts, not only the pool's."""
+    pods = [
+        _pod("claude-runner-gate-136", price=0.79),
+        _pod("claude-exam-rb-s4-box", price=1.59),
+    ]
+    rich, _ = _lium(tmp_path, pods=pods, nodes=[_node(0.79)], balance=86.0)
+    assert rich.offer() == (0.79, "lium")
+    poor, _ = _lium(tmp_path, pods=pods, nodes=[_node(0.79)], balance=9.0)
+    assert poor.offer() is None and poor.refused == "low_balance"
+    empty, _ = _lium(tmp_path, nodes=[_node(0.79, available=0)])
+    assert empty.offer() is None and empty.refused == "no_node"
+
+
+def test_lium_launch_rents_one_gpu_with_a_hard_ttl_and_budget(tmp_path):
+    client, calls = _lium(tmp_path, template_id="tpl-1")
+    assert client.launch(name="carbon-ada-11200103") == "pod-new"
+    argv = calls[-1]["argv"]
+    assert argv[:2] == ["lium", "up"]
+    for flag, value in (
+        ("--gpu", "RTX6000"),
+        ("--count", "1"),
+        ("--min-cpus", "28"),
+        ("--name", "carbon-ada-11200103"),
+        ("--ttl", "12h"),
+        ("--budget", "10"),
+        ("--template_id", "tpl-1"),
+    ):
+        assert argv[argv.index(flag) + 1] == value
+    assert {"--yes", "--no-ssh", "--json"} <= set(argv)
+
+
+def test_lium_never_launches_a_pod_outside_its_prefix_and_never_puts_the_key_in_argv(
+    tmp_path,
+):
+    client, calls = _lium(tmp_path, nodes=[_node(0.79)])
+    with pytest.raises(ValueError):
+        client.launch(name="claude-runner-gate-137")
+    client.offer()
+    client.terminate("pod-x")
+    assert calls[-1]["argv"] == [
+        "lium",
+        "rm",
+        "pod-x",
+        "--yes",
+        "--name-only",
+        "--format",
+        "json",
+    ]
+    for call in calls:
+        assert "sk_test_never_in_argv" not in " ".join(call["argv"])
+        assert call["env"]["LIUM_API_KEY"] == "sk_test_never_in_argv"
+
+
+def test_lium_failures_raise_with_the_clis_reason(tmp_path):
+    client, _ = _lium(tmp_path, fail="up")
+    with pytest.raises(scale.LiumError, match="No GPUs available"):
+        client.launch(name="carbon-ada-11200104")
+    noid, _ = _lium(tmp_path, up={"status": "RUNNING"})
+    with pytest.raises(scale.LiumError, match="no pod id"):
+        noid.launch(name="carbon-ada-11200105")
+    with pytest.raises(scale.LiumError):
+        client.restart("pod-x")
+
+
+def test_config_refuses_a_lium_pool_until_its_bring_up_and_budget_exist(tmp_path):
+    values = {
+        k: (list(v) if isinstance(v, tuple) else v)
+        for k, v in _config(tmp_path).__dict__.items()
+    }
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({**values, "provider": "lium"}))
+    with pytest.raises(SystemExit, match="only 'lambda' runs"):
+        scale.load_config(path)
+    path.write_text(json.dumps(values))
+    assert scale.load_config(path).provider == "lambda"

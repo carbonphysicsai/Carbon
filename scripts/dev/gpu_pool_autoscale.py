@@ -178,6 +178,9 @@ class Config:
     page_outbox: str = "ops-watch/outbox.jsonl"
     #: [[start_hour, end_hour], ...] UTC: keep one box warm inside a window (a hook; empty until 24 h+ of G7 data)
     prewarm_utc: tuple = ()
+    #: the pool's provider. Only "lambda" runs today: a Lium pool (`LiumCli`) waits for the Lium pod bring-up and the
+    #: owner's Lium build budget (codex-queue/reports/INFRA/LIUM_ADA_SWITCH_PLAN_20261119.md, S3 and O1)
+    provider: str = "lambda"
 
     @property
     def boxes_dir(self):
@@ -210,6 +213,11 @@ def load_config(path) -> Config:
         config.name_prefix.rstrip("-") or "x"
     ):
         raise SystemExit("name_prefix")
+    if config.provider != "lambda":
+        # bring_up knows a Lambda VM only (port 22, apt, sudo); a Lium pod needs the pod-mode bring-up first
+        raise SystemExit(
+            "provider: only 'lambda' runs; a Lium pool waits for the pod bring-up and the owner's Lium build budget"
+        )
     return config
 
 
@@ -387,6 +395,189 @@ class Lambda:
         self._call(
             "POST", "/instance-operations/restart", {"instance_ids": [instance_id]}
         )
+
+
+#: a Lium pod status as `Lambda`'s instance status (``active`` is the one `bring_up` waits for)
+LIUM_STATUS = {"RUNNING": "active", "PENDING": "booting", "CREATING": "booting"}
+
+
+class LiumError(RuntimeError):
+    """A `lium` CLI call failed (non-zero exit or unreadable JSON); the message is the CLI's own reason line."""
+
+
+class LiumCli:
+    """Lium (Bittensor SN51) 1-GPU pods through the ``lium`` CLI's JSON mode, with `Lambda`'s interface (owner G15/G16:
+    RTX 6000 Ada builds on Lium, Lambda the fallback; LIUM_ADA_SWITCH_PLAN S1). Not wired into `tick` yet: a Lium
+    pool needs the pod-mode bring-up (S3) and the owner's Lium build budget (O1), and `load_config` refuses it.
+
+    The CLI, not raw REST: its rent call carries an idempotency key and looks for a half-created pod before it ever
+    re-sends, and it registers our ssh key. The API key goes to the CLI by environment (``LIUM_API_KEY``), never argv.
+
+    - Only pods named with ``name_prefix`` are this pool's: the account also holds gate and exam pods, which this
+      client never lists, counts or removes.
+    - ``offer`` refuses (None) when the account balance would not cover ``min_runway_h`` hours of every pod on the
+      account plus the new one: Lium deletes EVERY pod of an account whose balance reaches zero (1 Nov 2026).
+    - ``launch`` rents ONE GPU of the cheapest node of ``gpu`` with at least ``min_cpus`` listed CPU threads, with a
+      hard ``ttl`` and ``budget_usd`` (Lium cannot extend either). The listed threads are not the pod's quota (a 1-GPU
+      slice of a 104-thread node had cgroup cpu.max = 51, 19 Nov 2026): the bring-up measures cpu.max.
+    - A rent the CLI cannot confirm raises `LiumError`; a pod it did create carries the prefix, so it is listed and
+      counts toward the caps, and its hard ``ttl``/``budget_usd`` bound what it costs.
+    """
+
+    def __init__(
+        self,
+        cli,
+        key_file,
+        *,
+        name_prefix,
+        gpu,
+        min_cpus,
+        ttl,
+        budget_usd,
+        template_id=None,
+        min_runway_h=3.0,
+        run=subprocess.run,
+    ):
+        if not name_prefix or not _NAME.fullmatch(name_prefix.rstrip("-") or "x"):
+            raise ValueError("name_prefix")
+        self._cli, self._key_file, self._run = cli, key_file, run
+        self.name_prefix, self.gpu, self.min_cpus = name_prefix, gpu, int(min_cpus)
+        self.ttl, self.budget_usd, self.template_id = (
+            ttl,
+            float(budget_usd),
+            template_id,
+        )
+        self.min_runway_h = float(min_runway_h)
+        #: why the last ``offer`` returned None ("no_node" / "low_balance"), for the tick's log line
+        self.refused = None
+
+    def _call(self, *args, timeout=300):
+        env = {
+            **os.environ,
+            "LIUM_API_KEY": Path(self._key_file).read_text().strip(),
+            "PYTHONIOENCODING": "utf-8",
+        }
+        done = self._run(
+            [self._cli, *args],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=timeout,
+            check=False,
+        )
+        if done.returncode != 0:
+            raise LiumError(
+                ((done.stderr or done.stdout or "").strip().splitlines() or ["?"])[-1][
+                    :200
+                ]
+            )
+        try:
+            return json.loads(done.stdout)
+        except ValueError as error:
+            raise LiumError(f"{args[0]}: unreadable JSON") from error
+
+    def _pods(self):
+        rows = self._call("ps", "--format", "json")
+        return rows if isinstance(rows, list) else rows.get("pods", [])
+
+    def instances(self):
+        found = []
+        for pod in self._pods():
+            name = pod.get("name") or ""
+            if not name.startswith(self.name_prefix):
+                continue
+            status = str(pod.get("status") or "").upper()
+            found.append(
+                {
+                    "id": pod["id"],
+                    "name": name,
+                    "status": LIUM_STATUS.get(status, status.lower()),
+                    "ip": pod.get("ip"),
+                    "ssh_port": (pod.get("ports") or {}).get("22"),
+                    "region": pod.get("huid"),
+                    "type": pod.get("gpu_type"),
+                    "price_usd_h": float(pod.get("price_per_hour") or 0),
+                }
+            )
+        return found
+
+    def runway_h(self, extra_usd_h=0.0):
+        """Hours the account balance lasts at the burn of EVERY pod on it (pool or not) plus ``extra_usd_h``."""
+        balance = float(self._call("balance", "--format", "json")["balance_usd"])
+        burn = sum(float(p.get("price_per_hour") or 0) for p in self._pods())
+        burn += extra_usd_h
+        return float("inf") if burn <= 0 else balance / burn
+
+    def offer(self, instance_type=None, regions=()):
+        """``(price_usd_h, "lium")`` of the cheapest node with a free GPU of ``gpu`` and at least ``min_cpus`` listed
+        threads, or None (``refused`` says why). ``instance_type``/``regions`` are `Lambda`'s and unused here.
+        """
+        self.refused = None
+        rows = self._call(
+            "ls",
+            "--format",
+            "json",
+            "--gpu",
+            self.gpu,
+            "--min-cpus",
+            str(self.min_cpus),
+        )
+        prices = [
+            float(r["price_per_gpu_hour"])
+            for r in rows
+            if int(r.get("available_gpu_count") or 0) >= 1
+            and int(r.get("cpu_count") or 0) >= self.min_cpus
+            and r.get("price_per_gpu_hour") is not None
+        ]
+        if not prices:
+            self.refused = "no_node"
+            return None
+        price = min(prices)
+        if self.runway_h(price) < self.min_runway_h:
+            self.refused = "low_balance"
+            return None
+        return (price, "lium")
+
+    def launch(self, *, region=None, instance_type=None, ssh_key_name=None, name):
+        """Rent ONE GPU of the cheapest matching node; the new pod's id. ``region``/``instance_type``/``ssh_key_name``
+        are `Lambda`'s: Lium picks the node, and the CLI's registered key opens the pod.
+        """
+        if not name.startswith(self.name_prefix) or not _NAME.fullmatch(name):
+            raise ValueError("launch: the pod name must carry the pool's name_prefix")
+        args = [
+            "up",
+            "--gpu",
+            self.gpu,
+            "--count",
+            "1",
+            "--min-cpus",
+            str(self.min_cpus),
+            "--name",
+            name,
+            "--ttl",
+            self.ttl,
+            "--budget",
+            f"{self.budget_usd:g}",
+            "--yes",
+            "--no-ssh",
+            "--json",
+            "--timeout",
+            "900",
+        ]
+        if self.template_id:
+            args += ["--template_id", self.template_id]
+        pod = self._call(*args, timeout=960)
+        pod = pod.get("pod", pod) if isinstance(pod, dict) else {}
+        if not pod.get("id"):
+            raise LiumError("up: no pod id in the reply")
+        return pod["id"]
+
+    def terminate(self, instance_id):
+        self._call("rm", str(instance_id), "--yes", "--name-only", "--format", "json")
+
+    def restart(self, instance_id):
+        # Lambda's restart is for the driver step of a VM; a Lium pod has no driver step
+        raise LiumError("restart: not available for a Lium pod")
 
 
 def _door(config, argv, *, stdin=None, timeout=120):
