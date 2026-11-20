@@ -842,6 +842,10 @@ def note_loss(lane, reason=b""):
     path = Path(lane.lane_dir) / DOWN_MARKER
     mark = _read_mark(path)
     now = time.time()
+    if is_down(lane):
+        # a live DOWN mark stays DOWN (its window unchanged): a box that lost its link fails every op it was running, and
+        # a later loss must never turn it back into SUSPECT (offered) while it is still dead (Validator-2, B1a 20 Nov)
+        return True
     losses = 1
     if (
         mark is not None

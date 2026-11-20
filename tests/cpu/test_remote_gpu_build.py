@@ -2455,6 +2455,12 @@ def test_a_lost_box_is_marked_down_skipped_and_back_after_a_healthy_probe(
         )
         assert type(mark["unix"]) is float and "losses" not in mark
         assert remote_gpu_build.is_down(lost)
+        # a 3rd loss inside DOWN_SECONDS (another op the dead box was running) keeps it DOWN, window unchanged
+        assert remote_gpu_build.note_loss(lost, b"lost again")
+        again_mark = json.loads(
+            (Path(lost.lane_dir) / remote_gpu_build.DOWN_MARKER).read_text()
+        )
+        assert again_mark == mark and remote_gpu_build.is_down(lost)
         # the FAILED_INFRA task's retry lands on another box
         with _op() as retry:
             assert retry.lane.spec.name == "a100-b"
