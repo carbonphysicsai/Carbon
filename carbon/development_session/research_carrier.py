@@ -511,6 +511,82 @@ def _release_detachable_streams():
                 os.kill(pid, signal.SIGKILL)
 
 
+def _docker_children(me):
+    """``[(pid, argv)]`` of this process's own live ``docker`` client children, read from /proc."""
+    found = []
+    try:
+        entries = os.listdir("/proc")
+    except OSError:
+        return found
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/stat", "rb") as stream:
+                text = stream.read()
+            fields = text[text.rindex(b")") + 2 :].split()
+            if fields[1].decode() != me or fields[0] == b"Z":
+                continue
+            with open(f"/proc/{entry}/cmdline", "rb") as stream:
+                argv = [part for part in stream.read().split(b"\0") if part]
+        except (OSError, ValueError, IndexError):
+            continue
+        if argv and os.path.basename(argv[0]) == b"docker":
+            found.append((int(entry), argv))
+    return found
+
+
+def _client_summary(argv):
+    """A docker client's subcommand and container name prefix only (never its program text or a host)."""
+    words = [part.decode("utf-8", "replace") for part in argv[1:]]
+    sub = next(
+        (
+            w
+            for w in words
+            if w in ("exec", "run", "create", "start", "rm", "kill", "inspect", "cp")
+        ),
+        None,
+    )
+    container = next((w[:24] for w in words if w.startswith("carbon-d4-")), None)
+    return {"subcommand": sub, "container": container}
+
+
+def release_own_docker_clients():
+    """The receiver's very last stop step (`direct_receiver._stop_providers`): every ``docker`` client still a child of
+    this process is orphaned now (its providers are closed, the process exits), so each is ended (SIGTERM, then SIGKILL
+    after `_STREAM_RELEASE_SECONDS`) and named in one ``stop_docker_client_ended`` journal line (subcommand and
+    container prefix only). Live 116, 20 Nov 2026 13:13:32Z: a docker child outlived the main process and systemd
+    waited its 90 s stop timeout to kill it. A local client only: a remote program or container is never touched here.
+    Never raises."""
+    import signal
+
+    try:
+        me = str(os.getpid())
+        clients = _docker_children(me)
+        if not clients:
+            return
+        for pid, _argv in clients:
+            with suppress(OSError):
+                os.kill(pid, signal.SIGTERM)
+        pending = [pid for pid, _argv in clients]
+        deadline = time.monotonic() + _STREAM_RELEASE_SECONDS
+        while pending and time.monotonic() < deadline:
+            time.sleep(0.05)
+            pending = [pid for pid in pending if _own_live_child(pid, me)]
+        for pid in pending:
+            with suppress(OSError):
+                os.kill(pid, signal.SIGKILL)
+        from carbon.battery.intake import log
+
+        log(
+            "stop_docker_client_ended",
+            clients=[_client_summary(argv) for _pid, argv in clients],
+            killed=len(pending),
+        )
+    except Exception:  # noqa: BLE001 - a stop step never fails the stop
+        return
+
+
 def _own_live_child(pid, me):
     """Whether ``pid`` is still this process's child and has not exited (not a zombie): read from /proc."""
     try:

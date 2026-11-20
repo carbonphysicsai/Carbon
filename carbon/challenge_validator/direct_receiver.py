@@ -2829,6 +2829,12 @@ def _stop_providers(providers, *, cancel):
             if first is None:
                 raise
             _log_start_failure("receiver_close_refused", late, first=first)
+        finally:
+            # nothing of this process may outlive it: a docker client child left now would hold the unit's stop for its
+            # 90 s timeout (live 116, 20 Nov 2026)
+            from carbon.development_session import research_carrier
+
+            research_carrier.release_own_docker_clients()
 
 
 def _owner_name(hotkey):
