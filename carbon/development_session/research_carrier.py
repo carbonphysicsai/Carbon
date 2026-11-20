@@ -182,6 +182,157 @@ os.execv('/opt/carbon-worker/bin/python',['python','-I','/input/program.py'])
 """
 
 
+#: Where a remote GPU build's program keeps its output and exit status in its own container (`DETACHABLE_FRONT`).
+DETACHABLE_RUN_DIR = "/scratch/.carbon-run"
+
+#: The detachable front end of a remote GPU build's program (owner, 20 Nov 2026: a door restart must never cancel an
+#: in-flight build; live 116 01:52Z: ~22 cancelled and re-run from zero). Run as ``python -I -c DETACHABLE_FRONT
+#: <bootstrap> <run dir> <stdout cap> <stderr cap>`` in place of ``-c <bootstrap>``: it runs the bootstrap (which
+#: ``execv``s into the program) as its ONE child and relays the child's stdout and stderr unchanged, then exits with the
+#: child's status (a signal as 128+n, as `docker exec` reports one), so the door sees what it saw before. Besides, it
+#: keeps the first <cap> bytes of each stream and the exit status in <run dir> (``stdout``, ``stderr``, ``exit``, the
+#: last written whole), and keeps running when the door's end of the stream goes away (a write there that fails is
+#: dropped, never fatal), so the program outlives the door and its result can be read later (``detachable_program`` in
+#: the intent). It stays the exec's root process (the box's program-age read, `_BOX_PROGRAM_AGE`, still finds exactly
+#: one) and starts before its child, as the bootstrap did. A run dir that cannot be made keeps the relay, no files.
+DETACHABLE_FRONT = r"""
+import os,selectors,sys
+boot,run=sys.argv[1],sys.argv[2]
+caps={1:int(sys.argv[3]),2:int(sys.argv[4])}
+try:
+    os.mkdir(run,0o700)
+except OSError:
+    run=None
+o_r,o_w=os.pipe()
+e_r,e_w=os.pipe()
+pid=os.fork()
+if pid==0:
+    os.close(o_r);os.close(e_r)
+    os.dup2(o_w,1);os.dup2(e_w,2)
+    os.close(o_w);os.close(e_w)
+    code=0
+    try:
+        exec(compile(boot,'<string>','exec'),{'__name__':'__main__'})
+    except SystemExit as stop:
+        code=stop.code if type(stop.code) is int else (0 if stop.code is None else 1)
+        if stop.code is not None and type(stop.code) is not int:
+            print(stop.code,file=sys.stderr)
+    except BaseException:
+        import traceback
+        traceback.print_exc()
+        code=1
+    for stream in (sys.stdout,sys.stderr):
+        try:
+            stream.flush()
+        except Exception:
+            pass
+    os._exit(code)
+os.close(o_w);os.close(e_w)
+files={}
+if run is not None:
+    for fd,name in ((1,'stdout'),(2,'stderr')):
+        try:
+            files[fd]=os.open(run+'/'+name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        except OSError:
+            pass
+kept={1:0,2:0}
+pending={1:bytearray(),2:bytearray()}
+gone=set()
+for fd in (1,2):
+    try:
+        os.set_blocking(fd,False)
+    except OSError:
+        gone.add(fd)
+def push(fd):
+    while pending[fd] and fd not in gone:
+        try:
+            sent=os.write(fd,pending[fd])
+        except BlockingIOError:
+            return
+        except OSError:
+            gone.add(fd);pending[fd].clear();return
+        del pending[fd][:sent]
+selector=selectors.DefaultSelector()
+selector.register(o_r,selectors.EVENT_READ,1)
+selector.register(e_r,selectors.EVENT_READ,2)
+while selector.get_map():
+    for fd in (1,2):
+        push(fd)
+    waiting=any(pending[fd] for fd in (1,2) if fd not in gone)
+    for key,_ in selector.select(0.05 if waiting else None):
+        fd=key.data
+        block=os.read(key.fd,65536)
+        if not block:
+            selector.unregister(key.fd);os.close(key.fd)
+            continue
+        part=block[:max(0,caps[fd]-kept[fd])]
+        if not part:
+            continue
+        kept[fd]+=len(part)
+        if fd in files:
+            try:
+                os.write(files[fd],part)
+            except OSError:
+                pass
+        if fd not in gone:
+            pending[fd]+=part
+status=os.waitpid(pid,0)[1]
+code=os.waitstatus_to_exitcode(status)
+code=128-code if code<0 else code
+for fd in files.values():
+    try:
+        os.fsync(fd);os.close(fd)
+    except OSError:
+        pass
+if run is not None:
+    try:
+        with open(run+'/exit.part','w') as record:
+            record.write(str(code)+'\n')
+        os.replace(run+'/exit.part',run+'/exit')
+    except OSError:
+        pass
+for fd in (1,2):
+    if fd not in gone and pending[fd]:
+        try:
+            os.set_blocking(fd,True)
+            os.write(fd,bytes(pending[fd]))
+        except OSError:
+            pass
+os._exit(code)
+"""
+
+
+def _detachable(session=None):
+    """Whether this op's program runs under `DETACHABLE_FRONT`: a remote GPU build slot op (its container on a box's
+    daemon, `remote_gpu_build.docker_host`), never a grade session's member op; every other op is unchanged.
+    """
+    return (
+        session is None
+        and remote_gpu_build.current_op() is not None
+        and remote_gpu_build.docker_host() is not None
+    )
+
+
+def _program_command(name, bootstrap, *, detachable, maximum):
+    """The PROGRAM stage's ``docker exec``: today's ``-c <bootstrap>``, or for a detachable op the same bootstrap under
+    `DETACHABLE_FRONT`, which keeps one byte past each stream's cap (a stream over its cap is still refused here, as
+    before).
+    """
+    from carbon.reconstruction.worker.model import DIAGNOSTIC_BYTES
+
+    command = ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c"]
+    if not detachable:
+        return [*command, bootstrap]
+    return [
+        *command,
+        DETACHABLE_FRONT,
+        bootstrap,
+        DETACHABLE_RUN_DIR,
+        str(maximum + 1),
+        str(DIAGNOSTIC_BYTES + 1),
+    ]
+
+
 def run_script(
     ledger, *, owner, identity, source, files, image, seconds=600, accelerator=None
 ):
@@ -2405,6 +2556,8 @@ def _run_locked(
     # watches this controller process and removes the container only once it
     # is gone. An unbounded run has no time limit, but it is never unguarded.
     guard = _miner_guard(seconds) if miner_lane else None
+    # a remote GPU build's program can outlive this process (`DETACHABLE_FRONT`); its intent says so, for recovery
+    detachable = not miner_lane and _detachable(session)
     write_once(
         operation / "intent.json",
         canonical(
@@ -2422,6 +2575,7 @@ def _run_locked(
                 **remote_lane.intent_fields(),
                 # a remote GPU build slot: its daemon, mirror root, lane and slot
                 **remote_gpu_build.intent_fields(),
+                **({"detachable_program": 1} if detachable else {}),
                 **(
                     {}
                     if session is None
@@ -2731,14 +2885,10 @@ def _run_locked(
             program_deadline = program_started + program_timeout
             try:
                 cli.stream_to_file(
-                    [
-                        "exec",
-                        name,
-                        "/opt/carbon-worker/bin/python",
-                        "-I",
-                        "-c",
-                        bootstrap,
-                    ],
+                    # a remote GPU build's program under its detachable front end (`DETACHABLE_FRONT`)
+                    _program_command(
+                        name, bootstrap, detachable=detachable, maximum=1024**2
+                    ),
                     operation / "stdout.txt",
                     maximum=1024**2,
                     timeout=program_timeout,
