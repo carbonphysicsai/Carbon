@@ -1980,7 +1980,7 @@ def rebuild(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     is cleared) at the failed task's original place and epoch, uncharged, even when it was itself the door's requeue.
     The door re-checks the task's state there and logs the outcome in ``requeued/rebuild-applied.jsonl``. Dry run
     unless ``apply``."""
-    from .lean_recipe import REBUILD_APPLIED, REBUILD_REQUESTS
+    from .lean_recipe import REBUILD_APPLIED, REBUILD_REQUESTS, STOP_CANCEL_RULING
 
     out = {
         "schema": SCHEMA,
@@ -1994,7 +1994,18 @@ def rebuild(root, tasks, *, ruling, apply=False, clock=time.time_ns):
         return {**out, "refused": {"*": "ruling_id_required"}}
     ledger, _cap = _ledger(root)
     asked = {line["task"] for line in _log_lines_all(root, REBUILD_REQUESTS)}
-    asked |= {line["task"] for line in _log_lines_all(root, REBUILD_APPLIED)}
+    # every applied line counts as asked except the door's OWN stop-cancel re-run that was refused (``not_rebuilt``, no
+    # new task): an owed task whose only record is that is still the operator's to request once, under a V2 ruling
+    # (live 116, 20 Nov 2026: rtsk_9d6de7ea, V2-OWED-9D6D-20261120)
+    asked |= {
+        line["task"]
+        for line in _log_lines_all(root, REBUILD_APPLIED)
+        if not (
+            line.get("ruling") == STOP_CANCEL_RULING
+            and line.get("new_task") is None
+            and line.get("code") is not None
+        )
+    }
     for task in tasks:
         if type(task) is not str or not _TASK.fullmatch(task):
             out["refused"][task] = "not_a_task_id"

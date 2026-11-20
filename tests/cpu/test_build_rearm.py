@@ -337,3 +337,85 @@ def test_the_provider_refuses_a_rerun_of_another_recipe_or_with_its_own_source()
         with pytest.raises(ResearchTaskProviderError) as refused:
             provider.start_research_task(request, **kwargs)
         assert refused.value.code is ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+
+
+# --- live 116, 20 Nov 2026 (V2-OWED-9D6D / V2-OWED-CAP): an owed build whose only record is the door's refused re-run ---
+
+
+def _applied(directory, *lines):
+    with open(directory / lean_recipe.REBUILD_APPLIED, "a") as log:
+        log.writelines(json.dumps(line) + "\n" for line in lines)
+
+
+def test_the_operator_may_request_an_owed_build_the_doors_own_rerun_refused(tmp_path):
+    from test_infra_requeue import _arrived, _root
+
+    from carbon.challenge_validator import infra_requeue
+
+    root, attempts = _root(tmp_path)
+    owed, rebuilt, operator = ("rtsk_" + c * 64 for c in "567")
+    for t in (owed, rebuilt, operator):
+        _arrived(attempts, t)
+    directory = root / "auto-grade" / "requeued"
+    directory.mkdir(parents=True)
+    stop = lean_recipe.STOP_CANCEL_RULING
+    _applied(
+        directory,
+        {"task": owed, "ruling": stop, "new_task": None, "code": "not_rebuilt"},
+        {"task": rebuilt, "ruling": stop, "new_task": "rtsk_" + "9" * 64, "code": None},
+        {"task": operator, "ruling": "V2-X", "new_task": None, "code": "not_rebuilt"},
+    )
+    dry = infra_requeue.rebuild(root, [owed, rebuilt, operator], ruling="V2-OWED-9D6D")
+    assert dry["requested"] == [owed]
+    assert dry["refused"] == {
+        rebuilt: "already_requested",
+        operator: "already_requested",
+    }
+    infra_requeue.rebuild(root, [owed], ruling="V2-OWED-9D6D", apply=True)
+    # once per task
+    again = infra_requeue.rebuild(root, [owed], ruling="V2-OWED-9D6D-B", apply=True)
+    assert again["refused"] == {owed: "already_requested"}
+
+
+def test_the_door_applies_an_owed_request_after_its_own_refused_rerun_outside_the_caps(
+    ledger,
+):
+    _queue(ledger)
+    door, provider = _door(ledger), _Provider({A: DirectTaskStateV3.FAILED_INFRA})
+    door._active_owner = lambda sid: HOTKEYS[0]
+    door._provider = lambda owner: provider
+    directory = _requests(ledger, {"task": A, "ruling": "V2-OWED-9D6D"})
+    # the door's own stop-cancel re-run of A was refused earlier, and A's chain spent its caps
+    _applied(
+        directory,
+        {
+            "task": A,
+            "ruling": lean_recipe.STOP_CANCEL_RULING,
+            "new_task": None,
+            "code": "not_rebuilt",
+        },
+    )
+    with open(directory / lean_recipe.BUILD_RETRIES, "a") as log:
+        log.writelines(
+            json.dumps(
+                {
+                    "from_task": A,
+                    "new_task": f"rtsk_{k:064x}",
+                    "chain_root": A,
+                    "code": "c",
+                }
+            )
+            + "\n"
+            for k in range(lean_recipe.BUILD_CHAIN_RETRIES)
+        )
+    # an automatic ask just before (throttled in process) never swallows the owed request
+    door._requeue_asked = {A: 10**12}
+    door._apply_rebuild_requests()
+    assert provider.started == [(("req", HOTKEYS[0], 1), False)]
+    applied = [
+        json.loads(line)
+        for line in (directory / lean_recipe.REBUILD_APPLIED).read_text().splitlines()
+    ]
+    assert (applied[-1]["ruling"], applied[-1]["new_task"]) == ("V2-OWED-9D6D", N)
+    door._apply_rebuild_requests()  # once per task and ruling
+    assert len(provider.started) == 1

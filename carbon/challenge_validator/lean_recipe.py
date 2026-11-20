@@ -1568,14 +1568,23 @@ class LeanRecipeAdapter(ChallengeAdapter):
             ]
             if not requests:
                 return
-            done = {line.get("task") for line in _jsonl(directory / REBUILD_APPLIED)}
+            # once per task AND ruling: an operator's request under its own ruling is applied even after the door's
+            # own stop-cancel re-run of the task was refused (live 116, 20 Nov 2026: rtsk_9d6de7ea, owed, unreachable)
+            done = {
+                (line.get("task"), line.get("ruling"))
+                for line in _jsonl(directory / REBUILD_APPLIED)
+            }
             from carbon.research import ResearchTaskId
 
             for line in requests:
                 task, ruling = line.get("task"), line.get("ruling")
-                if task in done or type(task) is not str or type(ruling) is not str:
+                if (
+                    (task, ruling) in done
+                    or type(task) is not str
+                    or type(ruling) is not str
+                ):
                     continue
-                done.add(task)
+                done.add((task, ruling))
                 new_task, code = None, None
                 try:
                     owner = self._active_owner(task)
@@ -1625,14 +1634,19 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # Grade-speed (18 Nov 2026): a task whose requeue was refused for good is never asked again in this process (27
         # tasks were re-read on every pass, each a lazy-owner touch)
         settled = self.__dict__.setdefault("_requeue_settled", set())
-        if task_id.value in settled:
+        # an operator's request (a V2 ruling, or the stop's own record) is applied once by its caller: never throttled
+        if operator is None and task_id.value in settled:
             return None
         # and any task is asked at most once per `REQUEUE_ASK_SECONDS` (Lead: one attempt per id per N min)
         import time as _time
 
         asked = self.__dict__.setdefault("_requeue_asked", {})
         now = _time.monotonic()
-        if now - asked.get(task_id.value, -REQUEUE_ASK_SECONDS) < REQUEUE_ASK_SECONDS:
+        if (
+            operator is None
+            and now - asked.get(task_id.value, -REQUEUE_ASK_SECONDS)
+            < REQUEUE_ASK_SECONDS
+        ):
             return None
         asked[task_id.value] = now
 
@@ -1749,7 +1763,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 )
                 refused(by_class)
                 return None
-            if chain >= BUILD_CHAIN_RETRIES or same >= BUILD_CODE_RETRIES:
+            # an OWED re-run (an operator's request under a V2 ruling, never the stop's own cancellation) runs
+            # outside the caps (V2-OWED-CAP-20261120: "one re-run ... uncharged, outside the cap")
+            owed = operator is not None and operator != STOP_CANCEL_RULING
+            if not owed and (
+                chain >= BUILD_CHAIN_RETRIES or same >= BUILD_CODE_RETRIES
+            ):
                 _append_line(
                     retries / BUILD_ALERTS,
                     {
