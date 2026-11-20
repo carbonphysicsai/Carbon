@@ -324,12 +324,15 @@ def test_any_doubt_settles_the_op_as_before(tmp_path, monkeypatch, box, broken):
     monkeypatch.setattr(carrier.remote_gpu_build, "recorded", lambda intent: binding)
     ledger = _Ledger(tmp_path)
     assert carrier.adoptable(ledger, owner=OWNER, identity=IDENTITY) is None
-    assert carrier.register_adoptable(ledger, owner=OWNER, identity=IDENTITY) == {
-        "not_detachable": "not_detachable",
-        "never_started": "not_started",
-        "deadline_near": "deadline_near",
-        "slot_names_another": "slot_record_differs",
-    }[broken]
+    assert (
+        carrier.register_adoptable(ledger, owner=OWNER, identity=IDENTITY)
+        == {
+            "not_detachable": "not_detachable",
+            "never_started": "not_started",
+            "deadline_near": "deadline_near",
+            "slot_names_another": "slot_record_differs",
+        }[broken]
+    )
     if broken in ("not_detachable", "never_started"):
         # a stopping door cancels it as before
         assert carrier.program_runs_on(ledger, owner=OWNER, identity=IDENTITY) is False
