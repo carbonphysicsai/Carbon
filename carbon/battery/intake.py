@@ -149,6 +149,13 @@ PEER_BURST, PEER_RATE, IN_FLIGHT, INBOX_DEPTH = 10, 1.0, 8, 64
 #: The metagraph is re-read on this period; a snapshot older than the
 #: gateway's 60 s window can no longer authenticate anything.
 REFRESH_S, SNAPSHOTS_KEPT, SNAPSHOT_MAX_AGE_S = 12.0, 5, 60.0
+#: How old the last good snapshot may be for work ALREADY admitted: grading, the background registration re-check of an
+#: owner's provider and the allowance group (over-broad audit #10, V2's ruling: NARROW to one epoch, 360 blocks x 12 s).
+#: A chain blip no longer pauses every grade at 60 s. Request authentication and admission keep `SNAPSHOT_MAX_AGE_S`;
+#: a crown decision waits for a FRESH snapshot (`operator_pause.hold_crowns_until_fresh`), so a deregistration inside
+#: the window is caught at the next fresh snapshot, before any crown; weights read the chain themselves. An engineering
+#: bound, not a scientific value.
+GRADING_SNAPSHOT_MAX_AGE_S = 360 * 12.0
 SOCKET_TIMEOUT_S = 10.0
 #: Engineering abuse limits, not scientific values (VALIDATOR-01 security
 #: review, finding 2):
@@ -505,13 +512,66 @@ class SnapshotWindow:
             return next((s for s in self._kept if s.snapshot_id == snapshot_id), None)
 
     def latest(self):
+        return self.latest_good(SNAPSHOT_MAX_AGE_S)
+
+    def latest_good(self, max_age_s):
+        """The newest snapshot if it is at most ``max_age_s`` old, else None (`latest` is this at the 60 s window)."""
         with self._lock:
             if not self._kept:
                 return None
             snapshot = self._kept[-1]
-        if self.clock() - snapshot.timestamp_ms / 1000 > SNAPSHOT_MAX_AGE_S:
+        if self.age_s(snapshot) > max_age_s:
             return None
         return snapshot
+
+    def age_s(self, snapshot):
+        """How many seconds old ``snapshot`` is on this window's clock."""
+        return self.clock() - snapshot.timestamp_ms / 1000
+
+
+#: The stale-but-within-epoch use this process is in (`grading_snapshot`): ``since`` is None while fresh.
+_STALE = {"uses": 0, "since": None}
+_STALE_LOCK = threading.Lock()
+
+
+def grading_snapshot(window, *, out=None):
+    """The snapshot ALREADY-admitted work reads (`GRADING_SNAPSHOT_MAX_AGE_S`), or None past it.
+
+    Inside the 60 s window this is exactly `latest`. Past it and up to one epoch it is the last good snapshot, with
+    ONE loud line when that starts (``chain_snapshot_stale_in_epoch``: its age in whole seconds) and one when it ends
+    (``chain_snapshot_fresh_again`` or ``chain_snapshot_stale_past_epoch``, with how many reads used the stale one):
+    counts only. A window without `latest_good` (a test double, a tool) answers `latest`, as before.
+    """
+    good = getattr(window, "latest_good", None)
+    if good is None:
+        return window.latest()
+    snapshot = good(GRADING_SNAPSHOT_MAX_AGE_S)
+    fresh = snapshot is not None and window.latest() is not None
+    with _STALE_LOCK:
+        if snapshot is not None and not fresh:
+            if _STALE["since"] is None:
+                _STALE["since"], _STALE["uses"] = time.monotonic(), 0
+                age = getattr(window, "age_s", None)
+                log(
+                    "chain_snapshot_stale_in_epoch",
+                    out=out,
+                    age_s=int(age(snapshot)) if callable(age) else None,
+                    max_age_s=int(GRADING_SNAPSHOT_MAX_AGE_S),
+                )
+            _STALE["uses"] += 1
+        elif _STALE["since"] is not None:
+            log(
+                (
+                    "chain_snapshot_fresh_again"
+                    if fresh
+                    else "chain_snapshot_stale_past_epoch"
+                ),
+                out=out,
+                uses=_STALE["uses"],
+                stale_s=int(time.monotonic() - _STALE["since"]),
+            )
+            _STALE["since"], _STALE["uses"] = None, 0
+    return snapshot
 
 
 class _Pinned:

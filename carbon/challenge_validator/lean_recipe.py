@@ -432,7 +432,10 @@ def _group_mates(adapter, hotkey, group):
     if window is None:
         return None
     try:
-        snapshot = window.latest()
+        from carbon.battery.intake import grading_snapshot
+
+        # the SAME snapshot bound as `allowance_groups.Grouping` (one epoch, over-broad audit #10): members and groups agree
+        snapshot = grading_snapshot(window)
         funder = getattr(grouping, "funder_map", None)
         current = funder() if callable(funder) else None
         participants = tuple(snapshot.participants)

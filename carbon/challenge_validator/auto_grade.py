@@ -304,14 +304,19 @@ class AutoGrader:
             return False
 
     def chain_degraded(self):
-        """Whether this door has no fresh chain snapshot now (the intake's window: ``latest()`` is None past its age
-        bound, on a conflict, or while unavailable). A grader without a window (tests, tools) is never degraded.
+        """Whether this door has no usable chain snapshot now: none within one epoch (`battery.intake.grading_snapshot`;
+        over-broad audit #10, V2's ruling), a conflict, or while unavailable. Between 60 s and one epoch grading goes
+        on with the last good snapshot (the provider's registration re-check reads the same one), while crowns wait for
+        a fresh one (`operator_pause.hold_crowns_until_fresh`). A grader without a window (tests, tools) is never
+        degraded.
         """
         window = getattr(self.intake, "window", None)
         if window is None:
             return False
         try:
-            return window.latest() is None
+            from carbon.battery.intake import grading_snapshot
+
+            return grading_snapshot(window) is None
         except Exception:  # noqa: BLE001
             # an unreadable window is a degraded chain: grade nothing until it reads
             return True

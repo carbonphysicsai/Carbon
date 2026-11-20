@@ -99,7 +99,11 @@ class Grouping:
                 self._since = now
 
     def __call__(self, hotkey):
-        snapshot = self.window.latest()
+        from carbon.battery.intake import grading_snapshot
+
+        # the last good snapshot up to one epoch (over-broad audit #10): a chain blip past 60 s no longer drops a
+        # funded hotkey into its own per-hotkey group (or a refusal); a hotkey's coldkey does not change inside it
+        snapshot = grading_snapshot(self.window)
         member = None if snapshot is None else snapshot.resolve(hotkey)
         if member is None:
             if self.policy["unresolved_hotkey"] == "refuse":

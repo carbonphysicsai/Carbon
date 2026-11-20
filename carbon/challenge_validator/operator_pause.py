@@ -55,8 +55,36 @@ def _paused() -> dict:
     return {CROWNS_PAUSED: True, WEIGHTS_PAUSED: True}
 
 
+#: () -> whether this process's chain snapshot is fresh (`hold_crowns_until_fresh`); None: no hold (tests, tools).
+_CHAIN_FRESH = None
+
+
+def hold_crowns_until_fresh(fresh):
+    """Hold every crown decision in this process while ``fresh()`` is False (over-broad audit #10, V2's ruling).
+
+    Grading goes on with the last good chain snapshot up to one epoch (`battery.intake.grading_snapshot`); a crown
+    change waits for a fresh one, so a deregistration inside that window is caught before any crown. A held crown is
+    filed exactly as a paused one (the operator's flag) and the sweep decides it, against the king of that moment, once
+    the snapshot is fresh. ``fresh`` raising is a stale chain. Returns the previous hold (None for none).
+    """
+    global _CHAIN_FRESH
+    previous, _CHAIN_FRESH = _CHAIN_FRESH, fresh
+    return previous
+
+
+def chain_stale() -> bool:
+    """Whether the process's chain hold (`hold_crowns_until_fresh`) withholds crowns now."""
+    fresh = _CHAIN_FRESH
+    if fresh is None:
+        return False
+    try:
+        return not fresh()
+    except Exception:  # noqa: BLE001 - an unreadable window is a stale one
+        return True
+
+
 def crowns_paused(state_dir) -> bool:
-    return read(state_dir)[CROWNS_PAUSED]
+    return read(state_dir)[CROWNS_PAUSED] or chain_stale()
 
 
 def weights_paused(state_dir) -> bool:

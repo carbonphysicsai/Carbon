@@ -924,6 +924,19 @@ class ReceiverSnapshotWindow:
                 return None
             return self._window.latest()
 
+    def latest_good(self, max_age_s):
+        """`latest` at another age bound (`battery.intake.grading_snapshot`: one epoch for already-admitted work). Still
+        None on a high-water conflict or while ``_unavailable`` (a fresher read whose watermark could not be made
+        durable: the older snapshot may predate a revocation, so it never grants work), whatever its age.
+        """
+        with self._lock:
+            if self._state is None or self._state["conflict"] or self._unavailable:
+                return None
+            return self._window.latest_good(max_age_s)
+
+    def age_s(self, snapshot):
+        return self._window.age_s(snapshot)
+
 
 #: How often a retain or regrade run reads a fresh finalized snapshot. The
 #: 60 s freshness window (`battery.intake.SNAPSHOT_MAX_AGE_S`) is part of the
@@ -2021,10 +2034,19 @@ class OwnerProviders:
 
     def _observed(self):
         """The finalized snapshot a registration is checked against, or None when there is NO usable one: none held, older
-        than the window's freshness, a durable high-water conflict, or another chain context. None means the registration is
-        UNKNOWN, which is not the same as a registration the chain shows to be revoked or recycled.
+        than one epoch (`battery.intake.grading_snapshot`), a durable high-water conflict, or another chain context. None
+        means the registration is UNKNOWN, which is not the same as a registration the chain shows to be revoked or recycled.
+
+        Over-broad audit #10 (V2: NARROW to one epoch): this re-check is for work ALREADY admitted (a request reached it
+        through the intake's 60 s authentication), so a chain blip past 60 s no longer refuses it; the window's durable
+        high-water means the last good snapshot is never older than an observation already made, and a deregistration
+        is caught at the next fresh snapshot, before any crown (`operator_pause.hold_crowns_until_fresh`).
         """
-        observed = self.window.latest() if self.window is not None else self.snapshot
+        from carbon.battery.intake import grading_snapshot
+
+        observed = (
+            grading_snapshot(self.window) if self.window is not None else self.snapshot
+        )
         if (
             observed is None
             or self.snapshot is None
@@ -3243,6 +3265,12 @@ def serve(
         bind_state(root, immutable)
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)
+        # Over-broad audit #10 (V2): grading goes on with the last good snapshot up to one epoch, but no crown in this
+        # process (a serving door or a retain/regrade one-shot) is decided until the window is fresh (60 s) again: a
+        # crown-changing decision files as paused and the sweep decides it once the snapshot is fresh.
+        from carbon.challenge_validator import operator_pause
+
+        operator_pause.hold_crowns_until_fresh(lambda: window.latest() is not None)
         providers = OwnerProviders(
             _private_directory(root / "owners"),
             discovery,
