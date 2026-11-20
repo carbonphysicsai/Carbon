@@ -132,6 +132,9 @@ class AutoGrader:
         self.artifacts = base / "artifacts"
         self.entries = base / "entries"
         self.markers = base / "markers"
+        #: EFFICIENCY_LEDGER row 6 (smallest slice): one empty file per task whose BUILD ended terminal without success
+        #: (`ENDED_STATES`), seen by the claim scan's own views (`_building_views`); `pending` skips them for good
+        self.ended = base / "ended"
         self.pool_store = pool_store
         self.failures = base / "failures"
         #: What this grader is doing right now, for the public queue view (`queue_view`): "king" during the king's
@@ -234,7 +237,8 @@ class AutoGrader:
         return True
 
     def pending(self):
-        """Task ids with no marker yet, in the ledger's order: oldest submission first (`AttemptLedger.submitted_outcomes`)."""
+        """Task ids with no marker yet and whose build has not ended without success (`ended`), in the ledger's order:
+        oldest submission first (`AttemptLedger.submitted_outcomes`)."""
         adapter = self.intake.adapter
         # one listing of the markers, not a stat per submission ever taken (it runs under the claim lock: design A)
         try:
@@ -246,6 +250,12 @@ class AutoGrader:
                 }
         except FileNotFoundError:
             marked = set()
+        # and one of the ended builds (EFFICIENCY_LEDGER row 6): a FAILED_INFRA / UNRESOLVED / REFUSED / CANCELLED
+        # build never gets a marker, so without this it stayed pending for ever (606 on live 116, 20 Nov 2026): every
+        # claim scan, every idle `has_work` and the host's waiting list (`oldest_pending_ns`) read it again
+        ended = getattr(self, "ended", None)
+        if ended is not None:
+            marked |= ended_tasks(ended)
         return [
             s
             for s in adapter.ledger.submitted_outcomes(adapter.contract_digest)
@@ -1017,6 +1027,7 @@ class AutoGrader:
         provider_for = getattr(adapter, "provider_for", None)
         opened = getattr(provider_for, "_providers", None)
         found = set()
+        ended = set()
         if type(opened) is dict:
             for provider in tuple(opened.values()):
                 views = getattr(provider, "_views", None)
@@ -1026,6 +1037,8 @@ class AutoGrader:
                     state = getattr(view, "state", None)
                     if state is not None and state is not succeeded:
                         found.add(task)
+                        if getattr(state, "value", None) in ENDED_STATES:
+                            ended.add(task)
         lazy = getattr(provider_for, "lazy_index", None)
         if callable(lazy):
             try:
@@ -1036,7 +1049,31 @@ class AutoGrader:
                 state = entry[0] if type(entry) in (tuple, list) and entry else None
                 if type(state) is str and state != succeeded.value:
                     found.add(task)
+                    if state in ENDED_STATES:
+                        ended.add(task)
+        self._note_ended(ended)
         return frozenset(found)
+
+    def _note_ended(self, tasks):
+        """Keep each newly seen ended build (`ENDED_STATES`) in `ended`, so `pending` skips it from now on. A
+        withdrawal still waiting for its marker is left to `_settle_withdrawn`. Never raises (a file not written is
+        read again next scan, as before)."""
+        directory = getattr(self, "ended", None)
+        if directory is None or not tasks:
+            return
+        known = self.__dict__.get("_ended_known")
+        if known is None:
+            known = self.__dict__.setdefault("_ended_known", ended_tasks(directory))
+        for task in tasks:
+            if (
+                task in known
+                or type(task) is not str
+                or not _TASK.fullmatch(task)
+                or self._withdrawn_pending(task)
+            ):
+                continue
+            if note_ended(directory, task):
+                known.add(task)
 
     def _hotkey_of(self, submission_id):
         """The hotkey whose open (or lazy) provider holds ``submission_id``, from the providers' own keys, never opening
@@ -1929,6 +1966,38 @@ def _candidate_wall_stop(error):
         and error.code is WorkerCode.DEADLINE
         and error.result.get("observation") == carrier.CANDIDATE_WALL_LIMIT
     )
+
+
+#: A build that ended in one of these task states never gets a grade (it has no state to grade) and never runs again
+#: under its id (a re-run is the NEXT generation, a new task id): terminal for the grader.
+ENDED_STATES = frozenset({"REFUSED", "FAILED_INFRA", "UNRESOLVED", "CANCELLED"})
+
+
+def ended_tasks(directory):
+    """The task ids kept in ``directory`` (`AutoGrader.ended`): one listing, empty when there is none."""
+    try:
+        with os.scandir(directory) as entries:
+            return {entry.name for entry in entries if _TASK.fullmatch(entry.name)}
+    except OSError:
+        return set()
+
+
+def note_ended(directory, task):
+    """Keep ``task`` as ended: an empty owner-only file named by its id (create-only; an existing one is kept). True
+    when it is there afterwards; never raises."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return False
+    try:
+        Path(directory).mkdir(mode=0o700, parents=True, exist_ok=True)
+        fd = os.open(
+            Path(directory) / task, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+        )
+        os.close(fd)
+        return True
+    except FileExistsError:
+        return True
+    except OSError:
+        return False
 
 
 def _code(value):
