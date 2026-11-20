@@ -90,7 +90,8 @@ def test_a_raising_reconsider_journals_once_counts_an_attempt_and_the_sweep_goes
 
     assert _tick(store, reconsider) == []
     assert asked == ["b", "c"]  # b keeps its place; c is asked and queues behind it
-    assert lines == [
+    # c's queued contention is journaled as every reconsider is (`koth_contention`); the failure line is b's alone
+    assert [line for line in lines if line[0] == "crown_sweep_reconsider_failed"] == [
         (
             "crown_sweep_reconsider_failed",
             {
@@ -147,7 +148,11 @@ def test_the_typed_alert_follows_after_three_attempts_and_names_the_records_behi
     assert alert["code"] == "crown_pause_blocked_by_undecided"  # c may wait behind b
     assert alert["attempts"] == sweep.ALERT_AFTER and alert["queued"] == ["c"]
     assert alert["last_code"] == "EXCEPTION:StateError:evaluation_source_changed"
-    assert len(lines) == sweep.ALERT_AFTER
+    failed = [line for line in lines if line[0] == "crown_sweep_reconsider_failed"]
+    assert len(failed) == sweep.ALERT_AFTER  # b's; c's lines are its queued contentions
+    assert [f["candidate"] for e, f in lines if e == "koth_contention"] == [
+        "c"
+    ] * sweep.ALERT_AFTER
 
 
 def test_an_exception_without_a_code_and_a_hostile_code_never_leak_text(world):
