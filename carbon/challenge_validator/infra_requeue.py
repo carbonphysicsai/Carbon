@@ -2186,6 +2186,66 @@ def return_slot(
     return out
 
 
+#: G-LEAD-10 row 1 (V2 part (1) (c)): build spots given back by a later Carbon-side ruling, one line per task.
+BUILD_SPOT_RETURNS = "build-spot-returns.jsonl"
+
+
+def return_build_spot(root, tasks, *, ruling, apply=False, clock=time.time_ns):
+    """``{"returned": [...], "refused": {task: code}}``: each listed task's recipe-side build spot
+    (`ExamCap.file_build_spent`, a build its own program was ruled to have failed) is given back when V2 rules the failure
+    Carbon-side after all (`ExamCap.return_build_spot`): the row stays as history, no limit counts it again, once per
+    task, logged in ``requeued/build-spot-returns.jsonl`` with the ruling id. No rebuild here (that is ``rebuild``'s,
+    under its own ruling). Dry run unless ``apply``."""
+    out = {
+        "schema": SCHEMA,
+        "action": "return-build-spot",
+        "apply": apply,
+        "ruling": ruling,
+        "returned": [],
+        "refused": {},
+    }
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": {"*": "ruling_id_required"}}
+    _ledger_unused, cap = _ledger(root)
+    for task in tasks:
+        if type(task) is not str or not _TASK.fullmatch(task):
+            out["refused"][task] = "not_a_task_id"
+            continue
+        spent = cap.build_spent(task)
+        if spent is None:
+            out["refused"][task] = "no_build_spot"
+            continue
+        if spent["returned"]:
+            out["refused"][task] = "already_returned"
+            continue
+        if apply:
+            from .exam_cap import ExamCapRefused
+
+            try:
+                prior = cap.return_build_spot(task)
+            except ExamCapRefused as refused:
+                out["refused"][task] = refused.code
+                continue
+            directory = Path(root) / "auto-grade" / "requeued"
+            directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with open(directory / BUILD_SPOT_RETURNS, "a", encoding="utf-8") as log:
+                log.write(
+                    json.dumps(
+                        {
+                            "task": task,
+                            "ruling": ruling,
+                            "code": prior["code"],
+                            "epoch": prior["epoch"],
+                            "at_ns": int(clock()),
+                        },
+                        sort_keys=True,
+                    )
+                    + "\n"
+                )
+        out["returned"].append(task)
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -2283,6 +2343,13 @@ def main(argv=None):
         help="the ids are builds that never graded: return their owed resubmits' slots",
     )
     nine.add_argument("--apply", action="store_true")
+    spot_parser = sub.add_parser("return-build-spot")
+    spot_parser.add_argument("--root", type=Path, required=True)
+    spot_parser.add_argument("--ids", type=Path, required=True, help="the task ids")
+    spot_parser.add_argument(
+        "--ruling", required=True, help="Validator-2's receipt id (a closed id)"
+    )
+    spot_parser.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -2368,6 +2435,11 @@ def main(argv=None):
             apply=args.apply,
             resubmits_of=args.resubmits_of,
         )
+    elif args.cmd == "return-build-spot":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = return_build_spot(args.root, tasks, ruling=args.ruling, apply=args.apply)
     elif args.cmd == "rebuild":
         tasks = [
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()

@@ -126,8 +126,9 @@ FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
 FEEDBACK_REPLY_SCHEMA_V9 = "carbon.private-exam.ladder-feedback-reply.v9"
 #: v10 (owner P0 20 Nov 2026 "better failure labels and explanations"; V2 FAILURE_LABELS_RULING_20261120 section 4) = v9
 #: plus ``submission.failure_class``: for the caller's own submission whose build ended FAILED_INFRA, the closed public row of
-#: its failure class (`infra_diagnosis.public_row`: code, what happened, side, charged, next step, retried or owed), else
-#: None. Never a host, path, id, traceback or log text. Opt-in (a kit pins v9's closed keys); advertised as
+#: its failure class (`infra_diagnosis.public_row`: code, what happened, side, charged, next step, retried or owed); for one
+#: whose build ended RECONSTRUCTION_FAILED on its own program with its daily spot used (G-LEAD-10 row 1), the recipe-side
+#: row (`infra_diagnosis.RECIPE_SPOT_ROW`, side yours, charged); else None. Never a host, path, id, traceback or log text. Opt-in (a kit pins v9's closed keys); advertised as
 #: ``exam_feedback_v10``.
 FEEDBACK_REPLY_SCHEMA_V10 = "carbon.private-exam.ladder-feedback-reply.v10"
 #: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
@@ -1002,6 +1003,10 @@ class DirectRecipeIntake(BatteryIntake):
         failure_class = None
         if v10 and submission_id is not None and grade_state == "FAILED_INFRA":
             failure_class = self._failure_class_row(submission_id)
+        elif (
+            v10 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED"
+        ):
+            failure_class = self._recipe_spot_row(submission_id)
         if v8 and submission_id is not None and failure is not None:
             # which pass a counted wall stop ended (the grade marker's closed name), else None
             marker = self.grade_marker(submission_id) or {}
@@ -1206,6 +1211,23 @@ class DirectRecipeIntake(BatteryIntake):
         if row is None or tuple(row) != infra_diagnosis.PUBLIC_ROW_KEYS:
             return None
         return row
+
+    def _recipe_spot_row(self, submission_id):
+        """G-LEAD-10 row 1: the closed recipe-side row (`infra_diagnosis.RECIPE_SPOT_ROW`: side yours, charged, spot
+        used) for the caller's own REFUSED build whose daily spot was filed and not returned
+        (`ExamCap.file_build_spent`), else None (a build that ended before the rule, a spot given back, unreadable).
+        """
+        from carbon.development_session import infra_diagnosis
+
+        from .exam_cap import ExamCap
+
+        try:
+            spent = ExamCap(self.adapter.ledger).build_spent(submission_id)
+        except Exception:  # noqa: BLE001
+            return None  # unreadable: no row, the state alone as before
+        if spent is None or spent["returned"]:
+            return None
+        return infra_diagnosis.recipe_spot_row()
 
     def grade_worker(self):
         """The PUBLIC facts of the machine that grades (exam_feedback v8): ``cpu_model`` (this host's own /proc/cpuinfo model

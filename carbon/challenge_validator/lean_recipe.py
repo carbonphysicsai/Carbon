@@ -186,6 +186,53 @@ def _build_retry_counts(directory, task, code):
     return root, len(chain), sum(1 for line in chain if line.get("code") == code)
 
 
+#: The task's refusal code when its build or build-pipeline inference child settled FAILED_MINER through
+#: `research_carrier._settle_miner_failure` (`research_tasks._run_queued_task`): the only REFUSED end that is the
+#: candidate's own program (a campaign limit, a refused graph or a capability gap carry other codes).
+RECIPE_FAILED_REFUSAL = "candidate_program_failed"
+#: G-LEAD-10 row 1's closed code: a build that ended on the candidate's own failure, its daily spot used.
+RECIPE_SPOT_CODE = "recipe_build_failed"
+
+
+def recipe_spot_code(provider, owner, task_id, task):
+    """`RECIPE_SPOT_CODE` when ``task_id``'s build (``task``, its task view as the provider returns it) ended on the
+    candidate's OWN structured failure, else None (read-only).
+
+    ALL must hold (V2 part (1) (a): only the existing structured recipe-side ends): the task is REFUSED with
+    `RECIPE_FAILED_REFUSAL`; its build or build-pipeline inference child settled FAILED_MINER (the carrier's
+    `_settle_miner_failure`: a program failure, WORKER_MEMORY_LIMIT_REACHED, or the build wall on a QUIET box: the
+    carrier types a busy box's wall Carbon's before any child settles, and a GPU-lane build's other failures end
+    FAILED_INFRA, never REFUSED); and it is NOT the door's CPU worker wall (`_cpu_wall_refusal`, Carbon's class
+    carbon_cpu_worker_wall). Anything unreadable: None.
+    """
+    try:
+        from carbon.development_session.bundle_construction_worker import (
+            direct_child_identity,
+        )
+        from carbon.research import DirectTaskStateV3
+
+        receipt = task.terminal_receipt
+        if (
+            task.state is not DirectTaskStateV3.REFUSED
+            or receipt is None
+            or receipt.refusal_code != RECIPE_FAILED_REFUSAL
+        ):
+            return None
+        if _cpu_wall_refusal(provider, owner, task_id):
+            return None
+        with provider.ledger.db() as db:
+            for phase in ("build", "inference"):
+                row = db.execute(
+                    "SELECT state FROM operations WHERE id=? AND owner=?",
+                    (direct_child_identity(task_id, phase), owner),
+                ).fetchone()
+                if row is not None and row[0] == "FAILED_MINER":
+                    return RECIPE_SPOT_CODE
+        return None
+    except Exception:  # noqa: BLE001 - unproven: never the candidate's
+        return None
+
+
 def _cpu_wall_refusal(provider, owner, task_id):
     """Whether ``task_id``'s build-pipeline INFERENCE child settled FAILED_MINER on the worker wall (the deadline code):
     a model too slow for the door's one-process CPU inference, which per-case processes now runs in workers (Live ops /
@@ -1527,6 +1574,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     return None
                 raise
             finally:
+                # G-LEAD-10 row 1: a build its own program failed uses the daily spot (never raises)
+                self._file_recipe_spot(owner, task_id, provider)
                 # Order 3: a build that ended on Carbon's infrastructure is queued again once, at its place
                 self._requeue_failed_build(owner, task_id, provider)
             return 1
@@ -1543,6 +1592,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 with _build_wall_guard(getattr(self, "owner_claims", None)):
                     provider.resume_task(task_id)
             finally:
+                self._file_recipe_spot(owner, task_id, provider)
                 self._requeue_failed_build(owner, task_id, provider)
             return 1
         return None
@@ -1619,6 +1669,46 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     )
         except Exception:  # noqa: BLE001, S110 - never fails the round
             pass
+
+    def _file_recipe_spot(self, owner, task_id, provider):
+        """G-LEAD-10 row 1 (owner 20 Nov 2026, RECIPE CRASHED: spot USED, typed reason, no rebuild; V2 part (1) spec
+        13:11Z): right after a build run ends at this door, file ONE daily-spot use (`ExamCap.file_build_spent`) when
+        the build ended on the candidate's OWN structured failure, and only then (`recipe_spot_code`). Prospective (a
+        build that ended before this code runs is never filed), idempotent, and it never raises: anything unreadable or
+        unproven files nothing (the spot stays the miner's). Returns the filed code or None.
+        """
+        try:
+            from carbon.research import DirectGetTaskRequestV3
+
+            task = provider.get_research_result(
+                DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
+            ).task
+            code = recipe_spot_code(provider, owner, task_id.value, task)
+            if code is None:
+                return None
+            from carbon.challenge_validator.exam_cap import (
+                ExamCap,
+                submission_block,
+            )
+
+            block = submission_block(self.ledger, self.contract_digest, task_id.value)
+            if block is None:
+                return None
+            filed = ExamCap(self.ledger).file_build_spent(
+                hotkey=owner,
+                challenge_id=self.challenge_id,
+                challenge_version=self.challenge_version,
+                submission_id=task_id.value,
+                block=block,
+                code=code,
+            )
+            if filed:
+                from carbon.challenge_validator.koth_journal import note
+
+                note("build_spot_used", task=task_id.value, code=code)
+            return code
+        except Exception:  # noqa: BLE001 - never stops a build round; nothing filed
+            return None
 
     def _requeue_failed_build(self, owner, task_id, provider, *, operator=None):
         """Order 3 (Lead 17 Nov 2026, handoff s3 item 5): a build whose task ended on Carbon's side (FAILED_INFRA, or

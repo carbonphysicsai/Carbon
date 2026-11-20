@@ -155,6 +155,18 @@ CREATE TABLE IF NOT EXISTS exam_requeues(
     queued_ns INTEGER NOT NULL,
     reserved_ns INTEGER
 );
+CREATE TABLE IF NOT EXISTS exam_build_spent(
+    submission_id TEXT PRIMARY KEY,
+    hotkey TEXT NOT NULL,
+    group_id TEXT,
+    challenge_id TEXT NOT NULL,
+    challenge_version TEXT NOT NULL,
+    epoch INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    filed_ns INTEGER NOT NULL,
+    returned_ns INTEGER
+);
+CREATE INDEX IF NOT EXISTS exam_build_spent_epoch ON exam_build_spent(challenge_id, epoch);
 CREATE TABLE IF NOT EXISTS exam_keys(
     challenge_id TEXT NOT NULL,
     challenge_version TEXT NOT NULL,
@@ -572,6 +584,19 @@ class ExamCap:
         in_epoch = db.execute(
             f"SELECT COUNT(*) FROM exam_graded WHERE {mine} AND "
             f"challenge_id=? AND epoch=? AND {held}",
+            (group, hotkey, challenge_id, epoch, submission_id),
+        ).fetchone()[0]
+        # G-LEAD-10 row 1 (RECIPE CRASHED, spot USED): a build its own program failed takes the slot a grade would
+        # have, in the day and in its round, from its own table (`file_build_spent`), never an exam_graded row
+        spent = "returned_ns IS NULL AND submission_id<>?"
+        used += db.execute(
+            f"SELECT COUNT(*) FROM exam_build_spent WHERE {mine} AND "
+            f"challenge_id=? AND epoch>? AND epoch<=? AND {spent}",
+            (group, hotkey, challenge_id, low, high, submission_id),
+        ).fetchone()[0]
+        in_epoch += db.execute(
+            f"SELECT COUNT(*) FROM exam_build_spent WHERE {mine} AND "
+            f"challenge_id=? AND epoch=? AND {spent}",
             (group, hotkey, challenge_id, epoch, submission_id),
         ).fetchone()[0]
         used += sum(1 for other in pending if low < other <= high)
@@ -1085,6 +1110,91 @@ class ExamCap:
                 (hotkey, challenge_id, challenge_version, exam_key, submission_id),
             ).fetchone()
         return row is not None
+
+    def file_build_spent(
+        self,
+        *,
+        hotkey: str,
+        challenge_id: str,
+        challenge_version: str,
+        submission_id: str,
+        block: int,
+        code: str,
+    ) -> bool:
+        """G-LEAD-10 row 1 (owner, 20 Nov 2026; V2 part (1) spec 13:11Z): a build that ended on the candidate's OWN
+        failure uses the daily spot. ONE row per task in its own table (``exam_build_spent``), never an exam_graded row:
+        no score, no exam row, nothing the copy rule, board, ladder or crown reads as a grade. It counts against the day
+        and the round of its submission's block (`_limit_refusal`), under the allowance group at filing (as `reserve`).
+        Idempotent: True when this call filed it, False when the task was filed already. Prospective only: the caller
+        files a build as it ends (`lean_recipe._file_recipe_spot`), never one that ended before.
+        """
+        if (
+            not all(
+                type(value) is str and value
+                for value in (
+                    hotkey,
+                    challenge_id,
+                    challenge_version,
+                    submission_id,
+                    code,
+                )
+            )
+            or len(code) > 96
+        ):
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        epoch = epoch_of(block)
+        try:
+            group = group_of(hotkey)
+        except ExamCapRefused:
+            group = None  # unmapped now: its own hotkey's row (`_limit_refusal` counts a hotkey's own rows)
+        with self.ledger._db() as db:
+            return (
+                db.execute(
+                    "INSERT OR IGNORE INTO exam_build_spent(submission_id, hotkey, group_id, challenge_id, "
+                    "challenge_version, epoch, code, filed_ns) VALUES(?,?,?,?,?,?,?,?)",
+                    (
+                        submission_id,
+                        hotkey,
+                        group,
+                        challenge_id,
+                        challenge_version,
+                        epoch,
+                        code,
+                        int(self.clock()),
+                    ),
+                ).rowcount
+                == 1
+            )
+
+    def build_spent(self, submission_id: str):
+        """``{"code", "epoch", "returned"}`` of a task's recipe-side build spot (`file_build_spent`), or None."""
+        with read_snapshot(self.ledger) as db:
+            row = db.execute(
+                "SELECT code, epoch, returned_ns FROM exam_build_spent WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {"code": row[0], "epoch": row[1], "returned": row[2] is not None}
+
+    def return_build_spot(self, submission_id: str) -> dict:
+        """Give back a recipe-side build spot that a later ruling reclassified Carbon-side (V2 part (1) (c)): the row
+        stays as history with its ``returned_ns``; no limit counts it again. Refuses ``build_spot_return_no_row`` when
+        the task has no unreturned spot. Returns the row as it was."""
+        if type(submission_id) is not str or not submission_id:
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT hotkey, epoch, code FROM exam_build_spent WHERE submission_id=? AND returned_ns IS NULL",
+                (submission_id,),
+            ).fetchone()
+            if row is None:
+                raise ExamCapRefused("build_spot_return_no_row")
+            db.execute(
+                "UPDATE exam_build_spent SET returned_ns=? WHERE submission_id=? AND returned_ns IS NULL",
+                (int(self.clock()), submission_id),
+            )
+        return dict(zip(("hotkey", "epoch", "code"), row))
 
     def count(
         self, *, hotkey, challenge_id, challenge_version=None, exam_key=None

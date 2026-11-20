@@ -259,6 +259,25 @@ PUBLIC_ROW_KEYS = (
 )
 
 
+#: G-LEAD-10 row 1, RECIPE CRASHED at the build (V2 REV 2 s5: the closed code, the plain line, "your spot was used"): the
+#: one recipe-side public row, served for a REFUSED build whose daily spot was filed (`lean_recipe.RECIPE_SPOT_CODE`).
+#: Not a FAILED_INFRA class (never in `CLASSES` or the miner error table's Carbon rows): the build's own failure code,
+#: observation and public limit stay in the reply's ``failure`` as today.
+RECIPE_SPOT_ROW = {
+    "code": "recipe_build_failed",
+    "what_happened": "Your recipe's own program failed during its build (its failure code and observation are above).",
+    "side": "yours",
+    "charged": True,
+    "next_step": "Fix the recipe and resubmit. Your spot was used: this attempt counts as one of your daily graded exams.",
+    "retried_or_owed": "not rebuilt",
+}
+
+
+def recipe_spot_row():
+    """A copy of `RECIPE_SPOT_ROW` (the closed `PUBLIC_ROW_KEYS`, in order)."""
+    return {key: RECIPE_SPOT_ROW[key] for key in PUBLIC_ROW_KEYS}
+
+
 def public_row(failure_class):
     """The closed public row of ``failure_class`` (`PUBLIC_ROW_KEYS`), or None for a name not in `CLASSES`."""
     if failure_class not in FAILURE_TABLE:
