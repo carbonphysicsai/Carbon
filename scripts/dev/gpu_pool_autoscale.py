@@ -30,9 +30,11 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    its admission. A box file put back with an old admission time therefore does not start out idle (carbon-a100 was
    released 18 Nov 2026 13:51Z, 6 min after a rollback restored its file, with builds queued). The LAST box is never
    drained or released while builds wait: a draining last box gets its file back (``undrain``) when a tick sees
-   ``waiting_to_build > 0`` (Lead, 18 Nov 2026). The one exception is the daily cap: once today's spend reaches
-   ``max_usd_per_day`` every box of this tool drains and is released, nothing is rented until 00:00Z, and a page
-   goes out if builds wait.
+   ``waiting_to_build > 0`` (Lead, 18 Nov 2026). The one exception is the daily cap (`over_day_budget`): the
+   OLDEST box of this tool is reserved the rest of the UTC day, and a newer box drains (``day_budget``), newest
+   first, once today's spend plus that reserve leaves it less than `DAY_MARGIN_H` of running; a rent needs
+   `RENT_MIN_H` of room after the same reserve. Only when today's spend itself reaches ``max_usd_per_day`` does every
+   box drain (``day_cap``): nothing is rented until 00:00Z, and a page goes out if builds wait.
 
 Pages are ALERT lines in the door's pager outbox (``page_outbox``; the pager dedupes and sends them): a failed
 bring-up, a failed release, the daily cap reached while builds wait. They name boxes, counts and USD only.
@@ -85,6 +87,12 @@ KEEP_SAMPLES = 24
 BRING_UP_LIMIT_S = 45 * 60
 #: After a failed bring-up, no new rent for this long.
 FAIL_BACKOFF_S = 30 * 60
+#: The daily cap keeps the oldest box (owner INFRA-3, 20 Nov 2026: USD 65/day, up to 2 A100s). Draining every box at
+#: the cap meant a 2nd A100 run from the morning (2 x USD 1.99/h) took the 1st down with it at ~16:20Z, leaving no
+#: build box until 00:00Z. A newer box keeps at least DAY_MARGIN_H of budget for its drain (running builds finish:
+#: A100 p90 353 s, plus a 5-min tick), and a rent needs RENT_MIN_H of room (~25 min cold start, then builds).
+DAY_MARGIN_H = 0.5
+RENT_MIN_H = 1.0
 LAMBDA_API = "https://cloud.lambdalabs.com/api/v1"
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 #: ``tick --dry-run``: no rent, drain, release, state write or log-file line (printed only, marked ``dry``).
@@ -293,6 +301,41 @@ def spent_today(state, now) -> float:
     """USD this tool's boxes cost today: the released ones (``state["spent"]``) and the ones it holds now."""
     closed = state.get("spent", {}).get(_day(now), 0.0)
     return closed + sum(_cost_today(r, now) for r in state["boxes"].values())
+
+
+def _rest_of_day_h(now) -> float:
+    return (86400 - now % 86400) / 3600
+
+
+def _kept(state):
+    """This tool's boxes that run on (being brought up or ACTIVE), oldest launch or adoption first."""
+    return sorted(
+        (record["launched"], name, record["price_usd_h"])
+        for name, record in state["boxes"].items()
+        if record["phase"] in ("UP", "ACTIVE")
+    )
+
+
+def day_reserve(state, now) -> float:
+    """USD the boxes this tool runs on would cost to the end of the UTC day."""
+    return _rest_of_day_h(now) * sum(price for _, _, price in _kept(state))
+
+
+def over_day_budget(state, now, config) -> set:
+    """Boxes to drain for the daily cap. At ``max_usd_per_day`` every one; below it, newest first, each newer box
+    whose running leaves under `DAY_MARGIN_H` once today's spend and the rest of the day of every older box are paid.
+    The oldest box drains only at the cap itself."""
+    spent = spent_today(state, now)
+    kept = _kept(state)
+    if spent >= config.max_usd_per_day:
+        return {name for _, name, _ in kept}
+    over, reserve = set(), _rest_of_day_h(now) * kept[0][2] if kept else 0.0
+    for _, name, price in kept[1:]:
+        if spent + reserve + DAY_MARGIN_H * price > config.max_usd_per_day:
+            over.add(name)
+        else:
+            reserve += _rest_of_day_h(now) * price
+    return over
 
 
 def _close_cost(state, record, now):
@@ -818,6 +861,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
 
     spent = spent_today(state, now)
     at_day_cap = spent >= config.max_usd_per_day
+    over = over_day_budget(state, now, config)
     if at_day_cap and waiting:
         page(
             config,
@@ -838,8 +882,8 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
             if record["phase"] == "ACTIVE" and entry is not None and entry.get("file"):
                 idle = idle_for(entry, now, record)
                 why = (
-                    "day_cap"
-                    if at_day_cap
+                    ("day_cap" if at_day_cap else "day_budget")
+                    if name in over
                     else (
                         "idle"
                         if idle > config.idle_release_s
@@ -864,6 +908,7 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 record["phase"] == "DRAINING"
                 and waiting > 0
                 and not at_day_cap
+                and name not in over
                 and not any(
                     e.get("file") for other, e in boxes.items() if other != name
                 )
@@ -935,14 +980,18 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                 rule=why,
                 instances=len(instances),
             )
-        elif spent + offer[0] / 2 > config.max_usd_per_day:
-            # a new box costs at least its ~25 min bring-up and the first builds
+        elif (
+            spent + day_reserve(state, now) + offer[0] * RENT_MIN_H
+            > config.max_usd_per_day
+        ):
+            # the boxes up keep running to 00:00Z; a new one needs its bring-up and some builds on top
             log(
                 config,
                 action="at_day_cap",
                 waiting=waiting,
                 rule=why,
                 spent_usd=round(spent, 2),
+                reserve_usd=round(day_reserve(state, now), 2),
             )
         elif DRY[0]:
             log(
@@ -994,6 +1043,8 @@ def tick(config, *, client=None, door=None, now=None, spawn=None):
                     "idle_box_up": idle_box,
                     "spent_today_usd": round(spent, 2),
                     "max_usd_per_day": config.max_usd_per_day,
+                    "day_reserve_usd": round(day_reserve(state, now), 2),
+                    "over_day_budget": sorted(over),
                     "backoff_until": state.get("backoff_until", 0),
                     "door_boxes": boxes,
                     "ours": ours,

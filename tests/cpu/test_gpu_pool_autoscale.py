@@ -722,6 +722,121 @@ def test_the_daily_cap_drains_releases_pages_once_and_rents_nothing(
     assert len(client.launched) == 1
 
 
+def _two_boxes(tmp_path, monkeypatch, day_cap):
+    """carbon-a100 adopted at 00:00Z and a 2nd box of this tool ACTIVE from 06:00Z, both busy, builds waiting."""
+    day0 = T0 - T0 % 86400
+    config = _config(tmp_path, max_usd_per_day=day_cap, max_boxes=2)
+    second = dict(A100, id="i-b", name="carbon-pool-b", ip="203.0.113.22")
+    client = _Client([A100, second])
+    busy = {"file": True, "busy": True, "last": day0, "admitted": day0}
+    scale.adopt(
+        config,
+        "carbon-a100",
+        A100["ip"],
+        client=client,
+        door=lambda c: (0, {"carbon-a100": busy}, 0),
+        now=day0,
+    )
+    state = scale.load_state(config)
+    state["boxes"]["carbon-pool-b"] = {
+        "id": "i-b",
+        "launched": day0 + 6 * 3600,
+        "price_usd_h": PRICE,
+        "phase": "ACTIVE",
+    }
+    scale.save_state(config, state)
+    calls = []
+    monkeypatch.setattr(scale, "_door", _recording_door(calls))
+    both = {"carbon-a100": busy, "carbon-pool-b": dict(busy)}
+    return config, client, calls, both, day0
+
+
+def test_the_daily_cap_drains_the_newest_box_and_keeps_the_oldest_all_day(
+    tmp_path, monkeypatch
+):
+    """Owner INFRA-3 (20 Nov 2026, USD 65/day, up to 2 A100s): the 2nd box runs while today's spend plus carbon-a100's
+    rest of the day leaves it DAY_MARGIN_H; then only it drains (no page). carbon-a100 builds to 00:00Z inside the cap,
+    and the backlog rents no new box that day.
+    """
+    config, client, calls, both, day0 = _two_boxes(tmp_path, monkeypatch, 65.0)
+    # at 14:00Z: spent 14 h + 8 h = 43.78, carbon-a100 to 00:00Z 19.90, + 0.5 h of the 2nd = 64.67 <= 65: kept
+    _ticks(config, client, 30, boxes=both, start=day0 + 14 * 3600, count=1)
+    assert calls == []
+    # at 14:30Z: spent 14.5 h + 8.5 h = 45.77, carbon-a100 to 00:00Z 18.91, + 0.5 h of the 2nd = 65.67 > 65: drains
+    late = day0 + 14 * 3600 + 1800
+    state = scale.load_state(config)
+    assert scale.over_day_budget(state, late, config) == {"carbon-pool-b"}
+    _ticks(config, client, 30, boxes=both, start=late, count=1)
+    moves = [a for a, _ in calls if a[0] == "mv"]
+    assert len(moves) == 1 and moves[0][-1].endswith("carbon-pool-b.json.drained")
+    assert not [a for a, _ in calls if a[0] == "sh"]  # no page: the cap is not reached
+    gone = {
+        "carbon-a100": both["carbon-a100"],
+        "carbon-pool-b": dict(both["carbon-pool-b"], file=False, busy=False),
+    }
+    _ticks(config, client, 30, boxes=gone, start=late + 300, count=1)
+    assert client.terminated == ["i-b"]
+    release = next(e for e in _log(config) if e["action"] == "release")
+    assert release["why"] == "day_budget"
+    # carbon-a100 alone to 00:00Z stays inside the cap: never drained, and no new box is rented that day
+    only = {"carbon-a100": both["carbon-a100"]}
+    _ticks(config, client, 30, boxes=only, start=late + 600, count=4)
+    _ticks(config, client, 30, boxes=only, start=day0 + 86400 - 400, count=1)
+    assert client.launched == [] and client.terminated == ["i-b"]
+    assert [a for a, _ in calls if a[0] == "mv"] == moves
+    assert scale.load_state(config)["boxes"]["carbon-a100"]["phase"] == "ACTIVE"
+    assert any(e["action"] == "at_day_cap" for e in _log(config))
+    assert scale.spent_today(scale.load_state(config), day0 + 86400 - 1) <= 65.0
+
+
+def test_the_day_reserve_lets_a_second_box_rent_only_where_the_cap_holds_both(
+    tmp_path, monkeypatch
+):
+    """With carbon-a100 up all day (USD 47.76), a USD 48 cap rents no 2nd box; USD 65 rents one."""
+    day0 = T0 - T0 % 86400
+    for cap, rents in ((48.0, 0), (65.0, 1)):
+        (tmp_path / str(cap)).mkdir()
+        config = _config(tmp_path / str(cap), max_usd_per_day=cap, max_boxes=2)
+        client = _Client([A100])
+        busy = {"file": True, "busy": True, "last": day0, "admitted": day0}
+        scale.adopt(
+            config,
+            "carbon-a100",
+            A100["ip"],
+            client=client,
+            door=lambda c, busy=busy: (0, {"carbon-a100": busy}, 0),
+            now=day0,
+        )
+        monkeypatch.setattr(scale, "_door", _recording_door([]))
+        _ticks(
+            config, client, 30, boxes={"carbon-a100": busy}, start=day0 + 3600, count=3
+        )
+        assert len(client.launched) == rents
+        assert any(e["action"] == "at_day_cap" for e in _log(config)) == (not rents)
+
+
+def test_over_day_budget_keeps_the_oldest_below_the_cap_and_drains_all_at_it(tmp_path):
+    config = _config(tmp_path, max_usd_per_day=65.0, max_boxes=2)
+    day0 = T0 - T0 % 86400
+    state = {
+        "boxes": {
+            "old": {"launched": day0, "price_usd_h": PRICE, "phase": "ACTIVE"},
+            "new": {"launched": day0 + 3600, "price_usd_h": PRICE, "phase": "ACTIVE"},
+            "gone": {
+                "launched": day0 + 12 * 3600,
+                "price_usd_h": PRICE,
+                "phase": "DRAINING",
+            },
+        },
+        "spent": {},
+    }
+    assert scale.over_day_budget(state, day0 + 3600, config) == set()
+    # 12:00Z: spent 12 h + 11 h = 45.77 < 65, but "old" to 00:00Z (23.88) leaves "new" no half hour
+    assert scale.over_day_budget(state, day0 + 12 * 3600, config) == {"new"}
+    state["spent"][scale._day(day0)] = 65.0
+    assert scale.over_day_budget(state, day0 + 3600, config) == {"old", "new"}
+
+
 def test_a_failed_bring_up_pages(tmp_path, monkeypatch):
     config = _config(tmp_path, page_outbox="ops-watch/outbox.jsonl")
     client = _Client()
