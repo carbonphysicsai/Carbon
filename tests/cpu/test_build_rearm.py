@@ -366,15 +366,52 @@ def test_the_operator_may_request_an_owed_build_the_doors_own_rerun_refused(tmp_
         {"task": operator, "ruling": "V2-X", "new_task": None, "code": "not_rebuilt"},
     )
     dry = infra_requeue.rebuild(root, [owed, rebuilt, operator], ruling="V2-OWED-9D6D")
-    assert dry["requested"] == [owed]
-    assert dry["refused"] == {
-        rebuilt: "already_requested",
-        operator: "already_requested",
-    }
+    # an applied not_rebuilt (the door's or an operator's) under another ruling may be asked again; a rebuild never
+    assert dry["requested"] == [owed, operator]
+    assert dry["refused"] == {rebuilt: "already_requested"}
     infra_requeue.rebuild(root, [owed], ruling="V2-OWED-9D6D", apply=True)
-    # once per task
+    # while that request is pending, no other ruling may ask again
     again = infra_requeue.rebuild(root, [owed], ruling="V2-OWED-9D6D-B", apply=True)
     assert again["refused"] == {owed: "already_requested"}
+
+
+def test_an_owed_request_the_door_refused_may_be_asked_again_only_under_a_new_ruling(
+    tmp_path,
+):
+    """live 116, 20 Nov 2026: rtsk_68452288 / rtsk_b1d3a797 were requested under V2-OWED-CAP-20261120 and refused
+    cap_spent (owed runs skipped the caps only from f7cdaeb9): a NEW ruling id may ask once more; the same may not.
+    """
+    from test_infra_requeue import _arrived, _root
+
+    from carbon.challenge_validator import infra_requeue
+
+    root, attempts = _root(tmp_path)
+    task = "rtsk_" + "8" * 64
+    _arrived(attempts, task)
+    first = "V2-OWED-CAP-20261120"
+    assert infra_requeue.rebuild(root, [task], ruling=first, apply=True)[
+        "requested"
+    ] == [task]
+    directory = root / "auto-grade" / "requeued"
+    _applied(
+        directory,
+        {"task": task, "ruling": first, "new_task": None, "code": "not_rebuilt"},
+    )
+    assert infra_requeue.rebuild(root, [task], ruling=first)["refused"] == {
+        task: "already_requested"
+    }
+    second = "V2-OWED-CAP-20261120-R2"
+    assert infra_requeue.rebuild(root, [task], ruling=second, apply=True)[
+        "requested"
+    ] == [task]
+    # once the door rebuilt it, no ruling asks again
+    _applied(
+        directory,
+        {"task": task, "ruling": second, "new_task": "rtsk_" + "9" * 64, "code": None},
+    )
+    assert infra_requeue.rebuild(root, [task], ruling="V2-OWED-CAP-R3")["refused"] == {
+        task: "already_requested"
+    }
 
 
 def test_the_door_applies_an_owed_request_after_its_own_refused_rerun_outside_the_caps(

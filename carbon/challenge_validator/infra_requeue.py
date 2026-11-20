@@ -1993,19 +1993,26 @@ def rebuild(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     if type(ruling) is not str or not _RULING.fullmatch(ruling):
         return {**out, "refused": {"*": "ruling_id_required"}}
     ledger, _cap = _ledger(root)
-    asked = {line["task"] for line in _log_lines_all(root, REBUILD_REQUESTS)}
-    # every applied line counts as asked except the door's OWN stop-cancel re-run that was refused (``not_rebuilt``, no
-    # new task): an owed task whose only record is that is still the operator's to request once, under a V2 ruling
-    # (live 116, 20 Nov 2026: rtsk_9d6de7ea, V2-OWED-9D6D-20261120)
-    asked |= {
+    # A task may be requested again only under a NEW ruling id, and only when every earlier request of it was applied and
+    # the door rebuilt nothing (``not_rebuilt``, no new task: e.g. refused cap_spent before owed runs skipped the caps;
+    # live 116, 20 Nov 2026: rtsk_68452288 / rtsk_b1d3a797, V2-OWED-CAP). Refused (``already_requested``): a request
+    # still pending, the same ruling again, or a task the door already rebuilt (any line with a new task). The door's
+    # own refused stop-cancel re-run counts as an applied not_rebuilt line (rtsk_9d6de7ea, V2-OWED-9D6D).
+    requests = _log_lines_all(root, REBUILD_REQUESTS)
+    applied = _log_lines_all(root, REBUILD_APPLIED)
+    rebuilt = {line["task"] for line in applied if line.get("new_task")}
+    done = {(line["task"], line.get("ruling")) for line in applied}
+    pending = {
         line["task"]
-        for line in _log_lines_all(root, REBUILD_APPLIED)
-        if not (
-            line.get("ruling") == STOP_CANCEL_RULING
-            and line.get("new_task") is None
-            and line.get("code") is not None
-        )
+        for line in requests
+        if (line["task"], line.get("ruling")) not in done
     }
+    same = {(line["task"], line.get("ruling")) for line in requests} | {
+        (line["task"], line.get("ruling"))
+        for line in applied
+        if line.get("ruling") != STOP_CANCEL_RULING
+    }
+    asked = rebuilt | pending | {task for task, used in same if used == ruling}
     for task in tasks:
         if type(task) is not str or not _TASK.fullmatch(task):
             out["refused"][task] = "not_a_task_id"
