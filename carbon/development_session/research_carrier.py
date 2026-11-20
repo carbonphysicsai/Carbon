@@ -2858,8 +2858,8 @@ def _run_locked(
         and not admission["dispatch"]
         and admission["state"] == "RESERVED"
     )
-    if not admission["dispatch"] and not adopting:
-        if admission["state"] == "RESERVED":
+    if not admission["dispatch"]:
+        if admission["state"] == "RESERVED" and not adopting:
             raise ValueError("research operation ambiguous; reconcile, never duplicate")
         if admission["state"] == "FAILED_MINER":
             # A replay reports the same typed outcome, never a success, and says that it IS a replay: the worker did not
@@ -2876,7 +2876,8 @@ def _run_locked(
             replay = WorkerFailure(WorkerCode.UNAVAILABLE)
             replay.replayed = True
             raise replay
-        return admission["result"]
+        if not adopting:
+            return admission["result"]
     started = time.monotonic()
     started_unix = time.time()
     recorded_deadline = None

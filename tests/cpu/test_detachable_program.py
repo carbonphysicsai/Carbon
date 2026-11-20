@@ -39,7 +39,10 @@ def _boot(program):
 
 def _bare(boot):
     return subprocess.run(
-        [sys.executable, "-I", "-c", boot], capture_output=True, timeout=60
+        [sys.executable, "-I", "-c", boot],
+        capture_output=True,
+        timeout=60,
+        check=False,
     )
 
 
@@ -48,6 +51,7 @@ def _front(boot, run, caps=(CAP, CAP)):
         [sys.executable, "-I", "-c", DETACHABLE_FRONT, boot, str(run), *map(str, caps)],
         capture_output=True,
         timeout=60,
+        check=False,
     )
 
 

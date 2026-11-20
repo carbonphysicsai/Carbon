@@ -54,6 +54,7 @@ def _wait(run):
         [sys.executable, "-I", "-c", carrier.DETACHABLE_WAIT, str(run)],
         capture_output=True,
         timeout=60,
+        check=False,
     )
 
 
