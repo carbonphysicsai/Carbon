@@ -39,7 +39,8 @@ from pathlib import Path
 
 def _x64(doc, inputs, parameters, output_dtype=None):
     """The inference program's x64 rule: a 64-bit dtype named in the graph, else `requires_x64` of the inputs, the served
-    output dtype (the inputs' own when none is served) and the parameters (a v2 ensemble's FIRST member's, as live)."""
+    output dtype (the inputs' own when none is served) and the parameters (a v2 ensemble's FIRST member's, as live).
+    """
     import numpy as np
 
     from carbon.development_session.construction_tensor_codec import requires_x64
@@ -110,9 +111,7 @@ def _graded(blocks, decoder=None):
     return result
 
 
-def count(
-    state_bytes, recipe_bytes, allowlist_bytes, control_bytes, inputs, rows=None
-):
+def count(state_bytes, recipe_bytes, allowlist_bytes, control_bytes, inputs, rows=None):
     """``{mode: rows with a non-finite output}``, the contract's shape/dtype parts and the run's public facts."""
     import numpy as np
 
@@ -136,7 +135,9 @@ def count(
         )
         ensemble = (members, combine)
         decoder = (mu, sd)
-        parameters = list(members[0])  # live: the x64 rule and the binding read the first member
+        parameters = list(
+            members[0]
+        )  # live: the x64 rule and the binding read the first member
     except RecipeRefused:
         doc, parameters = bundle_graph_state.load(state_bytes, recipe, allowed)
         decoder = None

@@ -36,7 +36,9 @@ def test_the_x64_rule_follows_the_inference_program():
 def test_the_x64_rule_reads_the_inputs_own_dtype_when_none_is_served():
     doc = {"graphs": {"main": {"inputs": [{"dtype": "float32"}]}}}
     small = np.zeros(2, dtype=np.float32)
-    assert tool._x64(doc, np.zeros(2), [small]) is True  # float64 inputs, no served dtype
+    assert (
+        tool._x64(doc, np.zeros(2), [small]) is True
+    )  # float64 inputs, no served dtype
     assert tool._x64(doc, small, [small], None) is False
 
 
