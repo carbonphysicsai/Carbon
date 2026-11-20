@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import os
 import shutil
@@ -1293,133 +1292,9 @@ def _unique_pairs(
     return result
 
 
-#: The framing of a decoded output stream: its header, member and end lines without the member bodies (which are the
-#: decoded snapshot's own files). With the snapshot it rebuilds the stream byte for byte (`reassembled_output_stream`).
-OUTPUT_FRAMES = "export.frames"
-
-
-def _snapshot_member(snapshot: Path, member: dict[str, object]) -> Path:
-    path = snapshot.joinpath(*_safe_relative(member["path"]).parts)
-    found = os.lstat(path)
-    if not stat.S_ISREG(found.st_mode) or found.st_size != member["size"]:
-        raise WorkerFailure(WorkerCode.OUTPUT)
-    return path
-
-
-def reassembled_output_stream(frames: Path, snapshot: Path):
-    """The decoded stream's bytes again, in blocks, from its framing (`OUTPUT_FRAMES`) and its snapshot: each member
-    line is followed by the snapshot file it names, which must have the member's size. Raises `WorkerFailure` when the
-    framing or a file does not fit."""
-    with frames.open("rb") as lines:
-        header = lines.readline(2049)
-        _closed_json_line(_one_line(header), _STREAM_HEADER_FIELDS)
-        yield header
-        while True:
-            line = lines.readline(2049)
-            record = _json_line(_one_line(line))
-            yield line
-            if set(record) == _STREAM_END_FIELDS:
-                if lines.read(1) != b"":
-                    raise WorkerFailure(WorkerCode.OUTPUT)
-                return
-            if set(record) != _STREAM_MEMBER_FIELDS or type(record["size"]) is not int:
-                raise WorkerFailure(WorkerCode.OUTPUT)
-            path = _snapshot_member(snapshot, record)
-            with path.open("rb") as body:
-                remaining = record["size"]
-                while remaining:
-                    block = body.read(min(1 << 20, remaining))
-                    if not block:
-                        raise WorkerFailure(WorkerCode.OUTPUT)
-                    remaining -= len(block)
-                    yield block
-                if body.read(1) != b"":
-                    raise WorkerFailure(WorkerCode.OUTPUT)
-
-
-def _one_line(line: bytes):
-    return io.BytesIO(line)
-
-
-def compact_output_stream(
-    source: Path, snapshot: Path, *, expected: str | None = None
-) -> bool:
-    """Store a decoded output stream once (owner rule #13): its member bodies are the snapshot's own files, so only its
-    framing is kept (`OUTPUT_FRAMES` beside it) and the stream is removed, after the framing and the snapshot are shown
-    to rebuild it byte for byte (the same SHA-256, so a recorded ``output_digest`` stays checkable). True when compacted;
-    False (the stream kept as it is, nothing else changed) for anything that does not fit: a link, a framing file
-    already there, a body that differs from its snapshot file, a stream that does not parse, or (``expected``, a
-    recorded ``"sha256:<hex>"`` output digest) a stream whose own SHA-256 is not that digest.
-    """
-    frames = source.parent / OUTPUT_FRAMES
-    staged = None
-    try:
-        if source.is_symlink() or not source.is_file() or os.path.lexists(frames):
-            return False
-        whole = hashlib.sha256()
-        kept = []
-        with source.open("rb") as stream:
-            header = stream.readline(2049)
-            _closed_json_line(_one_line(header), _STREAM_HEADER_FIELDS)
-            whole.update(header)
-            kept.append(header)
-            while True:
-                line = stream.readline(2049)
-                record = _json_line(_one_line(line))
-                whole.update(line)
-                kept.append(line)
-                if set(record) == _STREAM_END_FIELDS:
-                    if stream.read(1) != b"":
-                        return False
-                    break
-                if (
-                    set(record) != _STREAM_MEMBER_FIELDS
-                    or type(record["size"]) is not int
-                ):
-                    return False
-                path = _snapshot_member(snapshot, record)
-                with path.open("rb") as body:
-                    remaining = record["size"]
-                    while remaining:
-                        block = stream.read(min(1 << 20, remaining))
-                        if not block or body.read(len(block)) != block:
-                            return False
-                        whole.update(block)
-                        remaining -= len(block)
-        descriptor, staged = tempfile.mkstemp(
-            prefix=f".{OUTPUT_FRAMES}.", dir=source.parent
-        )
-        with os.fdopen(descriptor, "wb") as output:
-            output.write(b"".join(kept))
-            output.flush()
-            os.fsync(output.fileno())
-        rebuilt = hashlib.sha256()
-        for block in reassembled_output_stream(Path(staged), snapshot):
-            rebuilt.update(block)
-        if rebuilt.digest() != whole.digest() or (
-            expected is not None and expected != "sha256:" + whole.hexdigest()
-        ):
-            return False
-        os.chmod(staged, stat.S_IMODE(os.lstat(source).st_mode) & 0o700)
-        os.link(staged, frames)
-        os.unlink(source)
-        return True
-    except (OSError, WorkerFailure):
-        return False
-    finally:
-        if staged is not None:
-            try:
-                os.unlink(staged)
-            except OSError:
-                pass
-
-
 __all__ = [
-    "OUTPUT_FRAMES",
-    "compact_output_stream",
     "decode_output_stream",
     "load_worker_request",
-    "reassembled_output_stream",
     "run_staged_worker",
     "snapshot_output",
     "stage_request",

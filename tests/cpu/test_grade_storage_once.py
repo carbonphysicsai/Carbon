@@ -15,12 +15,12 @@ import pytest
 from carbon.challenge_validator import grade_archive
 from carbon.development_session import data
 from carbon.development_session import research_carrier as carrier
-from carbon.reconstruction.worker.protocol import (
+from carbon.development_session.research_carrier import (
     OUTPUT_FRAMES,
     compact_output_stream,
-    decode_output_stream,
     reassembled_output_stream,
 )
+from carbon.reconstruction.worker.protocol import decode_output_stream
 
 pytestmark = pytest.mark.skipif(
     sys.platform == "win32", reason="POSIX links, modes and uids"

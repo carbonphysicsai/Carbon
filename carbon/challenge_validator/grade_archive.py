@@ -17,7 +17,7 @@ mounted on the host; the age an owner/sre choice). Run by an operator; dry run u
 
 ``--compact-streams`` (dry run unless ``--apply``; ``--list FILE`` writes the candidates as TSV for a receipt) does
 once, for the SUCCEEDED operations already on the host, what every new
-operation now does itself (`protocol.compact_output_stream`): a decoded ``export.stream`` older than an hour is kept as
+operation now does itself (`research_carrier.compact_output_stream`): a decoded ``export.stream`` older than an hour is kept as
 its framing only, after its framing and snapshot are shown to rebuild it byte for byte.
 
     python -I -m carbon.challenge_validator.grade_archive --state STATE --compact-streams [--apply]
@@ -322,11 +322,11 @@ def _succeeded_outputs(ledger):
 def compact_streams(
     state, *, apply=False, settled_seconds=3600, now=None, listing=None
 ):
-    """`protocol.compact_output_stream` for every decoded stream under ``state`` of an operation its ledger records
+    """`research_carrier.compact_output_stream` for every decoded stream under ``state`` of an operation its ledger records
     SUCCEEDED, older than ``settled_seconds``, removed only when its own SHA-256 is that op's recorded output digest and
     framing + snapshot rebuild it byte for byte (V2 11:13:29Z). ``listing``: a TSV path written with every candidate
     (path, bytes, recorded digest). Returns the counts and bytes."""
-    from carbon.reconstruction.worker.protocol import compact_output_stream
+    from carbon.development_session.research_carrier import compact_output_stream
 
     cutoff = (time.time() if now is None else now) - settled_seconds
     totals = {"streams": 0, "not_succeeded": 0, "compacted": 0, "kept": 0, "bytes": 0}
