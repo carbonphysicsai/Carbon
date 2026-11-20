@@ -1,5 +1,7 @@
 # Carbon Business Design Questions v1
 
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
+
 **Status:** OWNER-REVIEW QUEUE for Business Lead.  
 **Purpose:** isolate unresolved business decisions from the locked business canon so the company can move quickly without treating assumptions as decisions.  
 **Rule:** answers here can change commercial packaging, pricing, GTM, rights, and investor materials. They may not override scientific authority.
@@ -20,23 +22,19 @@
 
 ---
 
-## BQ-002 — Evidence Audit as first SKU
+## BQ-002 — Primary commercial focus
 
-**Question:** Do we formally make `Carbon Evidence Audit` the first sellable SKU?
+**Business lead decision:** `DECIDED` on 20 November 2026: lead with custom model discovery and design, using Sponsored Discovery and Model Development as the primary product families. This supersedes the earlier recommendation to lead with Evidence Audit.
 
-**Current recommendation:** yes.
+**Authority:** [OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md), Nick Fitzpatrick's direct instruction.
 
-**Reason:** monetizes the judge first; low replacement friction; negative results remain valuable; strongest path to expansion.
-
-**Decision needed:** target buyer, standard package, target delivery time, and minimum viable evidence bundle.
-
-**Business lead decision:** `OPEN`
+**Still open:** target buyer, standard scope, deliverables, price, capacity and delivery time. The positioning decision does not settle those terms or establish technical readiness. Evidence Audit remains complementary and is not a prerequisite.
 
 ---
 
-## BQ-003 — Sponsored Discovery timing
+## BQ-003 — Discovery and development delivery readiness
 
-**Question:** How early should Carbon sell Sponsored Discovery before the full network path is production-qualified?
+**Question:** What exact discovery or model-development scope can Carbon deliver for the next customer, and which technical, reference, privacy and rights requirements remain open?
 
 Options:
 
@@ -53,13 +51,15 @@ Options:
 
 # B. Product packaging
 
-## BQ-004 — Evidence Audit tiers
+## BQ-004 — Discovery and development packages
 
-**Question:** What should distinguish `AUDIT_STANDARD`, `AUDIT_ADVANCED`, and `AUDIT_ENTERPRISE`?
+**Question:** Which dimensions should define a bounded discovery or custom model-development package?
 
 Suggested dimensions:
 
-- number of candidates;
+- engineering problem, outputs and operating range;
+- method-search and model-design scope;
+- number of candidates and development iterations;
 - truth integrations;
 - strata/robustness depth;
 - evaluation budget;
@@ -71,13 +71,15 @@ Suggested dimensions:
 
 ---
 
-## BQ-005 — Standard Audit deliverable
+## BQ-005 — Standard modeling-program deliverable
 
-**Question:** What exact customer-facing package must every paid Audit include?
+**Question:** What candidate, reproducibility material and findings should a discovery or model-development contract require, including when no suitable model is found?
 
 Candidate bundle:
 
-- executive evidence report;
+- agreed candidate model or construction method, if one meets the program requirements;
+- reproducibility material and an explicit rights schedule;
+- executive findings report;
 - technical appendix;
 - failure/stratum atlas;
 - evidence/provenance manifest;
@@ -133,9 +135,9 @@ Likely answer may be a base qualification fee + evidence/compute + lifecycle att
 
 # C. Pricing and economics
 
-## BQ-009 — First Audit pricing hypothesis
+## BQ-009 — Discovery and model-development pricing hypotheses
 
-**Question:** What price bands do we want to test in buyer interviews and first proposals?
+**Question:** What price bands should we test for discovery and model-development programs, including reference integration and evaluation?
 
 Do not choose from intuition alone. Establish at least:
 
@@ -183,8 +185,9 @@ Requires finance/legal/tax input.
 
 Need separate targets for:
 
-- Evidence Audit;
 - Sponsored Discovery;
+- Model Development;
+- complementary Evidence Audit;
 - Qualification;
 - Lifecycle;
 - Enterprise Platform;
@@ -340,7 +343,7 @@ Suggested trigger:
 
 ## BQ-022 — Standard pilot length
 
-**Question:** What should be the default commercial timebox for an Evidence Audit and Sponsored Discovery Pilot?
+**Question:** What delivery timeboxes are supportable for bounded discovery and model-development programs, and when does scope need a separate feasibility stage?
 
 Need to balance:
 - procurement simplicity;
@@ -373,7 +376,7 @@ Need to balance:
 **Question:** What repeated customer behavior should trigger product investment in the Enterprise Evidence Platform?
 
 Recommended evidence:
-- repeated Audits/qualifications;
+- repeated discovery, development and evaluation workflows;
 - same customer with multiple models;
 - common adapter demand;
 - recurring lifecycle need;
@@ -527,17 +530,14 @@ Tie hiring to observed bottlenecks, not standard SaaS org charts.
 
 ---
 
-# K. Immediate 30-day decisions
+# K. Next commercial packaging decisions
 
-The business lead should prioritize these first:
+The primary focus is settled by BQ-002. Prioritize the decisions needed for the next credible discovery or model-development engagement:
 
-1. **BQ-001** first two verticals.
-2. **BQ-002** Evidence Audit as first SKU.
-3. **BQ-004 / 005 / 009** Audit tiers, deliverable, pricing hypotheses.
-4. **BQ-014–016** default data/evidence/IP positions with counsel.
-5. **BQ-018** first private deployment mode.
-6. **BQ-020** initial design-partner account list.
-7. **BQ-022** standard pilot timebox.
-8. **BQ-029 / 030** fundraising evidence threshold and bottom-up capital model.
+1. **BQ-001 / 003 / 007** select the buyer problem and establish the deliverable technical scope.
+2. **BQ-004 / 005 / 009 / 010 / 022** define a bounded package, acceptance, pricing hypothesis and supportable timebox.
+3. **BQ-014–016 / 018** resolve the rights and handling arrangements the actual engagement needs.
+
+Keep account selection and fundraising decisions tied to current company priorities and evidence. Standalone audit packaging can be revisited when a qualified opportunity calls for it; it does not gate the primary offer.
 
 These decisions unlock the first real commercial operating package and investor update.

@@ -19,7 +19,7 @@
 
 > **Carbon is an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.**
 
-Carbon's business is the discovery, evidence, and qualification infrastructure around those models. The [README](README.md) explains the project; [Project status](docs/publications/PROJECT_STATUS.md) distinguishes current development from planned capabilities.
+Carbon's current commercial focus is custom model discovery and design for engineering problems, with independent evaluation integral to model development and separate qualification for a defined use where required. The [20 November business decision](.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md) sets this emphasis without changing scientific or protocol authority. The [README](README.md) explains the project; [Project status](docs/publications/PROJECT_STATUS.md) retains dated implementation and research evidence.
 
 The first bounded implementation searches neural-operator `TrainingStrategy` objects. The long-term scientific object is broader: `ModelConstructionStrategy` / future `ConstructionProgram` producing a `FastPhysicalModel` or physical-decision system under a registered reconstruction and evaluation contract.
 
