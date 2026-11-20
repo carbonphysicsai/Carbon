@@ -290,21 +290,26 @@ def test_a_crash_mid_sweep_resumes_where_it_stopped_and_decides_nobody_twice(
         calls.append(record["submission_id"])
         if record["submission_id"] == "b" and calls.count("b") == 1:
             raise RuntimeError("host went away")
+        if (
+            record["submission_id"] == "c"
+            and store.crown_pause_resolved("b", KEY_B) is None
+        ):
+            # what `consider_private` answers a crown change while an earlier record (b) is unresolved
+            return {"outcome": bp.UNAVAILABLE, "reason": bp.CROWN_QUEUED}
         return decided()
 
-    assert [n for n, _ in sweep(store, flaky)] == [
-        "a"
-    ]  # stopped at b: c not decided ahead of it
+    # b's crash keeps b in its place (over-broad rules audit #14: the sweep goes on); c's crown change queues behind it
+    assert [n for n, _ in sweep(store, flaky)] == ["a"]
     assert [r["submission_id"] for r in store.paused_crowns()] == ["b", "c"]
-    # the crash now counts a failed attempt (and is journaled): the retry is SPACED like any undecided decision, so the next
-    # tick inside the spacing does not try it again; once the spacing has passed it resumes where it stopped
-    assert sweep(store, flaky) == [] and calls == ["a", "b"]
+    # the crash counts a failed attempt (and is journaled): the retry is SPACED like any undecided decision, and c, queued
+    # behind the same b and the same king, is not asked again; once the spacing has passed b is decided, then c in order
+    assert sweep(store, flaky) == [] and calls == ["a", "b", "c"]
     real_clock = store.clock
     store.clock = lambda: real_clock() + crown_pause_sweep.RETRY_SECONDS + 1
     assert [n for n, _ in sweep(store, flaky)] == ["b", "c"]
-    assert calls == ["a", "b", "b", "c"]
+    assert calls == ["a", "b", "c", "b", "c"]
     assert sweep(store, flaky) == []
-    assert calls == ["a", "b", "b", "c"]
+    assert calls == ["a", "b", "c", "b", "c"]
 
 
 def test_a_contender_that_is_already_the_incumbent_is_not_decided_again(tmp_path):

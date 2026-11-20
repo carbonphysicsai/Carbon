@@ -364,33 +364,16 @@ class AutoGrader:
         return king_upkeep.due(pool, self.intake, active=crown_average.ACTIVE)
 
     def _crowns_due(self):
-        from . import crown_hold, crown_pause_sweep, operator_pause
+        """Whether the crown sweep would make or retry a decision now (`crown_pause_sweep.due`: a stuck, held, spaced or
+        queued record is skipped in its place, as the sweep skips it)."""
+        from . import crown_pause_sweep
 
         pool = self._pool()
         if pool is None or not hasattr(pool, "paused_crowns"):
             return False
-        if operator_pause.crowns_paused(pool.path.parent):
-            return False
-        incumbent = pool.incumbent() or {}
-        exam = self.intake.adapter.discovery.evaluation_pack_digest
-        awaits = getattr(pool, "awaits_incumbent_regrade", None)
-        for record in pool.paused_crowns("pack"):
-            if (
-                incumbent.get("model_id") == record["submission_id"]
-                or record["exam"] != exam
-            ):
-                return True  # resolved at once, without a grade
-            if awaits is not None and awaits(record):
-                # the sweep skips it until the king's regrade, which `_upkeep_due` asks about: no round for it here,
-                # else a failing regrade (retried once an epoch) would take the host lock every poll for nothing
-                continue
-            if crown_hold.held(pool.path.parent, record["submission_id"]):
-                return False  # a held menu-D crown stops the sweep there until the operator's release: no round
-            attempts, last = pool.crown_pause_attempts(
-                record["submission_id"], record["evaluation_key"]
-            )
-            return not (crown_pause_sweep.spaced(pool, attempts, last))
-        return False
+        return crown_pause_sweep.due(
+            pool, current_exam=self.intake.adapter.discovery.evaluation_pack_digest
+        )
 
     def run_once(self):
         """Grade at most one ready task; returns ``(submission_id, state)`` or None.

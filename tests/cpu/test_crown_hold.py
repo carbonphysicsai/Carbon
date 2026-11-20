@@ -152,7 +152,7 @@ def test_every_version_registered_today_is_not_held():
         assert crown_hold.menu_registered(challenge_id, version) is held, key
 
 
-def test_the_sweep_stops_at_a_held_contender_with_no_attempt(tmp_path, hold_on):
+def test_the_sweep_skips_a_held_contender_with_no_attempt(tmp_path, hold_on):
     class Filed:
         path = tmp_path / "pool.sqlite3"
 

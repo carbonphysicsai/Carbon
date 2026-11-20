@@ -2,8 +2,9 @@
 
 `crown_pause_sweep.sweep` used to end the tick on any exception with no journal line, no attempt and no alert, every tick, at the
 oldest record (so every later record waited with it). Now: one journal line (record id, exception type, closed code), a failed
-attempt counted so the retry is spaced, and the typed alert after ALERT_AFTER attempts; the sweep still stops there (order kept)
-and nothing is resolved or skipped. Synthetic fixtures only.
+attempt counted so the retry is spaced, and the typed alert after ALERT_AFTER attempts. The record stays unresolved in its place
+and the sweep goes on to the later records (over-broad rules audit #14; a later crown change is queued behind it by
+`consider_private`, which these doubles stand in for). Synthetic fixtures only.
 """
 
 from __future__ import annotations
@@ -74,18 +75,21 @@ def _alerts(store):
         ]
 
 
-def test_a_raising_reconsider_journals_once_counts_an_attempt_and_stops_the_tick(world):
+def test_a_raising_reconsider_journals_once_counts_an_attempt_and_the_sweep_goes_on(
+    world,
+):
     store, _now, lines = world
     asked = []
 
     def reconsider(record):
         asked.append(record["submission_id"])
+        if record["submission_id"] == "c":
+            # what `consider_private` answers a later crown change while b is unresolved
+            return {"outcome": "UNAVAILABLE", "reason": "queued_behind_undecided_crown"}
         raise StateError("evaluation_source_changed")
 
     assert _tick(store, reconsider) == []
-    assert asked == [
-        "b"
-    ]  # the sweep stops at the oldest record: c is never tried ahead of it
+    assert asked == ["b", "c"]  # b keeps its place; c is asked and queues behind it
     assert lines == [
         (
             "crown_sweep_reconsider_failed",
@@ -98,6 +102,10 @@ def test_a_raising_reconsider_journals_once_counts_an_attempt_and_stops_the_tick
     ]
     attempts, last = store.crown_pause_attempts("b", KEY)
     assert attempts == 1 and last == 1000.0
+    assert store.crown_pause_attempts("c", KEY) == (
+        0,
+        None,
+    )  # queued is not a failed attempt
     assert [r["submission_id"] for r in store.paused_crowns("pack")] == [
         "b",
         "c",
@@ -113,12 +121,12 @@ def test_the_next_tick_is_spaced_and_a_later_one_tries_again(world):
         raise StateError("evaluation_source_changed")
 
     _tick(store, reconsider)
-    now[0] += 60.0  # the next tick: inside the retry spacing
+    now[0] += 60.0  # the next tick: inside the retry spacing of both
     _tick(store, reconsider)
-    assert asked == ["b"] and len(lines) == 1  # not tried again, no second line
+    assert asked == ["b", "c"] and len(lines) == 2  # not tried again, no new line
     now[0] += sweep.RETRY_SECONDS  # past the spacing
     _tick(store, reconsider)
-    assert asked == ["b", "b"] and len(lines) == 2
+    assert asked == ["b", "c", "b", "c"] and len(lines) == 4
     assert store.crown_pause_attempts("b", KEY)[0] == 2
 
 
@@ -128,13 +136,15 @@ def test_the_typed_alert_follows_after_three_attempts_and_names_the_records_behi
     store, now, lines = world
 
     def reconsider(record):
+        if record["submission_id"] == "c":
+            return {"outcome": "UNAVAILABLE", "reason": "queued_behind_undecided_crown"}
         raise StateError("evaluation_source_changed")
 
     for _ in range(sweep.ALERT_AFTER):
         _tick(store, reconsider)
         now[0] += sweep.RETRY_SECONDS + 1
-    (alert,) = _alerts(store)
-    assert alert["code"] == "crown_pause_blocked_by_undecided"  # c waits behind b
+    (alert,) = _alerts(store)  # b's only: c queued behind it is not a failed decision
+    assert alert["code"] == "crown_pause_blocked_by_undecided"  # c may wait behind b
     assert alert["attempts"] == sweep.ALERT_AFTER and alert["queued"] == ["c"]
     assert alert["last_code"] == "EXCEPTION:StateError:evaluation_source_changed"
     assert len(lines) == sweep.ALERT_AFTER

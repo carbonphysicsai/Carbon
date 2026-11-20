@@ -284,22 +284,57 @@ def test_only_decided_outcomes_resolve_including_unstable_across_seeds(
 
 
 @posix
-def test_a_waiting_decision_holds_back_later_contenders_so_none_is_decided_ahead_of_it(
+def test_a_waiting_decision_keeps_its_place_and_only_a_no_crown_decision_goes_on(
     tmp_path,
 ):
+    """Over-broad rules audit #14: a stuck record no longer stops the sweep. It stays unresolved and first; a later crown
+    change is queued behind it (`consider_private` answers CROWN_QUEUED while an earlier record is unresolved) and is not
+    asked again while nothing changed; a later decision that changes no crown is made in the same tick.
+    """
     clock = [t0]
     store = _store(tmp_path, clock)
     file_paused(store, "a", KEY_A)
     file_paused(store, "b", KEY_B)
+    file_paused(store, "c", KEY_B)
     seen = []
+    answers = {
+        "a": outcome(
+            bp.UNAVAILABLE, ca.REBUILD_UNAVAILABLE
+        ),  # stuck: the host cannot rebuild
+        "b": outcome(
+            bp.UNAVAILABLE, bp.CROWN_QUEUED
+        ),  # would change the crown: waits behind a
+        "c": decided(
+            bp.INCUMBENT_KEEPS, "mean_within_margin_or_tie"
+        ),  # changes no crown
+    }
 
     def reconsider(record):
         seen.append(record["submission_id"])
-        return outcome(bp.UNAVAILABLE, ca.REBUILD_UNAVAILABLE)
+        return answers[record["submission_id"]]
 
-    _sweep(store, reconsider)
-    _sweep(store, reconsider)  # inside the epoch: a waits, b is not decided ahead of it
-    assert seen == ["a"]
+    done = _sweep(store, reconsider)
+    assert done == [("c", f"{bp.INCUMBENT_KEEPS}:mean_within_margin_or_tie")]
+    assert [r["submission_id"] for r in store.paused_crowns()] == [
+        "a",
+        "b",
+    ]  # a first, b behind it
+    assert store.crown_pause_attempts("b", KEY_B) == (
+        0,
+        None,
+    )  # queued is not a failed attempt
+    clock[0] += 60
+    _sweep(
+        store, reconsider
+    )  # a spaced, b queued behind the same a and the same king: nobody is asked again
+    assert seen == ["a", "b", "c"]
+    # a recovers and is decided first; b is then asked again (the records ahead of it changed) and decided in its turn
+    answers["a"] = decided(bp.CHALLENGER, "bank_comparison_development")
+    answers["b"] = decided(bp.INCUMBENT_KEEPS, "mean_within_margin_or_tie")
+    clock[0] = t0 + sweeper.RETRY_SECONDS
+    done = _sweep(store, reconsider)
+    assert [sid for sid, _ in done] == ["a", "b"]
+    assert seen == ["a", "b", "c", "a", "b"]
 
 
 # --- the live trigger that hits infra keeps its screening grade filed ---------------------------------------------------
@@ -441,15 +476,21 @@ def test_an_alert_for_the_oldest_record_names_the_decisions_queued_behind_it(tmp
         calls.append(record["submission_id"])
         return outcome(bp.UNAVAILABLE, ca.REBUILD_UNAVAILABLE)
 
+    def sweep_once(record):
+        if record["submission_id"] == "a":
+            return host_down(record)
+        # what `consider_private` answers a later crown change while a is unresolved
+        calls.append(record["submission_id"])
+        return outcome(bp.UNAVAILABLE, bp.CROWN_QUEUED)
+
     for _attempt in range(3):
-        _sweep(store, host_down)
+        _sweep(store, sweep_once)
         clock[0] += sweeper.RETRY_SECONDS
-    assert calls == [
-        "a",
-        "a",
-        "a",
-    ]  # the sweep never reaches b or c while a is undecided
-    (alert,) = store.crown_pause_alerts()
+    # each tick: a is retried after its spacing; b and c are asked again only once the spacing passed, and queue behind
+    assert calls == ["a", "b", "c"] * 3
+    (alert,) = (
+        store.crown_pause_alerts()
+    )  # only a's: a queued contender is not a failed decision
     assert alert["code"] == "crown_pause_blocked_by_undecided"
     assert alert["waiting"] == 2 and alert["submission_id"] == "a"
     assert [r["submission_id"] for r in store.paused_crowns()] == ["a", "b", "c"]
@@ -490,7 +531,7 @@ def test_a_decision_waiting_on_the_kings_mean_is_retried_the_moment_it_files(tmp
     assert calls == [t0, t0 + 121]
 
 
-def test_without_a_king_change_a_failed_decision_waits_fifteen_minutes(tmp_path):
+def test_without_a_king_change_a_failed_decision_waits_five_minutes(tmp_path):
     clock = [t0]
     store = _store(tmp_path, clock)
     file_paused(store, "a", KEY_A)
@@ -507,7 +548,8 @@ def test_without_a_king_change_a_failed_decision_waits_fifteen_minutes(tmp_path)
     clock[0] = t0 + sweeper.RETRY_SECONDS
     _sweep(store, host_down)
     assert calls == [t0, t0 + sweeper.RETRY_SECONDS]
-    assert sweeper.RETRY_SECONDS == 900 < sweeper.EPOCH_SECONDS
+    # over-broad rules audit #6/#14: 15 min -> 5 min (V2's automatic-retry spacing)
+    assert sweeper.RETRY_SECONDS == 300 < sweeper.EPOCH_SECONDS
 
 
 def test_a_king_change_before_the_failure_does_not_reopen_it(tmp_path):
