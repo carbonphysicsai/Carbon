@@ -45,7 +45,10 @@ DOOR_STATES = {
         "up",
         "The validator is up; it is re-measuring the king before it continues.",
     ),
-    "paused": ("paused", "The validator is paused: it grades nothing while it is paused."),
+    "paused": (
+        "paused",
+        "The validator is paused: it grades nothing while it is paused.",
+    ),
     "draining for an update": (
         "updating",
         "Carbon is upgrading the validator; please retry shortly.",
@@ -68,11 +71,7 @@ class QueueUnreadable(ValueError):
 
 
 def _count(value, *, maximum=10**7):
-    if (
-        type(value) is not int
-        or isinstance(value, bool)
-        or not 0 <= value <= maximum
-    ):
+    if type(value) is not int or isinstance(value, bool) or not 0 <= value <= maximum:
         raise QueueUnreadable("count")
     return value
 
@@ -168,7 +167,8 @@ def _open(url, *, timeout):
 
 def read(intake, challenge_id, *, timeout=10.0, opener=_open):
     """``(answer, None)`` from the door at ``intake``, or ``(None, (state, words))``: why nothing is shown. ``state`` is
-    "updating" for a door that answers 503 ``updating``, "down" for one that does not answer, else "unknown"."""
+    "updating" for a door that answers 503 ``updating``, "down" for one that does not answer, else "unknown".
+    """
     from carbon.development_session.intake_targets import intake_url
 
     if not intake_url(intake) or not _ID.fullmatch(challenge_id or ""):
@@ -248,7 +248,9 @@ def lines(answer, hotkey):
     if hotkey is None:
         out.append(NO_HOTKEY)
     elif rows is None:
-        out.append("This validator does not list individual submissions, so your own place is not shown.")
+        out.append(
+            "This validator does not list individual submissions, so your own place is not shown."
+        )
     else:
         mine = own_rows(answer, hotkey)
         for row in mine:

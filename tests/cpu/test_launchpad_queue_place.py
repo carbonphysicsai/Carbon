@@ -28,11 +28,23 @@ class _Response(io.BytesIO):
         self.close()
 
 
-def document(rows=None, *, schema=queue_public.SCHEMA_V4, more=0, state="grading", median=70200):
+def document(
+    rows=None, *, schema=queue_public.SCHEMA_V4, more=0, state="grading", median=70200
+):
     rows = (
         [
-            {"position": 1, "hotkey": queue_public.short_hotkey(OTHER), "state": "grading", "in_queue_s": 3600},
-            {"position": 2, "hotkey": SHORT, "state": "waiting to build", "in_queue_s": 600},
+            {
+                "position": 1,
+                "hotkey": queue_public.short_hotkey(OTHER),
+                "state": "grading",
+                "in_queue_s": 3600,
+            },
+            {
+                "position": 2,
+                "hotkey": SHORT,
+                "state": "waiting to build",
+                "in_queue_s": 600,
+            },
         ]
         if rows is None
         else rows
@@ -55,7 +67,12 @@ def document(rows=None, *, schema=queue_public.SCHEMA_V4, more=0, state="grading
         "as_of": "2026-11-20T01:00:00Z",
     }
     if schema != queue_public.SCHEMA:
-        body.update(rows=rows, more_rows=more, rows_as_of="2026-11-20T01:00:00Z", held_for_review=None)
+        body.update(
+            rows=rows,
+            more_rows=more,
+            rows_as_of="2026-11-20T01:00:00Z",
+            held_for_review=None,
+        )
     return body
 
 
@@ -77,10 +94,14 @@ def test_the_card_finds_the_miners_own_row_by_its_short_hotkey():
     answer = queue_place.parse(document(), CHALLENGE)
     text, state = queue_place.lines(answer, HOTKEY)
     assert state == "up"
-    assert any(line.startswith("Your place: 2 of 2 (waiting to build;") for line in text)
+    assert any(
+        line.startswith("Your place: 2 of 2 (waiting to build;") for line in text
+    )
     assert any("10 min" in line for line in text)
     # the other miner's row is never claimed
-    other, _ = queue_place.lines(answer, "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+    other, _ = queue_place.lines(
+        answer, "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    )
     assert not any(line.startswith("Your place") for line in other)
     assert any("not in the line right now" in line for line in other)
 
@@ -89,14 +110,21 @@ def test_the_median_wait_is_in_hours_and_says_when_there_are_too_few_verdicts():
     text, _ = queue_place.lines(queue_place.parse(document(), CHALLENGE), HOTKEY)
     assert any("Typical wait, last 24 h: 19.5 h" in line for line in text)
     assert any("not a promise for your submission" in line for line in text)
-    sparse, _ = queue_place.lines(queue_place.parse(document(median=None), CHALLENGE), HOTKEY)
+    sparse, _ = queue_place.lines(
+        queue_place.parse(document(median=None), CHALLENGE), HOTKEY
+    )
     assert any("not enough verdicts yet" in line for line in sparse)
 
 
 def test_a_door_that_lists_only_the_oldest_rows_says_a_later_one_may_not_show():
     answer = queue_place.parse(document(more=40), CHALLENGE)
-    text, _ = queue_place.lines(answer, "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
-    assert any("42 waiting submissions" in line and "not shown here yet" in line for line in text)
+    text, _ = queue_place.lines(
+        answer, "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    )
+    assert any(
+        "42 waiting submissions" in line and "not shown here yet" in line
+        for line in text
+    )
 
 
 def test_door_states_in_plain_words():
@@ -106,7 +134,9 @@ def test_door_states_in_plain_words():
         ("paused", "paused"),
         ("draining for an update", "updating"),
     ):
-        _, state = queue_place.lines(queue_place.parse(document(state=feed_state), CHALLENGE), HOTKEY)
+        _, state = queue_place.lines(
+            queue_place.parse(document(state=feed_state), CHALLENGE), HOTKEY
+        )
         assert state == card_state
 
 
@@ -162,8 +192,12 @@ def test_the_reader_asks_v4_then_v3_then_v1_and_says_why_when_it_cannot():
     )
 
     def updating(url, timeout):
-        body = json.dumps({"status": "updating", "message": "x", "retry_after_s": 60}).encode()
-        raise urllib.error.HTTPError(url, 503, "Service Unavailable", {}, io.BytesIO(body))
+        body = json.dumps(
+            {"status": "updating", "message": "x", "retry_after_s": 60}
+        ).encode()
+        raise urllib.error.HTTPError(
+            url, 503, "Service Unavailable", {}, io.BytesIO(body)
+        )
 
     assert queue_place.read("https://door.example", CHALLENGE, opener=updating) == (
         None,
@@ -173,7 +207,10 @@ def test_the_reader_asks_v4_then_v3_then_v1_and_says_why_when_it_cannot():
     def huge(url, timeout):
         return _Response(b" " * (queue_place.MAX_BYTES + 1))
 
-    assert queue_place.read("https://door.example", CHALLENGE, opener=huge)[1][0] == "unknown"
+    assert (
+        queue_place.read("https://door.example", CHALLENGE, opener=huge)[1][0]
+        == "unknown"
+    )
     assert queue_place.read("ftp://door.example", CHALLENGE, opener=opener) == (
         None,
         ("unknown", queue_place.NO_GRADER),
