@@ -602,9 +602,13 @@ def test_a_box_pool_binds_its_class_and_the_receiver_starts_with_no_box(
     )
     assert image == JAX and ops == {"dot_general", "tanh"}
     assert device.door_binding() == {"kind": "NVIDIA A100-SXM4-40GB", "class": True}
+    # the pinned class carries the values row's slot count (whatever the checked-in row says: 4 since 20 Nov 2026)
+    slots = remote_gpu_build.values_row(challenge.challenge_id, challenge.version)[
+        "slots"
+    ]
     assert remote_gpu_build._PINNED[(challenge.challenge_id, challenge.version)] == (
         "NVIDIA A100-SXM4-40GB",
-        7,
+        slots,
         "shared",
         False,
     )
