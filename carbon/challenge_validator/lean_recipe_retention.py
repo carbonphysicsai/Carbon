@@ -643,6 +643,50 @@ def _verify_admitted_image(provider, identity):
     return identity
 
 
+#: A graph's private worker evidence schemas (`bundle_benchmark_core.GRAPH_WORKER_V1` / ``_V2``): a task's v2 ROW has
+#: no base64 predictions (H2); in memory a graph's ``worker-evidence.json`` is always v1 (`_v1_worker`), and on disk it
+#: is kept packed (`_kept_files`), so the producer's bytes never change (owner LO-6, V2 15:51:55Z).
+_GRAPH_WORKER_V1 = "carbon.direct-private-attempt.graph.v1"
+_GRAPH_WORKER_V2 = "carbon.direct-private-attempt.graph.v2"
+WORKER_EVIDENCE = "worker-evidence.json"
+
+
+def _graph_originals(artifacts):
+    """A graph's graded originals from its (in-memory, v1) retained files: the inference receipt and the worker evidence."""
+    return {
+        "inference_receipt_raw": artifacts["inference-receipt.json"],
+        "worker_evidence_raw": artifacts[WORKER_EVIDENCE],
+    }
+
+
+def _v1_worker(raw, predictions):
+    """The v1 bytes of a graph worker evidence ``raw`` (a v2 one gets its base64 back from ``predictions``, which must be
+    its predictions_digest); a v1 one unchanged. `RetentionUnavailable` (``worker_evidence_unpack``) otherwise.
+    """
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    try:
+        return bundle.unpack_graph_worker(raw, predictions)
+    except bundle.BundleBenchmarkRefused as exc:
+        raise RetentionUnavailable("worker_evidence_unpack") from exc
+
+
+def _kept_files(artifacts):
+    """The bytes each retained file is KEPT as on disk (and named by in a role manifest): its own, except a graph's v1
+    worker evidence whose base64 is exactly the retained predictions.json, kept packed (H2: without the base64, schema
+    v2; `bundle_benchmark_core.pack_graph_worker`). Every reader of a kept task folder unpacks it (`_v1_worker`).
+    """
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    kept = dict(artifacts)
+    raw = artifacts.get(WORKER_EVIDENCE)
+    if raw is not None and "predictions.json" in artifacts:
+        packed = bundle.pack_graph_worker(raw, artifacts["predictions.json"])
+        if packed is not None:
+            kept[WORKER_EVIDENCE] = packed
+    return kept
+
+
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
     """Gather only the graph task's original, verified DEVELOPMENT bytes."""
     from carbon.development_session.bundle_construction_worker import _tensors
@@ -662,9 +706,12 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "predictions_digest",
         "build_receipt",
         "inference_receipt",
-        "predictions_raw_base64",
         "submission_digest",
     }
+    # v1 carries the graded predictions again as base64; v2 (H2, owner rule #13) does not: they are the retained
+    # predictions.json, bound by predictions_digest
+    if type(evidence) is dict and evidence.get("schema") != _GRAPH_WORKER_V2:
+        worker_fields.add("predictions_raw_base64")
     # A measured graph keeps its batched cold query as a separate timed receipt.
     timed_fields = (
         {"timed_operation", "timed_receipt"}
@@ -743,7 +790,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         type(image) is not WorkerImageIdentity
         or image != provider.inference_image
         or provider._image_binding(graded) != admitted_binding
-        or evidence.get("schema") != "carbon.direct-private-attempt.graph.v1"
+        or evidence.get("schema") not in (_GRAPH_WORKER_V1, _GRAPH_WORKER_V2)
         or any(
             evidence.get(field) != graded.image_id
             for field in ("image_id", "parent_image_id", "inference_image_id")
@@ -862,7 +909,8 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "allowlist.json": material["allowlist_bytes"],
         "build-receipt.json": build_receipt,
         "inference-receipt.json": inference_receipt,
-        "worker-evidence.json": _json(worker),
+        # a v2 row (H2) is v1 again in memory: its base64 from the verified predictions snapshot
+        WORKER_EVIDENCE: _v1_worker(_json(worker), predictions),
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
         **(
             {}
@@ -919,7 +967,7 @@ def _write_retained(task_root, artifacts, sources=None):
     # 0600 as `write_once` writes it): the public train, fixture, allowlist, kit and image of every grade of one
     # version are the same bytes (sre 20 Nov 2026); same names, bytes and digests for every reader
     objects = retained_objects(task_root)
-    for name, raw in artifacts.items():
+    for name, raw in _kept_files(artifacts).items():
         source = sources.get(name)
         if source is None:
             # an existing name must hold exactly these bytes (`write_once`'s check, in `store_once`'s fallback)
@@ -986,7 +1034,9 @@ def _retain_graph_artifacts(
             role: {"file": name, "codec": codec}
             for role, (name, codec) in sorted(roles.items())
         },
-        "retained_files": {name: _sha(raw) for name, raw in sorted(artifacts.items())},
+        "retained_files": {
+            name: _sha(raw) for name, raw in sorted(_kept_files(artifacts).items())
+        },
         "physics_contract": None,
     }
     base = _owner_directory(artifact_directory, "artifact_directory")
@@ -1301,8 +1351,7 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
             inference=inference,
             graph_originals=(
                 {
-                    "inference_receipt_raw": artifacts["inference-receipt.json"],
-                    "worker_evidence_raw": artifacts["worker-evidence.json"],
+                    **_graph_originals(artifacts),
                     **({} if timed_query is None else {"timed_query": timed_query}),
                 }
                 if graph
@@ -2725,10 +2774,7 @@ def _retain_selected_pack_evaluation(
             evaluation_version=source["evaluation_version"],
         )
         if graph:
-            originals = {
-                "inference_receipt_raw": artifacts["inference-receipt.json"],
-                "worker_evidence_raw": artifacts["worker-evidence.json"],
-            }
+            originals = _graph_originals(artifacts)
         else:
             # A bundle has no worker-evidence.json: its originals are the inference
             # receipt, the predictions and the trusted task evidence's identities.
@@ -5053,7 +5099,9 @@ def _retain_served_artifacts(
             role: {"file": name, "codec": codec}
             for role, (name, codec) in sorted(roles.items())
         },
-        "retained_files": {name: _sha(raw) for name, raw in sorted(artifacts.items())},
+        "retained_files": {
+            name: _sha(raw) for name, raw in sorted(_kept_files(artifacts).items())
+        },
         "physics_contract": material.get("physics_contract"),
     }
 
@@ -5753,6 +5801,11 @@ def _regrade_origin(
         if _sha(raw) != digest:
             raise RetentionUnavailable("regrade_origin_file_changed")
         files[name] = raw
+    if WORKER_EVIDENCE in files:
+        # kept packed (H2): v1 again in memory
+        files[WORKER_EVIDENCE] = _v1_worker(
+            files[WORKER_EVIDENCE], files.get("predictions.json")
+        )
     # The state is the entry's own: never a stand-in.
     if _sha(files["state.npz"]) != entry["state_digest"]:
         raise RetentionUnavailable("regrade_state_digest_changed")
@@ -6505,8 +6558,9 @@ def _regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(
-                task_root / "worker-evidence.json", retained_limit
+            _v1_worker(
+                _private_measurement_bytes(task_root / WORKER_EVIDENCE, retained_limit),
+                predictions,
             )
             if kind == "graph"
             else None
@@ -6701,7 +6755,7 @@ def _regrade_retained_entry(
         role: spec for role, spec in roles.items() if spec["file"] in artifacts
     }
     new_manifest["retained_files"] = {
-        name: _sha(raw) for name, raw in sorted(artifacts.items())
+        name: _sha(raw) for name, raw in sorted(_kept_files(artifacts).items())
     }
 
     from scripts.dev.score_lab.public_unbound_custody import prepare_custody_v5

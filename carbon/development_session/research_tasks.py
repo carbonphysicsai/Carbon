@@ -1739,6 +1739,25 @@ class DirectDevelopmentTasksV3:
             raise ValueError("retained direct failure custody differs")
         return evidence
 
+    def _graded_snapshot_predictions(self, evidence):
+        """A v2 graph evidence's graded predictions: its inference operation's snapshot ``predictions.json`` (a regular
+        file of at most 16 MiB, never a link); the caller binds the bytes to the receipt's predictions digest.
+        """
+        operation = evidence.get("inference_operation")
+        if (
+            type(operation) is not str
+            or re.fullmatch(r"operation-[0-9a-f]{64}", operation) is None
+        ):
+            raise ValueError("retained direct result custody differs")
+        path = self.ledger.root / operation / "snapshot" / "predictions.json"
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or not 0 < path.stat().st_size <= 16 * 1024**2
+        ):
+            raise ValueError("retained direct result custody differs")
+        return path.read_bytes()
+
     def _verified_success_evidence(self, view):
         """Bind retained output bytes and worker receipt to the public terminal."""
         if (
@@ -1756,15 +1775,28 @@ class DirectDevelopmentTasksV3:
             raise ValueError("retained direct result custody differs")
         try:
             evidence = json.loads(row[0])
-            if (
-                type(evidence) is not dict
-                or type(evidence.get("predictions_raw_base64")) is not str
-            ):
+            if type(evidence) is not dict:
                 raise ValueError("retained direct result custody differs")
-            encoded = evidence["predictions_raw_base64"].encode("ascii")
-            raw = base64.b64decode(encoded, validate=True)
+            if evidence.get("schema") == "carbon.direct-private-attempt.graph.v2":
+                # v2 (H2): the predictions are the inference op's own snapshot file, never in this row
+                if "predictions_raw_base64" in evidence:
+                    raise ValueError("retained direct result custody differs")
+                raw = self._graded_snapshot_predictions(evidence)
+                encoded = None
+            else:
+                if type(evidence.get("predictions_raw_base64")) is not str:
+                    raise ValueError("retained direct result custody differs")
+                encoded = evidence["predictions_raw_base64"].encode("ascii")
+                raw = base64.b64decode(encoded, validate=True)
             predictions = json.loads(raw)
-        except (KeyError, TypeError, ValueError, UnicodeError, binascii.Error):
+        except (
+            KeyError,
+            OSError,
+            TypeError,
+            ValueError,
+            UnicodeError,
+            binascii.Error,
+        ):
             raise ValueError("retained direct result custody differs") from None
         source = self._requests[view.task_id.value].recipe["source"]
         if view.task_id.value in self._task_image_bindings:
@@ -1773,7 +1805,10 @@ class DirectDevelopmentTasksV3:
                 if (
                     image_binding[0] != "GRAPH_PARENT"
                     or evidence.get("schema")
-                    != "carbon.direct-private-attempt.graph.v1"
+                    not in (
+                        "carbon.direct-private-attempt.graph.v1",
+                        "carbon.direct-private-attempt.graph.v2",
+                    )
                     or any(
                         evidence.get(field) != image_binding[1]["image_id"]
                         for field in (
@@ -1840,7 +1875,7 @@ class DirectDevelopmentTasksV3:
         measured = view.task_id.value in self._measured_tasks
         if (
             not 0 < len(raw) <= 16 * 1024**2
-            or base64.b64encode(raw) != encoded
+            or (encoded is not None and base64.b64encode(raw) != encoded)
             or type(predictions) is not list
             or digest(raw) != receipt.predictions_digest
             or evidence.get("predictions_digest") != receipt.predictions_digest
@@ -2772,7 +2807,10 @@ class DirectDevelopmentTasksV3:
                 raise ValueError("direct prediction snapshot changed")
             private = {
                 "schema": (
-                    "carbon.direct-private-attempt.graph.v1"
+                    # v2: the graded predictions are NOT written again (as base64) into this row and the retained
+                    # worker-evidence.json; they are the inference op's snapshot predictions.json, bound by
+                    # predictions_digest (owner rule #13; V2 20 Nov 2026 H2). Bundles keep their schemas.
+                    "carbon.direct-private-attempt.graph.v2"
                     if source_kind == "graph"
                     else (
                         "carbon.direct-private-attempt.overlay.v1"
@@ -2797,10 +2835,11 @@ class DirectDevelopmentTasksV3:
                 "predictions_digest": result.inference.predictions_digest,
                 "build_receipt": result.build.receipt,
                 "inference_receipt": result.inference.receipt,
-                "predictions_raw_base64": base64.b64encode(predictions_raw).decode(
-                    "ascii"
-                ),
             }
+            if source_kind != "graph":
+                private["predictions_raw_base64"] = base64.b64encode(
+                    predictions_raw
+                ).decode("ascii")
             if result.timed is not None:
                 private["timed_operation"] = result.timed.worker_operation
                 private["timed_receipt"] = result.timed.receipt

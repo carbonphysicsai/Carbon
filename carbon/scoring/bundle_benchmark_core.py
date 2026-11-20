@@ -111,6 +111,108 @@ def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+# --- H2 (owner LO-6, 20 Nov 2026; V2 15:51:55Z: every producer digest unchanged) --------------------------------------
+# A graph's worker evidence (v1) carries the graded predictions again as base64 beside the retained predictions role.
+# On disk it is KEPT packed (`GRAPH_WORKER_V2`: the same object without ``predictions_raw_base64``, schema v2); every
+# reader rebuilds the exact v1 bytes from it and the retained predictions (`unpack_graph_worker`), so the producer, the
+# scoring path and every digest of the evidence in memory see v1 bytes only. A v1 file kept before is read as it is.
+GRAPH_WORKER_V1 = "carbon.direct-private-attempt.graph.v1"
+GRAPH_WORKER_V2 = "carbon.direct-private-attempt.graph.v2"
+
+
+def _worker_bytes(value):
+    """A graph worker evidence object's one byte form (as the retention writes it: sorted, compact, no NaN)."""
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+
+
+def pack_graph_worker(raw, predictions_raw):
+    """The KEPT bytes of the v1 graph worker evidence ``raw`` whose base64 is exactly ``predictions_raw``: the same object
+    without ``predictions_raw_base64`` and with schema `GRAPH_WORKER_V2`; None when ``raw`` is not such an evidence in its
+    one byte form (it is then kept as it is)."""
+    try:
+        worker = json.loads(raw)
+        encoded = worker["predictions_raw_base64"]
+        inner = base64.b64decode(encoded.encode("ascii"), validate=True)
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+        UnicodeError,
+        binascii.Error,
+    ):
+        return None
+    if (
+        type(worker) is not dict
+        or worker.get("schema") != GRAPH_WORKER_V1
+        or base64.b64encode(inner).decode("ascii") != encoded
+        or type(predictions_raw) is not bytes
+        or inner != predictions_raw
+        or _sha(inner) != worker.get("predictions_digest")
+        or _worker_bytes(worker) != raw
+    ):
+        return None
+    packed = {
+        key: value for key, value in worker.items() if key != "predictions_raw_base64"
+    }
+    packed["schema"] = GRAPH_WORKER_V2
+    return _worker_bytes(packed)
+
+
+def unpack_graph_worker(raw, predictions_raw):
+    """The v1 bytes of a kept graph worker evidence: ``raw`` itself when it is not `GRAPH_WORKER_V2`; a v2 one becomes
+    the same object with schema v1 and the base64 of ``predictions_raw``, which must be its ``predictions_digest``
+    (`BundleBenchmarkRefused` ``graph_worker_unpack`` otherwise: Carbon's gap, never the candidate's).
+    """
+    try:
+        worker = json.loads(raw)
+    except (TypeError, ValueError, UnicodeError):
+        return raw
+    if type(worker) is not dict or worker.get("schema") != GRAPH_WORKER_V2:
+        return raw
+    if (
+        "predictions_raw_base64" in worker
+        or type(predictions_raw) is not bytes
+        or not predictions_raw
+        or _sha(predictions_raw) != worker.get("predictions_digest")
+        or _worker_bytes(worker) != raw
+    ):
+        raise BundleBenchmarkRefused("graph_worker_unpack")
+    worker["schema"] = GRAPH_WORKER_V1
+    worker["predictions_raw_base64"] = base64.b64encode(predictions_raw).decode("ascii")
+    return _worker_bytes(worker)
+
+
+def _worker_role_matches(raw, role_sha):
+    """Whether the in-memory worker evidence ``raw`` is the custody's kept worker-evidence role: its own bytes, or (a
+    graph kept packed, H2) a v1 whose packed form is those bytes and whose base64 is its own predictions_digest.
+    """
+    if _sha(raw) == role_sha:
+        return True
+    try:
+        worker = json.loads(raw)
+        inner = base64.b64decode(
+            worker["predictions_raw_base64"].encode("ascii"), validate=True
+        )
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+        UnicodeError,
+        binascii.Error,
+    ):
+        return False
+    packed = pack_graph_worker(raw, inner)
+    return packed is not None and _sha(packed) == role_sha
+
+
 def _parse_receipt(raw):
     if type(raw) is not bytes or not 0 < len(raw) <= 1024 * 1024:
         raise BundleBenchmarkRefused("custody_receipt_bytes")
@@ -200,7 +302,12 @@ def _graph_saved_inference_binding(entry, inference):
             or set(role) != {"file", "codec", "sha256"}
             or role["codec"] != "json"
             or type(raw) is not bytes
-            or _sha(raw) != role["sha256"]
+            or not (
+                _sha(raw) == role["sha256"]
+                if name != "worker_evidence"
+                # kept packed (H2): the v1 in memory packs to exactly the kept bytes
+                else _worker_role_matches(raw, role["sha256"])
+            )
         ):
             raise BundleBenchmarkRefused("graph_saved_original_binding")
     retained_receipt = _parse_graph_original(

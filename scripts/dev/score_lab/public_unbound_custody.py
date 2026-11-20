@@ -2566,9 +2566,14 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
             "predictions_digest",
             "build_receipt",
             "inference_receipt",
-            "predictions_raw_base64",
             "submission_digest",
         }
+        # v1 carries the graded predictions again as base64; v2 (H2) does not: its predictions role stands
+        | (
+            {"predictions_raw_base64"}
+            if worker.get("schema") != "carbon.direct-private-attempt.graph.v2"
+            else set()
+        )
         | (
             {"timed_operation", "timed_receipt"}
             | (
@@ -2591,7 +2596,11 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         raise CustodyRefused("graph_worker_timed_query")
     if (
         set(worker) != worker_fields
-        or worker["schema"] != "carbon.direct-private-attempt.graph.v1"
+        or worker["schema"]
+        not in (
+            "carbon.direct-private-attempt.graph.v1",
+            "carbon.direct-private-attempt.graph.v2",
+        )
         or any(
             worker[field] != image["image_id"]
             for field in ("image_id", "parent_image_id")
@@ -2618,16 +2627,18 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         _digest(worker[field], f"graph_{field}")
     if "timed_controls_digest" in worker:
         _digest(worker["timed_controls_digest"], "graph_timed_controls_digest")
-    try:
-        encoded = worker["predictions_raw_base64"].encode("ascii")
-        worker_predictions = base64.b64decode(encoded, validate=True)
-    except (AttributeError, UnicodeError, ValueError, binascii.Error) as exc:
-        raise CustodyRefused("graph_worker_predictions") from exc
-    if (
-        base64.b64encode(worker_predictions) != encoded
-        or worker_predictions != by_role["predictions"]
-    ):
-        raise CustodyRefused("graph_worker_predictions")
+    if worker["schema"] == "carbon.direct-private-attempt.graph.v1":
+        try:
+            encoded = worker["predictions_raw_base64"].encode("ascii")
+            worker_predictions = base64.b64decode(encoded, validate=True)
+        except (AttributeError, UnicodeError, ValueError, binascii.Error) as exc:
+            raise CustodyRefused("graph_worker_predictions") from exc
+        if (
+            base64.b64encode(worker_predictions) != encoded
+            or worker_predictions != by_role["predictions"]
+        ):
+            raise CustodyRefused("graph_worker_predictions")
+    # v2: the predictions role IS the graded predictions (predictions_digest checked against it above)
     if "seed" in by_role:
         seed = _graph_json(by_role["seed"], "seed")
         if set(seed) != {"seed"} or type(seed["seed"]) is not int or seed["seed"] < 0:
