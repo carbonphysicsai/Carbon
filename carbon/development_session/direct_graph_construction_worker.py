@@ -833,6 +833,26 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
     }
 
 
+def v2_trust_infer_query(challenge_id: str, version: str, trust_outputs: int) -> dict:
+    """The `_infer_state` arguments of a graph route v2 TRUST candidate (SELF_TRUST H3f): the version's own inference
+    program turned into its trust variant (`trust_infer.trust_program`) plus `trust_outputs`, the count k of trust columns
+    the container splits off. Only the plain and the compiled programs offer it: a per-case-processes or vmap-64 version
+    does not (a typed refusal, never a silent plain program)."""
+    from .trust_infer import trust_program
+
+    if type(trust_outputs) is not int or trust_outputs < 1:
+        raise RecipeRefused("direct_graph_trust_interface_not_offered")
+    key = (challenge_id, version)
+    if key in VMAP64_INFERENCE_VERSIONS or key in CASE_PROCS_INFERENCE_VERSIONS:
+        raise RecipeRefused("direct_graph_trust_program_not_offered")
+    query = v2_infer_query(challenge_id, version)
+    return {
+        **query,
+        "program": trust_program(query["program"]),
+        "trust_outputs": trust_outputs,
+    }
+
+
 def _v2_adapter_ids() -> frozenset:
     from . import physical_graph_adapter_v2
 
@@ -900,7 +920,18 @@ def registered_inference_contract(binding, limits_document, *, recipe=None):
         )
         return load_battery, query, battery_graph_adapter.OUTPUT_DTYPE
     if adapter_id in _v2_adapter_ids():
-        query.update(v2_infer_query(challenge_id, version))
+        # A candidate that declared self-trust runs its version's trust program variant (the recipe's output binding is
+        # the declaration); a version that offers none refuses it. Every other candidate's query is exactly as before.
+        trust_outputs = 0
+        if type(recipe) is ConstructionRecipe and recipe.declares_self_trust:
+            trust_outputs = module.spec_for(challenge_id, version).trust_outputs
+            if trust_outputs < 1:
+                raise RecipeRefused("direct_graph_trust_interface_not_offered")
+        query.update(
+            v2_trust_infer_query(challenge_id, version, trust_outputs)
+            if trust_outputs
+            else v2_infer_query(challenge_id, version)
+        )
         return (
             physical_graph_state_v2.load,
             query,

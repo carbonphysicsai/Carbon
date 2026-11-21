@@ -1305,6 +1305,10 @@ class BundleInferenceResult:
     predictions: list
     worker_operation: str
     receipt: dict
+    #: A self-trust candidate only (SELF_TRUST H3f): the digest and the rows of the trust columns the container split off
+    #: (`sigma.json`); None for every other result, so nothing else changes.
+    sigma_digest: str | None = None
+    sigma: list | None = None
 
 
 def infer_public(
@@ -1537,8 +1541,13 @@ def _infer_state(
     rebuild_wall_seconds: int | None = None,
     practice_timing: bool = False,
     single_call: dict | None = None,
+    trust_outputs: int = 0,
 ) -> BundleInferenceResult:
-    """`program` and `staged_files` serve a graph adapter's own inference
+    """`trust_outputs` (k >= 1) is a self-trust candidate's count of trust columns (SELF_TRUST H3f): it needs the trust
+    program variant (`trust_infer.trust_program`) as its `program`, the container then splits the raw (n, W + k) output
+    into `predictions.json` (width W, exactly as today, `expected_output_shape` stays the BASE shape) and `sigma.json`.
+
+    `program` and `staged_files` serve a graph adapter's own inference
     program and its extra trusted modules (`direct_graph_construction_worker`).
     Omitted, this is the plain inference program.
 
@@ -1551,6 +1560,10 @@ def _infer_state(
         "DIRECT_GRAPH_PUBLIC_INFERENCE",
     ):
         raise RecipeRefused("direct_inference_provenance_invalid")
+    if type(trust_outputs) is not int or trust_outputs < 0:
+        raise RecipeRefused("direct_inference_trust_invalid")
+    if trust_outputs and (program is None or single_call is not None):
+        raise RecipeRefused("direct_inference_trust_needs_its_own_program")
     allowed = _trusted_allowlist(allowlist_bytes)
     inputs_bytes = _tensors(inputs=inputs)
     files, codec_modules = _stage_bundle_modules(binding, training=False)
@@ -1569,6 +1582,8 @@ def _infer_state(
     }
     if expected_output_dtype is not None:
         control["expected_output_dtype"] = expected_output_dtype
+    if trust_outputs:
+        control["trust_outputs"] = trust_outputs
     if measure_query:
         control["measure_query"] = True
     if measure_query or not per_case:
@@ -1607,11 +1622,13 @@ def _infer_state(
         if {path.name for path in snapshot.iterdir()} != {
             "predictions.json",
             "receipt.json",
+            *(("sigma.json",) if trust_outputs else ()),
         }:
             raise ValueError("bundle inference output set differs")
         for name, ceiling in (
             ("predictions.json", 16 * 1024**2),
             ("receipt.json", 65536),
+            *((("sigma.json", 16 * 1024**2),) if trust_outputs else ()),
         ):
             path = snapshot / name
             if (
@@ -1622,9 +1639,11 @@ def _infer_state(
                 raise ValueError("bounded bundle inference output required")
         raw = (snapshot / "predictions.json").read_bytes()
         receipt_raw = (snapshot / "receipt.json").read_bytes()
+        sigma_raw = (snapshot / "sigma.json").read_bytes() if trust_outputs else None
         try:
             predictions = json.loads(raw)
             receipt = parse_strategy(receipt_raw, max_bytes=65536)
+            sigma = None if sigma_raw is None else json.loads(sigma_raw)
         except (ValueError, MalformedStrategy):
             raise ValueError("bundle inference output malformed") from None
         expected_receipt = {
@@ -1642,6 +1661,11 @@ def _infer_state(
             "inputs_digest": _digest(inputs_bytes),
             "predictions_digest": _digest(raw),
         }
+        if trust_outputs:
+            if type(sigma) is not list or len(sigma) != len(inputs):
+                raise ValueError("bundle inference output identity differs")
+            expected_receipt["sigma_digest"] = _digest(sigma_raw)
+            expected_receipt["trust_outputs"] = trust_outputs
         if measure_query:
             measured = receipt.get("measurement")
             if (
@@ -1698,7 +1722,7 @@ def _infer_state(
             expected_receipt["single_call"] = receipt["single_call"]
         if type(predictions) is not list or receipt != expected_receipt:
             raise ValueError("bundle inference output identity differs")
-        return raw, predictions, receipt
+        return raw, predictions, receipt, sigma_raw, sigma
 
     from . import case_procs
 
@@ -1754,10 +1778,14 @@ def _infer_state(
                 )
         raise
     snapshot = ledger.root / worker["operation"] / "snapshot"
-    raw, predictions, receipt = checked(snapshot)
+    raw, predictions, receipt, sigma_raw, sigma = checked(snapshot)
     if any(
         _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
-        for name in ("predictions.json", "receipt.json")
+        for name in (
+            "predictions.json",
+            "receipt.json",
+            *(("sigma.json",) if trust_outputs else ()),
+        )
     ):
         raise ValueError("bundle inference output custody differs")
     return BundleInferenceResult(
@@ -1767,6 +1795,8 @@ def _infer_state(
         predictions,
         worker["operation"],
         receipt,
+        None if sigma_raw is None else _digest(sigma_raw),
+        sigma,
     )
 
 
