@@ -9,8 +9,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "dev"))
 
@@ -33,7 +31,7 @@ def _wave(tmp_path, strata):
     root = tmp_path / "wave"
     root.mkdir()
     for i, (stratum, arms, expect) in enumerate(strata):
-        folder = root / ("r%02d" % i)
+        folder = root / f"r{i:02d}"
         folder.mkdir()
         (folder / "recipe.json").write_text(json.dumps({"recipe": i}))
         (folder / "envelope.json").write_text(_envelope())
@@ -78,7 +76,7 @@ def _fake(calls, within=None, fail=None):
 
 
 def test_run_order_original_at_seed_zero_first_then_every_arm_at_every_seed(tmp_path):
-    root, out, verify = _wave(
+    root, _out, _verify = _wave(
         tmp_path,
         [("S", ["original", "default:steps"], True), ("S", ["original"], False)],
     )
@@ -98,13 +96,13 @@ def test_run_order_original_at_seed_zero_first_then_every_arm_at_every_seed(tmp_
 def test_run_writes_every_report_and_a_rerun_resumes_without_retraining(tmp_path):
     root, out, verify = _wave(tmp_path, [("S", ["original", "defaults_all"], True)])
     calls = []
-    kw = dict(
-        load_max=32,
-        pause_s=0,
-        retrain=_fake(calls),
-        load1=lambda: 1.0,
-        sleep=lambda s: None,
-    )
+    kw = {
+        "load_max": 32,
+        "pause_s": 0,
+        "retrain": _fake(calls),
+        "load1": lambda: 1.0,
+        "sleep": lambda s: None,
+    }
     assert wave.run(root, out, verify, "0" * 64, SEEDS, **kw) == 0
     assert len(calls) == 5 and calls[0] == (0, "original", 0, "sha256:" + "a" * 64)
     assert len(list(out.glob("r00__*.json"))) == 5

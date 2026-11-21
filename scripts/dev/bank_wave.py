@@ -138,7 +138,7 @@ def run(
                 "seed": seed,
                 "admission": {"state": "REFUSED", "code": refused.code},
             }
-        except Exception as error:  # Carbon's failure, recorded by its class name only
+        except Exception as error:  # noqa: BLE001 - any failure = a typed row
             report = {
                 "arm": arm,
                 "seed": seed,
@@ -164,12 +164,16 @@ def _metrics(report):
     ) or {}
     fit = report.get("fit") or {}
     return {
-        "within": within.get("n_within_u")
-        if isinstance(within.get("n_within_u"), int)
-        else None,
-        "loss": fit.get("train_loss")
-        if isinstance(fit.get("train_loss"), (int, float))
-        else None,
+        "within": (
+            within.get("n_within_u")
+            if isinstance(within.get("n_within_u"), int)
+            else None
+        ),
+        "loss": (
+            fit.get("train_loss")
+            if isinstance(fit.get("train_loss"), (int, float))
+            else None
+        ),
     }
 
 
@@ -247,9 +251,9 @@ def aggregate(wave, out, *, min_recipes=3):
             "within_u_improved": sum(d > 0 for d in deltas),
             "within_u_same": sum(d == 0 for d in deltas),
             "within_u_worse": sum(d < 0 for d in deltas),
-            "train_loss_ratio_median": round(statistics.median(ratios), 6)
-            if ratios
-            else None,
+            "train_loss_ratio_median": (
+                round(statistics.median(ratios), 6) if ratios else None
+            ),
         }
     result["seed_spread_train_loss_median"] = {
         s: statistics.median(v for _f, v in rows)
