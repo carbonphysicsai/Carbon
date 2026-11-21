@@ -31,7 +31,8 @@ def _softplus(x):
 def derive(rows, inputs):
     """`(n, 2)`: die peak temperature (C) and hydraulic power (W) of each encoded row under its case.
 
-    `rows` is `(n, >= 32)`; `inputs` is `(n, >= 9)` with the first nine columns the Cooling inputs in `domain.INPUTS` order."""
+    `rows` is `(n, >= 32)`; `inputs` is `(n, >= 9)` with the first nine columns the Cooling inputs in `domain.INPUTS` order.
+    """
     import jax.numpy as jnp
     from jax.scipy.special import erf
 

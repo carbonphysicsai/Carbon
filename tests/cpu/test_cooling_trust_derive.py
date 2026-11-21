@@ -9,7 +9,7 @@ import pytest
 
 jax = pytest.importorskip("jax")
 
-from carbon.cold_plate import domain, exam, output_encoding, trust_derive  # noqa: E402
+from carbon.cold_plate import domain, exam, output_encoding, trust_derive
 
 jax.config.update("jax_enable_x64", True)
 
@@ -59,7 +59,7 @@ def test_the_jax_derive_equals_the_numpy_reference_on_random_cases():
 
 
 def test_the_derive_reads_the_32_first_slots_and_ignores_the_rest():
-    (case, row), = cases(1, seed=7)
+    ((case, row),) = cases(1, seed=7)
     inputs = np.array([[case[name] for name in domain.INPUTS]])
     base = np.asarray(trust_derive.derive(row[None, :32], inputs))
     wide = np.asarray(trust_derive.derive(row[None, :], inputs))
@@ -67,12 +67,14 @@ def test_the_derive_reads_the_32_first_slots_and_ignores_the_rest():
 
 
 def test_the_hydraulic_power_scales_with_the_flow_and_the_die_peak_with_the_heat_load():
-    (case, row), = cases(1, seed=3)
+    ((case, row),) = cases(1, seed=3)
     inputs = np.array([[case[name] for name in domain.INPUTS]])
     base = np.asarray(trust_derive.derive(row[None, :], inputs))[0]
     more_flow = inputs.copy()
     more_flow[0, domain.INPUTS.index("flow_lpm_per_kw")] *= 1.1
-    assert np.asarray(trust_derive.derive(row[None, :], more_flow))[0, 1] == pytest.approx(base[1] * 1.1)
+    assert np.asarray(trust_derive.derive(row[None, :], more_flow))[
+        0, 1
+    ] == pytest.approx(base[1] * 1.1)
     hotter = inputs.copy()
     hotter[0, domain.INPUTS.index("heat_load_w")] *= 1.05
     assert np.asarray(trust_derive.derive(row[None, :], hotter))[0, 0] > base[0]
