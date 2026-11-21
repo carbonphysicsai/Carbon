@@ -17,7 +17,7 @@ phases so that the physics fit is exactly what it is today:
   and every other parameter are frozen, so the W columns are byte-identical with and without the trust head.
 
 NO SILENT IN-SAMPLE FALLBACK (V2 09:10:14Z): with no held-out row (`train_fraction` >= 1, or too few rows) phase 2 does not run and
-the result carries the typed status `no_held_out_rows`; the trust parameters keep their initial values and the trust read
+the result carries the typed status `no_held_out_rows`; the trust parameters are whatever phase 1 returned (never an in-sample fit) and the trust read
 reports nothing. Every science-adjacent value (the sigma floor per trust output, the phase-2 epochs and learning rate) is the
 version's registration with NO default: a missing one refuses typed (`trust_value_is_human_input`).
 
@@ -150,18 +150,18 @@ def combined_residual(
 
     width = spec.width
     combine_j, mu_j, sd_j = jnp.asarray(combine), jnp.asarray(mu), jnp.asarray(sd)
-    x_all, y_all = jnp.asarray(inputs), jnp.asarray(targets)
-    member_params = [[jnp.asarray(p) for p in member] for member in members]
-    residuals = []
-    for rows, used in _chunks(held, prepared.batch):
-        rows = jnp.asarray(rows)
-        total = None
-        for weights, params in zip(combine_j, member_params):
-            term = prepared.apply(params, x_all[rows])[0][..., :width] * weights
-            total = term if total is None else total + term
-        residual = spec.derive(total * sd_j + mu_j) - spec.derive(y_all[rows])
-        residuals.append(np.asarray(residual)[:used])
-    return np.concatenate(residuals, axis=0)
+    held_rows = jnp.asarray(held)
+    x_held, y_held = jnp.asarray(inputs)[held_rows], jnp.asarray(targets)[held_rows]
+    total = None
+    for weights, member in zip(combine_j, members):
+        params = [jnp.asarray(p) for p in member]
+        # the way Carbon GRADES: one case per call, the case at row 0 and zero rows after (door-code 10:10:41Z: a graph whose
+        # output depends on its batch-mates is allowed to build, which is why grading is isolated; the residual must be the
+        # reported prediction's, not a batched one's)
+        term = prepared.predict(params, x_held, isolated=True)[0][..., :width] * weights
+        total = term if total is None else total + term
+    residual = spec.derive(total * sd_j + mu_j) - spec.derive(y_held)
+    return np.asarray(residual)
 
 
 def _initial_trust_parameters(prepared, seed, indices, like):
