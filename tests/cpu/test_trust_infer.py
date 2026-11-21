@@ -237,9 +237,21 @@ def test_the_trust_query_is_the_versions_own_program_plus_the_count():
     plain = graph_worker.v2_infer_query(*key)
     trust = graph_worker.v2_trust_infer_query(*key, 3)
     assert trust["trust_outputs"] == 3 and "trust_outputs" not in plain
-    assert trust["program"] == trust_infer.trust_program(plain["program"])
-    for field in ("input_name", "staged_files"):
-        assert trust[field] == plain[field]
+    # H3d-2c part 3a: the trust query also lists and stages the trust ensemble state module (state v3), nothing else differs
+    state_v3 = "carbon.development_session.physical_graph_state_v3"
+    modules = (
+        *worker.STAGED_MODULES,
+        "carbon.development_session.physical_graph_state",
+        "carbon.development_session.physical_graph_state_v2",
+    )
+    expected = trust_infer.trust_program(plain["program"])
+    assert expected.count(repr(modules)) == 1
+    assert trust["program"] == expected.replace(repr(modules), repr((*modules, state_v3)))
+    assert trust["input_name"] == plain["input_name"]
+    assert {k: v for k, v in trust["staged_files"].items() if k != state_v3 + ".py"} == plain[
+        "staged_files"
+    ]
+    assert state_v3 + ".py" in trust["staged_files"]
 
 
 def test_a_per_case_processes_version_and_a_bad_count_have_no_trust_program():
