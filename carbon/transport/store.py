@@ -22,8 +22,12 @@ from .models import (
 PRUNE_AT = 0.8  # prune old receipts (and alert) at this share of capacity
 #: A receipt older than this (by its received time) may be pruned when no journal extension table names it.
 PRUNE_AGE_NS = 3600 * 1_000_000_000
-#: At most this many receipts go in one admission (bounded work in the admission's transaction).
-PRUNE_BATCH = 20_000
+#: At most this many receipts go in one admission (bounded work in the admission's transaction). The prune runs INSIDE
+#: the request that finds the journal at `PRUNE_AT`, holding the journal's write transaction, so every other request
+#: waits behind it: live 116 21 Nov 05:16-05:21Z one 20,000-row prune (79,985 -> 60,178, sre 05:40Z) coincided with a
+#: /mcp request at the front's 30 s timeout (mcp_slow). 2,000 per admission spreads the same work over the next ten
+#: admissions above the mark (an operational value; the keep rules are unchanged).
+PRUNE_BATCH = 2_000
 #: The columns of a journal extension table that name a receipt by its sequence (`candidates`: ``receipt``,
 #: `miner_mcp`: ``receipt_sequence``; any ``*_receipt_sequence`` too). V2 (18 Nov 2026): a receipt a ReceiptRef names
 #: (`resolve`) is never pruned.
