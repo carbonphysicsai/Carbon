@@ -2501,9 +2501,12 @@ class OwnerProviders:
 
     #: The background warm-up (`start_lazy_warmer`): a lazy owner whose newest task was created within this many seconds
     #: is opened after listening, newest first, at most `WARM_MAX` of them, one at a time, `WARM_PAUSE_SECONDS` apart.
+    #: Live 116, 21 Nov 05:10-05:30Z (live-ops 05:49Z): at a 2 s pause the 200 restores ran ~20 min nearly back to back
+    #: and every /mcp call slowed meanwhile (p90 13.6 s vs ~5.8 s after); 10 s halves the restores' share of the door's
+    #: one Python process for ~60 min instead (an operational value, not science).
     WARM_RECENT_SECONDS = 24 * 3600
     WARM_MAX = 200
-    WARM_PAUSE_SECONDS = 2.0
+    WARM_PAUSE_SECONDS = 10.0
 
     def lazy_warm_order(self, now=None):
         """The hotkeys of the lazy owners with recent activity (a task created within `WARM_RECENT_SECONDS`), newest
