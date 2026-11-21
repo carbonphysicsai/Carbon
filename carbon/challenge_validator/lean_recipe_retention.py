@@ -676,20 +676,38 @@ def _v1_worker(raw, predictions):
         raise RetentionUnavailable("worker_evidence_unpack") from exc
 
 
-def _kept_files(artifacts):
+def _kept_files(artifacts, task_root=None):
     """The bytes each retained file is KEPT as on disk (and named by in a role manifest): its own, except a graph's v1
     worker evidence whose base64 is exactly the retained predictions.json, kept packed (H2: without the base64, schema
     v2; `bundle_benchmark_core.pack_graph_worker`). Every reader of a kept task folder unpacks it (`_v1_worker`).
+
+    ``task_root`` (a task folder that may already exist): a task kept BEFORE H2 holds its worker evidence as the v1
+    bytes; those are kept exactly (write-once), never repacked, so a later re-retention of the same task (an owed
+    regrade, a hand-back) meets its own files again instead of an ``immutable session artifact conflict`` (live 116,
+    20 Nov 23:01Z: rtsk_fe9da399's owed regrade). Readers take either form.
     """
     from carbon.scoring import bundle_benchmark_core as bundle
 
     kept = dict(artifacts)
     raw = artifacts.get(WORKER_EVIDENCE)
+    if raw is not None and task_root is not None and _holds(task_root, raw):
+        return kept
     if raw is not None and "predictions.json" in artifacts:
         packed = bundle.pack_graph_worker(raw, artifacts["predictions.json"])
         if packed is not None:
             kept[WORKER_EVIDENCE] = packed
     return kept
+
+
+def _holds(task_root, raw):
+    """Whether ``task_root`` already keeps ``raw`` as its worker evidence (a regular file, these exact bytes)."""
+    path = Path(task_root) / WORKER_EVIDENCE
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size != len(raw):
+            return False
+        return path.read_bytes() == raw
+    except OSError:
+        return False
 
 
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
@@ -972,7 +990,7 @@ def _write_retained(task_root, artifacts, sources=None):
     # 0600 as `write_once` writes it): the public train, fixture, allowlist, kit and image of every grade of one
     # version are the same bytes (sre 20 Nov 2026); same names, bytes and digests for every reader
     objects = retained_objects(task_root)
-    for name, raw in _kept_files(artifacts).items():
+    for name, raw in _kept_files(artifacts, task_root).items():
         source = sources.get(name)
         if source is None:
             # an existing name must hold exactly these bytes (`write_once`'s check, in `store_once`'s fallback)
@@ -1040,7 +1058,11 @@ def _retain_graph_artifacts(
             for role, (name, codec) in sorted(roles.items())
         },
         "retained_files": {
-            name: _sha(raw) for name, raw in sorted(_kept_files(artifacts).items())
+            name: _sha(raw)
+            for name, raw in sorted(
+                # a task kept before H2 is named by its own v1 bytes (`_kept_files`)
+                _kept_files(artifacts, Path(artifact_directory) / submission_id).items()
+            )
         },
         "physics_contract": None,
     }

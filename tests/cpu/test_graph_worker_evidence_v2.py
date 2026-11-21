@@ -229,3 +229,31 @@ def test_custody_refuses_a_packed_graph_with_base64_or_another_digest(tmp_path):
     _to_v2(root, manifest_path, originals, predictions_digest=_sha(b"other"))
     with pytest.raises(custody.CustodyRefused):
         custody.prepare_custody_v5(root, manifest_path)
+
+
+def test_a_task_kept_before_h2_keeps_its_v1_worker_evidence_on_re_retention(tmp_path):
+    """Live 116, 20 Nov 23:01Z: rtsk_fe9da399's owed regrade re-retained its graph artifacts and met its own pre-H2 v1
+    worker-evidence.json (packed bytes now differ: ``immutable session artifact conflict``). A task folder that already
+    keeps the v1 bytes keeps them (on disk and in its role manifest's digest); a new folder is packed as before.
+    """
+    raw = retention._json(_v1())
+    artifacts = {"predictions.json": PREDICTIONS, retention.WORKER_EVIDENCE: raw}
+    old = tmp_path / "old"
+    old.mkdir(mode=0o700)
+    (old / retention.WORKER_EVIDENCE).write_bytes(raw)  # kept before H2
+    (old / "predictions.json").write_bytes(PREDICTIONS)
+    assert retention._kept_files(artifacts, old)[retention.WORKER_EVIDENCE] == raw
+    retention._write_retained(old, artifacts)  # the re-retention: no conflict
+    assert (old / retention.WORKER_EVIDENCE).read_bytes() == raw
+    assert retention._v1_worker(raw, PREDICTIONS) == raw  # readers take the v1 form
+    # a fresh folder, or one holding other bytes, is packed (H2) exactly as before
+    new = tmp_path / "new"
+    assert retention._kept_files(artifacts, new)[retention.WORKER_EVIDENCE] == (
+        retention._json(_v2())
+    )
+    other = tmp_path / "other"
+    other.mkdir(mode=0o700)
+    (other / retention.WORKER_EVIDENCE).write_bytes(b"{}")
+    assert retention._kept_files(artifacts, other)[retention.WORKER_EVIDENCE] == (
+        retention._json(_v2())
+    )
