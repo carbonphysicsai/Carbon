@@ -897,7 +897,12 @@ class AutoGrader:
         """
         from . import auto_retry
 
-        if not auto_retry.version_wide(code):
+        # an expired exam key ends as today (FAILED, slot given back): the task was admitted under that key, and a
+        # rotation must never grade it on another exam (v2 pre-read 00:35:14Z, condition (1))
+        if (
+            not auto_retry.version_wide(code)
+            or code.split(":", 1)[0] == "exam_key_expired"
+        ):
             return False
         # a give-back that fails: the usual FAILED path decides
         try:

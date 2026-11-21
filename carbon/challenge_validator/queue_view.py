@@ -231,6 +231,11 @@ class QueueView:
             return qp.DRAINING
         if self.grader.chain_degraded():
             return qp.PAUSED
+        gap = getattr(self.grader, "_gap_waits", None)
+        if callable(gap) and gap():
+            # a version-wide Carbon gap: the door claims no grade until it answers (`auto_grade.VERSION_GAP_SECONDS`);
+            # the public word is "paused", never the operator's code (over-broad rules audit S7 G4, v2 condition (3))
+            return qp.PAUSED
         if getattr(self.grader, "activity", None) == "king":
             return qp.KING
         return qp.GRADING

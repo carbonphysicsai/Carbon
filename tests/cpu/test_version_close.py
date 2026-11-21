@@ -120,6 +120,28 @@ def test_the_old_roots_grader_grades_none_of_them(root):
     assert grader.pending() == []
 
 
+def test_a_task_waiting_on_a_version_gap_is_closed_like_any_queued_one(root):
+    """v2 pre-read 00:35:14Z (1), over-broad rules audit S7 G4: a task kept PENDING by a version-wide gap has no marker,
+    so a version flip closes it (VERSION_CLOSED, nothing charged) exactly as any queued task: never pending for ever.
+    """
+    import time
+
+    adapter = SimpleNamespace(
+        ledger=AttemptLedger(root / "attempts.sqlite3"), contract_digest=CONTRACT
+    )
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.intake = SimpleNamespace(adapter=adapter)
+    grader.markers = root / "auto-grade" / "markers"
+    grader._version_gap_at = (
+        time.time()
+    )  # the door waits on a gap: T[0] and T[2] pending, no marker
+    assert grader._gap_waits() and T[0] in grader.pending()
+    vc.close_queued(root, challenge_id=CHALLENGE, version=OLD)
+    marker = json.loads((grader.markers / (T[0] + ".json")).read_text())
+    assert marker["state"] == "VERSION_CLOSED"
+    assert grader.pending() == []
+
+
 def _intake(owners, closed=None, markers=None):
     intake = SimpleNamespace(
         adapter=SimpleNamespace(owner=lambda sid: owners.get(sid)),

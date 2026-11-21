@@ -326,6 +326,70 @@ def test_a_version_wide_gap_keeps_the_task_pending_and_the_door_waits_then_grade
     assert attempts == [A, A]
 
 
+def test_an_expired_exam_key_still_ends_failed_as_today(tmp_path):
+    """v2 pre-read 00:35:14Z (1): a task admitted under an exam key that expired is never kept pending (a rotation
+    must never grade it on another exam): FAILED, its slot given back, exactly as before.
+    """
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    root, ledger = _root(tmp_path)
+
+    def retain(task):
+        raise RetentionUnavailable("exam_key_expired")
+
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
+    assert grader.run_once() == (A, "FAILED")
+    assert grader.marker(A)["next_step"] == "resubmit_after_fix"
+    assert not grader._gap_waits()
+
+
+def test_the_version_gap_line_is_logged_once_per_code_per_hour(tmp_path, monkeypatch):
+    """v2 pre-read 00:35:14Z (2): ``version_gap_pending`` once per code per hour, counts and closed codes only."""
+    from carbon.battery import intake
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    lines = []
+    monkeypatch.setattr(intake, "log", lambda event, **f: lines.append((event, f)))
+    monkeypatch.setattr(auto_grade, "VERSION_GAP_SECONDS", 0)  # every round tries
+    root, ledger = _root(tmp_path)
+    codes = [
+        "menu_draw_unavailable",
+        "menu_draw_unavailable",
+        "pool_constants_unregistered",
+    ]
+
+    def retain(task):
+        raise RetentionUnavailable(codes.pop(0))
+
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
+    for _ in range(3):
+        assert grader.run_once() is None
+    gap_lines = [f for e, f in lines if e == "version_gap_pending"]
+    assert gap_lines == [
+        {"code": "menu_draw_unavailable", "wait_s": 0},
+        {"code": "pool_constants_unregistered", "wait_s": 0},
+    ]
+
+
+def test_the_public_queue_says_paused_while_the_door_waits_on_a_version_gap(tmp_path):
+    """v2 pre-read 00:35:14Z (3): the task's row stays 'waiting to grade' and the door's public state is 'paused' (the
+    plain word a stale chain shows), never the operator's code."""
+    from carbon.challenge_validator import queue_public as qp
+    from carbon.challenge_validator import queue_view
+
+    waits = [True]
+    grader = SimpleNamespace(
+        chain_degraded=lambda: False, _gap_waits=lambda: waits[0], activity=None
+    )
+    view = queue_view.QueueView.__new__(queue_view.QueueView)
+    view.state, view.grader = tmp_path, grader
+    assert view._door_state() == qp.PAUSED
+    waits[0] = False
+    assert view._door_state() == qp.GRADING
+
+
 @pytest.mark.parametrize(
     "code, wide",
     [
