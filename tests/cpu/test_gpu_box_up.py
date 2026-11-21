@@ -2690,12 +2690,11 @@ def test_the_pod_shape_reads_its_cpuset_and_cgroup_files():
 @pytest.mark.parametrize(
     "cpu_max, memory_max, mem_kib",
     [
-        # 7 x 16 GiB + 8 GiB = 120 GiB; the cgroup limit, not MemTotal, decides
-        ("3100000 100000", str(120 * 1024**3 - 1), 250 * 1024 * 1024),
-        ("3100000 100000", "max", 120 * 1024 * 1024 - 1),
+        # 4 x 16 GiB + 8 GiB = 72 GiB: below it no slot list fits; the cgroup limit, not MemTotal, decides
+        ("3100000 100000", str(72 * 1024**3 - 1024), 250 * 1024 * 1024),
+        ("3100000 100000", "max", 72 * 1024 * 1024 - 1),
         # a limit above MemTotal counts as MemTotal
-        ("3100000 100000", str(500 * 1024**3), 100 * 1024 * 1024),
-        # 4 x 16 GiB + 8 GiB = 72 GiB
+        ("3100000 100000", str(500 * 1024**3), 64 * 1024 * 1024),
         ("1600000 100000", str(72 * 1024**3 - 1024), 250 * 1024 * 1024),
     ],
 )
@@ -2703,6 +2702,53 @@ def test_a_pod_short_of_memory_is_refused(tmp_path, cpu_max, memory_max, mem_kib
     cfg = _pod_admin_config(tmp_path)
     box = FakePod(cfg, cpu_max=cpu_max, memory_max=memory_max, mem_kib=mem_kib)
     _admin_refused(_admin(cfg, box), "slot_shape_memory")
+
+
+@pytest.mark.parametrize(
+    "memory_max, mem_kib, limit_kib",
+    [
+        # Lium 1 x RTX 6000 Ada pod, 21 Nov 2026: 31 CPUs, memory.max 112 GiB < 7 x 16 + 8 = 120 GiB
+        (str(112 * 1024**3), 125 * 1024 * 1024, 112 * 1024 * 1024),
+        (str(120 * 1024**3 - 1024), 250 * 1024 * 1024, 120 * 1024 * 1024 - 1),
+        ("max", 120 * 1024 * 1024 - 1, 120 * 1024 * 1024 - 1),
+        # a limit above MemTotal counts as MemTotal
+        (str(500 * 1024**3), 100 * 1024 * 1024, 100 * 1024 * 1024),
+        # exactly 4 x 16 GiB + 8 GiB
+        (str(72 * 1024**3), 250 * 1024 * 1024, 72 * 1024 * 1024),
+    ],
+)
+def test_a_wide_pod_whose_memory_holds_4_slots_not_7_gets_the_4x4(
+    memory_max, mem_kib, limit_kib
+):
+    out = f"3100000 100000\n32\n0-31\n{memory_max}\nMemTotal: {mem_kib} kB\n"
+    shape = box_up.pod_shape(out)
+    assert shape["slot_cpusets"] == list(box_up.LEGACY_SLOT_CPUSETS)
+    assert shape["cpus"] == 31 and shape["mem_limit_kib"] == limit_kib
+    assert limit_kib >= box_up.slot_mem_kib(4)
+
+
+def test_a_wide_pod_short_of_memory_for_7_is_admitted_with_the_doors_4x4_box_file(
+    tmp_path,
+):
+    from carbon.reconstruction import remote_gpu_build
+
+    cfg = _pod_config(tmp_path)
+    box = FakePod(
+        cfg,
+        cpu_max="3100000 100000",
+        memory_max=str(112 * 1024**3),
+        mem_kib=125 * 1024 * 1024,
+    )
+    assert _run(cfg, box)["status"] == "ADMITTED"
+    path = tmp_path / "boxes" / "a100-1.json"
+    assert json.loads(path.read_text())["slot_cpusets"] == [
+        "0-3",
+        "4-7",
+        "8-11",
+        "12-15",
+    ]
+    lane = remote_gpu_build.read_box(path, kind=KIND, slots=7, root=tmp_path / "host")
+    assert lane.slots == 4
 
 
 def test_exactly_the_pod_memory_floor_passes():

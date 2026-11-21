@@ -37,6 +37,8 @@ with no sudo (refused by the guard), no apt, no driver install and no systemd (`
   shape        from the pod's own cgroup (`POD_SHAPE`, `pod_shape`): usable CPUs = floor(cpu.max quota / period)
                ("max": nproc); >= 28 -> the 7 x 4 slots, 16..27 -> the door's legacy 4 x 4, else ``slot_shape_cpus``;
                every slot CPU in the pod's allowed cpuset; 16 GiB per slot + 8 GiB within memory.max (or MemTotal).
+               A pod with >= 28 CPUs whose memory holds 4 slots but not 7 gets the legacy 4 x 4 (a Lium 1 x RTX 6000
+               Ada pod: 31 CPUs, memory.max 112 GiB < 120), else ``slot_shape_memory``.
                The box file's ``slot_cpusets`` is that list
   driver       the host's driver, read and checked against the floor, never installed
   docker       nvidia-ctk and nvidia-container-runtime must already be there (else ``pod_nvidia_toolkit_missing``);
@@ -1128,7 +1130,9 @@ def pod_shape(text: str) -> dict:
     ``cpu.max`` ("max": ``nproc``), never the host's CPU count. The slots are the door's two accepted lists only: usable
     >= 28 -> the 7 x 4 `SLOT_CPUSETS`, 16 <= usable < 28 -> the 4 x 4 `LEGACY_SLOT_CPUSETS`, else ``slot_shape_cpus``;
     every CPU of them must be in the pod's own allowed cpuset, and its memory limit (``memory.max``, at most MemTotal)
-    must hold 16 GiB per slot + 8 GiB. This is the upper bound on slots: the door's slot COUNT is its own values row.
+    must hold 16 GiB per slot + 8 GiB. A pod with >= 28 usable CPUs whose memory holds the 4 x 4 list but not the 7 x 4
+    gets the 4 x 4 (still 16 GiB per slot + 8 GiB: no slot gets less memory). This is the upper bound on slots: the
+    door's slot COUNT is its own values row.
     """
     lines = [line.strip() for line in text.splitlines()]
     try:
@@ -1150,7 +1154,7 @@ def pod_shape(text: str) -> dict:
         )
     except (IndexError, ValueError):
         raise Refused("shape_unreadable", text.strip()[-200:]) from None
-    if usable >= MIN_CPUS:
+    if usable >= MIN_CPUS and limit >= slot_mem_kib(len(SLOT_CPUSETS)):
         slots = SLOT_CPUSETS
     elif usable >= MIN_LEGACY_CPUS:
         slots = LEGACY_SLOT_CPUSETS
