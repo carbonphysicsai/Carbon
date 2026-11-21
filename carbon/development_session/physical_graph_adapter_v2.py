@@ -753,7 +753,8 @@ class EnsembleGraphModel:
     def _fit_trust(self, trainer, inputs, targets, seed):
         """The two-phase fit (`physical_graph_trainer_v4`): the version's own pinned trainer on the W-view, then the trust head on
         the held-out rows. The trust values (derive, sigma floor, epochs, learning rate) are the version's registration
-        (`physical_graph_trust_registry`); with none the fit refuses typed and trains nothing."""
+        (`physical_graph_trust_registry`); with none the fit refuses typed and trains nothing.
+        """
         from . import physical_graph_trainer_v4 as v4
         from . import physical_graph_trust_registry as registry
 

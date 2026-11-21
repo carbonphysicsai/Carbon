@@ -15,10 +15,16 @@ import pytest
 
 from carbon.development_session import (
     physical_graph_adapter_v2 as v2,
+)
+from carbon.development_session import (
     physical_graph_state_v2,
     physical_graph_state_v3,
     physical_graph_trainer_v2,
+)
+from carbon.development_session import (
     physical_graph_trainer_v4 as v4,
+)
+from carbon.development_session import (
     physical_graph_trust_registry as registry,
 )
 from carbon.development_session.construction_recipe import RecipeRefused
@@ -98,11 +104,15 @@ def test_the_registry_is_empty_and_an_unregistered_version_refuses_typed():
     assert refused.value.code == "trust_version_not_registered"
 
 
-def test_a_registered_versions_values_flow_into_the_spec_and_a_missing_one_stays_none(monkeypatch):
+def test_a_registered_versions_values_flow_into_the_spec_and_a_missing_one_stays_none(
+    monkeypatch,
+):
     def derive(native):
         return native[:, :1]
 
-    monkeypatch.setitem(registry.REGISTRATIONS, ("x", "1"), {"derive": derive, "epochs": 4})
+    monkeypatch.setitem(
+        registry.REGISTRATIONS, ("x", "1"), {"derive": derive, "epochs": 4}
+    )
     spec = registry.trust_spec("x", "1", width=3, outputs=1, trust_parameters=[2, 5])
     assert spec.derive is derive and spec.trust_parameters == (2, 5)
     assert spec.epochs == 4 and spec.sigma_floor is None and spec.learning_rate is None
@@ -114,14 +124,18 @@ def test_a_registered_versions_values_flow_into_the_spec_and_a_missing_one_stays
 # -- the fit -------------------------------------------------------------------------------------------------------------------------
 
 
-def test_a_trust_candidates_fit_runs_the_two_phase_trainer_around_the_versions_own_trainer(monkeypatch):
+def test_a_trust_candidates_fit_runs_the_two_phase_trainer_around_the_versions_own_trainer(
+    monkeypatch,
+):
     calls = {}
 
     def fake_train(prepared, inputs, targets, settings, *, seed, base_trainer, spec):
         calls.update(base=base_trainer, spec=spec, seed=seed)
         return fitted({"status": "trained", "held_out_rows": 3})
 
-    def fail(*args, **kwargs):  # the plain trainer must not be called directly for a trust candidate
+    def fail(
+        *args, **kwargs
+    ):  # the plain trainer must not be called directly for a trust candidate
         raise AssertionError("plain trainer called")
 
     monkeypatch.setattr(v4, "train", fake_train)
@@ -129,7 +143,12 @@ def test_a_trust_candidates_fit_runs_the_two_phase_trainer_around_the_versions_o
     monkeypatch.setitem(
         registry.REGISTRATIONS,
         (BASE.challenge_id, BASE.version),
-        {"derive": lambda native: native, "sigma_floor": (0.1,) * K, "epochs": 2, "learning_rate": 0.01},
+        {
+            "derive": lambda native: native,
+            "sigma_floor": (0.1,) * K,
+            "epochs": 2,
+            "learning_rate": 0.01,
+        },
     )
     candidate = model(trust=True)
     receipt = candidate.fit(*data(candidate.spec), seed=7)
@@ -142,7 +161,9 @@ def test_a_trust_candidates_fit_runs_the_two_phase_trainer_around_the_versions_o
 
 def test_a_trust_fit_with_no_registration_refuses_typed_and_trains_nothing(monkeypatch):
     called = []
-    monkeypatch.setattr(physical_graph_trainer_v2, "train", lambda *a, **k: called.append(1))
+    monkeypatch.setattr(
+        physical_graph_trainer_v2, "train", lambda *a, **k: called.append(1)
+    )
     candidate = model(trust=True)
     with pytest.raises(RecipeRefused, match="graph_route_trust_version_not_registered"):
         candidate.fit(*data(candidate.spec), seed=0)
@@ -163,25 +184,40 @@ def test_a_non_trust_candidates_fit_is_the_plain_trainer_with_no_trust_key(monke
     monkeypatch.setattr(v4, "train", fail)
     candidate = model(trust=False, spec=BASE)
     receipt = candidate.fit(*data(BASE), seed=0)
-    assert seen["called"] and "trust" not in receipt and "trust_trainer_sha256" not in receipt
+    assert (
+        seen["called"]
+        and "trust" not in receipt
+        and "trust_trainer_sha256" not in receipt
+    )
 
 
 # -- the state and the prediction ----------------------------------------------------------------------------------------------------
 
 
-def test_a_trust_models_frozen_state_is_the_trust_state_and_a_plain_ones_is_v2s(monkeypatch):
+def test_a_trust_models_frozen_state_is_the_trust_state_and_a_plain_ones_is_v2s(
+    monkeypatch,
+):
     captured = {}
     monkeypatch.setattr(
-        physical_graph_state_v3, "freeze", lambda *args, **kwargs: captured.setdefault("v3", kwargs) or b"v3"
+        physical_graph_state_v3,
+        "freeze",
+        lambda *args, **kwargs: captured.setdefault("v3", kwargs) or b"v3",
     )
-    monkeypatch.setattr(physical_graph_state_v2, "freeze", lambda *args, **kwargs: b"v2")
+    monkeypatch.setattr(
+        physical_graph_state_v2, "freeze", lambda *args, **kwargs: b"v2"
+    )
     trusted = model(trust=True)
     trusted.members, trusted.combine = [[np.ones(1)]], np.ones((1, BASE.outputs))
     trusted.mu, trusted.sd = np.zeros(BASE.outputs), np.ones(BASE.outputs)
     trusted.frozen_state()
     assert captured["v3"] == {"trust_width": K}
     plain = model(trust=False, spec=BASE)
-    plain.members, plain.combine, plain.mu, plain.sd = trusted.members, trusted.combine, trusted.mu, trusted.sd
+    plain.members, plain.combine, plain.mu, plain.sd = (
+        trusted.members,
+        trusted.combine,
+        trusted.mu,
+        trusted.sd,
+    )
     assert plain.frozen_state() == b"v2"
 
 
@@ -191,7 +227,9 @@ def test_a_trust_models_prediction_is_its_physics_columns_decoded():
     width = BASE.outputs
     raw = np.arange(3 * (width + K), dtype=np.float64).reshape(3, width + K)
     candidate.prepared = SimpleNamespace(
-        parameters=(object(),), loss=None, predict=lambda params, x, isolated=False: [raw]
+        parameters=(object(),),
+        loss=None,
+        predict=lambda params, x, isolated=False: [raw],
     )
     candidate.members = [[np.ones(1)]]
     candidate.combine = np.full((1, width), 0.5)
@@ -199,4 +237,6 @@ def test_a_trust_models_prediction_is_its_physics_columns_decoded():
     inputs = np.ones((3, BASE.inputs), dtype=np.dtype(BASE.dtype))
     result = candidate.predict(inputs)
     assert result.shape == (3, width)
-    np.testing.assert_allclose(result, (raw[:, :width] * 0.5) * 2.0 + 1.0)  # the trust columns are not in the answer
+    np.testing.assert_allclose(
+        result, (raw[:, :width] * 0.5) * 2.0 + 1.0
+    )  # the trust columns are not in the answer
