@@ -1040,7 +1040,8 @@ def _v2_stage(
 ):
     """Check a graph route v2 adapter's served identity; return its staged
     files (as `_physical_stage` does for v1). A `trust` candidate (its recipe declares self-trust) also checks the pinned trust
-    trainer's bytes and stages the trust modules (`PHYSICAL_V2_TRUST_STAGED_MODULES`)."""
+    trainer's bytes and stages the trust modules (`PHYSICAL_V2_TRUST_STAGED_MODULES`).
+    """
     from carbon.level4.allowlist import Allowlist
 
     from . import physical_graph_adapter_v2 as adapter
@@ -1191,7 +1192,9 @@ def reconstruct_public_graph(
             raise RecipeRefused("direct_graph_adapter_identity_invalid")
         files = _stage_modules()
         files.update(physical_files)
-        program = PHYSICAL_V2_TRUST_BUILD_PROGRAM if trust else PHYSICAL_V2_BUILD_PROGRAM
+        program = (
+            PHYSICAL_V2_TRUST_BUILD_PROGRAM if trust else PHYSICAL_V2_BUILD_PROGRAM
+        )
         # JAX's 64-bit mode is on when the interface is float64, and also whenever the
         # miner's graph holds a 64-bit value (OWNER-GRAPH-OPS-OPEN-01, Validator row 7):
         # TRAIN, the decoder and the outputs keep the interface dtype either way.
