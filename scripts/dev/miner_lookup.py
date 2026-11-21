@@ -116,9 +116,7 @@ MARKER_TO_CODE = {"cancelled_by_carbon_stop": "direct_task_cancelled"}
 #: grade-state sentence alone would MISLEAD the miner Miner X answers (Miner X 13:22:20Z and sre 00:47:20Z):
 #: a task on V2's owed list is not simply "your model's own run failed", and a build chain that was capped after
 #: `build_requeued` is not "waiting in line".
-OWED_REASON = (
-    "Carbon owes this submission a re-run or a ruling (see 'owed'). Do not read its grade state as the final answer for this task."
-)
+OWED_REASON = "Carbon owes this submission a re-run or a ruling (see 'owed'). Do not read its grade state as the final answer for this task."
 BUILD_REQUEUED = "build_requeued"
 BUILD_REQUEUED_REASON = (
     "Carbon's build of this submission was requeued and the ledger shows nothing after it: it is not waiting in line. "
@@ -807,9 +805,7 @@ def _task(root, db, task, owed, *, detail):
             shown["reason"] = BUILD_REQUEUED_REASON
         else:
             shown["reason"] = (
-                None
-                if shown["outcome_code"] is None
-                else _words(shown["outcome_code"])
+                None if shown["outcome_code"] is None else _words(shown["outcome_code"])
             )
     return shown
 
