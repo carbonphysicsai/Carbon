@@ -2108,6 +2108,11 @@ class OwnerProviders:
         self._lazy_index = {}
         #: directory name -> the lock one lazy owner's first open holds (never the receiver's own lock)
         self._lazy_gates = {}
+        #: hotkey -> the lock a BRAND-NEW owner's first open holds while its provider is built (`_open`): never the
+        #: receiver's own lock, so no other owner's request waits on it (mcp_slow, live 116 21 Nov 02:1xZ)
+        self._open_gates = {}
+        #: the background warm-up of recently active lazy owners (`start_lazy_warmer`), or None
+        self._warmer = None
         #: the grader's verdict marker directory (``<state>/auto-grade/markers``) when this door grades, else None
         self.markers_dir = None
         self._closing = False
@@ -2418,6 +2423,8 @@ class OwnerProviders:
         if not restoring and not host:
             # a lazy owner (`restore`) is reopened first, exactly as `restore` would have, under its own gate only
             self._restore_lazy(hotkey)
+            # a brand-new owner is built under its own gate, outside the receiver's lock (`_open_new`)
+            self._open_new(hotkey)
         with self._lock:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
@@ -2449,6 +2456,119 @@ class OwnerProviders:
             ):
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
+
+    def _open_new(self, hotkey):
+        """Build a BRAND-NEW miner owner's provider (its first submit or status call; never `restore`'s) holding only
+        that owner's gate, then register it under the receiver's lock, so every other owner's request goes on meanwhile
+        (mcp_slow, live 116 21 Nov 2026: `_open` built it under the receiver's lock, and every request of every owner
+        waited the build). The same checks as `_open`, in the same order: closing, set aside, registration (under the
+        lock, before and after the build); nothing for an owner already open, lazy or set aside (the caller's `_open`
+        then answers as before). A failed build raises to the caller exactly as `_open`'s did; nothing is registered.
+        """
+        from carbon.challenge_validator.interface import Unavailable
+
+        name = hashlib.sha256(hotkey.encode()).hexdigest()
+        with self._lock:
+            if (
+                self._closing
+                or hotkey in self._providers
+                or name in self._set_aside
+                or name in self._lazy
+            ):
+                return
+            self._settle_unobserved()
+            if self._admission(hotkey) is None:
+                return  # `_open` refuses it under the lock, as before
+            gate = self.__dict__.setdefault("_open_gates", {}).setdefault(
+                hotkey, threading.Lock()
+            )
+        with gate:
+            with self._lock:
+                if hotkey in self._providers or self._closing:
+                    return  # opened by the touch that held the gate first (or stopping: `_open` answers)
+            provider, control, frozen_admission, live = self._build(
+                hotkey, restoring=False, host=False
+            )
+            with self._lock:
+                if self._closing:
+                    provider.close()
+                    raise Unavailable("direct_receiver_stopping")
+                if hotkey not in self._providers:
+                    self._register(
+                        hotkey,
+                        provider,
+                        control,
+                        frozen_admission,
+                        live,
+                        restoring=False,
+                    )
+                else:
+                    provider.close()
+
+    #: The background warm-up (`start_lazy_warmer`): a lazy owner whose newest task was created within this many seconds
+    #: is opened after listening, newest first, at most `WARM_MAX` of them, one at a time, `WARM_PAUSE_SECONDS` apart.
+    WARM_RECENT_SECONDS = 24 * 3600
+    WARM_MAX = 200
+    WARM_PAUSE_SECONDS = 2.0
+
+    def lazy_warm_order(self, now=None):
+        """The hotkeys of the lazy owners with recent activity (a task created within `WARM_RECENT_SECONDS`), newest
+        first, at most `WARM_MAX`: read from this start's scan (`lazy_index`), never opening anything.
+        """
+        now = time.time() if now is None else now
+        with self._lock:
+            newest = []
+            for name, hotkey in self._lazy.items():
+                created = [
+                    entry[1]
+                    for entry in self._lazy_index.get(name, {}).values()
+                    if type(entry) in (tuple, list)
+                    and len(entry) > 1
+                    and type(entry[1]) in (int, float)
+                ]
+                if created and now - max(created) <= self.WARM_RECENT_SECONDS:
+                    newest.append((max(created), hotkey))
+        newest.sort(reverse=True)
+        return [hotkey for _created, hotkey in newest[: self.WARM_MAX]]
+
+    def start_lazy_warmer(self, *, pause=None, sleep=time.sleep):
+        """After listening (mcp_slow, live 116 21 Nov 2026: an active miner's first status call after a restart waited
+        its owner's whole lazy restore, 11-17 s): ONE daemon thread opens the recently active lazy owners
+        (`lazy_warm_order`) by the same `_restore_lazy` a request would, one at a time with a pause between, so most
+        first calls find their owner open. It stops at a stop (`_closing`) and skips an owner a request already opened;
+        a failure sets that owner aside exactly as a request's touch would. Owners with no recent activity stay lazy
+        (start time unchanged). Never raises; returns the thread (None when there is nothing to warm).
+        """
+        order = self.lazy_warm_order()
+        if not order:
+            return None
+        pause = self.WARM_PAUSE_SECONDS if pause is None else pause
+
+        def warm():
+            warmed = 0
+            for hotkey in order:
+                with self._lock:
+                    if self._closing:
+                        break
+                try:
+                    self._restore_lazy(hotkey)
+                    warmed += 1
+                except Exception:  # noqa: BLE001, S110
+                    pass  # `_restore_lazy` sets a failing owner aside itself
+                sleep(pause)
+            print(
+                json.dumps(
+                    {"event": "owners_warmed", "count": warmed, "planned": len(order)},
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+                flush=True,
+            )
+
+        thread = threading.Thread(target=warm, name="lazy-owner-warmer", daemon=True)
+        self._warmer = thread
+        thread.start()
+        return thread
 
     def _register(
         self, hotkey, provider, control, frozen_admission, live, *, restoring
@@ -3662,6 +3782,8 @@ def serve(
             if grader is not None:
                 _open_crown_owners(grader)
             providers.log_open_counts()
+            # the recently active lazy owners are opened in the background, off every request's path (mcp_slow)
+            providers.start_lazy_warmer()
             serve_loopback(
                 intake,
                 {"host": cfg["host"], "port": cfg["port"]},
