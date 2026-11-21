@@ -234,9 +234,9 @@ def _log_submit_timing(began, received_at, charged_at, steps):
         now = time.monotonic()
         log(
             "submit_timing",
-            total_ms=int((now - began) * 1000),
-            receive_ms=int((received_at - began) * 1000),
-            charge_ms=int((charged_at - received_at) * 1000),
+            total_ms=round((now - began) * 1000),
+            receive_ms=round((received_at - began) * 1000),
+            charge_ms=round((charged_at - received_at) * 1000),
             **{
                 name: int(ms)
                 for name, ms in sorted(steps.items())

@@ -40,7 +40,7 @@ def step(name):
     try:
         yield
     finally:
-        steps[name] = steps.get(name, 0) + int((time.monotonic() - began) * 1000)
+        steps[name] = steps.get(name, 0) + round((time.monotonic() - began) * 1000)
 
 
 def enter(stack, name, context):
