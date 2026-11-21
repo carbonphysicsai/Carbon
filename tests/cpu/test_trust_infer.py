@@ -220,3 +220,14 @@ def test_a_per_case_processes_version_and_a_bad_count_have_no_trust_program():
     for bad in (0, -1, True):
         with pytest.raises(RecipeRefused, match="trust_interface_not_offered"):
             graph_worker.v2_trust_infer_query(*key, bad)
+
+
+def test_no_trust_version_is_registered_in_a_program_set_that_has_no_trust_variant():
+    # door-code 08:35:37Z: the per-case-processes and vmap-64 programs derive from the compiled v2 text and have no trust
+    # variant, so a version that offers a trust interface must not be listed there (the query refuses typed otherwise).
+    from carbon.development_session import physical_graph_adapter_v2 as v2
+
+    for key, spec in v2.SPECS.items():
+        if spec.trust_outputs:
+            assert key not in graph_worker.CASE_PROCS_INFERENCE_VERSIONS, key
+            assert key not in graph_worker.VMAP64_INFERENCE_VERSIONS, key
