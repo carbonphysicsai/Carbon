@@ -213,7 +213,8 @@ def _append(ledger, workspace, request, name, fingerprint, expected):
         return DirectStageSourceResultV1(name, received, fingerprint, True)
     if tail:
         # the same amount the earlier rewrite admitted at this point: the whole partial with the chunk, plus 64 KiB
-        ledger.check_storage(received + 65536)
+        # no whole-tree walk per chunk unless retained bytes are capped (`CampaignLedger.check_storage_fast`)
+        ledger.check_storage_fast(received + 65536)
         with path.open("ab") as out:
             out.write(tail)
             out.flush()

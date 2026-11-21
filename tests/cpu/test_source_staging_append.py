@@ -72,10 +72,10 @@ def test_the_storage_check_sees_the_same_amount_at_the_same_point(
     ledger = _ledger(tmp_path)
     body = _body(30_000)
     asked = []
-    real = ledger.check_storage
+    real = ledger.check_storage_fast
     monkeypatch.setattr(
         ledger,
-        "check_storage",
+        "check_storage_fast",
         lambda additional=0: asked.append(additional) or real(additional),
     )
     for offset, chunk in _chunks(body)[:-1]:
@@ -92,7 +92,7 @@ def test_the_storage_check_sees_the_same_amount_at_the_same_point(
             refused_at="storage_check",
         )
 
-    monkeypatch.setattr(ledger, "check_storage", refuse)
+    monkeypatch.setattr(ledger, "check_storage_fast", refuse)
     offset, chunk = _chunks(body)[-1]
     path = dss._partial_path(
         ledger, "alice", dss._partial_name(_request(_name(body), body, 0, body[:1]))
@@ -255,7 +255,7 @@ def test_a_refused_overlap_leaves_the_held_bytes_unchanged(tmp_path, monkeypatch
             refused_at="storage_check",
         )
 
-    monkeypatch.setattr(ledger, "check_storage", refuse)
+    monkeypatch.setattr(ledger, "check_storage_fast", refuse)
     with pytest.raises(LedgerRefusal):
         dss.stage_source(
             ledger, "alice", _request(_name(body), body, 1000, body[1000:9192])

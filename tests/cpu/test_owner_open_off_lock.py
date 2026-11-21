@@ -14,6 +14,7 @@ SYNTHETIC owners; no store, chain or container.
 from __future__ import annotations
 
 import hashlib
+import json
 import threading
 
 from carbon.challenge_validator import direct_receiver as receiver
@@ -150,3 +151,46 @@ def test_the_warmer_opens_one_at_a_time_and_stops_at_a_stop(monkeypatch):
     owners._closing = False
     monkeypatch.setattr(owners, "lazy_warm_order", list)
     assert owners.start_lazy_warmer() is None  # nothing recent: no thread
+
+
+def test_the_storage_reconcile_walks_each_open_owner_off_the_request_path(capsys):
+    """Submit latency (21 Nov 2026): the whole-tree storage walk is the receiver's background reconcile, one pass over
+    the OPEN owners' ledgers (a fault counted, never raised), one journal line per pass; it stops at a stop.
+    """
+    from types import SimpleNamespace
+
+    owners, _registered = _providers()
+    walked = []
+
+    class Ledger:
+        def __init__(self, name, fault=False):
+            self.name, self.fault = name, fault
+
+        def reconcile_storage(self):
+            walked.append(self.name)
+            if self.fault:
+                raise ValueError("campaign symlink rejected")
+            return 1
+
+    owners._providers = {
+        "a": SimpleNamespace(ledger=Ledger("a")),
+        "b": SimpleNamespace(ledger=Ledger("b", fault=True)),
+        "c": SimpleNamespace(),  # no ledger: skipped
+    }
+    passes = []
+
+    def sleep(seconds):
+        if seconds == 900.0:
+            passes.append(seconds)
+            owners._closing = True  # stop after the first pass
+
+    thread = owners.start_storage_reconcile(pause=0, sleep=sleep)
+    thread.join(5)
+    assert not thread.is_alive()
+    assert walked == ["a", "b"] and passes == [900.0]
+    line = [
+        json.loads(text)
+        for text in capsys.readouterr().err.splitlines()
+        if '"storage_reconcile"' in text
+    ]
+    assert line[0]["walked"] == 1 and line[0]["faults"] == 1

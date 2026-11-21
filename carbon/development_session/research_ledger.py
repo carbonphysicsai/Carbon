@@ -37,7 +37,7 @@ import os
 import re
 import sqlite3
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 
 from .profile import canonical, digest
@@ -663,6 +663,51 @@ class CampaignLedger:
         tree: a caller whose only reason to walk again is the cap asks this first (submit latency, 21 Nov 2026).
         """
         return self._retained_cap()[1] is not NO_BUDGET
+
+    #: A storage FAULT this ledger's reconcile walk found (`reconcile_storage`): while it exists, every fast storage
+    #: check refuses (`check_storage_fast`), so the symlink tripwire still fails closed without a per-request walk.
+    STORAGE_FAULT = "storage-fault.json"
+
+    def reconcile_storage(self):
+        """The full walk OFF the request path (the receiver's periodic reconcile): the tree's byte count, or, when the
+        walk finds a symlink anywhere in it, a recorded `STORAGE_FAULT` (kept until an operator clears it) and
+        ValueError "campaign symlink rejected", exactly as `check_storage` refuses."""
+        try:
+            return _campaign_bytes(self.root)
+        except ValueError:
+            fault = self.root / self.STORAGE_FAULT
+            if not os.path.lexists(fault):
+                with suppress(FileExistsError):
+                    descriptor = os.open(
+                        fault, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+                    )
+                    with os.fdopen(descriptor, "wb") as stream:
+                        stream.write(
+                            json.dumps(
+                                {
+                                    "schema": "carbon.ledger-storage-fault.v1",
+                                    "reason": "campaign symlink rejected",
+                                },
+                                sort_keys=True,
+                            ).encode()
+                        )
+                        stream.flush()
+                        os.fsync(stream.fileno())
+            raise
+
+    def check_storage_fast(self, additional=0):
+        """`check_storage` without walking the tree when the miner set NO retained-bytes cap (the door's owners): a
+        recorded storage fault (`reconcile_storage`) refuses as the walk would ("campaign symlink rejected"); a CAPPED
+        ledger walks exactly as before (its limit stays exact). Returns the walked size, or None when nothing walked
+        (live 116 21 Nov 2026: the per-submit walk was 4.5 s typical, 40 s worst, the whole submit's bulk).
+        """
+        if type(additional) is not int or additional < 0:
+            raise ValueError("nonnegative storage admission required")
+        if os.path.lexists(self.root / self.STORAGE_FAULT):
+            raise ValueError("campaign symlink rejected")
+        if self.storage_capped():
+            return self.check_storage(additional)
+        return None
 
     def check_storage(self, additional=0):
         if type(additional) is not int or additional < 0:

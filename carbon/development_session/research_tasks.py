@@ -1227,14 +1227,16 @@ class DirectDevelopmentTasksV3:
                 or path.read_bytes() != source_envelope
             ):
                 raise ValueError("retained direct graph source differs")
-            self.ledger.check_storage(65536)
+            self.ledger.check_storage_fast(65536)
             return
         from carbon.challenge_validator import step_timing
 
         # each part named in the submit's timings (st_retain_*: no-ops outside a submit), so the next latency head is
         # sized from what the write actually costs (live 116 21 Nov 2026: st_retain p50 3.2 s after the one-walk head)
         with step_timing.step("st_retain_walk"):
-            self.ledger.check_storage(len(source_envelope) + 65536)
+            # no walk of the owner's whole tree on a submit unless the miner capped retained bytes (the door's owners
+            # do not): a recorded storage fault still refuses; the receiver's reconcile walks off the request path
+            self.ledger.check_storage_fast(len(source_envelope) + 65536)
         staged = path.with_name(path.name + "." + os.urandom(8).hex() + ".staging")
         handle = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:

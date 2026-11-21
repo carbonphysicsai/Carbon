@@ -39,13 +39,13 @@ def _retain(provider, identity, body):
     DirectDevelopmentTasksV3._retain_source(provider, identity, body)
 
 
-def test_an_uncapped_owner_retains_with_one_walk(tmp_path, monkeypatch):
+def test_an_uncapped_owner_retains_with_no_walk_on_the_request(tmp_path, monkeypatch):
     ledger = campaign(tmp_path / "ledger")
     assert ledger.storage_capped() is False
     provider = _provider(ledger, tmp_path)
     walks = _counting(monkeypatch)
     _retain(provider, "task-a", b"graph bytes")
-    assert len(walks) == 1
+    assert walks == []  # the whole-tree walk is the reconcile's, off the request path
     assert (tmp_path / "sources" / "task-a").read_bytes() == b"graph bytes"
 
 
@@ -81,13 +81,34 @@ def test_a_source_over_the_cap_after_the_write_is_removed(tmp_path, monkeypatch)
 
 
 @pytest.mark.skipif(not hasattr(os, "symlink"), reason="no symlinks here")
-def test_a_symlink_in_the_tree_still_refuses_before_any_write(tmp_path):
+def test_a_symlink_found_by_the_reconcile_refuses_every_later_write(tmp_path):
     ledger = campaign(tmp_path / "ledger")
     os.symlink(tmp_path, ledger.root / "link")
+    with pytest.raises(ValueError, match="campaign symlink rejected"):
+        ledger.reconcile_storage()
+    assert (ledger.root / ledger.STORAGE_FAULT).is_file()
     provider = _provider(ledger, tmp_path)
     with pytest.raises(ValueError, match="campaign symlink rejected"):
         _retain(provider, "task-a", b"graph bytes")
     assert not (tmp_path / "sources" / "task-a").exists()
+    with pytest.raises(ValueError, match="campaign symlink rejected"):
+        ledger.check_storage_fast(0)
+
+
+def test_a_capped_owner_keeps_its_exact_limit_on_the_fast_check(tmp_path):
+    from carbon.development_session.research_ledger import LedgerRefusal
+
+    ledger = campaign(tmp_path / "ledger", ceilings={"retained_bytes": 4096})
+    with pytest.raises(LedgerRefusal, match="retained_bytes"):
+        ledger.check_storage_fast(1024**3)
+    assert campaign(tmp_path / "uncapped").check_storage_fast(1024**4) is None
+
+
+def test_the_reconcile_walks_and_counts(tmp_path):
+    ledger = campaign(tmp_path / "ledger")
+    (ledger.root / "blob").write_bytes(b"x" * 1000)
+    assert ledger.reconcile_storage() >= 1000
+    assert not (ledger.root / ledger.STORAGE_FAULT).exists()
 
 
 def test_a_retain_inside_a_submit_names_its_parts(tmp_path):

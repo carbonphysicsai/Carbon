@@ -2113,6 +2113,7 @@ class OwnerProviders:
         self._open_gates = {}
         #: the background warm-up of recently active lazy owners (`start_lazy_warmer`), or None
         self._warmer = None
+        self._reconciler = None
         #: the grader's verdict marker directory (``<state>/auto-grade/markers``) when this door grades, else None
         self.markers_dir = None
         self._closing = False
@@ -2513,6 +2514,10 @@ class OwnerProviders:
     WARM_RECENT_SECONDS = 24 * 3600
     WARM_MAX = 200
     WARM_PAUSE_SECONDS = 10.0
+    #: The storage reconcile (`start_storage_reconcile`): one full pass over the open owners' ledgers every
+    #: RECONCILE_SECONDS, RECONCILE_PAUSE_SECONDS between owners. Operational pacing only (no limit or grade).
+    RECONCILE_SECONDS = 900.0
+    RECONCILE_PAUSE_SECONDS = 2.0
 
     def lazy_warm_order(self, now=None):
         """The hotkeys of the lazy owners with recent activity (a task created within `WARM_RECENT_SECONDS`), newest
@@ -2533,6 +2538,65 @@ class OwnerProviders:
                     newest.append((max(created), hotkey))
         newest.sort(reverse=True)
         return [hotkey for _created, hotkey in newest[: self.WARM_MAX]]
+
+    def start_storage_reconcile(self, *, interval=None, pause=None, sleep=time.sleep):
+        """The whole-tree storage walk OFF every request's path (live 116 21 Nov 2026: the per-submit walk of an owner's
+        store was 4.5 s typical, 40 s worst): ONE daemon thread walks each OPEN owner's ledger in turn
+        (`CampaignLedger.reconcile_storage`), a pause between owners, a full pass every `RECONCILE_SECONDS`. A symlink
+        it finds records the ledger's storage fault, after which that owner's fast checks refuse every write
+        (fail closed, as the walk did). One ``storage_reconcile`` journal line per pass. Stops at a stop; never raises.
+        """
+        interval = self.RECONCILE_SECONDS if interval is None else interval
+        pause = self.RECONCILE_PAUSE_SECONDS if pause is None else pause
+
+        def reconcile():
+            while True:
+                with self._lock:
+                    if self._closing:
+                        return
+                    ledgers = [
+                        getattr(provider, "ledger", None)
+                        for provider in self._providers.values()
+                    ]
+                began, walked, faults = time.monotonic(), 0, 0
+                for ledger in ledgers:
+                    with self._lock:
+                        if self._closing:
+                            return
+                    if ledger is None or not callable(
+                        getattr(ledger, "reconcile_storage", None)
+                    ):
+                        continue
+                    try:
+                        ledger.reconcile_storage()
+                        walked += 1
+                    except ValueError:
+                        faults += 1
+                    # one ledger's fault never stops the pass
+                    except Exception:  # noqa: BLE001, S110
+                        pass
+                    sleep(pause)
+                print(
+                    json.dumps(
+                        {
+                            "event": "storage_reconcile",
+                            "walked": walked,
+                            "faults": faults,
+                            "ms": round((time.monotonic() - began) * 1000),
+                        },
+                        sort_keys=True,
+                    ),
+                    file=sys.stderr,
+                    flush=True,
+                )
+                sleep(interval)
+
+        thread = threading.Thread(
+            target=reconcile, name="storage-reconcile", daemon=True
+        )
+        self._reconciler = thread
+        thread.start()
+        return thread
 
     def start_lazy_warmer(self, *, pause=None, sleep=time.sleep):
         """After listening (mcp_slow, live 116 21 Nov 2026: an active miner's first status call after a restart waited
@@ -3705,6 +3769,8 @@ def serve(
             providers.log_open_counts()
             # the recently active lazy owners are opened in the background, off every request's path (mcp_slow)
             providers.start_lazy_warmer()
+            # the whole-tree storage walk runs here, off every request's path (submit latency, 21 Nov 2026)
+            providers.start_storage_reconcile()
             serve_loopback(
                 intake,
                 {"host": cfg["host"], "port": cfg["port"]},

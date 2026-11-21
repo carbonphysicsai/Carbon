@@ -103,7 +103,8 @@ class ResearchWorkspace:
         name = self.name(name)
         if type(body) is not bytes:
             raise ValueError("workspace files are bytes")
-        self.ledger.check_storage(len(body) + 65536)
+        # no whole-tree walk per upload unless retained bytes are capped (`CampaignLedger.check_storage_fast`)
+        self.ledger.check_storage_fast(len(body) + 65536)
         fingerprint = digest(body)
         with self.ledger.db() as db:
             db.execute("BEGIN IMMEDIATE")
