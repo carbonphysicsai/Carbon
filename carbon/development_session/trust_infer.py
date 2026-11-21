@@ -96,7 +96,12 @@ _V2_RESULT_TRUST = (
     + "result = result * decoder_sd + decoder_mu\n"
 )
 
+# the trust candidate's state is the trust ensemble state (graph W + k, decoder and combine W): its loader replaces v2's
+_V2_LOAD = "from carbon.development_session.physical_graph_state_v2 import load\n"
+_V2_LOAD_TRUST = "from carbon.development_session.physical_graph_state_v3 import load\n"
+
 V2_ANCHORS = (
+    (_V2_LOAD, _V2_LOAD_TRUST),
     (_V2_PARAMETERS, _V2_PARAMETERS_TRUST),
     (_V2_TOTAL, _V2_TOTAL_TRUST),
     (_V2_COMBINE, _V2_COMBINE_TRUST),

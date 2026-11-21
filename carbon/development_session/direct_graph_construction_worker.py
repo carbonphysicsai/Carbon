@@ -891,10 +891,27 @@ def v2_trust_infer_query(challenge_id: str, version: str, trust_outputs: int) ->
     key = (challenge_id, version)
     if key in VMAP64_INFERENCE_VERSIONS or key in CASE_PROCS_INFERENCE_VERSIONS:
         raise RecipeRefused("direct_graph_trust_program_not_offered")
+    from .bundle_construction_worker import STAGED_MODULES as INFER_MODULES
+
     query = v2_infer_query(challenge_id, version)
+    state_v3 = "carbon.development_session.physical_graph_state_v3"
+    modules = (
+        *INFER_MODULES,
+        "carbon.development_session.physical_graph_state",
+        "carbon.development_session.physical_graph_state_v2",
+    )
+    program = trust_program(query["program"])
+    if program.count(repr(modules)) != 1:
+        raise RuntimeError("graph route v2 trust inference program anchor moved")
+    program = program.replace(repr(modules), repr((*modules, state_v3)))
+    root = Path(__file__).resolve().parents[2]
     return {
         **query,
-        "program": trust_program(query["program"]),
+        "program": program,
+        "staged_files": {
+            **query["staged_files"],
+            state_v3 + ".py": (root / (state_v3.replace(".", "/") + ".py")).read_bytes(),
+        },
         "trust_outputs": trust_outputs,
     }
 
@@ -978,8 +995,14 @@ def registered_inference_contract(binding, limits_document, *, recipe=None):
             if trust_outputs
             else v2_infer_query(challenge_id, version)
         )
+        if trust_outputs:
+            from . import physical_graph_state_v3
+
+            loader = physical_graph_state_v3.load
+        else:
+            loader = physical_graph_state_v2.load
         return (
-            physical_graph_state_v2.load,
+            loader,
             query,
             module.spec_for(challenge_id, version).dtype,
         )

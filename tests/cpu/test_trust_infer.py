@@ -261,3 +261,99 @@ def test_no_trust_version_is_registered_in_a_program_set_that_has_no_trust_varia
         if spec.trust_outputs:
             assert key not in graph_worker.CASE_PROCS_INFERENCE_VERSIONS, key
             assert key not in graph_worker.VMAP64_INFERENCE_VERSIONS, key
+
+
+# -- H3d-2c part 3: the trust candidate's state is the trust ensemble state ---------------------------------------------------------
+
+
+def test_the_v2_trust_variant_loads_the_trust_state_and_the_plain_family_is_unchanged():
+    from carbon.development_session import physical_graph_state_v2 as _v2
+
+    v2_variant = trust_infer.trust_program(graph_worker.PHYSICAL_V2_INFER_PROGRAM)
+    assert "physical_graph_state_v3 import load" in v2_variant
+    assert "physical_graph_state_v2 import load" not in v2_variant
+    assert "physical_graph_state_v3" not in worker.INFER_PROGRAM
+    assert "physical_graph_state_v3" not in trust_infer.trust_program(worker.INFER_PROGRAM)
+    assert _v2 is not None
+
+
+def test_the_trust_inference_query_stages_the_trust_state_module_and_lists_it():
+    from pathlib import Path
+
+    from carbon.development_session import physical_graph_adapter_v2 as v2
+
+    key = next(
+        k
+        for k in v2.SPECS
+        if k not in graph_worker.CASE_PROCS_INFERENCE_VERSIONS
+        and k not in graph_worker.VMAP64_INFERENCE_VERSIONS
+    )
+    plain = graph_worker.v2_infer_query(*key)
+    trust = graph_worker.v2_trust_infer_query(*key, 2)
+    name = "carbon.development_session.physical_graph_state_v3"
+    assert name + ".py" not in plain["staged_files"]
+    root = Path(graph_worker.__file__).resolve().parents[2]
+    assert trust["staged_files"][name + ".py"] == (root / "carbon/development_session/physical_graph_state_v3.py").read_bytes()
+    assert {k: v for k, v in trust["staged_files"].items() if k != name + ".py"} == plain["staged_files"]
+    assert repr(name) in trust["program"] and repr(name) not in plain["program"]
+
+
+def _contract(monkeypatch, *, trust_spec, declares):
+    import dataclasses
+
+    from carbon.development_session import physical_graph_adapter_v2 as v2
+    from carbon.development_session.construction_recipe import (
+        ConstructionRecipe,
+        trust_declaration_digest,
+    )
+
+    key = next(
+        k
+        for k in v2.SPECS
+        if k not in graph_worker.CASE_PROCS_INFERENCE_VERSIONS
+        and k not in graph_worker.VMAP64_INFERENCE_VERSIONS
+    )
+    spec = dataclasses.replace(v2.SPECS[key], trust_outputs=2 if trust_spec else 0)
+    monkeypatch.setitem(v2.SPECS, key, spec)  # set every call: a test may ask for both kinds in turn
+    interface = "sha256:" + "b" * 64
+    recipe = ConstructionRecipe.from_dict(
+        {
+            "schema": "carbon.construction-recipe.v1",
+            "challenge": {
+                "id": spec.challenge_id,
+                "version": spec.version,
+                "train_digest": "sha256:" + "a" * 64,
+                "interface_digest": interface,
+                "construction_limits_digest": "sha256:" + "c" * 64,
+            },
+            "source": {"kind": "graph", "submission_digest": "sha256:" + "d" * 64},
+            "procedure": {"entrypoint": None, "configuration": {}, "train_use": {}, "initial_state": None},
+            "output": {
+                "format": "carbon.numeric-graph.v1",
+                "interface_digest": trust_declaration_digest(interface) if declares else interface,
+            },
+        }
+    )
+    binding = {
+        "challenge_id": spec.challenge_id,
+        "challenge_version": spec.version,
+        "train_digest": "sha256:" + spec.train_sha256,
+    }
+    limits = {"graph_training_adapter": v2.adapter_block(*key)}
+    return graph_worker.registered_inference_contract(binding, limits, recipe=recipe)
+
+
+def test_the_loader_a_declaring_candidate_gets_is_the_trust_states(monkeypatch):
+    from carbon.development_session import (
+        physical_graph_state_v2,
+        physical_graph_state_v3,
+    )
+
+    loader, query, _dtype = _contract(monkeypatch, trust_spec=True, declares=True)
+    assert loader is physical_graph_state_v3.load and query["trust_outputs"] == 2
+    loader, query, _dtype = _contract(monkeypatch, trust_spec=True, declares=False)
+    assert loader is physical_graph_state_v2.load and "trust_outputs" not in query
+    loader, query, _dtype = _contract(monkeypatch, trust_spec=False, declares=False)
+    assert loader is physical_graph_state_v2.load and "trust_outputs" not in query
+    with pytest.raises(RecipeRefused, match="trust_interface_not_offered"):
+        _contract(monkeypatch, trust_spec=False, declares=True)
