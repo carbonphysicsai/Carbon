@@ -1676,3 +1676,22 @@ def test_declare_refuses_empty_evidence_and_a_diff_that_misses_or_adds_a_path(
     receipt = tmp_path / "receipt.json"
     receipt.write_text("{}", encoding="utf-8")
     assert tool.declare(root, base, new, "ruled", receipt)["paths"]
+
+
+def test_the_newest_final_decides_and_a_fog_audit_is_neutral(tool, tmp_path):
+    """live-ops 21 Nov 2026: a FOG audit row and a later FINAL tip row naming one sha refused under 'every row FINAL'.
+    The newest FINAL / LANDED row decides; FOG rows are neutral; any other status after it refuses; FOG alone is not a
+    FINAL."""
+    a = "a" * 40
+    for rows, state in (
+        ([(a, "FOG"), (a, "FINAL")], "PASS"),
+        ([(a, "FINAL"), (a, "FOG")], "PASS"),
+        ([(a, "HOLD"), (a, "FINAL")], "PASS"),  # a later FINAL lifts an earlier HOLD
+        ([(a, "FOG")], "REFUSE"),
+        ([(a, "FOG"), (a, "FINAL"), (a, "HOLD")], "REFUSE"),
+        ([(a, "FINAL"), (a, "REVOKED")], "REFUSE"),
+    ):
+        out = tool.final_heads_status(_heads(tmp_path, rows), a)
+        assert out["state"] == getattr(tool, state), rows
+        if state == "REFUSE":
+            assert out["code"] == "not_final"

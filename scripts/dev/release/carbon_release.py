@@ -26,7 +26,8 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
 ``precheck`` refuses a step BEFORE any write. Items (each PASS, or REFUSE / UNKNOWN with a code):
 
 - ``final_heads``: NEW is FINAL or LANDED in the Validator's FINAL_HEADS.tsv (comment lines skipped, the status column
-  exact, every row for that sha agreeing); HOLD, CONTENT, OPEN, any other status or a conflict refuses.
+  exact): the NEWEST FINAL / LANDED row of that sha decides, FOG audit rows are neutral, and HOLD, CONTENT, OPEN or any
+  other status AFTER it (or no FINAL / LANDED row at all) refuses.
 - ``exam`` (R17, R18): `exam_identity.check`; SAME_EXAM passes; a grading-code change passes only with ``--declared``
   whose record is valid, names OLD and NEW as full ids and whose paths EQUAL the receiver's own list for OLD..NEW; a
   pack change (a re-seal) passes only with ``--declared-pack-change REASON`` (the receiver then regrades its king);
@@ -226,9 +227,13 @@ def declare(repo, old, new, reason, evidence) -> dict:
 
 
 def final_heads_status(tsv, sha) -> dict:
-    """The FINAL_HEADS rows naming ``sha`` (full, or a prefix of >= 7 hex, cells stripped and lower-cased): PASS only
-    when at least one exists and EVERY one is FINAL or LANDED. A matching row whose cell count differs from the header
-    (a tab inside a cell shifts the status column) is UNKNOWN."""
+    """The FINAL_HEADS rows naming ``sha`` (full, or a prefix of >= 7 hex, cells stripped and lower-cased), in file order:
+    the NEWEST FINAL or LANDED row decides (it supersedes any earlier row of the sha: a FOG audit, or a HOLD a later FINAL
+    lifted); after it, only FOG audit rows (neutral) or further FINAL / LANDED rows may follow, any other status (a HOLD,
+    a revoke) refuses ``not_final``; no FINAL / LANDED row at all refuses ``not_final`` (a FOG audit alone is not a
+    FINAL). live-ops 21 Nov 2026: a FOG audit + a FINAL tip row of one sha refused under the old 'every row' rule. A
+    matching row whose cell count differs from the header (a tab inside a cell shifts the status column) is UNKNOWN.
+    """
     statuses = []
     header = None
     sha = sha.strip().lower()
@@ -256,7 +261,10 @@ def final_heads_status(tsv, sha) -> dict:
         return {"state": UNKNOWN, "code": "final_heads_header"}
     if not statuses:
         return {"state": REFUSE, "code": "not_in_final_heads"}
-    if any(s not in LANDABLE for s in statuses):
+    landable = [i for i, s in enumerate(statuses) if s in LANDABLE]
+    if not landable or any(
+        s not in LANDABLE and s != "FOG" for s in statuses[landable[-1] + 1 :]
+    ):
         return {"state": REFUSE, "code": "not_final", "statuses": statuses}
     return {"state": PASS, "statuses": statuses}
 
@@ -1621,7 +1629,7 @@ def _run_checks(out, checks, *, class_basis=None) -> dict:
 
 def pushline(repo, sha, final_heads, *, main="origin/main") -> dict:
     """The owner's push line for ``sha``, ONLY when it can land as asked: a full commit id, a fast-forward of ``main``
-    (``main`` is its ancestor) and FINAL or LANDED in FINAL_HEADS on every row. Anything else refuses BEFORE an owner
+    (``main`` is its ancestor) and FINAL or LANDED in FINAL_HEADS (`final_heads_status`). Anything else refuses BEFORE an owner
     ask (5 Nov: a line for a non-FF head cost an owner round trip)."""
     if not _HEX40.fullmatch(sha or ""):
         return {"state": REFUSE, "code": "not_a_full_commit_id"}
