@@ -1634,3 +1634,45 @@ def test_prepare_and_switch_keep_their_old_door_and_refuse_unused_options(
     for extra in (["--new-network", "finney"], ["--new-unit", str(tmp_path)]):
         with pytest.raises(SystemExit):
             tool.main([*switch, "--host-root", str(tmp_path), *extra])
+
+
+def test_declare_refuses_empty_evidence_and_a_diff_that_misses_or_adds_a_path(
+    tool, repo, tmp_path
+):
+    """live-ops 21 Nov 07:30Z: an EMPTY evidence diff (made from mangled path names) was accepted as the declared record
+    of a grading change. Empty evidence refuses; a git-diff evidence must name exactly the declared file paths.
+    """
+    root, base = repo
+    new = _commit(
+        root,
+        {"carbon/scoring/pool_grader.py": "MARGIN = 3\n", "docs/notes.md": "z\n"},
+        "grading",
+    )
+    empty = tmp_path / "empty.diff"
+    empty.write_bytes(b"")
+    with pytest.raises(ValueError, match="empty"):
+        tool.declare(root, base, new, "ruled", empty)
+    blank = tmp_path / "blank.diff"
+    blank.write_bytes(b"\n  \n")
+    with pytest.raises(ValueError, match="empty"):
+        tool.declare(root, base, new, "ruled", blank)
+    other = tmp_path / "other.diff"
+    other.write_text(
+        "diff --git a/docs/notes.md b/docs/notes.md\n--- a/docs/notes.md\n+++ b/docs/notes.md\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="missing carbon/scoring/pool_grader.py"):
+        tool.declare(root, base, new, "ruled", other)
+    right = tmp_path / "right.diff"
+    right.write_text(
+        "diff --git a/carbon/scoring/pool_grader.py b/carbon/scoring/pool_grader.py\n"
+        "--- a/carbon/scoring/pool_grader.py\n+++ b/carbon/scoring/pool_grader.py\n",
+        encoding="utf-8",
+    )
+    assert tool.declare(root, base, new, "ruled", right)["paths"] == [
+        "carbon/scoring/pool_grader.py"
+    ]
+    # a receipt-form evidence (not a diff) is checked for emptiness only, as before
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text("{}", encoding="utf-8")
+    assert tool.declare(root, base, new, "ruled", receipt)["paths"]

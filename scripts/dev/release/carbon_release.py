@@ -178,6 +178,33 @@ def receiver_paths(repo, old, new) -> list:
     return ([BUILD_INPUTS_CHANGED] if moved else []) + paths
 
 
+#: A ``git diff`` file header: the file it names (``b/`` side).
+_DIFF_HEADER = re.compile(r"^diff --git a/(?P<a>\S+) b/(?P<b>\S+)$", re.MULTILINE)
+
+
+def _checked_evidence(evidence, paths):
+    """Refuse evidence that cannot be the declared change's record (live-ops 21 Nov 07:30Z: an EMPTY diff, made from
+    mangled path names, was accepted as the record of a grading change): an empty file always; and an evidence file
+    that IS a git diff must name every declared file path (``build_inputs`` excepted) and nothing else. Evidence in
+    another form (a receipt document) is checked for emptiness only, as before."""
+    raw = Path(evidence).read_bytes()
+    if not raw.strip():
+        raise ValueError("declared evidence is empty")
+    text = raw.decode("utf-8", "replace")
+    if not text.lstrip().startswith("diff --git "):
+        return
+    named = {match["b"] for match in _DIFF_HEADER.finditer(text)}
+    wanted = {path for path in paths if path != BUILD_INPUTS_CHANGED}
+    if named != wanted:
+        missing, extra = sorted(wanted - named), sorted(named - wanted)
+        raise ValueError(
+            "declared evidence diff names other paths than the change: missing "
+            + ",".join(missing)
+            + " extra "
+            + ",".join(extra)
+        )
+
+
 def declare(repo, old, new, reason, evidence) -> dict:
     if not reason or not reason.strip():
         raise ValueError("a declared exam change needs a reason")
@@ -185,6 +212,7 @@ def declare(repo, old, new, reason, evidence) -> dict:
     paths = receiver_paths(repo, old, new)
     if not paths:
         raise ValueError("nothing to declare: OLD..NEW changes no grading path")
+    _checked_evidence(evidence, paths)
     return {
         "from_revision": old,
         "to_revision": new,
