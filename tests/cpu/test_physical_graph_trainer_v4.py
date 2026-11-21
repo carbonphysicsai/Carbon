@@ -13,8 +13,8 @@ import pytest
 jnp = pytest.importorskip("jax.numpy")
 pytest.importorskip("optax")
 
-from carbon.development_session import physical_graph_trainer_v4 as trust  # noqa: E402
-from carbon.level4.train import Prepared  # noqa: E402
+from carbon.development_session import physical_graph_trainer_v4 as trust
+from carbon.level4.train import Prepared
 
 W, K, BATCH = 3, 1, 2
 INIT_LOG_SIGMA = 0.7  # the trust parameter's INITIAL value (what `prepared.init` draws)
@@ -59,7 +59,9 @@ def base_trainer(captured, biases=(0.0,)):
     """A stand-in for the pinned trainer: one member per bias (its physics offset), combined with equal weights."""
 
     def train(model, inputs, targets, settings, *, seed):
-        probe = model.apply([np.ones(W), np.zeros(K), np.zeros(W)], jnp.ones((BATCH, W)))[0]
+        probe = model.apply(
+            [np.ones(W), np.zeros(K), np.zeros(W)], jnp.ones((BATCH, W))
+        )[0]
         captured["width"] = probe.shape[-1]
         return {
             "members": [
@@ -84,7 +86,9 @@ def base_trainer(captured, biases=(0.0,)):
 
 
 def data(rows=7):
-    inputs = np.zeros((rows, W), dtype="float32")  # the physics scale term is 0 on every row
+    inputs = np.zeros(
+        (rows, W), dtype="float32"
+    )  # the physics scale term is 0 on every row
     targets = np.zeros((rows, W), dtype="float32")  # truth 0
     return inputs, targets
 
@@ -197,14 +201,23 @@ def test_with_no_held_out_row_phase_two_does_not_run_and_the_status_is_typed():
 
 def test_phase_one_sees_a_w_wide_model():
     _, captured = run()
-    assert captured["width"] == W  # the pinned trainer was run on the W-view, never on W + k
+    assert (
+        captured["width"] == W
+    )  # the pinned trainer was run on the W-view, never on W + k
 
 
 def test_phase_two_updates_only_the_trust_parameters_of_member_zero_on_the_held_out_rows():
-    result, _ = run(targets=np.full((7, W), 2.0, dtype="float32"))  # a constant residual of -2
-    assert result["trust"] == {"status": "trained", "held_out_rows": 4}  # 7 rows, 3 selected
+    result, _ = run(
+        targets=np.full((7, W), 2.0, dtype="float32")
+    )  # a constant residual of -2
+    assert result["trust"] == {
+        "status": "trained",
+        "held_out_rows": 4,
+    }  # 7 rows, 3 selected
     physics, log_sigma, bias = result["members"][0]
-    np.testing.assert_array_equal(physics, np.ones(W, dtype="float32"))  # the physics parameters are bit for bit
+    np.testing.assert_array_equal(
+        physics, np.ones(W, dtype="float32")
+    )  # the physics parameters are bit for bit
     np.testing.assert_array_equal(bias, np.zeros(W, dtype="float32"))
     assert physics.dtype == np.float32 and log_sigma.dtype == np.float32
     assert np.isfinite(log_sigma).all()
@@ -214,7 +227,9 @@ def test_phase_two_updates_only_the_trust_parameters_of_member_zero_on_the_held_
 
 def test_phase_two_restarts_from_the_initial_trust_parameters_not_from_phase_ones_drifted_values():
     # one epoch at a vanishing learning rate: the result is where phase 2 STARTED
-    result, _ = run(epochs=1, learning_rate=1e-12, targets=np.full((7, W), 2.0, dtype="float32"))
+    result, _ = run(
+        epochs=1, learning_rate=1e-12, targets=np.full((7, W), 2.0, dtype="float32")
+    )
     np.testing.assert_allclose(result["members"][0][1], INIT_LOG_SIGMA, atol=1e-5)
     assert abs(float(result["members"][0][1][0]) - PHASE_ONE_LOG_SIGMA) > 0.5
 
@@ -228,12 +243,22 @@ def test_sigma_follows_the_ensembles_residual_not_member_zeros():
     assert float(ensemble["members"][0][1][0]) < -1.0
     assert float(alone["members"][0][1][0]) == pytest.approx(np.log(0.9), abs=0.2)
     # the physics offsets of BOTH members are returned bit for bit
-    np.testing.assert_array_equal(ensemble["members"][1][2], np.full(W, -1.0, dtype="float32"))
+    np.testing.assert_array_equal(
+        ensemble["members"][1][2], np.full(W, -1.0, dtype="float32")
+    )
 
 
 def test_the_other_results_of_the_base_trainer_are_returned_untouched():
     result, _ = run()
-    assert set(result) == {"members", "mu", "sd", "combine", "member_losses", "train_loss", "trust"}
+    assert set(result) == {
+        "members",
+        "mu",
+        "sd",
+        "combine",
+        "member_losses",
+        "train_loss",
+        "trust",
+    }
     np.testing.assert_array_equal(result["mu"], np.zeros(W, dtype="float32"))
 
 

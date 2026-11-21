@@ -28,8 +28,9 @@ from __future__ import annotations
 
 import dataclasses
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 
@@ -105,7 +106,8 @@ def held_out_rows(count: int, selected: np.ndarray) -> np.ndarray:
 
 def w_view(prepared, width: int):
     """`prepared` seen through its first `width` output columns: the pinned trainer then sees a W-wide model. `apply` runs the
-    forward at the declared batch and returns the list of outputs; only the first output's trailing columns are cut."""
+    forward at the declared batch and returns the list of outputs; only the first output's trailing columns are cut.
+    """
     apply = prepared.apply
 
     def narrow(params, *inputs):
@@ -117,7 +119,8 @@ def w_view(prepared, width: int):
 
 def trust_nll(residual, log_sigma, floor):
     """Gaussian negative log-likelihood per case, summed over the trust outputs: `0.5 (r / s)^2 + log s`, `s = floor + exp(log_sigma)`
-    (the floor keeps s positive and bounded below; it is the version's registered value, never a default here)."""
+    (the floor keeps s positive and bounded below; it is the version's registered value, never a default here).
+    """
     import jax.numpy as jnp
 
     sigma = jnp.asarray(floor) + jnp.exp(log_sigma)
@@ -135,11 +138,14 @@ def _chunks(held: np.ndarray, batch: int):
         yield part, used
 
 
-def combined_residual(prepared, members, combine, inputs, targets, mu, sd, held, spec: TrustSpec):
+def combined_residual(
+    prepared, members, combine, inputs, targets, mu, sd, held, spec: TrustSpec
+):
     """The residual the trust read judges: the held-out rows' ENSEMBLE prediction (every member's first W columns weighted by
     `combine`, then decoded by `mu`, `sd`) through the trust outputs' derive, less the derived truth. Fixed (no gradient), computed
     once; `(len(held), k)` in the held-out rows' order. With one member it is that member's own residual (door-code 09:57:05Z: the
-    prediction Carbon reports is the ensemble's, so sigma is calibrated to the ensemble's residual, never member 0's alone)."""
+    prediction Carbon reports is the ensemble's, so sigma is calibrated to the ensemble's residual, never member 0's alone).
+    """
     import jax.numpy as jnp
 
     width = spec.width
@@ -161,7 +167,8 @@ def combined_residual(prepared, members, combine, inputs, targets, mu, sd, held,
 def _initial_trust_parameters(prepared, seed, indices, like):
     """The trust parameters at their INITIAL values, drawn exactly as the pinned trainer draws member 0's (`keys(seed)` folded with
     the member index): phase 1 gives them zero gradient but optimiser weight decay would still have drifted them, and phase 2 must
-    not start from a value that depends on the physics schedule (door-code 09:57:05Z)."""
+    not start from a value that depends on the physics schedule (door-code 09:57:05Z).
+    """
     import jax
 
     from carbon.level4.train import keys
@@ -171,7 +178,9 @@ def _initial_trust_parameters(prepared, seed, indices, like):
     return [np.asarray(fresh[i]).astype(like[i].dtype) for i in indices]
 
 
-def train_trust_head(prepared, member, residual, inputs, held, spec: TrustSpec, *, start):
+def train_trust_head(
+    prepared, member, residual, inputs, held, spec: TrustSpec, *, start
+):
     """PHASE 2: member 0's parameters with ONLY `spec.trust_parameters` updated, from `start` (their initial values), on the held-out
     rows; every other parameter is returned bit for bit. `residual` is the fixed ensemble residual of `combined_residual`; the
     forward of member 0 supplies only the k log-sigma columns."""
@@ -209,7 +218,11 @@ def train_trust_head(prepared, member, residual, inputs, held, spec: TrustSpec, 
         if used < batch:
             r = jnp.concatenate([r, jnp.zeros((batch - used,) + r.shape[1:], r.dtype)])
         plan.append(
-            (jnp.asarray(rows), r, jnp.asarray(np.arange(batch) < used, dtype=r_all.dtype))
+            (
+                jnp.asarray(rows),
+                r,
+                jnp.asarray(np.arange(batch) < used, dtype=r_all.dtype),
+            )
         )
     for _epoch in range(spec.epochs):
         for rows, r, mask in plan:
@@ -229,7 +242,8 @@ def train(prepared, inputs, targets, settings, *, seed, base_trainer, spec: Trus
     """Both phases. `base_trainer` is the version's pinned trainer module (`physical_graph_trainer_v2` / `_v3`: its `train` and
     `selected_rows`), run unchanged on the W-view. Returns the base trainer's result with member 0's trust parameters trained
     and a `trust` block: `{"status": "trained" | "no_held_out_rows", "held_out_rows": n}`. A batch loss graph is refused (V2
-    09:10:14Z: the trainer feeds W columns, a loss graph on the trust interface would take W + k)."""
+    09:10:14Z: the trainer feeds W columns, a loss graph on the trust interface would take W + k).
+    """
     check(spec)
     if prepared.loss is not None:
         raise TrustRefused("trust_loss_graph_not_offered")
@@ -261,5 +275,5 @@ def train(prepared, inputs, targets, settings, *, seed, base_trainer, spec: Trus
     return {
         **result,
         "members": members,
-        "trust": {"status": TRAINED, "held_out_rows": int(len(held))},
+        "trust": {"status": TRAINED, "held_out_rows": len(held)},
     }
