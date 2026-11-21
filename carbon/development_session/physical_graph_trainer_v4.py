@@ -8,11 +8,13 @@ phases so that the physics fit is exactly what it is today:
   document (the initializer check binds `graph.digest(doc)`), and here `Prepared.apply` is replaced by a slice of its first W
   columns, so the pinned trainer sees W outputs, W targets, a W-wide decoder and combination. The trust parameters reach no W
   output, so they receive exactly zero gradient. (Optimiser weight decay acts on every parameter regardless of gradient, so a
-  trust version should pin `weight_decay` 0; either way the result is deterministic.)
-* PHASE 2: a new optax loop updates ONLY the trust parameters of the ONE trust member (member 0, door-code 04:34:35Z) on the
-  HELD-OUT rows, the TRAIN rows phase 1 never used (`train_fraction` < 1), with a Gaussian negative log-likelihood of each trust
-  output's residual `derive(prediction) - derive(truth)` under `sigma = floor + exp(log_sigma)`. The physics columns and every
-  other parameter are frozen, so the W columns are byte-identical with and without the trust head.
+  result is deterministic, and phase 2 restarts the trust parameters from their initial values anyway.)
+* PHASE 2: a new optax loop updates ONLY the trust parameters of the ONE trust member (member 0, door-code 04:34:35Z), restarted
+  from their INITIAL values (optimiser weight decay would otherwise have drifted them in phase 1), on the HELD-OUT rows, the TRAIN
+  rows phase 1 never used (`train_fraction` < 1), with a Gaussian negative log-likelihood of each trust output's residual
+  `derive(ensemble prediction) - derive(truth)` under `sigma = floor + exp(log_sigma)`: the residual is the ENSEMBLE's (every
+  member's W columns combined by `combine`, decoded), the prediction Carbon reports, never member 0's alone. The physics columns
+  and every other parameter are frozen, so the W columns are byte-identical with and without the trust head.
 
 NO SILENT IN-SAMPLE FALLBACK (V2 09:10:14Z): with no held-out row (`train_fraction` >= 1, or too few rows) phase 2 does not run and
 the result carries the typed status `no_held_out_rows`; the trust parameters keep their initial values and the trust read
@@ -133,9 +135,46 @@ def _chunks(held: np.ndarray, batch: int):
         yield part, used
 
 
-def train_trust_head(prepared, member, inputs, targets, mu, sd, held, spec: TrustSpec):
-    """PHASE 2: the member's parameters with ONLY `spec.trust_parameters` updated on the held-out rows; every other parameter is
-    returned bit for bit. `targets` are in native units; `mu`, `sd` are the W-wide decoder phase 1 fitted."""
+def combined_residual(prepared, members, combine, inputs, targets, mu, sd, held, spec: TrustSpec):
+    """The residual the trust read judges: the held-out rows' ENSEMBLE prediction (every member's first W columns weighted by
+    `combine`, then decoded by `mu`, `sd`) through the trust outputs' derive, less the derived truth. Fixed (no gradient), computed
+    once; `(len(held), k)` in the held-out rows' order. With one member it is that member's own residual (door-code 09:57:05Z: the
+    prediction Carbon reports is the ensemble's, so sigma is calibrated to the ensemble's residual, never member 0's alone)."""
+    import jax.numpy as jnp
+
+    width = spec.width
+    combine_j, mu_j, sd_j = jnp.asarray(combine), jnp.asarray(mu), jnp.asarray(sd)
+    x_all, y_all = jnp.asarray(inputs), jnp.asarray(targets)
+    member_params = [[jnp.asarray(p) for p in member] for member in members]
+    residuals = []
+    for rows, used in _chunks(held, prepared.batch):
+        rows = jnp.asarray(rows)
+        total = None
+        for weights, params in zip(combine_j, member_params):
+            term = prepared.apply(params, x_all[rows])[0][..., :width] * weights
+            total = term if total is None else total + term
+        residual = spec.derive(total * sd_j + mu_j) - spec.derive(y_all[rows])
+        residuals.append(np.asarray(residual)[:used])
+    return np.concatenate(residuals, axis=0)
+
+
+def _initial_trust_parameters(prepared, seed, indices, like):
+    """The trust parameters at their INITIAL values, drawn exactly as the pinned trainer draws member 0's (`keys(seed)` folded with
+    the member index): phase 1 gives them zero gradient but optimiser weight decay would still have drifted them, and phase 2 must
+    not start from a value that depends on the physics schedule (door-code 09:57:05Z)."""
+    import jax
+
+    from carbon.level4.train import keys
+
+    init_key, _train_key = (jax.random.fold_in(k, TRUST_MEMBER) for k in keys(seed))
+    fresh = prepared.init(init_key)
+    return [np.asarray(fresh[i]).astype(like[i].dtype) for i in indices]
+
+
+def train_trust_head(prepared, member, residual, inputs, held, spec: TrustSpec, *, start):
+    """PHASE 2: member 0's parameters with ONLY `spec.trust_parameters` updated, from `start` (their initial values), on the held-out
+    rows; every other parameter is returned bit for bit. `residual` is the fixed ensemble residual of `combined_residual`; the
+    forward of member 0 supplies only the k log-sigma columns."""
     import jax
     import jax.numpy as jnp
     import optax
@@ -145,9 +184,8 @@ def train_trust_head(prepared, member, inputs, targets, mu, sd, held, spec: Trus
     indices = list(spec.trust_parameters)
     if any(i >= len(frozen) for i in indices):
         raise TrustRefused("trust_spec_malformed")
-    mu_j, sd_j = jnp.asarray(mu), jnp.asarray(sd)
     floor = jnp.asarray(spec.sigma_floor)
-    x_all, y_all = jnp.asarray(inputs), jnp.asarray(targets)
+    x_all, r_all = jnp.asarray(inputs), jnp.asarray(residual)
 
     def merged(trust_values):
         full = list(frozen)
@@ -155,25 +193,27 @@ def train_trust_head(prepared, member, inputs, targets, mu, sd, held, spec: Trus
             full[index] = value
         return full
 
-    def chunk_loss(trust_values, x, y, mask):
+    def chunk_loss(trust_values, x, r, mask):
         outputs = prepared.apply(merged(trust_values), x)[0]
-        physics = outputs[..., :width] * sd_j + mu_j
-        residual = jax.lax.stop_gradient(spec.derive(physics) - spec.derive(y))
-        per_case = trust_nll(residual, outputs[..., width:], floor)
+        per_case = trust_nll(r, outputs[..., width:], floor)
         return jnp.sum(per_case * mask) / jnp.sum(mask)
 
     step = jax.jit(jax.value_and_grad(chunk_loss))
     optimiser = optax.adam(float(spec.learning_rate))
-    trust_values = [frozen[i] for i in indices]
+    trust_values = [jnp.asarray(v) for v in start]
     state = optimiser.init(trust_values)
     batch = prepared.batch
-    plan = [
-        (jnp.asarray(rows), jnp.asarray(np.arange(batch) < used, dtype=y_all.dtype))
-        for rows, used in _chunks(held, batch)
-    ]
+    plan = []
+    for number, (rows, used) in enumerate(_chunks(held, batch)):
+        r = r_all[number * batch : number * batch + used]
+        if used < batch:
+            r = jnp.concatenate([r, jnp.zeros((batch - used,) + r.shape[1:], r.dtype)])
+        plan.append(
+            (jnp.asarray(rows), r, jnp.asarray(np.arange(batch) < used, dtype=r_all.dtype))
+        )
     for _epoch in range(spec.epochs):
-        for rows, mask in plan:
-            _loss, grads = step(trust_values, x_all[rows], y_all[rows], mask)
+        for rows, r, mask in plan:
+            _loss, grads = step(trust_values, x_all[rows], r, mask)
             updates, state = optimiser.update(grads, state, trust_values)
             trust_values = optax.apply_updates(trust_values, updates)
     out = [np.asarray(p) for p in member]
@@ -188,8 +228,11 @@ def train_trust_head(prepared, member, inputs, targets, mu, sd, held, spec: Trus
 def train(prepared, inputs, targets, settings, *, seed, base_trainer, spec: TrustSpec):
     """Both phases. `base_trainer` is the version's pinned trainer module (`physical_graph_trainer_v2` / `_v3`: its `train` and
     `selected_rows`), run unchanged on the W-view. Returns the base trainer's result with member 0's trust parameters trained
-    and a `trust` block: `{"status": "trained" | "no_held_out_rows", "held_out_rows": n}`."""
+    and a `trust` block: `{"status": "trained" | "no_held_out_rows", "held_out_rows": n}`. A batch loss graph is refused (V2
+    09:10:14Z: the trainer feeds W columns, a loss graph on the trust interface would take W + k)."""
     check(spec)
+    if prepared.loss is not None:
+        raise TrustRefused("trust_loss_graph_not_offered")
     result = base_trainer.train(
         w_view(prepared, spec.width), inputs, targets, settings, seed=seed
     )
@@ -198,15 +241,22 @@ def train(prepared, inputs, targets, settings, *, seed, base_trainer, spec: Trus
     if len(held) == 0:
         return {**result, "trust": {"status": NO_HELD_OUT_ROWS, "held_out_rows": 0}}
     members = [list(member) for member in result["members"]]
-    members[TRUST_MEMBER] = train_trust_head(
+    residual = combined_residual(
         prepared,
-        members[TRUST_MEMBER],
+        members,
+        result["combine"],
         inputs,
         targets,
         result["mu"],
         result["sd"],
         held,
         spec,
+    )
+    start = _initial_trust_parameters(
+        prepared, seed, list(spec.trust_parameters), members[TRUST_MEMBER]
+    )
+    members[TRUST_MEMBER] = train_trust_head(
+        prepared, members[TRUST_MEMBER], residual, inputs, held, spec, start=start
     )
     return {
         **result,

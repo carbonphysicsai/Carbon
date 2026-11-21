@@ -1,6 +1,6 @@
 """The two-phase trust trainer (carbon/development_session/physical_graph_trainer_v4.py, SELF_TRUST H3d-2b): phase 1 is the pinned
-trainer unchanged on a W-view of the model, phase 2 updates ONLY the trust parameters of member 0 on the held-out rows, and with no
-held-out row there is no silent in-sample fit (the typed status `no_held_out_rows`).
+trainer unchanged on a W-view of the model, phase 2 restarts and updates ONLY the trust parameters of member 0 on the held-out rows
+against the ENSEMBLE's residual, and with no held-out row there is no silent in-sample fit (the typed status `no_held_out_rows`).
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ from carbon.development_session import physical_graph_trainer_v4 as trust  # noq
 from carbon.level4.train import Prepared  # noqa: E402
 
 W, K, BATCH = 3, 1, 2
+INIT_LOG_SIGMA = 0.7  # the trust parameter's INITIAL value (what `prepared.init` draws)
+PHASE_ONE_LOG_SIGMA = 0.123  # what phase 1 leaves behind (weight decay drift): phase 2 must NOT start from it
 
 
 def derive(native):
@@ -39,25 +41,39 @@ def spec(**override):
 
 
 def apply(params, x):
-    """The trust graph: W physics columns `x * p0`, then K log-sigma columns from the trust parameter `p1` alone."""
-    physics = x * params[0]
+    """The trust graph: W physics columns `x * p0 + p2`, then K log-sigma columns from the trust parameter `p1` alone."""
+    physics = x * params[0] + params[2]
     log_sigma = jnp.zeros((x.shape[0], K)) + params[1]
     return [jnp.concatenate([physics, log_sigma], axis=-1)]
 
 
-def prepared():
-    return Prepared(init=None, apply=apply, batch=BATCH, parameters=())
+def init(_key):
+    return [jnp.ones(W), jnp.full((K,), INIT_LOG_SIGMA), jnp.zeros(W)]
 
 
-def base_trainer(captured):
+def prepared(**override):
+    return Prepared(init=init, apply=apply, batch=BATCH, parameters=(), **override)
+
+
+def base_trainer(captured, biases=(0.0,)):
+    """A stand-in for the pinned trainer: one member per bias (its physics offset), combined with equal weights."""
+
     def train(model, inputs, targets, settings, *, seed):
-        captured["width"] = model.apply([np.ones(W), np.zeros(K)], jnp.ones((BATCH, W)))[0].shape[-1]
+        probe = model.apply([np.ones(W), np.zeros(K), np.zeros(W)], jnp.ones((BATCH, W)))[0]
+        captured["width"] = probe.shape[-1]
         return {
-            "members": [[np.ones(W, dtype="float32"), np.zeros(K, dtype="float32")]],
+            "members": [
+                [
+                    np.ones(W, dtype="float32"),
+                    np.full(K, PHASE_ONE_LOG_SIGMA, dtype="float32"),
+                    np.full(W, bias, dtype="float32"),
+                ]
+                for bias in biases
+            ],
             "mu": np.zeros(W, dtype="float32"),
             "sd": np.ones(W, dtype="float32"),
-            "combine": np.ones((1, W), dtype="float32"),
-            "member_losses": [0.0],
+            "combine": np.full((len(biases), W), 1.0 / len(biases), dtype="float32"),
+            "member_losses": [0.0] * len(biases),
             "train_loss": 0.0,
         }
 
@@ -68,9 +84,24 @@ def base_trainer(captured):
 
 
 def data(rows=7):
-    inputs = np.zeros((rows, W), dtype="float32")  # physics prediction 0 on every row
-    targets = np.full((rows, W), 2.0, dtype="float32")  # truth 2: a constant residual of -2
+    inputs = np.zeros((rows, W), dtype="float32")  # the physics scale term is 0 on every row
+    targets = np.zeros((rows, W), dtype="float32")  # truth 0
     return inputs, targets
+
+
+def run(biases=(0.0,), targets=None, fraction=0.5, **spec_override):
+    captured = {}
+    inputs, default_targets = data()
+    result = trust.train(
+        prepared(),
+        inputs,
+        default_targets if targets is None else targets,
+        {"train_fraction": fraction},
+        seed=0,
+        base_trainer=base_trainer(captured, biases),
+        spec=spec(**spec_override),
+    )
+    return result, captured
 
 
 # -- the registration: every value of the owner's has no default -------------------------------------------------------------
@@ -158,51 +189,50 @@ def test_the_nll_is_the_gaussian_one_with_the_registered_floor():
 
 
 def test_with_no_held_out_row_phase_two_does_not_run_and_the_status_is_typed():
-    captured = {}
-    inputs, targets = data()
-    result = trust.train(
-        prepared(),
-        inputs,
-        targets,
-        {"train_fraction": 1.0},
-        seed=0,
-        base_trainer=base_trainer(captured),
-        spec=spec(),
-    )
+    result, _ = run(fraction=1.0)
     assert result["trust"] == {"status": "no_held_out_rows", "held_out_rows": 0}
-    np.testing.assert_array_equal(result["members"][0][1], np.zeros(K))  # the trust parameters keep their initial values
+    # the trust parameters are whatever phase 1 returned: no in-sample fit is made
+    np.testing.assert_allclose(result["members"][0][1], PHASE_ONE_LOG_SIGMA)
 
 
 def test_phase_one_sees_a_w_wide_model():
-    captured = {}
-    inputs, targets = data()
-    trust.train(
-        prepared(), inputs, targets, {"train_fraction": 0.5}, seed=0, base_trainer=base_trainer(captured), spec=spec()
-    )
+    _, captured = run()
     assert captured["width"] == W  # the pinned trainer was run on the W-view, never on W + k
 
 
 def test_phase_two_updates_only_the_trust_parameters_of_member_zero_on_the_held_out_rows():
-    captured = {}
-    inputs, targets = data(rows=7)
-    result = trust.train(
-        prepared(), inputs, targets, {"train_fraction": 0.5}, seed=0, base_trainer=base_trainer(captured), spec=spec()
-    )
+    result, _ = run(targets=np.full((7, W), 2.0, dtype="float32"))  # a constant residual of -2
     assert result["trust"] == {"status": "trained", "held_out_rows": 4}  # 7 rows, 3 selected
-    physics, log_sigma = result["members"][0]
+    physics, log_sigma, bias = result["members"][0]
     np.testing.assert_array_equal(physics, np.ones(W, dtype="float32"))  # the physics parameters are bit for bit
+    np.testing.assert_array_equal(bias, np.zeros(W, dtype="float32"))
     assert physics.dtype == np.float32 and log_sigma.dtype == np.float32
     assert np.isfinite(log_sigma).all()
-    # a constant residual of -2 under floor 0.1: the optimal sigma is about 2, so log_sigma moves up from 0
-    assert float(log_sigma[0]) > 0.3
+    # a constant residual of -2 under floor 0.1: the optimal sigma is about 2, so log_sigma settles near ln(1.9) = 0.64
+    assert float(log_sigma[0]) == pytest.approx(np.log(1.9), abs=0.15)
+
+
+def test_phase_two_restarts_from_the_initial_trust_parameters_not_from_phase_ones_drifted_values():
+    # one epoch at a vanishing learning rate: the result is where phase 2 STARTED
+    result, _ = run(epochs=1, learning_rate=1e-12, targets=np.full((7, W), 2.0, dtype="float32"))
+    np.testing.assert_allclose(result["members"][0][1], INIT_LOG_SIGMA, atol=1e-5)
+    assert abs(float(result["members"][0][1][0]) - PHASE_ONE_LOG_SIGMA) > 0.5
+
+
+def test_sigma_follows_the_ensembles_residual_not_member_zeros():
+    # two members whose physics errs in opposite directions (offsets +1 and -1) combine, with equal weights, to the truth 0:
+    # the reported (ensemble) residual is 0, so sigma shrinks to the floor. Judged on member 0 alone (residual +1) it would settle
+    # near ln(0.9) = -0.1.
+    ensemble, _ = run(biases=(1.0, -1.0))
+    alone, _ = run(biases=(1.0,))
+    assert float(ensemble["members"][0][1][0]) < -1.0
+    assert float(alone["members"][0][1][0]) == pytest.approx(np.log(0.9), abs=0.2)
+    # the physics offsets of BOTH members are returned bit for bit
+    np.testing.assert_array_equal(ensemble["members"][1][2], np.full(W, -1.0, dtype="float32"))
 
 
 def test_the_other_results_of_the_base_trainer_are_returned_untouched():
-    captured = {}
-    inputs, targets = data()
-    result = trust.train(
-        prepared(), inputs, targets, {"train_fraction": 0.5}, seed=0, base_trainer=base_trainer(captured), spec=spec()
-    )
+    result, _ = run()
     assert set(result) == {"members", "mu", "sd", "combine", "member_losses", "train_loss", "trust"}
     np.testing.assert_array_equal(result["mu"], np.zeros(W, dtype="float32"))
 
@@ -221,3 +251,21 @@ def test_an_incomplete_spec_refuses_before_any_training():
             spec=spec(epochs=None),
         )
     assert captured == {}  # the base trainer never ran
+
+
+def test_a_batch_loss_graph_on_a_trust_model_is_refused_before_any_training():
+    # V2 09:10:14Z: the trainer feeds W columns, a loss graph on the trust interface would take W + k
+    captured = {}
+    inputs, targets = data()
+    with pytest.raises(trust.TrustRefused) as refused:
+        trust.train(
+            prepared(loss=object()),
+            inputs,
+            targets,
+            {"train_fraction": 0.5},
+            seed=0,
+            base_trainer=base_trainer(captured),
+            spec=spec(),
+        )
+    assert refused.value.code == "trust_loss_graph_not_offered"
+    assert captured == {}
