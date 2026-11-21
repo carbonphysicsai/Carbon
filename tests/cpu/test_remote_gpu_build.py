@@ -2880,3 +2880,23 @@ def test_an_identity_mismatch_is_never_a_loss_and_a_shadow_refusal_is_still_perm
     path = _boxes_dir(host) / f"{BOX}.json"
     remote_gpu_build.refuse(box, b"remote_gpu_build_shadow_state_digest_differs")
     assert not path.exists() and Path(str(path) + ".refused").exists()
+
+
+def test_an_a100_door_with_an_ada_box_file_in_its_dir_offers_no_ada_slot(host):
+    """v2 21 Nov 03:30Z (Ada S6 finding: Ada vs A100 GPU state digests differ on layer-norm graphs): a door's pool is ONE
+    class; a box of another class in the SAME boxes directory is never read into it, so no build, owed rebuild, crown
+    re-measure or reproduce of an A100 door can land on an Ada box (a cross-class re-build is never compared).
+    """
+    ada = "NVIDIA RTX 6000 Ada Generation"
+    pool = _pool(host, _values(host))
+    write_box(host)
+    write_box(
+        host,
+        box_document(
+            "ada-1", kind=ada, docker_host="ssh://carbon-build@ada-1.example:2222"
+        ),
+    )
+    lanes = remote_gpu_build.boxes(pool)
+    assert [lane.spec.name for lane in lanes] == [BOX]
+    assert {lane.device.device_kind for lane in lanes} == {KIND}
+    assert pool.kind == KIND
