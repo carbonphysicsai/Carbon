@@ -185,9 +185,13 @@ def test_a_negative_one_last_axis_is_the_same_axis():
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda d: d["graphs"]["main"]["nodes"][0]["in"].append(99),  # a value the graph never defines
+        lambda d: d["graphs"]["main"]["nodes"][0]["in"].append(
+            99
+        ),  # a value the graph never defines
         lambda d: d["graphs"]["main"].update(outputs=[99]),  # an undefined output
-        lambda d: d["graphs"]["main"]["nodes"][0].pop("out"),  # a node without its results
+        lambda d: d["graphs"]["main"]["nodes"][0].pop(
+            "out"
+        ),  # a node without its results
         lambda d: d["graphs"]["main"].pop("inputs"),  # a graph without inputs
         lambda d: d.update(entry="missing"),  # an entry that is not a graph
     ],
