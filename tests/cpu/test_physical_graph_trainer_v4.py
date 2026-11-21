@@ -300,14 +300,24 @@ def test_the_residual_is_computed_the_way_carbon_grades_one_case_per_call():
     # door-code 10:10:41Z: a graph whose output depends on its batch-mates is allowed to build, which is why grading is isolated;
     # the residual must be the reported (isolated) prediction's, not a batched one's.
     def batch_dependent(params, x):
-        physics = x * params[0] + params[2] + 10.0 * jnp.roll(x, 1, axis=0)  # row 0 reads the LAST row of the batch
+        physics = (
+            x * params[0] + params[2] + 10.0 * jnp.roll(x, 1, axis=0)
+        )  # row 0 reads the LAST row of the batch
         log_sigma = jnp.zeros((x.shape[0], K)) + params[1]
         return [jnp.concatenate([physics, log_sigma], axis=-1)]
 
     model = Prepared(init=init, apply=batch_dependent, batch=BATCH, parameters=())
-    members = [[np.ones(W, dtype="float32"), np.zeros(K, dtype="float32"), np.zeros(W, dtype="float32")]]
+    members = [
+        [
+            np.ones(W, dtype="float32"),
+            np.zeros(K, dtype="float32"),
+            np.zeros(W, dtype="float32"),
+        ]
+    ]
     inputs = np.ones((4, W), dtype="float32")
-    targets = np.ones((4, W), dtype="float32")  # isolated prediction is x * 1 = 1: no error
+    targets = np.ones(
+        (4, W), dtype="float32"
+    )  # isolated prediction is x * 1 = 1: no error
     residual = trust.combined_residual(
         model,
         members,
@@ -319,4 +329,6 @@ def test_the_residual_is_computed_the_way_carbon_grades_one_case_per_call():
         np.arange(4),
         spec(),
     )
-    np.testing.assert_allclose(residual, 0.0, atol=1e-6)  # a batched forward would give +10
+    np.testing.assert_allclose(
+        residual, 0.0, atol=1e-6
+    )  # a batched forward would give +10
