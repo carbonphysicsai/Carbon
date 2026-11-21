@@ -102,8 +102,14 @@ class Guard:
     ungraded task ids, ``snapshot()`` -> the latest chain snapshot (or None), ``stalled()`` -> the task ids the grade round
     found not gradable now. Installed on the adapter by the receiver."""
 
-    def __init__(self, *, opened, pending, snapshot, stalled=frozenset):
+    def __init__(
+        self, *, opened, pending, snapshot, stalled=frozenset, pending_one=None
+    ):
         self._opened, self._pending, self._snapshot = opened, pending, snapshot
+        #: ``pending_one(task)``: whether ONE task is in the grader's list (`AutoGrader.is_pending`), read per built
+        #: task instead of the whole list (the list read every marker and every submission under this place's lock:
+        #: live 116 21 Nov 2026, a 7-10 s coldkey wait with every submit's own hold < 0.5 s); None = the list.
+        self._pending_one = pending_one
         self._stalled = stalled
         #: one lock per counted scope (``c:<coldkey>`` or ``h:<hotkey>``), held from the check to the task's start
         #: (`LeanRecipeAdapter._coldkey_place`): one submission of that scope decided at a time; memory only
@@ -191,10 +197,20 @@ class Guard:
         if held < limit and built:
             # only now the grader's list: a built task holds the place while it waits for its grade
             try:
-                pending, stalled = set(self._pending()), set(self._stalled())
+                stalled = set(self._stalled())
+                if self._pending_one is not None:
+                    held += sum(
+                        1
+                        for task in built
+                        if task not in stalled and self._pending_one(task)
+                    )
+                else:
+                    pending = set(self._pending())
+                    held += sum(
+                        1 for task in built if task in pending and task not in stalled
+                    )
             except Exception:  # noqa: BLE001 - fail open
                 return None
-            held += sum(1 for task in built if task in pending and task not in stalled)
         if held < limit:
             return None
         return (HOTKEY_CODE, HOTKEY_MESSAGE) if per == "hotkey" else (CODE, MESSAGE)

@@ -214,3 +214,31 @@ def test_an_unreadable_owner_is_asked_once_per_recheck_window(monkeypatch):
     # an owner found in memory is answered at once, whatever the window
     grader._hotkey_of = lambda task: "5Open"
     assert grader._owner_of(FAILED) == "5Open"
+
+
+def test_is_pending_answers_for_one_task_exactly_as_the_pending_list(tmp_path):
+    """Submit latency (21 Nov 2026): `AutoGrader.is_pending(task)` == ``task in pending()`` (marker, ended, submitted),
+    read for one task (the coldkey place's check) instead of every marker and every submission.
+    """
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import auto_grade
+
+    submitted = ["rtsk_" + c * 64 for c in "abcd"]
+    ledger = SimpleNamespace(
+        submitted_outcomes=lambda contract: list(submitted),
+        is_submitted_outcome=lambda contract, task: task in submitted,
+    )
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.intake = SimpleNamespace(
+        adapter=SimpleNamespace(ledger=ledger, contract_digest="sha256:" + "0" * 64)
+    )
+    grader.markers = tmp_path / "markers"
+    grader.ended = tmp_path / "ended"
+    grader.markers.mkdir()
+    (grader.markers / (submitted[0] + ".json")).write_text("{}")
+    auto_grade.note_ended(grader.ended, submitted[1])
+    listed = set(grader.pending())
+    for task in [*submitted, "rtsk_" + "e" * 64, "not-a-task"]:
+        assert grader.is_pending(task) == (task in listed), task
+    assert listed == {submitted[2], submitted[3]}

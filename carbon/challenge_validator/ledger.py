@@ -477,6 +477,18 @@ class AttemptLedger:
             ).fetchone()
         return None if row is None else bytes(row[0])
 
+    def is_submitted_outcome(self, contract_digest, submission_id):
+        """Whether ``submission_id`` is one of `submitted_outcomes` (an OUTCOME row or a recipe intent of this contract):
+        the same membership, one indexed lookup instead of the whole ordered list (submit latency, 21 Nov 2026).
+        """
+        with self._read() as db:
+            row = db.execute(
+                "SELECT 1 FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=? "
+                "UNION ALL SELECT 1 FROM recipe_task_intents WHERE contract_digest=? AND submission_id=? LIMIT 1",
+                (contract_digest, submission_id, contract_digest, submission_id),
+            ).fetchone()
+        return row is not None
+
     def submitted_outcomes(self, contract_digest):
         """Authenticated task IDs for one adapter's restart-safe advance pass, OLDEST SUBMISSION FIRST (slow-tail F0,
         Lead / TE-B 8 Nov): by each task's first OUTCOME row (its accepted submission), then any intent-only task

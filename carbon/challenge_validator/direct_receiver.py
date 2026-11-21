@@ -3778,6 +3778,8 @@ def serve(
                     pending=grader.pending,
                     snapshot=window.latest,
                     stalled=lambda: getattr(grader, "stalled", frozenset()),
+                    # per built task, not the whole ungraded list, under the coldkey place's lock (submit latency)
+                    pending_one=grader.is_pending,
                 )
             if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
                 intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])

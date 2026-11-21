@@ -271,6 +271,21 @@ class AutoGrader:
             if _TASK.fullmatch(s) and s not in marked
         ]
 
+    def is_pending(self, task):
+        """Whether ``task`` is in `pending` (a submitted outcome of this door with no marker and no ended build), read
+        for that ONE task: a marker stat, the ended listing and one indexed ledger lookup, instead of every marker and
+        every submission (the coldkey place's check, `coldkey_waiting.Guard`, live 116 21 Nov 2026).
+        """
+        adapter = self.intake.adapter
+        if type(task) is not str or not _TASK.fullmatch(task):
+            return False
+        if os.path.lexists(self.markers / (task + ".json")):
+            return False
+        ended = getattr(self, "ended", None)
+        if ended is not None and task in ended_tasks(ended):
+            return False
+        return adapter.ledger.is_submitted_outcome(adapter.contract_digest, task)
+
     def oldest_pending_ns(self):
         """When this door's OLDEST ungraded submission was accepted (ns), or None with none: this door's place in the
         host's one waiting list for the grading lock (slow-tail F1a, `direct_intake._WorkLock`), for its rebuild and

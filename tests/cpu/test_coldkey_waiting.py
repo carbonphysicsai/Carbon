@@ -222,6 +222,7 @@ def test_the_receiver_installs_the_guard_with_every_input():
         "pending=grader.pending",
         "snapshot=window.latest",
         'getattr(grader, "stalled"',
+        "pending_one=grader.is_pending",
     ):
         assert part in source, part
     assert "self._providers = {}" in inspect.getsource(direct_receiver.OwnerProviders)
@@ -506,3 +507,30 @@ def test_two_hotkeys_of_one_coldkey_at_the_same_instant_only_one_is_admitted(
     assert _race(monkeypatch, locked=True) == sorted(["admitted", cw.CODE])
     # the control proves the test sees the race: without the lock both would pass
     assert _race(monkeypatch, locked=False) == ["admitted", "admitted"]
+
+
+@pytest.mark.parametrize(
+    ("state", "pending"),
+    [
+        ("SUCCEEDED", ["t1"]),
+        ("SUCCEEDED", []),
+        ("FAILED", ["t1"]),
+        ("QUEUED", []),
+    ],
+)
+def test_the_per_task_pending_read_decides_exactly_as_the_list(state, pending):
+    """Submit latency (live 116 21 Nov 2026): the guard asks ``pending_one(task)`` per BUILT task instead of reading the
+    grader's whole ungraded list under the coldkey's lock; the same answer every time, and the list is never read.
+    """
+    views = {"hk-a1": {"t1": state}}
+    by_list = _guard(views, pending=pending).refusal(
+        hotkey="hk-a2", task_id="t2", limit=1
+    )
+    asked = []
+    one = _guard(views, pending=pending)
+    one._pending = lambda: (_ for _ in ()).throw(
+        AssertionError("the whole list was read")
+    )
+    one._pending_one = lambda task: asked.append(task) or task in pending
+    assert one.refusal(hotkey="hk-a2", task_id="t2", limit=1) == by_list
+    assert asked == (["t1"] if state == "SUCCEEDED" else [])

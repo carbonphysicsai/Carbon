@@ -869,14 +869,23 @@ class LeanRecipeAdapter(ChallengeAdapter):
             return
         limit, per = rule
         # this coldkey's (or hotkey's) lock only, never one for the whole door (LOCK + CACHE AUDIT #14)
-        with guard.lock_for(guard.key_of(hotkey, per)):
-            refused = guard.refusal(
-                hotkey=hotkey, task_id=task_id, limit=limit, per=per
-            )
+        from carbon.challenge_validator import step_timing
+
+        # named in the submit's timings: the wait for this coldkey's place, then the waiting count read under it
+        with step_timing.step("coldkey_lock_wait"):
+            lock = guard.lock_for(guard.key_of(hotkey, per))
+            lock.acquire()
+        try:
+            with step_timing.step("coldkey_refusal"):
+                refused = guard.refusal(
+                    hotkey=hotkey, task_id=task_id, limit=limit, per=per
+                )
             if refused is not None:
                 code, message = refused
                 raise Unavailable(code, retry={"message": message})
             yield
+        finally:
+            lock.release()
 
     def _refuse_spent_round(self, submission, task_id, provider):
         """One graded exam per Challenge per round: a hotkey whose graded exam already holds this
