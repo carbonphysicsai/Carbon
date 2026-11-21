@@ -245,7 +245,9 @@ def wired(door, monkeypatch, tmp_path):
         calls["built"] = (recipe, graph_source)
         return "rtsk_" + "d" * 64
 
-    def origin(adapter_, base, entries, entry_id, *, incumbent, admitted=False):
+    def origin(
+        adapter_, base, entries, entry_id, *, incumbent, admitted=False, rebuild=False
+    ):
         calls["origin"] = (entry_id, incumbent)
         retained = SimpleNamespace(
             digest=calls.get(
@@ -803,7 +805,16 @@ def _old_contract_challenger(door, monkeypatch, tmp_path, built):
     )
     reads = []
 
-    def origin(adapter_, base, entries, entry_id, *, incumbent=None, admitted=False):
+    def origin(
+        adapter_,
+        base,
+        entries,
+        entry_id,
+        *,
+        incumbent=None,
+        admitted=False,
+        rebuild=False,
+    ):
         reads.append((entry_id, incumbent, admitted))
         files = {"source-envelope.json": b"the challenger's own envelope"}
         return None, "challenger", None, None, files, recipe
