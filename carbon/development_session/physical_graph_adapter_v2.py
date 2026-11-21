@@ -819,7 +819,12 @@ def build_validated_graph(
         files,
         max_bytes=intake.bounds_for(allowed)["submission_bytes"],
     )
-    interface = graph_interface(spec)
+    # The recipe's output binding is the explicit declaration: a trust-declaring recipe is validated against the version's
+    # trust interface (outputs + k) and a version that offers none refuses it; never the width of a graph decides.
+    trust = recipe.declares_self_trust
+    if trust and spec.trust_outputs < 1:
+        raise RecipeRefused(CODE + "trust_interface_not_offered")
+    interface = graph_interface(spec, trust=trust)
     _, parsed = intake.intake(
         raw_manifest,
         files,

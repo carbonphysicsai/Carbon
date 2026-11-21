@@ -11,6 +11,7 @@ from carbon.development_session.construction_recipe import (
     bind_recipe,
     graph_envelope_from_workspace,
     graph_workspace,
+    trust_declaration_digest,
 )
 
 
@@ -212,3 +213,62 @@ def test_graph_source_resolves_only_the_owner_workspace_and_exact_digest(tmp_pat
     wrong["source"]["submission_digest"] = sha("0")
     with pytest.raises(RecipeRefused, match="graph_digest_mismatch"):
         graph_envelope_from_workspace(ledger, "alice", bind(wrong))
+
+
+# -- self-trust declaration (SELF_TRUST DESIGN_v2, H3a): the recipe's OUTPUT binding is the explicit declaration ----------
+
+
+def trust_recipe():
+    value = graph_recipe()
+    value["output"]["interface_digest"] = trust_declaration_digest(sha("b"))
+    return value
+
+
+def test_the_declaration_digest_is_derived_stable_and_not_the_base_digest():
+    assert trust_declaration_digest(sha("b")) == trust_declaration_digest(sha("b"))
+    assert trust_declaration_digest(sha("b")) != sha("b")
+    assert trust_declaration_digest(sha("b")) != trust_declaration_digest(sha("c"))
+    with pytest.raises(RecipeRefused, match="construction_recipe_challenge_invalid"):
+        trust_declaration_digest("not-a-digest")
+
+
+def test_a_recipe_without_the_declaration_is_unchanged():
+    recipe = bind(graph_recipe())
+    assert recipe.declares_self_trust is False
+    assert recipe.to_dict() == graph_recipe()
+
+
+def test_a_declaring_recipe_parses_but_every_binding_refuses_it_unless_the_version_offers_trust():
+    value = trust_recipe()
+    assert ConstructionRecipe.from_dict(value).declares_self_trust is True
+    with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
+        bind(value)
+    for not_true in (False, None, 1, "yes"):
+        with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
+            bind_recipe(
+                value,
+                challenge_id="battery-example",
+                challenge_version="development-v1",
+                train_digest=sha("a"),
+                interface_digest=sha("b"),
+                construction_limits_digest=sha("c"),
+                offers_self_trust=not_true,
+            )
+    bound = bind_recipe(
+        value,
+        challenge_id="battery-example",
+        challenge_version="development-v1",
+        train_digest=sha("a"),
+        interface_digest=sha("b"),
+        construction_limits_digest=sha("c"),
+        offers_self_trust=True,
+    )
+    assert bound.declares_self_trust is True and bound.to_dict() == value
+
+
+def test_any_other_output_digest_is_still_refused_at_parse():
+    for other in (sha("e"), trust_declaration_digest(sha("c"))):
+        value = graph_recipe()
+        value["output"]["interface_digest"] = other
+        with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
+            ConstructionRecipe.from_dict(value)

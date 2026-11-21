@@ -58,6 +58,21 @@ def _digest(value: object) -> bool:
     return type(value) is str and _SHA.fullmatch(value) is not None
 
 
+def trust_declaration_digest(interface_digest: str) -> str:
+    """The `output.interface_digest` a recipe carries to DECLARE self-trust (SELF_TRUST DESIGN_v2): derived from the
+    version's one public interface digest, so every parser can tell the two forms apart with no kit in hand. It declares
+    the version's trust interface (`outputs + k` columns). Whether a version offers one is the binding's decision
+    (`bind_recipe(offers_self_trust=...)`), never this digest's."""
+    if not _digest(interface_digest):
+        raise RecipeRefused("construction_recipe_challenge_invalid")
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            b"carbon.self-trust.declaration.v1\n" + interface_digest.encode("ascii")
+        ).hexdigest()
+    )
+
+
 def _document(value: object) -> dict:
     if (
         type(value) is not dict
@@ -152,7 +167,11 @@ def _document(value: object) -> dict:
         or type(output["format"]) is not str
         or not output["format"]
         or not _digest(output["interface_digest"])
-        or output["interface_digest"] != challenge["interface_digest"]
+        or output["interface_digest"]
+        not in (
+            challenge["interface_digest"],
+            trust_declaration_digest(challenge["interface_digest"]),
+        )
     ):
         raise RecipeRefused("construction_recipe_output_invalid")
     return value
@@ -195,6 +214,12 @@ class ConstructionRecipe:
         return json.loads(self._raw)
 
     @property
+    def declares_self_trust(self) -> bool:
+        """True when the recipe's output binds the version's TRUST interface (the declaration), not the base one."""
+        value = self.to_dict()
+        return value["output"]["interface_digest"] != value["challenge"]["interface_digest"]
+
+    @property
     def digest(self) -> str:
         return "sha256:" + hashlib.sha256(self._raw).hexdigest()
 
@@ -211,9 +236,14 @@ def bind_recipe(
     train_digest: str,
     interface_digest: str,
     construction_limits_digest: str,
+    offers_self_trust: bool = False,
 ) -> ConstructionRecipe:
-    """Compare registered identities; execution and semantic checks remain separate."""
+    """Compare registered identities; execution and semantic checks remain separate. A recipe that declares self-trust
+    is refused (the output-block refusal it always was for a digest that is not the version's) unless the caller says
+    the version offers a trust interface: the default changes nothing for any caller."""
     recipe = ConstructionRecipe.from_dict(value)
+    if recipe.declares_self_trust and offers_self_trust is not True:
+        raise RecipeRefused("construction_recipe_output_invalid")
     declared = recipe.to_dict()["challenge"]
     expected = {
         "id": challenge_id,
