@@ -74,7 +74,23 @@ CREATE TABLE IF NOT EXISTS ladder_feedback_v2(
     updated_ns INTEGER NOT NULL,
     PRIMARY KEY(hotkey, challenge_id, evaluation_version, exam_key)
 );
+CREATE TABLE IF NOT EXISTS ladder_feedback_history(
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    hotkey TEXT NOT NULL,
+    challenge_id TEXT NOT NULL,
+    evaluation_version TEXT NOT NULL,
+    exam_key TEXT NOT NULL,
+    challenge_version TEXT NOT NULL,
+    shown TEXT NOT NULL,
+    recorded_ns INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ladder_feedback_history_key
+    ON ladder_feedback_history(hotkey, challenge_id, evaluation_version, exam_key, seq);
 """
+
+#: DATA plan S8 / gap G10 (bank 21 Nov 2026): every Ladder document a miner was shown is kept APPEND-ONLY
+#: (`ladder_feedback_history`, one row per graded result, never updated), beside the best / latest row that serving
+#: reads; so 'what did this miner see BEFORE each later try' stays answerable (the B1 feedback_exposed audit).
 
 
 class LadderStoreRefused(ValueError):
@@ -344,6 +360,12 @@ class LadderStore:
         )
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:
+            # append-only: what this result showed the miner (never updated or deleted), in the same transaction
+            db.execute(
+                "INSERT INTO ladder_feedback_history(hotkey, challenge_id, evaluation_version, exam_key,"
+                " challenge_version, shown, recorded_ns) VALUES(?,?,?,?,?,?,?)",
+                (*key, version, _raw(shown, latest=True), int(self.ledger.clock())),
+            )
             db.execute(
                 "INSERT INTO ladder_feedback_v2(hotkey, challenge_id,"
                 " evaluation_version, exam_key, challenge_version, best, latest,"
@@ -389,6 +411,19 @@ class LadderStore:
                 key,
             ).fetchone()
         return None if row is None else json.loads(row[0])
+
+    def history(self, hotkey, challenge, exam_key):
+        """Every Ladder document this hotkey was shown for this exam, oldest first (``ladder_feedback_history``):
+        ``[(recorded_ns, document), ...]``. Custody / audit reading only, never a miner surface.
+        """
+        key, _version = self._key(hotkey, challenge, exam_key)
+        with self.ledger._db() as db:
+            rows = db.execute(
+                "SELECT recorded_ns, shown FROM ladder_feedback_history WHERE hotkey=? AND challenge_id=?"
+                " AND evaluation_version=? AND exam_key=? ORDER BY seq",
+                key,
+            ).fetchall()
+        return [(recorded, json.loads(raw)) for recorded, raw in rows]
 
     def served(self, hotkey, challenge, exam_key):
         """What the miner may read for this exam: ``{"best", "latest"}``, each
