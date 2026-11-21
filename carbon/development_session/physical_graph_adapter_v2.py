@@ -190,6 +190,10 @@ class Spec:
     #: Trainer v3 only: the row layout the group-(b) terms read (None = those
     #: surfaces are not offered).
     layout: dict | None = None
+    #: Self-trust (SELF_TRUST DESIGN_v2): the number k of trust outputs (derived scored outputs, each with one
+    #: log-sigma column) a TRUST interface of this version adds after the `outputs` physics columns. 0 = the version
+    #: offers no trust interface: its interface, adapter block and limits bytes are exactly what they were.
+    trust_outputs: int = 0
 
 
 #: The graph route v2 versions, each its predecessor's TRAIN and interface
@@ -596,12 +600,18 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
     }
 
 
-def graph_interface(spec: Spec):
+def graph_interface(spec: Spec, *, trust: bool = False):
+    """The graph's interface: `outputs` physics columns, or with ``trust`` the version's TRUST interface, `outputs + k`
+    columns (k = `spec.trust_outputs`). The recipe binds one of the two interface digests; that binding is the miner's
+    explicit self-trust declaration, never the width of a row."""
     from carbon.level4.validate import Interface
 
+    if trust and spec.trust_outputs < 1:
+        raise ValueError("this version offers no trust interface")
+    width = spec.outputs + (spec.trust_outputs if trust else 0)
     return Interface(
         inputs=((INPUT_NAME, spec.dtype, (spec.inputs,)),),
-        outputs=((spec.dtype, (spec.outputs,)),),
+        outputs=((spec.dtype, (width,)),),
     )
 
 
@@ -933,4 +943,16 @@ def adapter_block(challenge_id: str, version: str) -> dict:
         "predecessor": spec.predecessor,
         "inference": "one_isolated_case_per_call",
         "value_status": "DEVELOPMENT",
+        # Only a version that offers a trust interface carries this key; every other version's block is unchanged.
+        **(
+            {
+                "trust": {
+                    "outputs": spec.trust_outputs,
+                    "interface_output_shape": [spec.outputs + spec.trust_outputs],
+                    "mode": "the interface digest the recipe binds",
+                }
+            }
+            if spec.trust_outputs
+            else {}
+        ),
     }
