@@ -33,6 +33,16 @@ def _is_int(value):
 
 
 def check(doc, *, physics_width, trust_width):
+    """The trust-head shape rule (see the module text). A document that names a value it does not define, or lacks a key the
+    format requires, is refused typed (``trust_output_shape``), never with a KeyError: the checker is meant to run on an
+    intake-validated document, and this keeps it safe if it is ever called before."""
+    try:
+        return _check(doc, physics_width=physics_width, trust_width=trust_width)
+    except (KeyError, IndexError, TypeError, AttributeError):
+        raise GraphRefused("trust_output_shape", "graph") from None
+
+
+def _check(doc, *, physics_width, trust_width):
     """Verify the trust-head shape rule on a parsed forward graph document.
 
     Returns ``{"physics_parameters": [...], "trust_parameters": [...]}``, the indices (in input order) of the parameters

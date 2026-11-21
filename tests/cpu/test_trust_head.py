@@ -159,10 +159,7 @@ def test_a_trust_head_with_no_parameter_of_its_own_is_refused():
 )
 def test_any_other_output_shape_is_refused(mutate):
     doc = good()
-    try:
-        mutate(doc)
-    except Exception:  # pragma: no cover
-        raise
+    mutate(doc)
     with pytest.raises(GraphRefused) as refused:
         check(doc, physics_width=W, trust_width=K)
     assert refused.value.code == "trust_output_shape"
@@ -183,3 +180,21 @@ def test_a_negative_one_last_axis_is_the_same_axis():
     doc = good()
     doc["graphs"]["main"]["nodes"][-1]["params"]["dimension"] = -1
     assert check(doc, physics_width=W, trust_width=K)["trust_parameters"] == [1]
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda d: d["graphs"]["main"]["nodes"][0]["in"].append(99),  # a value the graph never defines
+        lambda d: d["graphs"]["main"].update(outputs=[99]),  # an undefined output
+        lambda d: d["graphs"]["main"]["nodes"][0].pop("out"),  # a node without its results
+        lambda d: d["graphs"]["main"].pop("inputs"),  # a graph without inputs
+        lambda d: d.update(entry="missing"),  # an entry that is not a graph
+    ],
+)
+def test_a_malformed_document_is_refused_typed_never_with_a_key_error(mutate):
+    doc = good()
+    mutate(doc)
+    with pytest.raises(GraphRefused) as refused:
+        check(doc, physics_width=W, trust_width=K)
+    assert refused.value.code == "trust_output_shape"
