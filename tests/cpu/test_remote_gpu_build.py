@@ -227,6 +227,14 @@ def test_the_checked_in_values_file_names_motor_and_cooling_1_8_on_the_a100():
     assert set(document["rows"]) == {
         "electric-motor-magnetics 1.8",
         "chip-cold-plate 1.8",
+        "electric-motor-magnetics 1.9",
+    }
+    # OWNER-RTX6000ADA-BUILD-CLASS-01 under INFRA-17 (21 Nov 2026): Motor 1.9 opens on the Lium RTX 6000 Ada, slots 4 at
+    # the first admission (6 only after an S7 read on the real door; never 7 without it), shared memory
+    assert remote_gpu_build.values_row("electric-motor-magnetics", "1.9") == {
+        "device_kind": "NVIDIA RTX 6000 Ada Generation",
+        "slots": 4,
+        "memory": "shared",
     }
     # Lead pick (A), 20 Nov 2026 (owner's line replacing C8 / G19): 4 shared slots per box, same per-slot envelope
     assert remote_gpu_build.values_row("electric-motor-magnetics", "1.8") == {

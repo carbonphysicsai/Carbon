@@ -59,6 +59,7 @@ def test_only_an_accepted_device_class_scores(record, monkeypatch):
         "NVIDIA A40": both,
         "NVIDIA GeForce RTX 4090": both,
         "NVIDIA A100-SXM4-40GB": both,
+        "NVIDIA RTX 6000 Ada Generation": both,
     }
     assert record.device_kind == "NVIDIA GeForce RTX 4090"
     worker.CarrierBackend(
@@ -417,6 +418,7 @@ def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
         expected = {
             "NVIDIA GeForce RTX 4090": ("testnet", "finney"),
             "NVIDIA A100-SXM4-40GB": ("finney",),
+            "NVIDIA RTX 6000 Ada Generation": ("finney",),
         }.get(kind, ("testnet",))
         assert all(e["networks"] == expected for e in profiles.values()), kind
         for entry in profiles.values():
