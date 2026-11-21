@@ -34,6 +34,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 
@@ -111,6 +112,19 @@ def _graded(blocks, decoder=None):
     return result
 
 
+def jax_x64_enabled():
+    """Whether JAX runs in 64-bit mode now (the program's x64 rule applied)."""
+    import jax
+
+    return bool(jax.config.read("jax_enable_x64"))
+
+
+def _progress(event, **facts):
+    """One public progress line on stderr (counts, seconds, route names): never a prediction, value or input."""
+    sys.stderr.write(json.dumps({"event": event, **facts}, sort_keys=True) + chr(10))
+    sys.stderr.flush()
+
+
 def count(state_bytes, recipe_bytes, allowlist_bytes, control_bytes, inputs, rows=None):
     """``{mode: rows with a non-finite output}``, the contract's shape/dtype parts and the run's public facts."""
     import numpy as np
@@ -181,11 +195,24 @@ def count(state_bytes, recipe_bytes, allowlist_bytes, control_bytes, inputs, row
 
     x = jnp.asarray(inputs)  # uncast, as the program passes the inputs
     tail = [(0, 0)] * (x.ndim - 1)
+    # LO-7 sizing (live-ops 21 Nov 00:14Z: > 450 s per public row vs ~0.18 s graded): one line of PUBLIC run facts on
+    # stderr before any forward (which path: a compiled v2 ensemble or an eager bundle graph), then one timing line per
+    # row; counts and seconds only, never a value
+    _progress(
+        "path",
+        route="v2_ensemble_compiled" if ensemble is not None else "bundle_eager",
+        members=0 if ensemble is None else len(ensemble[0]),
+        batch=int(batch),
+        rows=len(x),
+        x64=bool(jax_x64_enabled()),
+    )
     zero, repeat = [], []
+    started = time.monotonic()
     for index in range(len(x)):
         row = x[index : index + 1]
         zero.append(forward(*params, jnp.pad(row, [(0, batch - 1)] + tail))[0][:1])
         repeat.append(forward(*params, jnp.repeat(row, batch, axis=0))[0][:1])
+        _progress("row", done=index + 1, seconds=round(time.monotonic() - started, 1))
     together = []
     for start in range(0, len(x), batch):
         part = x[start : start + batch]

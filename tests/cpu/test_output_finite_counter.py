@@ -88,3 +88,25 @@ def test_the_control_must_bind_the_state_recipe_and_allowlist():
             tool._bind({**control, name: "sha256:x"}, state, recipe, allowed)
     with pytest.raises(ValueError, match="expected_output_shape"):
         tool._bind({**control, "expected_output_shape": []}, state, recipe, allowed)
+
+
+def test_progress_lines_are_public_facts_only(capsys):
+    """LO-7 sizing (live-ops 21 Nov 00:14Z): one JSON line per event on stderr, counts / seconds / route names only."""
+    import json
+
+    tool._progress("path", route="bundle_eager", members=0, batch=64, rows=4, x64=True)
+    tool._progress("row", done=1, seconds=0.2)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    lines = [json.loads(line) for line in captured.err.splitlines()]
+    assert lines == [
+        {
+            "event": "path",
+            "route": "bundle_eager",
+            "members": 0,
+            "batch": 64,
+            "rows": 4,
+            "x64": True,
+        },
+        {"event": "row", "done": 1, "seconds": 0.2},
+    ]
