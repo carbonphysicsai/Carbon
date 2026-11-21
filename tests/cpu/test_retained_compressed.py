@@ -254,3 +254,54 @@ def test_custody_counts_a_compressed_pair_as_its_one_declared_name(tmp_path):
         custody._graph_rehash_inventory(
             folder, files, frozenset({"predictions.json"}), lineage_name=None
         )
+
+
+@posix
+def test_a_pre_apply_raw_folder_and_a_post_apply_compressed_one_read_the_same_bytes_and_digests(
+    tmp_path,
+):
+    """V2 21 Nov 2026 (FINAL condition 2): the regrade's retained-folder read, the crown / graded snapshot read and the
+    custody inventory give IDENTICAL raw bytes and digests over a snapshot written before the apply (raw) and after it
+    (compressed)."""
+    import hashlib
+    import importlib.util
+    from pathlib import Path
+
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location(
+        "public_unbound_custody",
+        root / "scripts/dev/score_lab/public_unbound_custody.py",
+    )
+    custody = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(custody)
+    digest = "sha256:" + hashlib.sha256(RAW).hexdigest()
+    results = []
+    for name, compress in (("pre", False), ("post", True)):
+        folder = tmp_path / name
+        folder.mkdir()
+        (folder / "predictions.json").write_bytes(RAW)
+        (folder / "receipt.json").write_bytes(b'{"ok": true}')
+        if compress:
+            data.compress_raw(folder / "predictions.json")
+            assert not (folder / "predictions.json").exists()
+        regrade = retention._private_measurement_bytes(
+            folder / "predictions.json", 16 * 1024**2
+        )
+        graded = retention._snapshot(
+            folder / "predictions.json",
+            limit=16 * 1024**2,
+            digest=digest,
+            label="graded",
+        )
+        files = {
+            "predictions.json": digest,
+            "receipt.json": "sha256:" + hashlib.sha256(b'{"ok": true}').hexdigest(),
+        }
+        observed, raw = custody._graph_rehash_inventory(
+            folder, files, frozenset({"predictions.json"}), lineage_name=None
+        )
+        results.append((regrade, graded, observed, raw["predictions.json"]))
+    assert results[0] == results[1]
+    assert results[0][0] == RAW

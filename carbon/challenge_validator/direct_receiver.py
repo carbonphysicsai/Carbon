@@ -1082,6 +1082,8 @@ GRADING_PATHS = (
     "carbon/development_session/research_carrier.py",
     "carbon/development_session/research_tasks.py",
     "carbon/development_session/paired_inference.py",
+    # every graded and retained reader takes a snapshot's RAW bytes through data.read_raw (V2 21 Nov 2026, DATA head)
+    "carbon/development_session/data.py",
     "carbon/development_session/graph_gpu_lane.py",
     # the graph rebuild (Validator 16:38): the direct-graph worker, the graph engine and what it stages
     "carbon/development_session/direct_graph_construction_worker.py",
