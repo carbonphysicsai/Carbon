@@ -17,8 +17,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "dev"))
 
-import bank_features as bank  # noqa: E402
-import evidence_catalog as cec  # noqa: E402
+import bank_features as bank
+import evidence_catalog as cec
 
 MOTOR, VERSION = "electric-motor-magnetics", "1.8"
 HIDDEN = "HIDDEN-SENTINEL-must-never-leave"
