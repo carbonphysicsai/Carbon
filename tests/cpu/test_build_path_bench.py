@@ -5,6 +5,7 @@ N slots run N builds at a time and never two on one slot's cores; the summary co
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import json
 import threading
@@ -169,3 +170,113 @@ def test_the_summary_counts_only_ok_walls():
         3.0,
     )
     assert row["wall_p90_s"] == 30.0
+
+
+def _gpu_args(bench, tmp_path, recipe_dir, *, values, concurrency="1,2"):
+    argv = [
+        "--challenge",
+        "c",
+        "--version",
+        "1",
+        "--recipe-dir",
+        str(recipe_dir),
+        "--gpu-image-identity",
+        "gpu.json",
+        "--cpu-image-identity",
+        "cpu.json",
+        "--slot-cpusets",
+        "0-3,4-7,8-11",
+        "--concurrency",
+        concurrency,
+        "--work",
+        str(tmp_path / "work"),
+    ]
+    if values is not None:
+        argv += ["--gpu-slot-values", str(values)]
+    return bench.parse(argv)
+
+
+def test_gpu_slot_values_pins_the_doors_pool_and_offers_it_to_every_build(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    from carbon.reconstruction import remote_gpu_build
+
+    bench = _bench()
+    recipe_dir = _recipe_dir(tmp_path, "scaffold", public_scaffold.recipe())
+    pool = SimpleNamespace(
+        kind="NVIDIA RTX 6000 Ada", slots=3, memory="shared", local=object()
+    )
+    seen, pinned, offered = [], [], []
+    monkeypatch.setattr(
+        remote_gpu_build,
+        "door_pool",
+        lambda c, v, values=None, root=None: seen.append((c, v, values)) or pool,
+    )
+    monkeypatch.setattr(
+        remote_gpu_build, "pin", lambda c, v, p: pinned.append((c, v, p))
+    )
+
+    def fake_offered_for(
+        c, v, *, values=None, image_id=None, root=None, withhold=False
+    ):
+        offered.append((c, v, values, image_id))
+        return contextlib.nullcontext(pool)
+
+    monkeypatch.setattr(remote_gpu_build, "offered_for", fake_offered_for)
+    values = tmp_path / "values.json"
+    args = _gpu_args(bench, tmp_path, recipe_dir, values=values)
+    assert bench.gpu_pool(args) == {"kind": pool.kind, "slots": 3, "memory": "shared"}
+    assert seen == [("c", "1", values)] and pinned == [("c", "1", pool)]
+    context = {
+        "gpu_values": values,
+        "gpu_image": SimpleNamespace(image_id="sha256:" + "6" * 64),
+    }
+    with bench.gpu_offer(args, context):
+        pass
+    assert offered == [("c", "1", values, "sha256:" + "6" * 64)]
+    # without the option: no pool, no offer (the host's single miner GPU route)
+    plain = _gpu_args(bench, tmp_path, recipe_dir, values=None)
+    assert bench.gpu_pool(plain) is None
+    with bench.gpu_offer(plain, {"gpu_values": None}):
+        pass
+    assert len(offered) == 1
+
+
+def test_gpu_slot_values_refuses_a_missing_pool_or_too_few_slots(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from carbon.reconstruction import remote_gpu_build
+
+    bench = _bench()
+    recipe_dir = _recipe_dir(tmp_path, "scaffold", public_scaffold.recipe())
+    monkeypatch.setattr(remote_gpu_build, "pin", lambda *a: None)
+    monkeypatch.setattr(remote_gpu_build, "door_pool", lambda *a, **k: None)
+    args = _gpu_args(bench, tmp_path, recipe_dir, values=tmp_path / "v.json")
+    with pytest.raises(SystemExit, match="no GPU slot pool"):
+        bench.gpu_pool(args)
+    small = SimpleNamespace(kind="k", slots=1, memory="shared", local=object())
+    monkeypatch.setattr(remote_gpu_build, "door_pool", lambda *a, **k: small)
+    with pytest.raises(SystemExit, match="exceeds the pool"):
+        bench.gpu_pool(args)
+    with pytest.raises(SystemExit):
+        bench.parse(
+            [
+                "--challenge",
+                "c",
+                "--version",
+                "1",
+                "--recipe-dir",
+                str(recipe_dir),
+                "--cpu-image-identity",
+                "cpu.json",
+                "--cpu-build",
+                "--slot-cpusets",
+                "0-3",
+                "--gpu-slot-values",
+                "v.json",
+                "--work",
+                str(tmp_path / "w"),
+            ]
+        )

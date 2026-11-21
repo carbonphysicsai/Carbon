@@ -24,6 +24,13 @@ The recipe names no seed: the build seed is the door's, so this tool gives build
         --gpu-image-identity jax-gpu.json --cpu-image-identity cpu.json \\
         --slot-cpusets 0-3,4-7,8-11,12-15 --concurrency 1,2,3,4 --work /scratch/bench
 
+``--gpu-slot-values FILE`` runs every GPU build inside the door's GPU build slot pool for the Challenge, as the door's
+graph GPU lane does (`remote_gpu_build.offered_for`): the values row in FILE names the class (device kind, slots,
+memory mode) and this host's slot lane record (`<HOST_ROOT>/remote-gpu-build-lanes.json`, no docker_host: a LOCAL
+lane on this GPU, beside its device record) gives each slot its cores, so N builds take N slots of ONE device. Without
+it, a build uses the host's single miner GPU route, which admits one GPU launch per host (a second concurrent one is
+`reconstruction.worker.launch.conflict`): concurrency above 1 then measures nothing (S6c, 21 Nov 2026).
+
 ``--cpu-build`` builds on the CPU worker instead (no GPU: the door's laneless graph route). Run it on the box (never on
 the live door host, TEAM_RULES #15); v2 receipts the run line.
 """
@@ -120,6 +127,47 @@ def instrument():
     worker._infer_state = _timed("inference", worker._infer_state)
 
 
+def gpu_offer(args, context):
+    """The door's GPU slot pool offer for one build (`remote_gpu_build.offered_for`, the call `research_tasks` makes), or
+    a no-op without `--gpu-slot-values` (the host's single miner GPU route)."""
+    from contextlib import nullcontext
+
+    from carbon.reconstruction import remote_gpu_build
+
+    if context.get("gpu_values") is None:
+        return nullcontext()
+    return remote_gpu_build.offered_for(
+        args.challenge,
+        args.version,
+        values=context["gpu_values"],
+        image_id=context["gpu_image"].image_id,
+    )
+
+
+def gpu_pool(args):
+    """The pinned slot pool for `--gpu-slot-values` (its header fields), or None without it; SystemExit when the values
+    row or this host's slot lane is missing, or a concurrency level exceeds its slots.
+    """
+    from carbon.reconstruction import remote_gpu_build
+
+    if args.gpu_slot_values is None:
+        return None
+    try:
+        pool = remote_gpu_build.door_pool(
+            args.challenge, args.version, values=Path(args.gpu_slot_values)
+        )
+    except (ValueError, OSError) as error:
+        raise SystemExit(f"GPU slot pool refused: {error}") from None
+    if pool is None or pool.local is None:
+        raise SystemExit(
+            "no GPU slot pool: the values file needs this Challenge's row and this host a local slot lane record"
+        )
+    if max(args.concurrency) > pool.slots:
+        raise SystemExit("a --concurrency level exceeds the pool's slots")
+    remote_gpu_build.pin(args.challenge, args.version, pool)
+    return {"kind": pool.kind, "slots": pool.slots, "memory": pool.memory}
+
+
 def one_build(job, args, context):
     """One build through `reconstruct_and_infer_graph_public`, bound to its slot's lane; its printed record."""
     from carbon.development_session import graph_adapters
@@ -158,7 +206,7 @@ def one_build(job, args, context):
             }
         )
         lane = grade_lanes.Lane(slot, args.slot_cpusets[slot], str(context["locks"]))
-        with grade_lanes.bound(lane):
+        with grade_lanes.bound(lane), gpu_offer(args, context):
             result = reconstruct_and_infer_graph_public(
                 ledger,
                 owner=OWNER,
@@ -236,10 +284,16 @@ def parse(argv):
         "--builds-per-slot", type=int, default=2, help="builds per level = this x N"
     )
     parser.add_argument("--seed-base", type=int, default=0)
+    parser.add_argument(
+        "--gpu-slot-values",
+        help="a remote_gpu_build values file: run each GPU build in the door's slot pool (see the docstring)",
+    )
     parser.add_argument("--work", required=True, help="an empty scratch directory")
     args = parser.parse_args(argv)
     if not args.cpu_build and not args.gpu_image_identity:
         parser.error("--gpu-image-identity is required unless --cpu-build")
+    if args.cpu_build and args.gpu_slot_values:
+        parser.error("--gpu-slot-values is for GPU builds only")
     if any(n < 1 or n > len(args.slot_cpusets) for n in args.concurrency):
         parser.error("each --concurrency level needs that many --slot-cpusets")
     if args.builds_per_slot < 1:
@@ -272,6 +326,10 @@ def main(argv=None):
         ),
         "locks": locks,
     }
+    context["gpu_values"] = (
+        None if args.gpu_slot_values is None else Path(args.gpu_slot_values)
+    )
+    pool = gpu_pool(args)
     instrument()
     print(
         json.dumps(
@@ -286,6 +344,7 @@ def main(argv=None):
                     for name, recipe, _m, _f in recipes
                 },
                 "slot_cpusets": args.slot_cpusets,
+                "gpu_pool": pool,
             },
             sort_keys=True,
         ),
