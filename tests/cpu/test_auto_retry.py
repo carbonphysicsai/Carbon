@@ -293,19 +293,62 @@ def test_infra_failures_are_retried_up_to_the_cause_cap_then_owed(
     assert _log(root, auto_retry.ALERT_NAME)[-1]["event"] == "auto_retry_cap_spent"
 
 
-def test_a_version_wide_gap_is_given_back_for_a_resubmit_after_the_fix(tmp_path):
+def test_a_version_wide_gap_keeps_the_task_pending_and_the_door_waits_then_grades_it(
+    tmp_path, monkeypatch
+):
+    """Over-broad rules audit S7 G4 84/96: a version-wide Carbon gap no longer ends the task FAILED
+    (``resubmit_after_fix``). The grade is still refused, the task stays PENDING with no marker, nothing is retried
+    through the caps, and the door claims nothing for `VERSION_GAP_SECONDS`; then one task tries, and it is graded
+    the first round the gap answers."""
     from carbon.challenge_validator import auto_grade
     from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
 
     root, ledger = _root(tmp_path)
+    attempts = []
+    gap = [True]
 
     def retain(task):
-        raise RetentionUnavailable("menu_draw_unavailable")
+        attempts.append(task)
+        if gap[0]:
+            raise RetentionUnavailable("menu_draw_unavailable")
+        return {"entry_id": "sha256:" + "1" * 64}
 
     grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
-    assert grader.run_once() == (A, "FAILED")
-    assert grader.marker(A)["next_step"] == "resubmit_after_fix"
-    assert _log(root) == []
+    assert grader.run_once() is None  # not yet: no FAILED, no marker
+    assert grader.marker(A) is None and grader.pending() == [A]
+    assert _log(root) == []  # never an automatic retry: nothing counted toward the caps
+    assert grader.run_once() is None and attempts == [
+        A
+    ]  # the door waits: no second grade's work
+    gap[0] = False  # the gap is fixed (the registry answers)
+    monkeypatch.setattr(auto_grade, "VERSION_GAP_SECONDS", 0)  # the spacing has passed
+    assert grader.run_once() == (A, "GRADED")
+    assert attempts == [A, A]
+
+
+@pytest.mark.parametrize(
+    "code, wide",
+    [
+        ("menu_draw_unavailable", True),
+        ("exam_cap_unregistered", True),
+        ("exam_cadence_unregistered", True),
+        ("pool_constants_unregistered", True),
+        ("leg_minimum_platform_mismatch", True),
+        ("ExamCapRefused", True),
+        # per task, a limit, or the candidate's: never a version gap
+        ("evaluation_pack_binding_unavailable", False),
+        ("evaluation_pack_source_registration_unavailable", False),
+        ("epoch_limit_reached", False),
+        ("exam_daily_allowance_reached", False),
+        ("allowance_group_unresolved", False),
+        ("vmap64_grade_needs_sealed_pack", False),
+        ("inference_pair_incomplete", False),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_only_version_wide_gaps_keep_a_task_pending(code, wide):
+    assert auto_retry.version_wide(code) is wide
 
 
 @pytest.mark.parametrize(

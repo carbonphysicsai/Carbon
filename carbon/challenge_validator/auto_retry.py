@@ -125,6 +125,23 @@ def failure_code(failure) -> str:
     return type(failure).__name__
 
 
+def version_wide(code) -> bool:
+    """Whether ``code`` is a version-wide Carbon gap (Validator-2B (1)): every grade of the version meets it (an
+    unregistered cap or cadence, a missing pool constant, the version's pack or menu, ...). The grader keeps such a task
+    PENDING, never FAILED (`auto_grade.VERSION_GAP_SECONDS`, over-broad rules audit S7 G4 84/96).
+    """
+    if type(code) is not str or not code:
+        return False
+    base = code.split(":", 1)[0]
+    if base in _VERSION_WIDE_CLASSES:
+        return True
+    if base in _PER_TASK_CODES or base in _NOT_RETRIED:
+        return False
+    return any(base.startswith(p) for p in _VERSION_WIDE_PREFIXES) or any(
+        base.endswith(s) for s in _VERSION_WIDE_SUFFIXES
+    )
+
+
 def retryable(code) -> bool:
     """Whether a FAILED grade's Carbon code is transient (one free automatic retry)."""
     if type(code) is not str or not code:

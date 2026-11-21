@@ -59,6 +59,15 @@ _CAP_LIMITS = frozenset({"exam_daily_allowance_reached", "epoch_limit_reached"})
 #: this is a chain read that failed: the task waits and is graded once the chain answers, never FAILED and never a
 #: slot given back (H8; R38, 5 Nov). With a fresh snapshot it means what it always meant (handled as before).
 _CHAIN_CODES = frozenset({"direct_provider_registration_unavailable"})
+#: A task whose grade met a VERSION-WIDE Carbon gap (`auto_retry.version_wide`: an unregistered cap or cadence, the
+#: version's pool constants, pack or menu) stays PENDING with no marker (over-broad rules audit S7 G4 84/96, owner 16
+#: Nov: only exam integrity, hidden values or funds justify a gate). The refusal to GRADE stays (with no allowance there
+#: is no cap, so a grade would be a free probe); only the forced resubmit goes. Every grade of the version meets the same
+#: gap, and some meet it only after a full graded pass (``leg_minimum_platform_mismatch``), so the DOOR waits: after a
+#: gap no task is claimed for `VERSION_GAP_SECONDS`, then ONE task tries (at most one grade's work per spacing while the
+#: gap lasts), uncounted toward the automatic-retry caps; any slot it reserved is given back (FAILED_INFRA, uncharged)
+#: before it waits. In-process: a restart tries at once. An engineering value, not a science one.
+VERSION_GAP_SECONDS = 600
 #: The terminal marker of a submission its owner withdrew while it was still queued (`LeanRecipeAdapter.withdraw`, owner GO
 #: 15 Nov 2026): never graded, no try and no allowance used. Not FAILED (the infrastructure requeue, `failures` and
 #: `failure_summary` read FAILED) and not VERSION_CLOSED; every marker reader treats any state it does not name as settled.
@@ -881,6 +890,49 @@ class AutoGrader:
         except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
             return
 
+    def _wait_version_gap(self, submission_id, code):
+        """Keep ``submission_id`` PENDING on a version-wide Carbon gap (`VERSION_GAP_SECONDS`): give back any slot it
+        reserved (uncharged), mark when the door met the gap and log ``version_gap_pending`` once per code per hour. True
+        when it waits (the caller returns "not yet"); False for any other code (the usual FAILED path).
+        """
+        from . import auto_retry
+
+        if not auto_retry.version_wide(code):
+            return False
+        # a give-back that fails: the usual FAILED path decides
+        try:
+            self._give_back(submission_id)
+        except Exception:  # noqa: BLE001
+            return False
+        base = code.split(":", 1)[0]
+        now = time.time()
+        with _STALLED_LOCK:
+            self._version_gap_at = now
+            logged = self.__dict__.setdefault("_version_gap_logged", {})
+            due = now - logged.get(base, 0.0) >= 3600
+            if due:
+                logged[base] = now
+        if due:
+            try:
+                from carbon.battery.intake import log
+
+                log(
+                    "version_gap_pending",
+                    code=base if base.isidentifier() else "unprintable",
+                    wait_s=VERSION_GAP_SECONDS,
+                )
+            except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
+                logged.pop(base, None)
+        self._note_next(base)
+        return True
+
+    def _gap_waits(self):
+        """Whether this door met a version-wide gap less than `VERSION_GAP_SECONDS` ago (`_wait_version_gap`): then no
+        task is claimed (every grade of the version would meet it); after it, one round tries.
+        """
+        since = getattr(self, "_version_gap_at", None)
+        return since is not None and time.time() - since < VERSION_GAP_SECONDS
+
     def _note_passes(self, passes):
         """Grade-speed (18 Nov 2026, "use all lanes"): built tasks the claim scan passed over, by reason, logged once
         per change (``grade_claim_passed``), so a free lane with built tasks never waits silently.
@@ -916,6 +968,11 @@ class AutoGrader:
             passes[reason] = passes.get(reason, 0) + 1
 
         for submission_id in candidates:
+            if self._gap_waits():
+                # a version-wide gap met within `VERSION_GAP_SECONDS`: every grade of the version meets it, so no
+                # task is claimed before then; each stays pending, nothing reserved
+                passing("version_gap")
+                continue
             group = self._allowance_group(submission_id)
             if group is None:
                 if busy or held:
@@ -1300,6 +1357,8 @@ class AutoGrader:
                 # other pending task would meet the same stale chain)
                 return None
             turn()
+            if self._wait_version_gap(submission_id, code):
+                return _NEXT
             self._keep(submission_id, unavailable)
             self._fail(submission_id, _code(code))
             return submission_id, "FAILED"
@@ -1317,6 +1376,17 @@ class AutoGrader:
                 # it gives today's behaviour, a FAILED_INFRA give-back = a free rerun.
                 return None
             turn()
+            # its own closed code when it has one (ExamCapRefused("epoch_limit_reached") is a limit, not a gap), else
+            # its class (PoolConstantsNotRegistered, ExamRefused, MenuRefused)
+            if self._wait_version_gap(
+                submission_id,
+                (
+                    failure_code
+                    if isinstance(failure_code, str)
+                    else type(failure).__name__
+                ),
+            ):
+                return _NEXT
             self._keep(submission_id, failure)
             if _candidate_wall_stop(failure) and self._wall_counted(
                 submission_id, sampler, started_ns
