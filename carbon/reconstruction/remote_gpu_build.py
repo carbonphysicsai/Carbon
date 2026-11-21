@@ -1841,6 +1841,14 @@ def wrapper(lane):
     return _ensure_box_files(lane)
 
 
+#: Extra seconds every docker call to a BOX gets on top of its own bound (`cli`): each call opens its own ssh connection
+#: through the box's wrapper (idle ~1.5 s, infra 15:43:44Z), and under concurrent builds on a native-snapshotter box a
+#: 10 s controls read (``docker exec ... cat /sys/fs/cgroup/pids.max``) timed out (S6c, 21 Nov 2026: every N >= 2 build
+#: failed as Carbon's infra while the builds themselves ran). Operational margin for the link only: the bound still ends a
+#: hung call, and no limit, control or grade changes.
+BOX_LINK_SECONDS = 20.0
+
+
 def cli(binding=None):
     """A Docker CLI for the running op's box daemon (through the box's wrapper), or None outside a remote op."""
     binding = _current() if binding is None else binding
@@ -1849,7 +1857,25 @@ def cli(binding=None):
         return None
     from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
-    remote = DockerCLI()
+    class BoxDockerCLI(DockerCLI):
+        """DockerCLI for a box: every bound gets `BOX_LINK_SECONDS` more for the box's ssh link (a hung call still
+        ends at its bound plus that; DockerCLI's own bytes, a worker image input, are not touched).
+        """
+
+        def run(self, arguments, *, timeout=30, accepted=(0,)):
+            return super().run(
+                arguments, timeout=timeout + BOX_LINK_SECONDS, accepted=accepted
+            )
+
+        def stream_to_file(self, arguments, destination, *, maximum, timeout):
+            return super().stream_to_file(
+                arguments,
+                destination,
+                maximum=maximum,
+                timeout=timeout + BOX_LINK_SECONDS,
+            )
+
+    remote = BoxDockerCLI()
     # DockerCLI (a worker image input, A16's bytes) always runs ``docker`` with the operator's own DOCKER_*; the box's
     # wrapper is that same CLI with the box's DOCKER_HOST and ssh shim, so every bounded capture and stream is DockerCLI's.
     remote.executable = str(wrapper(binding.lane))
