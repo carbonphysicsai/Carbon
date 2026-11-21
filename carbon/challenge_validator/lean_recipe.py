@@ -779,6 +779,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 "coldkey_place",
                 self._coldkey_place(submission.hotkey, task_id.value),
             )
+            # how long THIS submit holds its coldkey place (until its start): a later submit of the same coldkey waits
+            # the sum of the holds ahead of it (its coldkey_place); exits before the place is released
+            placed.enter_context(step_timing.step("coldkey_held"))
             source = recipe.to_dict()["source"]
             if source["kind"] == "graph":
                 try:
@@ -790,23 +793,26 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     raise Unavailable(refused.code) from None
             from carbon.research import canonical_bytes
 
-            self.ledger.record_recipe_task_intent(
-                self.contract_digest,
-                task_id.value,
-                submission.hotkey,
-                "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
-            )
-            self._give_back_queue_place(
-                earlier_generations, task_id.value, submission.hotkey
-            )
+            with step_timing.step("intent"):
+                self.ledger.record_recipe_task_intent(
+                    self.contract_digest,
+                    task_id.value,
+                    submission.hotkey,
+                    "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
+                )
+            with step_timing.step("give_back"):
+                self._give_back_queue_place(
+                    earlier_generations, task_id.value, submission.hotkey
+                )
             if submission.strategy.get("source", {}).get("kind") == "catalog":
                 from carbon.backbone_catalog.served import submission_document
 
-                self.ledger.record_catalog_submission(
-                    self.contract_digest,
-                    task_id.value,
-                    submission_document(submission.strategy, recipe.to_dict()),
-                )
+                with step_timing.step("catalog"):
+                    self.ledger.record_catalog_submission(
+                        self.contract_digest,
+                        task_id.value,
+                        submission_document(submission.strategy, recipe.to_dict()),
+                    )
             try:
                 with step_timing.step("start_task"):
                     task = provider.start_research_task(
