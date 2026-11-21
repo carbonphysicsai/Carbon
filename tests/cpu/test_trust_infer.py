@@ -387,3 +387,17 @@ def test_the_loader_a_declaring_candidate_gets_is_the_trust_states(monkeypatch):
     assert loader is physical_graph_state_v2.load and "trust_outputs" not in query
     with pytest.raises(RecipeRefused, match="trust_interface_not_offered"):
         _contract(monkeypatch, trust_spec=False, declares=True)
+
+
+def test_the_single_call_speed_program_composes_with_the_trust_variant():
+    # the first trust candidate's speed stage (lean_recipe_retention._single_call_raw) derives `single_call_timing.program` from its
+    # trust program: every anchor of both derivations must still occur once, and the result keeps both behaviours
+    from carbon.development_session import single_call_timing
+
+    for name in ("graph v2", "graph v2 compiled"):
+        trust = trust_infer.trust_program(PROGRAMS[name]())
+        timed = single_call_timing.program(trust)
+        assert "single_call" in timed and "trust_k" in timed and "sigma_body" in timed
+        compile(timed, "timed_trust_program", "exec")
+        # the plain family's timed program is the same function of its own program: unchanged by this
+        assert "trust_k" not in single_call_timing.program(PROGRAMS[name]())

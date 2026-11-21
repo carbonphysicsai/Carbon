@@ -1576,7 +1576,7 @@ def _infer_state(
         raise RecipeRefused("direct_inference_provenance_invalid")
     if type(trust_outputs) is not int or trust_outputs < 0:
         raise RecipeRefused("direct_inference_trust_invalid")
-    if trust_outputs and (program is None or single_call is not None):
+    if trust_outputs and program is None:
         raise RecipeRefused("direct_inference_trust_needs_its_own_program")
     allowed = _trusted_allowlist(allowlist_bytes)
     inputs_bytes = _tensors(inputs=inputs)
