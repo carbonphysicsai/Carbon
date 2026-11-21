@@ -376,35 +376,29 @@ def restore_active(monkeypatch):
     monkeypatch.setattr(ca, "ACTIVE", None)
 
 
-def test_install_is_off_without_a_section_and_refuses_any_other_shape(restore_active):
-    host.install({})
-    assert ca.ACTIVE is None
-    for bad in (
-        {"crown_average": []},
-        {"crown_average": {}},
-        {"crown_average": {"key_file": "x", "n": 1}},
-    ):
-        with pytest.raises(ca.CrownAverageInvalid):
-            host.install(bad)
-    assert ca.ACTIVE is None
-
-
-@pytest.mark.skipif(os.name == "nt", reason="POSIX owner-only modes")
-def test_install_reads_the_private_key_file_and_never_shows_it(
-    tmp_path, restore_active
+def test_install_keeps_the_average_off_and_ignores_any_crown_average_section(
+    restore_active, tmp_path
 ):
+    """Over-broad rules audit S7 C2 301: crowns are official-score for every version (`crown_official`), so the
+    section is never read and never refuses a start, whatever its shape or key file."""
     key = tmp_path / "k"
     key.write_bytes(CROWN_KEY)
-    key.chmod(0o600)
-    host.install({"crown_average": {"key_file": str(key)}})
-    assert isinstance(ca.ACTIVE, ca.Active)
-    assert repr(ca.ACTIVE) == "Active(<redacted>)"
-    host.install({})
-    assert ca.ACTIVE is None
+    for section in (
+        None,
+        [],
+        {},
+        {"key_file": "x", "n": 1},
+        {"key_file": "relative"},
+        {"key_file": str(key)},
+    ):
+        cfg = {} if section is None else {"crown_average": section}
+        ca.ACTIVE = object()
+        host.install(cfg)
+        assert ca.ACTIVE is None
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX owner-only modes")
-def test_the_receiver_configuration_validates_the_section(tmp_path, monkeypatch):
+def test_the_receiver_configuration_no_longer_checks_the_section(tmp_path, monkeypatch):
     from carbon.challenge_validator import direct_receiver as receiver
 
     key = tmp_path / "k"
@@ -420,19 +414,16 @@ def test_the_receiver_configuration_validates_the_section(tmp_path, monkeypatch)
         "lifetime_seconds": 30,
         "measure_query": True,
     }
-    for section, ok in (
-        ({"key_file": str(key)}, True),
-        ({"key_file": "relative"}, False),
-        ({"key_file": str(key), "n": 5}, False),
-        ("path", False),
+    # S7 C2 301: the rule is never on (official-score crowns), so no shape of the section refuses a start
+    for section in (
+        {"key_file": str(key)},
+        {"key_file": "relative"},
+        {"key_file": str(key), "n": 5},
+        "path",
     ):
         cfg = {**base, "crown_average": section}
         monkeypatch.setattr(receiver, "private_json", lambda _, cfg=cfg: deepcopy(cfg))
-        if ok:
-            assert receiver.load_config(tmp_path / "c.json")["crown_average"] == section
-        else:
-            with pytest.raises((ValueError, ca.CrownAverageInvalid)):
-                receiver.load_config(tmp_path / "c.json")
+        assert receiver.load_config(tmp_path / "c.json")["crown_average"] == section
 
 
 def test_a_king_never_measured_by_the_average_keeps_crowns_paused(

@@ -20,7 +20,11 @@ posix = pytest.mark.skipif(
 
 @pytest.fixture
 def hold_on(monkeypatch):
+    from carbon.challenge_validator import crown_official
+
     monkeypatch.setattr(crown_hold, "ACTIVE", True)
+    # the hold applies only where crowns are not official-score (over-broad rules audit S7 C2 295)
+    monkeypatch.setattr(crown_official, "ACTIVE", None)
 
 
 def release(directory, ids, mode=0o600):
@@ -188,3 +192,26 @@ def test_the_hold_is_a_grading_path():
     from carbon.challenge_validator import direct_receiver
 
     assert "carbon/challenge_validator/crown_hold.py" in direct_receiver.GRADING_PATHS
+
+
+def test_an_official_score_crown_is_never_held(tmp_path, hold_on, monkeypatch):
+    """Over-broad rules audit S7 C2 295: where the official grades and the registered margin decide the served
+    version's crown, the menu-D hold protects nothing (it only kept paying the old king after a re-pack or a rotation):
+    `holding()` is False, a crown-changing contender is decided, and `ACTIVE` keeps its meaning for the row check.
+    """
+    from carbon.challenge_validator import crown_official
+
+    assert crown_hold.holding() is True
+    monkeypatch.setattr(
+        crown_official,
+        "ACTIVE",
+        {
+            "challenge": "c",
+            "version": "v",
+            "margin": 0.0129,
+            "digest": "sha256:" + "0" * 64,
+        },
+    )
+    assert crown_hold.holding() is False
+    assert crown_hold.held(tmp_path, "c") is False
+    assert crown_hold.ACTIVE is True  # the menu row check still reads it

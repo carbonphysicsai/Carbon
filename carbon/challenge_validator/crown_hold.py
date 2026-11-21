@@ -236,10 +236,26 @@ def registered_off(challenge_id, version, *, path=None):
 
 
 def holding() -> bool:
-    """Whether the served version's crown changes are held for review: it is a menu version (`ACTIVE`) and the
-    registered hold-off is not in force (`off_in_force`: both the served pack and the menu epoch match its entry).
+    """Whether the served version's crown changes are held for review: it is a menu version (`ACTIVE`), the
+    registered hold-off is not in force (`off_in_force`: both the served pack and the menu epoch match its entry), and
+    the crown is NOT decided by the official-score rule (`crown_official.ACTIVE`).
+
+    Over-broad rules audit S7 C2 295 (owner 20 Nov: only exam integrity, hidden values or funds justify a gate): under
+    the official-score crown the two official grades and the registered margin decide (and a version with no margin row
+    still waits, `CROWN_MARGIN_UNSET`), so a hold for the crown-side re-score protects nothing; it only re-engaged on a
+    re-pack or an epoch rotation and kept paying the old king. `ACTIVE` keeps its meaning for the menu row check.
     """
-    return ACTIVE and not off_in_force()
+    return ACTIVE and not off_in_force() and not _official()
+
+
+def _official() -> bool:
+    """Whether the official-score rule decides the served version's crown (`crown_official.install` read its row)."""
+    # an import that fails is not official: the hold stays (fail closed)
+    try:
+        from carbon.challenge_validator import crown_official
+    except ImportError:
+        return False
+    return crown_official.ACTIVE is not None
 
 
 def held(state_dir, submission_id, *, active=None) -> bool:

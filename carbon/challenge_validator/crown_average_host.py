@@ -34,10 +34,16 @@ def read_crown_key(name) -> bytes:
 
 
 def install(cfg):
-    """Turn the rule on (or off) from a receiver's configuration: the ``crown_average`` section names the private key
-    file. Absent: off. The ``menu_draw`` section (the same host's K_crown file) installs the menu D draw key
-    (`pool_menu.install_key`, purpose label ``d-menu-sample``); absent: off, and a menu version refuses to grade
-    (``menu_draw_unavailable``, Carbon's gap)."""
+    """Install the menu D draw key from a receiver's configuration and keep the crown average OFF.
+
+    The ``menu_draw`` section (the host's K_crown file) installs the menu D draw key (`pool_menu.install_key`, purpose
+    label ``d-menu-sample``); absent: off, and a menu version refuses to grade (``menu_draw_unavailable``, Carbon's gap).
+    Its key-file checks stay (`read_crown_key`: hidden values, K_crown draws the menu rows).
+
+    The ``crown_average`` section is no longer read (over-broad rules audit S7 C2 301): every receiver decides crowns on
+    the official grades (`crown_official`, the default for every version since 14 Nov, installed by `serve`, which sets
+    `crown_average.ACTIVE` to None anyway), so a malformed or unreadable section refused a start for a rule that is
+    never on. A present section is ignored."""
     from carbon.scoring import pool_menu
 
     menu = cfg.get("menu_draw")
@@ -47,13 +53,4 @@ def install(cfg):
         if type(menu) is not dict or set(menu) != {"key_file"}:
             raise crown_average.CrownAverageInvalid("menu_draw_selection_invalid")
         pool_menu.install_key(read_crown_key(menu["key_file"]))
-    section = cfg.get("crown_average")
-    if section is None:
-        crown_average.ACTIVE = None
-        return
-    if type(section) is not dict or set(section) != {"key_file"}:
-        raise crown_average.CrownAverageInvalid("crown_average_selection_invalid")
-    # stepwise: a contender's N+1 rebuilds run ONE per sweep tick, so a live grade runs between two of them (Bundle A2)
-    crown_average.ACTIVE = crown_average.Active(
-        crown_average.load_rule(), read_crown_key(section["key_file"]), stepwise=True
-    )
+    crown_average.ACTIVE = None

@@ -76,10 +76,16 @@ def test_the_default_is_the_whole_decision_in_one_call_and_the_receiver_turns_st
     tmp_path,
 ):
     assert _active(tmp_path).stepwise is False
+    # S7 C2 301: a receiver never turns the average on (official-score crowns for every version)
+    from carbon.challenge_validator import crown_average as ca
     from carbon.challenge_validator import crown_average_host as host
 
-    source = Path(host.__file__).read_text()
-    assert "stepwise=True" in source  # install() builds the Active with it
+    previous, ca.ACTIVE = ca.ACTIVE, object()
+    try:
+        host.install({"crown_average": {"key_file": "/nonexistent"}})
+        assert ca.ACTIVE is None
+    finally:
+        ca.ACTIVE = previous
 
 
 def test_a_contender_takes_one_new_rebuild_per_call_and_the_last_call_decides(

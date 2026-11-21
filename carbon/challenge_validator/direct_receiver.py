@@ -371,13 +371,7 @@ def load_config(path: Path) -> dict:
         selected = value["funder_map_file"]
         if type(selected) is not str or not Path(selected).is_absolute():
             raise ValueError("exact funder map path required")
-    if "crown_average" in value:
-        section = value["crown_average"]
-        if type(section) is not dict or set(section) != {"key_file"}:
-            raise ValueError("invalid crown_average selection")
-        from carbon.challenge_validator import crown_average_host
-
-        crown_average_host.read_crown_key(section["key_file"])
+    # ``crown_average``: no longer read or checked (over-broad rules audit S7 C2 301; `crown_average_host.install`)
     if "menu_draw" in value:
         section = value["menu_draw"]
         if type(section) is not dict or set(section) != {"key_file"}:
