@@ -122,11 +122,17 @@ class SelfTrustRule:
     send_back_outputs: tuple  # the outputs whose miss makes a case badly wrong (a non-empty subset of outputs)
     nominal_coverage: object  # c in (0, 1): the central band the miner states
     output_weights: object  # {output: w >= 0}, over exactly `outputs`, summing to 1
-    interval_score_anchor_u: object  # {output: mean IS / U that scores 0}, > 0, over exactly `outputs`
-    badly_wrong_cut_u: object  # {output: |err| / U cut}, > 0, over exactly `send_back_outputs`
+    interval_score_anchor_u: (
+        object  # {output: mean IS / U that scores 0}, > 0, over exactly `outputs`
+    )
+    badly_wrong_cut_u: (
+        object  # {output: |err| / U cut}, > 0, over exactly `send_back_outputs`
+    )
     miss_cost: object  # > 0: one badly wrong case the model did not flag
     send_back_cost: object  # 0 < send_back_cost < miss_cost: one flagged case sent to full simulation
-    calibration_weight: object  # in [0, 1]: the calibration part's weight in the report total
+    calibration_weight: (
+        object  # in [0, 1]: the calibration part's weight in the report total
+    )
 
 
 def _names(value):
@@ -243,7 +249,7 @@ class Split:
 
 def _raw_number(value):
     # a raw output cell: numpy / Python numbers, never a bool or a string
-    if isinstance(value, bool) or isinstance(value, (str, bytes)):
+    if isinstance(value, (bool, str, bytes)):
         return None
     try:
         v = float(value)

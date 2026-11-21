@@ -37,7 +37,9 @@ def rule(form=st.INTERVAL, **changes):
 
 
 def answer(r, flag=False, sigmas=None, bands=None):
-    return st.TrustAnswer(form=r.form, sigmas=sigmas or {}, bands=bands or {}, flag=flag)
+    return st.TrustAnswer(
+        form=r.form, sigmas=sigmas or {}, bands=bands or {}, flag=flag
+    )
 
 
 def case(r, p, t, u=None, flag=False, sigmas=None, bands=None, status=st.PRESENT):
@@ -73,9 +75,18 @@ def test_every_science_value_is_required(field):
         ({"nominal_coverage": True}, "nominal_coverage_must_be_in_0_1"),
         ({"output_weights": {"a": 1.0}}, "output_weights_must_cover_exactly"),
         ({"output_weights": {"a": 0.5, "b": 0.6}}, "output_weights_must_sum_to_1"),
-        ({"output_weights": {"a": -0.5, "b": 1.5}}, "output_weights_must_be_non_negative"),
-        ({"interval_score_anchor_u": {"a": 6.0, "b": 0.0}}, "anchor_u_must_be_positive"),
-        ({"badly_wrong_cut_u": {"a": 1.0, "b": 1.0}}, "badly_wrong_cut_u_must_cover_exactly"),
+        (
+            {"output_weights": {"a": -0.5, "b": 1.5}},
+            "output_weights_must_be_non_negative",
+        ),
+        (
+            {"interval_score_anchor_u": {"a": 6.0, "b": 0.0}},
+            "anchor_u_must_be_positive",
+        ),
+        (
+            {"badly_wrong_cut_u": {"a": 1.0, "b": 1.0}},
+            "badly_wrong_cut_u_must_cover_exactly",
+        ),
         ({"badly_wrong_cut_u": {"a": math.inf}}, "badly_wrong_cut_u_must_be_positive"),
         ({"miss_cost": 0.0}, "miss_cost_must_be_positive"),
         ({"send_back_cost": 1.0}, "send_back_cost_must_be_in_0_miss_cost"),
@@ -100,7 +111,9 @@ def test_block_widths():
     assert st.block_width(rule(st.SIGMA)) == 3  # 2 sigmas + flag
     assert st.block_width(rule(st.INTERVAL)) == 5  # 2 (lo, hi) + flag
     assert st.accepted_widths(10, None) == (10,)
-    assert st.accepted_widths(10, rule(st.SIGMA)) == (10,)  # undeclared: the width of today
+    assert st.accepted_widths(10, rule(st.SIGMA)) == (
+        10,
+    )  # undeclared: the width of today
     assert st.accepted_widths(10, rule(st.SIGMA), declared=True) == (13,)
     assert st.accepted_widths(10, None, declared=True) == (10,)
     with pytest.raises(st.SelfTrustRefused, match="base_width_malformed"):
@@ -131,7 +144,10 @@ def test_present_interval_block_splits():
     r = rule(st.INTERVAL)
     split = st.split_row([9.0, 1.0, 3.0, -2.0, 2.0, 0.0], 1, r, declared=True)
     assert split.base == [9.0]
-    assert split.answer.bands == {"a": (1.0, 3.0), "b": (-2.0, 2.0)} and split.answer.flag is False
+    assert (
+        split.answer.bands == {"a": (1.0, 3.0), "b": (-2.0, 2.0)}
+        and split.answer.flag is False
+    )
 
 
 def test_wrong_width_is_left_to_todays_path():
@@ -187,7 +203,9 @@ def test_interval_score_by_hand():
 
 
 def test_gaussian_crps_at_the_mean():
-    assert st.gaussian_crps(5.0, 2.0, 5.0) == pytest.approx(2.0 * (math.sqrt(2) - 1) / math.sqrt(math.pi))
+    assert st.gaussian_crps(5.0, 2.0, 5.0) == pytest.approx(
+        2.0 * (math.sqrt(2) - 1) / math.sqrt(math.pi)
+    )
 
 
 def test_binomial_two_sided_p_by_hand():
@@ -200,9 +218,27 @@ def test_interval_calibration_by_hand():
     r = rule(st.INTERVAL)
     band = {"a": (1.0, 3.0), "b": (1.0, 3.0)}
     cases = [
-        case(r, {"a": 2.0, "b": 2.0}, {"a": 2.0, "b": 2.0}, {"a": 2.0, "b": 2.0}, bands=band),  # IS 2 -> 1 U
-        case(r, {"a": 2.0, "b": 2.0}, {"a": 5.0, "b": 2.0}, {"a": 2.0, "b": 2.0}, bands=band),  # a: IS 10 -> 5 U
-        case(r, {"a": 2.0, "b": 2.0}, {"a": 0.0, "b": 2.0}, {"a": 2.0, "b": 2.0}, bands=band),  # a: IS 6 -> 3 U
+        case(
+            r,
+            {"a": 2.0, "b": 2.0},
+            {"a": 2.0, "b": 2.0},
+            {"a": 2.0, "b": 2.0},
+            bands=band,
+        ),  # IS 2 -> 1 U
+        case(
+            r,
+            {"a": 2.0, "b": 2.0},
+            {"a": 5.0, "b": 2.0},
+            {"a": 2.0, "b": 2.0},
+            bands=band,
+        ),  # a: IS 10 -> 5 U
+        case(
+            r,
+            {"a": 2.0, "b": 2.0},
+            {"a": 0.0, "b": 2.0},
+            {"a": 2.0, "b": 2.0},
+            bands=band,
+        ),  # a: IS 6 -> 3 U
     ]
     out = st.report(r, cases)
     assert out["status"] == st.SCORED
@@ -234,7 +270,9 @@ def test_sigma_band_uses_the_registered_coverage():
 def test_skill_clips_at_zero_beyond_the_anchor():
     r = rule(st.INTERVAL, interval_score_anchor_u={"a": 0.5, "b": 6.0})
     band = {"a": (1.0, 3.0), "b": (1.0, 3.0)}
-    out = st.report(r, [case(r, {"a": 2.0, "b": 2.0}, {"a": 2.0, "b": 2.0}, bands=band)])
+    out = st.report(
+        r, [case(r, {"a": 2.0, "b": 2.0}, {"a": 2.0, "b": 2.0}, bands=band)]
+    )
     a = out["outputs"]["a"]
     assert a["calibration_skill_raw"] < 0 and a["calibration_skill"] == 0.0
 
@@ -256,7 +294,13 @@ def test_send_back_by_hand():
     r = rule(st.INTERVAL)
     out = st.report(r, _send_back_cases(r, [True, False, True, False]))
     sb = out["send_back"]
-    assert (sb["badly_wrong"], sb["flagged"], sb["caught"], sb["missed"], sb["false_alarms"]) == (2, 2, 1, 1, 1)
+    assert (
+        sb["badly_wrong"],
+        sb["flagged"],
+        sb["caught"],
+        sb["missed"],
+        sb["false_alarms"],
+    ) == (2, 2, 1, 1, 1)
     assert sb["loss"] == pytest.approx((1.0 * 1 + 0.25 * 2) / 4)
     assert sb["loss_never_flag"] == pytest.approx(0.5)
     assert sb["loss_oracle"] == pytest.approx(0.125)
@@ -267,7 +311,9 @@ def test_send_back_by_hand():
 def test_never_flag_scores_zero_and_oracle_scores_one():
     r = rule(st.INTERVAL)
     assert st.report(r, _send_back_cases(r, [False] * 4))["send_back_skill"] == 0.0
-    assert st.report(r, _send_back_cases(r, [True, True, False, False]))["send_back_skill"] == pytest.approx(1.0)
+    assert st.report(r, _send_back_cases(r, [True, True, False, False]))[
+        "send_back_skill"
+    ] == pytest.approx(1.0)
 
 
 def test_flagging_everything_is_clipped_not_rewarded():
@@ -293,9 +339,14 @@ def test_no_badly_wrong_case_gives_the_send_back_part_no_evidence():
     r = rule(st.INTERVAL)
     out = st.report(r, _send_back_cases(r, [False] * 4)[2:])
     assert out["send_back_skill"] is None
-    assert out["total"] is None and out["total_reason"] == "self_trust_send_back_has_no_badly_wrong_case"
+    assert (
+        out["total"] is None
+        and out["total_reason"] == "self_trust_send_back_has_no_badly_wrong_case"
+    )
     r1 = rule(st.INTERVAL, calibration_weight=1.0)
-    assert st.report(r1, _send_back_cases(r1, [False] * 4)[2:])["total"] == pytest.approx(
+    assert st.report(r1, _send_back_cases(r1, [False] * 4)[2:])[
+        "total"
+    ] == pytest.approx(
         st.report(r1, _send_back_cases(r1, [False] * 4)[2:])["calibration_skill"]
     )
 
@@ -307,7 +358,9 @@ def test_all_absent_is_absent_with_no_scores():
     r = rule(st.INTERVAL)
     cases = [case(r, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 0.0}, status=st.ABSENT)] * 3
     out = st.report(r, cases)
-    assert out["status"] == st.ABSENT and out["total"] is None and out["outputs"] is None
+    assert (
+        out["status"] == st.ABSENT and out["total"] is None and out["outputs"] is None
+    )
 
 
 @pytest.mark.parametrize("other", [st.ABSENT, st.BLOCK_INVALID, st.WIDTH_INVALID])
@@ -317,20 +370,44 @@ def test_mixed_or_unreadable_is_invalid(other):
     good = case(r, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 0.0}, bands=band)
     bad = case(r, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 0.0}, status=other)
     out = st.report(r, [good, bad])
-    assert out["status"] == st.INVALID and out["total"] is None and out["send_back"] is None
+    assert (
+        out["status"] == st.INVALID
+        and out["total"] is None
+        and out["send_back"] is None
+    )
 
 
 def test_reference_faults_refuse():
     r = rule(st.INTERVAL)
     band = {"a": (-1.0, 1.0), "b": (-1.0, 1.0)}
     with pytest.raises(st.SelfTrustRefused, match="u_must_be_positive"):
-        st.report(r, [case(r, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 1.0}, bands=band)])
+        st.report(
+            r,
+            [
+                case(
+                    r,
+                    {"a": 0.0, "b": 0.0},
+                    {"a": 0.0, "b": 0.0},
+                    {"a": 0.0, "b": 1.0},
+                    bands=band,
+                )
+            ],
+        )
     with pytest.raises(st.SelfTrustRefused, match="truth_not_a_number"):
-        st.report(r, [case(r, {"a": 0.0, "b": 0.0}, {"a": math.nan, "b": 0.0}, bands=band)])
+        st.report(
+            r, [case(r, {"a": 0.0, "b": 0.0}, {"a": math.nan, "b": 0.0}, bands=band)]
+        )
     with pytest.raises(st.SelfTrustRefused, match="read_set_empty"):
         st.report(r, [])
     with pytest.raises(st.SelfTrustRefused, match="case_status_unknown"):
-        st.report(r, [case(r, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 0.0}, status=st.NOT_ADOPTED)])
+        st.report(
+            r,
+            [
+                case(
+                    r, {"a": 0.0, "b": 0.0}, {"a": 0.0, "b": 0.0}, status=st.NOT_ADOPTED
+                )
+            ],
+        )
 
 
 def test_report_is_deterministic():
@@ -348,7 +425,16 @@ def test_public_projection_is_the_allow_list_only():
     projected = st.public(out)
     assert tuple(projected) == st.PUBLIC_FIELDS
     flat = repr(projected)
-    for private in ("badly_wrong", "missed", "caught", "false_alarms", "loss", "n_cases", "interval_score", "crps"):
+    for private in (
+        "badly_wrong",
+        "missed",
+        "caught",
+        "false_alarms",
+        "loss",
+        "n_cases",
+        "interval_score",
+        "crps",
+    ):
         assert private not in flat
     assert set(projected["coverage"]) == {"a", "b"}
 
@@ -358,7 +444,8 @@ def test_public_projection_is_the_allow_list_only():
 
 def test_nothing_in_carbon_imports_self_trust_yet():
     """Adoption is a version's explicit act: until a next version registers the rule, no carbon module imports it
-    (so Motor 1.9, Cooling 1.8, BT 3.2 and RB 2.0 grade paths, contracts, encodings and digests cannot move)."""
+    (so Motor 1.9, Cooling 1.8, BT 3.2 and RB 2.0 grade paths, contracts, encodings and digests cannot move).
+    """
     importers = []
     for path in sorted((ROOT / "carbon").rglob("*.py")):
         if path.name == "self_trust.py":
@@ -369,14 +456,20 @@ def test_nothing_in_carbon_imports_self_trust_yet():
             if isinstance(node, ast.Import):
                 names = [a.name for a in node.names]
             elif isinstance(node, ast.ImportFrom):
-                names = [node.module or ""] + [f"{node.module}.{a.name}" for a in node.names]
+                names = [node.module or ""] + [
+                    f"{node.module}.{a.name}" for a in node.names
+                ]
             if any(n.endswith("self_trust") for n in names):
                 importers.append(str(path.relative_to(ROOT)))
     assert importers == []
 
 
 def test_self_trust_imports_no_carbon_module():
-    tree = ast.parse((ROOT / "carbon" / "scoring" / "self_trust.py").read_text(encoding="utf-8"))
+    tree = ast.parse(
+        (ROOT / "carbon" / "scoring" / "self_trust.py").read_text(encoding="utf-8")
+    )
     modules = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
-    modules |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    modules |= {
+        a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names
+    }
     assert not any(m and m.startswith("carbon") for m in modules)
