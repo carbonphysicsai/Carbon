@@ -53,6 +53,16 @@ V8_MOVED = {
 #: Comment-only GiB wording ("2.5 GB" -> "2.5 GiB"), 312162cca, MINER_FREEDOM_RULINGS section 4: no executable
 #: line moved, and the recorded evidence JSON is not touched. Named here, beside V8_MOVED, so the next move fails.
 COMMENT_ONLY_MOVED = {"carbon.level4.intake.py"}
+#: Self-trust H3a+H3b (c1f98f5a + 615b2106, lint fd41846b): construction_recipe.py gained the trust DECLARATION
+#: (`trust_declaration_digest`, `declares_self_trust`) and bind_recipe refuses a declaring recipe for a version whose
+#: Spec offers no trust interface (every F08 / F02 version) with the refusal it always gave for a foreign output digest,
+#: so every recipe these runs build binds exactly as recorded. Pinned to its exact new bytes (not just its name), so a
+#: later move of the same file still fails (v2 12:50:08Z: re-baseline this one item, the others unchanged).
+SELF_TRUST_MOVED = {
+    "carbon.development_session.construction_recipe.py": (
+        "743dc3b697251a4a08debde38bd221f9ae978157e5b8320fa9bd2b7bfa4a4a40"
+    ),
+}
 #: The served backbone catalog digest the recorded runs were made under (rc6
 #: a454e75e5). The catalog freeze moved it for these two versions
 #: (OWNER-CATALOG-LICENCES-01 relicense, 08c1465a9), which moves the kit's
@@ -163,13 +173,16 @@ def test_the_build_child_and_programs_are_the_golden_ones(key, tmp_path, monkeyp
             adapter_id=adapter.SPECS[key].adapter_id,
         )
     assert captured["source"] == golden[0]["source"]
-    unchanged = lambda files: {  # noqa: E731
+    unchanged = lambda files: {
         n: d
         for n, d in files.items()
-        if n != CHANGED and n not in V8_MOVED | COMMENT_ONLY_MOVED
+        if n != CHANGED
+        and n not in V8_MOVED | COMMENT_ONLY_MOVED | set(SELF_TRUST_MOVED)
     }
     assert unchanged(captured["files"]) == unchanged(golden[0]["files"])
-    assert V8_MOVED | COMMENT_ONLY_MOVED >= {
+    for name, pinned in SELF_TRUST_MOVED.items():
+        assert captured["files"][name] == pinned, name
+    assert V8_MOVED | COMMENT_ONLY_MOVED | set(SELF_TRUST_MOVED) >= {
         n
         for n in set(captured["files"]) | set(golden[0]["files"])
         if captured["files"].get(n) != golden[0]["files"].get(n)
