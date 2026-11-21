@@ -338,7 +338,11 @@ def test_the_retention_entry_needs_the_installed_rule_and_a_pool_store(
         ["--remeasure-king", KING, "--regrade-entry", "e"],
     ],
 )
-def test_the_operator_flags_are_all_or_none(tmp_path, argv, monkeypatch):
+def test_the_removed_operator_remeasure_flags_are_refused(tmp_path, argv, monkeypatch):
+    """Over-broad rules audit S7 crown delete stage 2b: the operator one-shot ``--remeasure-king`` (it always refused
+    ``crown_average_not_installed``: official-score crowns are installed on every door) and its ``--evaluation-key`` /
+    ``--remeasure-entry`` are gone; any of them is an unknown option (exit 2), never a run.
+    """
     from carbon.challenge_validator import cpu_pin, direct_receiver
 
     monkeypatch.setattr(cpu_pin, "require", lambda: None)
