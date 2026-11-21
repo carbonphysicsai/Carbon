@@ -183,3 +183,34 @@ def test_every_build_rerun_is_a_new_task_id():
     requeue = inspect.getsource(lean_recipe.LeanRecipeAdapter._requeue_failed_build)
     assert "requests[rerun + 1]" in requeue
     assert "SUCCEEDED" not in auto_grade.ENDED_STATES
+
+
+def test_an_unreadable_owner_is_asked_once_per_recheck_window(monkeypatch):
+    """case-procs 21 Nov 08:14Z (row 6 leftovers): a task in no open view and no lazy index whose owner read answers
+    None costs ONE adapter.owner read per window, not one per scan; once its owner is readable it is answered.
+    """
+    grader, _asked = _grader({}, {})
+    del grader._owner_of  # the real method, not the fixture's stand-in
+    grader._hotkey_of = lambda task: None
+    reads = []
+    answer = {"value": None}
+
+    def owner(task):
+        reads.append(task)
+        return answer["value"]
+
+    grader.intake.adapter.owner = owner
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: clock["now"])
+    assert grader._owner_of(REFUSED) is None
+    assert grader._owner_of(REFUSED) is None  # within the window: not asked again
+    assert reads == [REFUSED]
+    clock["now"] += grader.OWNER_UNREADABLE_RECHECK_SECONDS
+    answer["value"] = "5Owner"
+    assert (
+        grader._owner_of(REFUSED) == "5Owner"
+    )  # asked again after the window, and readable now
+    assert reads == [REFUSED, REFUSED]
+    # an owner found in memory is answered at once, whatever the window
+    grader._hotkey_of = lambda task: "5Open"
+    assert grader._owner_of(FAILED) == "5Open"

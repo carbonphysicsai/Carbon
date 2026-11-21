@@ -1180,15 +1180,35 @@ class AutoGrader:
             return None
         return hotkey if type(hotkey) is str else None
 
+    #: How long an owner the door could not read for a task is not asked again by the claim scan (`_owner_of`).
+    OWNER_UNREADABLE_RECHECK_SECONDS = 600
+
     def _owner_of(self, submission_id):
-        """The owner (hotkey) of ``submission_id``, or None when it cannot be read now."""
+        """The owner (hotkey) of ``submission_id``, or None when it cannot be read now.
+
+        EFFICIENCY_LEDGER row 6 (case-procs 21 Nov 08:14Z: ~10 owner_unreadable passes per scan, old unmarked tasks
+        in no open view and no lazy index, e.g. of an owner set aside at this start): the in-memory views are always
+        read first (`_hotkey_of`, cheap); the expensive `adapter.owner` read of a task that answered None is not
+        repeated for `OWNER_UNREADABLE_RECHECK_SECONDS`, so it costs one read per task per 10 min, not one per scan.
+        A task whose owner opens meanwhile is found by `_hotkey_of` at once; nothing is marked or dropped.
+        """
         hotkey = self._hotkey_of(submission_id)
         if hotkey is not None:
             return hotkey
-        try:
-            return self.intake.adapter.owner(submission_id)
-        except Exception:  # noqa: BLE001
+        unreadable = self.__dict__.setdefault("_owner_unreadable", {})
+        now = time.monotonic()
+        asked = unreadable.get(submission_id)
+        if asked is not None and now - asked < self.OWNER_UNREADABLE_RECHECK_SECONDS:
             return None
+        try:
+            owner = self.intake.adapter.owner(submission_id)
+        except Exception:  # noqa: BLE001
+            owner = None
+        if owner is None:
+            unreadable[submission_id] = now
+        else:
+            unreadable.pop(submission_id, None)
+        return owner
 
     def _mark_cap_soft(self, submission_id, soft):
         with _STALLED_LOCK:
