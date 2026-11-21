@@ -251,7 +251,8 @@ def build(bank_file, state_root, *, ops=None):
     finally:
         out.close()
     return {
-        **dict(counts),
+        # every count named, zero included, so a reader never meets a missing key
+        **{k: counts[k] for k in ("recipes_with_graph", "missing_file", "missing_row")},
         "refused": dict(refused),
         "op_totals": dict(totals.most_common()),
     }
