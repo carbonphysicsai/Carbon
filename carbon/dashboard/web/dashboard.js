@@ -1011,6 +1011,7 @@
         h("tbody", null, ...r.rows.map((w, i) => h("tr", {"data-find": String(w.hotkey || "").toLowerCase(), hidden: i >= QUEUE_PAGE},
           h("td", null, String(w.position)), h("td", {class: "key"}, w.hotkey || "unknown"), h("td", null, w.state), h("td", null, inQueueText(w.in_queue_s))))))),
       paged ? h("div", {class: "pager", id: "queue-rows-pager"}, step(-1, "Previous"), h("span", {class: "hint", "aria-live": "polite"}, pagerText(0, r.rows.length, null)), step(1, "Next")) : null,
+      h("p", {class: "hint"}, "This list is a snapshot from " + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + ", refreshed about every 5 minutes. The counts above are live, so a submission that was graded in the last few minutes can still show here as waiting."),
       h("p", {class: "hint"}, (r.more_rows > 0 ? "and " + r.more_rows + " more, not listed yet: only the oldest " + r.rows.length + " waiting submissions are shown, so a later one cannot be found here. " : "") + "Oldest first; hotkeys shortened; times rounded down to 5 minutes. A crown check row means the grade beat the king's screening. No recipe, score or the exam is shown. From the door (unsigned), as of " + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + ".")];
   }
   function queueBlock(panel) {
