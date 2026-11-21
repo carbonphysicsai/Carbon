@@ -365,6 +365,18 @@ PHYSICAL_V2_STAGED_MODULES = (
 )
 
 
+#: A TRUST candidate's build container (SELF_TRUST H3d-2c part 2): the v2 set plus the two-phase trust trainer (v4), the trust
+#: ensemble state (v3), the per-version trust registration and the trust-head shape rule. Used ONLY for a recipe that declares
+#: self-trust (`PHYSICAL_V2_TRUST_BUILD_PROGRAM`): every other build keeps `PHYSICAL_V2_STAGED_MODULES` byte for byte.
+PHYSICAL_V2_TRUST_STAGED_MODULES = (
+    *PHYSICAL_V2_STAGED_MODULES,
+    "carbon.development_session.physical_graph_state_v3",
+    "carbon.development_session.physical_graph_trainer_v4",
+    "carbon.development_session.physical_graph_trust_registry",
+    "carbon.level4.trust_head",
+)
+
+
 def _v2_build_program() -> str:
     """v1's build program on the v2 adapter, trainer and ensemble state; an
     interface in float64 (Motor, Cooling) runs with JAX's 64-bit mode on,
@@ -503,6 +515,40 @@ def _v2_infer_program() -> str:
 
 
 PHYSICAL_V2_BUILD_PROGRAM = _v2_build_program()
+
+
+def _v2_trust_build_program() -> str:
+    """`PHYSICAL_V2_BUILD_PROGRAM` for a trust candidate: anchored changes only (each anchor exactly once): the staged-module list gains
+    the trust modules, the post-fit `load` is the trust state's, and the pinned trust trainer's digest is checked beside v2's and
+    v3's. Nothing else moves."""
+    program = PHYSICAL_V2_BUILD_PROGRAM
+    for old, new in (
+        (repr(PHYSICAL_V2_STAGED_MODULES), repr(PHYSICAL_V2_TRUST_STAGED_MODULES)),
+        (
+            "from carbon.development_session.physical_graph_state_v2 import load\n",
+            "from carbon.development_session.physical_graph_state_v3 import load\n",
+        ),
+        (
+            "    TRAINER_SHA256, TRAINER_V3_SHA256, build_validated_graph, checked_train, spec_for,\n",
+            "    TRAINER_SHA256, TRAINER_V3_SHA256, TRAINER_V4_SHA256, build_validated_graph, checked_train, spec_for,\n",
+        ),
+        (
+            '    raise ValueError("pinned graph trainer v3 differs")\n',
+            (
+                '    raise ValueError("pinned graph trainer v3 differs")\n'
+                'trainer4 = (work / "carbon.development_session.physical_graph_trainer_v4.py").read_bytes()\n'
+                'if digest(trainer4) != "sha256:" + TRAINER_V4_SHA256:\n'
+                '    raise ValueError("pinned graph trainer v4 differs")\n'
+            ),
+        ),
+    ):
+        if program.count(old) != 1:
+            raise RuntimeError("graph route v2 trust build program anchor moved")
+        program = program.replace(old, new)
+    return program
+
+
+PHYSICAL_V2_TRUST_BUILD_PROGRAM = _v2_trust_build_program()
 PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 
 #: Graph route v2 versions whose inference compiles each member's forward (`jax.jit`) instead of interpreting it op by
@@ -966,9 +1012,12 @@ def _envelope_has_wide_values(source_envelope: bytes) -> bool:
     return any(wide in raw for raw in files.values() for wide in _WIDE_DTYPES)
 
 
-def _v2_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
+def _v2_stage(
+    binding: dict, limits_document: dict, allowlist_bytes: bytes, *, trust: bool = False
+):
     """Check a graph route v2 adapter's served identity; return its staged
-    files (as `_physical_stage` does for v1)."""
+    files (as `_physical_stage` does for v1). A `trust` candidate (its recipe declares self-trust) also checks the pinned trust
+    trainer's bytes and stages the trust modules (`PHYSICAL_V2_TRUST_STAGED_MODULES`)."""
     from carbon.level4.allowlist import Allowlist
 
     from . import physical_graph_adapter_v2 as adapter
@@ -986,10 +1035,16 @@ def _v2_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
         raise RecipeRefused("direct_graph_train_binding_invalid")
     adapter.trainer_source()
     adapter.trainer_source(spec)
+    if trust:
+        if spec.trust_outputs < 1:
+            raise RecipeRefused("direct_graph_trust_interface_not_offered")
+        adapter.trust_trainer_source()
     root = Path(__file__).resolve().parents[2]
     files = {
         name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
-        for name in PHYSICAL_V2_STAGED_MODULES
+        for name in (
+            PHYSICAL_V2_TRUST_STAGED_MODULES if trust else PHYSICAL_V2_STAGED_MODULES
+        )
     }
     return spec, Allowlist(allowlist_bytes), files
 
@@ -1105,21 +1160,27 @@ def reconstruct_public_graph(
     elif adapter_id in _v2_adapter_ids():
         from . import physical_graph_state_v2
 
+        trust = type(recipe) is ConstructionRecipe and recipe.declares_self_trust
         spec, allowed, physical_files = _v2_stage(
-            binding, limits_document, allowlist_bytes
+            binding, limits_document, allowlist_bytes, trust=trust
         )
         if spec.adapter_id != adapter_id:
             raise RecipeRefused("direct_graph_adapter_identity_invalid")
         files = _stage_modules()
         files.update(physical_files)
-        program = PHYSICAL_V2_BUILD_PROGRAM
+        program = PHYSICAL_V2_TRUST_BUILD_PROGRAM if trust else PHYSICAL_V2_BUILD_PROGRAM
         # JAX's 64-bit mode is on when the interface is float64, and also whenever the
         # miner's graph holds a 64-bit value (OWNER-GRAPH-OPS-OPEN-01, Validator row 7):
         # TRAIN, the decoder and the outputs keep the interface dtype either way.
         x64 = spec.dtype == "float64" or _envelope_has_wide_values(source_envelope)
 
         def load_built(state):
-            physical_graph_state_v2.load(state, recipe, allowed)
+            if trust:
+                from . import physical_graph_state_v3
+
+                physical_graph_state_v3.load(state, recipe, allowed)
+            else:
+                physical_graph_state_v2.load(state, recipe, allowed)
 
     elif adapter_id in physical_graph_adapter.ADAPTER_IDS:
         from . import physical_graph_state
