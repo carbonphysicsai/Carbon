@@ -3963,7 +3963,7 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     """
     from carbon.battery.pool_store import PENDING_CONTENTION
     from carbon.challenge_validator import bank_promotion as bp
-    from carbon.challenge_validator import crown_average
+    from carbon.challenge_validator import crown_common
 
     if (
         outcome.get("outcome") == bp.UNAVAILABLE
@@ -4000,10 +4000,10 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     retry = outcome.get("reason") in (
         bp.REPEAT_UNAVAILABLE,
         bp.REPEAT_MISMATCH,
-        crown_average.REBUILD_UNAVAILABLE,
-        crown_average.REBUILD_IN_PROGRESS,
-        crown_average.MARGIN_UNREGISTERED,
-        crown_average.KING_UNMEASURED,
+        crown_common.REBUILD_UNAVAILABLE,
+        crown_common.REBUILD_IN_PROGRESS,
+        crown_common.MARGIN_UNREGISTERED,
+        crown_common.KING_UNMEASURED,
     ) and outcome.get("outcome") in (bp.UNAVAILABLE, bp.FAILED_INFRA)
     if not (paused or retry):
         return
@@ -4025,7 +4025,7 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     if (
         retry
         and not paused
-        and outcome.get("reason") != crown_average.REBUILD_IN_PROGRESS
+        and outcome.get("reason") != crown_common.REBUILD_IN_PROGRESS
     ):
         # The live trigger's own failure is the first failed attempt: the sweep's retry waits for its epoch. A stepwise decision
         # that ran one rebuild and stopped (REBUILD_IN_PROGRESS) is no failure: it counts no attempt and the sweep resumes it.
@@ -4337,7 +4337,7 @@ def _one_rebuild_per_call(repeat, store, submission_id, key):
 
 
 #: The label of a crown origin rebind's derived request (`LeanRecipeAdapter._request`'s ``rebuild``): its own task
-#: identity, a pure function of the king's submission id, under the HOST-OWNED owner (`crown_average.HOST_OWNER`).
+#: identity, a pure function of the king's submission id, under the HOST-OWNED owner (`crown_common.HOST_OWNER`).
 ORIGIN_REBIND = "ORIGIN_REBIND"
 
 
@@ -4352,7 +4352,7 @@ def _rebind_request(adapter, provider, hotkey, recipe, submission_id):
 
 def rebind_origin(adapter, pool_store, *, submission_id, source_envelope=None):
     """REBIND the SITTING king's origin on this receiver (an image move left its task on the old root): one derived request
-    under the HOST-OWNED owner (`crown_average.HOST_OWNER`: never a submitter, in no miner's task list, status or
+    under the HOST-OWNED owner (`crown_common.HOST_OWNER`: never a submitter, in no miner's task list, status or
     ledger), the king's exact admitted recipe, bound to this receiver's pack, admitted through that provider's own
     `start_research_task` and CANCELLED at once, so it is never built, graded, filed in the Ladder or charged an
     exam-cap slot. A graph king's source is its retained envelope (``source_envelope``, from the old root),
@@ -4376,7 +4376,7 @@ def rebind_origin(adapter, pool_store, *, submission_id, source_envelope=None):
     incumbent = pool_store.incumbent()
     if incumbent is None or incumbent.get("model_id") != submission_id:
         raise RetentionUnavailable("rebind_not_the_sitting_king")
-    from carbon.challenge_validator.crown_average import HOST_OWNER
+    from carbon.challenge_validator.crown_common import HOST_OWNER
 
     # The HOST-OWNED owner (Validator (c)): never a submitter, in no miner's task list, status or ledger. The miner's
     # own provider and ledger are only read (the pool store's admitted recipe), never written.
@@ -4416,7 +4416,7 @@ def _rebound_origin(adapter, pool_store, submission_id, rebound):
     """The filed rebind's task, once it is shown to be the king's own: the record's owner is the host-owned one, and its
     provider holds exactly the rebind request for the king's admitted recipe on this pack.
     """
-    from carbon.challenge_validator.crown_average import HOST_OWNER
+    from carbon.challenge_validator.crown_common import HOST_OWNER
     from carbon.development_session.construction_recipe import ConstructionRecipe
 
     king = pool_store.submission(submission_id)
@@ -5522,7 +5522,7 @@ def king_parent_moved(
     king whose hotkey left the chain has no provider here, which raised every tick (audit #6). A parent this receiver no
     longer serves for his bundle is a moved parent (audit #2a): his rebuild then finds the gap at admission and files
     it, instead of an upkeep retried forever."""
-    from carbon.challenge_validator.crown_average import HOST_OWNER
+    from carbon.challenge_validator.crown_common import HOST_OWNER
 
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
@@ -5567,7 +5567,7 @@ def rebuild_king(
     graded (Carbon Validator 5 Nov 10:53 terms (1)-(6) and 10:57 form):
 
     1. build: `_derived_build` of the king's own admitted recipe at the official seed 0, as a HOST-OWNED derived task
-       (`crown_average.HOST_OWNER`: no miner ledger, no exam-cap slot, no fee, no Ladder), on the current
+       (`crown_common.HOST_OWNER`: no miner ledger, no exam-cap slot, no fee, no Ladder), on the current
        construction parent; a graph king's source is his retained envelope;
     2. retain: the derived task's artifacts into the create-only bank (`_retain_served_artifacts`);
     3. the DERIVED pool row ``king_rebuild_id(...)``: the king's hotkey, his admitted recipe digest and challenge
@@ -5587,7 +5587,7 @@ def rebuild_king(
     any other failure raises its own typed code (infrastructure: retried by the caller).
     """
     _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
-    from carbon.challenge_validator import crown_average
+    from carbon.challenge_validator import crown_common
 
     incumbent = (pool_store.incumbent() or {}).get("model_id")
     if incumbent != king:
@@ -5610,7 +5610,7 @@ def rebuild_king(
         artifact_directory=artifact_directory,
         entry_directory=entry_directory,
     )
-    host_owner = crown_average.HOST_OWNER
+    host_owner = crown_common.HOST_OWNER
     task_id = _derived_build(
         adapter,
         king,
@@ -6191,11 +6191,11 @@ def rebuild_at_seed(
     QUIET HOST (owner 5 Nov 21:3x; Validator-2 21:28; `host_quiet`): inside the grading loop the host is probed for the
     whole build and grade. A build or grade that fails while the host was NOT provably quiet is a busy host's failure,
     never the model's: the task is marked host-contended (its next try is a fresh generation, the same seed) and this
-    raises `crown_average.RebuildInfra` (`host_quiet.REBUILD_HOST_CONTENDED`). On a quiet host, and outside the loop,
+    raises `crown_common.RebuildInfra` (`host_quiet.REBUILD_HOST_CONTENDED`). On a quiet host, and outside the loop,
     a failure is exactly as before.
     """
     _served_source_checked(adapter)  # a grade starts here (V2, 18 Nov 2026)
-    from carbon.challenge_validator import crown_average, host_quiet
+    from carbon.challenge_validator import crown_common, host_quiet
 
     probe = host_quiet.start()
     # outside the grading loop (no probe) the call is exactly as before: no marks, no extra argument
@@ -6250,7 +6250,7 @@ def rebuild_at_seed(
                 )
             except OSError:
                 raise failed from None  # no mark: as before (the task is read again)
-            raise crown_average.RebuildInfra(
+            raise crown_common.RebuildInfra(
                 host_quiet.REBUILD_HOST_CONTENDED
             ) from failed
         raise
@@ -6333,14 +6333,14 @@ def _repeat_of(adapter, origin, entry_id, *, source=None, pool_store=None, **cus
         """The crown's averaging rebuild (`crown_average`): REBUILD the model from its recipe at a validator-chosen
         ``seed`` and grade it, uncounted (`rebuild_at_seed`). Never a regrade of the retained state, which would
         repeat one build and average nothing."""
-        from carbon.challenge_validator import crown_average
+        from carbon.challenge_validator import crown_common
 
         return rebuild_at_seed(
             adapter,
             origin,
             seed,
             repeat=repeat_index,
-            host_owner=crown_average.HOST_OWNER,
+            host_owner=crown_common.HOST_OWNER,
             source=origin_source(),
             **custody,
         )
@@ -6361,7 +6361,7 @@ def _rebuilt_king_repeat(adapter, pool_store, origin, king, custody):
     was made from, as `_rebuilt_evaluation` resolves it), regraded through its host-owned task like any derived grade:
     GPU only when a crown change needs it, never an eager repeat in the rebuild itself.
     """
-    from carbon.challenge_validator.crown_average import HOST_OWNER
+    from carbon.challenge_validator.crown_common import HOST_OWNER
 
     linked = getattr(pool_store, "king_rebuild_of", None)
     if linked is None or (pool_store.incumbent() or {}).get("model_id") != king:

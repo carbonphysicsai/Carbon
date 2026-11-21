@@ -257,7 +257,12 @@ def _internal_reasons():
 
     root = Path(__file__).resolve().parents[2] / "carbon" / "challenge_validator"
     codes = set()
-    for name in ("bank_promotion.py", "crown_average.py", "crown_pause_sweep.py"):
+    for name in (
+        "bank_promotion.py",
+        "crown_average.py",
+        "crown_common.py",
+        "crown_pause_sweep.py",
+    ):
         text = (root / name).read_text(encoding="utf-8")
         codes |= set(re.findall(r'^[A-Z_]+ = "([a-z][a-z0-9_]*)"', text, re.MULTILINE))
         codes |= set(

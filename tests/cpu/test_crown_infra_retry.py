@@ -395,7 +395,7 @@ def test_a_retryable_outcome_without_a_retained_entry_is_the_answer_not_an_error
 def test_end_to_end_a_triggered_decision_survives_a_host_outage_and_is_decided_later(
     tmp_path,
 ):
-    from test_crown_average_wiring import (
+    from crown_fixtures import (
         KEY,
         Repeat,
         _active,

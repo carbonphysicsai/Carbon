@@ -17,7 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from test_crown_average_wiring import (
+from crown_fixtures import (
     KEY,
     Repeat,
     _active,

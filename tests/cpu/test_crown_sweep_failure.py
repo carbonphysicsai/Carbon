@@ -17,7 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from test_crown_average_wiring import KEY, _store
+from crown_fixtures import KEY, _store
 
 from carbon.battery.pool_store import StateError
 from carbon.challenge_validator import crown_hold

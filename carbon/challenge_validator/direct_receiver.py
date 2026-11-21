@@ -1125,6 +1125,8 @@ GRADING_PATHS = (
     "carbon/challenge_validator/scoring.py",
     "carbon/challenge_validator/koth_registry.py",
     "carbon/challenge_validator/crown_average.py",
+    # the live crown pieces moved out of crown_average (over-broad audit S7, crown delete stage 2a)
+    "carbon/challenge_validator/crown_common.py",
     # a menu-D version's coded crown hold (Validator-2B 7 Nov): it decides whether a crown may change
     "carbon/challenge_validator/crown_hold.py",
     # the crown rule (owner 14 Nov, the default for every version since 17 Nov): official totals + the version's margin row
@@ -2406,13 +2408,13 @@ class OwnerProviders:
         return provider, control, frozen_admission, live
 
     def _open(self, hotkey, *, restoring, host=False):
-        from carbon.challenge_validator import crown_average
+        from carbon.challenge_validator import crown_common
         from carbon.challenge_validator.interface import Unavailable
 
         if host:
             # ONLY the host owner of the crown average's derived rebuilds, by exact equality: a miner's owner
             # is always a verified ss58 address (below), which this string is not.
-            if hotkey != crown_average.HOST_OWNER:
+            if hotkey != crown_common.HOST_OWNER:
                 raise Unavailable("direct_provider_owner_invalid")
         elif type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
             raise Unavailable("direct_provider_owner_invalid")
@@ -2632,12 +2634,12 @@ class OwnerProviders:
             self._unobserved.discard(hotkey)
 
     def __call__(self, hotkey):
-        from carbon.challenge_validator import crown_average
+        from carbon.challenge_validator import crown_common
 
         # The derived-rebuild path asks for its host owner by name; a miner's request never can (its owner is a
         # verified ss58 address, and `LeanRecipeAdapter.evaluate` refuses the host owner as a submitter).
         return self._open(
-            hotkey, restoring=False, host=hotkey == crown_average.HOST_OWNER
+            hotkey, restoring=False, host=hotkey == crown_common.HOST_OWNER
         )
 
     def hotkey_of(self, task_id):
@@ -2848,7 +2850,7 @@ class OwnerProviders:
         """
         import time
 
-        from carbon.challenge_validator import crown_average
+        from carbon.challenge_validator import crown_common
 
         first = None
         began = time.monotonic()
@@ -2868,7 +2870,7 @@ class OwnerProviders:
                     or hashlib.sha256(owner["hotkey"].encode()).hexdigest() != name
                 ):
                     raise ValueError("retained receiver owner binding differs")
-                host = owner["hotkey"] == crown_average.HOST_OWNER
+                host = owner["hotkey"] == crown_common.HOST_OWNER
                 found = None if host else self._has_work(directory)
                 if found is not None and not found[0]:
                     # no work (restart speed, owner 18 Nov 2026): opened on its first touch (`_restore_lazy`); its
@@ -2895,7 +2897,7 @@ class OwnerProviders:
                     hashlib.sha256(hotkey.encode()).hexdigest() == name
                     for hotkey in self._providers
                 )
-                host = name == _owner_name(crown_average.HOST_OWNER)
+                host = name == _owner_name(crown_common.HOST_OWNER)
                 if opened or host:
                     # its provider holds work (never left half-open behind a set-aside), or it is the crown average's
                     # host owner (V2 18 Nov: the crown is never decided without it)

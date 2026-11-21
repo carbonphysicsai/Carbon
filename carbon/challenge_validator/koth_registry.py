@@ -185,10 +185,10 @@ def registered_floor(
     """
     if exam is None:
         return None
-    from carbon.challenge_validator import crown_average
+    from carbon.challenge_validator import crown_common
 
-    rule = crown_average.load_rule(
-        crown_average.REGISTRY if margin_path is None else margin_path
+    rule = crown_common.load_rule(
+        crown_common.REGISTRY if margin_path is None else margin_path
     )
     # the noise and margin of THIS version (its own entry, else the Challenge's: `registry_version`)
     version = exam["version"]

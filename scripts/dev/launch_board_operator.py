@@ -461,7 +461,7 @@ def king_measure(config, item, king_document):
     seed-fragile (UNSTABLE), else IN_PROGRESS with the kept rebuild count, or UNMEASURED (stability None: not yet
     measured, never defaulted). ``n`` is the registered N for the Challenge. Two counts leave this function; no seed or
     mean does."""
-    from carbon.challenge_validator import crown_average
+    from carbon.challenge_validator import crown_common
 
     if king_document["king"] is None:
         return None, None
@@ -480,7 +480,7 @@ def king_measure(config, item, king_document):
         raise OperatorRefused("king_mismatch")
     model = incumbent["model_id"]
     key = store.incumbent_evaluation_key(model)
-    n = crown_average.load_rule().n_for(item["id"], item["version"])
+    n = crown_common.load_rule().n_for(item["id"], item["version"])
     kept = 0 if key is None else min(store.kept_crown_rebuilds(model, key), n)
     if key is not None and store.crown_mean(model, key) is not None:
         return "STABLE", {"state": "MEASURED", "kept": n, "n": n}

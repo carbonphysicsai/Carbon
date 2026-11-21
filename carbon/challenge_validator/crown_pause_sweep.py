@@ -55,7 +55,7 @@ from .bank_promotion import (
     INCUMBENT_REGRADE_REQUIRED,
     UNAVAILABLE,
 )
-from .crown_average import REBUILD_IN_PROGRESS
+from .crown_common import REBUILD_IN_PROGRESS
 from .crown_official import CROWN_MARGIN_UNSET
 
 ROTATED = "exam_rotated_during_pause"

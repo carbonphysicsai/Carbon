@@ -490,7 +490,7 @@ def test_the_average_asks_the_second_build_for_the_host_fault_pair(tmp_path):
     """`Active.decide` uses `rebuild_again_at` for the host-fault check, not the first build again."""
     from carbon.challenge_validator import bank_promotion as bp
     from carbon.challenge_validator.interface import digest
-    from tests.cpu.test_crown_average_wiring import (
+    from tests.cpu.crown_fixtures import (
         CHALLENGE,
         KEY,
         Repeat,

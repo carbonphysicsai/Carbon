@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from carbon.challenge_validator import crown_average
+from carbon.challenge_validator import crown_average, crown_common
 
 
 def read_crown_key(name) -> bytes:
@@ -29,7 +29,7 @@ def read_crown_key(name) -> bytes:
         or (selected.stat().st_mode & 0o077)
         or not 32 <= selected.stat().st_size <= 4096
     ):
-        raise crown_average.CrownAverageInvalid("crown_key_file_invalid")
+        raise crown_common.CrownAverageInvalid("crown_key_file_invalid")
     return selected.read_bytes()
 
 
@@ -51,6 +51,6 @@ def install(cfg):
         pool_menu.install_key(None)
     else:
         if type(menu) is not dict or set(menu) != {"key_file"}:
-            raise crown_average.CrownAverageInvalid("menu_draw_selection_invalid")
+            raise crown_common.CrownAverageInvalid("menu_draw_selection_invalid")
         pool_menu.install_key(read_crown_key(menu["key_file"]))
     crown_average.ACTIVE = None

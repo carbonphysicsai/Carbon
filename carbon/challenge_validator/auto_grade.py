@@ -576,7 +576,7 @@ class AutoGrader:
         cannot be read or resolved: then every owner is taken, as before (doubt never narrows it).
         """
         from . import auto_retry
-        from .crown_average import HOST_OWNER
+        from .crown_common import HOST_OWNER
 
         try:
             adapter = self.intake.adapter

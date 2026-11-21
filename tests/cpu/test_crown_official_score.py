@@ -29,7 +29,7 @@ from carbon.challenge_validator import crown_official, operator_pause
 from carbon.challenge_validator import crown_pause_sweep as sweeper
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.interface import digest
-from tests.cpu.test_crown_average_wiring import (
+from tests.cpu.crown_fixtures import (
     CHALLENGE,
     KEY,
     _active,
