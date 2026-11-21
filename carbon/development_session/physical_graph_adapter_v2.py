@@ -59,7 +59,7 @@ TRAINER_PIN = (TRAINER_PATH, TRAINER_SHA256)
 #: Spec names it (`Spec.trainer`). A change to it is a new digest, so a new version.
 TRAINER_V3_MODULE = "carbon.development_session.physical_graph_trainer_v3"
 TRAINER_V3_PATH = "carbon/development_session/physical_graph_trainer_v3.py"
-TRAINER_V3_SHA256 = "31739f4cb7de0abafb888a949d0a940cd155ec80ee9a00930576c0b279173ee8"
+TRAINER_V3_SHA256 = "6251612a9dcd14b15765d8f41e990ceeb8ed6ccda3a40d0db5e280ad8f9e4e8d"
 TRAINER_V3_PIN = (TRAINER_V3_PATH, TRAINER_V3_SHA256)
 CODE = "graph_route_"
 #: A graph recipe may carry a loss graph over the whole training batch with the
@@ -718,6 +718,8 @@ class EnsembleGraphModel:
             ],
             "train_cases": fitted["selected_rows"],
             "train_loss": fitted["train_loss"],
+            # trainer v3's training curve (DATA D2); a v2-trainer fit record keeps its bytes (no key)
+            **({"curve": fitted["curve"]} if "curve" in fitted else {}),
             "member_losses": fitted["member_losses"],
             "params_sha256": "sha256:" + hashlib.sha256(blob).hexdigest(),
             "recipe_digest": self.recipe.digest,

@@ -54,6 +54,14 @@ SD_FLOOR = 1e-9
 LOSSES = ("mse", "mae", "huber")
 OPTIMIZERS = ("adamw", "adam", "sgd", "lion")
 CURVES = ("constant", "cosine", "linear")
+#: The training curve each fit records (DATA D2): the loss value every optimiser step already computes (the scan's
+#: output, from `value_and_grad` of the same loss whose gradient the step applies), per member, on public TRAIN only.
+#: At most `CURVE_POINTS` points per member (every `stride`-th step, the last step always kept), 7 significant
+#: digits, and the whole block within `CURVE_BYTES_MAX` canonical JSON bytes (the stride doubles until it fits), so
+#: the build receipt stays inside its cap. A record of the fit, never a score input.
+CURVE_SCHEMA = "carbon.graph-training-curve.v1"
+CURVE_POINTS = 256
+CURVE_BYTES_MAX = 32 * 1024
 
 
 def selected_rows(count: int, fraction: float, seed: int) -> np.ndarray:
@@ -345,18 +353,25 @@ def train_member(
         error = prepared.apply(values, fx[idx])[0] - fz[idx]
         return jnp.sum(jnp.mean(per_output(error), axis=0) * fw)
 
+    # `value_and_grad` gives the same gradient `jax.grad` gave (grad IS value_and_grad's second output) and keeps
+    # the loss value the step already computed: the training curve (`CURVE_SCHEMA`).
     def gradient(values, key):
         key, sub = jax.random.split(key)
-        total = None
+        total = value_total = None
         for part in jax.random.split(sub, micro):
             idx = everything if batch >= n else jax.random.permutation(part, n)[:batch]
-            grads = jax.grad(loss)(values, idx)
+            value, grads = jax.value_and_grad(loss)(values, idx)
             total = (
                 grads
                 if total is None
                 else jax.tree_util.tree_map(lambda a, b: a + b, total, grads)
             )
-        return jax.tree_util.tree_map(lambda g: g / micro, total), key
+            value_total = value if value_total is None else value_total + value
+        return (
+            jax.tree_util.tree_map(lambda g: g / micro, total),
+            key,
+            value_total / micro,
+        )
 
     tail_count = max(1, round(tail * steps)) if tail else 0
     decay = knobs["ema_decay"]
@@ -364,7 +379,7 @@ def train_member(
 
     def step(carry, index):
         values, state, key = carry[:3]
-        gradients, key = gradient(values, key)
+        gradients, key, value = gradient(values, key)
         updates, state = transform.update(gradients, state, values)
         values = optax.apply_updates(values, updates)
         mean = carry[3]
@@ -375,22 +390,22 @@ def train_member(
         else:
             take = (index >= steps - tail_count).astype(z.dtype)
             mean = jax.tree_util.tree_map(lambda m, v: m + take * v, mean, values)
-        return (values, state, key, mean), None
+        return (values, state, key, mean), value
 
     def plain(carry, _):
         # v2's step, op for op (the default path).
         values, state, key = carry
         key, sub = jax.random.split(key)
         idx = everything if batch >= n else jax.random.permutation(sub, n)[:batch]
-        gradients = jax.grad(loss)(values, idx)
+        value, gradients = jax.value_and_grad(loss)(values, idx)
         updates, state = transform.update(gradients, state, values)
-        return (optax.apply_updates(values, updates), state, key), None
+        return (optax.apply_updates(values, updates), state, key), value
 
     def accumulate(carry, _):
         values, state, key = carry
-        gradients, key = gradient(values, key)
+        gradients, key, value = gradient(values, key)
         updates, state = transform.update(gradients, state, values)
-        return (optax.apply_updates(values, updates), state, key), None
+        return (optax.apply_updates(values, updates), state, key), value
 
     @jax.jit
     def run(values, key):
@@ -399,7 +414,7 @@ def train_member(
             start = (
                 values if use_ema else jax.tree_util.tree_map(jnp.zeros_like, values)
             )
-            (values, _, _, mean), _ = jax.lax.scan(
+            (values, _, _, mean), losses = jax.lax.scan(
                 step, (*carry, start), jnp.arange(steps), length=steps
             )
             values = (
@@ -409,7 +424,8 @@ def train_member(
             )
         else:
             body = plain if micro == 1 else accumulate
-            (values, _, _), _ = jax.lax.scan(body, carry, None, length=steps)
+            (values, _, _), losses = jax.lax.scan(body, carry, None, length=steps)
+        polish_losses = None
         if polish:
 
             # The graph is validated and run at one declared batch, so the
@@ -430,20 +446,66 @@ def train_member(
                 updates, state = solver.update(
                     grads, state, current, value=value, grad=grads, value_fn=objective
                 )
-                return (optax.apply_updates(current, updates), state), None
+                return (optax.apply_updates(current, updates), state), value
 
-            (values, _), _ = jax.lax.scan(
+            (values, _), polish_losses = jax.lax.scan(
                 refine, (values, solver.init(values)), None, length=polish
             )
-        return values
+        return values, losses, polish_losses
 
-    params = jax.block_until_ready(run(params, train_key))
+    params, losses, polish_losses = jax.block_until_ready(run(params, train_key))
     predicted = np.asarray(prepared.predict(params, fx)[0])
     error = predicted - z
     return {
         "params": [np.asarray(value) for value in params],
         "train_loss": float(np.sum(np.mean(error**2, axis=0) * weights)),
+        "curve": [float(v) for v in np.asarray(losses)],
+        "polish_curve": (
+            None
+            if polish_losses is None
+            else [float(v) for v in np.asarray(polish_losses)]
+        ),
     }
+
+
+def _sampled(values: list, stride: int) -> list:
+    """Every `stride`-th value from the first, the last always kept; 7 significant digits; a non-finite value as None
+    (JSON holds no NaN; a diverged step stays visible as a gap)."""
+    picked = values[::stride]
+    if values and (len(values) - 1) % stride:
+        picked = [*picked, values[-1]]
+    return [float(f"{v:.7g}") if np.isfinite(v) else None for v in picked]
+
+
+def curve_block(fitted: list) -> dict:
+    """The fit's training-curve record from each member's per-step losses (`CURVE_SCHEMA`): per member its main curve
+    and, with `polish_steps`, its polish curve, sampled at the stride that keeps at most `CURVE_POINTS` points per
+    curve and the whole block within `CURVE_BYTES_MAX` (doubled until it fits)."""
+    import json
+
+    longest = max(
+        [len(m["curve"]) for m in fitted]
+        + [len(m["polish_curve"] or ()) for m in fitted]
+    )
+    stride = max(1, -(-longest // CURVE_POINTS))
+    while True:
+        block = {
+            "schema": CURVE_SCHEMA,
+            "stride": stride,
+            "members": [_sampled(m["curve"], stride) for m in fitted],
+            "polish": [
+                (
+                    None
+                    if m["polish_curve"] is None
+                    else _sampled(m["polish_curve"], stride)
+                )
+                for m in fitted
+            ],
+        }
+        size = len(json.dumps(block, sort_keys=True, separators=(",", ":")))
+        if size <= CURVE_BYTES_MAX or stride >= longest:
+            return block
+        stride *= 2
 
 
 def combination(members: list, width: int) -> np.ndarray:
@@ -508,4 +570,5 @@ def train(prepared, inputs: np.ndarray, targets: np.ndarray, settings: dict, *, 
         "sd": sd,
         "selected_rows": len(rows),
         "train_loss": float(np.mean((combined - z) ** 2)),
+        "curve": curve_block(fitted),
     }
