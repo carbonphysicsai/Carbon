@@ -93,15 +93,20 @@ def _original(ledger, *, owner, identity, result, provenance, runner):
     snapshot = ledger.root / result.worker_operation / "snapshot"
     originals = {}
     for name, ceiling in (("predictions.json", 16 * 1024**2), ("receipt.json", 65536)):
+        from .data import raw_exists, raw_size, read_raw
+
         path = snapshot / name
-        if (
-            snapshot.is_symlink()
-            or path.is_symlink()
-            or not path.is_file()
-            or not 0 < path.stat().st_size <= ceiling
-        ):
-            raise RecipeRefused("inference_pair_original_unavailable")
-        raw = path.read_bytes()
+        # raw, or held compressed on the door (`data.compress_raw`): the RAW bytes either way, checked
+        try:
+            if (
+                snapshot.is_symlink()
+                or not raw_exists(path)
+                or not 0 < raw_size(path) <= ceiling
+            ):
+                raise RecipeRefused("inference_pair_original_unavailable")
+            raw = read_raw(path, max_bytes=ceiling)
+        except (OSError, ValueError):
+            raise RecipeRefused("inference_pair_original_unavailable") from None
         if accounting["worker_result"].get("files", {}).get(name) != _digest(raw):
             raise RecipeRefused("inference_pair_original_changed")
         originals[name] = {

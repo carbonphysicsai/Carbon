@@ -1831,14 +1831,13 @@ class DirectDevelopmentTasksV3:
             or re.fullmatch(r"operation-[0-9a-f]{64}", operation) is None
         ):
             raise ValueError("retained direct result custody differs")
+        from .data import raw_exists, raw_size, read_raw
+
         path = self.ledger.root / operation / "snapshot" / "predictions.json"
-        if (
-            path.is_symlink()
-            or not path.is_file()
-            or not 0 < path.stat().st_size <= 16 * 1024**2
-        ):
+        # raw, or held compressed on the door (`data.compress_raw`): the RAW bytes either way, checked
+        if not raw_exists(path) or not 0 < raw_size(path) <= 16 * 1024**2:
             raise ValueError("retained direct result custody differs")
-        return path.read_bytes()
+        return read_raw(path, max_bytes=16 * 1024**2)
 
     def _verified_success_evidence(self, view):
         """Bind retained output bytes and worker receipt to the public terminal."""
@@ -2875,13 +2874,12 @@ class DirectDevelopmentTasksV3:
                 / "snapshot"
                 / "predictions.json"
             )
-            if (
-                snapshot.is_symlink()
-                or not snapshot.is_file()
-                or not 0 < snapshot.stat().st_size <= 16 * 1024**2
-            ):
+            from .data import raw_exists, raw_size, read_raw
+
+            # raw, or held compressed on the door (`data.compress_raw`): the RAW bytes either way, checked
+            if not raw_exists(snapshot) or not 0 < raw_size(snapshot) <= 16 * 1024**2:
                 raise ValueError("direct prediction snapshot unavailable")
-            predictions_raw = snapshot.read_bytes()
+            predictions_raw = read_raw(snapshot, max_bytes=16 * 1024**2)
             if (
                 digest(predictions_raw) != result.inference.predictions_digest
                 or json.loads(predictions_raw) != result.inference.predictions

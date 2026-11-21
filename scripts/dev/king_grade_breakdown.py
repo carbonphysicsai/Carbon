@@ -248,6 +248,15 @@ def _write_once(directory, doc):
 
 def _read_file(path, limit=MAX_INPUT_BYTES):
     selected = Path(path)
+    if not selected.exists() and not selected.is_symlink():
+        # a kept predictions.json held COMPRESSED on the door (`data.compress_raw`): its RAW bytes, checked
+        from carbon.development_session.data import raw_exists, read_raw
+
+        _require(raw_exists(selected), "input_file_unavailable")
+        try:
+            return read_raw(selected, max_bytes=limit)
+        except ValueError:
+            raise BreakdownRefused("input_file_size") from None
     _require(selected.is_file() and not selected.is_symlink(), "input_file_unavailable")
     _require(0 < selected.stat().st_size <= limit, "input_file_size")
     raw = selected.read_bytes()

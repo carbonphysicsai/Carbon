@@ -121,8 +121,11 @@ def plan(task, folder, root, identity):
     revision = _json(
         folder / "grade-installed-commit.json", "grade_revision_unrecorded"
     )
+    from carbon.development_session.data import raw_exists
+
     predictions = root / "predictions.json"
-    if predictions.is_symlink() or not predictions.is_file():
+    # raw, or held compressed on the door (`data.compress_raw`; king_grade_breakdown reads either)
+    if not raw_exists(predictions):
         raise Refused("predictions_missing")
     inputs = {
         "predictions": predictions,

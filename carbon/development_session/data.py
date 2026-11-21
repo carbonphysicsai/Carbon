@@ -87,14 +87,155 @@ def link_once(source, path: Path, payload: bytes) -> bool:
         if path.read_bytes() != payload:
             raise ValueError("immutable session artifact conflict")
         return False
+    if _raw_note(path) is not None:
+        if read_raw(path) != payload:
+            raise ValueError("immutable session artifact conflict")
+        return False
+    compressed_source = False
     for candidate in source if type(source) is tuple else (source,):
         if candidate is None:
+            continue
+        # a source held COMPRESSED (`compress_raw`): ``path`` becomes the same compressed pair (its archive and note
+        # linked, one inode each), never a raw copy, once the pair is shown to hold exactly ``payload``
+        try:
+            note = _raw_note(Path(candidate))
+        except ValueError:
+            note = None
+        if note is not None:
+            compressed_source = True
+            if _link_compressed(Path(candidate), path, payload):
+                return True
             continue
         linked = _link_from(candidate, path, payload)
         if linked is not None:
             return linked
     write_once(path, payload)
+    if compressed_source:
+        # the source was compressed but could not be linked here: store this copy compressed too
+        compress_raw(path)
     return False
+
+
+#: A retained file stored COMPRESSED (DATA, sre 21 Nov 2026: inference snapshot predictions.json was 90.6% of the door's
+#: owner-ledger growth, ~10.7 GB/day of decimal text): ``<name>.gz`` (gzip, mtime 0) beside ``<name>.gz.raw.json``, the
+#: note of the RAW bytes' sha256 and size. Every digest keeps binding the RAW bytes; `read_raw` returns them, checked.
+COMPRESSED_SUFFIX = ".gz"
+RAW_NOTE_SUFFIX = ".gz.raw.json"
+RAW_NOTE_SCHEMA = "carbon.retained-raw-note.v1"
+
+
+def _compressed(path: Path) -> Path:
+    return path.with_name(path.name + COMPRESSED_SUFFIX)
+
+
+def _raw_note_path(path: Path) -> Path:
+    return path.with_name(path.name + RAW_NOTE_SUFFIX)
+
+
+def _raw_note(path: Path) -> dict | None:
+    """The RAW note of a compressed ``path`` (`RAW_NOTE_SCHEMA`), None when ``path`` is not stored compressed; ValueError
+    for a note or archive that is a link or malformed (fail closed: never guess the raw bytes).
+    """
+    note = _raw_note_path(path)
+    if not os.path.lexists(note):
+        return None
+    archive = _compressed(path)
+    if note.is_symlink() or archive.is_symlink() or not archive.is_file():
+        raise ValueError("retained snapshot file differs")
+    try:
+        value = json.loads(note.read_bytes())
+    except ValueError:
+        raise ValueError("retained snapshot file differs") from None
+    if (
+        type(value) is not dict
+        or set(value) != {"schema", "sha256", "size"}
+        or value["schema"] != RAW_NOTE_SCHEMA
+        or type(value["sha256"]) is not str
+        or len(value["sha256"]) != 64
+        or type(value["size"]) is not int
+        or value["size"] < 0
+    ):
+        raise ValueError("retained snapshot file differs")
+    return value
+
+
+def raw_exists(path) -> bool:
+    """Whether ``path`` is held, raw (a regular file, never a link) or compressed (`COMPRESSED_SUFFIX` + its note)."""
+    path = Path(path)
+    if path.is_symlink():
+        return False
+    return path.is_file() or _raw_note(path) is not None
+
+
+def raw_size(path) -> int:
+    """The RAW size of ``path``: the file's own size, else its note's; FileNotFoundError when it is held neither way."""
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("symlink rejected")
+    if path.is_file():
+        return path.stat().st_size
+    note = _raw_note(path)
+    if note is None:
+        raise FileNotFoundError(str(path))
+    return note["size"]
+
+
+def read_raw(path, *, max_bytes=None) -> bytes:
+    """The RAW bytes of ``path``: the file itself when it is held raw (every file written before compression, and every
+    file nothing compresses), else ``<path>.gz`` decompressed and checked against its note's size and sha256 (ValueError
+    "retained snapshot file differs" on any mismatch). ``max_bytes`` bounds the RAW size before anything is read.
+    FileNotFoundError when it is held neither way."""
+    import gzip
+    import zlib
+
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("symlink rejected")
+    if path.is_file():
+        if max_bytes is not None and path.stat().st_size > max_bytes:
+            raise ValueError("retained snapshot file oversized")
+        return path.read_bytes()
+    note = _raw_note(path)
+    if note is None:
+        raise FileNotFoundError(str(path))
+    if max_bytes is not None and note["size"] > max_bytes:
+        raise ValueError("retained snapshot file oversized")
+    try:
+        with gzip.open(_compressed(path), "rb") as stream:
+            raw = stream.read(note["size"] + 1)
+    except (OSError, EOFError, zlib.error):
+        raise ValueError("retained snapshot file differs") from None
+    if len(raw) != note["size"] or hashlib.sha256(raw).hexdigest() != note["sha256"]:
+        raise ValueError("retained snapshot file differs")
+    return raw
+
+
+def compress_raw(path) -> bool:
+    """Store ``path`` (a regular file of this user, never a link) COMPRESSED: ``<path>.gz`` (gzip level 6, mtime 0: the
+    same bytes give the same archive) and its RAW note, each written once and synced, the archive read back and checked
+    against the raw sha256, and only THEN the raw name removed. True when compressed; False when ``path`` is already held
+    compressed. Other hard links to the raw inode keep it (their names still read raw); the raw bytes' digest is what
+    every record already binds, so nothing it names changes."""
+    import gzip
+
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("symlink rejected")
+    if not path.is_file():
+        if _raw_note(path) is not None:
+            return False
+        raise FileNotFoundError(str(path))
+    raw = path.read_bytes()
+    sha = hashlib.sha256(raw).hexdigest()
+    write_once(_compressed(path), gzip.compress(raw, compresslevel=6, mtime=0))
+    write_once(
+        _raw_note_path(path),
+        canonical({"schema": RAW_NOTE_SCHEMA, "sha256": sha, "size": len(raw)}),
+    )
+    if gzip.decompress(_compressed(path).read_bytes()) != raw:
+        raise ValueError("retained snapshot file differs")
+    path.unlink()
+    return True
 
 
 #: A ledger's own stored objects (`store_once`) where it is not in a receiver's ``owners/`` layout.
@@ -235,6 +376,40 @@ def _link_from(source, path: Path, payload: bytes) -> bool | None:
         return None
     finally:
         os.close(descriptor)
+
+
+def _link_compressed(source: Path, path: Path, payload: bytes) -> bool:
+    """``path`` as hard links to ``source``'s compressed pair (archive and RAW note), True only when both linked and
+    `read_raw` of ``path`` then gives exactly ``payload``; anything less removes what was linked and returns False.
+    """
+    pairs = (
+        (_compressed(source), _compressed(path)),
+        (_raw_note_path(source), _raw_note_path(path)),
+    )
+    placed = []
+    try:
+        for origin, name in pairs:
+            if (
+                os.path.lexists(name)
+                or _link_from(origin, name, origin.read_bytes()) is not True
+            ):
+                return False
+            placed.append(name)
+        return _raw_note_matches(path, payload)
+    except (OSError, ValueError):
+        return False
+    finally:
+        if len(placed) != len(pairs) or not _raw_note_matches(path, payload):
+            for name in placed:
+                with suppress(OSError):
+                    name.unlink()
+
+
+def _raw_note_matches(path: Path, payload: bytes) -> bool:
+    try:
+        return read_raw(path) == payload
+    except (OSError, ValueError):
+        return False
 
 
 def _failure_resource_summary(resources: object) -> dict[str, int | None]:

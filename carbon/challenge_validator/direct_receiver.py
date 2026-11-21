@@ -3296,6 +3296,13 @@ def serve(
     install_declared_change(cfg)
     install_king_retained_parents(cfg)
     install_graded_inference_image(cfg)
+    # a verified inference snapshot's predictions.json is held compressed on the door (DATA, sre 21 Nov 2026: 90.6% of
+    # the owner-ledger growth); every reader gets its RAW bytes, checked (`data.read_raw`)
+    from carbon.development_session.bundle_construction_worker import (
+        compress_snapshot_predictions,
+    )
+
+    compress_snapshot_predictions(True)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg

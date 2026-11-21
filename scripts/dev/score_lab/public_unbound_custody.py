@@ -1021,6 +1021,31 @@ _GRAPH_REQUIRED = frozenset(
 )
 
 
+#: A retained file held compressed on the door (`carbon.development_session.data`): ``<name>.gz`` + ``<name>.gz.raw.json``.
+_COMPRESSED_SUFFIX = ".gz"
+_RAW_NOTE_SUFFIX = ".gz.raw.json"
+
+
+def _held_compressed(path: Path) -> bool:
+    note = path.with_name(path.name + _RAW_NOTE_SUFFIX)
+    archive = path.with_name(path.name + _COMPRESSED_SUFFIX)
+    return (
+        note.is_file()
+        and archive.is_file()
+        and not note.is_symlink()
+        and not archive.is_symlink()
+    )
+
+
+def _read_compressed(path: Path, limit: int) -> bytes:
+    from carbon.development_session.data import read_raw
+
+    try:
+        return read_raw(path, max_bytes=limit)
+    except (OSError, ValueError) as exc:
+        raise CustodyRefused("graph_artifact_compressed") from exc
+
+
 def _graph_file(root: Path, name: str) -> Path:
     if (
         type(name) is not str
@@ -1037,7 +1062,10 @@ def _graph_file(root: Path, name: str) -> Path:
         path = path / part
         if path.is_symlink():
             raise CustodyRefused("graph_symlink")
-    if not path.is_file() or path.resolve() != path.absolute():
+    if (
+        not (path.is_file() or (not path.exists() and _held_compressed(path)))
+        or path.resolve() != path.absolute()
+    ):
         raise CustodyRefused("graph_file")
     return path
 
@@ -1099,6 +1127,7 @@ def _graph_rehash_inventory(
     observed = {}
     raw = {}
     total = 0
+    compressed = set()
     for name, declared in sorted(files.items()):
         _digest(declared, "graph_retained")
         file_limit = (
@@ -1118,7 +1147,14 @@ def _graph_rehash_inventory(
                 )
             )
         )
-        body = _read_bounded(_graph_file(root, name), file_limit, "graph_artifact")
+        path = _graph_file(root, name)
+        if not path.exists() and _held_compressed(path):
+            # a retained file held COMPRESSED on the door (`data.compress_raw`, DATA 21 Nov 2026): its RAW bytes,
+            # read back and checked against its note; the declared digest below binds those raw bytes as before
+            body = _read_compressed(path, file_limit)
+            compressed.add(name)
+        else:
+            body = _read_bounded(path, file_limit, "graph_artifact")
         total += len(body)
         if total > MAX_GRAPH_TOTAL_BYTES or _sha(body) != declared:
             raise CustodyRefused("graph_retained_digest_or_size")
@@ -1130,6 +1166,12 @@ def _graph_rehash_inventory(
         for path in root.rglob("*")
         if path.is_file() or path.is_symlink()
     }
+    for name in compressed:
+        # the compressed pair stands for its one declared raw name
+        pair = {name + _COMPRESSED_SUFFIX, name + _RAW_NOTE_SUFFIX}
+        if not pair <= actual:
+            raise CustodyRefused("graph_undeclared_or_missing_file")
+        actual = (actual - pair) | {name}
     if actual != set(files) | ({lineage_name} if lineage_name is not None else set()):
         raise CustodyRefused("graph_undeclared_or_missing_file")
     return observed, raw

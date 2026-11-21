@@ -66,10 +66,36 @@ def _snapshot_member(snapshot, member):
     from carbon.reconstruction.worker.protocol import _safe_relative
 
     path = snapshot.joinpath(*_safe_relative(member["path"]).parts)
+    if not os.path.lexists(path):
+        # a member held COMPRESSED on the door (`data.compress_raw`): its RAW size is its note's
+        from .data import raw_size
+
+        try:
+            size = raw_size(path)
+        except (OSError, ValueError):
+            raise WorkerFailure(WorkerCode.OUTPUT) from None
+        if size != member["size"]:
+            raise WorkerFailure(WorkerCode.OUTPUT)
+        return path
     found = os.lstat(path)
     if not stat_module.S_ISREG(found.st_mode) or found.st_size != member["size"]:
         raise WorkerFailure(WorkerCode.OUTPUT)
     return path
+
+
+def _open_member(path):
+    """A member's RAW bytes as a binary stream: the file itself, or its compressed pair read back and checked
+    (`data.read_raw`; a mismatch is `WorkerFailure` OUTPUT)."""
+    import io
+
+    if os.path.lexists(path):
+        return path.open("rb")
+    from .data import read_raw
+
+    try:
+        return io.BytesIO(read_raw(path))
+    except (OSError, ValueError):
+        raise WorkerFailure(WorkerCode.OUTPUT) from None
 
 
 def _one_line(line):
@@ -105,7 +131,7 @@ def reassembled_output_stream(frames, snapshot):
             if set(record) != _STREAM_MEMBER_FIELDS or type(record["size"]) is not int:
                 raise WorkerFailure(WorkerCode.OUTPUT)
             path = _snapshot_member(snapshot, record)
-            with path.open("rb") as body:
+            with _open_member(path) as body:
                 remaining = record["size"]
                 while remaining:
                     block = body.read(min(1 << 20, remaining))
@@ -164,7 +190,7 @@ def compact_output_stream(source, snapshot, *, expected=None):
                 ):
                     return False
                 path = _snapshot_member(snapshot, record)
-                with path.open("rb") as body:
+                with _open_member(path) as body:
                     remaining = record["size"]
                     while remaining:
                         block = stream.read(min(1 << 20, remaining))

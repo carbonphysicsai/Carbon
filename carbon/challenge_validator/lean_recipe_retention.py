@@ -388,12 +388,22 @@ def _make_owner_only(path: Path, label: str) -> None:
 
 
 def _snapshot(path: Path, *, limit: int, digest: str, label: str) -> bytes:
-    if path.is_symlink() or not path.is_file():
-        raise RetentionUnavailable(label + "_unavailable")
-    size = path.stat().st_size
-    if not 0 < size <= limit:
-        raise RetentionUnavailable(label + "_size")
-    raw = path.read_bytes()
+    """A snapshot file's RAW bytes: the file, or (an inference snapshot's predictions.json on a door that compresses
+    them, `data.compress_raw`) its compressed pair read back and checked against its note; bound to ``digest``.
+    """
+    from carbon.development_session.data import raw_exists, raw_size, read_raw
+
+    try:
+        if not raw_exists(path):
+            raise RetentionUnavailable(label + "_unavailable")
+        size = raw_size(path)
+        if not 0 < size <= limit:
+            raise RetentionUnavailable(label + "_size")
+        raw = read_raw(path, max_bytes=limit)
+    except RetentionUnavailable:
+        raise
+    except (OSError, ValueError):
+        raise RetentionUnavailable(label + "_changed") from None
     if len(raw) != size or _sha(raw) != digest:
         raise RetentionUnavailable(label + "_changed")
     return raw
@@ -1255,7 +1265,17 @@ def _retain_private_pack_binding(adapter, provider, submission_id, task, result)
 
 
 def _private_measurement_bytes(path, limit):
-    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= limit:
+    if not path.is_symlink() and not path.is_file():
+        # a retained predictions file held COMPRESSED (its pair linked from the snapshot, `data.link_once`): RAW bytes
+        from carbon.development_session.data import raw_exists, raw_size, read_raw
+
+        try:
+            if raw_exists(path) and 0 < raw_size(path) <= limit:
+                return read_raw(path, max_bytes=limit)
+        except (OSError, ValueError):
+            pass
+        raise RetentionUnavailable("public_measurement_bytes_unavailable")
+    if path.is_symlink() or not 0 < path.stat().st_size <= limit:
         raise RetentionUnavailable("public_measurement_bytes_unavailable")
     return path.read_bytes()
 

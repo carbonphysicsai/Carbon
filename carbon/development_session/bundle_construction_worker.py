@@ -435,6 +435,20 @@ def _digest(body: bytes) -> str:
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
+#: Whether a verified inference snapshot's predictions.json is then held COMPRESSED (`data.compress_raw`): the door
+#: only (`compress_snapshot_predictions`, set by the receiver at start; sre 21 Nov 2026: these files were 90.6% of the
+#: door's owner-ledger growth, ~10.7 GB/day). Off everywhere else (practice, kits, benches): their snapshots are as before.
+_COMPRESS_SNAPSHOT_PREDICTIONS = False
+
+
+def compress_snapshot_predictions(on: bool) -> None:
+    """Turn compression of verified inference snapshots' predictions.json on (the receiver) or off."""
+    global _COMPRESS_SNAPSHOT_PREDICTIONS
+    if type(on) is not bool:
+        raise ValueError("compress_snapshot_predictions takes a bool")
+    _COMPRESS_SNAPSHOT_PREDICTIONS = on
+
+
 @dataclass(frozen=True)
 class BundleOverlayPrepResult:
     snapshot: Path
@@ -1619,11 +1633,25 @@ def _infer_state(
         raise ValueError("inference stage contains construction material")
 
     def checked(snapshot: Path):
-        if {path.name for path in snapshot.iterdir()} != {
-            "predictions.json",
-            "receipt.json",
-            *(("sigma.json",) if trust_outputs else ()),
-        }:
+        from .data import (
+            COMPRESSED_SUFFIX,
+            RAW_NOTE_SUFFIX,
+            raw_exists,
+            raw_size,
+            read_raw,
+        )
+
+        rest = {"receipt.json", *(("sigma.json",) if trust_outputs else ())}
+        # predictions.json is held raw, or (a door that compresses its snapshots, `compress_snapshot_predictions`)
+        # as its compressed pair, read back RAW and checked against its note (`data.read_raw`)
+        if {path.name for path in snapshot.iterdir()} not in (
+            {"predictions.json", *rest},
+            {
+                "predictions.json" + COMPRESSED_SUFFIX,
+                "predictions.json" + RAW_NOTE_SUFFIX,
+                *rest,
+            },
+        ):
             raise ValueError("bundle inference output set differs")
         for name, ceiling in (
             ("predictions.json", 16 * 1024**2),
@@ -1631,13 +1659,9 @@ def _infer_state(
             *((("sigma.json", 16 * 1024**2),) if trust_outputs else ()),
         ):
             path = snapshot / name
-            if (
-                path.is_symlink()
-                or not path.is_file()
-                or not 0 < path.stat().st_size <= ceiling
-            ):
+            if not raw_exists(path) or not 0 < raw_size(path) <= ceiling:
                 raise ValueError("bounded bundle inference output required")
-        raw = (snapshot / "predictions.json").read_bytes()
+        raw = read_raw(snapshot / "predictions.json", max_bytes=16 * 1024**2)
         receipt_raw = (snapshot / "receipt.json").read_bytes()
         sigma_raw = (snapshot / "sigma.json").read_bytes() if trust_outputs else None
         try:
@@ -1779,8 +1803,10 @@ def _infer_state(
         raise
     snapshot = ledger.root / worker["operation"] / "snapshot"
     raw, predictions, receipt, sigma_raw, sigma = checked(snapshot)
+    from .data import compress_raw, read_raw
+
     if any(
-        _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
+        _digest(read_raw(snapshot / name)) != worker["files"].get(name)
         for name in (
             "predictions.json",
             "receipt.json",
@@ -1788,6 +1814,9 @@ def _infer_state(
         )
     ):
         raise ValueError("bundle inference output custody differs")
+    if _COMPRESS_SNAPSHOT_PREDICTIONS:
+        # verified and in custody (its RAW digest in the op's files): held compressed from here on (DATA, 21 Nov 2026)
+        compress_raw(snapshot / "predictions.json")
     return BundleInferenceResult(
         recipe.digest,
         state_digest,

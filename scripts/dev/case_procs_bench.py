@@ -260,9 +260,11 @@ def _pass(label, query, contract, cores, change, root):
         **query,
         **contract,
     )
-    raw = (
+    from carbon.development_session.data import read_raw
+
+    raw = read_raw(
         ledger_root / result.worker_operation / "snapshot" / "predictions.json"
-    ).read_bytes()
+    )
     return log[-1]["seconds"], raw, log[-1]["stderr"]
 
 
