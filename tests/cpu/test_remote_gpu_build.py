@@ -2888,7 +2888,6 @@ def test_an_a100_door_with_an_ada_box_file_in_its_dir_offers_no_ada_slot(host):
     re-measure or reproduce of an A100 door can land on an Ada box (a cross-class re-build is never compared).
     """
     ada = "NVIDIA RTX 6000 Ada Generation"
-    pool = _pool(host, _values(host))
     write_box(host)
     write_box(
         host,
@@ -2896,6 +2895,8 @@ def test_an_a100_door_with_an_ada_box_file_in_its_dir_offers_no_ada_slot(host):
             "ada-1", kind=ada, docker_host="ssh://carbon-build@ada-1.example:2222"
         ),
     )
+    # the pool is read once its boxes directory exists (`door_pool`: no directory, no lane)
+    pool = _pool(host, _values(host))
     lanes = remote_gpu_build.boxes(pool)
     assert [lane.spec.name for lane in lanes] == [BOX]
     assert {lane.device.device_kind for lane in lanes} == {KIND}
