@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Concurrent graph builds through the door's own build path, on a box with no door (S6c / P-10 Option 1).
 
 DEVELOPMENT, public inputs only. Each build is the call a door's graph GPU lane makes
