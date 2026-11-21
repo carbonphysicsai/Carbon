@@ -266,9 +266,12 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
             updated_at_micros=terminal.completed_at_micros,
             terminal_receipt=terminal,
         )
-        prediction_raw = (
+        from carbon.development_session.data import read_raw
+
+        # raw, or held compressed when a receiver turned compression on (`data.read_raw`)
+        prediction_raw = read_raw(
             campaign.root / inferred.worker_operation / "snapshot" / "predictions.json"
-        ).read_bytes()
+        )
         private = {
             "schema": "carbon.direct-private-attempt.v3",
             "image_id": image.image_id,

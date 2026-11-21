@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Per-case processes bench on a LOOP-BOUND graph (Motor 1.8's graded program; Lead's ask, Mon 16 Nov 2026).
 
 A bench, never a grade: synthetic seeded parameters, Carbon's own graded inference program run locally (no container,

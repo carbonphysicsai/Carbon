@@ -1199,7 +1199,6 @@ GRADING_EXCLUDED = (
         "carbon.challenge_validator.repeat_miss_watch",
         "an operator watch: writes no result",
     ),
-    ("carbon.development_session.data", "create-only file writing"),
     (
         "carbon.challenge_validator.grade_archive",
         (

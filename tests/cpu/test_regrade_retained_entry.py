@@ -118,9 +118,12 @@ def _retained(tmp_path, monkeypatch):
         updated_at_micros=terminal.completed_at_micros,
         terminal_receipt=terminal,
     )
-    raw = (
+    from carbon.development_session.data import read_raw
+
+    # raw, or held compressed when a receiver turned compression on (`data.read_raw`)
+    raw = read_raw(
         campaign.root / inferred.worker_operation / "snapshot" / "predictions.json"
-    ).read_bytes()
+    )
     private = {
         "schema": "carbon.direct-private-attempt.v3",
         "image_id": image.image_id,
@@ -781,11 +784,11 @@ def test_repeat_grade_returns_the_bound_evidence_of_the_repeat_or_a_typed_refusa
     fixture = _retained(tmp_path, monkeypatch)
     try:
         _rotate(fixture, monkeypatch, tmp_path)
-        custody = dict(
-            artifact_directory=fixture.artifacts,
-            entry_directory=fixture.entries,
-            runner=fixture.runner,
-        )
+        custody = {
+            "artifact_directory": fixture.artifacts,
+            "entry_directory": fixture.entries,
+            "runner": fixture.runner,
+        }
         # The stubbed grading core reports no evidence file: the repeat is unavailable, never a pass.
         with pytest.raises(retention.RetentionUnavailable) as refused:
             retention.repeat_grade(

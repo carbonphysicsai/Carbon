@@ -117,6 +117,26 @@ def _no_receiver_stop_or_adoption():
     clear()
 
 
+@pytest.fixture(autouse=True)
+def _no_snapshot_compression_left_on():
+    """A receiver's start turns on compression of verified inference snapshots' predictions.json
+    (`bundle_construction_worker.compress_snapshot_predictions`), process state: no test leaves it on for the next
+    (release 21 Nov 2026: a receiver test's switch made later tests' snapshots compressed, order-dependently).
+    """
+    import sys
+
+    def clear():
+        loaded = sys.modules.get(
+            "carbon.development_session.bundle_construction_worker"
+        )
+        if loaded is not None and hasattr(loaded, "compress_snapshot_predictions"):
+            loaded.compress_snapshot_predictions(False)
+
+    clear()
+    yield
+    clear()
+
+
 #: Tools a canonical run must have. A test that skips because one is missing is a
 #: FAILURE there (a gate that skipped the browser-page tests silently proved nothing);
 #: elsewhere the skip stands. `CARBON_CANONICAL_DEV_ENV` is set only by the canonical

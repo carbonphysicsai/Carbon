@@ -132,7 +132,9 @@ def served_v2(tmp_path, monkeypatch):
         )
         native_raw = native_path.read_bytes()
         example_raw = example_path.read_bytes()
-        predictions_raw = prediction_path.read_bytes()
+        from carbon.development_session.data import read_raw
+
+        predictions_raw = read_raw(prediction_path)  # raw, or held compressed
         assert build.receipt["schema"] == "carbon.development.bundle-build.v2"
         assert build.receipt["example_digest"] == _digest(example_raw)
         assert build.receipt["native_predictions_digest"] == _digest(native_raw)
