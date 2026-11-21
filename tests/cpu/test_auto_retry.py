@@ -432,7 +432,8 @@ def test_the_public_queue_says_paused_while_the_door_waits_on_a_version_gap(tmp_
         ("exam_cap_unregistered", True),
         ("exam_cadence_unregistered", True),
         ("pool_constants_unregistered", True),
-        ("leg_minimum_platform_mismatch", True),
+        # its own ruled restore path (infra_requeue.restore_platform, under a ruling id)
+        ("leg_minimum_platform_mismatch", False),
         ("ExamCapRefused", True),
         ("exam_cap_deadline_unregistered", True),
         ("evaluation_pack.json", True),

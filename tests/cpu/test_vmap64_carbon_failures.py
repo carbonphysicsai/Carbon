@@ -294,13 +294,15 @@ def test_graded_bytes_of_another_inference_are_never_compared(
     rows = e2e._cap_rows(fixture)
     if switch == "image_id":
         # a moved worker image: the fresh graded pass runs, then the grade cannot be computed on that image: Carbon's
-        # version-wide gap (V2-L2-RETENTION-20261120). Over-broad rules audit S7 G4: the task stays PENDING (no marker,
-        # no forced resubmit), the slot released: uncharged, as for any image move; never compared, never charged
-        assert outcome is None, marker
-        assert marker is None
-        assert auto_retry.version_wide("leg_minimum_platform_mismatch") is True
-        assert auto_retry.retryable("leg_minimum_platform_mismatch") is False
-        assert all(row[2] == "RELEASED" for row in rows), rows
+        # version-wide gap (V2-L2-RETENTION-20261120), raised to the grader as FAILED_INFRA (not retried), the slot
+        # released: uncharged, as for any image move; never compared, never charged. Not a G4 version gap: its own
+        # ruled restore path (infra_requeue.restore_platform) hands it back under a ruling id
+        assert outcome == (e2e.TASK, "FAILED"), marker
+        assert marker["code"] == "leg_minimum_platform_mismatch", marker
+        assert marker["next_step"] == "resubmit_after_fix", marker
+        assert auto_retry.retryable(marker["code"]) is False
+        assert auto_retry.version_wide(marker["code"]) is False
+        assert all(row[2] == "RELEASED" for row in rows), (marker, rows)
     else:
         assert outcome == (e2e.TASK, "GRADED"), marker
         assert rows[-1][2] == "COUNTED", (marker, rows)
@@ -352,8 +354,10 @@ def test_an_unset_tolerance_stops_the_grade_before_any_exam_read(
     )
     root = tmp_path / "receiver"
     outcome, marker = _graded_by(auto_grade.AutoGrader(_Intake(fixture), root), root)
-    assert outcome == (e2e.TASK, "FAILED")
-    assert marker["code"] == speed_match.UNREGISTERED
+    # a version-wide gap (the tolerance is a reserved value not set yet): over-broad rules audit S7 G4, the task stays
+    # PENDING with no marker until it is registered; still no exam read and nothing charged
+    assert outcome is None and marker is None
+    assert auto_retry.version_wide(speed_match.UNREGISTERED) is True
     assert read == [] and fixture.calls == []  # no case bank read, no inference
     assert all(row[2] == "RELEASED" for row in e2e._cap_rows(fixture))
     assert auto_retry.retryable(speed_match.UNREGISTERED) is False

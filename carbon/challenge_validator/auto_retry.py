@@ -129,9 +129,10 @@ def failure_code(failure) -> str:
 #: (door-code second read + v2 pre-read 21 Nov 00:51Z): a per-task code that matched here would stop all grading on the
 #: door every 10 min for ever. Exact codes, prefixes and suffixes; `_PER_TASK_CODES` and the per-task ``exam_cap_*``
 #: look-alikes (``exam_cap_block_unavailable``, ``exam_cap_identity_unavailable``) are never gaps.
-_GAP_CODES = frozenset(
-    {"exam_cap_unregistered", "leg_minimum_platform_mismatch", "contract_not_served"}
-)
+#: ``leg_minimum_platform_mismatch`` is NOT here: a moved judge image has its own ruled path
+#: (`infra_requeue.restore_platform`: handed back ONCE under a recorded ruling id after the binding is fixed), and an
+#: automatic grade on a new binding would skip that ruling.
+_GAP_CODES = frozenset({"exam_cap_unregistered", "contract_not_served"})
 _GAP_PREFIXES = (
     "exam_cadence_",
     "pool_constants_",

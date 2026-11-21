@@ -526,6 +526,10 @@ class AutoGrader:
                     continue
                 if decision == "copy":
                     return self._grade_copy(submission_id, first)
+            if self._gap_waits():
+                # a version-wide gap met within `VERSION_GAP_SECONDS` (the parallel claim scan's ``version_gap`` pass):
+                # every grade of the version meets it, so no grade starts; the task stays pending
+                continue
             outcome = self._grade_one(submission_id)
             if outcome is _NEXT:
                 continue
