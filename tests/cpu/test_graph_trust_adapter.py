@@ -242,9 +242,15 @@ def test_a_trust_models_prediction_is_its_physics_columns_decoded():
     )  # the trust columns are not in the answer
 
 
-def test_a_registration_without_a_derive_refuses_typed_not_with_a_key_error(monkeypatch):
+def test_a_registration_without_a_derive_refuses_typed_not_with_a_key_error(
+    monkeypatch,
+):
     # door-code 11:41:07Z: entry.get('derive') lets the trainer's own check refuse it typed
-    monkeypatch.setitem(registry.REGISTRATIONS, ("x", "1"), {"sigma_floor": (0.1,), "epochs": 1, "learning_rate": 0.01})
+    monkeypatch.setitem(
+        registry.REGISTRATIONS,
+        ("x", "1"),
+        {"sigma_floor": (0.1,), "epochs": 1, "learning_rate": 0.01},
+    )
     spec = registry.trust_spec("x", "1", width=3, outputs=1, trust_parameters=(0,))
     with pytest.raises(v4.TrustRefused) as refused:
         v4.check(spec)
