@@ -107,7 +107,7 @@ def test_the_registry_is_empty_and_an_unregistered_version_refuses_typed():
 def test_a_registered_versions_values_flow_into_the_spec_and_a_missing_one_stays_none(
     monkeypatch,
 ):
-    def derive(native):
+    def derive(native, inputs):
         return native[:, :1]
 
     monkeypatch.setitem(
@@ -144,7 +144,7 @@ def test_a_trust_candidates_fit_runs_the_two_phase_trainer_around_the_versions_o
         registry.REGISTRATIONS,
         (BASE.challenge_id, BASE.version),
         {
-            "derive": lambda native: native,
+            "derive": lambda native, inputs: native,
             "sigma_floor": (0.1,) * K,
             "epochs": 2,
             "learning_rate": 0.01,

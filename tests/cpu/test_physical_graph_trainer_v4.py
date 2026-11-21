@@ -21,7 +21,7 @@ INIT_LOG_SIGMA = 0.7  # the trust parameter's INITIAL value (what `prepared.init
 PHASE_ONE_LOG_SIGMA = 0.123  # what phase 1 leaves behind (weight decay drift): phase 2 must NOT start from it
 
 
-def derive(native):
+def derive(native, inputs):
     """One trust output: the first physics column (jax-traceable)."""
     return native[:, :1]
 

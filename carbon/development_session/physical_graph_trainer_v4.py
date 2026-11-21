@@ -56,8 +56,10 @@ class TrustSpec:
     #: W, the physics columns; `outputs` = k, the trust outputs (one log-sigma column each).
     width: int
     outputs: int
-    #: jax-traceable `derive(native_rows) -> (n, k)`: the k derived scored outputs from the W native physics columns.
-    derive: Callable[[Any], Any]
+    #: jax-traceable `derive(rows, inputs) -> (n, k)`: the k derived scored outputs from the W physics columns of each case (in the
+    #: space the TRAIN targets are in) AND that case's inputs: a derived output often depends on the case's conditions (a hydraulic
+    #: power is a pressure drop times a flow set by the inputs).
+    derive: Callable[[Any, Any], Any]
     #: Indices (graph parameter input order) of the trust head's parameters, from `trust_head.check`; all in member 0.
     trust_parameters: tuple
     #: HUMAN_INPUT (None refuses): per trust output a positive sigma floor in the derived output's unit, the phase-2 epochs over
@@ -160,7 +162,7 @@ def combined_residual(
         # reported prediction's, not a batched one's)
         term = prepared.predict(params, x_held, isolated=True)[0][..., :width] * weights
         total = term if total is None else total + term
-    residual = spec.derive(total * sd_j + mu_j) - spec.derive(y_held)
+    residual = spec.derive(total * sd_j + mu_j, x_held) - spec.derive(y_held, x_held)
     return np.asarray(residual)
 
 

@@ -66,7 +66,7 @@ TRAINER_V3_PIN = (TRAINER_V3_PATH, TRAINER_V3_SHA256)
 #: version's block, limits digest or trainer entry moves.
 TRAINER_V4_MODULE = "carbon.development_session.physical_graph_trainer_v4"
 TRAINER_V4_PATH = "carbon/development_session/physical_graph_trainer_v4.py"
-TRAINER_V4_SHA256 = "4c693ada4f61e1d5b2c10f4eeb67f679edcdbe559884616975b841103cd9f19e"
+TRAINER_V4_SHA256 = "d2375f597bfe2b800c36bd96a07cca10cfcf4c8f06ea748564f7514af955e6f4"
 TRAINER_V4_PIN = (TRAINER_V4_PATH, TRAINER_V4_SHA256)
 CODE = "graph_route_"
 #: A graph recipe may carry a loss graph over the whole training batch with the
