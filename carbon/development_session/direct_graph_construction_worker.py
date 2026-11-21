@@ -910,7 +910,8 @@ def v2_trust_infer_query(challenge_id: str, version: str, trust_outputs: int) ->
         "program": program,
         "staged_files": {
             **query["staged_files"],
-            state_v3 + ".py": (root / (state_v3.replace(".", "/") + ".py")).read_bytes(),
+            state_v3
+            + ".py": (root / (state_v3.replace(".", "/") + ".py")).read_bytes(),
         },
         "trust_outputs": trust_outputs,
     }
