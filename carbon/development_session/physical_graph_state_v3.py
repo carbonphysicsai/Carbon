@@ -184,6 +184,7 @@ def _load(raw: bytes, recipe: ConstructionRecipe, allowlist, *, materialize):
                 or (parameter_limit is not None and members * count > parameter_limit)
                 or type(trust) is not dict
                 or set(trust) != {"member", "width"}
+                or type(trust["member"]) is not int
                 or trust["member"] != TRUST_MEMBER
                 or type(trust["width"]) is not int
                 or trust["width"] < 1
@@ -204,8 +205,10 @@ def _load(raw: bytes, recipe: ConstructionRecipe, allowlist, *, materialize):
             doc = graph.parse(graph_raw, max_bytes=graph_bytes)
             _checked_graph(doc, allowlist)
             width = _physics_width(doc, trust_width)
-            if header != _header(
-                recipe, graph_raw, allowlist, members, count, width, trust_width
+            # BYTES, not the parsed dict (door-code 09:10:09Z): a dict compare lets JSON aliases through ({"member": false} ==
+            # {"member": 0}, a decoder width written 3.0 == 3), so a tampered header would not refuse for every field.
+            if header_array.tobytes() != _canonical(
+                _header(recipe, graph_raw, allowlist, members, count, width, trust_width)
             ):
                 raise RecipeRefused("bundle_state_header_invalid")
             entries = _param_inputs(doc)

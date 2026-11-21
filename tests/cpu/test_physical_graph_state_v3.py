@@ -220,3 +220,22 @@ def test_a_state_bound_to_another_recipe_is_refused():
     other["source"]["submission_digest"] = _sha("f")
     with pytest.raises(RecipeRefused, match="header_invalid"):
         state_v3.load(raw, ConstructionRecipe.from_dict(other), permitted)
+
+
+def test_a_json_alias_in_the_header_is_refused_because_the_header_bytes_are_compared():
+    # door-code 09:10:09Z: {"member": false} == {"member": 0} and a width written 3.0 == 3 as parsed dicts; as bytes they differ.
+    permitted = allowlist.load()
+    raw = _freeze(permitted)
+    header = _header(raw)
+    with pytest.raises(RecipeRefused, match="header_invalid"):
+        state_v3.load(_rewritten(raw, trust={"member": False, "width": K}), _recipe(), permitted)
+    with pytest.raises(RecipeRefused, match="header_invalid"):
+        state_v3.load(
+            _rewritten(raw, decoder={**header["decoder"], "width": float(W)}),
+            _recipe(),
+            permitted,
+        )
+    with pytest.raises(RecipeRefused, match="header_invalid"):
+        state_v3.load(_rewritten(raw, trust={"member": 0, "width": float(K)}), _recipe(), permitted)
+    # the unchanged header, re-serialised the same way, still loads
+    assert state_v3.load(_rewritten(raw), _recipe(), permitted) is not None
