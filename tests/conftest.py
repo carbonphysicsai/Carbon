@@ -102,6 +102,37 @@ def _no_installed_crown_rule():
 
 
 @pytest.fixture(autouse=True)
+def _no_chain_crown_hold_or_sweep_memory():
+    """Process state a receiver sets at start that crown tests read (release 21 Nov 19:15:13Z: 25 order-dependent
+    failures in test_operator_pause / test_pool_consider / test_king_upkeep inside one shard, all passing alone):
+    `operator_pause.hold_crowns_until_fresh` (over-broad audit #10: `serve` installs a chain-freshness hold that makes
+    `crowns_paused` True once its window goes stale), the crown sweep's in-process memory (`crown_pause_sweep`:
+    first-seen, king-changed and queued-behind marks) and the stale-snapshot counter (`battery.intake._STALE`). No test
+    leaves any of them to the next.
+    """
+    import sys
+
+    def clear():
+        pause = sys.modules.get("carbon.challenge_validator.operator_pause")
+        if pause is not None and hasattr(pause, "hold_crowns_until_fresh"):
+            pause.hold_crowns_until_fresh(None)
+        sweep = sys.modules.get("carbon.challenge_validator.crown_pause_sweep")
+        if sweep is not None:
+            for name in ("_FIRST_SEEN", "_KING_CHANGED", "_QUEUED"):
+                memo = getattr(sweep, name, None)
+                if isinstance(memo, dict):
+                    memo.clear()
+        intake = sys.modules.get("carbon.battery.intake")
+        stale = getattr(intake, "_STALE", None) if intake is not None else None
+        if isinstance(stale, dict):
+            stale.update({"uses": 0, "since": None})
+
+    clear()
+    yield
+    clear()
+
+
+@pytest.fixture(autouse=True)
 def _no_receiver_stop_or_adoption():
     """A receiver stop (`research_carrier.door_stopping`) and a start's adoptions are process state: no test leaves
     them for the next (a stopped process starts no remote GPU build)."""
