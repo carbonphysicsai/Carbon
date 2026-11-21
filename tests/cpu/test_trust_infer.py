@@ -14,7 +14,11 @@ import pytest
 
 from carbon.development_session import (
     bundle_construction_worker as worker,
+)
+from carbon.development_session import (
     direct_graph_construction_worker as graph_worker,
+)
+from carbon.development_session import (
     trust_infer,
 )
 from carbon.development_session.construction_recipe import RecipeRefused
@@ -53,7 +57,9 @@ def test_the_variant_only_adds_its_insertions_and_the_plain_program_is_unchanged
     restored = variant
     for old, new in FAMILY[name]:
         restored = restored.replace(new, old)
-    assert restored == program  # nothing else moved: no other part of the program text changed
+    assert (
+        restored == program
+    )  # nothing else moved: no other part of the program text changed
     raise_text = 'raise ValueError("bundle inference output contract differs")'
     assert variant.count(raise_text) == program.count(raise_text) + 1
     compile(variant, "trust_variant", "exec")  # the variant is still a program
@@ -62,7 +68,9 @@ def test_the_variant_only_adds_its_insertions_and_the_plain_program_is_unchanged
 def test_a_program_that_lost_an_anchor_or_is_already_a_trust_program_is_refused():
     program = worker.INFER_PROGRAM
     with pytest.raises(RuntimeError, match="anchor moved"):
-        trust_infer.trust_program(program.replace(trust_infer.PLAIN_ANCHORS[1][0], "pass\n"))
+        trust_infer.trust_program(
+            program.replace(trust_infer.PLAIN_ANCHORS[1][0], "pass\n")
+        )
     v2 = graph_worker.PHYSICAL_V2_INFER_PROGRAM
     with pytest.raises(RuntimeError, match="anchor moved"):
         trust_infer.trust_program(v2.replace(trust_infer.V2_ANCHORS[2][0], "pass\n"))
@@ -76,7 +84,11 @@ def test_a_declared_candidate_is_split_into_base_and_trust_columns():
     raw = np.arange(12, dtype="float32").reshape(3, 4)
     scope = run(
         trust_infer._RESULT_TRUST,
-        {"np": np, "control": {"expected_output_shape": [3, 3], "trust_outputs": 1}, "outputs": [raw]},
+        {
+            "np": np,
+            "control": {"expected_output_shape": [3, 3], "trust_outputs": 1},
+            "outputs": [raw],
+        },
     )
     assert scope["result"].shape == (3, 3) and scope["sigma"].shape == (3, 1)
     assert np.array_equal(scope["result"], raw[:, :3])
@@ -104,8 +116,12 @@ def test_an_undeclared_candidate_is_not_split_and_the_plain_contract_check_judge
     ],
 )
 @pytest.mark.parametrize("code", ["plain", "v2"])
-def test_a_declared_candidate_with_any_other_output_gets_todays_contract_refusal(raw, code):
-    text = trust_infer._RESULT_TRUST if code == "plain" else trust_infer._V2_RESULT_TRUST
+def test_a_declared_candidate_with_any_other_output_gets_todays_contract_refusal(
+    raw, code
+):
+    text = (
+        trust_infer._RESULT_TRUST if code == "plain" else trust_infer._V2_RESULT_TRUST
+    )
     scope = {
         "np": np,
         "control": {"expected_output_shape": [3, 3], "trust_outputs": 1},
@@ -141,20 +157,27 @@ def test_the_v2_ensemble_combines_the_physics_columns_and_takes_the_trust_column
     physics = members[0][:, :width] * weights[0] + members[1][:, :width] * weights[1]
     assert out.shape == (batch, width + trust)
     assert np.allclose(out[:, :width], physics)
-    assert np.allclose(out[:, width:], members[0][:, width:])  # member 0 alone, weight 1
+    assert np.allclose(
+        out[:, width:], members[0][:, width:]
+    )  # member 0 alone, weight 1
     # the split happens BEFORE the decoder, which then touches the W physics columns only
     scope = run(
         trust_infer._V2_RESULT_TRUST,
         {
             "np": np,
-            "control": {"expected_output_shape": [batch, width], "trust_outputs": trust},
+            "control": {
+                "expected_output_shape": [batch, width],
+                "trust_outputs": trust,
+            },
             "outputs": [out],
             "decoder_sd": np.full(width, 2.0),
             "decoder_mu": np.ones(width),
         },
     )
     assert np.allclose(scope["result"], physics * 2.0 + 1.0)
-    assert np.allclose(scope["sigma"], members[0][:, width:])  # the trust columns are not decoded
+    assert np.allclose(
+        scope["sigma"], members[0][:, width:]
+    )  # the trust columns are not decoded
 
 
 def test_the_split_columns_are_written_with_their_digest_in_the_receipt(tmp_path):
@@ -168,10 +191,15 @@ def test_the_split_columns_are_written_with_their_digest_in_the_receipt(tmp_path
         "receipt": {"predictions_digest": "x"},
     }
     run(trust_infer._WRITE_TRUST, scope)
-    run(trust_infer._DIGEST_TRUST.split("}\n", 1)[1], scope)  # the receipt addition only
+    run(
+        trust_infer._DIGEST_TRUST.split("}\n", 1)[1], scope
+    )  # the receipt addition only
     written = (tmp_path / "sigma.json").read_bytes()
     assert json.loads(written) == [[0.5], [0.25]]
-    assert scope["receipt"]["sigma_digest"] == "sha256:" + hashlib.sha256(written).hexdigest()
+    assert (
+        scope["receipt"]["sigma_digest"]
+        == "sha256:" + hashlib.sha256(written).hexdigest()
+    )
     assert scope["receipt"]["trust_outputs"] == 1
 
 
@@ -191,7 +219,9 @@ def test_infer_state_refuses_a_bad_trust_count_or_a_trust_candidate_without_its_
     for bad in (-1, True, 1.5):
         with pytest.raises(RecipeRefused, match="direct_inference_trust_invalid"):
             worker._infer_state(None, trust_outputs=bad, **common)
-    with pytest.raises(RecipeRefused, match="direct_inference_trust_needs_its_own_program"):
+    with pytest.raises(
+        RecipeRefused, match="direct_inference_trust_needs_its_own_program"
+    ):
         worker._infer_state(None, trust_outputs=2, **common)  # no program
 
 

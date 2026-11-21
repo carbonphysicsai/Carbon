@@ -71,7 +71,9 @@ PLAIN_ANCHORS = (
 
 # -- family 2: the graph route v2 ensemble program (it already decodes the result: `* decoder_sd + decoder_mu`) -----------------
 _V2_PARAMETERS = "parameters = list(members[0])\n"
-_V2_PARAMETERS_TRUST = _V2_PARAMETERS + "width = int(np.asarray(decoder_mu).shape[-1])\n"
+_V2_PARAMETERS_TRUST = (
+    _V2_PARAMETERS + "width = int(np.asarray(decoder_mu).shape[-1])\n"
+)
 
 _V2_TOTAL = "    total = None\n"
 _V2_TOTAL_TRUST = "    total = None\n    trust = None\n"
