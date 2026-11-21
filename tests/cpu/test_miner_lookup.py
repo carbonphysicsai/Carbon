@@ -661,3 +661,14 @@ def test_a_capped_build_chain_is_not_reported_as_waiting_in_line(tmp_path):
 
 def test_a_plain_admitted_task_is_still_queued(store):
     assert _ask(store, "task", TASK_E)[0]["task"]["state"] == "QUEUED"
+
+
+def test_a_capped_build_chain_is_recognised_whether_build_requeued_is_the_code_or_the_state(tmp_path):
+    # sre 14:41:06Z: on the live ledger the capped chain still read QUEUED: the token may sit in `code` rather than `state`
+    task = "rtsk_" + "68" * 32
+    _seed(
+        tmp_path / "attempts.sqlite3",
+        [(T0, "OUTCOME", ml.BUILD_REQUEUED, HOTKEY, task, "ADMITTED")],
+    )
+    shown = _ask(tmp_path, "task", task)[0]["task"]
+    assert shown["state"] == "build_requeued" and shown["reason"] == ml.BUILD_REQUEUED_REASON

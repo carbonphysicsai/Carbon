@@ -777,7 +777,11 @@ def _task(root, db, task, owed, *, detail):
     else:
         slot = _slot(db, task)
         state, code, charged, given_back = _grade_state(marker, slot, latest)
-        if state == "QUEUED" and rows[-1][3] == BUILD_REQUEUED and slot == (None, None):
+        if (
+            state == "QUEUED"
+            and BUILD_REQUEUED in (rows[-1][2], rows[-1][3])
+            and slot == (None, None)
+        ):
             # a capped build chain: its only trace is the requeue, and it will not be built again
             state, code, charged, given_back = (
                 BUILD_REQUEUED,
