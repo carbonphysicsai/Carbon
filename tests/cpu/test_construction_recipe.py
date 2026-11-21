@@ -283,8 +283,12 @@ def test_the_registered_spec_decides_for_every_bind_site(monkeypatch):
     base = next(iter(v2.SPECS.values()))
     key = ("battery-example", "development-v1")
     monkeypatch.setitem(v2.SPECS, key, dataclasses.replace(base, trust_outputs=2))
-    assert bind(trust_recipe()).declares_self_trust is True  # a trust version binds the declaring recipe
-    assert bind(graph_recipe()).declares_self_trust is False  # and still binds the base one
+    assert (
+        bind(trust_recipe()).declares_self_trust is True
+    )  # a trust version binds the declaring recipe
+    assert (
+        bind(graph_recipe()).declares_self_trust is False
+    )  # and still binds the base one
     monkeypatch.setitem(v2.SPECS, key, dataclasses.replace(base, trust_outputs=0))
     with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
         bind(trust_recipe())  # a version that offers none refuses it

@@ -217,7 +217,10 @@ class ConstructionRecipe:
     def declares_self_trust(self) -> bool:
         """True when the recipe's output binds the version's TRUST interface (the declaration), not the base one."""
         value = self.to_dict()
-        return value["output"]["interface_digest"] != value["challenge"]["interface_digest"]
+        return (
+            value["output"]["interface_digest"]
+            != value["challenge"]["interface_digest"]
+        )
 
     @property
     def digest(self) -> str:
@@ -230,7 +233,8 @@ class ConstructionRecipe:
 
 def _version_offers_self_trust(challenge_id: str, challenge_version: str) -> bool:
     """Whether the registered graph route v2 Spec of this version offers a trust interface. Fail closed: a process that
-    does not carry the adapter registry (a bundle build container) or a version it does not list offers none."""
+    does not carry the adapter registry (a bundle build container) or a version it does not list offers none.
+    """
     try:
         from carbon.development_session import physical_graph_adapter_v2 as v2
     except ImportError:
