@@ -142,12 +142,18 @@ def test_a_trust_head_with_no_parameter_of_its_own_is_refused():
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda d: d["graphs"]["main"]["nodes"].pop(),  # output is not produced by a concatenate
+        lambda d: d["graphs"]["main"][
+            "nodes"
+        ].pop(),  # output is not produced by a concatenate
         lambda d: d["graphs"]["main"]["nodes"][-1].update(
             {"in": [10, 11, 10]}
         ),  # three operands
-        lambda d: d["graphs"]["main"]["nodes"][-1]["params"].update(dimension=0),  # not the last axis
-        lambda d: d["graphs"]["main"]["nodes"][-1].update({"op": "add"}),  # not a concatenate
+        lambda d: d["graphs"]["main"]["nodes"][-1]["params"].update(
+            dimension=0
+        ),  # not the last axis
+        lambda d: d["graphs"]["main"]["nodes"][-1].update(
+            {"op": "add"}
+        ),  # not a concatenate
         lambda d: d["graphs"]["main"].update(outputs=[12, 10]),  # two outputs
     ],
 )
