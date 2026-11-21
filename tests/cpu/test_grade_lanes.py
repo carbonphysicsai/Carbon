@@ -152,16 +152,22 @@ def test_a_v2_record_lists_disjoint_lanes_of_one_size(tmp_path):
     [
         ["0-3", "3-6"],
         ["0-3", "4-6"],
-        ["0-3"],
         ["0-3", "x"],
         "0-3,4-7",
         [["0-3"], ["4-7"]],
     ],
 )
-def test_overlapping_unequal_single_or_malformed_lanes_are_refused(tmp_path, lanes):
+def test_overlapping_unequal_or_malformed_lanes_are_refused(tmp_path, lanes):
     _record(tmp_path, lanes=lanes)
     with pytest.raises(WorkerFailure):
         HostExecutionRecord.load(tmp_path)
+
+
+def test_a_single_lane_record_is_accepted(tmp_path):
+    """Over-broad rules audit S7 H1 272: one lane protects nothing to refuse; equal size and disjoint still apply."""
+    _record(tmp_path, lanes=["0-3"])
+    os.chmod(tmp_path / HOST_EXECUTION_RECORD, 0o600)
+    assert HostExecutionRecord.load(tmp_path).lanes == ("0-3",)
 
 
 def test_a_v1_record_with_lanes_or_a_v2_record_without_them_is_refused(tmp_path):

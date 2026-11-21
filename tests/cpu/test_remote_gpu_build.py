@@ -736,7 +736,8 @@ class _FakeCLI:
         return SimpleNamespace(stdout=self.stdout, returncode=0, stderr=b"")
 
 
-def test_at_most_n_carbon_containers_share_the_device(host):
+def test_at_most_n_carbon_containers_share_the_device(host, monkeypatch):
+    monkeypatch.setattr(remote_gpu_build, "CROWDED_WAIT_SECONDS", 0)
     lane = _lane(host, slots=2)
     with remote_gpu_build.offered(lane), _op() as binding:
         accelerator_runtime.reject_existing_device_containers(
@@ -2125,8 +2126,13 @@ def test_the_loader_refuses_a_wrong_mode_owner_or_shape(host, monkeypatch):
     assert _refusal(link) == "remote_gpu_build_box_unreadable"  # never followed
     elsewhere = _host_key("ssh://carbon-build@elsewhere.example:2222")
     for change, reason in (
-        ({"slot_cpusets": ["0-3", "4-7"]}, "remote_gpu_build_box_shape"),
+        # over-broad rules audit S7 B2 270: any 1..MAX_SLOTS equal, disjoint >= 4-core sets; these still refuse
         ({"slot_cpusets": ["0-1", "2-3", "4-5", "6-7"]}, "remote_gpu_build_box_shape"),
+        ({"slot_cpusets": ["0-3", "3-6"]}, "remote_gpu_build_box_shape"),
+        ({"slot_cpusets": ["0-3", "4-8"]}, "remote_gpu_build_box_shape"),
+        ({"slot_cpusets": []}, "remote_gpu_build_box_shape"),
+        ({"slot_cpusets": ["0-3"] * 9}, "remote_gpu_build_box_shape"),
+        ({"slot_cpusets": ["x"]}, "remote_gpu_build_box_shape"),
         (
             {"host_key": "a100-1.example ssh-ed25519 AAAA"},
             "remote_gpu_build_box_host_key",
@@ -2901,3 +2907,56 @@ def test_an_a100_door_with_an_ada_box_file_in_its_dir_offers_no_ada_slot(host):
     assert [lane.spec.name for lane in lanes] == [BOX]
     assert {lane.device.device_kind for lane in lanes} == {KIND}
     assert pool.kind == KIND
+
+
+@pytest.mark.parametrize(
+    "cpusets",
+    [
+        ["0-3", "4-7"],
+        ["0-5", "6-11", "12-17"],
+        ["8-15"],
+        ["0-3", "4-7", "8-11", "12-15", "16-19"],
+    ],
+)
+def test_a_box_of_another_slot_shape_is_read(host, cpusets):
+    """Over-broad rules audit S7 B2 270: a rented box (a Lium pod of another vCPU count) is not refused for its shape;
+    equal, disjoint sets of at least 4 cores each."""
+    path = write_box(host, box_document() | {"slot_cpusets": cpusets})
+    lane = remote_gpu_build.read_box(path, kind=KIND, slots=7)
+    assert lane.spec.slot_cpusets == tuple(cpusets)
+    assert lane.slots == len(cpusets)  # a box offers at most its own slots
+
+
+class _CrowdCLI(_FakeCLI):
+    def __init__(self, outputs):
+        super().__init__()
+        self.outputs = list(outputs)
+
+    def run(self, arguments, timeout=30, accepted=(0,)):
+        self.stdout = self.outputs.pop(0) if len(self.outputs) > 1 else self.outputs[0]
+        return super().run(arguments, timeout, accepted)
+
+
+def test_a_crowded_device_is_read_again_before_conflict(host, monkeypatch):
+    """Over-broad rules audit S7 B2 261: another slot's ending container frees its place within the wait; nothing is
+    removed; a device still crowded at the bound is CONFLICT; this slot's own record is CONFLICT at once.
+    """
+    lane = _lane(host, slots=2)
+    slept = []
+    with remote_gpu_build.offered(lane), _op() as binding:
+        cli = _CrowdCLI([b'"a"\n"b"\n', b'"a"\n"b"\n', b'"a"\n'])
+        remote_gpu_build.reject_crowded(cli, binding, sleep=slept.append)
+        assert len(cli.calls) == 3 and slept == [remote_gpu_build.POLL_S] * 2
+        assert all(call[0] == "ps" for call in cli.calls)  # read only
+        monkeypatch.setattr(remote_gpu_build, "CROWDED_WAIT_SECONDS", 0)
+        with pytest.raises(WorkerFailure) as raised:
+            remote_gpu_build.reject_crowded(
+                _CrowdCLI([b'"a"\n"b"\n']), binding, sleep=slept.append
+            )
+        assert raised.value.code is WorkerCode.CONFLICT
+        monkeypatch.setattr(remote_gpu_build, "CROWDED_WAIT_SECONDS", 3600)
+        (binding.slot_dir / "active-allocation.json").write_text("{}")
+        with pytest.raises(WorkerFailure):
+            remote_gpu_build.reject_crowded(
+                _CrowdCLI([b""]), binding, sleep=slept.append
+            )

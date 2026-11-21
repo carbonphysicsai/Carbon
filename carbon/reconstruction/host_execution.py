@@ -97,8 +97,10 @@ class HostExecutionRecord:
             raise WorkerFailure(WorkerCode.INVALID)
         # The registered ceiling is a floor on what the implementation enforces,
         # so an operator may pin a different placement but not a larger budget
-        # than the worker is built to apply.
-        if memory_bytes != MEMORY_BYTES:
+        # than the worker is built to apply. A smaller one is accepted (over-broad
+        # rules audit S7 H1 271: nothing reads it to grant more; the container's
+        # limit comes from the worker profile).
+        if memory_bytes < 1 or memory_bytes > MEMORY_BYTES:
             raise WorkerFailure(WorkerCode.POLICY)
         object.__setattr__(self, "cpuset", cpuset)
         object.__setattr__(self, "memory_bytes", memory_bytes)
@@ -139,15 +141,15 @@ class HostExecutionRecord:
 
 
 def _checked_lanes(lanes: object) -> tuple[str, ...]:
-    """A record's lane core sets: none, or two or more, each a valid cpuset, all one size, pairwise disjoint. Anything
-    else is an operator's mistake worth failing on (POLICY), never trimmed into something that looks fine.
+    """A record's lane core sets: none, or one or more, each a valid cpuset, all one size, pairwise disjoint. Anything
+    else is an operator's mistake worth failing on (POLICY), never trimmed into something that looks fine. One lane is
+    allowed (over-broad rules audit S7 H1 272: it protects nothing to refuse it); equal size and disjoint stay (a lane's
+    cores are what a candidate's scored speed runs on, and two lanes on one core set would contend).
     """
     if type(lanes) is not tuple:
         raise WorkerFailure(WorkerCode.POLICY)
     if not lanes:
         return ()
-    if len(lanes) < 2:
-        raise WorkerFailure(WorkerCode.POLICY)
     sets = [set(parse_cpuset(value)) for value in lanes]
     if len({len(cores) for cores in sets}) != 1:
         raise WorkerFailure(WorkerCode.POLICY)

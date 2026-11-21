@@ -23,8 +23,8 @@ CLASS, ``slots``, ``memory``) names the class. The boxes are the box files ``gpu
 ``<HOST_ROOT>/remote-gpu-build-boxes.d/<name>.json`` (`BOXES_DIR`), read again at EVERY op (no restart). A box is
 eligible only when (`read_box`): the directory is a 0700 directory of the door user; the file is a regular 0600 file
 of the door user (never followed through a link); it is the box schema, its device kind is the class kind, its
-``slot_cpusets`` are exactly 7 x 4 cores (`BOX_SLOT_CPUSETS`; a box set up before 17 Nov keeps its 4 x 4,
-`LEGACY_BOX_SLOT_CPUSETS`, until `gpu_box_up.py` runs on it again), its ``host_key`` parses (an ed25519 known_hosts line for
+``slot_cpusets`` are 1 to `MAX_SLOTS` equal, disjoint core sets of at least 4 cores each (`_box_cpusets`; `gpu_box_up.py`
+writes 7 x 4, `BOX_SLOT_CPUSETS`, and a box set up before 17 Nov has 4 x 4), its ``host_key`` parses (an ed25519 known_hosts line for
 its address) and its device record is well formed with its digest; and it is not DOWN (`mark_down`). A box file renamed
 ``<name>.json.refused`` (`refuse`) or removed is not read: removing it DRAINS the box (no new op starts there; a running
 op keeps its binding to the end). The receiver binds the CLASS (`GpuClass`: ``{"kind", "class": true}``), never a box.
@@ -694,10 +694,7 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         raise ValueError("remote_gpu_build_box_schema")
     if document.get("name") != name:
         raise ValueError("remote_gpu_build_box_name")
-    cpusets = document.get("slot_cpusets")
-    if cpusets not in (list(BOX_SLOT_CPUSETS), list(LEGACY_BOX_SLOT_CPUSETS)):
-        raise ValueError("remote_gpu_build_box_shape")
-    cpusets = tuple(cpusets)
+    cpusets = _box_cpusets(document.get("slot_cpusets"))
     docker_host = document.get("docker_host")
     remote_lane.parse_docker_host(docker_host)
     stage_root = remote_lane._checked_root(document.get("stage_root"))
@@ -733,7 +730,7 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         text,
         ssh_key,
     )
-    # a legacy 4-slot box offers at most its own 4 slots, whatever the values row asks
+    # a box offers at most its own slots (a legacy 4-slot box 4, a smaller rented box fewer), whatever the row asks
     return DoorLane(
         spec,
         min(slots, len(cpusets)),
@@ -741,6 +738,38 @@ def _box_lane(document, *, name, kind, slots, memory, root, box_file):
         str(root / BOX_DIR.format(name=name)),
         memory,
     )
+
+
+def _box_cpusets(cpusets):
+    """A box file's slot core sets: 1 to `MAX_SLOTS` valid cpusets, all one size, pairwise disjoint (over-broad rules
+    audit S7 B2 270: a rented box of another vCPU count, e.g. a Lium pod, is not refused for its shape). Equal size,
+    disjoint and at least the admitted slot's core count stay: a slot's cores are the build's resources and what its
+    wall is timed on, and two slots on one core set would contend.
+    Anything else refuses (``remote_gpu_build_box_shape``). The values row still bounds the slots offered.
+    """
+    from carbon.reconstruction.host_execution import parse_cpuset
+
+    if (
+        type(cpusets) is not list
+        or not 1 <= len(cpusets) <= MAX_SLOTS
+        or any(type(value) is not str for value in cpusets)
+    ):
+        raise ValueError("remote_gpu_build_box_shape")
+    seen, sizes = set(), set()
+    for value in cpusets:
+        try:
+            cores = set(parse_cpuset(value))
+        except WorkerFailure:
+            raise ValueError("remote_gpu_build_box_shape") from None
+        if not cores or cores & seen:
+            raise ValueError("remote_gpu_build_box_shape")
+        seen |= cores
+        sizes.add(len(cores))
+    if len(sizes) != 1 or min(sizes) < len(parse_cpuset(BOX_SLOT_CPUSETS[0])):
+        # fewer cores than a slot of the admitted shape would build a recipe on less than its construction policy's
+        # resources (a slower build is not that recipe's): refused, never trimmed
+        raise ValueError("remote_gpu_build_box_shape")
+    return tuple(cpusets)
 
 
 def _box_device(document, device_digest):
@@ -2481,20 +2510,13 @@ def _verify_box_image(cli_, image, pins):
         )
 
 
-def reject_crowded(cli_, binding=None):
-    """Before create: the slot's own allocation record is free, and the box's daemon runs fewer Carbon containers on
-    the device than it has slots (a lost controller's retained container still counts). CONFLICT otherwise.
-    """
-    binding = _current() if binding is None else binding
-    if (binding.slot_dir / "active-allocation.json").exists():
-        raise WorkerFailure(WorkerCode.CONFLICT)
-    if binding.lane.spec.local:
-        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+#: How long `reject_crowded` waits for the device's Carbon container count to fall under the slot count before CONFLICT
+#: (over-broad rules audit S7 B2 261: another slot's container that is just ending is not a reason to fail this build);
+#: an operational bound, well inside `SLOT_WAIT_SECONDS`.
+CROWDED_WAIT_SECONDS = 120
 
-        # a local slot lane shares this host's GPU with its other Carbon work (practice, receipts), which holds the
-        # host's single allocation record: while that is held, no slot starts
-        if (Path(HOST_ROOT) / "active-allocation.json").exists():
-            raise WorkerFailure(WorkerCode.CONFLICT)
+
+def _device_containers(cli_, binding):
     raw = cli_.run(
         [
             "ps",
@@ -2506,9 +2528,31 @@ def reject_crowded(cli_, binding=None):
         ],
         timeout=10,
     ).stdout
-    running = len([line for line in raw.splitlines() if line.strip()])
-    if running >= binding.lane.slots:
+    return len([line for line in raw.splitlines() if line.strip()])
+
+
+def reject_crowded(cli_, binding=None, *, sleep=None):
+    """Before create: the slot's own allocation record is free, and the box's daemon runs fewer Carbon containers on
+    the device than it has slots (a lost controller's retained container still counts). A crowded device is read
+    again every `POLL_S` for up to `CROWDED_WAIT_SECONDS` (a container of another slot that is ending frees its place);
+    CONFLICT after that, or at once for this slot's own record. Nothing is removed here.
+    """
+    binding = _current() if binding is None else binding
+    if (binding.slot_dir / "active-allocation.json").exists():
         raise WorkerFailure(WorkerCode.CONFLICT)
+    if binding.lane.spec.local:
+        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+
+        # a local slot lane shares this host's GPU with its other Carbon work (practice, receipts), which holds the
+        # host's single allocation record: while that is held, no slot starts
+        if (Path(HOST_ROOT) / "active-allocation.json").exists():
+            raise WorkerFailure(WorkerCode.CONFLICT)
+    pause = time.sleep if sleep is None else sleep
+    deadline = time.monotonic() + CROWDED_WAIT_SECONDS
+    while _device_containers(cli_, binding) >= binding.lane.slots:
+        if time.monotonic() >= deadline:
+            raise WorkerFailure(WorkerCode.CONFLICT)
+        pause(POLL_S)
 
 
 def spawn_watchdog(*, container_name, launch_digest, deadline_unix, intent_path=None):
@@ -2626,6 +2670,7 @@ __all__ = [
     "BOX_DIR",
     "BOX_SCHEMA",
     "BOX_SLOT_CPUSETS",
+    "CROWDED_WAIT_SECONDS",
     "DEFAULT_SLOTS",
     "DOWN_AFTER_LOSSES",
     "DOWN_SECONDS",

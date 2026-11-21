@@ -109,6 +109,20 @@ def test_a_record_cannot_widen_the_registered_memory_ceiling(tmp_path):
         HostExecutionRecord.load(tmp_path)
 
 
+@pytest.mark.parametrize("memory_bytes", [MEMORY_BYTES, MEMORY_BYTES // 2])
+def test_a_record_at_or_below_the_ceiling_loads(tmp_path, memory_bytes):
+    """Over-broad rules audit S7 H1 271: a smaller value grants nothing (the container limit is the profile's)."""
+    _install(tmp_path, memory_bytes=memory_bytes)
+    assert HostExecutionRecord.load(tmp_path).memory_bytes == memory_bytes
+
+
+@pytest.mark.parametrize("memory_bytes", [0, -1])
+def test_a_record_with_no_memory_is_refused(tmp_path, memory_bytes):
+    _install(tmp_path, memory_bytes=memory_bytes)
+    with pytest.raises(WorkerFailure):
+        HostExecutionRecord.load(tmp_path)
+
+
 def test_a_present_but_broken_record_fails_rather_than_defaulting(tmp_path):
     """An operator who installed a record meant something by it."""
     (tmp_path / HOST_EXECUTION_RECORD).write_bytes(b"{not json")
