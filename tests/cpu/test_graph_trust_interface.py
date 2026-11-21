@@ -46,11 +46,14 @@ def test_the_adapter_block_names_the_trust_interface_only_for_a_trust_version(
     trust_spec = dataclasses.replace(spec, trust_outputs=2)
     monkeypatch.setitem(v2.SPECS, key, trust_spec)
     block = v2.adapter_block(*key)
-    assert block["trust"] == {
-        "outputs": 2,
-        "interface_output_shape": [spec.outputs + 2],
-        "mode": "the interface digest the recipe binds",
-    }
+    trust = block["trust"]
+    assert trust["outputs"] == 2
+    assert trust["interface_output_shape"] == [spec.outputs + 2]
+    assert trust["mode"] == "the interface digest the recipe binds"
+    # H3d-2c: the trust trainer and state it uses are named ONLY here, so no other version's block moves
+    assert trust["trainer"]["module"] == v2.TRAINER_V4_MODULE
+    assert trust["trainer"]["sha256"] == "sha256:" + v2.TRAINER_V4_SHA256
+    assert trust["state_schema"] == "carbon.development.graph-ensemble-trust-state.v1"
     without = dict(block)
     del without["trust"]
     monkeypatch.setitem(v2.SPECS, key, spec)

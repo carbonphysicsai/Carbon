@@ -61,6 +61,13 @@ TRAINER_V3_MODULE = "carbon.development_session.physical_graph_trainer_v3"
 TRAINER_V3_PATH = "carbon/development_session/physical_graph_trainer_v3.py"
 TRAINER_V3_SHA256 = "6251612a9dcd14b15765d8f41e990ceeb8ed6ccda3a40d0db5e280ad8f9e4e8d"
 TRAINER_V3_PIN = (TRAINER_V3_PATH, TRAINER_V3_SHA256)
+#: The v4 trainer (`physical_graph_trainer_v4`, SELF_TRUST H3d-2b): the two-phase trust trainer. It wraps the version's own pinned
+#: trainer (v2 or v3) UNCHANGED, so it is named only by a TRUST version's adapter block (`adapter_block()["trust"]`): no other
+#: version's block, limits digest or trainer entry moves.
+TRAINER_V4_MODULE = "carbon.development_session.physical_graph_trainer_v4"
+TRAINER_V4_PATH = "carbon/development_session/physical_graph_trainer_v4.py"
+TRAINER_V4_SHA256 = "4c693ada4f61e1d5b2c10f4eeb67f679edcdbe559884616975b841103cd9f19e"
+TRAINER_V4_PIN = (TRAINER_V4_PATH, TRAINER_V4_SHA256)
 CODE = "graph_route_"
 #: A graph recipe may carry a loss graph over the whole training batch with the
 #: model's parameters as inputs (`carbon.level4.loss.check_batch`); it replaces the
@@ -659,6 +666,10 @@ class EnsembleGraphModel:
     combine: np.ndarray | None = None
     mu: np.ndarray | None = None
     sd: np.ndarray | None = None
+    #: A trust candidate only (`recipe.declares_self_trust`): the indices of the graph parameters that reach the trust operand
+    #: (`carbon.level4.trust_head.check`), all in member 0. None for every other candidate, whose fit, state and prediction are
+    #: exactly what they were.
+    trust_parameters: tuple | None = None
 
     def fit(self, inputs: np.ndarray, targets: np.ndarray, *, seed: int) -> dict:
         if self.spec.trainer == "v3":
@@ -688,7 +699,12 @@ class EnsembleGraphModel:
         ):
             # The menu-loss knobs do not apply to a recipe's own loss graph.
             raise RecipeRefused(CODE + "training_dependency_invalid")
-        fitted = trainer.train(self.prepared, inputs, targets, self.settings, seed=seed)
+        if self.trust_parameters is None:
+            fitted = trainer.train(
+                self.prepared, inputs, targets, self.settings, seed=seed
+            )
+        else:
+            fitted = self._fit_trust(trainer, inputs, targets, seed)
         if fitted["selected_rows"] < 1:
             raise RecipeRefused(CODE + "train_empty")
         members = fitted["members"]
@@ -723,7 +739,43 @@ class EnsembleGraphModel:
             "member_losses": fitted["member_losses"],
             "params_sha256": "sha256:" + hashlib.sha256(blob).hexdigest(),
             "recipe_digest": self.recipe.digest,
+            # a trust candidate only: how phase 2 ended ("trained" / "no_held_out_rows") and the trainer that ran it
+            **(
+                {
+                    "trust": fitted["trust"],
+                    "trust_trainer_sha256": "sha256:" + TRAINER_V4_SHA256,
+                }
+                if "trust" in fitted
+                else {}
+            ),
         }
+
+    def _fit_trust(self, trainer, inputs, targets, seed):
+        """The two-phase fit (`physical_graph_trainer_v4`): the version's own pinned trainer on the W-view, then the trust head on
+        the held-out rows. The trust values (derive, sigma floor, epochs, learning rate) are the version's registration
+        (`physical_graph_trust_registry`); with none the fit refuses typed and trains nothing."""
+        from . import physical_graph_trainer_v4 as v4
+        from . import physical_graph_trust_registry as registry
+
+        try:
+            trust_spec = registry.trust_spec(
+                self.spec.challenge_id,
+                self.spec.version,
+                width=self.spec.outputs,
+                outputs=self.spec.trust_outputs,
+                trust_parameters=self.trust_parameters,
+            )
+            return v4.train(
+                self.prepared,
+                inputs,
+                targets,
+                self.settings,
+                seed=seed,
+                base_trainer=trainer,
+                spec=trust_spec,
+            )
+        except v4.TrustRefused as refused:
+            raise RecipeRefused(CODE + refused.code) from None
 
     def predict(self, inputs: np.ndarray, *, isolated: bool = False) -> np.ndarray:
         """`isolated` is the judge's per-case grading: one case per call, row 0."""
@@ -746,7 +798,7 @@ class EnsembleGraphModel:
                 self.prepared.predict(
                     [jnp.asarray(value) for value in params], x, isolated=isolated
                 )[0]
-            )
+            )[..., : self.spec.outputs]
             * self.combine[index]
             for index, params in enumerate(self.members)
         )
@@ -760,6 +812,19 @@ class EnsembleGraphModel:
     def frozen_state(self) -> bytes:
         if self.members is None:
             raise RecipeRefused(CODE + "untrained")
+        if self.trust_parameters is not None:
+            from . import physical_graph_state_v3
+
+            return physical_graph_state_v3.freeze(
+                self.recipe,
+                self.forward,
+                self.members,
+                self.allowlist,
+                self.mu,
+                self.sd,
+                self.combine,
+                trust_width=self.spec.trust_outputs,
+            )
         return physical_graph_state_v2.freeze(
             self.recipe,
             self.forward,
@@ -827,23 +892,43 @@ def build_validated_graph(
     if trust and spec.trust_outputs < 1:
         raise RecipeRefused(CODE + "trust_interface_not_offered")
     interface = graph_interface(spec, trust=trust)
+    # V2 09:10:14Z: no miner batch-loss graph on a trust interface (the trainer feeds W columns, a loss graph would take W + k):
+    # the override is withheld, so intake refuses a submission that carries one (the typed `loss_override` refusal).
+    loss_override = None if trust else LOSS_OVERRIDE
     _, parsed = intake.intake(
         raw_manifest,
         files,
         allowlist=allowed,
         challenge=spec.challenge_id,
         interface=interface.digest(),
-        loss_override=LOSS_OVERRIDE,
+        loss_override=loss_override,
     )
     verdict = validate.validate_submission(
         parsed,
         allowed,
         interface=interface,
         batch=settings["batch_size"],
-        loss_override=LOSS_OVERRIDE,
+        loss_override=loss_override,
     )
     if verdict["status"] != "admitted":
         raise intake.IntakeBlocked("graph validation did not admit")
+    trust_parameters = None
+    if trust:
+        # the structural trust-head rule (`carbon.level4.trust_head`): one concatenate of a physics operand and a trust operand
+        # whose parameter sets are disjoint; the trust operand's parameter indices are what phase 2 may update
+        from carbon.level4 import trust_head
+        from carbon.level4.graph import GraphRefused
+
+        try:
+            trust_parameters = tuple(
+                trust_head.check(
+                    parsed["forward"],
+                    physics_width=spec.outputs,
+                    trust_width=spec.trust_outputs,
+                )["trust_parameters"]
+            )
+        except GraphRefused as refused:
+            raise RecipeRefused(CODE + refused.code) from None
     return EnsembleGraphModel(
         recipe,
         spec,
@@ -852,11 +937,12 @@ def build_validated_graph(
             parsed,
             allowed,
             verdict=verdict,
-            loss_override=LOSS_OVERRIDE,
+            loss_override=loss_override,
             forward=build_forward_mode(named["id"], named["version"]),
         ),
         allowed,
         settings,
+        trust_parameters=trust_parameters,
     )
 
 
@@ -883,6 +969,16 @@ def trainer_source(spec: Spec | None = None) -> bytes:
     raw = (Path(__file__).resolve().parents[2] / path).read_bytes()
     if hashlib.sha256(raw).hexdigest() != pinned:
         raise ValueError("pinned physical graph trainer bytes differ")
+    return raw
+
+
+def trust_trainer_source() -> bytes:
+    """The trust trainer's (v4) exact bytes, or ValueError if they moved: a trust version's build stages them."""
+    from pathlib import Path
+
+    raw = (Path(__file__).resolve().parents[2] / TRAINER_V4_PATH).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != TRAINER_V4_SHA256:
+        raise ValueError("pinned physical graph trust trainer bytes differ")
     return raw
 
 
@@ -957,6 +1053,12 @@ def adapter_block(challenge_id: str, version: str) -> dict:
                     "outputs": spec.trust_outputs,
                     "interface_output_shape": [spec.outputs + spec.trust_outputs],
                     "mode": "the interface digest the recipe binds",
+                    "trainer": {
+                        "module": TRAINER_V4_MODULE,
+                        "sha256": "sha256:" + TRAINER_V4_SHA256,
+                        "phases": "the version's own trainer on the physics columns, then the trust head on the held-out rows",
+                    },
+                    "state_schema": "carbon.development.graph-ensemble-trust-state.v1",
                 }
             }
             if spec.trust_outputs

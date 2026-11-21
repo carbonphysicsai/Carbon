@@ -1095,6 +1095,8 @@ GRADING_PATHS = (
     "carbon/development_session/single_call_timing.py",
     # the self-trust inference program variant (SELF_TRUST H3f): the graded container's split of a trust candidate's output
     "carbon/development_session/trust_infer.py",
+    # the per-version trust training registration (SELF_TRUST H3d-2c): the derive and the owner's values the trust trainer reads
+    "carbon/development_session/physical_graph_trust_registry.py",
     "carbon/challenge_validator/strict_json.py",
     # the construction material a rebuild reads (bundles, kits, TRAIN)
     "carbon/development_session/library_bundles.py",
