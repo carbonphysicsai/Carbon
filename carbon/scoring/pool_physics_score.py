@@ -187,6 +187,12 @@ class PhysicsRule:
     #: Headroom only: the version's registered typed-state outputs (a tuple of `typed_state_output.TypedOutput`), or None
     #: (every other version: no typed output, every path bit for bit).
     typed_outputs: object = None
+    #: The version's registered REPORT-ONLY outputs (a non-empty tuple of output names), or () (every other version:
+    #: every path bit for bit). Each is RECORDED for every class like any output (median / p90 / max |err|/U, counts),
+    #: but never gated (its in-range verdict is None and never fails the gate, so it needs no threshold) and never
+    #: scored (a scoring cell or admitted headroom cell naming it refuses). Its answer must still be a finite number,
+    #: as every interface output's (`_valid`). Which outputs, if any, is the owner's per version.
+    report_only_outputs: tuple = ()
 
 
 def typed_map(rule):
@@ -304,6 +310,17 @@ def check_rule(rule):
                 raise PhysicsRefused(refused.code) from None
         names = [t.output for t in rule.typed_outputs]
         _require(len(set(names)) == len(names), "typed_outputs_duplicate_output")
+    report_only = rule.report_only_outputs
+    _require(
+        type(report_only) is tuple
+        and all(type(o) is str and o for o in report_only)
+        and len(set(report_only)) == len(report_only),
+        "report_only_outputs_malformed",
+    )
+    _require(
+        not set(report_only) & set(typed_map(rule)),
+        "report_only_output_is_a_typed_output",
+    )
 
 
 def cell_map_bytes(document):
@@ -651,6 +668,11 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
     _require(document is not None, "scoring_cells_missing_from_the_sealed_pack")
     headroom = rule.scoring == "headroom"
     cells = headroom_admission(document, rule) if headroom else cell_map(document)
+    # a report-only output is recorded, never scored: no scoring cell and no admitted headroom cell may name it
+    _require(
+        not any(o in rule.report_only_outputs for _f, _c, o in cells.scored),
+        "scoring_cell_output_is_report_only",
+    )
     _require(cells.sha256 == rule.cells_sha256, "scoring_cells_sha256_mismatch")
     all_specs = [spec for group in sets for spec in group]
     ranges = class_ranges(all_specs, plan)
@@ -717,6 +739,8 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                         "accuracy_gate_threshold_missing_for_an_output",
                     )
                 for output in spec.outputs:
+                    if output in rule.report_only_outputs:
+                        continue  # recorded, never gated: no threshold, and |err|/U only summarised
                     threshold = _gate_threshold(rule, output)
                     _require(
                         _is_number(threshold),
@@ -742,7 +766,11 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                 ranges.get(name) != OUT_OF_RANGE, "in_range_case_class_is_out_of_range"
             )
             _require(
-                all(_is_number(_gate_threshold(rule, o)) for o in truths),
+                all(
+                    _is_number(_gate_threshold(rule, o))
+                    for o in truths
+                    if o not in rule.report_only_outputs
+                ),
                 "accuracy_gate_threshold_missing_for_an_output",
             )
     _require(
@@ -981,7 +1009,7 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
             summary = _summary(ratios.get((name, output), []))
             exact = raw.get((name, output), [])
             verdict = None
-            if ranges[name] == IN_RANGE:
+            if ranges[name] == IN_RANGE and output not in rule.report_only_outputs:
                 value, threshold = summary[rule.gate_statistic], _gate_threshold(
                     rule, output
                 )

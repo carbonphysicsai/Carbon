@@ -226,6 +226,8 @@ def _physics(value):
     A headroom rule may also register ``"typed_outputs"``: a non-empty list of typed-state outputs (BT 3.2, rule
     bt32-threshold-recovery-two-part.v1), each exactly ``{"output", "kind", "rule", "threshold_c", "band_output",
     "band_u", "value_u", "event_weight"}`` (`typed_state_output.TypedOutput`); absent = none (every other version).
+    Either scoring may register ``"report_only_outputs"``: a non-empty list of output names that are recorded but never
+    gated or scored (`pool_physics_score.PhysicsRule.report_only_outputs`); absent = none (every other version).
     """
     from carbon.scoring import pool_physics_score, typed_state_output
 
@@ -252,7 +254,12 @@ def _physics(value):
     # Validator-2B M-1); headroom registers no cell scale
     allowed = (
         required
-        | {"in_range_cases_sha256", "target_kind", "region_sha256"}
+        | {
+            "in_range_cases_sha256",
+            "target_kind",
+            "region_sha256",
+            "report_only_outputs",
+        }
         | ({"typed_outputs"} if headroom else {"scoring"})
     )
     if not required <= set(value) <= allowed:
@@ -269,6 +276,13 @@ def _physics(value):
             value,
             typed_outputs=_typed_outputs(value["typed_outputs"], typed_state_output),
         )
+    if "report_only_outputs" in value:
+        names = value["report_only_outputs"]
+        if type(names) is not list or not names:
+            raise PoolConstantsNotRegistered("pool_constants_malformed")
+        for name in names:
+            _picked(name)
+        value = dict(value, report_only_outputs=tuple(names))
     rule = pool_physics_score.PhysicsRule(
         **value, **({"cell_scale": None} if headroom else {})
     )
