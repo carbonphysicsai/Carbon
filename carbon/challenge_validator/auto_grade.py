@@ -1080,12 +1080,32 @@ class AutoGrader:
         from . import exam_cap
 
         try:
-            owner = self._hotkey_of(submission_id) or self.intake.adapter.owner(
-                submission_id
+            owner = (
+                self._hotkey_of(submission_id)
+                or self._ledger_owner(submission_id)
+                or self.intake.adapter.owner(submission_id)
             )
             return None if owner is None else exam_cap.group_of(owner)
         except Exception:  # noqa: BLE001
             return None
+
+    def _ledger_owner(self, submission_id):
+        """The one authenticated owner the door's own ledger recorded for ``submission_id`` under this contract
+        (`AttemptLedger.owned_outcome`: its OUTCOME row and recipe intent; ambiguous ownership is None), never opening a
+        provider. Efficiency ledger row 8 (live 116, 20 Nov 2026): the providers' key view answered None for ~11 built
+        tasks at any time (89% of the day) and `adapter.owner` refuses a lazy or set-aside owner, so each such task's
+        group was unknown and it graded ALONE (`_claim_scan`: ``group_unknown``). The group read here only orders the
+        claim; the grade's own exam-cap reservation still decides the slot, and an owner that cannot be opened is still
+        passed over at the owner step (``owner_unreadable``)."""
+        adapter = getattr(self.intake, "adapter", None)
+        find = getattr(getattr(adapter, "ledger", None), "owned_outcome", None)
+        if not callable(find):
+            return None
+        try:
+            owner = find(adapter.contract_digest, submission_id)
+        except Exception:  # noqa: BLE001 - doubt: the next source answers
+            return None
+        return owner if type(owner) is str and owner else None
 
     def _withdrawn_pending(self, submission_id):
         """Whether ``submission_id`` is a withdrawal `_settle_withdrawn` would settle now (read only)."""
