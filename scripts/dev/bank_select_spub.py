@@ -7,9 +7,11 @@ tables only, so no grade, gate, score, crown, Ladder or per-case value can enter
 - Eligible recipe: one of its submissions SUCCEEDED with a public train loss and no infra class, and is not an exact
   copy of another submission (``copy_of``); the earliest such submission's pseudonymous owner is the recipe's owner;
   its forward graph was found (``graph_features``).
-- Stratum (Specialist_Bank section 6 within Motor 1.8: only the backbone and training family vary): the op groups the
-  forward graph uses AT ALL (presence, no threshold) x members (1 / >1) x learning (max steps per member 1 / >1) x
-  trained parameters (init-spec count 0 / >0). Strata with fewer than ``POOL_BELOW`` eligible recipes pool into
+- Stratum (Specialist_Bank section 6 within Motor 1.8: only the backbone and training family vary): the physics op
+  groups the forward graph uses AT ALL (presence, no threshold) x members (1 / >1) x learning (max steps per member
+  1 / >1) x trained arrays (0 / >0: the larger of the init-spec parameter count and the forward graph's ``params/``
+  inputs). v1 (21 Nov): v0's "learned" op pattern is dropped (hand-built physics uses it too); learning is the
+  training family's s and p. Strata with fewer than ``POOL_BELOW`` eligible recipes pool into
   ``other`` (V2's >= 3 rule for anything that leaves custody).
 - Within a stratum: at most ONE recipe per owner (its best), ordered by public TRAIN fit (train loss, lower first),
   then earliest first seen, then digest. EVERY such recipe is ranked; how many are run (K) is HUMAN_INPUT, applied
@@ -31,7 +33,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-SCHEMA = "carbon.bank-select-spub.v0"
+SCHEMA = "carbon.bank-select-spub.v1"
 CAVEAT = "S-PUB: no hidden-derived selection; recipes were shaped on official feedback (not uncontaminated)"
 #: V2: no metric leaves custody for a cell under 3 recipes; strata under it pool into "other".
 POOL_BELOW = 3
@@ -66,8 +68,6 @@ def backbone(ops):
     """The op groups a forward graph uses at all (presence only)."""
     names = {k for k, v in ops.items() if v}
     groups = [g for g, members in GROUPS.items() if names & members]
-    if "dot_general" in names and names & {"tanh", "logistic"}:
-        groups.append("learned")
     return "+".join(sorted(groups)) or "plain"
 
 
@@ -127,13 +127,14 @@ def build(bank_file):
             if isinstance(value, int):
                 steps[digest] = max(steps[digest], value)
         forward, params = {}, {}
-        for digest, role, ops, parameters in db.execute(
-            "SELECT recipe_digest, role, ops, parameters FROM graph_features"
+        for digest, role, ops, parameters, param_inputs in db.execute(
+            "SELECT recipe_digest, role, ops, parameters, param_inputs FROM graph_features"
         ):
             if role == "forward":
                 forward[digest] = json.loads(ops)
-            elif role == "init_spec":
-                params[digest] = parameters
+            params[digest] = max(
+                params.get(digest, 0), parameters or 0, param_inputs or 0
+            )
         owner_of = dict(db.execute("SELECT submission_id, owner FROM lineage"))
         best = {}
         for sid, digest, state, infra, copy_of, device, loss in db.execute(

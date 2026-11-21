@@ -12,7 +12,8 @@ V2 02:50:46Z (shape Y); case-procs 03:00:01Z (file mapping + 3 caveats). For eac
 - parses it with the door's own parser (``carbon.level4.staging.from_envelope``) and, per graph document role
   (forward / loss / init / init_spec), counts: graphs, nodes by op name (only names in the version's served allowlist;
   any other name is counted as ``other``), constants, their total elements and declared bytes, inputs, outputs, and
-  the init spec's parameter count; plus the envelope's bytes.
+  the init spec's parameter count, and the entry graph's trained-array inputs (named ``params/<i>``: count and
+  elements only, never the name); plus the envelope's bytes.
 
 It never copies a constant VALUE, a document, an input name or any bytes (B4: fitted constants stay unread as
 values), never reads a grade, gate, crown or score, and writes only the ``graph_features`` table of the bank file
@@ -35,6 +36,8 @@ from pathlib import Path
 
 SCHEMA = "carbon.bank-graph-features.v0"
 ROLES = ("forward", "loss", "init", "init_spec")
+#: The kit's name for a trained array the forward graph takes as an input (init_spec "input": "params/<i>").
+PARAM_PREFIX = "params/"
 #: An operational read bound per envelope (not a science value): larger files are counted, never read.
 MAX_ENVELOPE_BYTES = 64 << 20
 DDL = """
@@ -42,7 +45,8 @@ DROP TABLE IF EXISTS graph_features;
 CREATE TABLE graph_features(
     recipe_digest TEXT NOT NULL, role TEXT NOT NULL, envelope_bytes INTEGER, graphs INTEGER, nodes INTEGER,
     constants INTEGER, constant_elements INTEGER, constant_bytes INTEGER, inputs INTEGER, outputs INTEGER,
-    parameters INTEGER, ops TEXT, PRIMARY KEY(recipe_digest, role));
+    parameters INTEGER, param_inputs INTEGER, param_elements INTEGER, ops TEXT,
+    PRIMARY KEY(recipe_digest, role));
 """
 
 
@@ -100,6 +104,18 @@ def _count_doc(role, doc, ops):
     if not isinstance(graphs, dict):
         return None, hist
     row["graphs"] = len(graphs)
+    entry = graphs.get(doc.get("entry"))
+    if isinstance(entry, dict):
+        # trained arrays the entry graph takes as inputs named "params/<i>": COUNT and ELEMENTS only, no name kept
+        for i in entry.get("inputs") or []:
+            name = i.get("name") if isinstance(i, dict) else None
+            if isinstance(name, str) and name.startswith(PARAM_PREFIX):
+                row["param_inputs"] += 1
+                shape = i.get("shape")
+                if isinstance(shape, list) and all(
+                    type(d) is int and d >= 0 for d in shape
+                ):
+                    row["param_elements"] += math.prod(shape)
     for g in graphs.values():
         if not isinstance(g, dict):
             return None, hist
@@ -225,7 +241,7 @@ def build(bank_file, state_root, *, ops=None):
             del raw
             for role, (row, hist) in per_role.items():
                 out.execute(
-                    "INSERT INTO graph_features VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO graph_features VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         recipe,
                         role,
@@ -238,6 +254,8 @@ def build(bank_file, state_root, *, ops=None):
                         row["inputs"],
                         row["outputs"],
                         row["parameters"],
+                        row["param_inputs"],
+                        row["param_elements"],
                         json.dumps(dict(sorted(hist.items()))),
                     ),
                 )

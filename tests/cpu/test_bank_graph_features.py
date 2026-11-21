@@ -47,7 +47,13 @@ def _forward(extra_op="add"):
                         "name": INPUT_NAME,
                         "dtype": "float64",
                         "shape": [1, 8],
-                    }
+                    },
+                    {
+                        "value": 5,
+                        "name": "params/0",
+                        "dtype": "float64",
+                        "shape": [3, 4],
+                    },
                 ],
                 "constants": [
                     {
@@ -168,11 +174,17 @@ def test_counts_per_role_from_each_digest_checked_envelope(world):
         1,
         6,
         48,
-        1,
+        2,
         1,
         0,
         json.dumps({"add": 2, "mul": 1}),
     )
+    # the entry graph's trained-array input: counted with its elements, its name never kept
+    assert db.execute(
+        "SELECT param_inputs, param_elements FROM graph_features"
+        " WHERE role='forward' AND recipe_digest=?",
+        ("sha256:" + "1" * 64,),
+    ).fetchone() == (1, 12)
     assert rows[("1", "init_spec")][7] == 2
     assert json.loads(rows[("2", "forward")][8]) == {"add": 1, "mul": 1, "other": 1}
     db.close()

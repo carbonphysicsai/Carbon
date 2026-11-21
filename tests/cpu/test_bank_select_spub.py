@@ -94,8 +94,14 @@ def bank(tmp_path):
             )
             db.execute(
                 "INSERT INTO graph_features(recipe_digest, role, parameters) VALUES(?,'init_spec',?)",
-                (_d(i), params),
+                (_d(i), 0 if i == 4 else params),
             )
+            if i == 4:
+                # trained arrays declared only as forward "params/" inputs still count (v1)
+                db.execute(
+                    "UPDATE graph_features SET param_inputs=? WHERE recipe_digest=? AND role='forward'",
+                    (params, _d(i)),
+                )
     db.commit()
     db.close()
     if os.name == "posix":
@@ -168,7 +174,7 @@ def test_a_bank_file_without_graph_features_is_refused(tmp_path):
     [
         ({"add": 1}, "plain"),
         ({"fft": 1, "scan": 2}, "loops+spectral"),
-        ({"dot_general": 4, "tanh": 2}, "learned"),
+        ({"dot_general": 4, "tanh": 2}, "plain"),  # v1: no "learned" op pattern
         ({"dot_general": 4}, "plain"),
         ({"cholesky": 0, "sin": 1}, "trig"),
     ],
