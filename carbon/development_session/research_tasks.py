@@ -1242,6 +1242,11 @@ class DirectDevelopmentTasksV3:
             staged.unlink(missing_ok=True)
         if path.is_symlink() or path.read_bytes() != source_envelope:
             raise ValueError("retained direct graph source differs")
+        if not self.ledger.storage_capped():
+            # No retained-bytes cap: the walk before the write already refused any symlink in the tree, and a second
+            # walk could only re-check that; the next storage check anywhere does. One walk, not two, per start
+            # (submit latency: st_retain ~2 s on the busiest owners, live 116 21 Nov 2026).
+            return
         try:
             self.ledger.check_storage(65536)
         except BaseException:

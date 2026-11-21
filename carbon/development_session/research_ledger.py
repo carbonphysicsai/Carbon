@@ -647,11 +647,8 @@ class CampaignLedger:
         finally:
             db.close()
 
-    def check_storage(self, additional=0):
-        if type(additional) is not int or additional < 0:
-            raise ValueError("nonnegative storage admission required")
-        size = _campaign_bytes(self.root)
-        # Leave one MiB for SQLite pages and cancellation/status metadata.
+    def _retained_cap(self):
+        """`(frozen manifest, retained_bytes cap or NO_BUDGET)`: one small DB read, no walk."""
         with self.db() as db:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
         # The default matters: a budget that never mentions storage has no
@@ -659,7 +656,20 @@ class CampaignLedger:
         # comparison below.
         frozen = json.loads(row[0]) if row else {}
         caps = _caps(frozen) if row else {}
-        cap = caps.get("retained_bytes", NO_BUDGET)
+        return frozen, caps.get("retained_bytes", NO_BUDGET)
+
+    def storage_capped(self):
+        """Whether the miner capped retained bytes (False: NO_BUDGET). Reads the frozen budget only, never the
+        tree: a caller whose only reason to walk again is the cap asks this first (submit latency, 21 Nov 2026).
+        """
+        return self._retained_cap()[1] is not NO_BUDGET
+
+    def check_storage(self, additional=0):
+        if type(additional) is not int or additional < 0:
+            raise ValueError("nonnegative storage admission required")
+        size = _campaign_bytes(self.root)
+        # Leave one MiB for SQLite pages and cancellation/status metadata.
+        frozen, cap = self._retained_cap()
         if cap is not NO_BUDGET and size + additional + 1024**2 > cap:
             raise LedgerRefusal(
                 "miner budget: retained_bytes",
