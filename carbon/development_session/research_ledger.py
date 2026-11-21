@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import sqlite3
 import time
@@ -453,6 +454,30 @@ def _vector(value):
     return dict(value)
 
 
+def _campaign_bytes(root):
+    """Bytes of every regular file under ``root`` (0 when it is absent); any symlink in it refuses.
+
+    The same answer as the former ``rglob`` walk (every entry, hidden ones too; a symlinked directory is refused,
+    never followed) with ONE ``stat`` per regular file: scandir's own entry type answers file / directory / symlink,
+    where the rglob walk made three calls per entry (``is_symlink``, ``is_file``, ``stat``). It runs on every task
+    start, workspace write and source chunk, under the provider's lock, over the owner's whole campaign tree
+    (submit latency, live 116 21 Nov 2026).
+    """
+    if not os.path.isdir(root):
+        return 0
+    size, pending = 0, [os.fspath(root)]
+    while pending:
+        with os.scandir(pending.pop()) as listing:
+            for entry in listing:
+                if entry.is_symlink():
+                    raise ValueError("campaign symlink rejected")
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(entry.path)
+                elif entry.is_file(follow_symlinks=False):
+                    size += entry.stat(follow_symlinks=False).st_size
+    return size
+
+
 class CampaignLedger:
     def __init__(self, root: Path, *, clock=time.time, admission=None, generation=None):
         if not root.is_absolute() or root.is_symlink():
@@ -625,10 +650,7 @@ class CampaignLedger:
     def check_storage(self, additional=0):
         if type(additional) is not int or additional < 0:
             raise ValueError("nonnegative storage admission required")
-        paths = list(self.root.rglob("*"))
-        if any(path.is_symlink() for path in paths):
-            raise ValueError("campaign symlink rejected")
-        size = sum(path.stat().st_size for path in paths if path.is_file())
+        size = _campaign_bytes(self.root)
         # Leave one MiB for SQLite pages and cancellation/status metadata.
         with self.db() as db:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()

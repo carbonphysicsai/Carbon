@@ -43,6 +43,17 @@ def step(name):
         steps[name] = steps.get(name, 0) + round((time.monotonic() - began) * 1000)
 
 
+@contextlib.contextmanager
+def held(lock, name):
+    """Hold ``lock`` (entered as ``with lock``) for the block, timing only the WAIT to take it as `step` ``name``."""
+    with step(name):
+        lock.__enter__()
+    try:
+        yield
+    finally:
+        lock.__exit__(None, None, None)
+
+
 def enter(stack, name, context):
     """Enter ``context`` on ``stack`` and time only the entering (a lock or place WAIT), as `step` ``name``."""
     with step(name):

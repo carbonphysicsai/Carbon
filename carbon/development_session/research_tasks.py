@@ -294,6 +294,62 @@ def _log_build(event, task_id, **fields):
         pass
 
 
+#: A provider lock hold at least this long is journalled (`_HeldLock`): seconds, operator diagnostics only.
+HOLD_LOG_SECONDS = 1.0
+
+
+def _holding_site(frame):
+    """The name of the function that took the lock, past any ``contextlib`` / `step_timing.held` frames."""
+    while frame is not None and frame.f_code.co_filename.endswith(
+        ("contextlib.py", "step_timing.py")
+    ):
+        frame = frame.f_back
+    return "?" if frame is None else frame.f_code.co_name
+
+
+class _HeldLock:
+    """The provider's reentrant lock, unchanged in behaviour, that journals an OUTERMOST hold of
+    `HOLD_LOG_SECONDS` or longer as ``provider_lock_held`` with the holding function's name and the milliseconds
+    (no task id, owner or value): every submit's start waits on this lock, so a long hold elsewhere (a result read, a
+    run's start, a withdrawal) is the wait a ``st_lock_wait`` in a ``submit_timing`` line names (live 116 21 Nov 2026).
+    """
+
+    def __init__(self):
+        self._inner = threading.RLock()
+        self._local = threading.local()
+
+    def acquire(self, *args, **kwargs):
+        return self._inner.acquire(*args, **kwargs)
+
+    def release(self):
+        self._inner.release()
+
+    def __enter__(self):
+        self._inner.acquire()
+        depth = getattr(self._local, "depth", 0)
+        if depth == 0:
+            self._local.began = time.monotonic()
+            self._local.site = _holding_site(sys._getframe(1))
+        self._local.depth = depth + 1
+        return self
+
+    def __exit__(self, *exc):
+        depth = self._local.depth - 1
+        self._local.depth = depth
+        held = time.monotonic() - self._local.began if depth == 0 else 0.0
+        site = self._local.site if depth == 0 else None
+        self._inner.release()
+        if depth == 0 and held >= HOLD_LOG_SECONDS:
+            try:
+                from carbon.battery.intake import log
+
+                log("provider_lock_held", site=site, held_ms=round(held * 1000))
+            # a diagnostic line never changes a hold
+            except Exception:  # noqa: BLE001, S110
+                pass
+        return False
+
+
 def _log_unresolved(exc, child_states):
     """One journal line per task ended UNRESOLVED: the exception type and the child states (no message text)."""
     try:
@@ -437,7 +493,7 @@ class DirectDevelopmentTasksV3:
         except OSError:
             self._lease.close()
             raise ValueError("direct research supervisor already active") from None
-        self._lock = threading.RLock()
+        self._lock = _HeldLock()
         self.ledger, self.owner = ledger, owner
         #: Graph task image bindings of the EARLIER doors of this state's declared migration chain
         #: (`state_binding.migrated_graph_image_bindings`): a task admitted under one of them takes the current images.
@@ -1432,7 +1488,9 @@ class DirectDevelopmentTasksV3:
             raise ResearchTaskProviderError(
                 ResearchServiceErrorCode.REQUEST_TYPE_INVALID
             )
-        with self._lock:
+        from carbon.challenge_validator import step_timing
+
+        with step_timing.held(self._lock, "st_lock_wait"):
             if graph_source is not None and (
                 type(graph_source) is not bytes
                 or request.recipe["source"]["kind"] != "graph"
@@ -1461,7 +1519,8 @@ class DirectDevelopmentTasksV3:
                         raise ResearchTaskProviderError(
                             ResearchServiceErrorCode.REFERENCE_MISMATCH
                         ) from None
-            bindings = self._bindings(request)
+            with step_timing.step("st_bindings"):
+                bindings = self._bindings(request)
             if measure_query:
                 from carbon.challenge_kit.interface_dtype import output_dtype
 
@@ -1488,7 +1547,8 @@ class DirectDevelopmentTasksV3:
             if self._at_task_bound():
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
             try:
-                self._verify_images()
+                with step_timing.step("st_images"):
+                    self._verify_images()
                 staged_source = (
                     self.image_resolver is not None
                     and callable(getattr(self.image_resolver, "inspect_source", None))
@@ -1500,23 +1560,25 @@ class DirectDevelopmentTasksV3:
                 image_binding = (
                     self._inspected_source_binding(request) if staged_source else None
                 )
-                image = None if staged_source else self._resolved_image(request)
+                with step_timing.step("st_images"):
+                    image = None if staged_source else self._resolved_image(request)
                 source_envelope = None
                 if request.recipe["source"]["kind"] == "graph":
                     from .construction_recipe import graph_envelope_from_workspace
                     from .direct_graph_construction_worker import _checked_envelope
 
                     recipe = ConstructionRecipe.from_dict(request.recipe)
-                    source_envelope = _checked_envelope(
-                        recipe,
-                        (
-                            graph_envelope_from_workspace(
-                                self.ledger, self.owner, recipe
-                            )
-                            if graph_source is None
-                            else graph_source
-                        ),
-                    )
+                    with step_timing.step("st_envelope"):
+                        source_envelope = _checked_envelope(
+                            recipe,
+                            (
+                                graph_envelope_from_workspace(
+                                    self.ledger, self.owner, recipe
+                                )
+                                if graph_source is None
+                                else graph_source
+                            ),
+                        )
             except DirectParentRefused as refused:
                 # A registered runtime without its parent here is a capability
                 # gap; an unregistered runtime is the miner's mismatch.
@@ -1540,7 +1602,8 @@ class DirectDevelopmentTasksV3:
             task_id: ResearchTaskId = self._task_id(request)
             if source_envelope is not None:
                 try:
-                    self._retain_source(task_id.value, source_envelope)
+                    with step_timing.step("st_retain"):
+                        self._retain_source(task_id.value, source_envelope)
                 except LedgerRefusal:
                     raise ResearchTaskProviderError(
                         ResearchServiceErrorCode.BOUND_EXCEEDED
@@ -1564,22 +1627,23 @@ class DirectDevelopmentTasksV3:
                 bindings,
                 None,
             )
-            self._save(
-                request,
-                view,
-                image_binding=(
-                    image_binding
-                    if staged_source
-                    else (
-                        self._image_binding(image)
-                        if self.image_resolver is not None
-                        or request.recipe["source"]["kind"] == "graph"
-                        else None
-                    )
-                ),
-                source_envelope=source_envelope,
-                measure_query=measure_query,
-            )
+            with step_timing.step("st_save"):
+                self._save(
+                    request,
+                    view,
+                    image_binding=(
+                        image_binding
+                        if staged_source
+                        else (
+                            self._image_binding(image)
+                            if self.image_resolver is not None
+                            or request.recipe["source"]["kind"] == "graph"
+                            else None
+                        )
+                    ),
+                    source_envelope=source_envelope,
+                    measure_query=measure_query,
+                )
             self._requests[task_id.value] = request
             self._idempotency[request.idempotency_key] = task_id.value
             return DirectStartTaskResultV3(True, view)
