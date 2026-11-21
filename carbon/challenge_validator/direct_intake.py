@@ -224,6 +224,29 @@ def feedback_reply(fields):
     return None
 
 
+def _log_submit_timing(began, received_at, charged_at, steps):
+    """One ``submit_timing`` journal line per construction submit (`step_timing`): the request's wall milliseconds in
+    the transport receive (signature, snapshot, receipt journal), the charge check and each instrumented admission
+    step; names and milliseconds only. Never raises."""
+    try:
+        from carbon.battery.intake import log
+
+        now = time.monotonic()
+        log(
+            "submit_timing",
+            total_ms=int((now - began) * 1000),
+            receive_ms=int((received_at - began) * 1000),
+            charge_ms=int((charged_at - received_at) * 1000),
+            **{
+                name: int(ms)
+                for name, ms in sorted(steps.items())
+                if name.isidentifier()
+            },
+        )
+    except Exception:  # noqa: BLE001, S110 - a diagnostic line never changes a submit
+        pass
+
+
 class DirectRecipeIntake(BatteryIntake):
     """One trusted, registered synthetic DEVELOPMENT contract per listener."""
 
@@ -696,6 +719,7 @@ class DirectRecipeIntake(BatteryIntake):
         return Answer(status, body)
 
     async def _post(self, headers, body):
+        began = time.monotonic()
         try:
             envelope = parse_message(body)
         except TransportFailure as failure:
@@ -727,8 +751,10 @@ class DirectRecipeIntake(BatteryIntake):
             )
         except AuthFailure as failure:
             return self._unverified(_refused(401, failure.code.value))
+        received_at = time.monotonic()
         if not self._verified_charge(received):
             return _refused(429, "rate")
+        charged_at = time.monotonic()
         if received.call.tool == RESEARCH_NAMESPACE:
             # Live 116, 19 Nov 2026 (no construction-submit for an hour: 10 requests queued behind ONE source chunk's
             # storage scan and rewrite under the door-wide `_write`): a source stage writes only its OWN owner's
@@ -751,7 +777,13 @@ class DirectRecipeIntake(BatteryIntake):
                 strategy_json=fields["strategy_json"],
                 contract_digest=fields["contract_digest"],
             )
-            result = self._admit(submitted)
+            from . import step_timing
+
+            with step_timing.collecting() as steps:
+                try:
+                    result = self._admit(submitted)
+                finally:
+                    _log_submit_timing(began, received_at, charged_at, steps)
             if result["kind"] == "OUTCOME":
                 return Answer(202, result)
             return Answer(
@@ -860,13 +892,18 @@ class DirectRecipeIntake(BatteryIntake):
             if type(hotkey) is str
             else contextlib.nullcontext()
         )
-        with owner:
+        from . import step_timing
+
+        with contextlib.ExitStack() as held:
+            step_timing.enter(held, "owner_lock_wait", owner)
             if type(hotkey) is str:
-                self._open_owner(hotkey)
-            with self._admission_scope(hotkey):
+                with step_timing.step("open_owner"):
+                    self._open_owner(hotkey)
+            step_timing.enter(held, "scope_lock_wait", self._admission_scope(hotkey))
+            with step_timing.step("evaluate"):
                 result = self.door.evaluate(submitted)
-                self._note_recipe_digest(result)
-                return result
+            self._note_recipe_digest(result)
+            return result
 
     def _admission_keys(self, hotkey):
         """The cross-owner scopes an admission of ``hotkey`` decides in, sorted: ``g:<allowance group>``

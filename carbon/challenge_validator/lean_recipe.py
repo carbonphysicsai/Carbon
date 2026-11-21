@@ -740,8 +740,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if submission.hotkey == crown_average.HOST_OWNER:
             # the host-owned owner of the crown average's derived rebuilds is never a submitter
             raise Unavailable("direct_owner_reserved")
-        recipe = self.validate_strategy(submission.strategy)
-        provider = self._provider(submission.hotkey)
+        from carbon.challenge_validator import step_timing
+
+        with step_timing.step("validate"):
+            recipe = self.validate_strategy(submission.strategy)
+        with step_timing.step("provider"):
+            provider = self._provider(submission.hotkey)
         # The durable task provider owns source inspection and admitted
         # environment preparation. A missing preinstalled image is not a
         # separate construction-admission rule at the signed door.
@@ -750,30 +754,38 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # is never the miner's result (invariant 7): the next generation is a
         # fresh task, graded in the miner's next slot.
         earlier_generations = []
-        for rerun in range(MAX_INFRA_RERUNS + 1):
-            request = self._request(
-                submission.hotkey,
-                recipe,
-                evaluation_pack_digest=provider.evaluation_pack_digest,
-                rerun=rerun,
-            )
-            task_id = provider._task_id(request)
-            if self._already_graded(submission.hotkey, task_id.value, provider):
-                raise SameRecipeAlreadySubmitted(self.outcome(task_id.value))
-            if not self._ended_on_infra(submission.hotkey, task_id, provider):
-                break
-            earlier_generations.append(task_id.value)
-        else:
-            raise Unavailable("direct_infra_rerun_limit_reached")
-        self._refuse_spent_round(submission, task_id.value, provider)
+        with step_timing.step("generations"):
+            for rerun in range(MAX_INFRA_RERUNS + 1):
+                request = self._request(
+                    submission.hotkey,
+                    recipe,
+                    evaluation_pack_digest=provider.evaluation_pack_digest,
+                    rerun=rerun,
+                )
+                task_id = provider._task_id(request)
+                if self._already_graded(submission.hotkey, task_id.value, provider):
+                    raise SameRecipeAlreadySubmitted(self.outcome(task_id.value))
+                if not self._ended_on_infra(submission.hotkey, task_id, provider):
+                    break
+                earlier_generations.append(task_id.value)
+            else:
+                raise Unavailable("direct_infra_rerun_limit_reached")
+        with step_timing.step("spent_round"):
+            self._refuse_spent_round(submission, task_id.value, provider)
         # One waiting submission per coldkey (`coldkey_waiting`): checked, and its place held, until the task is started
-        with self._coldkey_place(submission.hotkey, task_id.value):
+        with contextlib.ExitStack() as placed:
+            step_timing.enter(
+                placed,
+                "coldkey_place",
+                self._coldkey_place(submission.hotkey, task_id.value),
+            )
             source = recipe.to_dict()["source"]
             if source["kind"] == "graph":
                 try:
-                    graph_envelope_from_workspace(
-                        provider.ledger, provider.owner, recipe
-                    )
+                    with step_timing.step("workspace"):
+                        graph_envelope_from_workspace(
+                            provider.ledger, provider.owner, recipe
+                        )
                 except RecipeRefused as refused:
                     raise Unavailable(refused.code) from None
             from carbon.research import canonical_bytes
@@ -796,9 +808,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     submission_document(submission.strategy, recipe.to_dict()),
                 )
             try:
-                task = provider.start_research_task(
-                    request, measure_query=self._measure_query
-                ).task
+                with step_timing.step("start_task"):
+                    task = provider.start_research_task(
+                        request, measure_query=self._measure_query
+                    ).task
             except ResearchTaskProviderError as refused:
                 if refused.code in (
                     ResearchServiceErrorCode.REFERENCE_NOT_FOUND,
