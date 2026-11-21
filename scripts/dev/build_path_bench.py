@@ -26,8 +26,9 @@ The recipe names no seed: the build seed is the door's, so this tool gives build
 
 ``--gpu-slot-values FILE`` runs every GPU build inside the door's GPU build slot pool for the Challenge, as the door's
 graph GPU lane does (`remote_gpu_build.offered_for`): the values row in FILE names the class (device kind, slots,
-memory mode) and this host's slot lane record (`<HOST_ROOT>/remote-gpu-build-lanes.json`, no docker_host: a LOCAL
-lane on this GPU, beside its device record) gives each slot its cores, so N builds take N slots of ONE device. Without
+memory mode); the pool's machines are this host's LOCAL slot lane record (`<HOST_ROOT>/remote-gpu-build-lanes.json`)
+and/or the admitted box files (`<HOST_ROOT>/remote-gpu-build-boxes.d`, a box may be this very host over ssh), so N
+builds take N slots. A BOX is the production path (no host lease at create; a crowded device waits): measure on it. Without
 it, a build uses the host's single miner GPU route, which admits one GPU launch per host (a second concurrent one is
 `reconstruction.worker.launch.conflict`): concurrency above 1 then measures nothing (S6c, 21 Nov 2026).
 
@@ -158,14 +159,22 @@ def gpu_pool(args):
         )
     except (ValueError, OSError) as error:
         raise SystemExit(f"GPU slot pool refused: {error}") from None
-    if pool is None or pool.local is None:
+    machines = () if pool is None else remote_gpu_build.boxes(pool)
+    if pool is None or (pool.local is None and not machines):
         raise SystemExit(
-            "no GPU slot pool: the values file needs this Challenge's row and this host a local slot lane record"
+            "no GPU slot pool: the values file needs this Challenge's row and this host a local slot lane record "
+            "or an admitted box file"
         )
     if max(args.concurrency) > pool.slots:
         raise SystemExit("a --concurrency level exceeds the pool's slots")
     remote_gpu_build.pin(args.challenge, args.version, pool)
-    return {"kind": pool.kind, "slots": pool.slots, "memory": pool.memory}
+    return {
+        "kind": pool.kind,
+        "slots": pool.slots,
+        "memory": pool.memory,
+        "local_lane": pool.local is not None,
+        "boxes": [box.spec.name for box in machines],
+    }
 
 
 def one_build(job, args, context):

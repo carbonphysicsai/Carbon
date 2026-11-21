@@ -217,6 +217,7 @@ def test_gpu_slot_values_pins_the_doors_pool_and_offers_it_to_every_build(
     monkeypatch.setattr(
         remote_gpu_build, "pin", lambda c, v, p: pinned.append((c, v, p))
     )
+    monkeypatch.setattr(remote_gpu_build, "boxes", lambda p: ())
 
     def fake_offered_for(
         c, v, *, values=None, image_id=None, root=None, withhold=False
@@ -227,7 +228,13 @@ def test_gpu_slot_values_pins_the_doors_pool_and_offers_it_to_every_build(
     monkeypatch.setattr(remote_gpu_build, "offered_for", fake_offered_for)
     values = tmp_path / "values.json"
     args = _gpu_args(bench, tmp_path, recipe_dir, values=values)
-    assert bench.gpu_pool(args) == {"kind": pool.kind, "slots": 3, "memory": "shared"}
+    assert bench.gpu_pool(args) == {
+        "kind": pool.kind,
+        "slots": 3,
+        "memory": "shared",
+        "local_lane": True,
+        "boxes": [],
+    }
     assert seen == [("c", "1", values)] and pinned == [("c", "1", pool)]
     context = {
         "gpu_values": values,
@@ -252,6 +259,7 @@ def test_gpu_slot_values_refuses_a_missing_pool_or_too_few_slots(tmp_path, monke
     bench = _bench()
     recipe_dir = _recipe_dir(tmp_path, "scaffold", public_scaffold.recipe())
     monkeypatch.setattr(remote_gpu_build, "pin", lambda *a: None)
+    monkeypatch.setattr(remote_gpu_build, "boxes", lambda p: ())
     monkeypatch.setattr(remote_gpu_build, "door_pool", lambda *a, **k: None)
     args = _gpu_args(bench, tmp_path, recipe_dir, values=tmp_path / "v.json")
     with pytest.raises(SystemExit, match="no GPU slot pool"):
@@ -280,3 +288,23 @@ def test_gpu_slot_values_refuses_a_missing_pool_or_too_few_slots(tmp_path, monke
                 str(tmp_path / "w"),
             ]
         )
+
+
+def test_a_box_pool_without_a_local_lane_is_accepted(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from carbon.reconstruction import remote_gpu_build
+
+    bench = _bench()
+    recipe_dir = _recipe_dir(tmp_path, "scaffold", public_scaffold.recipe())
+    pool = SimpleNamespace(kind="k", slots=7, memory="shared", local=None)
+    box = SimpleNamespace(spec=SimpleNamespace(name="ada-self"))
+    monkeypatch.setattr(remote_gpu_build, "door_pool", lambda *a, **k: pool)
+    monkeypatch.setattr(remote_gpu_build, "pin", lambda *a: None)
+    monkeypatch.setattr(remote_gpu_build, "boxes", lambda p: (box,))
+    args = _gpu_args(bench, tmp_path, recipe_dir, values=tmp_path / "v.json")
+    header = bench.gpu_pool(args)
+    assert (header["local_lane"], header["boxes"]) == (False, ["ada-self"])
+    monkeypatch.setattr(remote_gpu_build, "boxes", lambda p: ())
+    with pytest.raises(SystemExit, match="no GPU slot pool"):
+        bench.gpu_pool(args)
