@@ -120,7 +120,7 @@ OWED_REASON = "Carbon owes this submission a re-run or a ruling (see 'owed'). Do
 BUILD_REQUEUED = "build_requeued"
 BUILD_REQUEUED_REASON = (
     "Carbon's build of this submission was requeued and the ledger shows nothing after it: it is not waiting in line. "
-    "Check its owed record."
+    "Check its owed record, if any; otherwise ask the validator team."
 )
 LIMIT_CODES = ("epoch_limit_reached", "exam_daily_allowance_reached")
 TERMINAL_KINDS = ("OUTCOME", "FAILED_INFRA", "UNAVAILABLE", "REFUSED")
