@@ -178,8 +178,8 @@ def test_every_build_rerun_is_a_new_task_id():
     from carbon.challenge_validator import lean_recipe
 
     source = inspect.getsource(lean_recipe.LeanRecipeAdapter._request)
-    assert '"\0INFRA_RERUN\0" + str(rerun)' in source
-    assert '"\0CROWN_REBUILD\0" + rebuild' in source
+    assert "INFRA_RERUN" in source and "+ str(rerun)" in source
+    assert "CROWN_REBUILD" in source and "+ rebuild" in source
     requeue = inspect.getsource(lean_recipe.LeanRecipeAdapter._requeue_failed_build)
     assert "requests[rerun + 1]" in requeue
     assert "SUCCEEDED" not in auto_grade.ENDED_STATES
