@@ -88,3 +88,21 @@ def test_a_symlink_in_the_tree_still_refuses_before_any_write(tmp_path):
     with pytest.raises(ValueError, match="campaign symlink rejected"):
         _retain(provider, "task-a", b"graph bytes")
     assert not (tmp_path / "sources" / "task-a").exists()
+
+
+def test_a_retain_inside_a_submit_names_its_parts(tmp_path):
+    from carbon.challenge_validator import step_timing
+
+    ledger = campaign(tmp_path / "ledger")
+    provider = _provider(ledger, tmp_path)
+    with step_timing.collecting() as steps:
+        _retain(provider, "task-a", b"graph bytes")
+    assert {
+        "st_retain_walk",
+        "st_retain_write",
+        "st_retain_fsync",
+        "st_retain_replace",
+        "st_retain_verify",
+        "st_retain_cap",
+    } <= set(steps)
+    assert all(type(ms) is int and ms >= 0 for ms in steps.values())

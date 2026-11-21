@@ -1229,20 +1229,31 @@ class DirectDevelopmentTasksV3:
                 raise ValueError("retained direct graph source differs")
             self.ledger.check_storage(65536)
             return
-        self.ledger.check_storage(len(source_envelope) + 65536)
+        from carbon.challenge_validator import step_timing
+
+        # each part named in the submit's timings (st_retain_*: no-ops outside a submit), so the next latency head is
+        # sized from what the write actually costs (live 116 21 Nov 2026: st_retain p50 3.2 s after the one-walk head)
+        with step_timing.step("st_retain_walk"):
+            self.ledger.check_storage(len(source_envelope) + 65536)
         staged = path.with_name(path.name + "." + os.urandom(8).hex() + ".staging")
         handle = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
             with os.fdopen(handle, "wb") as out:
-                out.write(source_envelope)
-                out.flush()
-                os.fsync(out.fileno())
-            os.replace(staged, path)
+                with step_timing.step("st_retain_write"):
+                    out.write(source_envelope)
+                    out.flush()
+                with step_timing.step("st_retain_fsync"):
+                    os.fsync(out.fileno())
+            with step_timing.step("st_retain_replace"):
+                os.replace(staged, path)
         finally:
             staged.unlink(missing_ok=True)
-        if path.is_symlink() or path.read_bytes() != source_envelope:
-            raise ValueError("retained direct graph source differs")
-        if not self.ledger.storage_capped():
+        with step_timing.step("st_retain_verify"):
+            if path.is_symlink() or path.read_bytes() != source_envelope:
+                raise ValueError("retained direct graph source differs")
+        with step_timing.step("st_retain_cap"):
+            capped = self.ledger.storage_capped()
+        if not capped:
             # No retained-bytes cap: the walk before the write already refused any symlink in the tree, and a second
             # walk could only re-check that; the next storage check anywhere does. One walk, not two, per start
             # (submit latency: st_retain ~2 s on the busiest owners, live 116 21 Nov 2026).
