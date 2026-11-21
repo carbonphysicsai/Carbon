@@ -228,6 +228,17 @@ class ConstructionRecipe:
         return self._raw
 
 
+def _version_offers_self_trust(challenge_id: str, challenge_version: str) -> bool:
+    """Whether the registered graph route v2 Spec of this version offers a trust interface. Fail closed: a process that
+    does not carry the adapter registry (a bundle build container) or a version it does not list offers none."""
+    try:
+        from carbon.development_session import physical_graph_adapter_v2 as v2
+    except ImportError:
+        return False
+    spec = v2.SPECS.get((challenge_id, challenge_version))
+    return spec is not None and spec.trust_outputs >= 1
+
+
 def bind_recipe(
     value: object,
     *,
@@ -236,13 +247,20 @@ def bind_recipe(
     train_digest: str,
     interface_digest: str,
     construction_limits_digest: str,
-    offers_self_trust: bool = False,
+    offers_self_trust: bool | None = None,
 ) -> ConstructionRecipe:
     """Compare registered identities; execution and semantic checks remain separate. A recipe that declares self-trust
-    is refused (the output-block refusal it always was for a digest that is not the version's) unless the caller says
-    the version offers a trust interface: the default changes nothing for any caller."""
+    is accepted only for a version whose registered Spec offers a trust interface (``offers_self_trust`` None = read it from
+    the registry, so every bind site, intake, build and regrade, decides the same way with no site change); otherwise it
+    is refused with the output-block refusal it always was for a digest that is not the version's. An explicit value is
+    for a caller that already knows; only ``True`` offers."""
     recipe = ConstructionRecipe.from_dict(value)
-    if recipe.declares_self_trust and offers_self_trust is not True:
+    offers = (
+        _version_offers_self_trust(challenge_id, challenge_version)
+        if offers_self_trust is None
+        else offers_self_trust is True
+    )
+    if recipe.declares_self_trust and not offers:
         raise RecipeRefused("construction_recipe_output_invalid")
     declared = recipe.to_dict()["challenge"]
     expected = {

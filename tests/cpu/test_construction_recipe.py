@@ -272,3 +272,22 @@ def test_any_other_output_digest_is_still_refused_at_parse():
         value["output"]["interface_digest"] = other
         with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
             ConstructionRecipe.from_dict(value)
+
+
+def test_the_registered_spec_decides_for_every_bind_site(monkeypatch):
+    # No site passes anything: the version's registered graph route v2 Spec decides, the same way at intake, build and regrade.
+    import dataclasses
+
+    from carbon.development_session import physical_graph_adapter_v2 as v2
+
+    base = next(iter(v2.SPECS.values()))
+    key = ("battery-example", "development-v1")
+    monkeypatch.setitem(v2.SPECS, key, dataclasses.replace(base, trust_outputs=2))
+    assert bind(trust_recipe()).declares_self_trust is True  # a trust version binds the declaring recipe
+    assert bind(graph_recipe()).declares_self_trust is False  # and still binds the base one
+    monkeypatch.setitem(v2.SPECS, key, dataclasses.replace(base, trust_outputs=0))
+    with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
+        bind(trust_recipe())  # a version that offers none refuses it
+    monkeypatch.delitem(v2.SPECS, key)
+    with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
+        bind(trust_recipe())  # an unregistered version offers none
