@@ -192,7 +192,7 @@ def test_v5_is_a_recognised_reply_and_advertised():
         direct_intake.feedback_reply({"reply": "v5", "submission_id": TASKS[0]}) == "v5"
     )
     assert (
-        direct_intake.feedback_reply({"reply": "v11", "submission_id": TASKS[0]})
+        direct_intake.feedback_reply({"reply": "v12", "submission_id": TASKS[0]})
         is None
     )
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")
