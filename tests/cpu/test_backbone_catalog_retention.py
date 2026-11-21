@@ -240,15 +240,20 @@ def test_the_regrade_and_repeat_origin_accepts_a_retained_official_gpu_catalog_g
     assert recipe.digest == retained.digest
 
 
-def test_the_regrade_origin_refuses_a_retained_catalog_submission_that_no_longer_expands_to_it(
+def test_a_rebuild_refuses_a_retained_catalog_submission_that_no_longer_expands_to_it(
     tmp_path, monkeypatch
 ):
+    """A REBUILD from the retained recipe still needs the catalog recipe to re-expand to exactly the retained bundle
+    (Validator); a regrade of the retained STATE (bound by its state and recipe digests) does not rebuild, so it does not
+    re-expand (over-broad rules audit S7 L3 226)."""
     from carbon.challenge_validator import lean_recipe_retention as retention
 
-    adapter, base, entries, entry_id, _retained = _retained_official_origin(
+    adapter, base, entries, entry_id, retained = _retained_official_origin(
         tmp_path, monkeypatch, tamper=True
     )
     with pytest.raises(
         retention.RetentionUnavailable, match="regrade_catalog_reexpansion_differs"
     ):
-        retention._regrade_origin(adapter, base, entries, entry_id)
+        retention._regrade_origin(adapter, base, entries, entry_id, rebuild=True)
+    *_, recipe = retention._regrade_origin(adapter, base, entries, entry_id)
+    assert recipe.digest == retained.digest  # still the retained recipe, digest-checked

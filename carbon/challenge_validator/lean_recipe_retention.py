@@ -358,9 +358,33 @@ def _owner_directory(value, label: str) -> Path:
         raise RetentionUnavailable(label + "_unavailable")
     if os.name == "posix":
         info = path.stat()
-        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+        if info.st_uid != os.getuid():
             raise RetentionUnavailable(label + "_not_owner_only")
+        if stat.S_IMODE(info.st_mode) & 0o077:
+            _make_owner_only(path, label)
     return path
+
+
+def _make_owner_only(path: Path, label: str) -> None:
+    """A directory THIS user owns that has group/other bits: made 0700 and kept (over-broad rules audit S7 L3 190), so
+    it ends owner-only exactly as the check requires. Through a no-follow descriptor, re-checked on that descriptor: a
+    directory of another owner, a link or a non-directory still refuses, and so does one that is not owner-only after.
+    """
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        raise RetentionUnavailable(label + "_not_owner_only") from None
+    try:
+        info = os.fstat(fd)
+        if info.st_uid != os.getuid() or not stat.S_ISDIR(info.st_mode):
+            raise RetentionUnavailable(label + "_not_owner_only")
+        os.fchmod(fd, 0o700)
+        if stat.S_IMODE(os.fstat(fd).st_mode) & 0o077:
+            raise RetentionUnavailable(label + "_not_owner_only")
+    except OSError:
+        raise RetentionUnavailable(label + "_not_owner_only") from None
+    finally:
+        os.close(fd)
 
 
 def _snapshot(path: Path, *, limit: int, digest: str, label: str) -> bytes:
@@ -3576,6 +3600,7 @@ def _contend(
             # king checked in one BEGIN IMMEDIATE transaction) still refuses a king that moved (`incumbent_moved`).
             # Fix 1b (V2's verdict, 18 Nov 2026): applied in CLAIM order by the crown queue
             # (`grade_sequencer.crown_decision`), which holds the crown lock around this call.
+            decided = None
             try:
                 # V2 C5 (2): behind a re-filed decision of the last run still undecided, this one is filed after it
                 behind = _queue_behind_refiled(journal, promotion.store)
@@ -3596,6 +3621,7 @@ def _contend(
                     # Only a registered control is passed: a promotion that takes none is called as before.
                     **({} if control is None else {"control": control}),
                 )
+                decided = outcome
                 koth_journal.contention(
                     "live", submission_id, outcome, met, store=promotion.store
                 )
@@ -3610,6 +3636,18 @@ def _contend(
                     pin,
                 )
             except Exception as exc:  # noqa: BLE001
+                if decided is None:
+                    # the filed evaluation never met the king (the decision itself raised): kept for the crown sweep's
+                    # retry instead of dropped (over-broad rules audit S7 L3 196); a decision that WAS made is never
+                    # filed again (re-making it later could meet another king)
+                    _file_unmade_decision(
+                        promotion.store,
+                        submission_id,
+                        filed["evaluation_key"],
+                        lambda: discovery.evaluation_pack_digest,
+                        repeat,
+                        pin,
+                    )
                 return _contention_refused(submission_id, exc)
             return {
                 "outcome": outcome["outcome"],
@@ -3829,6 +3867,29 @@ CROWN_JOURNAL_FIELDS = (
     "entry_id",
     "pin",
 )
+
+
+def _file_unmade_decision(store, submission_id, key, exam, repeat, pin):
+    """File a contender whose crown decision raised before it was made (`_contend`) for the crown sweep (PAUSED, as
+    `_file_if_paused` files a decision the host could not make), so it is decided later in admission order instead of
+    never. Write-once (`PoolStore.record_crown_paused`); nothing retained to decide from (no entry) files nothing; a
+    filing that fails never changes the refusal the caller returns."""
+    entry_id = getattr(repeat, "entry_id", None)
+    if entry_id is None:
+        return False
+    try:
+        store.record_crown_paused(
+            submission_id,
+            key,
+            kind="pack",
+            exam=exam() if callable(exam) else exam,
+            entry_id=entry_id,
+            pin=pin,
+        )
+    # the refusal stands; the journal line is the record
+    except Exception:  # noqa: BLE001
+        return False
+    return True
 
 
 def _contention_refused(submission_id, exc):
@@ -5466,7 +5527,12 @@ def king_parent_moved(
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
     _entry, _origin, _owner, _manifest, files, recipe = _regrade_origin(
-        adapter, base, entries, entry_id, incumbent=_regrade_incumbent(pool_store)
+        adapter,
+        base,
+        entries,
+        entry_id,
+        incumbent=_regrade_incumbent(pool_store),
+        rebuild=True,  # the king's REBUILD's parent check
     )
     kind = recipe.to_dict()["source"]["kind"]
     host = adapter._provider(HOST_OWNER)
@@ -5635,7 +5701,13 @@ def retained_origin_source(
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
     _entry, found, _owner, _manifest, files, recipe = _regrade_origin(
-        adapter, base, entries, entry_id, incumbent=origin, admitted=True
+        adapter,
+        base,
+        entries,
+        entry_id,
+        incumbent=origin,
+        admitted=True,
+        rebuild=True,  # BUILDS the origin from its retained recipe
     )
     if found != origin:
         raise RetentionUnavailable(codes + "_origin_differs")
@@ -5808,14 +5880,28 @@ def _regrade_incumbent(promotion):
 
 
 def _regrade_origin(
-    adapter, base, entries, entry_id, *, incumbent=None, admitted=False
+    adapter,
+    base,
+    entries,
+    entry_id,
+    *,
+    incumbent=None,
+    admitted=False,
+    rebuild=False,
 ):
     """The retained task behind one bank entry, with its owner from the receiver's ledger.
 
-    The owner is the one the ledger records under the CURRENT contract; for the sitting king (``incumbent``, the pool
-    store's incumbent model id) also under the contract his task was ADMITTED under, when the pack has changed since
-    (Deploy 5 Nov 06:15: every king predates its door's current pack, so his regrade on the current pack refused
-    ``regrade_owner_unavailable``). Only the king: any other task keeps the current-contract lookup.
+    The owner is the one the ledger records under the CURRENT contract, else the one it records under the contract the
+    task was ADMITTED under (`AttemptLedger.admitted_owner`: one contract and one owner, else None), when the pack has
+    changed since (Deploy 5 Nov 06:15: every king predates its door's current pack, so his regrade on the current pack
+    refused ``regrade_owner_unavailable``). Over-broad rules audit S7 L3 225: that fallback is the ledger's own record of
+    who admitted the task, so it now holds for every origin, not only the king and averaged rebuilds (``incumbent`` and
+    ``admitted`` are kept for their callers).
+
+    ``rebuild``: the caller BUILDS the origin again from its retained recipe; only then must a catalog recipe still
+    re-expand to exactly the retained bundle (`check_reexpansion`, Validator). A regrade of the retained STATE (bound by
+    its state and recipe digests, its image checked on its own) does not rebuild, so it does not re-expand
+    (over-broad rules audit S7 L3 226).
     """
     from carbon.development_session.construction_recipe import ConstructionRecipe
 
@@ -5837,9 +5923,9 @@ def _regrade_origin(
     owner = getattr(adapter, "_derived_owners", {}).get(
         origin
     ) or adapter.ledger.owned_outcome(adapter.contract_digest, origin)
-    # ``admitted``: an averaged rebuild of ANY origin (a challenger too) reads its own retained files under its admitted
-    # owner, never anything else of it (Validator-2 / Lead 5 Nov: the winning challenger's average refused)
-    if owner is None and (admitted or (incumbent is not None and origin == incumbent)):
+    # the ledger's record of the contract it was admitted under (an averaged rebuild of ANY origin, Validator-2 / Lead
+    # 5 Nov; the king; and since S7 L3 225 every origin): one contract, one owner, else None (fail closed)
+    if owner is None:
         admitted = adapter.ledger.admitted_owner(origin)
         owner = None if admitted is None else admitted[1]
     if owner is None:
@@ -5872,7 +5958,7 @@ def _regrade_origin(
     recipe = ConstructionRecipe.from_dict(json.loads(files["recipe.json"]))
     if recipe.digest != entry["recipe_digest"]:
         raise RetentionUnavailable("regrade_recipe_changed")
-    if "catalog-submission.json" in files:
+    if rebuild and "catalog-submission.json" in files:
         # The retained bundle is rebuilt only while the miner's catalog recipe
         # still expands to exactly it (Validator).
         from carbon.backbone_catalog.served import check_reexpansion
@@ -6584,7 +6670,17 @@ def _regrade_retained_entry(
     # Every retained file of this regrade is read under the standing caps, or the bound of THIS bank where that is larger
     # (Motor 1.8's 2564 x 240 bank: predictions.json 12.3 MB, worker-evidence.json 16.5 MB, already 98% of 16 MiB).
     bank_bound = _regrade_bank_bound(len(bank), material["expected_output_shape"])
-    retained_limit = max(REGRADE_RETAINED_BYTES, bank_bound or 0)
+    # A shape that cannot be read: the worker output envelope of the served version (what its build could have written,
+    # `_served_custody_limit`), never a fixed 16 MiB that refuses a larger bank's retained files (over-broad rules audit
+    # S7 L3 191); still a bound.
+    retained_limit = max(
+        REGRADE_RETAINED_BYTES,
+        (
+            bank_bound
+            if bank_bound is not None
+            else _served_custody_limit(adapter.challenge_id, adapter.challenge_version)
+        ),
+    )
 
     task_root = base / regrade_id
     operations_path = base / (regrade_id + ".regrade-operation.json")

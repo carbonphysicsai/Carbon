@@ -75,12 +75,23 @@ def test_the_king_admitted_under_the_previous_contract_resolves_his_owner(tmp_pa
     )
 
 
-def test_any_task_but_the_king_keeps_the_current_contract_lookup(tmp_path):
+def test_every_task_falls_back_to_the_ledgers_admitted_owner(tmp_path):
+    """Over-broad rules audit S7 L3 225: the admitted-owner fallback (the ledger's own record of who admitted the task,
+    one contract and one owner) now holds for every origin, not only the king."""
     ledger = _ledger(tmp_path)
     ledger.record_recipe_task_intent(OLD_CONTRACT, OTHER, HOTKEY, digest("request"))
+    assert ledger.admitted_owner(OTHER) == (OLD_CONTRACT, HOTKEY)
     assert (
-        _origin(tmp_path, ledger, OTHER, incumbent=KING) == "regrade_owner_unavailable"
+        _origin(tmp_path, ledger, OTHER, incumbent=KING) != "regrade_owner_unavailable"
     )
+    assert (
+        _origin(tmp_path, ledger, OTHER, incumbent=None) != "regrade_owner_unavailable"
+    )
+
+
+def test_a_task_the_ledger_never_admitted_still_refuses(tmp_path):
+    ledger = _ledger(tmp_path)
+    assert ledger.admitted_owner(OTHER) is None
     assert (
         _origin(tmp_path, ledger, OTHER, incumbent=None) == "regrade_owner_unavailable"
     )
