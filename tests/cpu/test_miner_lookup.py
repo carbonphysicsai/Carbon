@@ -624,3 +624,40 @@ def test_a_ledger_without_the_slot_table_still_answers_and_says_not_stated(tmp_p
     _marker(tmp_path, TASK, state="GRADED", code=None)
     task = _ask(tmp_path, "task", TASK)[0]["task"]
     assert task["state"] == "NOT_GRADED"
+
+
+def test_a_task_on_the_owed_list_never_reads_as_the_candidates_own_failure(store):
+    # Miner X 13:22:20Z: a CANDIDATE_FAILED sentence for a task V2 ruled OWED misleads the miner
+    task = _ask(store, "task", TASK_B)[0]["task"]
+    assert task["owed"] and task["reason"] == ml.OWED_REASON
+    assert "your model" not in task["reason"].lower()
+    plain = _ask(store, "task", TASK)[0]["task"]
+    assert plain["owed"] == [] and plain["reason"].startswith("Grade state: ")
+
+
+def test_a_capped_build_chain_is_not_reported_as_waiting_in_line(tmp_path):
+    # sre 00:47:20Z: the only ledger row is OUTCOME / build_requeued, no marker, no slot: it will not be built again
+    task = "rtsk_" + "68" * 32
+    _seed(
+        tmp_path / "attempts.sqlite3",
+        [(T0, "OUTCOME", None, HOTKEY, task, ml.BUILD_REQUEUED)],
+    )
+    shown = _ask(tmp_path, "task", task)[0]["task"]
+    assert shown["state"] == "build_requeued" and shown["charged"] == "not stated"
+    assert shown["outcome_code"] is None and shown["reason"] == ml.BUILD_REQUEUED_REASON
+    assert "waiting" not in shown["reason"].lower().replace("not waiting", "")
+    # a requeued build that DOES have a grade slot is the grade's state, never this one
+    _seed(
+        tmp_path / "attempts2.sqlite3",
+        [(T0, "OUTCOME", None, HOTKEY, task, ml.BUILD_REQUEUED)],
+        slots=[(task, HOTKEY, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")],
+    )
+    other = tmp_path / "second"
+    other.mkdir()
+    (tmp_path / "attempts2.sqlite3").replace(other / "attempts.sqlite3")
+    _marker(other, task, state="GRADED", code=None)
+    assert _ask(other, "task", task)[0]["task"]["state"] == "GRADED"
+
+
+def test_a_plain_admitted_task_is_still_queued(store):
+    assert _ask(store, "task", TASK_E)[0]["task"]["state"] == "QUEUED"

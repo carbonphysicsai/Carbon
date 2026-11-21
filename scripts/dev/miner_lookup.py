@@ -112,6 +112,18 @@ LONG_HEX = re.compile(r"[0-9a-fA-F]{32,}")
 LONG_TOKEN = re.compile(r"[A-Za-z0-9+/_=-]{40,}")
 #: The door's marker codes the tool can state in the miner's words (a marker code is internal text, so only these map).
 MARKER_TO_CODE = {"cancelled_by_carbon_stop": "direct_task_cancelled"}
+#: Two tool-authored sentences (closed constants, like the word tables: no ledger text reaches them), for the two cases where the
+#: grade-state sentence alone would MISLEAD the miner Miner X answers (Miner X 13:22:20Z and sre 00:47:20Z):
+#: a task on V2's owed list is not simply "your model's own run failed", and a build chain that was capped after
+#: `build_requeued` is not "waiting in line".
+OWED_REASON = (
+    "Carbon owes this submission a re-run or a ruling (see 'owed'). Do not read its grade state as the final answer for this task."
+)
+BUILD_REQUEUED = "build_requeued"
+BUILD_REQUEUED_REASON = (
+    "Carbon's build of this submission was requeued and the ledger shows nothing after it: it is not waiting in line. "
+    "Check its owed record."
+)
 LIMIT_CODES = ("epoch_limit_reached", "exam_daily_allowance_reached")
 TERMINAL_KINDS = ("OUTCOME", "FAILED_INFRA", "UNAVAILABLE", "REFUSED")
 
@@ -765,7 +777,16 @@ def _task(root, db, task, owed, *, detail):
         charged, given_back = "no", "not stated"
         withdrawn = withdrawn or marker.get("state") == "WITHDRAWN_BY_MINER"
     else:
-        state, code, charged, given_back = _grade_state(marker, _slot(db, task), latest)
+        slot = _slot(db, task)
+        state, code, charged, given_back = _grade_state(marker, slot, latest)
+        if state == "QUEUED" and rows[-1][3] == BUILD_REQUEUED and slot == (None, None):
+            # a capped build chain: its only trace is the requeue, and it will not be built again
+            state, code, charged, given_back = (
+                BUILD_REQUEUED,
+                None,
+                "not stated",
+                "not stated",
+            )
         if code is None:
             code = _vocab_code(rows[-1][2], rows[-1][3])
     shown = {
@@ -780,9 +801,16 @@ def _task(root, db, task, owed, *, detail):
         "owed": owed.get(task, []),
     }
     if detail:
-        shown["reason"] = (
-            None if shown["outcome_code"] is None else _words(shown["outcome_code"])
-        )
+        if shown["owed"]:
+            shown["reason"] = OWED_REASON
+        elif state == BUILD_REQUEUED:
+            shown["reason"] = BUILD_REQUEUED_REASON
+        else:
+            shown["reason"] = (
+                None
+                if shown["outcome_code"] is None
+                else _words(shown["outcome_code"])
+            )
     return shown
 
 
