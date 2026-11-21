@@ -33,7 +33,7 @@ def trust_spec(
     return v4.TrustSpec(
         width=width,
         outputs=outputs,
-        derive=entry["derive"],
+        derive=entry.get("derive"),
         trust_parameters=tuple(trust_parameters),
         sigma_floor=entry.get("sigma_floor"),
         epochs=entry.get("epochs"),
