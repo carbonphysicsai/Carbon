@@ -193,6 +193,11 @@ class PhysicsRule:
     #: scored (a scoring cell or admitted headroom cell naming it refuses). Its answer must still be a finite number,
     #: as every interface output's (`_valid`). Which outputs, if any, is the owner's per version.
     report_only_outputs: tuple = ()
+    #: The version's registered REPORT-ONLY CELLS: (class, output) pairs recorded like any but never gated and never
+    #: scored in THAT class only (owner MAGNET CELLS MOTOR, 21 Nov 2026: magnet_min_b_t reported, not gated, in the
+    #: TRAIN classes T1 / T2), or () (every other version: every path bit for bit). Every in-range class keeps at
+    #: least one gated output (V2 FINAL 741).
+    report_only_cells: tuple = ()
 
 
 def typed_map(rule):
@@ -320,6 +325,30 @@ def check_rule(rule):
     _require(
         not set(report_only) & set(typed_map(rule)),
         "report_only_output_is_a_typed_output",
+    )
+    cells_only = rule.report_only_cells
+    _require(
+        type(cells_only) is tuple
+        and all(
+            type(cell) is tuple
+            and len(cell) == 2
+            and all(type(part) is str and part for part in cell)
+            for cell in cells_only
+        )
+        and len(set(cells_only)) == len(cells_only),
+        "report_only_cells_malformed",
+    )
+    _require(
+        not {o for _c, o in cells_only} & set(typed_map(rule)),
+        "report_only_cell_is_a_typed_output",
+    )
+
+
+def _report_only(rule, name, output):
+    """Whether ``output`` of class ``name`` is recorded only (never gated, never scored): a report-only output, or a
+    report-only (class, output) cell."""
+    return output in rule.report_only_outputs or (name, output) in set(
+        rule.report_only_cells
     )
 
 
@@ -670,7 +699,7 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
     cells = headroom_admission(document, rule) if headroom else cell_map(document)
     # a report-only output is recorded, never scored: no scoring cell and no admitted headroom cell may name it
     _require(
-        not any(o in rule.report_only_outputs for _f, _c, o in cells.scored),
+        not any(_report_only(rule, c, o) for _f, c, o in cells.scored),
         "scoring_cell_output_is_report_only",
     )
     _require(cells.sha256 == rule.cells_sha256, "scoring_cells_sha256_mismatch")
@@ -731,6 +760,15 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                 any(_cases(spec, True, rule) for spec in members),
                 "in_range_class_without_gate_cases_in_a_set",
             )
+            # every in-range class keeps at least one gated output (V2 FINAL 741): a report-only cell never empties a gate
+            _require(
+                any(
+                    not _report_only(rule, name, output)
+                    for spec in members
+                    for output in spec.outputs
+                ),
+                "in_range_class_without_a_gated_output",
+            )
             for spec in members:
                 for output in _typed_names(spec):
                     # S7: a typed output in range is gated too, on its both-value cases
@@ -739,7 +777,7 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                         "accuracy_gate_threshold_missing_for_an_output",
                     )
                 for output in spec.outputs:
-                    if output in rule.report_only_outputs:
+                    if _report_only(rule, name, output):
                         continue  # recorded, never gated: no threshold, and |err|/U only summarised
                     threshold = _gate_threshold(rule, output)
                     _require(
@@ -769,7 +807,7 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                 all(
                     _is_number(_gate_threshold(rule, o))
                     for o in truths
-                    if o not in rule.report_only_outputs
+                    if not _report_only(rule, name, o)
                 ),
                 "accuracy_gate_threshold_missing_for_an_output",
             )
@@ -1009,7 +1047,7 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
             summary = _summary(ratios.get((name, output), []))
             exact = raw.get((name, output), [])
             verdict = None
-            if ranges[name] == IN_RANGE and output not in rule.report_only_outputs:
+            if ranges[name] == IN_RANGE and not _report_only(rule, name, output):
                 value, threshold = summary[rule.gate_statistic], _gate_threshold(
                     rule, output
                 )

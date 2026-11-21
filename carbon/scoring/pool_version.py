@@ -226,6 +226,8 @@ def _physics(value):
     A headroom rule may also register ``"typed_outputs"``: a non-empty list of typed-state outputs (BT 3.2, rule
     bt32-threshold-recovery-two-part.v1), each exactly ``{"output", "kind", "rule", "threshold_c", "band_output",
     "band_u", "value_u", "event_weight"}`` (`typed_state_output.TypedOutput`); absent = none (every other version).
+    ``"report_only_cells"`` (either scoring): a non-empty list of ``[class, output]`` pairs recorded but never gated or
+    scored in that class (`pool_physics_score.PhysicsRule.report_only_cells`); absent = none.
     Either scoring may register ``"report_only_outputs"``: a non-empty list of output names that are recorded but never
     gated or scored (`pool_physics_score.PhysicsRule.report_only_outputs`); absent = none (every other version).
     """
@@ -259,6 +261,7 @@ def _physics(value):
             "target_kind",
             "region_sha256",
             "report_only_outputs",
+            "report_only_cells",
         }
         | ({"typed_outputs"} if headroom else {"scoring"})
     )
@@ -283,6 +286,16 @@ def _physics(value):
         for name in names:
             _picked(name)
         value = dict(value, report_only_outputs=tuple(names))
+    if "report_only_cells" in value:
+        pairs = value["report_only_cells"]
+        if type(pairs) is not list or not pairs:
+            raise PoolConstantsNotRegistered("pool_constants_malformed")
+        for pair in pairs:
+            if type(pair) is not list or len(pair) != 2:
+                raise PoolConstantsNotRegistered("pool_constants_malformed")
+            for part in pair:
+                _picked(part)
+        value = dict(value, report_only_cells=tuple(tuple(pair) for pair in pairs))
     rule = pool_physics_score.PhysicsRule(
         **value, **({"cell_scale": None} if headroom else {})
     )
