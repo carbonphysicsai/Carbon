@@ -194,3 +194,35 @@ def test_the_storage_reconcile_walks_each_open_owner_off_the_request_path(capsys
         if '"storage_reconcile"' in text
     ]
     assert line[0]["walked"] == 1 and line[0]["faults"] == 1
+
+
+def test_a_long_reconcile_pass_reports_progress_so_it_never_looks_silent(capsys):
+    """sre 16:00:31Z: a pass grows with the open owners; while it runs a storage_reconcile_progress line appears at least
+    every RECONCILE_PROGRESS_SECONDS (here 0: after every owner), and the pass still ends with its storage_reconcile line.
+    """
+    from types import SimpleNamespace
+
+    owners, _registered = _providers()
+
+    class Ledger:
+        def reconcile_storage(self):
+            return 1
+
+    owners._providers = {name: SimpleNamespace(ledger=Ledger()) for name in "abc"}
+    owners.RECONCILE_PROGRESS_SECONDS = 0.0
+
+    def sleep(seconds):
+        if seconds == owners.RECONCILE_SECONDS:
+            owners._closing = True
+
+    thread = owners.start_storage_reconcile(pause=0, sleep=sleep)
+    thread.join(5)
+    lines = [
+        json.loads(t)
+        for t in capsys.readouterr().err.splitlines()
+        if "storage_reconcile" in t
+    ]
+    progress = [line for line in lines if line["event"] == "storage_reconcile_progress"]
+    assert [line["walked"] for line in progress] == [1, 2, 3]
+    assert all(line["of"] == 3 for line in progress)
+    assert lines[-1]["event"] == "storage_reconcile" and lines[-1]["walked"] == 3

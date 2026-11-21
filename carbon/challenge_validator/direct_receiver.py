@@ -2517,7 +2517,10 @@ class OwnerProviders:
     #: The storage reconcile (`start_storage_reconcile`): one full pass over the open owners' ledgers every
     #: RECONCILE_SECONDS, RECONCILE_PAUSE_SECONDS between owners. Operational pacing only (no limit or grade).
     RECONCILE_SECONDS = 900.0
-    RECONCILE_PAUSE_SECONDS = 2.0
+    RECONCILE_PAUSE_SECONDS = 0.5
+    #: During a pass, a ``storage_reconcile_progress`` line at least this often (sre 16:00:31Z: a pass grows ~5 s per open
+    #: owner, ~45 min at 512 owners, so a pass-end line alone would look silent on a healthy door).
+    RECONCILE_PROGRESS_SECONDS = 300.0
 
     def lazy_warm_order(self, now=None):
         """The hotkeys of the lazy owners with recent activity (a task created within `WARM_RECENT_SECONDS`), newest
@@ -2559,6 +2562,7 @@ class OwnerProviders:
                         for provider in self._providers.values()
                     ]
                 began, walked, faults = time.monotonic(), 0, 0
+                reported = began
                 for ledger in ledgers:
                     with self._lock:
                         if self._closing:
@@ -2575,6 +2579,22 @@ class OwnerProviders:
                     # one ledger's fault never stops the pass
                     except Exception:  # noqa: BLE001, S110
                         pass
+                    if time.monotonic() - reported >= self.RECONCILE_PROGRESS_SECONDS:
+                        reported = time.monotonic()
+                        print(
+                            json.dumps(
+                                {
+                                    "event": "storage_reconcile_progress",
+                                    "walked": walked,
+                                    "faults": faults,
+                                    "of": len(ledgers),
+                                    "ms": round((reported - began) * 1000),
+                                },
+                                sort_keys=True,
+                            ),
+                            file=sys.stderr,
+                            flush=True,
+                        )
                     sleep(pause)
                 print(
                     json.dumps(
