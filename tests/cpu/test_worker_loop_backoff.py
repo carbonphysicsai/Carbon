@@ -61,7 +61,7 @@ def test_a_failing_advance_backs_off_with_a_bound_and_resets_on_success(
         1,
         1,
     ]  # success: back to the normal 1 s; then step 1
-    assert max(stop.waits) == 300
+    assert max(stop.waits) == 15  # S7 I3 row 126: capped at 15 s, not 300 s
     events = [
         (event, fields) for event, fields in lines if event == "direct_worker_failure"
     ]
@@ -130,6 +130,73 @@ def test_a_failing_grade_loop_backs_off_from_its_idle_wait(tmp_path, monkeypatch
 
     stop = FakeStop(6)
     direct_intake._grade_loop(Grader(), stop, threading.Lock())
-    assert stop.waits == [5, 5, 5, 8, 15, 30]
+    assert stop.waits == [
+        5,
+        5,
+        5,
+        8,
+        15,
+        15,
+    ]  # never under the 5 s idle wait; capped at 15 s
     assert {event for event, _ in lines} == {"direct_grade_failure"}
     assert any((tmp_path / "worker-failures").glob("grade-*.txt"))
+
+
+def test_a_grade_round_without_a_free_remote_lane_looks_again_after_one_second(
+    monkeypatch,
+):
+    """S7 I3 (audit row 125): `no_grade_lane` (a remote-lane-only door with no remote lane free) re-checks after 1 s,
+    not the 5 s idle wait; any other decline keeps 5 s."""
+    monkeypatch.setattr(direct_intake, "log", lambda *a, **k: None)
+    reasons = iter(["no_grade_lane", "idle", "no_grade_lane"])
+
+    def taking(kind, has_work=None, since=None):
+        raise direct_intake.WorkDeclined(next(reasons))
+
+    stop = FakeStop(3)
+    direct_intake._grade_loop(
+        SimpleNamespace(run_once=lambda: None), stop, SimpleNamespace(taking=taking)
+    )
+    assert stop.waits == [direct_intake.NO_GRADE_LANE_RECHECK_S, 5, 1]
+    assert direct_intake.NO_GRADE_LANE_RECHECK_S == 1
+
+
+class _Door:
+    """A door whose rounds always run (no lanes), sharing ``loop_successes`` like a `_WorkLock`."""
+
+    def __init__(self):
+        self.loop_successes = {}
+        self.lock = threading.Lock()
+
+    def taking(self, kind, has_work=None, since=None):
+        return self.lock
+
+
+def test_another_loop_s_success_starts_the_failure_count_again(tmp_path, monkeypatch):
+    """S7 I3 (audit row 126): a success of ANOTHER round of the same kind on the same door ends the blip for every
+    loop: the next failure waits the first step again, not the next one up."""
+    monkeypatch.setattr(direct_intake, "log", lambda *a, **k: None)
+    door = _Door()
+    outcomes = iter(["fail", "fail", "other", "fail", "fail"])
+
+    def advance():
+        outcome = next(outcomes)
+        if outcome == "other":
+            # another build round of this door finished meanwhile; this loop's round fails again
+            direct_intake._loop_success(door, "advance")
+        raise ValueError("docker blip")
+
+    stop = FakeStop(5)
+    direct_intake._advance_loop(
+        SimpleNamespace(
+            advance=advance,
+            adapter=SimpleNamespace(ledger=SimpleNamespace(path=tmp_path / "l.db")),
+        ),
+        stop,
+        door,
+    )
+    assert stop.waits == [1, 2, 1, 2, 4]
+    # a grade success never resets the build loops (and the other way round)
+    direct_intake._loop_success(door, "grade")
+    assert direct_intake._loop_successes(door, "advance") == 1
+    assert direct_intake._loop_successes(threading.Lock(), "advance") == 0

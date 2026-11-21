@@ -1594,12 +1594,30 @@ def serve_loopback(
 
 #: Seconds a background loop waits after its nth consecutive failure: a bounded
 #: exponential backoff (an operational bound, not a scientific value). A loop
-#: that keeps failing is never a once-a-second hot loop, and a success resets it.
-FAILURE_BACKOFF_S = (1, 2, 4, 8, 15, 30, 60, 120, 300)
+#: that keeps failing is never a once-a-second hot loop, and a success resets it
+#: (its own, or another loop's of the same kind on the same door, `_loop_success`).
+#: S7 I3 (audit row 126): capped at 15 s, not 300 s: one infra blip (docker, ssh,
+#: db) no longer idles a lane's thread for minutes; a failed grade stays pending
+#: or goes FAILED_INFRA by its own path, so the wait only spaces the retries.
+FAILURE_BACKOFF_S = (1, 2, 4, 8, 15)
 
 
 def _backoff_s(failures):
     return FAILURE_BACKOFF_S[min(failures, len(FAILURE_BACKOFF_S)) - 1]
+
+
+def _loop_successes(work, kind):
+    """How many rounds of ``kind`` this door's loops have finished without an exception (0 for a plain lock)."""
+    counts = getattr(work, "loop_successes", None)
+    return 0 if counts is None else counts.get(kind, 0)
+
+
+def _loop_success(work, kind):
+    """Count one round of ``kind`` finished without an exception: a hint shared by the door's loops, so another
+    thread's failure count starts again (a lost increment only delays one reset)."""
+    counts = getattr(work, "loop_successes", None)
+    if counts is not None:
+        counts[kind] = counts.get(kind, 0) + 1
 
 
 def _closed_code(failure):
@@ -1837,6 +1855,8 @@ class _WorkLock:
         self.overlap_kinds = False
         self._slots = threading.BoundedSemaphore(max(1, len(self._usable)))
         self._kinds = threading.Condition()
+        #: Rounds of each kind finished without an exception (`_loop_success`): resets the other loops' backoff.
+        self.loop_successes = {}
         #: The live rounds of this door: ``{round: (kind, in-flight record)}`` (parallel mode only).
         self._live = {}
         #: How many rounds of each kind wait for the other kind to finish: a waiting kind stops NEW rounds of the other
@@ -2254,6 +2274,10 @@ class _WorkLock:
                     # builds take LOCAL lanes only: a grade stands back for a waiting build only when it would take a
                     # local lane itself, never while a remote lane it could grade on is free
                     yield_to_other = not self._remote_lane_free()
+                if yield_to_other and kind == "advance" and self._grades_remote_only():
+                    # S7 I3 (audit row 124): grades take REMOTE lanes only and builds LOCAL lanes only, so the lanes
+                    # are disjoint: a build standing back for a waiting grade frees nothing that grade could use
+                    yield_to_other = False
                 if not yield_to_other and self._acquire_slot(kind):
                     break
                 if yield_to_other:
@@ -2974,6 +2998,7 @@ def _advance_loop(intake, stop, work=None, since=None, idle_s=1, ready=None):
 
     work = work or _WorkLock(stop=stop)
     failures = 0
+    seen = _loop_successes(work, "advance")
     if ready is not None:
         deadline = time.monotonic() + STARTUP_PRELUDE_WAIT_SECONDS
         while not stop.is_set() and time.monotonic() < deadline:
@@ -2989,6 +3014,7 @@ def _advance_loop(intake, stop, work=None, since=None, idle_s=1, ready=None):
             with _round(work, "advance", since=since):
                 moved = intake.advance()
             failures = 0
+            _loop_success(work, "advance")
             if not moved:
                 wait = idle_s  # nothing queued: N parallel build rounds take no lane every second
         except WorkDeclined:
@@ -2997,6 +3023,9 @@ def _advance_loop(intake, stop, work=None, since=None, idle_s=1, ready=None):
             # the receiver is stopping and this round's remote build runs on, for the next start: never a failure
             break
         except Exception as failure:  # noqa: BLE001 - no private content in log
+            if _loop_successes(work, "advance") != seen:
+                failures = 0  # another build round of this door succeeded since: the blip is over
+            seen = _loop_successes(work, "advance")
             failures += 1
             wait = _backoff_s(failures)
             log(
@@ -3020,8 +3049,15 @@ def grade_rounds(lanes):
     return 2 * lanes if lanes > 1 else 1
 
 
+#: S7 I3 (audit row 125): a grade round of a door whose grades take remote lanes only gives its round up when no remote
+#: lane is free (`no_grade_lane`, so a build never waits behind it); the loop looks again after this long, not after
+#: the 5 s idle wait (an operational bound, not a scientific value).
+NO_GRADE_LANE_RECHECK_S = 1
+
+
 def _grade_loop(grader, stop, work):
     failures = 0
+    seen = _loop_successes(work, "grade")
     while not stop.is_set():
         graded = None
         wait = 5
@@ -3035,9 +3071,15 @@ def _grade_loop(grader, stop, work):
             ):
                 graded = grader.run_once()
             failures = 0
-        except WorkDeclined:
-            pass  # stopping, draining, nothing to grade, or waiting on the host: never a failure
+            _loop_success(work, "grade")
+        except WorkDeclined as declined:
+            # stopping, draining, nothing to grade, or waiting on the host: never a failure
+            if declined.reason == "no_grade_lane":
+                wait = NO_GRADE_LANE_RECHECK_S
         except Exception as failure:  # noqa: BLE001 - no private content in log
+            if _loop_successes(work, "grade") != seen:
+                failures = 0  # another grade round of this door succeeded since: the blip is over
+            seen = _loop_successes(work, "grade")
             failures += 1
             wait = max(5, _backoff_s(failures))
             log(

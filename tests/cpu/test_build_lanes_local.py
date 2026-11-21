@@ -387,3 +387,43 @@ def test_only_a_box_slot_wait_marks_an_op_waiting_a_lane_retake_does_not():
     with grade_lanes.waiting_for("a"), grade_lanes.waiting_for("a"):
         assert grade_lanes.waiting_ops() == frozenset({"a"})
     assert grade_lanes.waiting_ops() == frozenset()
+
+
+def test_a_build_round_does_not_stand_back_for_a_waiting_grade_on_disjoint_lanes(host):
+    """S7 I3 (audit row 124): with grades on the REMOTE lanes only and builds on the LOCAL lanes only, a new build round
+    no longer stands back for a grade waiting with none live (that grade waits for a remote lane, which no build
+    takes). Before: the second build waited until the grade got its remote lane."""
+    import fcntl
+    import os
+
+    work, _ = _door(host)
+    # every remote lane held by another door: a grade of this door waits (no live grade)
+    held = []
+    for index, spec in enumerate((*LOCAL, *REMOTE)):
+        if type(spec) is str:
+            continue
+        fd = os.open(
+            host / grade_lanes.lane_lock_name(index), os.O_RDWR | os.O_CREAT, 0o600
+        )
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        held.append(fd)
+    first = _Round(work, "advance")
+    assert first.entered.wait(5) and first.lane.docker_host is None
+    waiting = threading.Thread(target=lambda: _grade_or_decline(work), daemon=True)
+    waiting.start()
+    second = _Round(work, "advance")
+    assert second.entered.wait(5) and second.lane.docker_host is None
+    for fd in held:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+    waiting.join(5)
+    for round_ in (first, second):
+        round_.end()
+
+
+def _grade_or_decline(work):
+    try:
+        with work.taking("grade", has_work=lambda: True):
+            pass
+    except direct_intake.WorkDeclined:
+        pass
