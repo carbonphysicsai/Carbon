@@ -246,11 +246,13 @@ def test_the_trust_query_is_the_versions_own_program_plus_the_count():
     )
     expected = trust_infer.trust_program(plain["program"])
     assert expected.count(repr(modules)) == 1
-    assert trust["program"] == expected.replace(repr(modules), repr((*modules, state_v3)))
+    assert trust["program"] == expected.replace(
+        repr(modules), repr((*modules, state_v3))
+    )
     assert trust["input_name"] == plain["input_name"]
-    assert {k: v for k, v in trust["staged_files"].items() if k != state_v3 + ".py"} == plain[
-        "staged_files"
-    ]
+    assert {
+        k: v for k, v in trust["staged_files"].items() if k != state_v3 + ".py"
+    } == plain["staged_files"]
     assert state_v3 + ".py" in trust["staged_files"]
 
 
