@@ -125,20 +125,40 @@ def failure_code(failure) -> str:
     return type(failure).__name__
 
 
+#: The version-wide Carbon gaps that keep a task PENDING and make the DOOR wait (`version_wide`): an EXPLICIT allow-list
+#: (door-code second read + v2 pre-read 21 Nov 00:51Z): a per-task code that matched here would stop all grading on the
+#: door every 10 min for ever. Exact codes, prefixes and suffixes; `_PER_TASK_CODES` and the per-task ``exam_cap_*``
+#: look-alikes (``exam_cap_block_unavailable``, ``exam_cap_identity_unavailable``) are never gaps.
+_GAP_CODES = frozenset(
+    {"exam_cap_unregistered", "leg_minimum_platform_mismatch", "contract_not_served"}
+)
+_GAP_PREFIXES = (
+    "exam_cadence_",
+    "pool_constants_",
+    "pool_material_",
+    "menu_",
+    "evaluation_pack.",
+    "evaluation_pack_",
+    "dual_native_reference_",
+)
+_GAP_SUFFIXES = ("_unregistered",)
+
+
 def version_wide(code) -> bool:
-    """Whether ``code`` is a version-wide Carbon gap (Validator-2B (1)): every grade of the version meets it (an
-    unregistered cap or cadence, a missing pool constant, the version's pack or menu, ...). The grader keeps such a task
-    PENDING, never FAILED (`auto_grade.VERSION_GAP_SECONDS`, over-broad rules audit S7 G4 84/96).
+    """Whether ``code`` is a version-wide Carbon gap from the explicit allow-list (`_GAP_CODES`): every grade of the
+    version meets it (an unregistered cap or cadence, the version's pool constants, pack, menu or reference solves, its
+    calibrated platform). The grader keeps such a task PENDING, never FAILED (`auto_grade.VERSION_GAP_SECONDS`,
+    over-broad rules audit S7 G4 84/96). Anything else, including every per-task look-alike, is not a gap.
     """
     if type(code) is not str or not code:
         return False
     base = code.split(":", 1)[0]
-    if base in _VERSION_WIDE_CLASSES:
+    if base in _VERSION_WIDE_CLASSES or base in _GAP_CODES:
         return True
     if base in _PER_TASK_CODES or base in _NOT_RETRIED:
         return False
-    return any(base.startswith(p) for p in _VERSION_WIDE_PREFIXES) or any(
-        base.endswith(s) for s in _VERSION_WIDE_SUFFIXES
+    return any(base.startswith(p) for p in _GAP_PREFIXES) or any(
+        base.endswith(s) for s in _GAP_SUFFIXES
     )
 
 

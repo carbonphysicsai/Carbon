@@ -326,6 +326,41 @@ def test_a_version_wide_gap_keeps_the_task_pending_and_the_door_waits_then_grade
     assert attempts == [A, A]
 
 
+@pytest.mark.parametrize(
+    "code", ["exam_cap_block_unavailable", "exam_cap_identity_unavailable"]
+)
+def test_a_per_task_look_alike_never_stops_the_door(tmp_path, code):
+    """door-code / v2 21 Nov 00:51Z: a per-task ``exam_cap_*`` code ends its task as before; the door keeps grading."""
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    root, ledger = _root(tmp_path)
+
+    def retain(task):
+        raise RetentionUnavailable(code)
+
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
+    assert grader.run_once() == (A, "FAILED")
+    assert not grader._gap_waits()
+
+
+def test_a_gap_leaves_its_failure_file_so_the_operator_reads_why_the_door_waits(
+    tmp_path,
+):
+    """door-code / v2 21 Nov 00:51Z (2): `_keep` runs before the wait (create-only, one file per task)."""
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    root, ledger = _root(tmp_path)
+
+    def retain(task):
+        raise RetentionUnavailable("menu_draw_unavailable")
+
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
+    assert grader.run_once() is None and grader.marker(A) is None
+    assert (root / "auto-grade" / "failures" / (A + ".txt")).is_file()
+
+
 def test_an_expired_exam_key_still_ends_failed_as_today(tmp_path):
     """v2 pre-read 00:35:14Z (1): a task admitted under an exam key that expired is never kept pending (a rotation
     must never grade it on another exam): FAILED, its slot given back, exactly as before.
@@ -368,8 +403,8 @@ def test_the_version_gap_line_is_logged_once_per_code_per_hour(tmp_path, monkeyp
         assert grader.run_once() is None
     gap_lines = [f for e, f in lines if e == "version_gap_pending"]
     assert gap_lines == [
-        {"code": "menu_draw_unavailable", "wait_s": 0},
-        {"code": "pool_constants_unregistered", "wait_s": 0},
+        {"code": "menu_draw_unavailable", "wait_s": 0, "waiting": 1},
+        {"code": "pool_constants_unregistered", "wait_s": 0, "waiting": 1},
     ]
 
 
@@ -399,7 +434,15 @@ def test_the_public_queue_says_paused_while_the_door_waits_on_a_version_gap(tmp_
         ("pool_constants_unregistered", True),
         ("leg_minimum_platform_mismatch", True),
         ("ExamCapRefused", True),
-        # per task, a limit, or the candidate's: never a version gap
+        ("exam_cap_deadline_unregistered", True),
+        ("evaluation_pack.json", True),
+        ("dual_native_reference_infra", True),
+        ("contract_not_served", True),
+        # per task, a limit, or the candidate's: never a version gap (door-code / v2 21 Nov 00:51Z: a per-task code that
+        # matched would stop the whole door every 10 min for ever)
+        ("exam_cap_block_unavailable", False),
+        ("exam_cap_identity_unavailable", False),
+        ("exam_key_expired", False),
         ("evaluation_pack_binding_unavailable", False),
         ("evaluation_pack_source_registration_unavailable", False),
         ("epoch_limit_reached", False),

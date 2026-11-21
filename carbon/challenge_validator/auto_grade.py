@@ -925,6 +925,7 @@ class AutoGrader:
                     "version_gap_pending",
                     code=base if base.isidentifier() else "unprintable",
                     wait_s=VERSION_GAP_SECONDS,
+                    waiting=len(self.pending()),
                 )
             except Exception:  # noqa: BLE001 - a diagnostic line never stops a round
                 logged.pop(base, None)
@@ -1362,9 +1363,10 @@ class AutoGrader:
                 # other pending task would meet the same stale chain)
                 return None
             turn()
+            # kept first (create-only, one file per task): an operator reads WHY the door waits (door-code, 21 Nov)
+            self._keep(submission_id, unavailable)
             if self._wait_version_gap(submission_id, code):
                 return _NEXT
-            self._keep(submission_id, unavailable)
             self._fail(submission_id, _code(code))
             return submission_id, "FAILED"
         except Exception as failure:  # noqa: BLE001 - typed, no private content
@@ -1381,6 +1383,7 @@ class AutoGrader:
                 # it gives today's behaviour, a FAILED_INFRA give-back = a free rerun.
                 return None
             turn()
+            self._keep(submission_id, failure)
             # its own closed code when it has one (ExamCapRefused("epoch_limit_reached") is a limit, not a gap), else
             # its class (PoolConstantsNotRegistered, ExamRefused, MenuRefused)
             if self._wait_version_gap(
@@ -1392,7 +1395,6 @@ class AutoGrader:
                 ),
             ):
                 return _NEXT
-            self._keep(submission_id, failure)
             if _candidate_wall_stop(failure) and self._wall_counted(
                 submission_id, sampler, started_ns
             ):
