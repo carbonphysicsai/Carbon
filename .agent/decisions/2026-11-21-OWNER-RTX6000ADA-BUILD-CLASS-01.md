@@ -34,9 +34,8 @@ stays on the Lambda A100 until it retires."
 
 ## Not covered
 
-- The LARGE_MODEL worker profile on this box for mainnet 116. For the A100 it needed its own owner record
-  (OWNER-LARGE-MODEL-PROFILE-APPLIED-A100-MAINNET-01), and `tests/invariants/test_large_model_profile_testnet_only.py`
-  refuses a finney entry without one.
+- The LARGE_MODEL worker profile on these boxes for mainnet 116. That is its own owner record,
+  OWNER-LARGE-MODEL-PROFILE-APPLIED-ADA-MAINNET-01 (2026-11-21), as the A100's was.
 - Admitting any box to the live pool. That still follows the operator check and Validator-2's receipt (INFRA-6:
   "no box enters the live pool without v2's receipt").
 - Any score, threshold, tolerance or economics. No host address appears here.

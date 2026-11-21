@@ -16,7 +16,8 @@ needs its own acceptance of the larger profile first, or the flag False.
 The owner accepted the larger profile for mainnet 116 on the GPUYard validator
 (OWNER-LARGE-MODEL-PROFILE-APPLIED-GPUYARD-MAINNET-01, 2026-11-13) and on the
 Lambda A100 40GB build box (OWNER-LARGE-MODEL-PROFILE-APPLIED-A100-MAINNET-01,
-2026-11-16). Each acceptance is scoped here to exactly its two device-class
+2026-11-16) and on the Lium RTX 6000 Ada build boxes
+(OWNER-LARGE-MODEL-PROFILE-APPLIED-ADA-MAINNET-01, 2026-11-21). Each acceptance is scoped here to exactly its two device-class
 entries `hardware_acceptance` opens for finney, and to no other entry or network.
 """
 
@@ -55,6 +56,16 @@ A100_ENTRIES = frozenset(
         ("NVIDIA A100-SXM4-40GB", hardware_acceptance.TORCH_GPU),
     }
 )
+#: The third: finney 116 on the Lium RTX 6000 Ada build boxes (OWNER-LARGE-MODEL-PROFILE-APPLIED-ADA-MAINNET-01), for
+#: exactly its two (device class, profile) entries.
+ADA_RECORD = "OWNER-LARGE-MODEL-PROFILE-APPLIED-ADA-MAINNET-01"
+ADA_RECORD_FILE = ROOT / ".agent" / "decisions" / ("2026-11-21-" + ADA_RECORD + ".md")
+ADA_ENTRIES = frozenset(
+    {
+        ("NVIDIA RTX 6000 Ada Generation", hardware_acceptance.JAX_GPU),
+        ("NVIDIA RTX 6000 Ada Generation", hardware_acceptance.TORCH_GPU),
+    }
+)
 MAINNET_ENTRIES = (
     frozenset(
         {
@@ -63,6 +74,7 @@ MAINNET_ENTRIES = (
         }
     )
     | A100_ENTRIES
+    | ADA_ENTRIES
 )
 WHY = (
     "a mainnet profile is built while LARGE_MODEL_PROFILE_APPLIED is True "
@@ -190,4 +202,35 @@ def test_the_a100_acceptance_widens_nothing_else():
         assert _mainnet_profiles(host, classes) == [(*expected, "finney")]
     assert _mainnet_profiles(host, {a100: {jax: entry("finney", "mainnet")}}) == [
         (a100, jax, "mainnet")
+    ]
+
+
+def test_the_ada_record_carries_the_owners_words_and_no_host():
+    text = ADA_RECORD_FILE.read_text(encoding="utf-8")
+    assert text.startswith("# " + ADA_RECORD + ":")
+    assert (
+        "I accept the LARGE_MODEL worker profile (the same 2/4/16 GiB container limits and "
+        "containment settings\nas testnet) on the Lium RTX 6000 Ada build boxes for mainnet 116"
+    ) in text
+    assert "22:4" in text and "door-code seat" in text
+    assert not re.search(r"\b\d{1,3}(\.\d{1,3}){3}\b", text), "a host address"
+
+
+def test_the_ada_acceptance_widens_nothing_else():
+    """Another RTX 6000 name, another profile or another network is still a mainnet profile."""
+    host = {"scope": "DEVELOPMENT"}
+    jax = hardware_acceptance.JAX_GPU
+    ada = "NVIDIA RTX 6000 Ada Generation"
+
+    def entry(*networks):
+        return {"record": "X", "networks": networks, "evidence": "X"}
+
+    assert _mainnet_profiles(host, {ada: {jax: entry("finney")}}) == []
+    for classes, expected in (
+        ({"NVIDIA RTX A6000": {jax: entry("finney")}}, ("NVIDIA RTX A6000", jax)),
+        ({ada: {"other_profile": entry("finney")}}, (ada, "other_profile")),
+    ):
+        assert _mainnet_profiles(host, classes) == [(*expected, "finney")]
+    assert _mainnet_profiles(host, {ada: {jax: entry("finney", "mainnet")}}) == [
+        (ada, jax, "mainnet")
     ]
