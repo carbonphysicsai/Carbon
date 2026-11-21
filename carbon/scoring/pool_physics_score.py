@@ -681,7 +681,8 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
     """``rule`` with its sealed scoring cells attached, or `PhysicsRefused`: the EXAM's structure, checked once before any
     submission is graded, so a structural fault is never a candidate's result.
 
-    Refused: a document that is not the registered one; a family class that is not an out-of-range plan class (in-range
+    Refused: a document that is not the registered one; a report-only output that no target carries, or a report-only
+    cell whose class's targets do not carry its output (a misspelt name would leave it gated); a family class that is not an out-of-range plan class (in-range
     accuracy is a gate, never points); a scored output that is not an output of its class's targets; a scored cell with
     no reserved case in some set; an in-range class with no reserved case in some set (the gate would have nothing to
     judge); an in-range gated output whose U is zero on a case (|err|/U undefined); a threshold that does not cover an
@@ -705,6 +706,20 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
     _require(cells.sha256 == rule.cells_sha256, "scoring_cells_sha256_mismatch")
     all_specs = [spec for group in sets for spec in group]
     ranges = class_ranges(all_specs, plan)
+    # a report-only name must be a real output of the exam's targets, and a report-only cell a real class of the plan
+    # whose targets carry that output: a name that matches nothing (a card label such as 'ke_ll_loaded_shape' for the
+    # pool output 'ke_ll_loaded') would leave the output gated and scored with no error (fail closed, 22 Nov 2026)
+    carried = {}
+    for spec in all_specs:
+        carried.setdefault(plan.class_of(spec.target_id), set()).update(spec.outputs)
+    _require(
+        set(rule.report_only_outputs) <= set().union(*carried.values()),
+        "report_only_output_not_an_output",
+    )
+    _require(
+        all(output in carried.get(name, ()) for name, output in rule.report_only_cells),
+        "report_only_cell_not_an_output_of_its_class",
+    )
     for _family, classes in cells.families:
         _require(
             all(ranges.get(name) == OUT_OF_RANGE for name in classes),

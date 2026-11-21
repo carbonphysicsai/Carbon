@@ -207,3 +207,24 @@ def test_report_only_cells_register_as_a_list_of_pairs(tmp_path):
     ):
         with pytest.raises(pool_version.PoolConstantsNotRegistered):
             read({**good, "report_only_cells": bad})
+
+
+# --- a report-only name must name a real output (22 Nov 2026: a card label matched nothing and left the output gated) -
+
+
+@pytest.mark.parametrize("name", ["g_shape", "G", "h"])
+def test_a_report_only_output_no_target_carries_refuses_at_attach(name):
+    specs, plan = stand_set()
+    with pytest.raises(pps.PhysicsRefused, match="report_only_output_not_an_output"):
+        _attach(specs, plan, threshold=1.0, cells=CELLS_F, report_only=("g", name))
+
+
+@pytest.mark.parametrize("cell", [(IN, "g_shape"), ("fixture-no-such-class", "g")])
+def test_a_report_only_cell_its_class_does_not_carry_refuses_at_attach(cell):
+    specs, plan = stand_set()
+    with pytest.raises(
+        pps.PhysicsRefused, match="report_only_cell_not_an_output_of_its_class"
+    ):
+        _attach_cells(
+            specs, plan, threshold=1.0, cells=CELLS, report_only_cells=(cell,)
+        )
