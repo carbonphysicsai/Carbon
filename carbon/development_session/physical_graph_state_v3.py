@@ -40,15 +40,24 @@ from .physical_graph_state_v2 import (
     _checked_parameters,
     _combine,
     _decoder,
-    _header as _v2_header,
     _name,
     _param_inputs,
+)
+from .physical_graph_state_v2 import (
+    _header as _v2_header,
 )
 
 TRUST_STATE_SCHEMA = "carbon.development.graph-ensemble-trust-state.v1"
 #: The member that owns the trust columns (door-code 04:34:35Z: exactly ONE named member, combine weight 1).
 TRUST_MEMBER = 0
-__all__ = ("DECODER_SCHEMA", "TRUST_MEMBER", "TRUST_STATE_SCHEMA", "freeze", "load", "validate")
+__all__ = (
+    "DECODER_SCHEMA",
+    "TRUST_MEMBER",
+    "TRUST_STATE_SCHEMA",
+    "freeze",
+    "load",
+    "validate",
+)
 
 
 def _trust_width(value) -> int:
@@ -110,7 +119,9 @@ def freeze(
     for member, values in enumerate(members):
         for index, array in enumerate(_checked_parameters(entries, values)):
             arrays[_name(member, index)] = array
-    header = _header(recipe, raw_graph, allowlist, len(members), count, width, trust_width)
+    header = _header(
+        recipe, raw_graph, allowlist, len(members), count, width, trust_width
+    )
     arrays["__header__"] = np.frombuffer(_canonical(header), dtype=np.uint8)
     arrays["graph"] = np.frombuffer(raw_graph, dtype=np.uint8)
     arrays["decoder_mu"] = mu
@@ -208,7 +219,9 @@ def _load(raw: bytes, recipe: ConstructionRecipe, allowlist, *, materialize):
             # BYTES, not the parsed dict (door-code 09:10:09Z): a dict compare lets JSON aliases through ({"member": false} ==
             # {"member": 0}, a decoder width written 3.0 == 3), so a tampered header would not refuse for every field.
             if header_array.tobytes() != _canonical(
-                _header(recipe, graph_raw, allowlist, members, count, width, trust_width)
+                _header(
+                    recipe, graph_raw, allowlist, members, count, width, trust_width
+                )
             ):
                 raise RecipeRefused("bundle_state_header_invalid")
             entries = _param_inputs(doc)

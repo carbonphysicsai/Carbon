@@ -13,17 +13,21 @@ import pytest
 
 pytest.importorskip("jax")
 
-from carbon.development_session import (  # noqa: E402
+from carbon.development_session import (
     graph_state_contract,
+)
+from carbon.development_session import (
     physical_graph_state_v2 as state_v2,
+)
+from carbon.development_session import (
     physical_graph_state_v3 as state_v3,
 )
-from carbon.development_session.construction_recipe import (  # noqa: E402
+from carbon.development_session.construction_recipe import (
     ConstructionRecipe,
     RecipeRefused,
 )
-from carbon.level4 import allowlist  # noqa: E402
-from carbon.level4.tooling import lower_jax  # noqa: E402
+from carbon.level4 import allowlist
+from carbon.level4.tooling import lower_jax
 
 W, K, B = 3, 3, 4
 
@@ -86,7 +90,10 @@ def _plain_doc(permitted):
         jnp.ones((B, W), dtype=jnp.float32),
     )
     return lower_jax.lower(
-        traced, role="forward", allowlist=permitted, input_names=["params/0", "inputs/x"]
+        traced,
+        role="forward",
+        allowlist=permitted,
+        input_names=["params/0", "inputs/x"],
     )
 
 
@@ -99,7 +106,9 @@ def _combine(width=W, members=1):
 
 
 def _members():
-    return [[np.full((W,), 2.0, dtype=np.float32), np.full((K,), 3.0, dtype=np.float32)]]
+    return [
+        [np.full((W,), 2.0, dtype=np.float32), np.full((K,), 3.0, dtype=np.float32)]
+    ]
 
 
 def _freeze(permitted, **override):
@@ -130,7 +139,8 @@ def _rewritten(raw, **changes):
     for key, value in changes.items():
         header[key] = value
     arrays["__header__"] = np.frombuffer(
-        json.dumps(header, sort_keys=True, separators=(",", ":")).encode(), dtype=np.uint8
+        json.dumps(header, sort_keys=True, separators=(",", ":")).encode(),
+        dtype=np.uint8,
     )
     out = io.BytesIO()
     np.savez(out, **arrays)
@@ -138,8 +148,13 @@ def _rewritten(raw, **changes):
 
 
 def test_the_trust_schema_is_registered_and_distinct_from_the_ensemble_schema():
-    assert state_v3.TRUST_STATE_SCHEMA == graph_state_contract.GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
-    assert state_v3.TRUST_STATE_SCHEMA in graph_state_contract.GRAPH_SOURCE_STATE_SCHEMAS
+    assert (
+        state_v3.TRUST_STATE_SCHEMA
+        == graph_state_contract.GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
+    )
+    assert (
+        state_v3.TRUST_STATE_SCHEMA in graph_state_contract.GRAPH_SOURCE_STATE_SCHEMAS
+    )
     assert state_v3.TRUST_STATE_SCHEMA != state_v2.ENSEMBLE_SCHEMA
 
 
@@ -184,7 +199,9 @@ def test_no_older_loader_reads_a_trust_state_and_this_one_reads_no_older_state()
 @pytest.mark.parametrize("trust_width", [0, -1, True, 1.5, W + K, W + K + 1])
 def test_a_bad_trust_width_is_refused_at_freeze(trust_width):
     # 0 / negative / bool / float are not widths; W + K and more leave no physics column (the graph is W + K wide)
-    with pytest.raises(RecipeRefused, match="trust_graph_state_width_invalid|decoder_invalid"):
+    with pytest.raises(
+        RecipeRefused, match="trust_graph_state_width_invalid|decoder_invalid"
+    ):
         _freeze(allowlist.load(), trust_width=trust_width)
 
 
@@ -207,10 +224,14 @@ def test_a_tampered_trust_block_in_the_header_is_refused():
         {"member": 0},
         None,
     ):
-        with pytest.raises(RecipeRefused, match="header_invalid|decoder_invalid|width_invalid"):
+        with pytest.raises(
+            RecipeRefused, match="header_invalid|decoder_invalid|width_invalid"
+        ):
             state_v3.load(_rewritten(raw, trust=bad), _recipe(), permitted)
     with pytest.raises(RecipeRefused, match="header_invalid"):
-        state_v3.load(_rewritten(raw, schema=state_v2.ENSEMBLE_SCHEMA), _recipe(), permitted)
+        state_v3.load(
+            _rewritten(raw, schema=state_v2.ENSEMBLE_SCHEMA), _recipe(), permitted
+        )
 
 
 def test_a_state_bound_to_another_recipe_is_refused():
@@ -228,7 +249,9 @@ def test_a_json_alias_in_the_header_is_refused_because_the_header_bytes_are_comp
     raw = _freeze(permitted)
     header = _header(raw)
     with pytest.raises(RecipeRefused, match="header_invalid"):
-        state_v3.load(_rewritten(raw, trust={"member": False, "width": K}), _recipe(), permitted)
+        state_v3.load(
+            _rewritten(raw, trust={"member": False, "width": K}), _recipe(), permitted
+        )
     with pytest.raises(RecipeRefused, match="header_invalid"):
         state_v3.load(
             _rewritten(raw, decoder={**header["decoder"], "width": float(W)}),
@@ -236,6 +259,10 @@ def test_a_json_alias_in_the_header_is_refused_because_the_header_bytes_are_comp
             permitted,
         )
     with pytest.raises(RecipeRefused, match="header_invalid"):
-        state_v3.load(_rewritten(raw, trust={"member": 0, "width": float(K)}), _recipe(), permitted)
+        state_v3.load(
+            _rewritten(raw, trust={"member": 0, "width": float(K)}),
+            _recipe(),
+            permitted,
+        )
     # the unchanged header, re-serialised the same way, still loads
     assert state_v3.load(_rewritten(raw), _recipe(), permitted) is not None
