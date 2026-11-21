@@ -9,6 +9,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "dev"))
 
@@ -81,16 +83,63 @@ def test_run_order_original_at_seed_zero_first_then_every_arm_at_every_seed(tmp_
         [("S", ["original", "default:steps"], True), ("S", ["original"], False)],
     )
     order = [(f.name, a, s, e is not None) for f, a, s, e in wave.jobs(root, SEEDS)]
+    # seed-major: originals at 0, then every arm at the first bank seed, then the second
     assert order == [
         ("r00", "original", 0, True),
-        ("r00", "original", SEEDS[0], False),
-        ("r00", "original", SEEDS[1], False),
-        ("r00", "default:steps", SEEDS[0], False),
-        ("r00", "default:steps", SEEDS[1], False),
         ("r01", "original", 0, False),
+        ("r00", "original", SEEDS[0], False),
+        ("r00", "default:steps", SEEDS[0], False),
         ("r01", "original", SEEDS[0], False),
+        ("r00", "original", SEEDS[1], False),
+        ("r00", "default:steps", SEEDS[1], False),
         ("r01", "original", SEEDS[1], False),
     ]
+    sub = [(f.name, a, s) for f, a, s, _e in wave.jobs(root, SEEDS, ["r01"])]
+    assert sub == [
+        ("r01", "original", 0),
+        ("r01", "original", SEEDS[0]),
+        ("r01", "original", SEEDS[1]),
+    ]
+    with pytest.raises(ValueError, match="folders_not_in_wave"):
+        wave.jobs(root, SEEDS, ["r07"])
+
+
+def test_parse_folders_ranges_and_lists():
+    assert wave.parse_folders("r08-r10") == ["r08", "r09", "r10"]
+    assert wave.parse_folders("r00, r03") == ["r00", "r03"]
+    for bad in ("", "x01", "r08-x10", "08-10"):
+        with pytest.raises(ValueError, match="folders_malformed"):
+            wave.parse_folders(bad)
+
+
+def test_a_restart_in_the_new_order_keeps_every_finished_report(tmp_path):
+    root, out, verify = _wave(
+        tmp_path, [("S", ["original", "default:steps"], False)] * 2
+    )
+    # reports finished under the OLD recipe-major order: r00 completely
+    for arm, seed in (("original", 0), ("original", SEEDS[0]), ("original", SEEDS[1])):
+        (out / wave.report_name("r00", arm, seed)).write_text(
+            json.dumps({"arm": arm, "admission": {"state": "ADMITTED"}})
+        )
+    calls = []
+    wave.run(
+        root,
+        out,
+        verify,
+        "0" * 64,
+        SEEDS,
+        load_max=32,
+        pause_s=0,
+        retrain=_fake(calls),
+        load1=lambda: 0.0,
+    )
+    assert (0, "original", 0, None) not in calls and (
+        0,
+        "original",
+        SEEDS[0],
+        None,
+    ) not in calls
+    assert len(calls) == 10 - 3
 
 
 def test_run_writes_every_report_and_a_rerun_resumes_without_retraining(tmp_path):

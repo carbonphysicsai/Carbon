@@ -6,7 +6,8 @@ codex-queue/reports/BANK/bank_waveA_pick_ro.py: ``rNN/{recipe.json, envelope.jso
 expect.txt]}``. Both subcommands run INSIDE the build's pinned worker image on the custody host, never on GPUYard.
 
 ``run``: for every rNN, the original recipe at seed 0 (the official build seed; ``--expect`` only when expect.txt
-exists = a CPU-built task), then every arm in arms.txt at every ``--seeds`` bank seed, one at a time, through
+exists = a CPU-built task), then every arm in arms.txt at every ``--seeds`` bank seed, SEED-MAJOR (all arms of all
+recipes at the first seed before any second seed), optionally on a ``--folders`` subset, one at a time, through
 ``bank_retrain.retrain`` (which holds the seed and arm rules). Resumable: a finished report is never re-run. Polite:
 before each retrain it waits while the host's load1 is above ``--load-max`` and stops cleanly if ``<out>/STOP``
 exists. A retrain that raises is recorded as ``ERROR`` with the exception's class name only (never a traceback) and
@@ -51,12 +52,23 @@ def report_name(folder, arm, seed):
     )
 
 
-def jobs(wave, seeds):
-    """[(folder, arm, seed, expect)] in run order."""
+def jobs(wave, seeds, folders=None):
+    """[(folder, arm, seed, expect)] in run order, SEED-MAJOR: every recipe's original at the official seed 0 first,
+    then every arm of every recipe at the first bank seed, then the next seed. A complete one-seed wave lands before
+    any second seed is spent (owner BANK-K: one seed first). ``folders`` (names) restricts the wave to a subset, so
+    two hosts can share one staged wave without overlap."""
+    picked = sorted(
+        p
+        for p in Path(wave).iterdir()
+        if p.is_dir()
+        and p.name.startswith("r")
+        and (folders is None or p.name in folders)
+    )
+    if folders is not None and {p.name for p in picked} != set(folders):
+        raise ValueError("folders_not_in_wave")
     out = []
-    for folder in sorted(
-        p for p in Path(wave).iterdir() if p.is_dir() and p.name.startswith("r")
-    ):
+    arms = {}
+    for folder in picked:
         expect = folder / "expect.txt"
         out.append(
             (
@@ -66,15 +78,40 @@ def jobs(wave, seeds):
                 expect.read_text().strip() if expect.is_file() else None,
             )
         )
-        arms = [
+        arms[folder] = [
             a.strip()
             for a in (folder / "arms.txt").read_text().splitlines()
             if a.strip()
         ]
-        for arm in arms:
-            for seed in seeds:
+    for seed in seeds:
+        for folder in picked:
+            for arm in arms[folder]:
                 out.append((folder, arm, seed, None))
     return out
+
+
+def parse_folders(text):
+    """'r00,r03' or 'r08-r14' (inclusive) -> a sorted list of folder names."""
+    names = set()
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            lo, hi = part.split("-", 1)
+            if not (lo[:1] == hi[:1] == "r" and lo[1:].isdigit() and hi[1:].isdigit()):
+                raise ValueError("folders_malformed")
+            width = len(lo) - 1
+            names.update(
+                "r" + str(i).zfill(width) for i in range(int(lo[1:]), int(hi[1:]) + 1)
+            )
+        elif part[:1] == "r" and part[1:].isdigit():
+            names.add(part)
+        else:
+            raise ValueError("folders_malformed")
+    if not names:
+        raise ValueError("folders_malformed")
+    return sorted(names)
 
 
 def run(
@@ -89,6 +126,7 @@ def run(
     retrain=None,
     load1=_load1,
     sleep=time.sleep,
+    folders=None,
 ):
     import bank_retrain
 
@@ -99,7 +137,7 @@ def run(
     verify_bytes = Path(verify).read_bytes()
     done = skipped = 0
     graphs = {}
-    for folder, arm, seed, expect in jobs(wave, seeds):
+    for folder, arm, seed, expect in jobs(wave, seeds, folders):
         target = out / report_name(folder.name, arm, seed)
         if target.exists():
             skipped += 1
@@ -287,6 +325,9 @@ def main(argv=None):
     r.add_argument("--seeds", required=True, help="comma-separated bank seeds")
     r.add_argument("--load-max", type=float, required=True)
     r.add_argument("--pause-s", type=float, default=60.0)
+    r.add_argument(
+        "--folders", default=None, help="subset, e.g. r08-r14 or r00,r03 (default: all)"
+    )
     a = sub.add_parser("aggregate")
     a.add_argument("--wave", required=True)
     a.add_argument("--out", required=True)
@@ -307,6 +348,13 @@ def main(argv=None):
         if not seeds or 0 in seeds:
             print(json.dumps({"refused": "seeds_not_bank"}))
             return 2
+        try:
+            folders = None if args.folders is None else parse_folders(args.folders)
+            if folders is not None:
+                jobs(args.wave, seeds, folders)
+        except ValueError as error:
+            print(json.dumps({"refused": str(error)}))
+            return 2
         return run(
             args.wave,
             args.out,
@@ -315,6 +363,7 @@ def main(argv=None):
             seeds,
             load_max=args.load_max,
             pause_s=args.pause_s,
+            folders=folders,
         )
     if args.min_recipes < 3:
         print(json.dumps({"refused": "min_recipes_below_v2_rule"}))
