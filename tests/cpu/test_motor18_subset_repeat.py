@@ -1226,6 +1226,11 @@ def test_only_motor_18_is_a_subset_version_and_every_other_keeps_the_pair():
     from carbon.challenge_validator import lean_recipe_retention as retention
 
     assert subset.SUBSET_REPEAT_VERSIONS == frozenset({(MOTOR, "1.8")})
+    # new-exam prep #11: a version registered from now on declares its subset repeat in its overlay entry
+    # (`subset_repeat_registry`); the registry is the 1.8 code table plus those, and today's overlay declares none
+    from carbon.scoring import subset_repeat_registry
+
+    assert subset_repeat_registry.versions() == subset.SUBSET_REPEAT_VERSIONS
     for challenge, version in (
         (MOTOR, "1.5"),
         (MOTOR, "1.4"),
