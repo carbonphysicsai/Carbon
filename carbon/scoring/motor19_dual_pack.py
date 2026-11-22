@@ -344,6 +344,15 @@ def dispatch(config):
         pool_grader.register_companion_output(name)
     pair_read_bound.size_produce(CHALLENGE, VERSION)
     pool_version.register_binding(KIND, VERSION, official_binding)
+    # the 241-wide development bank and its adapter (`motor19_dev_grid`; refuses until its magnet file is pinned)
+    from carbon.scoring import dev_grid, motor19_dev_grid
+
+    dev_grid.register(
+        CHALLENGE,
+        VERSION,
+        bank=motor19_dev_grid.bank,
+        adapter=motor19_dev_grid.adapter,
+    )
     return {
         "challenge": CHALLENGE,
         "version": VERSION,
