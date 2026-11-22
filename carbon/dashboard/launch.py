@@ -100,7 +100,10 @@ SECTION_META = {
 UNIT_V6 = "0 to 1, to 3 decimals"
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")
 NETWORK_LABELS = {"testnet": ["DEVELOPMENT", "TESTNET"], "mainnet": ["DEVELOPMENT"]}
-MAX_LADDER = 512
+#: The reader's ladder bound (also the Worker's LAUNCH_MAX_LADDER, feed.mjs). 2048 since 23 Nov 2026 (was 512: live
+#: 116 Motor 1.8 passed 512 counted hotkeys on 22 Nov, Lead handoff 7 3a): the reader is raised FIRST, so the producer
+#: (`launch_board.MAX_LADDER`, still 512) may follow once this reader and the Worker are deployed; never the reverse.
+MAX_LADDER = 2048
 MAX_GATES = 16
 _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 _HEX_KEY = re.compile(r"[0-9a-f]{64}")

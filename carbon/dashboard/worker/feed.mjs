@@ -617,7 +617,8 @@ const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 // ---- The launch board (OWNER-DASHBOARD-01): a port of carbon/dashboard/launch.py ----
 const LAUNCH_STATUSES = ["IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED"];
 const LAUNCH_NETWORK_LABELS = {testnet: ["DEVELOPMENT", "TESTNET"], mainnet: ["DEVELOPMENT"]};
-const LAUNCH_MAX_LADDER = 512;
+// = launch.py MAX_LADDER (2048 since 23 Nov 2026; deploy this BEFORE the producer cap, launch_board.MAX_LADDER, rises).
+const LAUNCH_MAX_LADDER = 2048;
 const LAUNCH_MAX_GATES = 16;
 const LAUNCH_FIELDS = ["challenge", "counts", "generated_at", "king", "labels", "ladder", "network", "schema", "signature", "validator", "version"];
 const LAUNCH_KING_FIELDS = ["baseline_total", "king", "margin", "to_beat"];

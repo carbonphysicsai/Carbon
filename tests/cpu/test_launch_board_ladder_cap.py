@@ -46,3 +46,43 @@ def test_a_ladder_at_or_under_the_cap_is_unchanged(count):
     out = lb.ladder_rows(_rows(count))
     assert len(out) == count
     assert out[0]["hotkey"] == _hotkey(0) and out[0]["rank"] == 1
+
+
+# --- the reader side (Lead handoff 22 Nov 7 3a): launch.py and the Worker accept up to 2048 rows, before the producer ---
+
+
+def test_the_reader_and_the_worker_share_one_raised_cap_above_the_producer():
+    import pathlib
+    import re
+
+    from carbon.dashboard import launch
+
+    worker = (
+        pathlib.Path(__file__).resolve().parents[2]
+        / "carbon"
+        / "dashboard"
+        / "worker"
+        / "feed.mjs"
+    ).read_text(encoding="utf-8")
+    (js_cap,) = re.findall(r"const LAUNCH_MAX_LADDER = (\d+);", worker)
+    assert int(js_cap) == launch.MAX_LADDER == 2048
+    # the producer never publishes more rows than the deployed readers accept (it rises only after they are live)
+    assert lb.MAX_LADDER <= launch.MAX_LADDER
+
+
+def test_the_reader_accepts_a_board_up_to_its_cap_and_refuses_one_row_more(
+    monkeypatch,
+):
+    from carbon.dashboard import feed, launch
+    from tests.cpu import test_launch_board as tlb
+
+    # a producer allowed past the reader's cap, to hand the reader a board at and over it
+    monkeypatch.setattr(lb, "MAX_LADDER", launch.MAX_LADDER + 1)
+    board, trust = tlb._board(_rows(launch.MAX_LADDER))
+    projected = feed.project(board, trust)
+    assert board["counts"]["graded"] == launch.MAX_LADDER
+    assert projected is not None
+    board, trust = tlb._board(_rows(launch.MAX_LADDER + 1))
+    with pytest.raises(feed.FeedRefused) as refused:
+        feed.project(board, trust)
+    assert refused.value.code == "ladder_invalid"
