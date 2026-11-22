@@ -511,9 +511,11 @@ def ladder_rows(
             **({"reason": reason_of[hotkey]} if reasons else {}),
         }
         out.append(row)
-    if len(out) > MAX_LADDER:
-        raise BoardRefused("board_ladder_size")
-    return out
+    # live 116, 22 Nov 2026 11:20Z: Motor 1.8 passed 512 counted hotkeys and EVERY board run refused
+    # (board_ladder_size), freezing the public feed. The ladder is ranked best first, so the board shows its TOP
+    # `MAX_LADDER` rows (the schema, the published validators and the worker cap are unchanged); the board's counts are
+    # the shown rows' tally, as every validator checks them.
+    return out[:MAX_LADDER]
 
 
 def _noise_value(rebuild_noise):
