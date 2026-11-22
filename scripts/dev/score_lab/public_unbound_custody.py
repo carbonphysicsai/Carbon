@@ -1949,6 +1949,51 @@ def _graph_state_source_binding(header, manifest_raw, documents):
     _graph_digest_equal(header["graph_digest"], forward, "graph_source_forward")
 
 
+#: Trainer v3's training-curve record (`physical_graph_trainer_v3.curve_block`, DATA D2) that a v3-trainer ensemble's fit
+#: receipt carries (`physical_graph_adapter_v2.fit`): a record of the fit, never a score input. A test holds these equal
+#: to the trainer's constants (this module imports no trainer).
+GRAPH_CURVE_SCHEMA = "carbon.graph-training-curve.v1"
+GRAPH_CURVE_POINTS = 256
+GRAPH_CURVE_BYTES_MAX = 32 * 1024
+
+
+def _graph_curve_ok(curve, members):
+    """Whether ``curve`` is a closed trainer-v3 curve block for ``members`` members: its schema, a stride >= 1, one main
+    series per member and one polish series (or None) per member, each at most `GRAPH_CURVE_POINTS` + 1 values (the
+    last step is always kept) of finite numbers or None (a diverged step), the whole within `GRAPH_CURVE_BYTES_MAX`.
+    """
+
+    def series(values):
+        return (
+            type(values) is list
+            and len(values) <= GRAPH_CURVE_POINTS + 1
+            and all(value is None or _graph_finite_number(value) for value in values)
+        )
+
+    if (
+        type(curve) is not dict
+        or set(curve) != {"schema", "stride", "members", "polish"}
+        or curve["schema"] != GRAPH_CURVE_SCHEMA
+        or type(curve["stride"]) is not int
+        or curve["stride"] < 1
+        or type(members) is not int
+        or type(curve["members"]) is not list
+        or len(curve["members"]) != members
+        or type(curve["polish"]) is not list
+        or len(curve["polish"]) != members
+        or not all(series(values) for values in curve["members"])
+        or not all(values is None or series(values) for values in curve["polish"])
+    ):
+        return False
+    try:
+        size = len(
+            json.dumps(curve, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        )
+    except (TypeError, ValueError):
+        return False
+    return size <= GRAPH_CURVE_BYTES_MAX
+
+
 def _graph_fit_ok(fit, header, recipe_digest):
     if "decoder" not in header:
         return (
@@ -1969,18 +2014,25 @@ def _graph_fit_ok(fit, header, recipe_digest):
     # The exact receipts emitted by physical_graph_adapter(.v2).fit. These are
     # bound producer declarations, not a scientific acceptance or score.
     ensemble = header["schema"] == GRAPH_ENSEMBLE_STATE_SCHEMA
-    fields = {
-        "adapter_id",
-        "trainer_sha256",
-        "steps",
-        "train_cases",
-        "train_loss",
-        "params_sha256",
-        "recipe_digest",
-    } | ({"members", "member_losses"} if ensemble else set())
+    # trainer v3's training curve (DATA D2, `_graph_curve_ok`): an ensemble fit MAY carry it, never another layout
+    curved = ensemble and type(fit) is dict and "curve" in fit
+    fields = (
+        {
+            "adapter_id",
+            "trainer_sha256",
+            "steps",
+            "train_cases",
+            "train_loss",
+            "params_sha256",
+            "recipe_digest",
+        }
+        | ({"members", "member_losses"} if ensemble else set())
+        | ({"curve"} if curved else set())
+    )
     return (
         type(fit) is dict
         and set(fit) == fields
+        and (not curved or _graph_curve_ok(fit["curve"], header["members"]))
         and type(fit["adapter_id"]) is str
         and bool(fit["adapter_id"])
         and type(fit["train_cases"]) is int
