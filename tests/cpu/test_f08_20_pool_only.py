@@ -442,9 +442,27 @@ def test_a_malformed_dispatch_config_refuses(config):
         rb.dispatch(config)
 
 
+def test_an_official_2_0_answer_grades_on_a_22_output_target(monkeypatch):
+    # exam-rb 07:18:16Z: the derive adds cad_mass_kg, which an accuracy target does not grade; without the companion
+    # registration every 2.0 answer would be invalid on its target
+    monkeypatch.setattr(rb, "POOL_VERSIONS", {})
+    monkeypatch.setattr(pool_version, "_BINDINGS", {})
+    monkeypatch.setattr(pool_grader, "_COMPANIONS", set())
+    derived = rb.derive_answer(_DESIGN, _raw(_good_row()))
+    assert pool_grader.graded_answer(derived, train.GRADED_OUTPUTS) is None
+    rb.dispatch({"pool_versions": ["rb20-pool-sealed-v1", "rb20-pool-set"]})
+    binding = pool_version.official_binding("f08", "2.0")
+    official = binding.derive(_DESIGN, _raw(_good_row()))
+    assert official == derived
+    assert pool_grader.graded_answer(official, train.GRADED_OUTPUTS) == _good_row()
+    # the menus' objective still reads the mass from the same answer
+    assert official["cad_mass_kg"] == mass.cad_mass_kg(_DESIGN)
+
+
 def test_the_dispatch_registers_2_0_and_nothing_else(monkeypatch):
     monkeypatch.setattr(rb, "POOL_VERSIONS", {})
     monkeypatch.setattr(pool_version, "_BINDINGS", {})
+    monkeypatch.setattr(pool_grader, "_COMPANIONS", set())
     assert rb.sealed_adapter("2.0") is None  # nothing grades 2.0 before its entry
     spec = rb.dispatch({"pool_versions": ["rb20-pool-sealed-v1", "rb20-pool-set"]})
     assert (spec["challenge"], spec["version"]) == ("f08-ribbed-bracket", "2.0")

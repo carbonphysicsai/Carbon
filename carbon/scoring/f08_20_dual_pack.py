@@ -385,8 +385,11 @@ def dispatch(config):
     if known is not None and known != pair:
         raise ValueError("RB 2.0 is already dispatched with other pool versions")
     POOL_VERSIONS[VERSION] = pair
-    from carbon.scoring import pool_version
+    from carbon.scoring import pool_grader, pool_version
 
+    # the derive gives every answer the exact mass (the menus' objective); an accuracy target grades only the 22, so
+    # the mass is a COMPANION there: dropped, never graded and never an invalid answer (as Motor 1.9's scalars)
+    pool_grader.register_companion_output(OBJECTIVE)
     pool_version.register_binding(KIND, VERSION, official_binding)
     return {
         "challenge": CHALLENGE,
