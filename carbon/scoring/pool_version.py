@@ -361,7 +361,9 @@ def _menu(value):
     "rowcheck": {"rel_tol", "abs_tol", "subset"}}`` plus an optional ``"min_tasks_exception"`` (an owner decision id,
     for fewer than `pool_menu.MIN_TASKS` tasks) and an optional ``"tasks_per_epoch"`` (the owner's k of the tasks
     scored per epoch, `pool_menu.draw_tasks`; absent = every task) and an optional ``"ranking"`` (``backoff_u`` =
-    menu_top5_v1, the default; ``original_limits`` = menu_top5_v2, back-off 0); a null or HUMAN_INPUT refuses.
+    menu_top5_v1, the default; ``original_limits`` = menu_top5_v2, back-off 0) and an optional ``"d_form"``
+    (``share``, the default; ``regret_u`` = menu_top5_v3 with ``original_limits``, which needs the owner's ``"k"``); a
+    null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
@@ -372,7 +374,8 @@ def _menu(value):
     if type(value) is not dict or not (
         required
         <= set(value)
-        <= required | {"min_tasks_exception", "tasks_per_epoch", "ranking"}
+        <= required
+        | {"min_tasks_exception", "tasks_per_epoch", "ranking", "d_form", "k"}
     ):
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     if "tasks_per_epoch" in value and _picked(value["tasks_per_epoch"]) is None:
@@ -406,6 +409,13 @@ def _menu(value):
             if "ranking" in value
             else pool_menu.menu_score.RANKING_BACKOFF_U
         ),
+        # an optional registered d form (``regret_u`` = menu_top5_v3 needs the owner's ``k``; absent = ``share``)
+        d_form=(
+            _picked(value["d_form"])
+            if "d_form" in value
+            else pool_menu.menu_score.D_SHARE
+        ),
+        k=_picked(value["k"]) if "k" in value else None,
     )
     try:
         pool_menu.check_rule(rule)

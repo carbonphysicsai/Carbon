@@ -97,11 +97,20 @@ class MenuRule:
     ranking: str = (
         menu_score.RANKING_BACKOFF_U  # registered ranking rule: backoff_u (menu_top5_v1) or original_limits (menu_top5_v2)
     )
+    #: the registered d form (`menu_score.D_FORMS`): ``share`` (default, every version so far) or ``regret_u``
+    #: (menu_top5_v3, original_limits only) with the owner's scale ``k``
+    d_form: str = menu_score.D_SHARE
+    k: float | None = None
 
 
 def check_rule(rule):
     _require(isinstance(rule, MenuRule), "menu_rule_required")
     _require(rule.ranking in menu_score.RANKINGS, "menu_ranking_unregistered")
+    try:
+        menu_score.metric_for(rule.ranking, rule.d_form)
+        menu_score.check_d_form(rule.d_form, rule.k)
+    except menu_score.MenuRefused as exc:
+        _refuse(exc.code)
     _require(
         type(rule.records_sha256) is tuple
         and rule.records_sha256
@@ -514,6 +523,8 @@ def rescore(tasks, rule, predictions, *, key, epochs):
                         key=key,
                         epoch=epoch,
                         ranking=rule.ranking,
+                        d_form=rule.d_form,
+                        k=rule.k,
                     )["d"]
                 )
             except menu_score.MenuRefused as exc:
@@ -723,7 +734,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
             "D": 0.0,
             "record": {
                 "schema": "carbon.menu-grade.v1",
-                "metric": menu_score.metric_for(rule.ranking),
+                "metric": menu_score.metric_for(rule.ranking, rule.d_form),
                 "epoch": rule.epoch,
                 "aggregate": rule.aggregate,
                 **drawn_note,
@@ -770,6 +781,8 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
                 key=key,
                 epoch=rule.epoch,
                 ranking=rule.ranking,
+                d_form=rule.d_form,
+                k=rule.k,
             )
         except menu_score.MenuRefused as exc:
             _refuse(exc.code)
@@ -789,7 +802,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
         "D": d,
         "record": {
             "schema": "carbon.menu-grade.v1",
-            "metric": menu_score.metric_for(rule.ranking),
+            "metric": menu_score.metric_for(rule.ranking, rule.d_form),
             "epoch": rule.epoch,
             "aggregate": rule.aggregate,
             **drawn_note,

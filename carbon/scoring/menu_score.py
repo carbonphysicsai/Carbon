@@ -61,9 +61,36 @@ RANKINGS = {
 }
 
 
-def metric_for(ranking):
+#: The registered d forms (a version registers ONE; the default is today's, bit-identical): ``share`` = a pick's
+#: (s - s_zero) / (s_ref - s_zero), whose denominator is thousands of U on Motor's menus, so a wrong pick costs ~nothing;
+#: ``regret_u`` (menu_top5_v3; owner MOTOR19-D-SAT-PICK (B), 22 Nov 2026; form: exam-motor 03:09:23Z) = clip(1 - regret /
+#: (k x U_obj), 0, 1), regret = s_ref - s_pick in the objective's own units, U_obj = the task's U of the objective at the
+#: pick's TRUE value (`u_value`), k = the version's registered menu value (owner). A truly infeasible pick is 0 in both.
+#: The zero, the oracle and the no-room check use the same d. Registered with the ``original_limits`` ranking only.
+D_SHARE = "share"
+D_REGRET_U = "regret_u"
+D_FORMS = (D_SHARE, D_REGRET_U)
+METRIC_REGRET_U = "menu_top5_v3"
+
+
+def metric_for(ranking, d_form=D_SHARE):
     _require(ranking in RANKINGS, "menu_ranking_unregistered")
-    return RANKINGS[ranking]
+    if d_form == D_SHARE:
+        return RANKINGS[ranking]
+    _require(
+        d_form == D_REGRET_U and ranking == RANKING_ORIGINAL_LIMITS,
+        "menu_d_form_unregistered",
+    )
+    return METRIC_REGRET_U
+
+
+def check_d_form(d_form, k):
+    """A registered (d form, k): ``share`` takes no k; ``regret_u`` a finite k > 0 (the owner's value)."""
+    _require(d_form in D_FORMS, "menu_d_form_unregistered")
+    if d_form == D_SHARE:
+        _require(k is None, "menu_k_only_with_regret_u")
+    else:
+        _require(type(k) in (int, float) and _finite(k) and k > 0, "menu_k_invalid")
 
 
 WEIGHTS = (0.4, 0.25, 0.15, 0.12, 0.08)
@@ -305,11 +332,17 @@ def _point(problem, outputs):
     )
 
 
-def pick_d(problem, record, pid):
-    """One pick's d from its sealed truth (original limits: a true margin < 0 scores 0)."""
+def pick_d(problem, record, pid, d_form=D_SHARE, k=None):
+    """One pick's d from its sealed truth (original limits: a true margin < 0 scores 0), in the registered d form."""
     truth = record.pool[pid]["truth"]
     if any(m < 0.0 for m in _margins(problem, truth).values()):
         return 0.0
+    if d_form != D_SHARE:
+        check_d_form(d_form, k)
+        regret = record.s_ref - _signed(problem, truth)
+        u = u_value(problem.u[problem.objective], float(truth[problem.objective]))
+        _require(_finite(u) and u > 0, "menu_objective_u_invalid")
+        return min(1.0, max(0.0, 1.0 - regret / (k * u)))
     share = (_signed(problem, truth) - record.s_zero) / (record.s_ref - record.s_zero)
     return min(1.0, max(0.0, share))
 
@@ -329,7 +362,15 @@ def _weighted(slots):
     return total
 
 
-def _slots(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
+def _slots(
+    problem,
+    record,
+    menu,
+    predictions,
+    ranking=RANKING_BACKOFF_U,
+    d_form=D_SHARE,
+    k=None,
+):
     """The d of each of the five slots of `menu` ranked by `predictions` on the limits the registered `ranking` names
     (backed off by U for ``backoff_u``; the registered limits themselves for ``original_limits``); tied keys share
     the mean d of their group over the slots they occupy.
@@ -361,29 +402,41 @@ def _slots(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
         j = i
         while j < len(keyed) and keyed[j][0] == keyed[i][0]:
             j += 1
-        mean = _group_d([pick_d(problem, record, pid) for _, pid in keyed[i:j]])
+        mean = _group_d(
+            [pick_d(problem, record, pid, d_form, k) for _, pid in keyed[i:j]]
+        )
         slots += [mean] * min(j - i, TOP - len(slots))
         i = j
     return tuple(slots)
 
 
-def _oracle_slots(problem, record, menu):
+def _oracle_slots(problem, record, menu, d_form=D_SHARE, k=None):
     return tuple(
-        sorted((pick_d(problem, record, pid) for pid in menu), reverse=True)[:TOP]
+        sorted((pick_d(problem, record, pid, d_form, k) for pid in menu), reverse=True)[
+            :TOP
+        ]
     )
 
 
-def raw_score(problem, record, menu, predictions, ranking=RANKING_BACKOFF_U):
+def raw_score(
+    problem,
+    record,
+    menu,
+    predictions,
+    ranking=RANKING_BACKOFF_U,
+    d_form=D_SHARE,
+    k=None,
+):
     """sum_i w_i d(pick_i) over the top five of `menu` ranked by `predictions` ({id: outputs | None}) on the
     limits the registered `ranking` names (see `_slots`); tied keys share the mean d of their group over the slots they
     occupy.
     """
-    return _weighted(_slots(problem, record, menu, predictions, ranking))
+    return _weighted(_slots(problem, record, menu, predictions, ranking, d_form, k))
 
 
-def oracle_score(problem, record, menu):
+def oracle_score(problem, record, menu, d_form=D_SHARE, k=None):
     """The raw of the truth-ordered top five of `menu`: the best raw any model can reach on this sample."""
-    return _weighted(_oracle_slots(problem, record, menu))
+    return _weighted(_oracle_slots(problem, record, menu, d_form, k))
 
 
 SCORED = "SCORED"
@@ -391,7 +444,15 @@ MODEL_ROW_DEPENDENT = "MODEL_ROW_DEPENDENT"
 
 
 def score_task_live(
-    problem, record, predict_menu, *, key, epoch, ranking=RANKING_BACKOFF_U
+    problem,
+    record,
+    predict_menu,
+    *,
+    key,
+    epoch,
+    ranking=RANKING_BACKOFF_U,
+    d_form=D_SHARE,
+    k=None,
 ):
     """`score_task` with the predictions made here: ``predict_menu(menu_ids) -> {id: outputs | None}`` (built on a
     `RowIndependentPredict`). A model caught giving batch-dependent predictions scores D = 0 for this epoch, typed
@@ -401,38 +462,57 @@ def score_task_live(
         predictions = predict_menu(menu)
     except ModelRowDependent:
         return {
-            "metric": metric_for(ranking),
+            "metric": metric_for(ranking, d_form),
             "state": MODEL_ROW_DEPENDENT,
             "d": 0.0,
             "menu_size": len(menu),
         }
     return score_task(
-        problem, record, predictions, key=key, epoch=epoch, ranking=ranking
+        problem,
+        record,
+        predictions,
+        key=key,
+        epoch=epoch,
+        ranking=ranking,
+        d_form=d_form,
+        k=k,
     )
 
 
-def score_task(problem, record, predictions, *, key, epoch, ranking=RANKING_BACKOFF_U):
+def score_task(
+    problem,
+    record,
+    predictions,
+    *,
+    key,
+    epoch,
+    ranking=RANKING_BACKOFF_U,
+    d_form=D_SHARE,
+    k=None,
+):
     """The contender's D for one task this epoch (see the module docstring). ``predictions``: {menu id: outputs |
     None} for every id of the epoch's menu. ``key`` = crown_d.derive_key(K_crown, 'd-menu-sample'). Returns numbers
     and counts only."""
+    metric = metric_for(ranking, d_form)
+    check_d_form(d_form, k)
     menu = draw_menu(record, key, epoch=epoch)
-    raw = raw_score(problem, record, menu, predictions, ranking)
-    best = _oracle_slots(problem, record, menu)
+    raw = raw_score(problem, record, menu, predictions, ranking, d_form, k)
+    best = _oracle_slots(problem, record, menu, d_form, k)
     oracle = _weighted(best)
-    ds = [pick_d(problem, record, pid) for pid in menu]
+    ds = [pick_d(problem, record, pid, d_form, k) for pid in menu]
     zero, source = _group_d(ds), "random"
     # No room is decided on the slot values, not on rounded sums (Q4 12 Nov): the random pick reaches the oracle
     # exactly when every menu design has the same d, an arm exactly when its five slots are the oracle's five.
     no_room = all(d == ds[0] for d in ds)
     for arm in sorted(record.arms):
-        arm_slots = _slots(problem, record, menu, record.arms[arm], ranking)
+        arm_slots = _slots(problem, record, menu, record.arms[arm], ranking, d_form, k)
         no_room = no_room or arm_slots == best
         arm_raw = _weighted(arm_slots)
         if arm_raw > zero:
             zero, source = arm_raw, "classical_arm"
     _require(not no_room and zero < oracle, "menu_zero_at_oracle_task_has_no_room")
     return {
-        "metric": metric_for(ranking),
+        "metric": metric,
         "state": SCORED,
         "d": min(1.0, max(0.0, (raw - zero) / (oracle - zero))),
         "raw": raw,
