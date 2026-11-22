@@ -162,7 +162,7 @@ def test_a_good_answer_passes_every_gate():
     "change,gate",
     [
         ({"worst_dynamic_mm_per_n": float("nan")}, "g1_finite"),
-        ({"modes_hz_10": 0.0}, "g2_frequency_positive"),
+        ({"first_mode_hz": 0.0}, "g2_frequency_positive"),
         ({"modes_hz_3": 120.0}, "g3_modes_non_decreasing"),
         ({"first_mode_hz": 160.0}, "g3_modes_non_decreasing"),
         ({"dynamic_fillet_stress_base_mpa_per_g": -1e-9}, "g4_stress_non_negative"),
