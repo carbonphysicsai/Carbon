@@ -58,9 +58,12 @@ COMMENT_ONLY_MOVED = {"carbon.level4.intake.py"}
 #: Spec offers no trust interface (every F08 / F02 version) with the refusal it always gave for a foreign output digest,
 #: so every recipe these runs build binds exactly as recorded. Pinned to its exact new bytes (not just its name), so a
 #: later move of the same file still fails (v2 12:50:08Z: re-baseline this one item, the others unchanged).
+#: Self-trust train_fraction rule (6d667d1f, v2 RULING 22 Nov 00:51:24Z (a)): bind_recipe also refuses a DECLARING
+#: recipe whose train_fraction is not in (0, 1) (`construction_recipe_trust_needs_held_out_rows`); no F08 / F02 Spec
+#: offers trust, so these runs bind exactly as recorded. The pin moves to the new bytes (was 743dc3b6...).
 SELF_TRUST_MOVED = {
     "carbon.development_session.construction_recipe.py": (
-        "743dc3b697251a4a08debde38bd221f9ae978157e5b8320fa9bd2b7bfa4a4a40"
+        "eef9f591e03444ac030edf21585dfa0f5cf08ea9d9d5e36e8eaaca9177989dd3"
     ),
 }
 #: The served backbone catalog digest the recorded runs were made under (rc6
