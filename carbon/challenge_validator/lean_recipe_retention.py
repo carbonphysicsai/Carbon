@@ -409,6 +409,23 @@ def _snapshot(path: Path, *, limit: int, digest: str, label: str) -> bytes:
     return raw
 
 
+def _sigma_snapshot(inference: Path, receipt: dict) -> bytes | None:
+    """A self-trust candidate's ``sigma.json`` (SELF_TRUST H3g R2), the trust columns the inference container split off: its RAW
+    bytes from the graded inference snapshot, bound to the ``sigma_digest`` the inference receipt names; None when the
+    receipt names none (every other candidate), so nothing else changes. A missing, resized or different file refuses
+    (`RetentionUnavailable`, never a candidate failure) and is never replaced by another.
+    """
+    digest = receipt.get("sigma_digest") if type(receipt) is dict else None
+    if digest is None:
+        return None
+    return _snapshot(
+        inference / "sigma.json",
+        limit=16 * 1024**2,
+        digest=digest,
+        label="sigma_snapshot",
+    )
+
+
 def _receipt_snapshot(path: Path, expected: dict, label: str) -> bytes:
     if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 65536:
         raise RetentionUnavailable(label + "_unavailable")
@@ -916,6 +933,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     inference_receipt = _receipt_snapshot(
         inference / "receipt.json", evidence["inference_receipt"], "inference_receipt"
     )
+    sigma = _sigma_snapshot(inference, evidence["inference_receipt"])
     timed_receipt = None
     if timed_fields:
         if (
@@ -966,6 +984,8 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "allowlist.json": material["allowlist_bytes"],
         "build-receipt.json": build_receipt,
         "inference-receipt.json": inference_receipt,
+        # a self-trust candidate only (H3g R2): its sigma, kept with the evidence it was graded beside
+        **({} if sigma is None else {"sigma.json": sigma}),
         # a v2 row (H2) is v1 again in memory: its base64 from the verified predictions snapshot
         WORKER_EVIDENCE: _v1_worker(_json(worker), predictions),
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
@@ -985,6 +1005,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
 _OPERATION_FILES = (
     ("build_operation", "state.npz", "state.npz"),
     ("inference_operation", "predictions.json", "predictions.json"),
+    ("inference_operation", "sigma.json", "sigma.json"),
     ("timed_operation", "predictions.json", "timed-query-predictions.json"),
 )
 
@@ -1074,6 +1095,8 @@ def _retain_graph_artifacts(
             if "timed-query-receipt.json" in artifacts
             else {}
         ),
+        # a self-trust candidate's trust columns (H3g R2); custody binds them to the receipt's sigma_digest
+        **({"sigma": ("sigma.json", "json")} if "sigma.json" in artifacts else {}),
     }
     try:
         state_schema = graph_state_schema(
@@ -6889,6 +6912,8 @@ def _regrade_retained_entry(
         # The origin task's practice timed query is not a measurement of this bank.
         artifacts.pop("timed-query-receipt.json", None)
         artifacts.pop("timed-query-predictions.json", None)
+    # The origin's sigma belongs to the origin's bank (H3g R2): never carried into a grade on another bank.
+    artifacts.pop("sigma.json", None)
     artifacts["inputs.npz"] = bank_raw
     artifacts["predictions.json"] = predictions
     artifacts["inference-receipt.json"] = receipt_raw

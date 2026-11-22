@@ -87,6 +87,7 @@ def test_the_operation_sources_name_only_well_formed_operations(tmp_path):
     assert sources == {
         "state.npz": tmp_path / op / "snapshot" / "state.npz",
         "predictions.json": tmp_path / op / "snapshot" / "predictions.json",
+        "sigma.json": tmp_path / op / "snapshot" / "sigma.json",  # H3g R2: used only when the task kept one
     }
     assert retention._operation_sources(object(), {}) == {}
 

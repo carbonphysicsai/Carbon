@@ -122,6 +122,8 @@ def test_the_trust_fit_receipt_shape_is_exact(raw_and_allowlist):
         _fit(trust={"status": "other", "held_out_rows": 4}),
         _fit(trust={"status": "trained"}),
         _fit(trust={"status": "trained", "held_out_rows": -1}),
+        _fit(trust={"status": "trained", "held_out_rows": 0}),
+        _fit(trust={"status": "no_held_out_rows", "held_out_rows": 3}),
         _fit(trust={"status": "trained", "held_out_rows": True}),
         _fit(trust="trained"),
         _fit(trust_trainer_sha256="not-a-digest"),

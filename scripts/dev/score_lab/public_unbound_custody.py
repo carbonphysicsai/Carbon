@@ -1750,6 +1750,8 @@ _GRAPH_ROLE_CODECS = {
     "worker_evidence": "json",
     "task_receipt": "raw_bytes",
     "timed_receipt": "json",
+    # a self-trust candidate's split-off trust columns (SELF_TRUST H3g R2): present exactly for a trust state
+    "sigma": "json",
     # a regrade graded on a receiver's configured graded inference image: that image's identity
     "inference_image": "json",
 }
@@ -2071,6 +2073,9 @@ def _graph_fit_ok(fit, header, recipe_digest):
                 and fit["trust"]["status"] in ("trained", "no_held_out_rows")
                 and type(fit["trust"]["held_out_rows"]) is int
                 and fit["trust"]["held_out_rows"] >= 0
+                # the status and the count agree: 'no_held_out_rows' exactly when none were held out
+                and (fit["trust"]["status"] == "no_held_out_rows")
+                == (fit["trust"]["held_out_rows"] == 0)
                 and type(fit["trust_trainer_sha256"]) is str
                 and _SHA.fullmatch(fit["trust_trainer_sha256"]) is not None
             )
@@ -2371,6 +2376,45 @@ def _validate_native_build(root, build, by_role, observed, state_header):
         raise CustodyRefused("bundle_native_example_contract")
 
 
+def _declared_interface_digests(interface_digest):
+    """The output interface digests a graph recipe may bind: the version's own, or (self-trust) its derived declaration."""
+    from carbon.development_session.construction_recipe import (
+        RecipeRefused,
+        trust_declaration_digest,
+    )
+
+    try:
+        return (interface_digest, trust_declaration_digest(interface_digest))
+    except RecipeRefused:
+        return (interface_digest,)
+
+
+def _graph_sigma_ok(sigma_raw, predictions_raw, width):
+    """A trust candidate's ``sigma.json``: one row of `width` finite numbers per prediction row."""
+
+    def refuse_constant(_value):
+        raise ValueError("nonfinite JSON constant")
+
+    try:
+        sigma = json.loads(sigma_raw.decode("utf-8"), parse_constant=refuse_constant)
+        predictions = json.loads(
+            predictions_raw.decode("utf-8"), parse_constant=refuse_constant
+        )
+    except (UnicodeError, ValueError, RecursionError):
+        return False
+    return (
+        type(sigma) is list
+        and type(predictions) is list
+        and len(sigma) == len(predictions)
+        and all(
+            type(row) is list
+            and len(row) == width
+            and all(_graph_finite_number(value) for value in row)
+            for row in sigma
+        )
+    )
+
+
 def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     """Bind a measured direct graph without executing its source or state."""
     from carbon.level4 import staging
@@ -2439,7 +2483,8 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         or type(output) is not dict
         or set(output) != {"format", "interface_digest"}
         or output["format"] != "carbon.numeric-graph.v1"
-        or output["interface_digest"] != challenge["interface_digest"]
+        or output["interface_digest"]
+        not in _declared_interface_digests(challenge["interface_digest"])
         or set(kit)
         != {
             "id",
@@ -2495,6 +2540,11 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     )
     if header["schema"] != manifest["source_schema"]:
         raise CustodyRefused("graph_role_scope")
+    # self-trust (H3g R2): a recipe declares it by its output binding, and exactly then the state is the trust state
+    trust = header["schema"] == GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
+    declares = output["interface_digest"] != challenge["interface_digest"]
+    if trust != declares or trust != ("sigma" in by_role):
+        raise CustodyRefused("graph_trust_declaration")
     _graph_state_source_binding(header, manifest_bytes, documents)
     for value, expected, label in (
         (header["recipe_digest"], recipe_digest, "recipe"),
@@ -2584,12 +2634,26 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
                 "state_digest",
                 "inputs_digest",
                 "predictions_digest",
+                *(("sigma_digest", "trust_outputs") if trust else ()),
             }
             or inference["schema"] != "carbon.development.bundle-inference.v1"
             or inference["recipe_digest"] != recipe_digest
             or inference["state_digest"] != _sha(by_role["state"])
             or inference["inputs_digest"] != _sha(by_role["inputs"])
             or inference["predictions_digest"] != _sha(by_role["predictions"])
+            or (
+                trust
+                and (
+                    inference["sigma_digest"] != _sha(by_role["sigma"])
+                    or type(inference["trust_outputs"]) is not int
+                    or inference["trust_outputs"] != header["trust"]["width"]
+                    or not _graph_sigma_ok(
+                        by_role["sigma"],
+                        by_role["predictions"],
+                        inference["trust_outputs"],
+                    )
+                )
+            )
         ):
             raise CustodyRefused("graph_per_case_inference_receipt")
         if "timed_receipt" in by_role:
