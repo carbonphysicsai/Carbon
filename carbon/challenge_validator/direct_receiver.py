@@ -1100,6 +1100,9 @@ GRADING_PATHS = (
     # the per-version trust training registration (SELF_TRUST H3d-2c): the derive and the owner's values the trust trainer reads
     "carbon/development_session/physical_graph_trust_registry.py",
     "carbon/challenge_validator/strict_json.py",
+    # which changed grading paths a door's served version never reads (v2 RE-RULING #5): it decides that a change
+    # needs no declared record on this door, so its own edits are grading changes
+    "carbon/challenge_validator/grading_scope.py",
     # the construction material a rebuild reads (bundles, kits, TRAIN)
     "carbon/development_session/library_bundles.py",
     "carbon/development_session/library_environment_cache.py",
@@ -1446,6 +1449,24 @@ def _grading_change(old, new, root=None):
     return _GRADING_CHANGES[key]
 
 
+def _grading_change_not_served(old, new, touched, challenge, root=None):
+    """``{path: reason}`` when every changed grading path of OLD..NEW is one the served ``challenge`` never reads
+    (`grading_scope.not_served`: another pair's keyed registry entry, or a pure ``.py`` addition), else None. A build
+    input move, an unreadable challenge or any doubt is None: the migration then decides exactly as before.
+    """
+    from carbon.challenge_validator import grading_scope
+
+    if not touched or BUILD_INPUTS_CHANGED in touched or type(challenge) is not dict:
+        return None
+    challenge_id, version = challenge.get("id"), challenge.get("version")
+    if type(challenge_id) is not str or type(version) is not str:
+        return None
+    root = Path(__file__).resolve().parents[2] if root is None else Path(root)
+    return grading_scope.not_served(
+        root, old, new, touched, {f"{challenge_id} {version}"}, grading_path
+    )
+
+
 def _retained_contracts(ledger):
     """Every ``contract_digest`` the owner's retained task requests name."""
     found = set()
@@ -1626,6 +1647,11 @@ def _migrate_owner_manifest(
     touched = _grading_change(old, new)
     declared = _declared_change(old, new, touched) if touched else None
     basis = "no_grading_change" if touched == () else None
+    not_served = (
+        _grading_change_not_served(old, new, touched, candidate.get("challenge"))
+        if touched and declared is None
+        else None
+    )
     if declared is not None:
         basis = "declared"
         # the ruled amendment: a change the Validator receipted by its declaration and per-door evidence
@@ -1638,6 +1664,23 @@ def _migrate_owner_manifest(
                     "paths": list(touched[:20]),
                     "reason": declared["reason"],
                     "evidence_sha256": declared["evidence_sha256"],
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+    elif not_served is not None:
+        # v2 RE-RULING #5: every changed path is another pair's registry entry or a pure addition no served import can
+        # reach (`grading_scope.not_served`, the release precheck's own verdict); journaled file by file
+        basis = "grading_change_not_served"
+        print(
+            json.dumps(
+                {
+                    "event": "grading_change_not_served",
+                    "from_revision": old,
+                    "to_revision": new,
+                    "files": not_served,
                 },
                 sort_keys=True,
             ),
@@ -1717,9 +1760,12 @@ def _migrate_owner_manifest(
             raw if type(raw) is bytes else str(raw).encode("utf-8")
         ).hexdigest(),
         "to_manifest_sha256": hashlib.sha256(payload).hexdigest(),
-        # why it was allowed: no grading change, the declared record, or an owner with no grade evidence (audit #12)
+        # why it was allowed: no grading change, the declared record, a change the served version never reads (v2
+        # RE-RULING #5), or an owner with no grade evidence (audit #12)
         "basis": basis,
     }
+    if not_served is not None:
+        record["files_not_served"] = not_served
     with open(
         Path(ledger.root) / "manifest-migrations.jsonl", "a", encoding="utf-8"
     ) as log:

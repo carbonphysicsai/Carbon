@@ -290,13 +290,33 @@ def _valid_record(record) -> bool:
 
 
 def exam_item(
-    repo, old, new, old_pack, new_pack, declared, pack_change=None, rule_change=None
+    repo,
+    old,
+    new,
+    old_pack,
+    new_pack,
+    declared,
+    pack_change=None,
+    rule_change=None,
+    served=None,
 ) -> dict:
-    """``old``/``new`` are the doors' ACCEPTED revisions (the ones the receiver compares)."""
-    result = ei.check(repo, old, new, old_pack=old_pack, new_pack=new_pack)
+    """``old``/``new`` are the doors' ACCEPTED revisions (the ones the receiver compares). ``served``: the door's
+    ``'<challenge> <version>'`` pairs, for the receiver's own door-scope verdict (v2 RE-RULING #5).
+    """
+    result = ei.check(
+        repo, old, new, old_pack=old_pack, new_pack=new_pack, served=served
+    )
     item = {"identity": result}
     if result["state"] == ei.SAME:
         return {**item, "state": PASS}
+    if result["state"] == ei.NOT_SERVED:
+        # every changed grading path is one the served version never reads: the receiver migrates under
+        # ``grading_change_not_served`` with the same per-file reasons, so no declared record is needed for this door
+        return {
+            **item,
+            "state": PASS,
+            "not_served": result["grading_paths_not_served"],
+        }
     if result["state"] == ei.UNKNOWN:
         return {**item, "state": UNKNOWN, "code": result.get("reason")}
     if result["pack_changed"] and not pack_change:
@@ -1550,6 +1570,7 @@ def precheck(args) -> dict:
                 declared,
                 args.declared_pack_change,
                 args.declared_rule_change,
+                args.served,
             ),
         ),
         ("disk", lambda: disk_item(args.mode, args.old_root, args.new_root)),
@@ -1747,6 +1768,8 @@ def main(argv=None) -> int:
     p.add_argument("--declared", type=Path)
     p.add_argument("--declared-pack-change")
     p.add_argument("--declared-rule-change")
+    # the pair(s) the door serves ('CHALLENGE VERSION'): a change none of them reads passes without --declared
+    p.add_argument("--served", action="append")
     p.add_argument("--allow-chain-degraded")
     # every door root on this host, OLD and NEW included (switch mode: R41 stray receivers, R79 lock versions)
     p.add_argument("--host-root", type=Path, action="append", default=[])

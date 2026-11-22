@@ -3,7 +3,7 @@
 
     python3 -I -B scripts/dev/release/exam_identity.py digest --repo REPO --rev REV
     python3 -I -B scripts/dev/release/exam_identity.py check  --repo REPO --old OLD --new NEW \\
-        --old-pack DIGEST --new-pack DIGEST [--declared-exam-change TEXT]
+        --old-pack DIGEST --new-pack DIGEST [--declared-exam-change TEXT] [--served 'CHALLENGE VERSION' ...]
 
 The exam a door grades with is its evaluation pack plus its grading code. The grading code is every M2 grading path
 plus the worker build inputs. The M2 rule (``GRADING_PATHS`` and ``_GRADING_MODULE`` in
@@ -21,6 +21,11 @@ ids first; the output carries the full ids.
 - ``EXAM_CHANGE`` (exit 3, REFUSED): something above differs and nobody said so; the fields say what.
 - ``EXAM_CHANGE_DECLARED`` (exit 0): the same, with ``--declared-exam-change`` naming the reason (a new exam version,
   or a reviewer's ruling that a listed change grades nothing on this door). The switch's receipt names it.
+- ``SAME_EXAM_NOT_SERVED`` (exit 0): with ``--served`` (the pair or pairs the door serves), the rule, the build inputs
+  and the packs are identical and EVERY changed grading path is one the served version never reads, by the receiver's
+  own verdict (``carbon/challenge_validator/grading_scope.py``, v2 RE-RULING #5): another pair's entry in a
+  ``'<challenge> <version>'``-keyed registry, or a pure ``.py`` addition no import can reach.
+  ``grading_paths_not_served`` lists each file with its reason. Anything else stays ``EXAM_CHANGE``.
 - ``UNKNOWN`` (exit 4, REFUSED): git could not tell (a revision missing, a rule unreadable, a symlink under a
   grading path, any failure). Never an exit of 0 on doubt. (Exit 2 is argparse's usage error: also a refusal.)
 
@@ -33,23 +38,29 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-SAME, CHANGE, DECLARED, UNKNOWN = (
+SAME, CHANGE, DECLARED, UNKNOWN, NOT_SERVED = (
     "SAME_EXAM",
     "EXAM_CHANGE",
     "EXAM_CHANGE_DECLARED",
     "UNKNOWN",
+    "SAME_EXAM_NOT_SERVED",
 )
-EXIT = {SAME: 0, DECLARED: 0, CHANGE: 3, UNKNOWN: 4}
+EXIT = {SAME: 0, DECLARED: 0, CHANGE: 3, UNKNOWN: 4, NOT_SERVED: 0}
 SCHEMA = "carbon.release.exam-identity.v2"
 RULE_FILE = "carbon/challenge_validator/direct_receiver.py"
 BUILD_INPUTS_FILE = "carbon/reconstruction/worker/build_inputs.txt"
 _HEX = re.compile(r"(?:sha256:)?([0-9a-f]{64})")
+#: The receiver's door-scope verdict (stdlib only), loaded by path so this tool never imports carbon.
+SCOPE_FILE = (
+    Path(__file__).resolve().parents[3] / "carbon/challenge_validator/grading_scope.py"
+)
 
 
 class Unknown(Exception):
@@ -216,8 +227,20 @@ def pack(value) -> str:
     return match.group(1)
 
 
-def check(repo, old, new, *, old_pack, new_pack, declared=None) -> dict:
-    """The answer for OLD -> NEW with both packs (both required: a pack not compared is never the same exam)."""
+def scope_module():
+    """`grading_scope` from this checkout (it refuses to clear anything unless its bytes are NEW's own)."""
+    spec = importlib.util.spec_from_file_location(
+        "carbon_release_grading_scope", SCOPE_FILE
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def check(repo, old, new, *, old_pack, new_pack, declared=None, served=None) -> dict:
+    """The answer for OLD -> NEW with both packs (both required: a pack not compared is never the same exam).
+    ``served``: the ``'<challenge> <version>'`` pairs the door serves, for the door-scope verdict (`NOT_SERVED`).
+    """
     old_pack, new_pack = pack(old_pack), pack(new_pack)
     out = {"schema": SCHEMA, "old_ref": old, "new_ref": new}
     try:
@@ -277,6 +300,19 @@ def check(repo, old, new, *, old_pack, new_pack, declared=None) -> dict:
         return {**out, "state": SAME}
     if declared:
         return {**out, "state": DECLARED, "declared": declared}
+    if served and changed and not (rule_changed or absent or moved or pack_changed):
+        # the scope is never a reason to pass: on any doubt it is an exam change
+        try:
+            cleared = scope_module().not_served(repo, old, new, changed, served, named)
+        except Exception:  # noqa: BLE001
+            cleared = None
+        if cleared is not None:
+            return {
+                **out,
+                "state": NOT_SERVED,
+                "served": sorted(served),
+                "grading_paths_not_served": cleared,
+            }
     return {**out, "state": CHANGE}
 
 
@@ -293,6 +329,7 @@ def main(argv=None) -> int:
     c.add_argument("--old-pack", required=True)
     c.add_argument("--new-pack", required=True)
     c.add_argument("--declared-exam-change")
+    c.add_argument("--served", action="append")
     args = parser.parse_args(argv)
     if args.command == "check":
         if (
@@ -305,6 +342,13 @@ def main(argv=None) -> int:
                 pack(getattr(args, name))
             except ValueError as bad:
                 parser.error(f"--{name.replace('_', '-')}: {bad}")
+        if any(
+            not re.fullmatch(r"[a-z0-9][a-z0-9-]* [0-9]+(?:\.[0-9]+)*", pair)
+            for pair in args.served or ()
+        ):
+            parser.error(
+                "--served takes 'CHALLENGE VERSION' (e.g. 'electric-motor-magnetics 1.8')"
+            )
     try:
         if args.command == "digest":
             commit = resolve(args.repo, args.rev)
@@ -322,6 +366,7 @@ def main(argv=None) -> int:
                 old_pack=args.old_pack,
                 new_pack=args.new_pack,
                 declared=args.declared_exam_change,
+                served=args.served,
             )
             state = result["state"]
     except Exception as failed:  # noqa: BLE001
