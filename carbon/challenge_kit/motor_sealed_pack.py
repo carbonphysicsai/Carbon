@@ -55,6 +55,10 @@ def _model_row_width(version):
         from carbon.motor import row18
 
         return row18.WIDTH
+    if version == "1.9":
+        from carbon.motor import row19
+
+        return row19.WIDTH
     return None
 
 

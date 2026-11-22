@@ -95,6 +95,7 @@ CODE_MODULES = (
     "carbon/level4/validate.py",
     "carbon/motor/exam.py",
     "carbon/motor/row18.py",
+    "carbon/motor/row19.py",
 )
 
 
@@ -224,12 +225,12 @@ def _motor_quantities(curve):
 
 
 def motor_torque(row):
-    """The torque curve a Motor check reads from a model's row: the torque slice of a whole 240-wide Motor 1.8 row (its
-    public split, `carbon.motor.row18.split`, which the grade also uses), any other row as it is, which the native
-    gates then judge."""
-    from carbon.motor import row18
+    """The torque curve a Motor check reads from a model's row: the torque slice of a whole 240-wide Motor 1.8 row or a
+    whole 241-wide Motor 1.9 row (their public splits, `carbon.motor.row18.split` / `row19.split`, which the grades also
+    use), any other row as it is, which the native gates then judge."""
+    from carbon.motor import row18, row19
 
-    parts = row18.split(row)
+    parts = row18.split(row) or row19.split(row)
     return list(row) if parts is None else parts["torque_nm"]
 
 
