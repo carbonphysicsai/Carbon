@@ -378,6 +378,7 @@ RECIPE_REFUSAL_CODES = frozenset(
         "construction_recipe_pretrained_state_forbidden",
         "construction_recipe_procedure_invalid",
         "construction_recipe_source_invalid",
+        "construction_recipe_trust_needs_held_out_rows",
     }
 )
 
