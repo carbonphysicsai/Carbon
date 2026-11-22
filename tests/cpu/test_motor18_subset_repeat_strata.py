@@ -518,7 +518,12 @@ def test_only_door_and_grade_modules_import_the_subset_repeat_evidence():
                     ]
                 elif isinstance(node, ast.Import):
                     names = [alias.name for alias in node.names]
-                if "carbon.scoring.subset_repeat_evidence" in names:
+                # the strata modules: the 1.8 code table and (new-exam prep #11, v2 22 Nov) the registry that reads a
+                # new version's strata from its bound overlay entry: the same rule binds both
+                if (
+                    "carbon.scoring.subset_repeat_evidence" in names
+                    or "carbon.scoring.subset_repeat_registry" in names
+                ):
                     importers.add(path.relative_to(ROOT).as_posix())
     assert importers == {
         # the door: the draw, the side file, the serve check; and the receiver's start-up check
@@ -529,6 +534,9 @@ def test_only_door_and_grade_modules_import_the_subset_repeat_evidence():
         "carbon/challenge_validator/calibration_grade.py",
         "carbon/scoring/producer_successor.py",
         "carbon/scoring/subset_repeat_produce.py",
+        # new-exam prep #11 (v2 22 Nov 00:12:09Z / 00:32:14Z): a NEW version's strata from its bound overlay entry; a
+        # grade-side strata module itself (its own importers are bound by this same set)
+        "carbon/scoring/subset_repeat_registry.py",
         # operator tools run in custody (counts only; the grader's own re-measure)
         "scripts/dev/design_value_parts.py",
         # the receipted king recompute (V2 19 Nov, run in custody on the door host): reads the kept --pair side file
