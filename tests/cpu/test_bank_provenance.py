@@ -122,16 +122,16 @@ def test_record_appends_and_the_file_refuses_update_and_delete(bank, tmp_path):
 @pytest.mark.parametrize(
     "kwargs,code",
     [
-        (dict(sources=[(R1, "PAYOUT")]), "role_unknown"),
-        (dict(status="SOLD"), "artifact_status_unknown"),
-        (dict(sources=[]), "no_sources"),
-        (dict(evidence=""), "artifact_or_evidence_missing"),
-        (dict(sources=[(R3, "SETTINGS")]), "attribution_ambiguous"),
+        ({"sources": [(R1, "PAYOUT")]}, "role_unknown"),
+        ({"status": "SOLD"}, "artifact_status_unknown"),
+        ({"sources": []}, "no_sources"),
+        ({"evidence": ""}, "artifact_or_evidence_missing"),
+        ({"sources": [(R3, "SETTINGS")]}, "attribution_ambiguous"),
     ],
 )
 def test_typed_refusals_write_nothing(bank, tmp_path, kwargs, code):
     out = tmp_path / "prov.sqlite3"
-    args = dict(sources=[(R1, "SETTINGS")], evidence="E010", status="CANDIDATE")
+    args = {"sources": [(R1, "SETTINGS")], "evidence": "E010", "status": "CANDIDATE"}
     args.update(kwargs)
     with pytest.raises(prov.BankRefused, match=code):
         prov.record(
