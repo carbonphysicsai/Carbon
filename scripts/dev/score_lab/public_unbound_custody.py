@@ -1880,9 +1880,7 @@ def _bundle_header(
         != (
             GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
             if trust
-            else GRAPH_ENSEMBLE_STATE_SCHEMA
-            if ensemble
-            else source_schema
+            else GRAPH_ENSEMBLE_STATE_SCHEMA if ensemble else source_schema
         )
         or (ensemble and not decoded)
         or set(arrays) != expected_arrays
@@ -1946,9 +1944,11 @@ def _bundle_header(
             loader = (
                 physical_graph_state_v3.validate
                 if trust
-                else physical_graph_state_v2.validate
-                if ensemble
-                else physical_graph_state.load
+                else (
+                    physical_graph_state_v2.validate
+                    if ensemble
+                    else physical_graph_state.load
+                )
             )
             loader(state, bound_recipe, permitted)
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
