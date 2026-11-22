@@ -24,6 +24,7 @@ from pathlib import Path
 
 from carbon.development_session.graph_state_contract import (
     GRAPH_ENSEMBLE_STATE_SCHEMA,
+    GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA,
     GRAPH_SOURCE_STATE_SCHEMA,
     GRAPH_SOURCE_STATE_SCHEMAS,
 )
@@ -1827,9 +1828,15 @@ def _bundle_header(
     source_field = "submission_digest" if graph_source else "bundle_digest"
     source_schema = GRAPH_SOURCE_STATE_SCHEMA if graph_source else BUNDLE_STATE_SCHEMA
     decoded = graph_source and "decoder" in header
-    ensemble = graph_source and header.get("schema") == GRAPH_ENSEMBLE_STATE_SCHEMA
-    extra_fields = ({"decoder"} if decoded else set()) | (
-        {"members"} if ensemble else set()
+    # a self-trust version's ensemble state (SELF_TRUST H3g R1): the ensemble layout plus a `trust` block in the header
+    trust = graph_source and header.get("schema") == GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
+    ensemble = trust or (
+        graph_source and header.get("schema") == GRAPH_ENSEMBLE_STATE_SCHEMA
+    )
+    extra_fields = (
+        ({"decoder"} if decoded else set())
+        | ({"members"} if ensemble else set())
+        | ({"trust"} if trust else set())
     )
     count = header.get("parameter_count")
     members = header.get("members", 1)
@@ -1870,7 +1877,13 @@ def _bundle_header(
         }
         | extra_fields
         or header["schema"]
-        != (GRAPH_ENSEMBLE_STATE_SCHEMA if ensemble else source_schema)
+        != (
+            GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
+            if trust
+            else GRAPH_ENSEMBLE_STATE_SCHEMA
+            if ensemble
+            else source_schema
+        )
         or (ensemble and not decoded)
         or set(arrays) != expected_arrays
     ):
@@ -1885,6 +1898,17 @@ def _bundle_header(
     ):
         _digest(header[field], f"bundle_{field}")
     _graph_digest_equal(_sha(graph_raw), header["graph_digest"], "bundle_graph")
+    if trust:
+        block = header["trust"]
+        if (
+            type(block) is not dict
+            or set(block) != {"member", "width"}
+            or type(block["member"]) is not int
+            or block["member"] != 0
+            or type(block["width"]) is not int
+            or block["width"] < 1
+        ):
+            raise CustodyRefused("bundle_state_header")
     if decoded:
         decoder = header["decoder"]
         width = decoder.get("width") if type(decoder) is dict else None
@@ -1904,6 +1928,7 @@ def _bundle_header(
         from carbon.development_session import (
             physical_graph_state,
             physical_graph_state_v2,
+            physical_graph_state_v3,
         )
         from carbon.development_session.construction_recipe import ConstructionRecipe
         from carbon.level4.allowlist import Allowlist
@@ -1919,7 +1944,9 @@ def _bundle_header(
                 allowlist = graph_allowlist_bytes(challenge["id"], challenge["version"])
             permitted = Allowlist(allowlist)
             loader = (
-                physical_graph_state_v2.validate
+                physical_graph_state_v3.validate
+                if trust
+                else physical_graph_state_v2.validate
                 if ensemble
                 else physical_graph_state.load
             )
@@ -2013,7 +2040,8 @@ def _graph_fit_ok(fit, header, recipe_digest):
         )
     # The exact receipts emitted by physical_graph_adapter(.v2).fit. These are
     # bound producer declarations, not a scientific acceptance or score.
-    ensemble = header["schema"] == GRAPH_ENSEMBLE_STATE_SCHEMA
+    trust = header["schema"] == GRAPH_ENSEMBLE_TRUST_STATE_SCHEMA
+    ensemble = trust or header["schema"] == GRAPH_ENSEMBLE_STATE_SCHEMA
     # trainer v3's training curve (DATA D2, `_graph_curve_ok`): an ensemble fit MAY carry it, never another layout
     curved = ensemble and type(fit) is dict and "curve" in fit
     fields = (
@@ -2028,11 +2056,25 @@ def _graph_fit_ok(fit, header, recipe_digest):
         }
         | ({"members", "member_losses"} if ensemble else set())
         | ({"curve"} if curved else set())
+        # a trust candidate's fit also records how phase 2 ended and the trust trainer that ran it
+        | ({"trust", "trust_trainer_sha256"} if trust else set())
     )
     return (
         type(fit) is dict
         and set(fit) == fields
         and (not curved or _graph_curve_ok(fit["curve"], header["members"]))
+        and (
+            not trust
+            or (
+                type(fit["trust"]) is dict
+                and set(fit["trust"]) == {"status", "held_out_rows"}
+                and fit["trust"]["status"] in ("trained", "no_held_out_rows")
+                and type(fit["trust"]["held_out_rows"]) is int
+                and fit["trust"]["held_out_rows"] >= 0
+                and type(fit["trust_trainer_sha256"]) is str
+                and _SHA.fullmatch(fit["trust_trainer_sha256"]) is not None
+            )
+        )
         and type(fit["adapter_id"]) is str
         and bool(fit["adapter_id"])
         and type(fit["train_cases"]) is int
