@@ -14,6 +14,7 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -29,16 +30,35 @@ CHALLENGE = {"id": "electric-motor-magnetics", "version": "1.8"}
 PACK = "a" * 64
 
 
+def _trusting_global_config():
+    """A temp GLOBAL git config trusting every directory, for this test's own git calls only (release 22 Nov 01:25:43Z
+    + 02:09:44Z: in the canonical container the files' owner is not the container user, and a --shared clone opens
+    ROOT/.git, which the container's safe.directory entry does not cover; git 2.43 ignores '-c safe.directory' and the
+    GIT_CONFIG_* env for the clone's upload-pack child, while GIT_CONFIG_GLOBAL reaches it). The fixture's repos are
+    throw-away tmp clones; nothing is written to ROOT."""
+    global _GLOBAL_CONFIG
+    if _GLOBAL_CONFIG is None:
+        handle, path = tempfile.mkstemp(prefix="grading-scope-gitconfig-")
+        with os.fdopen(handle, "w") as out:
+            out.write("[safe]\n\tdirectory = *\n")
+        _GLOBAL_CONFIG = path
+    return _GLOBAL_CONFIG
+
+
+_GLOBAL_CONFIG = None
+
+
 def _git(root, *args, data=None, env=None):
-    # release 22 Nov 01:25:43Z: in the canonical container the files' owner is not the container user, and a --shared
-    # clone opens ROOT/.git, which the container's safe.directory entry (the worktree) does not cover: trust it for this
-    # test's own read-only clones only (the fixture's repos are throw-away tmp clones; nothing is written to ROOT)
     return subprocess.run(
-        ["git", "-c", "safe.directory=*", "-C", str(root), *args],
+        ["git", "-C", str(root), *args],
         input=data,
         capture_output=True,
         check=True,
-        env={**os.environ, **(env or {})},
+        env={
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": _trusting_global_config(),
+            **(env or {}),
+        },
     ).stdout
 
 
