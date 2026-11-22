@@ -106,3 +106,38 @@ def test_a_regrades_sigma_is_exactly_what_its_receipt_names(tmp_path):
         RetentionUnavailable, match="regrade_inference_receipt_malformed"
     ):
         retention._regrade_sigma(b"not json", None)
+
+
+def test_the_receipt_is_the_last_file_a_trust_regrade_writes(tmp_path, monkeypatch):
+    # door-code 03:35:48Z: a retried regrade keys on the receipt's existence, so every other file must be down before it
+    artifacts = {
+        "recipe.json": b"{}",
+        "inference-receipt.json": b'{"sigma_digest": "x"}',  # the ORIGIN's position: early
+        "predictions.json": b"[[1.0]]",
+        "worker-evidence.json": b"{}",
+        "sigma.json": b"[[0.5]]",  # appended last by the regrade
+    }
+    assert list(retention._receipt_written_last(artifacts))[-1] == (
+        "inference-receipt.json"
+    )
+    assert artifacts["inference-receipt.json"] == b'{"sigma_digest": "x"}'
+    assert set(retention._receipt_written_last(artifacts)) == set(artifacts)
+    assert retention._receipt_written_last({"a": b"1"}) == {
+        "a": b"1"
+    }  # no receipt: unchanged
+
+    from carbon.development_session import data
+
+    written = []
+    monkeypatch.setattr(data, "retained_objects", lambda root: None)
+    monkeypatch.setattr(
+        data,
+        "store_once",
+        lambda objects, path, raw, mode: written.append(path.name),
+    )
+    monkeypatch.setattr(
+        data, "link_once", lambda sources, path, raw: written.append(path.name)
+    )
+    retention._write_retained(tmp_path, retention._receipt_written_last(artifacts), {})
+    assert written[-1] == "inference-receipt.json"
+    assert sorted(written) == sorted(artifacts)

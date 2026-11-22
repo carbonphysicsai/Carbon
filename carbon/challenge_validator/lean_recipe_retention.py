@@ -442,6 +442,17 @@ def _regrade_sigma(receipt_raw: bytes, sigma: bytes | None) -> bytes | None:
     return sigma
 
 
+def _receipt_written_last(artifacts: dict) -> dict:
+    """``artifacts`` with its ``inference-receipt.json`` moved to the END (`_write_retained` writes in insertion order). A retried
+    regrade keys on that file's existence, so its presence must mean every other file of the grade is already down: a crash
+    before the last write otherwise leaves a receipt naming a sigma that is not there, and every retry refuses forever
+    (door-code 03:35:48Z)."""
+    ordered = dict(artifacts)
+    if "inference-receipt.json" in ordered:
+        ordered["inference-receipt.json"] = ordered.pop("inference-receipt.json")
+    return ordered
+
+
 def _receipt_snapshot(path: Path, expected: dict, label: str) -> bytes:
     if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 65536:
         raise RetentionUnavailable(label + "_unavailable")
@@ -6974,6 +6985,7 @@ def _regrade_retained_entry(
             inference_operation=operation,
         )
         artifacts["lineage.json"] = _json(lineage)
+    artifacts = _receipt_written_last(artifacts)
     new_manifest = dict(manifest)
     roles = dict(manifest["roles"])
     if GRADED_INFERENCE_IMAGE_FILE in artifacts:
