@@ -79,6 +79,23 @@ def test_a_stopped_attempts_evaluation_is_moved_aside_never_deleted(tmp_path):
     ).read_bytes() == b'{"entry_id": "e1"}'
 
 
+def test_set_aside_has_no_generation_bound(tmp_path):
+    """CAPS.md section 3 item 10 (22 Nov 2026): the 65th interruption of one task is set aside like the first (the old
+    bound of 64 raised ValueError before the claim and named no harm); the first free generation is taken.
+    """
+    kept_dir = tmp_path / "auto-grade" / "requeued"
+    kept_dir.mkdir(parents=True)
+    for k in range(1, 65):
+        (kept_dir / f"{TASK}.interrupted-{k}.evaluation").mkdir()
+    _interrupted(tmp_path)
+    assert infra_requeue.set_aside_interrupted(tmp_path, TASK, started=LATER) == (
+        f"{TASK}.interrupted-65.evaluation"
+    )
+    assert (
+        kept_dir / f"{TASK}.interrupted-65.evaluation" / "evaluation-pack-binding.json"
+    ).read_bytes() == b'{"entry_id": "e1"}'
+
+
 def test_a_task_with_a_marker_or_no_evaluation_is_never_touched(tmp_path):
     evaluation = _interrupted(tmp_path)
     _marker(tmp_path, TASK)

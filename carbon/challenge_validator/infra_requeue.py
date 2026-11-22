@@ -190,9 +190,10 @@ def _evaluation_refusal(paths):
     return None
 
 
-#: Where an interrupted attempt's private evaluation files go (`set_aside_interrupted`), and its log.
+#: Where an interrupted attempt's private evaluation files go (`set_aside_interrupted`), and its log. The generation k
+#: is the first free one, with no upper bound (ops/CAPS.md section 3 item 10, 22 Nov 2026: a bound of 64 raised
+#: ValueError before the claim and named no harm; every set-aside is one real interruption, kept, never deleted).
 INTERRUPTED = "interrupted.jsonl"
-_INTERRUPTED_LIMIT = 64
 #: Seconds a directory must predate this grader process to be an earlier process's (an interrupted attempt). The kernel
 #: stamps files from a coarse clock that can lag `time.time()` by milliseconds, so a file this process wrote just after
 #: it started may read as a hair older than the start (Runner g8730, 17 Nov). A real interruption predates the restart
@@ -232,12 +233,11 @@ def set_aside_interrupted(root, task, *, started, clock=time.time_ns):
         return None
     kept = paths["kept_marker"].parent
     kept.mkdir(mode=0o700, parents=True, exist_ok=True)
-    for k in range(1, _INTERRUPTED_LIMIT + 1):
+    k = 1
+    target = kept / f"{task}.interrupted-{k}.evaluation"
+    while target.exists() or target.is_symlink():
+        k += 1
         target = kept / f"{task}.interrupted-{k}.evaluation"
-        if not target.exists() and not target.is_symlink():
-            break
-    else:
-        raise ValueError("interrupted evaluations exhausted")
     files = sum(1 for path in evaluation.rglob("*") if path.is_file())
     os.replace(evaluation, target)
     with open(kept / INTERRUPTED, "a", encoding="utf-8") as log:

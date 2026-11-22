@@ -311,6 +311,11 @@ _SWEPT = {}
 #: the owed-list line for a FAILED marker whose exam row is still COUNTED (released only by the operator's
 #: `infra_requeue release`, which proves the result never reached the miner)
 COUNTED_UNDER_FAILED = "counted_row_under_failed_marker"
+#: the owed-list line, once per task, for a FAILED marker the sweep WOULD schedule but that is older than
+#: `SWEEP_WINDOW_SECONDS` (ops/CAPS.md section 3 item 9, 22 Nov 2026: the window used to drop it silently, so a grade
+#: Carbon owed past 72 h was never retried and never listed). The window itself is unchanged: this names the task for the
+#: operator; it schedules nothing.
+WINDOW_PASSED = "auto_retry_window_passed"
 
 
 def _held_rows(root):
@@ -354,15 +359,17 @@ def sweep_carbon_cut(root, *, clock=time.time_ns, monotonic=time.monotonic):
         markers = Path(root) / "auto-grade" / "markers"
         cutoff = clock() / 1e9 - SWEEP_WINDOW_SECONDS
         pending = _pending(root)
-        flagged = {
-            r["task"]
-            for r in _lines(_dir(root) / ALERT_NAME)
-            if r.get("event") == COUNTED_UNDER_FAILED
-        }
+        alerts = _lines(_dir(root) / ALERT_NAME)
+        flagged = {r["task"] for r in alerts if r.get("event") == COUNTED_UNDER_FAILED}
+        passed = {r["task"] for r in alerts if r.get("event") == WINDOW_PASSED}
         scheduled = []
         for path in sorted(markers.glob("rtsk_*.json")):
             try:
-                if path.stat().st_mtime < cutoff:
+                # Outside the window a marker is never scheduled here (unchanged), but it is no longer dropped
+                # silently: it takes the same checks, and the one it would have been scheduled for is named once on
+                # the owed list (`WINDOW_PASSED`) instead. A task already named is not read again.
+                old = path.stat().st_mtime < cutoff
+                if old and (path.stem in passed or path.stem in flagged):
                     continue
                 marker = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
@@ -389,6 +396,19 @@ def sweep_carbon_cut(root, *, clock=time.time_ns, monotonic=time.monotonic):
                 continue
             if used(root, task, code=code):
                 continue  # its cap's owed line was written when it was spent
+            if old:
+                _append(
+                    _dir(root) / ALERT_NAME,
+                    {
+                        "task": task,
+                        "event": WINDOW_PASSED,
+                        "reason": "owed_list",
+                        "code": code,
+                        "at_ns": int(clock()),
+                    },
+                )
+                passed.add(task)
+                continue
             if schedule(root, task, code, clock=clock):
                 scheduled.append(task)
         return scheduled

@@ -90,12 +90,39 @@ def test_a_carbon_cut_grade_gets_its_retry_scheduled_by_the_sweep(tmp_path):
     _marker(markers, T["C"], "CANDIDATE_FAILED", "candidate_program_failed")
     # a COUNTED row: never retried here
     _marker(markers, T["K"], "FAILED", "WorkerFailure")
-    # too old
+    # too old: never scheduled, named on the owed list instead (ops/CAPS.md section 3 item 9)
     _marker(markers, T["O"], "FAILED", "WorkerFailure", age=4 * 86400)
     assert auto_retry.sweep_carbon_cut(tmp_path) == [T["R"]]
     assert _scheduled(tmp_path) == [T["R"]]
+    assert [(a["task"], a["event"]) for a in _alerts(tmp_path)] == [
+        (T["K"], auto_retry.COUNTED_UNDER_FAILED),
+        (T["O"], auto_retry.WINDOW_PASSED),
+    ]
+
+
+def test_a_failed_grade_past_the_window_is_named_once_and_never_scheduled(tmp_path):
+    """CAPS.md section 3 item 9 (22 Nov 2026): a FAILED marker older than `SWEEP_WINDOW_SECONDS` used to be dropped
+    silently. The window is unchanged (nothing past it is scheduled), but the task the sweep would have scheduled is
+    named once on the owed list; one it would not schedule (a slot held, a version-wide gap, a spent cap) is not.
+    """
+    old = auto_retry.SWEEP_WINDOW_SECONDS + 3600
+    markers = _state(tmp_path, {T["R"]: "RELEASED", T["K"]: "RESERVED"})
+    _marker(markers, T["R"], "FAILED", "WorkerFailure", age=old)  # owed
+    _marker(markers, T["K"], "FAILED", "WorkerFailure", age=old)  # its slot is held
+    _marker(markers, T["C"], "FAILED", "exam_cap_unregistered", age=old)  # a gap
+    _marker(markers, T["O"], "GRADED", "WorkerFailure", age=old)  # not a failure
+    assert auto_retry.sweep_carbon_cut(tmp_path) == []
+    assert _scheduled(tmp_path) == []
     (alert,) = _alerts(tmp_path)
-    assert (alert["task"], alert["event"]) == (T["K"], auto_retry.COUNTED_UNDER_FAILED)
+    assert (alert["task"], alert["event"], alert["reason"], alert["code"]) == (
+        T["R"],
+        auto_retry.WINDOW_PASSED,
+        "owed_list",
+        "WorkerFailure",
+    )
+    auto_retry._SWEPT.clear()  # the next hour's sweep: named once only
+    assert auto_retry.sweep_carbon_cut(tmp_path) == []
+    assert len(_alerts(tmp_path)) == 1
 
 
 def test_the_sweep_runs_at_most_hourly_and_names_a_counted_row_once(tmp_path):
