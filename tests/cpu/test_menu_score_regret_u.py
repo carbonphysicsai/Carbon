@@ -147,3 +147,22 @@ def test_a_pool_menu_rule_and_a_registration_carry_the_d_form():
         pool_version._menu({**block, "k": "HUMAN_INPUT"})
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         pool_version._menu({k: v for k, v in block.items() if k != "k"})
+
+
+def test_the_share_path_still_calls_pick_d_with_three_arguments(monkeypatch):
+    """release g9703: a caller (test_menu_score_no_room_exact) replaces `pick_d` with a three-argument function; the
+    default share path must keep calling it that way."""
+    record = ranking._record()
+    preds = ranking._model(0.0)(record)
+    seen = []
+
+    def three(problem, rec, pid):
+        seen.append(pid)
+        return 0.5 if pid == rec.optimum else 0.25
+
+    monkeypatch.setattr(ms, "pick_d", three)
+    try:
+        _score(record, preds)
+    except ms.MenuRefused:
+        pass  # a stub may leave no room; the point is no TypeError on the three-argument call
+    assert seen

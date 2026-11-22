@@ -347,6 +347,15 @@ def pick_d(problem, record, pid, d_form=D_SHARE, k=None):
     return min(1.0, max(0.0, share))
 
 
+def _pick(problem, record, pid, d_form, k):
+    """`pick_d` in the registered d form: the default ``share`` calls it exactly as before (three arguments), so every
+    existing path, and any caller that replaces `pick_d`, is unchanged; ``regret_u`` passes the form and k.
+    """
+    if d_form == D_SHARE and k is None:
+        return pick_d(problem, record, pid)
+    return pick_d(problem, record, pid, d_form, k)
+
+
 def _group_d(ds):
     """A tied group's mean d: exactly the members' value when they all share it (no rounding on a constant group)."""
     return ds[0] if all(d == ds[0] for d in ds) else math.fsum(ds) / len(ds)
@@ -403,7 +412,7 @@ def _slots(
         while j < len(keyed) and keyed[j][0] == keyed[i][0]:
             j += 1
         mean = _group_d(
-            [pick_d(problem, record, pid, d_form, k) for _, pid in keyed[i:j]]
+            [_pick(problem, record, pid, d_form, k) for _, pid in keyed[i:j]]
         )
         slots += [mean] * min(j - i, TOP - len(slots))
         i = j
@@ -412,7 +421,7 @@ def _slots(
 
 def _oracle_slots(problem, record, menu, d_form=D_SHARE, k=None):
     return tuple(
-        sorted((pick_d(problem, record, pid, d_form, k) for pid in menu), reverse=True)[
+        sorted((_pick(problem, record, pid, d_form, k) for pid in menu), reverse=True)[
             :TOP
         ]
     )
@@ -499,7 +508,7 @@ def score_task(
     raw = raw_score(problem, record, menu, predictions, ranking, d_form, k)
     best = _oracle_slots(problem, record, menu, d_form, k)
     oracle = _weighted(best)
-    ds = [pick_d(problem, record, pid, d_form, k) for pid in menu]
+    ds = [_pick(problem, record, pid, d_form, k) for pid in menu]
     zero, source = _group_d(ds), "random"
     # No room is decided on the slot values, not on rounded sums (Q4 12 Nov): the random pick reaches the oracle
     # exactly when every menu design has the same d, an arm exactly when its five slots are the oracle's five.
