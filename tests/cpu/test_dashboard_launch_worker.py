@@ -455,10 +455,14 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
     assert codes["extra_ladder_key"] == "ladder_invalid"
     assert codes["unrounded"] == "total_unrounded"
     assert codes["counts"] == "counts_invalid"
-    for ok in ("v2_two", "v2_empty", "v2_five"):
+    for ok in ("v2_two", "v2_empty", "v2_five", "v2_six"):
         assert codes[ok] is None, ok
+    # CAPS.md 3 item 4: a longer history is read, never a refused board; the page shows the first MAX_CROWN_CHANGES
+    assert (
+        len(dict(expected_v2)["v2_six"]["board"]["launch"]["crown_changes"])
+        == launch.MAX_CROWN_CHANGES
+    )
     for bad in (
-        "v2_six",
         "v2_extra_entry_key",
         "v2_bad_from",
         "v2_negative_epoch",

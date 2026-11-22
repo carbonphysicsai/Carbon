@@ -33,6 +33,9 @@ from carbon.miner_agent import MINER_HEADERS
 from carbon.registry.model import ChallengeKey
 from carbon.transport.models import MAX_BODY, message
 
+#: The most bytes read from one door reply (CAPS.md 3 item 7: was 64 KiB, which cut a larger reply mid-JSON and broke the
+#: client; no harm named). A reply is still parsed whole or refused.
+REPLY_READ_BYTES = 1024 * 1024
 RECORD_SCHEMA = "carbon.construction.intake-submission.v1"
 INFO_PATH = "/carbon/v1/construction/intake"
 SUBMIT_PATH = "/carbon/v1/mcp"
@@ -238,10 +241,10 @@ def read_intake(url: str, *, timeout: float = 10.0) -> dict:
             ),
             timeout=timeout,
         ) as response:
-            facts = json.loads(response.read(65536))
+            facts = json.loads(response.read(REPLY_READ_BYTES))
     except urllib.error.HTTPError as refused:
         if refused.code in (429, 503):
-            answer = json.loads(refused.read(65536) or b"{}")
+            answer = json.loads(refused.read(REPLY_READ_BYTES) or b"{}")
             if type(answer) is dict and refused.code == 503:
                 answer["retry_after_s"] = _retry_after_s(refused.headers)
             _raise_if_pre_admission_refusal(refused.code, answer)
@@ -260,9 +263,9 @@ def post(url, body, headers, *, timeout=30.0):
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, json.loads(response.read(65536))
+            return response.status, json.loads(response.read(REPLY_READ_BYTES))
     except urllib.error.HTTPError as refused:
-        answer = json.loads(refused.read(65536) or b"{}")
+        answer = json.loads(refused.read(REPLY_READ_BYTES) or b"{}")
         if refused.code == 503 and type(answer) is dict:
             answer["retry_after_s"] = _retry_after_s(refused.headers)
         return refused.code, answer

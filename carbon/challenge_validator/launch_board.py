@@ -177,8 +177,12 @@ LADDER_FIELDS_V5 = LADDER_FIELDS | {"reason"}
 COUNT_FIELDS = ("graded", "scored", "gate_failed", "not_scored")
 #: A ladder this long is the whole table; the board shows no more rows than this.
 MAX_LADDER = 512
+#: A GATE_FAILED row shows at most this many gate names (the first ones; the miner's own feedback names every gate). A
+#: longer list is CUT to this, never a refused board (CAPS.md 3 item 2, owner: no cap without a named harm).
 MAX_GATES = 16
-_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
+#: The public hotkey shape, the same as the Worker's (feed.mjs SS58, {46,48}); it is the markup guard for the page. A
+#: ladder row, crown change or crown check whose hotkey does not match is LEFT OUT, never a refused board (CAPS 3 item 5).
+_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{46,48}")
 _HEX_KEY = re.compile(r"[0-9a-f]{64}")
 _NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 _LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._:+-]{0,63}")
@@ -331,6 +335,14 @@ def _stability_ok(stability, king, measure):
     return stability == expected
 
 
+def _measure_max_n():
+    """The largest registered crown-average N (`crown_common.MAX_N`, one constant; CAPS 3 item 3: the board's old 100
+    refused a rule the registry allows)."""
+    from .crown_common import MAX_N
+
+    return MAX_N
+
+
 def measure_checked(measure, *, king):
     """The closed ``measure`` (None with no king) or `BoardRefused` ("board_measure")."""
     if king is None:
@@ -343,7 +355,7 @@ def measure_checked(measure, *, king):
         or measure["state"] not in MEASURE_STATES
         or type(measure["kept"]) is not int
         or type(measure["n"]) is not int
-        or not 2 <= measure["n"] <= 100
+        or not 2 <= measure["n"] <= _measure_max_n()
         or not 0 <= measure["kept"] <= measure["n"]
     ):
         raise BoardRefused("board_measure")
@@ -351,18 +363,26 @@ def measure_checked(measure, *, king):
 
 
 def crown_checks_checked(checks):
-    """The closed ``crown_checks`` list (at most `MAX_CROWN_CHECKS`; hotkeys distinct; an outcome in `CHECK_OUTCOMES`
-    whose state follows from it; a public note from that outcome's `NOTES`) or `BoardRefused` ("board_crown_checks").
+    """The closed ``crown_checks`` list (its first `MAX_CROWN_CHECKS`, newest first: a longer list is cut, CAPS 3 item 4;
+    hotkeys distinct; an outcome in `CHECK_OUTCOMES` whose state follows from it; a public note from that outcome's
+    `NOTES`) or `BoardRefused` ("board_crown_checks"). A check whose hotkey is not the public shape is left out.
     """
-    if type(checks) is not list or len(checks) > MAX_CROWN_CHECKS:
+    if type(checks) is not list:
         raise BoardRefused("board_crown_checks")
     out, seen = [], set()
     for check_ in checks:
+        if len(out) >= MAX_CROWN_CHECKS:
+            break
+        if (
+            type(check_) is dict
+            and type(check_.get("hotkey")) is str
+            and not _SS58.fullmatch(check_["hotkey"])
+        ):
+            continue  # not the public hotkey shape: left out, never a refused board (CAPS 3 item 5)
         if (
             type(check_) is not dict
             or set(check_) != CHECK_FIELDS
             or type(check_["hotkey"]) is not str
-            or not _SS58.fullmatch(check_["hotkey"])
             or check_["hotkey"] in seen
             or check_["outcome"] not in CHECK_OUTCOMES
             or check_["state"]
@@ -376,13 +396,21 @@ def crown_checks_checked(checks):
 
 
 def crown_changes_checked(changes):
-    """The closed ``crown_changes`` list (at most `MAX_CROWN_CHANGES`, each exactly the four keys, hotkeys as the king
-    page shows them, the total rounded as every public total), or a refusal. Nothing else can pass through.
+    """The closed ``crown_changes`` list (its first `MAX_CROWN_CHANGES`, newest first: a longer list is cut, CAPS 3 item
+    4; each exactly the four keys, hotkeys as the king page shows them, the total rounded as every public total), or a
+    refusal. Nothing else can pass through. A change naming a hotkey that is not the public shape is left out.
     """
-    if type(changes) is not list or len(changes) > MAX_CROWN_CHANGES:
+    if type(changes) is not list:
         raise BoardRefused("board_crown_changes")
     out = []
     for change in changes:
+        if len(out) >= MAX_CROWN_CHANGES:
+            break
+        if type(change) is dict and any(
+            type(change.get(name)) is str and not _SS58.fullmatch(change[name])
+            for name in ("from_hotkey", "to_hotkey")
+        ):
+            continue  # not the public hotkey shape: left out, never a refused board (CAPS 3 item 5)
         if (
             type(change) is not dict
             or set(change) != CROWN_CHANGE_FIELDS
@@ -450,7 +478,7 @@ def ladder_rows(
     reason_of = {}
     for hotkey, best, latest in rows:
         if type(hotkey) is not str or not _SS58.fullmatch(hotkey):
-            raise BoardRefused("board_hotkey")
+            continue  # not the public hotkey shape: the row is left out, never a refused board (CAPS 3 item 5)
         if latest is None or latest.get("status") not in gf.STATUSES:
             raise BoardRefused("board_latest")
         total = None if best is None else floor9(_unit(best["total"], "board_total"))
@@ -459,8 +487,9 @@ def ladder_rows(
             if latest["status"] == "GATE_FAILED"
             else None
         )
-        if gates is not None and len(gates) > MAX_GATES:
-            raise BoardRefused("board_gates")
+        if gates is not None:
+            # the first names; never a refused board (CAPS 3 item 2)
+            gates = gates[:MAX_GATES]
         reason = latest.get("reason")
         reason_of[hotkey] = (
             reason

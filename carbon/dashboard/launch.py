@@ -105,7 +105,11 @@ NETWORK_LABELS = {"testnet": ["DEVELOPMENT", "TESTNET"], "mainnet": ["DEVELOPMEN
 #: (`launch_board.MAX_LADDER`, still 512) may follow once this reader and the Worker are deployed; never the reverse.
 MAX_LADDER = 2048
 MAX_GATES = 16
-_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
+#: The public hotkey shape, the same everywhere (launch_board._SS58, the Worker's SS58 / LAUNCH_SS58): the markup guard.
+_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{46,48}")
+#: The largest crown-average N a measure may carry: `crown_common.MAX_N` (held equal by a test; the board's old 100
+#: refused a rule the registry allows, CAPS 3 item 3). The reader never imports the scoring side.
+MAX_MEASURE_N = 1000
 _HEX_KEY = re.compile(r"[0-9a-f]{64}")
 _HEX_SIGNATURE = re.compile(r"[0-9a-f]{128}")
 _NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
@@ -210,8 +214,10 @@ def _digits(values):
 
 
 def _crown_changes(changes):
-    """The v2 history: at most 5 entries, newest first, each exactly the four closed keys."""
-    if type(changes) is not list or len(changes) > MAX_CROWN_CHANGES:
+    """The v2 history, newest first, each exactly the four closed keys. A longer list than `MAX_CROWN_CHANGES` is read
+    and the page shows its first ones (`project`); never a refused board (CAPS 3 item 4).
+    """
+    if type(changes) is not list:
         raise LaunchRefused("crown_changes_invalid")
     for entry in changes:
         if (
@@ -244,14 +250,16 @@ def _measure(measure, king):
         or measure["state"] not in MEASURE_STATES
         or type(measure["kept"]) is not int
         or type(measure["n"]) is not int
-        or not 2 <= measure["n"] <= 100
+        or not 2 <= measure["n"] <= MAX_MEASURE_N
         or not 0 <= measure["kept"] <= measure["n"]
     ):
         raise LaunchRefused("king_invalid")
 
 
 def _crown_checks(checks):
-    if type(checks) is not list or len(checks) > MAX_CROWN_CHECKS:
+    """The v4 crown checks; a longer list than `MAX_CROWN_CHECKS` is read and the page shows its first ones (`project`);
+    never a refused board (CAPS 3 item 4)."""
+    if type(checks) is not list:
         raise LaunchRefused("crown_checks_invalid")
     seen = set()
     for entry in checks:
@@ -395,7 +403,6 @@ def _check(document):
         if gates is not None and (
             entry["status"] != "GATE_FAILED"
             or type(gates) is not list
-            or len(gates) > MAX_GATES
             or any(type(g) is not str or not _GATE.fullmatch(g) for g in gates)
         ):
             raise LaunchRefused("ladder_invalid")
@@ -513,7 +520,9 @@ def project(document, trust):
             "exam_version_label": challenge["exam_version_label"],
             "network": document["network"],
             "gate_names": {
-                e["hotkey"]: list(e["gate_names"]) for e in ladder if e["gate_names"]
+                e["hotkey"]: list(e["gate_names"][:MAX_GATES])
+                for e in ladder
+                if e["gate_names"]
             },
             # v3 only: whether the king's latest re-measure was seed-fragile; None on v1/v2 (nothing drawn)
             "king_stability": king.get("stability"),
@@ -524,7 +533,7 @@ def project(document, trust):
             "crown_checks": (
                 None
                 if "crown_checks" not in document
-                else [dict(c) for c in document["crown_checks"]]
+                else [dict(c) for c in document["crown_checks"][:MAX_CROWN_CHECKS]]
             ),
             # v2/v3 only: the page words the averaged bar differently
             "to_beat_rule": king.get("to_beat_rule"),
@@ -541,7 +550,7 @@ def project(document, trust):
                         "since_epoch": c["since_epoch"],
                         "total": float(c["total"]),
                     }
-                    for c in document["crown_changes"]
+                    for c in document["crown_changes"][:MAX_CROWN_CHANGES]
                 ]
             ),
         },

@@ -59,6 +59,9 @@ from carbon.challenge_validator import cpu_pin
 
 REPO = Path(__file__).resolve().parents[2]
 CONFIG_NAME = "receiver.json"
+#: The most bytes read from one door reply (CAPS.md 3 item 7: was 64 KiB, which cut a larger reply mid-JSON and broke the
+#: client; no harm named). A reply is still parsed whole or refused.
+REPLY_READ_BYTES = 1024 * 1024
 PROFILE_NAME = "runner-profile.json"
 DEFAULT_PORT = 8769
 #: No lifetime: the receiver is a service and runs until it is stopped (E5). A
@@ -1125,7 +1128,7 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
 
     def read(url):
         with urllib.request.urlopen(url, timeout=5) as answer:
-            return json.loads(answer.read(65536))
+            return json.loads(answer.read(REPLY_READ_BYTES))
 
     fetch = fetch or read
     try:

@@ -330,9 +330,40 @@ def serve_v4(view, challenge):
     )
 
 
+def _size(body):
+    return len(json.dumps(body, sort_keys=True, separators=(",", ":")))
+
+
+def _fit_rows(body, limit):
+    """A v3/v4 ``body`` over ``limit`` with its rows cut from the TAIL into ``more_rows`` until it fits (the most rows
+    that fit, found by bisection), or None when even no rows do not fit. CAPS 3 item 6: a long queue showed NO rows (503)
+    where it can show the first ones and count the rest, exactly as `MAX_ROWS` already does.
+    """
+    rows = body.get("rows")
+    if type(rows) is not list or type(body.get("more_rows")) is not int:
+        return None
+    total = body["more_rows"] + len(rows)
+
+    def cut(keep):
+        return {**body, "rows": rows[:keep], "more_rows": total - keep}
+
+    if _size(cut(0)) > limit:
+        return None
+    lo, hi = 0, len(rows)  # cut(lo) fits, cut(hi) does not
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if _size(cut(mid)) <= limit:
+            lo = mid
+        else:
+            hi = mid
+    return cut(lo)
+
+
 def serve(view, challenge, *, render=document, limit=MAX_BYTES, read="snapshot"):
     """``(status, document-or-refusal)`` as `koth_public.serve`: 200 with the document, 404 with no view, 503 when the
-    view fails or the document would exceed `MAX_BYTES` (never partial)."""
+    view fails or the document would exceed `MAX_BYTES`. A v3/v4 document over its limit keeps its first rows and counts
+    the rest in ``more_rows`` (`_fit_rows`); it is 503 only when even no rows do not fit.
+    """
     if view is None:
         return 404, {"refused": "queue_not_served"}
     try:
@@ -341,6 +372,8 @@ def serve(view, challenge, *, render=document, limit=MAX_BYTES, read="snapshot")
         return 503, {"refused": refused.code}
     except (AttributeError, OSError, ValueError, KeyError, TypeError):
         return 503, {"refused": "queue_unavailable"}
-    if len(json.dumps(body, sort_keys=True, separators=(",", ":"))) > limit:
-        return 503, {"refused": "queue_unavailable"}
+    if _size(body) > limit:
+        body = _fit_rows(body, limit)
+        if body is None:
+            return 503, {"refused": "queue_unavailable"}
     return 200, body

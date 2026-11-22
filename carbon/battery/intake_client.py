@@ -40,6 +40,9 @@ from carbon.transport.models import message
 
 from .intake import INFO_PATH, PUBLIC_SCHEMA, STATUS_TOOL
 
+#: The most bytes read from one door reply (CAPS.md 3 item 7: was 64 KiB, which cut a larger reply mid-JSON and broke the
+#: client; no harm named). A reply is still parsed whole or refused.
+REPLY_READ_BYTES = 1024 * 1024
 SUBMIT_TOOL = "battery_submit"
 
 
@@ -53,7 +56,7 @@ def read_intake(url, *, timeout=10.0):
         url.rstrip("/") + INFO_PATH, headers=MINER_HEADERS, method="GET"
     )
     with urllib.request.urlopen(request, timeout=timeout) as r:
-        facts = json.loads(r.read(65536))
+        facts = json.loads(r.read(REPLY_READ_BYTES))
     if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
         raise IntakeMismatch("not a battery intake")
     return facts
@@ -197,9 +200,9 @@ def post(url, body, headers, *, timeout=30.0):
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as r:
-            return r.status, json.loads(r.read(65536))
+            return r.status, json.loads(r.read(REPLY_READ_BYTES))
     except urllib.error.HTTPError as refused:
-        return refused.code, json.loads(refused.read(65536) or b"{}")
+        return refused.code, json.loads(refused.read(REPLY_READ_BYTES) or b"{}")
 
 
 # --- plain-language feedback ------------------------------------------------------

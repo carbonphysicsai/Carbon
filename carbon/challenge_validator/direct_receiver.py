@@ -613,15 +613,22 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
             "interface": material["interface_document"],
             "physics_contract": material["physics_contract"],
         }
+        # The read bounds follow the REGISTERED material (CAPS.md 3 item 8: a fixed 64 KiB / 16 MiB refused every
+        # research and source request of a door whose pack outgrew them, with no harm named). This is an equality
+        # check, so a role can only pass at the registered size: TRAIN exactly; a JSON role at least 64 KiB as before, or
+        # 8x its canonical size (room for the pack's own formatting), whichever is larger.
         for role, document in expected.items():
             observed = snapshot.read_json_role(
-                public_root, "public", role, max_bytes=65536
+                public_root,
+                "public",
+                role,
+                max_bytes=max(65536, 8 * len(canonical(document))),
             )
             if canonical(observed) != canonical(document):
                 raise EvaluationPackUnavailable("evaluation_pack.construction_mismatch")
         if (
             snapshot.read_role(
-                public_root, "public", "train", max_bytes=16 * 1024 * 1024
+                public_root, "public", "train", max_bytes=max(1, len(material["train"]))
             )
             != material["train"]
         ):

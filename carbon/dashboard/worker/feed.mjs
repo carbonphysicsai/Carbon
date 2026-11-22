@@ -629,7 +629,10 @@ const LAUNCH_TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n";
 const LAUNCH_TO_BEAT_RULE_EXACT = "king_plus_margin";
 const LAUNCH_KING_ROW = ["hotkey", "since_epoch", "total"];
 const LAUNCH_LADDER_FIELDS = ["gate_names", "hotkey", "rank", "status", "total"];
-const LAUNCH_SS58 = /^[1-9A-HJ-NP-Za-km-z]{47,48}$/u;
+// the public hotkey shape, held equal to launch.py _SS58 and launch_board._SS58 ({46,48}, as SS58 above)
+const LAUNCH_SS58 = /^[1-9A-HJ-NP-Za-km-z]{46,48}$/u;
+// = launch.py MAX_MEASURE_N = crown_common.MAX_N (CAPS 3 item 3)
+const LAUNCH_MAX_MEASURE_N = 1000;
 const LAUNCH_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 const LAUNCH_LABEL = /^[A-Za-z0-9][A-Za-z0-9 ._:+-]{0,63}$/u;
 const LAUNCH_GATE = /^[a-z][a-z0-9_.-]{0,63}$/u;
@@ -648,7 +651,8 @@ function launchDigits(values) {
   throw new FeedRefused("total_unrounded");
 }
 function launchCrownChanges(changes) {
-  if (!Array.isArray(changes) || changes.length > LAUNCH_MAX_CROWN_CHANGES) throw new FeedRefused("crown_changes_invalid");
+  // a longer list is read; the page shows its first LAUNCH_MAX_CROWN_CHANGES (never a refused board, CAPS 3 item 4)
+  if (!Array.isArray(changes)) throw new FeedRefused("crown_changes_invalid");
   for (const c of changes) {
     if (!sameKeys(c, LAUNCH_CROWN_FIELDS) || typeof c.to_hotkey !== "string" || !LAUNCH_SS58.test(c.to_hotkey)
         || !(c.from_hotkey === null || (typeof c.from_hotkey === "string" && LAUNCH_SS58.test(c.from_hotkey)))
@@ -659,11 +663,12 @@ function launchCrownChanges(changes) {
 function launchMeasure(measure, king) {
   if (king === null) { if (measure !== null) throw new FeedRefused("king_invalid"); return; }
   if (!sameKeys(measure, ["kept", "n", "state"]) || !LAUNCH_MEASURE_STATES.includes(measure.state)
-      || !launchInt(measure.kept) || !launchInt(measure.n) || measure.n.value < 2 || measure.n.value > 100
+      || !launchInt(measure.kept) || !launchInt(measure.n) || measure.n.value < 2 || measure.n.value > LAUNCH_MAX_MEASURE_N
       || measure.kept.value < 0 || measure.kept.value > measure.n.value) throw new FeedRefused("king_invalid");
 }
 function launchCrownChecks(checks) {
-  if (!Array.isArray(checks) || checks.length > LAUNCH_MAX_CROWN_CHECKS) throw new FeedRefused("crown_checks_invalid");
+  // a longer list is read; the page shows its first LAUNCH_MAX_CROWN_CHECKS (never a refused board, CAPS 3 item 4)
+  if (!Array.isArray(checks)) throw new FeedRefused("crown_checks_invalid");
   const seen = new Set();
   for (const c of checks) {
     if (!sameKeys(c, ["hotkey", "note", "outcome", "state"]) || typeof c.hotkey !== "string" || !LAUNCH_SS58.test(c.hotkey)
@@ -725,7 +730,7 @@ function launchCheck(document) {
     if (v5 && entry.reason !== null && (entry.status !== "NOT_SCORED" || !LAUNCH_PUBLIC_REASONS.includes(entry.reason))) throw new FeedRefused("ladder_invalid");
     launchUnit(entry.total, "ladder_invalid", true);
     const gates = entry.gate_names;
-    if (gates !== null && (entry.status !== "GATE_FAILED" || !Array.isArray(gates) || gates.length > LAUNCH_MAX_GATES
+    if (gates !== null && (entry.status !== "GATE_FAILED" || !Array.isArray(gates)
         || gates.some(g => typeof g !== "string" || !LAUNCH_GATE.test(g)))) throw new FeedRefused("ladder_invalid");
     tally[entry.status] += 1;
   }
@@ -765,7 +770,7 @@ async function projectLaunch(document, pinned) {
     hotkey: king.king.hotkey, submission_id: null, since_block: null, sections: {total: king.king.total.value},
   };
   const gateNames = {};
-  for (const e of ladder) if (e.gate_names !== null && e.gate_names.length) gateNames[e.hotkey] = [...e.gate_names];
+  for (const e of ladder) if (e.gate_names !== null && e.gate_names.length) gateNames[e.hotkey] = e.gate_names.slice(0, LAUNCH_MAX_GATES);
   const bytes = canonicalBytes(document, domain);
   return {
     schema: BOARD_SCHEMA,
@@ -807,11 +812,11 @@ async function projectLaunch(document, pinned) {
       gate_names: gateNames,
       king_stability: v3 ? king.stability : null,
       king_measure: v4 && king.measure !== null ? {state: king.measure.state, kept: king.measure.kept.value, n: king.measure.n.value} : null,
-      crown_checks: v4 ? document.crown_checks.map(c => ({hotkey: c.hotkey, state: c.state, outcome: c.outcome, note: c.note})) : null,
+      crown_checks: v4 ? document.crown_checks.slice(0, LAUNCH_MAX_CROWN_CHECKS).map(c => ({hotkey: c.hotkey, state: c.state, outcome: c.outcome, note: c.note})) : null,
       to_beat_rule: v2 ? king.to_beat_rule : null,
       crowned_utc: v5 ? king.crowned_utc : null,
       reasons: v5 ? Object.fromEntries(ladder.filter(e => e.reason).map(e => [e.hotkey, e.reason])) : {},
-      crown_changes: v2 ? document.crown_changes.map(c => ({
+      crown_changes: v2 ? document.crown_changes.slice(0, LAUNCH_MAX_CROWN_CHANGES).map(c => ({
         hotkey: c.to_hotkey, from_hotkey: c.from_hotkey, since_epoch: c.since_epoch.value, total: c.total.value,
       })) : null,
     },

@@ -449,14 +449,21 @@ def test_the_board_refuses_any_other_crown_change_shape():
     for bad in (
         [{**CHANGES[0], "extra": 1}],
         [{k: v for k, v in CHANGES[0].items() if k != "total"}],
-        [{**CHANGES[0], "to_hotkey": "rtsk_" + "a" * 64}],
         [{**CHANGES[0], "since_epoch": -1}],
         [{**CHANGES[0], "total": 1.5}],
-        [CHANGES[0]] * 6,
         "nope",
     ):
         with pytest.raises(lb.BoardRefused):
             _board(bad)
+    # CAPS.md 3 items 4-5: a longer history is cut to its first MAX_CROWN_CHANGES and a change naming a hotkey that is
+    # not the public shape is left out; neither refuses the board
+    assert lb.crown_changes_checked([CHANGES[0]] * 6) == lb.crown_changes_checked(
+        [CHANGES[0]] * lb.MAX_CROWN_CHANGES
+    )
+    odd = {**CHANGES[0], "to_hotkey": "rtsk_" + "a" * 64}
+    assert lb.crown_changes_checked([odd, CHANGES[0]]) == lb.crown_changes_checked(
+        [CHANGES[0]]
+    )
     board, _signer = _board(CHANGES)
     tampered = json.loads(json.dumps(board))
     tampered["crown_changes"][0]["total"] = 0.8000000001  # unrounded: refused whole
