@@ -30,8 +30,11 @@ PACK = "a" * 64
 
 
 def _git(root, *args, data=None, env=None):
+    # release 22 Nov 01:25:43Z: in the canonical container the files' owner is not the container user, and a --shared
+    # clone opens ROOT/.git, which the container's safe.directory entry (the worktree) does not cover: trust it for this
+    # test's own read-only clones only (the fixture's repos are throw-away tmp clones; nothing is written to ROOT)
     return subprocess.run(
-        ["git", "-C", str(root), *args],
+        ["git", "-c", "safe.directory=*", "-C", str(root), *args],
         input=data,
         capture_output=True,
         check=True,
