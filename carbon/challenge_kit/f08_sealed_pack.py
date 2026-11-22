@@ -126,7 +126,14 @@ def sealed_bank(
     document, records, *, version="1.2", rule=PACK_RULE, probes=True, pool=None
 ) -> dict:
     """The sealed batch as a bank in ``physical_pack.development_bank``'s format,
-    with (default) the private response probes of physics half v1 appended."""
+    with (default) the private response probes of physics half v1 appended.
+    RB 2.0 (pool-only, its own interface) is `f08_v2_sealed_pack`'s."""
+    if version == "2.0":
+        from carbon.challenge_kit import f08_v2_sealed_pack
+
+        return f08_v2_sealed_pack.sealed_bank(
+            document, records, version=version, pool=pool
+        )
     from carbon.challenge_kit import f08_public, physical_pack
     from carbon.challenge_validator import f08_hidden as hidden
     from carbon.f08.domain import LIMIT_MM_PER_N
