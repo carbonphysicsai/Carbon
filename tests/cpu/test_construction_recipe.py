@@ -218,8 +218,9 @@ def test_graph_source_resolves_only_the_owner_workspace_and_exact_digest(tmp_pat
 # -- self-trust declaration (SELF_TRUST DESIGN_v2, H3a): the recipe's OUTPUT binding is the explicit declaration ----------
 
 
-def trust_recipe():
+def trust_recipe(train_fraction=0.8):
     value = graph_recipe()
+    value["procedure"]["train_use"]["train_fraction"] = train_fraction
     value["output"]["interface_digest"] = trust_declaration_digest(sha("b"))
     return value
 
@@ -295,3 +296,64 @@ def test_the_registered_spec_decides_for_every_bind_site(monkeypatch):
     monkeypatch.delitem(v2.SPECS, key)
     with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
         bind(trust_recipe())  # an unregistered version offers none
+
+
+def test_a_declaring_recipe_needs_held_out_rows_a_typed_refusal_before_any_grade(
+    monkeypatch,
+):
+    # SELF_TRUST train_fraction rule (v2 00:51:24Z): a trust version refuses a declaring recipe that leaves no TRAIN rows held out.
+    for bad in (1.0, 1, 0, 0.0, -0.5, 1.5, True, False, "0.8", None, [0.8]):
+        with pytest.raises(
+            RecipeRefused, match="construction_recipe_trust_needs_held_out_rows"
+        ):
+            bind_recipe(
+                trust_recipe(bad),
+                challenge_id="battery-example",
+                challenge_version="development-v1",
+                train_digest=sha("a"),
+                interface_digest=sha("b"),
+                construction_limits_digest=sha("c"),
+                offers_self_trust=True,
+            )
+    value = trust_recipe()
+    del value["procedure"]["train_use"]["train_fraction"]
+    with pytest.raises(
+        RecipeRefused, match="construction_recipe_trust_needs_held_out_rows"
+    ):
+        bind_recipe(
+            value,
+            challenge_id="battery-example",
+            challenge_version="development-v1",
+            train_digest=sha("a"),
+            interface_digest=sha("b"),
+            construction_limits_digest=sha("c"),
+            offers_self_trust=True,
+        )
+    for good in (0.5, 0.8, 0.999):
+        assert (
+            bind_recipe(
+                trust_recipe(good),
+                challenge_id="battery-example",
+                challenge_version="development-v1",
+                train_digest=sha("a"),
+                interface_digest=sha("b"),
+                construction_limits_digest=sha("c"),
+                offers_self_trust=True,
+            ).declares_self_trust
+            is True
+        )
+
+
+def test_the_held_out_rule_never_touches_a_recipe_that_does_not_declare_trust():
+    # a non-declaring recipe binds with ANY train_fraction (or none): its check is byte-identical to before
+    for fraction in (1.0, 1, 0.5, None, "x"):
+        value = graph_recipe()
+        value["procedure"]["train_use"]["train_fraction"] = fraction
+        assert bind(value).declares_self_trust is False
+    assert bind(graph_recipe()).to_dict() == graph_recipe()
+
+
+def test_the_version_not_offering_trust_still_answers_with_the_output_refusal_first():
+    # the offering check comes first: an old version's refusal text for a declaring recipe is unchanged, whatever its fraction
+    with pytest.raises(RecipeRefused, match="construction_recipe_output_invalid"):
+        bind(trust_recipe(1.0))

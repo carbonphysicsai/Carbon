@@ -243,6 +243,14 @@ def _version_offers_self_trust(challenge_id: str, challenge_version: str) -> boo
     return spec is not None and spec.trust_outputs >= 1
 
 
+def _uses_held_out_rows(recipe: ConstructionRecipe) -> bool:
+    """A self-trust recipe fits its sigma on TRAIN rows the physics fit did not use (SELF_TRUST: no silent in-sample fit), so its
+    ``train_use.train_fraction`` must be a number above zero and BELOW one. Applied only to a declaring recipe.
+    """
+    fraction = recipe.to_dict()["procedure"]["train_use"].get("train_fraction")
+    return type(fraction) in (int, float) and 0 < fraction < 1
+
+
 def bind_recipe(
     value: object,
     *,
@@ -266,6 +274,8 @@ def bind_recipe(
     )
     if recipe.declares_self_trust and not offers:
         raise RecipeRefused("construction_recipe_output_invalid")
+    if recipe.declares_self_trust and not _uses_held_out_rows(recipe):
+        raise RecipeRefused("construction_recipe_trust_needs_held_out_rows")
     declared = recipe.to_dict()["challenge"]
     expected = {
         "id": challenge_id,
