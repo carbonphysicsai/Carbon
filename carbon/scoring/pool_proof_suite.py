@@ -70,6 +70,11 @@ class Policies:
     #: A NEW version's menu D (`pool_menu.MenuRule`): D from the sealed menus instead of the per-target pick. None for
     #: every registered version: D is then unchanged.
     menu: object = None
+    #: A NEW version graded by its pool exam ALONE (RB 2.0, model-eval ruling 22 Nov 2026 04:41:52Z, P1): no sealed grid
+    #: and no base measure; A is the physics family value, D the menu D, and the owner's C rule caps each set's D by that
+    #: set's own physics A (C = the version's physics A: the design fidelity of the same model on the same hidden
+    #: designs). Needs a physics rule and a menu. False for every registered version: every path is then unchanged.
+    pool_only: bool = False
 
 
 @dataclass(frozen=True)

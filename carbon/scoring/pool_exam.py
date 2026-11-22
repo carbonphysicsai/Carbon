@@ -265,15 +265,26 @@ def measure_pool(
     # the grader asks the model's table about the same rounded rows, never about the unrounded designs.
     quantize = _quantizer(input_dtype)
     sealed, pool = split_rows(bank_rows)
-    sealed_rows = [bank_rows[i] for i in sealed]
-    base = base_measure(
-        bank_rows=sealed_rows,
-        outputs=[outputs[i] for i in sealed],
-        repeats=[[r[i] for i in sealed] for r in repeats],
-        **base_arguments,
-    )
+    # P1 (model-eval 22 Nov 2026 04:41:52Z): a REGISTERED pool-only version has no sealed grid and no base measure; its
+    # gates are the pool's own (physics, speed, in-range accuracy) and the C cap is each set's physics A (below)
+    pool_only = getattr(policies, "pool_only", False) is True
+    if pool_only:
+        _require(not sealed, "pool_only_bank_holds_sealed_rows")
+        _require(
+            policies.physics is not None and menu is not None,
+            "pool_only_needs_a_physics_rule_and_a_menu",
+        )
+        base = {}
+    else:
+        sealed_rows = [bank_rows[i] for i in sealed]
+        base = base_measure(
+            bank_rows=sealed_rows,
+            outputs=[outputs[i] for i in sealed],
+            repeats=[[r[i] for i in sealed] for r in repeats],
+            **base_arguments,
+        )
     base_gates = dict(base.get("gates") or {})
-    _require(base_gates, "sealed_measure_returned_no_gates")
+    _require(pool_only or base_gates, "sealed_measure_returned_no_gates")
     _require(
         PHYSICS_GATE not in base_gates
         and SPEED_GATE not in base_gates
@@ -429,7 +440,7 @@ def measure_pool(
         gates[ACCURACY_GATE] = bool((accuracy.get("gate") or {}).get("passed"))
         if capture is not None:
             capture["accuracy"] = accuracy
-    if base.get("A") is None or not all(gates.values()):
+    if (not pool_only and base.get("A") is None) or not all(gates.values()):
         # A failed mandatory gate gives no score; the dual pack reads only the gate verdicts.
         if capture is not None:
             capture["se_basis"] = {"gated": True}
@@ -447,13 +458,14 @@ def measure_pool(
             },
         }
     legs = {
-        "A": base["A"],
+        "A": base.get("A") if pool_only else base["A"],
         "C": (base.get("design_fidelity") or {}).get("C"),
         "gates_ok": True,
         "A_legs": dict(base.get("A_legs") or {}),
     }
+    # a pool-only version has no sealed C: its cap is each set's physics A (`cap`, below)
     _require(
-        type(legs["C"]) in (int, float) and math.isfinite(legs["C"]),
+        pool_only or (type(legs["C"]) in (int, float) and math.isfinite(legs["C"])),
         "sealed_measure_gave_no_finite_C",
     )
     plugin = suite.ProofPlugin(
@@ -479,9 +491,13 @@ def measure_pool(
 
     a_legs = legs["A_legs"]
     a_bank = (
-        statistics.fmean(tighten(v, a_multiplier) for v in a_legs.values())
-        if a_legs
-        else tighten(legs["A"], a_multiplier)
+        None  # a pool-only version has no sealed A (its A is the physics family value)
+        if pool_only
+        else (
+            statistics.fmean(tighten(v, a_multiplier) for v in a_legs.values())
+            if a_legs
+            else tighten(legs["A"], a_multiplier)
+        )
     )
     descriptor = {"kind": "good"}
     if accuracy_only:
@@ -498,6 +514,11 @@ def measure_pool(
             for specs in plugin.sets
         ]
     a_values, d_values, reasons, a_gen = [], [], set(), []
+
+    def cap(position):
+        """The owner's C rule for set ``position``: the sealed C, or (pool-only) that set's own physics A."""
+        return a_values[position] if pool_only else legs["C"]
+
     for _total, grade, gen, _legs in per_set:
         a_gen.append(gen)
         # A version with physics scoring: A is the family value (the in-range A leg is its gate, never points).
@@ -509,7 +530,7 @@ def measure_pool(
         if grade is None:
             continue  # accuracy-only: the menu D replaces every set's D below
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
-        d_values.append(min(grade.d, legs["C"]))
+        d_values.append(min(grade.d, cap(len(a_values) - 1)))
         reasons.update(grade.public()["reasons"])
     menu_graded = None
     if menu is not None:
@@ -542,7 +563,7 @@ def measure_pool(
                 outputs, menu_rowcheck["outputs"], positions, menu
             ),
         )
-        d_values = [min(menu_graded["D"], legs["C"]) for _ in per_set]
+        d_values = [min(menu_graded["D"], cap(i)) for i in range(len(per_set))]
         if capture is not None:
             capture["menu"] = menu_graded["record"]
     a_only = policies.physics is not None and policies.physics.total_rule == "a_only"
@@ -563,6 +584,8 @@ def measure_pool(
                 # in memory only (never serialized): the rule a resample recomposes headroom skill with
                 "physics_rule": policies.physics,
                 "c": legs["C"],
+                # pool-only: the cap of each set is its own (recomposed) physics A
+                **({"c_is_a": True} if pool_only else {}),
                 # a menu version: the resample holds the menu D fixed (it conditions on the epoch's draw); absent otherwise
                 **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
                 "a_sets": list(a_values),
@@ -778,7 +801,9 @@ def total_of_targets(basis, sets):
             d = statistics.fmean(t["d"] for t in targets)
         else:
             d = _region_mean(targets, "d", order)
-        d_values.append(min(d, basis["c"]))
+        d_values.append(
+            min(d, a_values[-1] if basis.get("c_is_a") is True else basis["c"])
+        )
     if basis.get("a_only") is True:
         return statistics.fmean(
             a_values

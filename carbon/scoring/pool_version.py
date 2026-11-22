@@ -429,6 +429,16 @@ def registered_menu(challenge_id, version, *, path=CONSTANTS):
     return registered_policies(challenge_id, version, path=path).menu
 
 
+def _pool_only(value):
+    """A NEW version's ``"pool_only": true`` (`pool_proof_suite.Policies.pool_only`); absent = False (every registered
+    version). Only the JSON literal true registers it; anything else refuses."""
+    if value is _ABSENT:
+        return False
+    if _picked(value) is not True:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return True
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -485,6 +495,8 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
             physics=_physics(entry.get("physics", _ABSENT)),
             # optional, NEW versions only: absent is today's per-target pick D, unchanged
             menu=_menu(entry.get("menu", _ABSENT)),
+            # optional, NEW versions only: absent is a version with a sealed grid (a base measure), unchanged
+            pool_only=_pool_only(entry.get("pool_only", _ABSENT)),
         )
         if (
             policies.menu is not None
@@ -492,6 +504,9 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
             and policies.physics.total_rule == "a_only"
         ):
             # an A-only total has no D for a menu to score
+            raise PoolConstantsNotRegistered("pool_constants_malformed")
+        if policies.pool_only and (policies.physics is None or policies.menu is None):
+            # a pool-only version's A is its physics A and its D its menu D: without either it has no total
             raise PoolConstantsNotRegistered("pool_constants_malformed")
         pool_grader._check_policies(policies.optimizer, policies.honesty)
     except pool_exam.ExamRefused:
