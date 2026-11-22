@@ -225,6 +225,46 @@ def test_a_new_version_s_strata_come_from_its_bound_overlay_entry(tmp_path):
     assert strata["gate_t"] == code.Stratum("in_range_outputs", ("t_max",), True, 12)
 
 
+@pytest.mark.parametrize(
+    "names, ok",
+    [
+        (["gate_t", "probe_response"], True),  # the same names, any order: one home
+        (["probe_response"], False),  # fewer
+        (["probe_response", "gate_t", "extra"], False),  # more
+        (["probe_response", "probe_response", "gate_t"], False),  # duplicated
+    ],
+)
+def test_strata_have_one_home_the_promise_row_must_name_exactly_the_overlay_strata(
+    tmp_path, monkeypatch, names, ok
+):
+    """v2 22 Nov 00:32:14Z: the overlay entry DEFINES the strata; subset_repeat.json's promise row (owner values) keeps
+    its names list, which must name exactly those strata, else the registry refuses."""
+    path, digest = _overlay(tmp_path, _declared())
+    promise = tmp_path / "subset_repeat.json"
+    promise.write_text(
+        json.dumps(
+            {
+                "schema": code.VALUES_SCHEMA,
+                "rows": {
+                    "chip-cold-plate 1.9": {
+                        "repeat_detect_prob": 0.999,
+                        "repeat_fail_fraction": 0.1,
+                        "strata": names,
+                    }
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(registry, "PROMISE_PATH", promise)
+    if ok:
+        assert ("chip-cold-plate", "1.9") in registry.versions(
+            path, installed_digest=lambda c, v: digest
+        )
+    else:
+        with pytest.raises(registry.SubsetRegistryRefused, match="two_homes"):
+            registry.versions(path, installed_digest=lambda c, v: digest)
+
+
 def test_an_entry_not_bound_to_the_installed_digest_refuses(tmp_path):
     path, _digest = _overlay(tmp_path, _declared())
     with pytest.raises(registry.SubsetRegistryRefused) as refused:

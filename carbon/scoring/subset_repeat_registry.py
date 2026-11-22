@@ -131,7 +131,37 @@ def overlay_versions(path=None, *, installed_digest=None):
             "producer": declared["producer"],
             "strata": {n: _stratum(n, s) for n, s in declared["strata"].items()},
         }
+        _one_home(key, found[key]["strata"])
     return found
+
+
+#: The promise file `_one_home` reads (None: `subset_repeat_evidence.VALUES_PATH`; tests point it at a fixture).
+PROMISE_PATH = None
+
+
+def _one_home(key, strata):
+    """v2 22 Nov 00:32:14Z: an overlay version's strata have ONE home. The DEFINITIONS live in its bound overlay entry;
+    ``subset_repeat.json`` keeps the owner's promise row, whose ``strata`` NAMES list (required by the live
+    `subset_repeat_evidence.registered_promise`) must name exactly the overlay's strata: any difference refuses
+    (``subset_repeat_strata_two_homes``). An absent promise row is not checked here: the promise read refuses it on its own.
+    """
+    path = Path(code.VALUES_PATH if PROMISE_PATH is None else PROMISE_PATH)
+    if not path.exists():
+        return
+    try:
+        rows = (json.loads(path.read_bytes()) or {}).get("rows") or {}
+    except (OSError, ValueError):
+        _refuse("subset_repeat_promise_unreadable")
+    row = rows.get(f"{key[0]} {key[1]}")
+    if not isinstance(row, dict) or "strata" not in row:
+        return
+    names = row["strata"]
+    if (
+        type(names) is not list
+        or len(names) != len(set(names))
+        or set(names) != set(strata)
+    ):
+        _refuse("subset_repeat_strata_two_homes")
 
 
 def versions(path=None, *, installed_digest=None):
