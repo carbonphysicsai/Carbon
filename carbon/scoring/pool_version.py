@@ -362,8 +362,9 @@ def _menu(value):
     for fewer than `pool_menu.MIN_TASKS` tasks) and an optional ``"tasks_per_epoch"`` (the owner's k of the tasks
     scored per epoch, `pool_menu.draw_tasks`; absent = every task) and an optional ``"ranking"`` (``backoff_u`` =
     menu_top5_v1, the default; ``original_limits`` = menu_top5_v2, back-off 0) and an optional ``"d_form"``
-    (``share``, the default; ``regret_u`` = menu_top5_v3 with ``original_limits``, which needs the owner's ``"k"``); a
-    null or HUMAN_INPUT refuses.
+    (``share``, the default; ``regret_u`` = menu_top5_v3 with ``original_limits``, which needs the owner's ``"k"``) and
+    an optional ``"limit_band"`` (``none``, the default; ``borderline_1u`` = menu_top5_v4 with ``original_limits`` and
+    ``regret_u``: owner MOTOR19-MENUS-TO-LIMIT, menus go to the limit); a null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
@@ -375,7 +376,14 @@ def _menu(value):
         required
         <= set(value)
         <= required
-        | {"min_tasks_exception", "tasks_per_epoch", "ranking", "d_form", "k"}
+        | {
+            "min_tasks_exception",
+            "tasks_per_epoch",
+            "ranking",
+            "d_form",
+            "k",
+            "limit_band",
+        }
     ):
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     if "tasks_per_epoch" in value and _picked(value["tasks_per_epoch"]) is None:
@@ -416,6 +424,12 @@ def _menu(value):
             else pool_menu.menu_score.D_SHARE
         ),
         k=_picked(value["k"]) if "k" in value else None,
+        # an optional registered limit band (``borderline_1u`` = menu_top5_v4; absent = ``none``)
+        limit_band=(
+            _picked(value["limit_band"])
+            if "limit_band" in value
+            else pool_menu.menu_score.LIMIT_BAND_NONE
+        ),
     )
     try:
         pool_menu.check_rule(rule)

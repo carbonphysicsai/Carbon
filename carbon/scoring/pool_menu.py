@@ -101,13 +101,16 @@ class MenuRule:
     #: (menu_top5_v3, original_limits only) with the owner's scale ``k``
     d_form: str = menu_score.D_SHARE
     k: float | None = None
+    #: the registered limit band (`menu_score.LIMIT_BANDS`): ``none`` (default, every version so far) or
+    #: ``borderline_1u`` (menu_top5_v4, owner MOTOR19-MENUS-TO-LIMIT; original_limits + regret_u only)
+    limit_band: str = menu_score.LIMIT_BAND_NONE
 
 
 def check_rule(rule):
     _require(isinstance(rule, MenuRule), "menu_rule_required")
     _require(rule.ranking in menu_score.RANKINGS, "menu_ranking_unregistered")
     try:
-        menu_score.metric_for(rule.ranking, rule.d_form)
+        menu_score.metric_for(rule.ranking, rule.d_form, rule.limit_band)
         menu_score.check_d_form(rule.d_form, rule.k)
     except menu_score.MenuRefused as exc:
         _refuse(exc.code)
@@ -348,10 +351,13 @@ def door_task(problem_doc, record_doc):
     return {"problem": problem, "duties": door_duties, "record": record}
 
 
-def menu_material(pairs, *, input_names, design_names):
+def menu_material(
+    pairs, *, input_names, design_names, limit_band=menu_score.LIMIT_BAND_NONE
+):
     """``(material, {task_id: record sha})``: the sealed ``definition["pool"]["menu"]`` of design-optimum's
     ``[(problem_doc, record_doc), ...]``, checked through the door's own `load_tasks` against the shas it computes (so
     a material that would refuse at grade time refuses here, at build). The shas are the ones to register.
+    ``limit_band``: the band the version registers (`menu_score.LIMIT_BANDS`); the shas do not depend on it.
     """
     tasks = [door_task(problem, record) for problem, record in pairs]
     material = {"tasks": tasks}
@@ -360,7 +366,7 @@ def menu_material(pairs, *, input_names, design_names):
         problem = _problem(task["problem"])
         try:
             shas[problem.target_id] = menu_score.menu_record(
-                task["record"], problem
+                task["record"], problem, limit_band
             ).sha256
         except menu_score.MenuRefused as exc:
             _refuse(exc.code)
@@ -371,6 +377,18 @@ def menu_material(pairs, *, input_names, design_names):
         rotation_days=1,
         rowcheck=(0.0, 0.0, 1),
         min_tasks_exception="custody-build-check",  # the count is checked against the REGISTRATION at grade time
+        **(
+            {}
+            if limit_band == menu_score.LIMIT_BAND_NONE
+            else {
+                # the band's registered rule shape, for the acceptance check only: this probe scores nothing, so k
+                # here is a placeholder, never a registered value (the version registers the owner's k)
+                "ranking": menu_score.RANKING_ORIGINAL_LIMITS,
+                "d_form": menu_score.D_REGRET_U,
+                "k": 1.0,
+                "limit_band": limit_band,
+            }
+        ),
     )
     load_tasks(material, probe, input_names=input_names, design_names=design_names)
     return material, shas
@@ -661,7 +679,7 @@ def load_tasks(material, rule, *, input_names, design_names):
         )
         duties = _duties(entry["duties"], input_names, design_names, problem)
         try:
-            record = menu_score.menu_record(entry["record"], problem)
+            record = menu_score.menu_record(entry["record"], problem, rule.limit_band)
         except menu_score.MenuRefused as exc:
             _refuse(exc.code)
         _require(
@@ -734,7 +752,9 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
             "D": 0.0,
             "record": {
                 "schema": "carbon.menu-grade.v1",
-                "metric": menu_score.metric_for(rule.ranking, rule.d_form),
+                "metric": menu_score.metric_for(
+                    rule.ranking, rule.d_form, rule.limit_band
+                ),
                 "epoch": rule.epoch,
                 "aggregate": rule.aggregate,
                 **drawn_note,
@@ -802,7 +822,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
         "D": d,
         "record": {
             "schema": "carbon.menu-grade.v1",
-            "metric": menu_score.metric_for(rule.ranking, rule.d_form),
+            "metric": menu_score.metric_for(rule.ranking, rule.d_form, rule.limit_band),
             "epoch": rule.epoch,
             "aggregate": rule.aggregate,
             **drawn_note,

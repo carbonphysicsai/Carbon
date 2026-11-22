@@ -10,6 +10,8 @@ the registered limits themselves for ``original_limits``), with the driver's `_k
 then the least predicted violation, invalid predictions last), and the top five picks are looked up in the truths:
 
     d(pick)  = 0 if the pick is truly infeasible (a true margin < 0), else clip((s - s_zero) / (s_ref - s_zero), 0, 1)
+               (the registered d form may be ``regret_u``; the ``borderline_1u`` limit band scores 0 only a CLEAR breach,
+                a true margin < -U, and accepts truths within U of a limit: see LIMIT_BANDS)
     raw      = sum_i w_i d(pick_i), w = (0.4, 0.25, 0.15, 0.12, 0.08)
     Z        = max(each classical arm's raw on the same menu, the random-pick expectation = mean d over the menu)
     oracle   = the raw of the truth-ordered top five of the same menu (the best any model can do on this sample)
@@ -72,9 +74,33 @@ D_REGRET_U = "regret_u"
 D_FORMS = (D_SHARE, D_REGRET_U)
 METRIC_REGRET_U = "menu_top5_v3"
 
+#: The registered limit band (a version registers ONE; the default is today's, bit-identical): ``none`` = every
+#: pool truth clears each limit by U on one side or the other (the record refuses a truth within U of a limit), the
+#: optimum clears every limit by +U, and a pick with a true margin < 0 scores 0. ``borderline_1u`` (menu_top5_v4; owner
+#: MOTOR19-MENUS-TO-LIMIT / G-LEAD-47, 22 Nov 2026; spec model-eval 23:02:03Z, scope v2 23:02:53Z) = menus go TO the
+#: limit: per limit, with U = that output's registered U at the truth's own value, a true margin m > +U is feasible,
+#: -U <= m <= +U is BORDERLINE (allowed in the record, no violation, d from regret) and m < -U is a CLEAR BREACH (a
+#: violation, d = 0); the optimum (s_ref) is the best NON-violating design. The RANKING moves with the truth boundary:
+#: the model's predictions are ranked on the limits relaxed OUTWARD by U at the bound (`relaxed`, the mirror of
+#: `backed_off`), so tier 0 = every predicted margin >= -U (the u-at-bound vs u-at-row gap is second order, stated by
+#: model-eval, not fixed). The band is exactly 1 U (no new number). Registered with ``original_limits`` and
+#: ``regret_u`` only, ONE band per version: the version's registration names it and every record of the version is
+#: parsed under it (`MenuRecord.limit_band`); the record document and its sha are the same under either band.
+LIMIT_BAND_NONE = "none"
+LIMIT_BAND_BORDERLINE_1U = "borderline_1u"
+LIMIT_BANDS = (LIMIT_BAND_NONE, LIMIT_BAND_BORDERLINE_1U)
+METRIC_BORDERLINE = "menu_top5_v4"
 
-def metric_for(ranking, d_form=D_SHARE):
+
+def metric_for(ranking, d_form=D_SHARE, limit_band=LIMIT_BAND_NONE):
     _require(ranking in RANKINGS, "menu_ranking_unregistered")
+    _require(limit_band in LIMIT_BANDS, "menu_limit_band_unregistered")
+    if limit_band == LIMIT_BAND_BORDERLINE_1U:
+        _require(
+            d_form == D_REGRET_U and ranking == RANKING_ORIGINAL_LIMITS,
+            "menu_limit_band_unregistered",
+        )
+        return METRIC_BORDERLINE
     if d_form == D_SHARE:
         return RANKINGS[ranking]
     _require(
@@ -147,19 +173,42 @@ class MenuRecord:
     pool: dict  # id -> {"stratum", "design", "truth"}
     arms: dict  # arm -> {id: outputs | None}
     sha256: str
+    limit_band: str = (
+        LIMIT_BAND_NONE  # the version's registered band (not part of the document or its sha)
+    )
 
     @property
     def size(self):
         return 1 + sum(count for _, count in self.quotas)
 
 
-def menu_record(document, problem):
-    """Parse and check one task's sealed menu record against the task's grading `problem` (custody material).
+def _limit_u(problem, limit, truth):
+    """U of a limit's output at the truth's own value (`u_value`); a U <= 0 has no band."""
+    return max(0.0, u_value(problem.u[limit.output], truth[limit.output]))
+
+
+def _violates(problem, truth, limit_band):
+    """A true violation under the registered band: a true margin < 0 (``none``), or a CLEAR BREACH, a true margin
+    < -U on some limit (``borderline_1u``)."""
+    margins = _margins(problem, truth).values()
+    if limit_band == LIMIT_BAND_NONE:
+        return any(m < 0.0 for m in margins)
+    return any(
+        m < -_limit_u(problem, lim, truth) for lim, m in zip(problem.limits, margins)
+    )
+
+
+def menu_record(document, problem, limit_band=LIMIT_BAND_NONE):
+    """Parse and check one task's sealed menu record against the task's grading `problem` (custody material), under
+    the version's registered `limit_band` (default ``none``, today's).
 
     Refuses: unknown schema, a duplicate / malformed id, a design outside the box, a truth or an arm prediction missing
-    an output or not finite, s_ref <= s_zero, the optimum's truth not s_ref, any feasible truth beating s_ref by more
-    than U (a search failure: re-search, never raise the 1), a quota above its stratum's supply, a menu under 5.
+    an output or not finite, s_ref <= s_zero, the optimum's truth not s_ref, any non-violating truth beating s_ref by
+    more than U (a search failure: re-search, never raise the 1), a quota above its stratum's supply, a menu under 5.
+    ``none`` also refuses a truth within U of a limit and an optimum not clearing every limit by +U; ``borderline_1u``
+    accepts truths within U of a limit and needs only an optimum with no clear breach (every margin >= -U).
     """
+    _require(limit_band in LIMIT_BANDS, "menu_limit_band_unregistered")
     _check_problem(problem)
     keys = {"schema", "task_id", "s_ref", "s_zero", "optimum", "quotas", "pool", "arms"}
     _require(type(document) is dict and set(document) == keys, "menu_record_malformed")
@@ -196,7 +245,9 @@ def menu_record(document, problem):
         _require(_outputs_ok(row["truth"], names), "menu_truth_invalid")
         for lim, m in zip(
             problem.limits, _margins(problem, row["truth"]).values()
-        ):  # inside U the reference cannot tell feasible from infeasible
+        ):  # inside U the reference cannot tell feasible from infeasible (``none``; ``borderline_1u`` keeps them)
+            if limit_band != LIMIT_BAND_NONE:
+                break
             u = u_value(problem.u[lim.output], row["truth"][lim.output])
             _require(u <= 0.0 or abs(m) >= u, "menu_truth_within_u_of_a_limit")
         pool[pid] = {
@@ -207,18 +258,21 @@ def menu_record(document, problem):
     optimum = document["optimum"]
     _require(optimum in pool, "menu_optimum_not_in_pool")
     opt_truth = pool[optimum]["truth"]
-    _require(
-        _signed(problem, opt_truth) == float(s_ref)
-        and all(
+    if limit_band == LIMIT_BAND_NONE:
+        opt_clears = all(
             m >= u_value(problem.u[lim.output], opt_truth[lim.output])
             for lim, m in zip(problem.limits, _margins(problem, opt_truth).values())
-        ),
+        )  # Q1: the optimum clears every limit by +U
+    else:
+        opt_clears = not _violates(problem, opt_truth, limit_band)  # no clear breach
+    _require(
+        _signed(problem, opt_truth) == float(s_ref) and opt_clears,
         "menu_optimum_truth_is_not_s_ref",
-    )  # Q1: the optimum clears every limit by +U
+    )
     u_obj = u_value(problem.u[problem.objective], s_ref)
     for entry in pool.values():
         truth = entry["truth"]
-        if all(m >= 0.0 for m in _margins(problem, truth).values()):
+        if not _violates(problem, truth, limit_band):
             _require(
                 _signed(problem, truth) <= s_ref + u_obj,
                 "menu_design_beats_s_ref_search_failure",
@@ -260,6 +314,7 @@ def menu_record(document, problem):
         pool=pool,
         arms={arm: dict(preds) for arm, preds in arms.items()},
         sha256=sha,
+        limit_band=limit_band,
     )
 
 
@@ -312,6 +367,28 @@ def backed_off(problem):
     return replace(problem, limits=tuple(limits))
 
 
+def relaxed(problem):
+    """The task's limits moved OUTWARD by U at the bound (``borderline_1u``, the mirror of `backed_off`): a predicted
+    margin >= -U ranks as non-violating, as the truth side scores a true margin >= -U (a U <= 0 moves nothing).
+    """
+    limits = []
+    for limit in problem.limits:
+        u = max(0.0, u_value(problem.u[limit.output], limit.bound))
+        bound = limit.bound + u if limit.kind == "<=" else limit.bound - u
+        limits.append(Limit(limit.output, limit.kind, bound))
+    return replace(problem, limits=tuple(limits))
+
+
+def _ranked(problem, record, ranking):
+    """The problem the model's predictions are ranked on: backed off by U (``backoff_u``), the registered limits
+    (``original_limits``), or relaxed outward by U when the record's band is ``borderline_1u`` (original_limits only).
+    """
+    if record.limit_band == LIMIT_BAND_BORDERLINE_1U:
+        _require(ranking == RANKING_ORIGINAL_LIMITS, "menu_limit_band_unregistered")
+        return relaxed(problem)
+    return backed_off(problem) if ranking == RANKING_BACKOFF_U else problem
+
+
 def _point(problem, outputs):
     if outputs is None:
         return SolvedPoint(
@@ -333,9 +410,11 @@ def _point(problem, outputs):
 
 
 def pick_d(problem, record, pid, d_form=D_SHARE, k=None):
-    """One pick's d from its sealed truth (original limits: a true margin < 0 scores 0), in the registered d form."""
+    """One pick's d from its sealed truth, in the registered d form: a true violation scores 0 (``none``: a true
+    margin < 0; ``borderline_1u``: a clear breach, a true margin < -U; a borderline pick is scored on its regret).
+    """
     truth = record.pool[pid]["truth"]
-    if any(m < 0.0 for m in _margins(problem, truth).values()):
+    if _violates(problem, truth, record.limit_band):
         return 0.0
     if d_form != D_SHARE:
         check_d_form(d_form, k)
@@ -388,7 +467,9 @@ def _slots(
     >= 0, ordered by the objective; tier 1 = a predicted margin < 0, by the summed violation in U units; tier 2 = an
     invalid prediction. A predicted margin of EXACTLY 0 is feasible (tier 0), the same convention as `pick_d`, where
     only a true margin < 0 is infeasible, so the ranking and the truth side agree on the boundary. Equal keys tie
-    and share the group's mean d."""
+    and share the group's mean d. Under the ``borderline_1u`` band (original_limits only) the ranking problem is
+    `relaxed`: tier 0 = every predicted margin >= -U, so the ranking again agrees with `pick_d`, which scores 0 only a
+    true margin < -U (model-eval 23:02:03Z correction (5))."""
     _require(set(predictions) >= set(menu), "menu_predictions_missing_a_design")
     names = set(problem.outputs)
     _require(ranking in RANKINGS, "menu_ranking_unregistered")
@@ -398,7 +479,7 @@ def _slots(
         ranking == RANKING_BACKOFF_U or problem.near_limit is None,
         "menu_ranking_original_limits_with_near_limit",
     )
-    ranked_problem = backed_off(problem) if ranking == RANKING_BACKOFF_U else problem
+    ranked_problem = _ranked(problem, record, ranking)
     keyed = []
     for pid in menu:
         outputs = predictions[pid]
@@ -471,7 +552,7 @@ def score_task_live(
         predictions = predict_menu(menu)
     except ModelRowDependent:
         return {
-            "metric": metric_for(ranking, d_form),
+            "metric": metric_for(ranking, d_form, record.limit_band),
             "state": MODEL_ROW_DEPENDENT,
             "d": 0.0,
             "menu_size": len(menu),
@@ -502,7 +583,7 @@ def score_task(
     """The contender's D for one task this epoch (see the module docstring). ``predictions``: {menu id: outputs |
     None} for every id of the epoch's menu. ``key`` = crown_d.derive_key(K_crown, 'd-menu-sample'). Returns numbers
     and counts only."""
-    metric = metric_for(ranking, d_form)
+    metric = metric_for(ranking, d_form, record.limit_band)
     check_d_form(d_form, k)
     menu = draw_menu(record, key, epoch=epoch)
     raw = raw_score(problem, record, menu, predictions, ranking, d_form, k)
@@ -646,8 +727,12 @@ class RowIndependentPredict:
 
 
 __all__ = [
+    "LIMIT_BANDS",
+    "LIMIT_BAND_BORDERLINE_1U",
+    "LIMIT_BAND_NONE",
     "MENU_SCHEMA",
     "METRIC",
+    "METRIC_BORDERLINE",
     "MODEL_ROW_DEPENDENT",
     "RANKINGS",
     "RANKING_BACKOFF_U",
@@ -667,6 +752,7 @@ __all__ = [
     "oracle_score",
     "pick_d",
     "raw_score",
+    "relaxed",
     "score_task",
     "score_task_live",
 ]

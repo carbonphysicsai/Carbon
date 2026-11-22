@@ -311,15 +311,19 @@ def _menu_pairs(menu_dir):
     return pairs
 
 
-def menu_shas(challenge, version, menu_dir):
-    """The door-form record shas of a menu directory (what pool_constants registers), shas only."""
+def menu_shas(challenge, version, menu_dir, limit_band=None):
+    """The door-form record shas of a menu directory (what pool_constants registers), shas only, checked under
+    ``limit_band`` (`menu_score.LIMIT_BANDS`; None = today's ``none``). The shas do not depend on the band.
+    """
     from carbon.scoring import pool_adapters, pool_menu, pool_version
 
     binding = pool_adapters.official_binding(pool_version.KINDS[challenge], version)
+    band = {} if limit_band is None else {"limit_band": limit_band}
     _material, shas = pool_menu.menu_material(
         _menu_pairs(menu_dir),
         input_names=list(binding.input_names),
         design_names=list(binding.design_names),
+        **band,
     )
     return shas
 
@@ -329,12 +333,14 @@ def _with_menu(challenge, version, material, menu_dir):
     from carbon.scoring import pool_exam, pool_menu, pool_version
 
     try:
+        rule = pool_version.registered_menu(challenge, version)
         menu, shas = pool_menu.menu_material(
             _menu_pairs(menu_dir),
             input_names=material["input_names"],
             design_names=material["design_names"],
+            # the registered band (a menu checked under a band other than its version's would refuse at grade time)
+            **({} if rule is None else {"limit_band": rule.limit_band}),
         )
-        rule = pool_version.registered_menu(challenge, version)
     except (pool_exam.ExamRefused, pool_version.PoolConstantsNotRegistered) as exc:
         raise SystemExit(f"menu refused: {getattr(exc, 'code', exc)}") from exc
     if rule is None or dict(rule.records_sha256) != shas:
@@ -443,6 +449,10 @@ def main(argv=None):
     shas = sub.add_parser("menu-shas")
     for flag in ("challenge", "version", "menu-dir"):
         shas.add_argument("--" + flag, required=True)
+    shas.add_argument(
+        "--limit-band",
+        help="the band the version will register (none, the default, or borderline_1u); the shas do not depend on it",
+    )
     acc = sub.add_parser("accounting")
     for flag in ("challenge", "version", "set-dir", "input-dtype"):
         acc.add_argument("--" + flag, required=True)
@@ -451,7 +461,7 @@ def main(argv=None):
     if args.command == "menu-shas":
         print(
             json.dumps(
-                menu_shas(args.challenge, args.version, args.menu_dir),
+                menu_shas(args.challenge, args.version, args.menu_dir, args.limit_band),
                 sort_keys=True,
                 indent=2,
             )
