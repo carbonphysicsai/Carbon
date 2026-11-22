@@ -164,3 +164,20 @@ def test_the_flag_registers_as_true_only_and_needs_a_physics_rule_and_a_menu(tmp
     assert "physics" not in base and "menu" not in base
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         read(pool_only=True)
+
+
+def test_split_rows_keeps_the_both_cohorts_rule_for_every_other_version():
+    sealed = {"cohort": "sealed"}
+    pooled = {"cohort": pool_exam.POOL_COHORT}
+    assert pool_exam.split_rows([sealed, pooled]) == ([0], [1])
+    for rows in ([pooled], [sealed], []):
+        with pytest.raises(pool_exam.ExamRefused) as caught:
+            pool_exam.split_rows(rows)
+        assert caught.value.code == "exam_bank_needs_sealed_rows_and_pool_rows"
+    assert pool_exam.split_rows([pooled, pooled], pool_only=True) == ([], [0, 1])
+    with pytest.raises(pool_exam.ExamRefused) as caught:
+        pool_exam.split_rows([sealed, pooled], pool_only=True)
+    assert caught.value.code == "pool_only_bank_holds_sealed_rows"
+    with pytest.raises(pool_exam.ExamRefused) as caught:
+        pool_exam.split_rows([], pool_only=True)
+    assert caught.value.code == "exam_bank_needs_pool_rows"

@@ -104,11 +104,17 @@ def staged_capture():
         _STAGED_CAPTURE.reset(token)
 
 
-def split_rows(bank_rows):
-    """(sealed rows, pool rows, their positions) of a bank whose pool rows carry cohort `POOL_COHORT`."""
+def split_rows(bank_rows, *, pool_only=False):
+    """(sealed rows, pool rows, their positions) of a bank whose pool rows carry cohort `POOL_COHORT`. Every version needs
+    both; a REGISTERED pool-only version (P1) needs pool rows and holds no sealed row.
+    """
     sealed = [i for i, r in enumerate(bank_rows) if r.get("cohort") != POOL_COHORT]
     pool = [i for i, r in enumerate(bank_rows) if r.get("cohort") == POOL_COHORT]
-    _require(sealed and pool, "exam_bank_needs_sealed_rows_and_pool_rows")
+    if pool_only:
+        _require(not sealed, "pool_only_bank_holds_sealed_rows")
+        _require(pool, "exam_bank_needs_pool_rows")
+    else:
+        _require(sealed and pool, "exam_bank_needs_sealed_rows_and_pool_rows")
     return sealed, pool
 
 
@@ -264,12 +270,11 @@ def measure_pool(
     # The delivered query holds the pool rows quantised to the bank's dtype (`pool_version.rows_from_material`);
     # the grader asks the model's table about the same rounded rows, never about the unrounded designs.
     quantize = _quantizer(input_dtype)
-    sealed, pool = split_rows(bank_rows)
     # P1 (model-eval 22 Nov 2026 04:41:52Z): a REGISTERED pool-only version has no sealed grid and no base measure; its
     # gates are the pool's own (physics, speed, in-range accuracy) and the C cap is each set's physics A (below)
     pool_only = getattr(policies, "pool_only", False) is True
+    sealed, pool = split_rows(bank_rows, pool_only=pool_only)
     if pool_only:
-        _require(not sealed, "pool_only_bank_holds_sealed_rows")
         _require(
             policies.physics is not None and menu is not None,
             "pool_only_needs_a_physics_rule_and_a_menu",
