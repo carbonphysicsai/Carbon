@@ -2,8 +2,9 @@
 
 Claims: the official grade's core (`lean_recipe_retention`) and both rebuild workers are grading paths; every module the
 workers stage into their containers is a grading path; every program string they run imports only grading paths; and
-every carbon module any of those imports (statically, lazy imports included) is either a grading path or named in
-`GRADING_EXCLUDED` with a reason. A new import that is in neither list fails here, so it is classified before it lands.
+every carbon or scripts module any of those imports (statically, lazy imports included) is either a grading path or
+named in `GRADING_EXCLUDED` with a reason. A new import that is in neither list fails here, so it is classified before
+it lands.
 """
 
 from __future__ import annotations
@@ -24,6 +25,9 @@ CORE = (
     "carbon.development_session.direct_graph_construction_worker",
 )
 EXCLUDED = dict(dr.GRADING_EXCLUDED)
+#: The repo's own top-level packages an import can resolve into: ``carbon`` and ``scripts`` (a grade path imports
+#: ``scripts.dev.score_lab`` modules, so those are classified like any carbon import).
+_ROOTS = ("carbon.", "scripts.")
 
 
 def _path(module):
@@ -54,11 +58,11 @@ def _imports(tree, module, package):
             named.update(source + "." + alias.name for alias in node.names)
     found = set()
     for name in named:
-        if name != "carbon" and not name.startswith("carbon."):
+        if not name.startswith(_ROOTS):
             continue
         while name and _path(name) is None:
             name = name.rpartition(".")[0]
-        if name and name != "carbon":
+        if name and name not in ("carbon", "scripts"):
             found.add(name)
     return found
 
@@ -128,3 +132,21 @@ def test_a_new_unclassified_import_fails_the_check(tmp_path):
     tree = ast.parse("from carbon.agent_campaign import graphite\n")
     found = _imports(tree, "carbon.challenge_validator.lean_recipe_retention", False)
     assert found and not all(_classified(module) for module in found)
+
+
+def test_a_new_unclassified_scripts_import_fails_the_check():
+    tree = ast.parse("from scripts.dev.score_lab.bank_builder import main\n")
+    found = _imports(tree, "carbon.challenge_validator.lean_recipe_retention", False)
+    assert found == {"scripts.dev.score_lab.bank_builder"}
+    assert not all(_classified(module) for module in found)
+
+
+def test_the_retention_scripts_imports_are_seen_and_classified():
+    found = _module_imports("carbon.challenge_validator.lean_recipe_retention")
+    scripts = {module for module in found if module.startswith("scripts.")}
+    assert scripts == {
+        "scripts.dev.score_lab.public_unbound_custody",
+        "scripts.dev.score_lab.public_unbound_entry",
+        "scripts.dev.score_lab.synthetic_linear_field_reference",
+    }
+    assert all(module in EXCLUDED for module in scripts)

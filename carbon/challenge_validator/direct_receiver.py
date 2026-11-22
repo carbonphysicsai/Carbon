@@ -1226,6 +1226,25 @@ GRADING_EXCLUDED = (
         "carbon.challenge_validator.koth_journal",
         "journal lines of crown events (ids, keys, outcome and reason codes): an operator log, never a grade input",
     ),
+    (
+        "scripts.dev.score_lab.public_unbound_custody",
+        (
+            "ScoreLab custody of the retained graph artifacts (role schema, byte and codec checks, read ceiling): it computes"
+            " no grade value; a defect fails retention (FAILED_INFRA), and retention refuses unless the role schema is the"
+            " pinned v5 string (v2 01:51:15Z note; case-procs 02:00:17Z)"
+        ),
+    ),
+    (
+        "scripts.dev.score_lab.public_unbound_entry",
+        "the create-only ScoreLab index receipt of a retained artifact group: storage, never a grade input or a score",
+    ),
+    (
+        "scripts.dev.score_lab.synthetic_linear_field_reference",
+        (
+            "the public practice measurement sidecar of synthetic-linear-field-2d 1.3 only, and only when the result has no"
+            " evaluation pack: never an official pack grade"
+        ),
+    ),
     ("carbon.challenge_validator", "package __init__: re-exports only"),
     ("carbon.development_session", "package __init__: re-exports only"),
     ("carbon.challenge_kit", "package __init__: re-exports only"),
