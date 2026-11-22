@@ -33,8 +33,10 @@ MAGNET_FILE = (
     / "data"
     / "motor-dev-bank-1p9-magnet-v1.json"
 )
-#: The pinned sha256 of `MAGNET_FILE`; None refuses (HUMAN_INPUT until exam-motor's public build is receipted).
-MAGNET_SHA256 = None
+#: The pinned sha256 of `MAGNET_FILE`: the public re-solves of the 78 reference cases at the TRAIN magnet knobs on the
+#: digest-pinned image (model-eval V-B, 22 Nov 2026; custody-ops 08:39:18Z: 78 / 78 OK, determinism 0.0; built by
+#: exam-motor's build_magnet_file.py f6d19f8c); None refuses.
+MAGNET_SHA256 = "0260cdf87b52cf030f8c5e16518e73820632f797ccc9e3d8d3712331983710b4"
 
 
 class DevBankUnavailable(ValueError):

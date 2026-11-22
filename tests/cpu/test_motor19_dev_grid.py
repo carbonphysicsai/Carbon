@@ -72,14 +72,30 @@ def test_the_magnet_file_is_read_only_at_its_pin():
             m.load_magnets(bad, pinned=bad_sha)
 
 
-def test_nothing_is_served_until_the_magnet_file_is_pinned():
-    assert m.MAGNET_SHA256 is None
+def test_an_unpinned_magnet_file_is_never_served(monkeypatch):
+    monkeypatch.setattr(m, "MAGNET_SHA256", None)
     with pytest.raises(m.DevBankUnavailable, match="not_pinned"):
         m.load_magnets()
     with pytest.raises(m.DevBankUnavailable, match="not_pinned"):
         m.bank()
     with pytest.raises(m.DevBankUnavailable, match="1.9_only"):
         m.bank("1.8")
+
+
+def test_the_pinned_file_holds_one_finite_magnet_value_per_1_8_reference_case():
+    """V-B (22 Nov 2026): the 78 public re-solves, pinned by sha; exactly the cases of 1.8's linkage file, so every
+    reference row of the development bank gains its magnet value and none is left without one.
+    """
+    import math
+
+    from carbon.scoring import motor18_dev_grid
+
+    raw = m.MAGNET_FILE.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == m.MAGNET_SHA256
+    magnets = m.load_magnets()
+    assert len(magnets) == 78
+    assert all(math.isfinite(v) for v in magnets.values())
+    assert set(magnets) == set(motor18_dev_grid.load_linkages())
 
 
 def test_the_dispatch_registers_this_bank_and_adapter():
