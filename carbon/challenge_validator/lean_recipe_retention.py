@@ -426,6 +426,22 @@ def _sigma_snapshot(inference: Path, receipt: dict) -> bytes | None:
     )
 
 
+def _regrade_sigma(receipt_raw: bytes, sigma: bytes | None) -> bytes | None:
+    """A regrade's own sigma.json (H3g R2 follow-up, door-code 02:55:34Z): a regraded trust candidate's inference names a
+    ``sigma_digest`` in its receipt, and the sigma kept beside it must be exactly those bytes; a receipt that names none keeps
+    none. Anything else is Carbon's refusal (`RetentionUnavailable`), never the candidate's. Returns ``sigma`` unchanged.
+    """
+    try:
+        named = json.loads(receipt_raw).get("sigma_digest")
+    except (UnicodeError, ValueError, AttributeError) as exc:
+        raise RetentionUnavailable("regrade_inference_receipt_malformed") from exc
+    if (named is None) != (sigma is None) or (
+        sigma is not None and _sha(sigma) != named
+    ):
+        raise RetentionUnavailable("regrade_sigma_changed")
+    return sigma
+
+
 def _receipt_snapshot(path: Path, expected: dict, label: str) -> bytes:
     if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 65536:
         raise RetentionUnavailable(label + "_unavailable")
@@ -6743,6 +6759,12 @@ def _regrade_retained_entry(
         receipt_raw = _private_measurement_bytes(
             task_root / "inference-receipt.json", 65536
         )
+        # a retried trust regrade: its own retained sigma.json, when its receipt names one
+        sigma = (
+            _private_measurement_bytes(task_root / "sigma.json", retained_limit)
+            if (task_root / "sigma.json").exists()
+            else None
+        )
         timed_raw = (
             _private_measurement_bytes(task_root / "timed-query-receipt.json", 65536)
             if timed
@@ -6863,6 +6885,10 @@ def _regrade_retained_entry(
             )
 
         predictions, receipt_raw = kept(graded, "regrade")
+        # a trust candidate's regrade: the trust columns its own graded inference split off (None for every other)
+        sigma = _sigma_snapshot(
+            provider.ledger.root / graded.worker_operation / "snapshot", graded.receipt
+        )
         timed_predictions, timed_raw = (
             kept(timed_result, "regrade_timed") if timed else (None, None)
         )
@@ -6912,8 +6938,11 @@ def _regrade_retained_entry(
         # The origin task's practice timed query is not a measurement of this bank.
         artifacts.pop("timed-query-receipt.json", None)
         artifacts.pop("timed-query-predictions.json", None)
-    # The origin's sigma belongs to the origin's bank (H3g R2): never carried into a grade on another bank.
+    # The origin's sigma belongs to the origin's bank (H3g R2): never carried into a grade on another bank; a trust
+    # candidate's regrade keeps the one its own graded inference produced, bound to its receipt.
     artifacts.pop("sigma.json", None)
+    if _regrade_sigma(receipt_raw, sigma) is not None:
+        artifacts["sigma.json"] = sigma
     artifacts["inputs.npz"] = bank_raw
     artifacts["predictions.json"] = predictions
     artifacts["inference-receipt.json"] = receipt_raw
@@ -6968,9 +6997,10 @@ def _regrade_retained_entry(
     # same name is a hard link to it (kept unchanged, or re-made byte for byte), and this grade's predictions, when
     # new, to its inference operation's output (`link_once` tries each candidate in order, links identical bytes only)
     sources = {name: (base / origin / name,) for name in artifacts}
-    for retained, field in (
-        ("predictions.json", "inference_operation"),
-        ("timed-query-predictions.json", "timed_operation"),
+    for retained, field, snapshot_name in (
+        ("predictions.json", "inference_operation", "predictions.json"),
+        ("sigma.json", "inference_operation", "sigma.json"),
+        ("timed-query-predictions.json", "timed_operation", "predictions.json"),
     ):
         operation = operations.get(field) if type(operations) is dict else None
         if (
@@ -6980,7 +7010,7 @@ def _regrade_retained_entry(
         ):
             sources[retained] = (
                 base / origin / retained,
-                provider.ledger.root / operation / "snapshot" / "predictions.json",
+                provider.ledger.root / operation / "snapshot" / snapshot_name,
             )
     try:
         _write_retained(task_root, artifacts, sources)

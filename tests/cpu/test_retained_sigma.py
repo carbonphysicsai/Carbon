@@ -87,3 +87,22 @@ def test_a_sigma_file_has_one_row_of_k_finite_numbers_per_prediction_row():
         custody._graph_sigma_ok(b"[[NaN],[0.25]]", b"[[1.0],[2.0]]", 1) is False
     )  # a non-finite constant is not JSON here
     assert custody._graph_sigma_ok(b"not json", b"[[1.0]]", 1) is False
+
+
+def test_a_regrades_sigma_is_exactly_what_its_receipt_names(tmp_path):
+    raw = b"[[0.5],[0.25]]"
+    named = json.dumps({"sigma_digest": retention._sha(raw)}).encode()
+    assert retention._regrade_sigma(named, raw) == raw
+    plain = json.dumps({"schema": "x"}).encode()
+    assert retention._regrade_sigma(plain, None) is None
+    for receipt, sigma in (
+        (named, None),  # a trust receipt with no sigma kept
+        (named, b"[[0.5],[0.26]]"),  # a different sigma
+        (plain, raw),  # a sigma the receipt does not name
+    ):
+        with pytest.raises(RetentionUnavailable, match="regrade_sigma_changed"):
+            retention._regrade_sigma(receipt, sigma)
+    with pytest.raises(
+        RetentionUnavailable, match="regrade_inference_receipt_malformed"
+    ):
+        retention._regrade_sigma(b"not json", None)
