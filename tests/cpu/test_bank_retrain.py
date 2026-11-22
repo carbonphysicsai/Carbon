@@ -46,6 +46,37 @@ def test_every_other_seed_is_refused(seed):
         bank.check_seed(seed)
 
 
+def test_the_graph_bound_batch_is_kept_by_defaults_all_keep_batch_and_never_reset():
+    doc = {
+        "procedure": {
+            "configuration": {
+                "training": {"steps": 1, "batch_size": 4, "learning_rate": 0.01},
+                "ensemble": {"members": [{"outputs": [0], "training": {"steps": 2}}]},
+            }
+        }
+    }
+    kept = bank.arm_recipe(doc, "defaults_all_keep_batch")
+    assert kept["procedure"]["configuration"]["training"] == {"batch_size": 4}
+    assert (
+        "training" not in kept["procedure"]["configuration"]["ensemble"]["members"][0]
+    )
+    with pytest.raises(bank.BankRefused, match="arm_graph_bound"):
+        bank.arm_recipe(doc, "default:batch_size")
+    # wave A's 'defaults_all' keeps its meaning (historical reports are never reinterpreted)
+    assert (
+        bank.arm_recipe(doc, "defaults_all")["procedure"]["configuration"]["training"]
+        == {}
+    )
+    # a recipe that never set batch_size: the keep-batch arm resets everything, like defaults_all
+    plain = {"procedure": {"configuration": {"training": {"steps": 1}}}}
+    assert (
+        bank.arm_recipe(plain, "defaults_all_keep_batch")["procedure"]["configuration"][
+            "training"
+        ]
+        == {}
+    )
+
+
 def test_arms_change_only_the_recipe_document_and_never_the_input():
     before = json.dumps(RECIPE, sort_keys=True)
     assert bank.arm_recipe(RECIPE, "original") == RECIPE

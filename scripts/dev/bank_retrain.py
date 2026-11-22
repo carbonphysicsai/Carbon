@@ -9,7 +9,8 @@ its own. It adds only:
   reproduction check only, contract row 6) or a bank seed ``BANK_SEED_BASE + i`` (V2: i in 0..9999). Any other seed
   is refused, so the bank never builds at a crown rebuild seed it could have learned.
 - ``arm``: one named change to the RECIPE document (never to weights), re-validated by the adapter; an arm that would
-  not change the recipe is refused.
+  not change the recipe is refused, and so is an arm that resets a graph-bound setting (``GRAPH_BOUND``: the graph is
+  built at one declared batch).
 - the trained state's digest (``model.frozen_state()``, the worker's own ``sha256:`` form), compared, when given,
   with the miner build's recorded digest.
 - the kit verify set's aggregate (the local scorer's own ``LOCAL_CHECKS``): public designs only.
@@ -38,8 +39,12 @@ LABEL = "bank retrain: public signals only, never a grade"
 BANK_SEED_BASE = 900_000_000
 BANK_SEEDS = 10_000
 OFFICIAL_SEED = 0
-FIXED_ARMS = ("original", "single_member", "defaults_all")
+FIXED_ARMS = ("original", "single_member", "defaults_all", "defaults_all_keep_batch")
 DEFAULT_PREFIX = "default:"
+#: Settings the GRAPH is built at (the adapter validates and runs the graph at one declared batch): an arm may not
+#: reset them, so 'default:batch_size' is refused before any build (wave A found it REFUSED by the adapter, 12 / 12),
+#: and 'defaults_all_keep_batch' resets every other setting. 'defaults_all' keeps its wave A meaning unchanged.
+GRAPH_BOUND = ("batch_size",)
 
 
 class BankRefused(RuntimeError):
@@ -78,8 +83,15 @@ def arm_recipe(doc, arm):
         config["training"] = {}
         for member in members:
             member.pop("training", None)
+    elif arm == "defaults_all_keep_batch":
+        training = config.get("training") or {}
+        config["training"] = {k: training[k] for k in GRAPH_BOUND if k in training}
+        for member in members:
+            member.pop("training", None)
     elif isinstance(arm, str) and arm.startswith(DEFAULT_PREFIX):
         knob = arm[len(DEFAULT_PREFIX) :]
+        if knob in GRAPH_BOUND:
+            raise BankRefused("arm_graph_bound")
         if not knob:
             raise BankRefused("arm_unknown")
         (config.get("training") or {}).pop(knob, None)
