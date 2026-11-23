@@ -1543,6 +1543,13 @@ def _sized_pair_ceiling(adapter, artifacts):
 
 #: The standing read cap of a regrade's retained predictions and worker evidence.
 REGRADE_RETAINED_BYTES = 16 * 1024**2
+#: The per-file read cap when a regrade (or a counted bank grade, which regrades its own retained entry) reads a task's
+#: retained files back: the custody inventory's retained graph file bound (`public_unbound_custody.MAX_GRAPH_FILE_BYTES`,
+#: 512 MiB), the bound every one of those files already passed when it was retained, so a file retention accepted is
+#: never refused on the way back. Each file is still checked against its manifest digest. Was a fixed 128 MiB (live 116,
+#: 23 Nov 2026: smiley's regrade rtsk_aec3a4b7, state.npz 183,830,989 bytes, refused public_measurement_bytes_unavailable
+#: after head 0dbf587a let retention take it).
+REGRADE_ORIGIN_FILE_BYTES = 512 * 1024**2
 
 
 def _regrade_bank_bound(bank_rows, expected_output_shape):
@@ -6013,7 +6020,7 @@ def _regrade_origin(
     )
     files = {}
     for name, digest in sorted(manifest["retained_files"].items()):
-        raw = _private_measurement_bytes(task_root / name, 128 * 1024**2)
+        raw = _private_measurement_bytes(task_root / name, REGRADE_ORIGIN_FILE_BYTES)
         if _sha(raw) != digest:
             raise RetentionUnavailable("regrade_origin_file_changed")
         files[name] = raw
