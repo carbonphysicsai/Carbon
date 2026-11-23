@@ -371,6 +371,15 @@ def release_parent_reference(parent, repository):
 #: The local name a miner host gives its analysis image (LA-F2).
 LOCAL_ANALYSIS_REPOSITORY = "carbon-analysis"
 
+#: Seconds the analysis image build may take (a bound, so a hung build still stops). Measured
+#: on containerd's native snapshotter (required on Lium pods; rehearsal R0, 23 Nov 2026, logs in
+#: codex-queue/reports/REHEARSAL_R0_20261123/pod1_carbon-ada-r0/): the build's final unpack
+#: scales with the image, and that store took 571.3 s to unpack the PyTorch worker this build
+#: starts FROM (its build 601.9 s) and 817.3 s for the largest image (PyTorch GPU worker, build
+#: 889.9 s). The old 600 s bound timed out a first install there. 1800 s is about twice the
+#: slowest measured build. Image builds only: no official grade builds this image.
+ANALYSIS_BUILD_TIMEOUT = 1800
+
 
 def local_tag(cli, image_id, repository):
     """Name a locally built image by its own id, `<repository>:<hex>`.
@@ -446,7 +455,7 @@ ENTRYPOINT ["/opt/carbon-worker/bin/python","-I","-m","carbon.reconstruction.wor
             "-q",
             str(context),
         ],
-        timeout=600,
+        timeout=ANALYSIS_BUILD_TIMEOUT,
     )
     image_id = built.stdout.decode().strip()
     image = ResearchImageIdentity(image_id, parent.image_id, fingerprint)

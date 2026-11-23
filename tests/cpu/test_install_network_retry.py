@@ -1,6 +1,7 @@
 """G1 (bug hunt): a network cut during an install step is retried once and, if it persists, explained in plain words.
 
-The installer's `network_step` is run in bash against fake step commands. Nothing is downloaded or built."""
+The installer's `network_step` is run in bash against fake step commands. Nothing is downloaded or built.
+"""
 
 from __future__ import annotations
 
