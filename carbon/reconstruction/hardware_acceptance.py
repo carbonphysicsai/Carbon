@@ -17,6 +17,9 @@ under the same two profiles; the A40 has no mainnet acceptance. OWNER-A100-40GB-
 Lambda A100 40GB SXM4 (``NVIDIA A100-SXM4-40GB``) for JAX and PyTorch builds on finney, the remote GPU build lane's class.
 OWNER-RTX6000ADA-BUILD-CLASS-01 (2026-11-21) enters the Lium RTX 6000 Ada (``NVIDIA RTX 6000 Ada Generation``) the same
 way, finney only: the build class of the doors INFRA-17 names (Motor 1.9 and later).
+OWNER-A6000-48GB-BUILD-CLASS-01 (2026-11-23, G-LEAD-60) enters the Lambda RTX A6000 48 GB VM (``NVIDIA RTX A6000``) for
+JAX builds on finney, the launch build class of Motor 1.9 and RB 2.0 (G-LEAD-59 / 60), after infra's class record passed;
+its PyTorch profile is not entered (the record measured JAX only).
 """
 
 from __future__ import annotations
@@ -80,6 +83,24 @@ _OWNER_RTX6000ADA_FINNEY = {
 }
 
 
+#: The owner's own words, typed in the Lead seat at 2026-11-23T18:51:18Z (OWNER_LINES.md G-LEAD-60, "I guess that's the
+#: move", answering block 57): "approved: OWNER-A6000-48GB-BUILD-CLASS-01: Motor 1.9 and RB 2.0 miner builds may run on
+#: Lambda RTX A6000 48 GB VMs (gpu_1x_a6000) with the door's pinned engine, after infra's class record passes; on demand,
+#: same pool rules as the A100." The record passed (infra RECEIPTS 5505): a6000-class-check.json sha256 54446e4a...,
+#: GPU_REPEATS 16/16, slots 1 / 2 / 3 digest-equal, memory shared, JAX only (--no-torch).
+_OWNER_A6000_48GB_FINNEY = {
+    "record": "OWNER-A6000-48GB-BUILD-CLASS-01",
+    "networks": ("finney",),
+    "evidence": (
+        "the owner's direct acceptance, 2026-11-23 (G-LEAD-60), of the Lambda RTX A6000 48 GB VM as a Carbon GPU build "
+        "class for Motor 1.9 and RB 2.0 after infra's class record passed: a6000-class-check.json sha256 "
+        "54446e4a6675e2e67466961af8ada2d26da2b904ebb0f615d77d80ee4f2e1535, ops record sha256 "
+        "a2887c4af2f9e36c914d6160962393d49bc8df9eaf7dd29eddcdcbb12d202a22 "
+        "(.agent/decisions/2026-11-23-OWNER-A6000-48GB-BUILD-CLASS-01.md)"
+    ),
+}
+
+
 def _entry(*records):
     """One profile's acceptance: the first record's own fields, the networks every record names, and each
     network's record (`by_network`) so a network's acceptance is never read as another's.
@@ -118,6 +139,8 @@ ACCEPTED_DEVICE_CLASSES: dict = {
         JAX_GPU: _entry(_OWNER_RTX6000ADA_FINNEY),
         TORCH_GPU: _entry(_OWNER_RTX6000ADA_FINNEY),
     },
+    # the Lambda launch class of Motor 1.9 and RB 2.0 (OWNER-A6000-48GB-BUILD-CLASS-01, G-LEAD-60): JAX only, as measured
+    "NVIDIA RTX A6000": {JAX_GPU: _entry(_OWNER_A6000_48GB_FINNEY)},
 }
 
 

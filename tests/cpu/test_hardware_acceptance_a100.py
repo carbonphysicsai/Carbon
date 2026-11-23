@@ -41,6 +41,8 @@ def test_the_other_classes_are_unchanged():
         A100,
         # OWNER-RTX6000ADA-BUILD-CLASS-01 (21 Nov 2026): Motor 1.9's build class, finney only
         "NVIDIA RTX 6000 Ada Generation",
+        # OWNER-A6000-48GB-BUILD-CLASS-01 (23 Nov 2026): Motor 1.9 / RB 2.0's launch class, finney only, JAX only
+        "NVIDIA RTX A6000",
     }
     assert acceptance.ACCEPTED_DEVICE_CLASSES["NVIDIA A40"][acceptance.JAX_GPU][
         "networks"
