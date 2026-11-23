@@ -732,6 +732,8 @@ def test_an_unregistered_version_is_refused_by_the_v2_adapter():
     with pytest.raises(RecipeRefused) as raised:
         adapter.spec_for(F08, "1.4")
     assert raised.value.code == "graph_route_challenge_version_unregistered"
+    # Carbon's missing registration (FAILED_INFRA), never the candidate's refusal (Lead audit #15).
+    assert build_refusal_v2.outcome(raised.value.code) == build_refusal_v2.GAP
 
 
 def test_more_than_four_members_are_accepted():

@@ -16,7 +16,6 @@ from .build_refusal import GAP, REFUSED
 #: and `GAP_SUFFIXES`, which a test holds equal), by class.
 _REFUSED_SUFFIXES = (
     "batch_exceeds_train",
-    "challenge_version_unregistered",
     "ensemble_invalid",
     "input_invalid",
     "loss_unsupported",
@@ -31,7 +30,7 @@ _REFUSED_SUFFIXES = (
     "training_value_invalid",
     "untrained",
 )
-_GAP_SUFFIXES = ("surface_unserved",)
+_GAP_SUFFIXES = ("challenge_version_unregistered", "surface_unserved")
 CODES = {
     **V1_CODES,
     **{"graph_route_" + suffix: REFUSED for suffix in _REFUSED_SUFFIXES},

@@ -390,11 +390,11 @@ SPECS = {
 ADAPTER_IDS = frozenset(spec.adapter_id for spec in SPECS.values())
 
 #: Every closed refusal code this adapter raises: REFUSED (the candidate's),
-#: except `graph_route_surface_unserved` (Carbon's GAP). Registered in
-#: `build_refusal_v2.CODES`.
+#: except `graph_route_surface_unserved` and `graph_route_challenge_version_unregistered` (Carbon's GAP: a version
+#: with no Spec row is Carbon's missing registration, FAILED_INFRA, never the candidate's; Lead audit #15).
+#: Registered in `build_refusal_v2.CODES`.
 REFUSED_SUFFIXES = (
     "batch_exceeds_train",
-    "challenge_version_unregistered",
     "ensemble_invalid",
     "input_invalid",
     "loss_unsupported",
@@ -409,7 +409,7 @@ REFUSED_SUFFIXES = (
     "training_value_invalid",
     "untrained",
 )
-GAP_SUFFIXES = ("surface_unserved",)
+GAP_SUFFIXES = ("challenge_version_unregistered", "surface_unserved")
 
 
 def spec_for(challenge_id: str, version: str) -> Spec:
