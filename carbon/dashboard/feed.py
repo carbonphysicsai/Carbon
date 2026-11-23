@@ -943,7 +943,9 @@ def project(document, trust):
         "labels": list(labels),
         "challenge": challenge,
         "device_class": device_class,
-        "slug": board_slug(challenge["id"], device_class or "no-class"),
+        "slug": board_slug(
+            challenge["id"], device_class or "no-class", challenge["version"]
+        ),
         "version": _int(document.get("version"), "version_invalid", minimum=1),
         "released_through_block": _int(
             document.get("released_through_block"), "block_invalid", optional=True
@@ -978,6 +980,35 @@ def project(document, trust):
     }
 
 
-def board_slug(challenge_id, device_class):
-    raw = f"{challenge_id}--{device_class}".lower()
+def board_slug(challenge_id, device_class, version=None):
+    """A board's slug: ``<id>-<version>--<class>`` (Lead audit #3: two live versions of one Challenge are two boards), or
+    with no version the version-less ``<id>--<class>``, kept as an ALIAS of the newest version (`alias_slugs`) so links
+    and bookmarks made before the version was in the slug still open a board."""
+    head = challenge_id if version is None else f"{challenge_id}-{version}"
+    raw = f"{head}--{device_class}".lower()
     return re.sub(r"[^a-z0-9.-]+", "-", raw).strip("-")
+
+
+def version_order(version):
+    """A sort key for a Challenge version string: dotted integers numerically ("1.10" after "1.9"), anything else after."""
+    parts = str(version).split(".")
+    if all(p.isdigit() for p in parts):
+        return (0, tuple(int(p) for p in parts), "")
+    return (1, (), str(version))
+
+
+def alias_slugs(boards):
+    """``{version-less slug: the versioned slug of that Challenge and class's NEWEST version}`` over ``boards`` (each with
+    ``challenge`` and ``device_class``), for every alias that is not itself a board's slug.
+    """
+    newest = {}
+    for board in boards:
+        challenge = board.get("challenge") or {}
+        alias = board_slug(challenge.get("id"), board.get("device_class") or "no-class")
+        known = newest.get(alias)
+        if known is None or version_order(challenge.get("version")) > version_order(
+            known[0]
+        ):
+            newest[alias] = (challenge.get("version"), board["slug"])
+    slugs = {board["slug"] for board in boards}
+    return {alias: slug for alias, (_, slug) in newest.items() if alias not in slugs}

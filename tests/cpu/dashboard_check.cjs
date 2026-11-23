@@ -258,6 +258,14 @@ const links = []; D.walk(D.minePage(), n => { if (n.attrs.href) links.push(n.att
 assert.ok(links.includes(D.LINKS.launchpad) && links.includes(D.LINKS.guide), "launchpad docs and the mining guide linked");
 
 assert.deepEqual(D.parseRoute("#/b/x--cpu/m/5abc"), {view: "miner", slug: "x--cpu", hotkey: "5abc"});
+// Lead audit #3: a version-less link opens the newest live version of that Challenge and class
+{
+  const e = v => ({slug: "x-" + v + "--no-class", challenge: {id: "x", version: v}, device_class: null, state: "ACCEPTED"});
+  const boards = [e("1.8"), e("1.10"), e("1.9"), {slug: null, state: "REFUSED", code: "c"}];
+  assert.equal(D.aliasEntry(boards, "x--no-class").slug, "x-1.10--no-class");
+  assert.equal(D.aliasEntry(boards, "y--no-class"), null);
+  assert.equal(D.aliasEntry(boards, "x-1.8--no-class"), null);
+}
 assert.deepEqual(D.parseRoute("#/mine"), {view: "mine"});
 assert.deepEqual(D.parseRoute("#/"), {view: "home"});
 assert.equal(D.countdown(3723), "01:02:03");

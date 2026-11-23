@@ -25,7 +25,7 @@
 // Design showcase replays stay static: they need Carbon's Python optimizer,
 // so they are rebuilt and redeployed when the incumbent changes.
 
-import {FETCH_HEADERS, FeedRefused, boardSlug, entry, panelSummary, parse, project, projectV2, restamp, trust} from "./feed.mjs";
+import {FETCH_HEADERS, FeedRefused, aliasSlugs, boardSlug, entry, panelSummary, parse, project, projectV2, restamp, trust} from "./feed.mjs";
 // DASHBOARD-02 S3: /data/network.json from the signed network snapshots in
 // the optional secret SNAPSHOT_URLS, checked against FEED_KEYS (404 unset).
 import {liveNetwork} from "./snapshot.mjs";
@@ -118,6 +118,8 @@ export async function liveSite(env, request, fetcher = fetch, now = Math.floor(D
   const entries = new Map();
   const boards = new Map();
   const boardsV2 = new Map();
+  // each board's feed URL (the door queue panel reads that door's queue: two versions of one Challenge are two doors)
+  const feeds = new Map();
   let n = 0;
   for (const url of urls) {
     let document = null;
@@ -130,21 +132,36 @@ export async function liveSite(env, request, fetcher = fetch, now = Math.floor(D
       boards.set(board.slug, board);
       boardsV2.set(board.slug, {...projectV2(board, now), feed_state: board.feed_state});
       entries.set(board.slug, entry(board));
+      feeds.set(board.slug, url);
     } catch (error) {
       if (error instanceof FeedRefused && error.code === "feed_not_published") { n += 1; continue; }
       const code = error instanceof FeedRefused ? error.code : "feed_unavailable";
       let slug = null;
+      let older = null;
+      let version = null;
       try {
         const deviceClass = document.device_class || (document.submissions?.[0]?.device_class) || "no-class";
-        slug = boardSlug(document.challenge.id, deviceClass);
-      } catch { slug = null; }
-      const previous = slug && !boards.has(slug) ? await asset(env, request, `/data/boards/${slug}.json`) : null;
+        version = document.challenge.version;
+        slug = boardSlug(document.challenge.id, deviceClass, version);
+        older = boardSlug(document.challenge.id, deviceClass);
+      } catch { slug = null; older = null; }
+      let previous = slug && !boards.has(slug) ? await asset(env, request, `/data/boards/${slug}.json`) : null;
+      let keptPath = `/data/v2/${slug}.json`;
+      if (!previous && slug && older && older !== slug && !boards.has(slug)) {
+        // the last good board of a build before the version was in the slug (Lead audit #3), if it is this version's
+        const found = await asset(env, request, `/data/boards/${older}.json`);
+        if (found && found.challenge && found.challenge.version === version) {
+          previous = {...found, slug};
+          keptPath = `/data/v2/${older}.json`;
+        }
+      }
       if (previous && previous.fixture === false) {
         previous.feed_state = {state: "REFUSED", code};
         boards.set(slug, previous);
         entries.set(slug, entry(previous));
-        const kept = await asset(env, request, `/data/v2/${slug}.json`);
-        if (kept && kept.fixture === false) boardsV2.set(slug, {...restamp(kept, now), feed_state: previous.feed_state});
+        feeds.set(slug, url);
+        const kept = await asset(env, request, keptPath);
+        if (kept && kept.fixture === false) boardsV2.set(slug, {...restamp(kept, now), slug, feed_state: previous.feed_state});
       } else {
         entries.set(slug && !entries.has(slug) ? slug : `unreadable-${n}`, {slug: null, state: "REFUSED", code});
       }
@@ -152,7 +169,10 @@ export async function liveSite(env, request, fetcher = fetch, now = Math.floor(D
     n += 1;
   }
   const keys = [...entries.keys()].sort();
-  return {index: {schema: INDEX_SCHEMA, fixture: false, boards: keys.map(k => entries.get(k))}, boards, boardsV2};
+  // a version-less slug (links made before Lead audit #3) opens the newest version's board
+  const aliases = aliasSlugs([...boards.values()]);
+  const resolve = slug => (boards.has(slug) ? slug : aliases.get(slug));
+  return {index: {schema: INDEX_SCHEMA, fixture: false, boards: keys.map(k => entries.get(k))}, boards, boardsV2, feeds, resolve};
 }
 
 export default {
@@ -176,7 +196,7 @@ export default {
       if (url.pathname === "/data/index.json") return json({...site.index, brand_assets: built.brand_assets || [], network: false, showcase: built.showcase !== false}, 200, seconds);
       const prefix = v2 ? "/data/v2/" : "/data/boards/";
       const slug = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/\.json$/, "");
-      const board = (v2 ? site.boardsV2 : site.boards).get(slug);
+      const board = (v2 ? site.boardsV2 : site.boards).get(site.resolve(slug));
       return board ? json(board, 200, seconds) : plain("No such board", 404);
     }
     if (url.pathname === "/data/names.json") {
@@ -190,10 +210,13 @@ export default {
     }
     if (url.pathname.startsWith("/data/queue/")) {
       let cfg;
-      try { cfg = config(env); } catch (error) { return plain("Feed not configured: " + (error.code || "error"), 503); }
+      let site;
+      try { cfg = config(env); site = await liveSite(env, request); } catch (error) { return plain("Feed not configured: " + (error.code || "error"), 503); }
       const slug = decodeURIComponent(url.pathname.slice("/data/queue/".length)).replace(/\.json$/, "");
-      const feed = cfg.urls.find(u => { const q = queueUrl(u); return q && boardSlug(q.challengeId, "no-class") === slug; });
-      if (!feed) return plain("No such board", 404);
+      // the board's own door (two versions of one Challenge are two doors with one challenge id in their URLs)
+      const key = site.resolve(slug);
+      const feed = key ? site.feeds.get(key) : undefined;
+      if (!feed || !queueUrl(feed)) return plain("No such board", 404);
       // v4 (counts of what actually runs + rows) when the door serves it; else the v1 counts and the v3 rows, each failing on its own
       return json(await doorPanels(feed, fetch, FETCH_HEADERS, cfg.seconds), 200, cfg.seconds);
     }

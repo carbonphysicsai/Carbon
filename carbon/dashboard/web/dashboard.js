@@ -235,6 +235,16 @@
     return parts[0] === "testnet" ? {view: "home", net: "testnet"} : {view: "home"};
   }
   function boardHref(slug) { return "#/b/" + encodeURIComponent(slug); }
+  // A link made before the version was in the slug (`<id>--<class>`, Lead audit #3) names the NEWEST live version of that
+  // Challenge and class, as the Worker's alias does (feed.mjs aliasSlugs): the index entry it opens, or null.
+  function aliasEntry(boards, slug) {
+    const bare = e => (e.challenge.id + "--" + (e.device_class || "no-class")).toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "");
+    const order = v => String(v).split(".").map(p => (/^[0-9]+$/.test(p) ? Number(p) : NaN));
+    const newer = (a, b) => { const [x, y] = [order(a), order(b)]; for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] ?? -1) !== (y[i] ?? -1)) return (x[i] ?? -1) > (y[i] ?? -1); } return false; };
+    let best = null;
+    for (const e of boards || []) if (e.slug && e.challenge && bare(e) === slug && (!best || newer(e.challenge.version, best.challenge.version))) best = e;
+    return best;
+  }
   function minerHref(slug, hotkey) { return boardHref(slug) + "/m/" + encodeURIComponent(hotkey); }
   function labelsOf(board, full) {
     const labels = Array.isArray(board && board.labels) ? board.labels.slice() : [];
@@ -1181,7 +1191,7 @@
 
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
-    h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
+    h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, aliasEntry, labelsOf,
     queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, finds, rowShown, pagerText, QUEUE_PAGE, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
@@ -1321,6 +1331,10 @@
         return show(homePage(index, boards, {now, network, queues, net: route.net || "mainnet"}));
       }
       const entry = index.boards.find(b => b.slug === route.slug);
+      if (!entry) {
+        const alias = aliasEntry(index.boards, route.slug);
+        if (alias) { location.replace(route.view === "miner" ? minerHref(alias.slug, route.hotkey) : boardHref(alias.slug)); return; }
+      }
       if (!entry) return show(h("p", {class: "notice"}, "No such board. ", h("a", {href: "#/"}, "All boards")));
       const board = await getJson("data/v2/" + encodeURIComponent(route.slug) + ".json");
       board.feed_state = board.feed_state || {state: entry.state, code: entry.code};

@@ -158,7 +158,7 @@ is fetched only when `index.json` says `network: true`.
 
 | Path | Content |
 |---|---|
-| `data/index.json`, `data/boards/<slug>.json` | One board per Challenge and device class, checked by `feed.py` |
+| `data/index.json`, `data/boards/<slug>.json` | One board per Challenge VERSION and device class, checked by `feed.py`. The slug is `<id>-<version>--<class>`; the version-less `<id>--<class>` is an alias of the newest live version (Worker routes and the page), so older links still open a board |
 | `data/v2/<slug>.json` | The same board as `carbon.dashboard.board.v2` (`board_v2.py`, DASHBOARD-02 S1): king, target to beat, eligible leaderboard, history, rounds, gates and phase |
 | `showcase/index.json`, `showcase/*.json` | Replays of EV4's public decision: the released incumbent's panel, when the feed carries one, and the synthetic controls |
 | `index.html`, `*.js`, `style.css`, `fonts/`, `brand/` | The static app. No third-party script, no CDN, no cookies |

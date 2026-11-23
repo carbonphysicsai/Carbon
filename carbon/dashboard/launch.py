@@ -476,7 +476,7 @@ def project(document, trust):
             "rule": None,
         },
         "device_class": None,
-        "slug": feed.board_slug(challenge["id"], "no-class"),
+        "slug": feed.board_slug(challenge["id"], "no-class", challenge["version"]),
         "version": document["version"],
         "released_through_block": None,
         "generated_at": document["generated_at"],

@@ -140,15 +140,17 @@ def _previous_v2(out, slug):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _slug_of(document):
-    """Where a refused document would have gone, when that much is readable."""
+def _slug_of(document, *, versioned=True):
+    """Where a refused document would have gone, when that much is readable (``versioned`` False: the version-less slug
+    a build before Lead audit #3 wrote, read once for the last good board)."""
     try:
         device = document.get("device_class") or (
             document["submissions"][0]["device_class"]
             if document.get("submissions")
             else "no-class"
         )
-        return feed.board_slug(document["challenge"]["id"], device)
+        version = document["challenge"]["version"] if versioned else None
+        return feed.board_slug(document["challenge"]["id"], device, version)
     except (AttributeError, IndexError, KeyError, TypeError):
         return None
 
@@ -171,6 +173,16 @@ def build(out, documents, trust, *, showcase=False, now=None):
         except feed.FeedRefused as refusal:
             slug = _slug_of(document)
             previous = _previous(out, slug) if slug else None
+            older = _slug_of(document, versioned=False) if slug else None
+            if previous is None and older:
+                # the last good board of a build before the version was in the slug, if it is this version's
+                found = _previous(out, older)
+                version = document["challenge"]["version"]
+                if (
+                    found is not None
+                    and found.get("challenge", {}).get("version") == version
+                ):
+                    previous = {**found, "slug": slug}
             if previous is None:
                 key = slug or f"unreadable-{len(entries)}"
                 entries[key] = {"slug": None, "state": "REFUSED", "code": refusal.code}
@@ -179,6 +191,10 @@ def build(out, documents, trust, *, showcase=False, now=None):
             _write_json(out / "data" / "boards" / f"{slug}.json", previous)
             entries[slug] = _entry(previous)
             kept = _previous_v2(out, slug)
+            if kept is None and older and older != slug:
+                found = _previous_v2(out, older)
+                if found is not None and found.get("slug") == older:
+                    kept = {**found, "slug": slug}
             if kept is not None:
                 kept = board_v2.restamp(kept, now)
                 kept["feed_state"] = previous["feed_state"]

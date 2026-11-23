@@ -608,8 +608,37 @@ function minerStatus(raw, pinned) {
   return rows.sort((a, b) => cmp(a.hotkey, b.hotkey));
 }
 
-export function boardSlug(challengeId, deviceClass) {
-  return `${challengeId}--${deviceClass}`.toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "");
+// = feed.py board_slug: `<id>-<version>--<class>` (Lead audit #3: two live versions of one Challenge are two boards); with no
+// version the version-less `<id>--<class>`, kept as an ALIAS of the newest version (aliasSlugs).
+export function boardSlug(challengeId, deviceClass, version) {
+  const head = version === undefined || version === null ? challengeId : `${challengeId}-${version}`;
+  return `${head}--${deviceClass}`.toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "");
+}
+// = feed.py version_order: dotted integers numerically ("1.10" after "1.9"), anything else after them, by text.
+export function compareVersions(a, b) {
+  const key = v => { const parts = String(v).split("."); return parts.every(p => /^[0-9]+$/.test(p)) ? [0, parts.map(Number), ""] : [1, [], String(v)]; };
+  const [x, y] = [key(a), key(b)];
+  if (x[0] !== y[0]) return x[0] - y[0];
+  for (let i = 0; i < Math.max(x[1].length, y[1].length); i++) {
+    if (i >= x[1].length) return -1;
+    if (i >= y[1].length) return 1;
+    if (x[1][i] !== y[1][i]) return x[1][i] - y[1][i];
+  }
+  return x[2] < y[2] ? -1 : x[2] > y[2] ? 1 : 0;
+}
+// = feed.py alias_slugs: {version-less slug: the newest version's slug} over boards, for every alias that is not itself a slug.
+export function aliasSlugs(boards) {
+  const newest = new Map();
+  for (const board of boards) {
+    const challenge = board.challenge || {};
+    const alias = boardSlug(challenge.id, board.device_class || "no-class");
+    const known = newest.get(alias);
+    if (!known || compareVersions(challenge.version, known[0]) > 0) newest.set(alias, [challenge.version, board.slug]);
+  }
+  const slugs = new Set(boards.map(b => b.slug));
+  const out = new Map();
+  for (const [alias, [, slug]] of newest) if (!slugs.has(alias)) out.set(alias, slug);
+  return out;
 }
 const keyOf = (blockOrNull, id) => [blockOrNull || 0, id];
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -779,7 +808,7 @@ async function projectLaunch(document, pinned) {
     labels: [...document.labels],
     challenge: {id: challenge.id, version: challenge.version, rule_digest: "exam:" + challenge.exam_version_label, rule: null},
     device_class: null,
-    slug: boardSlug(challenge.id, "no-class"),
+    slug: boardSlug(challenge.id, "no-class", challenge.version),
     version: document.version.value,
     released_through_block: null,
     generated_at: document.generated_at,
@@ -943,7 +972,7 @@ export async function project(document, pinned) {
     labels: [...labels],
     challenge,
     device_class: deviceClass,
-    slug: boardSlug(challenge.id, deviceClass || "no-class"),
+    slug: boardSlug(challenge.id, deviceClass || "no-class", challenge.version),
     version: int(get(document, "version"), "version_invalid", {minimum: 1}),
     released_through_block: int(get(document, "released_through_block"), "block_invalid", {optional: true}),
     generated_at: generatedAt === null ? null : text(generatedAt, "generated_at_invalid"),
