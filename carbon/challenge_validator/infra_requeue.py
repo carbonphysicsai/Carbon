@@ -1929,14 +1929,23 @@ REGRADES = "regrades.jsonl"
 _REGRADE_MARKERS = ("FAILED", "GRADED")
 
 
-def _regrade_refusal(root, db, door, task):
+def _regrade_refusal(root, db, door, task, ruling=None):
     """``(attempt, code, twins, None)`` when ``regrade`` accepts the task, else ``(None, None, twins, refusal)``
     (read-only; see the module text). ``twins``: ``[{"task", "marker"}]`` of its same-recipe tasks.
+
+    Once per (task, ruling), as ``rebuild`` (live 116, 23 Nov 2026: smiley's owed rtsk_aec3a4b7 was regraded under one
+    ruling and FAILED on Carbon's side again, a second fixed size cap, so the owed grade could never be delivered): a
+    task already regraded is regraded again only under a NEW ruling id AND only while its current marker is a FAILED that
+    is Carbon's (`_carbons_failure`), never a delivered grade or the candidate's own outcome. Without a ruling (a
+    read-only check) an earlier regrade still refuses, as before.
     """
     twins = []
     if type(task) is not str or not _TASK.fullmatch(task):
         return None, None, twins, "not_a_task_id"
-    if _log_lines(root, REGRADES, task):
+    previous = _log_lines(root, REGRADES, task)
+    if previous and (
+        ruling is None or ruling in {line.get("ruling") for line in previous}
+    ):
         return None, None, twins, "already_regraded"
     attempt = _restore_attempt(root, task)
     if attempt is None:
@@ -1947,6 +1956,9 @@ def _regrade_refusal(root, db, door, task):
         return None, None, twins, "no_marker"
     if state not in _REGRADE_MARKERS:
         return None, None, twins, "marker_" + str(state).lower()
+    if previous and (state != "FAILED" or not _carbons_failure(code, paths["failure"])):
+        # a NEW ruling re-runs only a regrade that failed on Carbon's side
+        return None, None, twins, "already_regraded"
     refusal = _evaluation_refusal(paths)
     if refusal is not None:
         return None, None, twins, refusal
@@ -2010,7 +2022,9 @@ def regrade(root, tasks, *, ruling, apply=False, clock=time.time_ns):
     door = _Door(root)
     for task in tasks:
         with ledger._db() as db:
-            attempt, code, twins, refusal = _regrade_refusal(root, db, door, task)
+            attempt, code, twins, refusal = _regrade_refusal(
+                root, db, door, task, ruling
+            )
         if twins:
             out["twins"][task] = twins
         if refusal is not None:

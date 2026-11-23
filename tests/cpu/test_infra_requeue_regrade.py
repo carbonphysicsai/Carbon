@@ -181,6 +181,80 @@ def test_regrade_keeps_the_checks_that_protect_the_grade(tmp_path):
     }
 
 
+def _regraded_then_failed(root, ledger, task, code, *, evidence=None):
+    """The grader ran the regrade and it FAILED again (row given back), as live 116, 23 Nov 2026 (rtsk_aec3a4b7)."""
+    _marker(root, task, "FAILED", code, "slot_returned")
+    _failure(root, task, code, evidence=evidence)
+    with ledger._db() as db:
+        db.execute(
+            "UPDATE exam_graded SET status='FAILED_INFRA', state='RELEASED' WHERE submission_id=?",
+            (task,),
+        )
+
+
+def test_a_regrade_that_failed_on_our_side_is_regraded_once_more_under_a_new_ruling(
+    tmp_path,
+):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _owed(root, ledger, A, _recipe("once-more"))
+    assert infra_requeue.regrade(root, [A], ruling=RULING, apply=True)["regraded"] == [
+        A
+    ]
+    _regraded_then_failed(root, ledger, A, "public_measurement_bytes_unavailable")
+    # the same ruling never twice
+    assert infra_requeue.regrade(root, [A], ruling=RULING)["refused"] == {
+        A: "already_regraded"
+    }
+    second = RULING + "-B"
+    out = infra_requeue.regrade(root, [A], ruling=second, apply=True)
+    assert out["regraded"] == [A] and out["refused"] == {}
+    lines = [
+        json.loads(line)
+        for line in (root / "auto-grade" / "requeued" / infra_requeue.REGRADES)
+        .read_text()
+        .splitlines()
+    ]
+    assert [(line["task"], line["ruling"]) for line in lines] == [
+        (A, RULING),
+        (A, second),
+    ]
+    assert lines[1]["attempt"] == lines[0]["attempt"] + 1
+    assert _rows(ledger, A) == [("RELEASED", "REQUEUED")]
+    # and that ruling is spent for it too
+    assert infra_requeue.regrade(root, [A], ruling=second)["refused"] == {
+        A: "already_regraded"
+    }
+
+
+def test_a_new_ruling_never_regrades_a_delivered_grade_or_the_candidates_own_failure(
+    tmp_path,
+):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _owed(root, ledger, A, _recipe("graded"))
+    _owed(root, ledger, B, _recipe("candidate"))
+    for task in (A, B):
+        assert infra_requeue.regrade(root, [task], ruling=RULING, apply=True)[
+            "regraded"
+        ] == [task]
+    _marker(root, A, "GRADED", "scored", None)  # the regrade delivered a grade
+    _regraded_then_failed(
+        root,
+        ledger,
+        B,
+        "MinerProgramFailure",
+        evidence="ValueError: the candidate's own program\n\ncode: MinerProgramFailure",
+    )
+    out = infra_requeue.regrade(root, [A, B], ruling=RULING + "-B")
+    assert out["regraded"] == [] and out["refused"] == {
+        A: "already_regraded",
+        B: "already_regraded",
+    }
+
+
 def test_the_regrade_command(tmp_path, capsys):
     from carbon.challenge_validator import infra_requeue
 
