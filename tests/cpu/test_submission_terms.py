@@ -16,7 +16,9 @@ from carbon.development_session import submission_terms as terms
 from scripts.dev.miner_launchpad import supervisor
 from tests.cpu import test_direct_submission as fixture
 
-TEXT = b"**Carbon submission terms, version v0**\n\nA test text, not the published one.\n"
+TEXT = (
+    b"**Carbon submission terms, version v0**\n\nA test text, not the published one.\n"
+)
 SHA = hashlib.sha256(TEXT).hexdigest()
 VERSION = "carbon-submission-terms-v0"
 FACT = {"version": VERSION, "sha256": SHA, "path": terms.PATH_PREFIX + VERSION}
