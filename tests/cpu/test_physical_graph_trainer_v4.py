@@ -122,10 +122,18 @@ def test_a_missing_owner_value_refuses_as_human_input(field):
     assert refused.value.code == "trust_value_is_human_input"
 
 
+def test_a_zero_floor_is_in_domain():
+    # owner MOTOR19-TRUST-FLOOR-0 (23 Nov 2026): 0 = no floor; sigma = exp(log_sigma) stays > 0
+    assert trust.check(spec(sigma_floor=(0.0,))) is None
+    assert trust.check(spec(sigma_floor=(0,))) is None
+
+
 @pytest.mark.parametrize(
     "override",
     [
-        {"sigma_floor": (0.0,)},
+        {"sigma_floor": (-0.1,)},
+        {"sigma_floor": (float("nan"),)},
+        {"sigma_floor": (True,)},
         {"sigma_floor": (0.1, 0.1)},
         {"sigma_floor": [0.1]},
         {"epochs": 0},

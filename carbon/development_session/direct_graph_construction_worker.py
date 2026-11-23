@@ -373,6 +373,8 @@ PHYSICAL_V2_TRUST_STAGED_MODULES = (
     "carbon.development_session.physical_graph_state_v3",
     "carbon.development_session.physical_graph_trainer_v4",
     "carbon.development_session.physical_graph_trust_registry",
+    # Motor 1.9's trust derive (the registration names it; owner MOTOR19-TRUST-REGISTRATION)
+    "carbon.development_session.motor19_trust_derive",
     "carbon.level4.trust_head",
 )
 

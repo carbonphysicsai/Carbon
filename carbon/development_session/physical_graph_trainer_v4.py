@@ -62,7 +62,8 @@ class TrustSpec:
     derive: Callable[[Any, Any], Any]
     #: Indices (graph parameter input order) of the trust head's parameters, from `trust_head.check`; all in member 0.
     trust_parameters: tuple
-    #: HUMAN_INPUT (None refuses): per trust output a positive sigma floor in the derived output's unit, the phase-2 epochs over
+    #: HUMAN_INPUT (None refuses): per trust output a NON-NEGATIVE sigma floor in the derived output's unit (0 = no floor: sigma =
+    #: exp(log_sigma) stays > 0; owner MOTOR19-TRUST-FLOOR-0, 23 Nov 2026), the phase-2 epochs over
     #: the held-out rows (a positive int) and the Adam learning rate (a positive float).
     sigma_floor: object = None
     epochs: object = None
@@ -71,6 +72,16 @@ class TrustSpec:
 
 def _positive(value) -> bool:
     return type(value) in (int, float) and math.isfinite(value) and value > 0
+
+
+def _floor(value) -> bool:
+    """A sigma floor: a finite number >= 0 (0 = no floor; the loss's sigma = floor + exp(log_sigma) is > 0 either way)."""
+    return (
+        type(value) in (int, float)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    )
 
 
 def check(spec: TrustSpec) -> None:
@@ -93,7 +104,7 @@ def check(spec: TrustSpec) -> None:
     if (
         type(spec.sigma_floor) is not tuple
         or len(spec.sigma_floor) != spec.outputs
-        or not all(_positive(v) for v in spec.sigma_floor)
+        or not all(_floor(v) for v in spec.sigma_floor)
         or type(spec.epochs) is not int
         or spec.epochs < 1
         or not _positive(spec.learning_rate)
