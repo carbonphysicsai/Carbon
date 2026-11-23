@@ -1266,7 +1266,7 @@ ADMIN_ITEMS = [
     ("lane_user", {"groups": ["carbon-grade"]}),
     ("lane_user", {"lane_home": "/srv/carbon-grade"}),
     ("lane_user", {"authorized_keys": LANE_LINE + "\nssh-ed25519 AAAA other\n"}),
-    ("shape", {"nproc": 8}),
+    ("shape", {"nproc": 5}),  # below one 4-CPU slot + 2 for the host (vm_slot_cpusets)
     ("shape", {"mem_kib": 32 * 1024 * 1024}),
     ("driver", {"smi": (0, f"{KIND}, {UUID}, 40960 MiB, 570.172.08\n")}),
     ("driver", {"smi": (9, "NVIDIA-SMI has failed\n")}),
@@ -1971,7 +1971,7 @@ def test_a_failed_readmission_removes_an_earlier_admission(tmp_path):
     cfg = _config(tmp_path)
     assert _run(cfg, FakeBox(cfg))["status"] == "ADMITTED"
     assert len(list((tmp_path / "boxes").iterdir())) == 3
-    _refused(_run(cfg, FakeBox(cfg, nproc=8)), "admin_incomplete:shape")
+    _refused(_run(cfg, FakeBox(cfg, nproc=5)), "admin_incomplete:shape")
     assert _no_box_file(tmp_path)
 
 
@@ -1981,7 +1981,7 @@ def test_a_stale_symlink_is_removed_not_followed(tmp_path):
     target = tmp_path / "elsewhere.json"
     target.write_text("{}")
     (tmp_path / "boxes" / "a100-1.json").symlink_to(target)
-    _refused(_run(cfg, FakeBox(cfg, nproc=8)), "admin_incomplete:shape")
+    _refused(_run(cfg, FakeBox(cfg, nproc=5)), "admin_incomplete:shape")
     assert not os.path.lexists(tmp_path / "boxes" / "a100-1.json")
     assert target.read_text() == "{}"
 
