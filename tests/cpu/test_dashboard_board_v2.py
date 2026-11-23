@@ -736,9 +736,14 @@ def test_a_new_rule_digest_never_splices_history(tmp_path):
     old = fixtures.sign(_alpha())
     build.build(tmp_path / "site", [old], fixtures.fixture_trust(), now=NOW)
     cutover = fixtures.post_cutover_document()
+    # the SAME board (same Challenge id and version, so the same slug since Lead audit #3), under a new rule digest
     cutover = {
         **cutover,
-        "challenge": {**cutover["challenge"], "id": "fixture-challenge-alpha"},
+        "challenge": {
+            **cutover["challenge"],
+            "id": "fixture-challenge-alpha",
+            "version": old["challenge"]["version"],
+        },
     }
     build.build(
         tmp_path / "site", [fixtures.sign(cutover)], fixtures.fixture_trust(), now=NOW
