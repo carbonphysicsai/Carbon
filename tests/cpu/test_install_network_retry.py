@@ -159,3 +159,51 @@ def test_the_wrapper_never_reads_the_background_pid_variable():
     """`$!` is unbound under `set -u` on bash builds that do not set it for a process substitution (Targon, 49 installer
     tests failed on it): the wrapper must not mention it."""
     assert "$!" not in _function() and "${!" not in _function()
+
+
+def _analysis_block() -> str:
+    start = SCRIPT.index("    analysis_rc=0\n")
+    marker = '<<< "${analysis_document}")"\n'
+    return SCRIPT[start : SCRIPT.index(marker, start) + len(marker)]
+
+
+def _run_analysis(build: str):
+    """The installer's analysis-image step, with `${python}` a shell function: its
+    `-m carbon.development_session.research_image` call runs BUILD, and the manifest
+    reader runs the real interpreter."""
+    script = (
+        "set -euo pipefail\n"
+        "export CARBON_INSTALL_NETWORK_RETRY_WAIT=0\n"
+        + _function()
+        + "\nfakepy() {\n"
+        + '  if [[ "$1" == -m ]]; then\n'
+        + build
+        + '\n  else python3 "$@"; fi\n}\n'
+        + "python=fakepy\nworker_manifest=/nonexistent\nartifacts=/nonexistent\n"
+        + _analysis_block()
+        + 'echo "ANALYSIS=${analysis}"\n'
+    )
+    return subprocess.run(
+        ["bash", "-c", script], capture_output=True, text=True, check=False, timeout=60
+    )
+
+
+def test_a_failed_analysis_build_stops_in_plain_words_not_a_json_traceback():
+    """R0 (23 Nov rehearsal, release 5211 F2): the analysis build timed out on a slow
+    snapshotter and the installer, piping its empty output into the manifest reader,
+    stopped on a JSONDecodeError. The step's own status and output now stand, with
+    the plain words that a re-run continues."""
+    done = _run_analysis('    echo "WorkerFailure: unavailable" >&2; return 1')
+    assert done.returncode == 1 and "ANALYSIS=" not in done.stdout
+    assert "WorkerFailure: unavailable" in done.stderr
+    assert "building the analysis image did not finish" in done.stderr
+    assert "running the same command again continues" in done.stderr
+    assert "JSONDecodeError" not in done.stderr and "Traceback" not in done.stderr
+
+
+def test_a_built_analysis_image_still_names_its_manifest():
+    done = _run_analysis(
+        '    echo \'{"image_id": "sha256:aa", "manifest": "/m/analysis-image.json"}\''
+    )
+    assert done.returncode == 0, done.stderr
+    assert "ANALYSIS=/m/analysis-image.json" in done.stdout

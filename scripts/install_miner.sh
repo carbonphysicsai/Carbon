@@ -1024,12 +1024,20 @@ else
         network_step "step 4/6, building the worker image" ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
       fi
     fi
-    analysis="$(
+    # The build's one JSON line is read only after the step succeeds: piped straight into the reader, a failed or
+    # timed-out build reached it as empty input, and the miner saw a JSON traceback instead of the step's own error.
+    analysis_rc=0
+    analysis_document="$(
       network_step "step 4/6, building the analysis image" "${python}" -m carbon.development_session.research_image \
         --parent-manifest "${worker_manifest}" \
-        --root "${artifacts}/research-images" \
-      | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
-    )"
+        --root "${artifacts}/research-images"
+    )" || analysis_rc=$?
+    if [[ "${analysis_rc}" != 0 ]]; then
+      printf 'Carbon install stopped: building the analysis image did not finish (step 4/6, status %s; its output is above). Images already built are kept, so running the same command again continues from here.\n' \
+        "${analysis_rc}" >&2
+      exit "${analysis_rc}"
+    fi
+    analysis="$("${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])' <<< "${analysis_document}")"
   fi
   if [[ "${gpu_build}" == 1 ]]; then
     if current_image "${artifacts}/accelerator-worker-image.json"; then
