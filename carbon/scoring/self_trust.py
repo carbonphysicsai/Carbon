@@ -28,6 +28,10 @@ T3  Calibration (per trust output, over every case of the read set): empirical c
     divided by the case's U (the version's receipted U of that output). The Gaussian form also reports the closed-form CRPS
     / U (report only, never in a score). Skill_o = clip(1 - mean(IS / U) / anchor_o, 0, 1), anchor_o = the registered mean
     IS / U that scores 0 (e.g. the version's smart-zero panel with its own bands). S_cal = sum_o w_o Skill_o.
+    Sharpness (report only, per output): the median band width / U, and the median band width / the median |p - t| over
+    the same cases (None when that median error is 0). Coverage alone rates a model that states needlessly WIDE bands as
+    well calibrated (wide bands cover everything); sharpness is what exposes it (model-eval 23 Nov). It describes, it sets
+    no threshold: what a sharp enough band is stays the version's registration.
 T4  Send-back (per case). A case is BADLY WRONG when |p - t| / U > cut_o for ANY output o of ``send_back_outputs``
     (strictly greater). A flagged case counts as routed to full simulation at cost ``send_back_cost``; a badly wrong
     unflagged case costs ``miss_cost``; nothing else costs. With n cases, B badly wrong, F flagged, M missed (badly wrong and
@@ -52,7 +56,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from statistics import NormalDist
+from statistics import NormalDist, median
 
 RULE_ID = "carbon.self-trust.report-only.v1"
 REPORT_SCHEMA = "carbon.self-trust.report.v1"
@@ -88,6 +92,7 @@ PUBLIC_FIELDS = (
     "form",
     "nominal_coverage",
     "coverage",
+    "sharpness",
     "calibration_skill",
     "flag_rate",
     "send_back_skill",
@@ -432,17 +437,21 @@ def _calibration(rule, cases):
     c = rule.nominal_coverage
     rows = {}
     for name in rule.outputs:
-        covered, scores, crps = 0, [], []
+        covered, scores, crps, widths, widths_u, errors = 0, [], [], [], [], []
         for case in cases:
             p, y, u = case.predictions[name], case.truths[name], case.u[name]
             lo, hi = band(rule, p, case.answer, name)
             covered += lo <= y <= hi
             scores.append(interval_score(lo, hi, y, c) / u)
+            widths.append(hi - lo)
+            widths_u.append((hi - lo) / u)
+            errors.append(abs(p - y))
             if rule.form == SIGMA:
                 crps.append(gaussian_crps(p, case.answer.sigmas[name], y) / u)
         n = len(cases)
         mean_is = math.fsum(scores) / n
         raw = 1.0 - mean_is / rule.interval_score_anchor_u[name]
+        median_error = median(errors)
         rows[name] = {
             "n": n,
             "covered": covered,
@@ -450,6 +459,8 @@ def _calibration(rule, cases):
             "nominal_coverage": c,
             "coverage_gap": covered / n - c,
             "coverage_p_two_sided": binomial_two_sided_p(covered, n, c),
+            "median_width_u": median(widths_u),
+            "sharpness": median(widths) / median_error if median_error > 0 else None,
             "mean_interval_score_u": mean_is,
             "mean_crps_u": math.fsum(crps) / n if rule.form == SIGMA else None,
             "calibration_skill_raw": raw,
@@ -550,7 +561,8 @@ def report(rule, cases):
 def public(report_document):
     """The PROPOSED miner-facing projection of a `report` (allow-list `PUBLIC_FIELDS`): scores and rates only.
 
-    Pending V2's disclosure ruling; no door or card calls it today. Per output it keeps only the empirical coverage.
+    Pending V2's disclosure ruling; no door or card calls it today. Per output it keeps the empirical coverage and the
+    sharpness (median width / median error) together: coverage shown alone would rate needlessly wide bands as good.
     """
     _require(
         type(report_document) is dict
@@ -566,6 +578,7 @@ def public(report_document):
         "form": report_document["form"],
         "nominal_coverage": report_document["nominal_coverage"],
         "coverage": {name: row["coverage"] for name, row in rows.items()} or None,
+        "sharpness": {name: row["sharpness"] for name, row in rows.items()} or None,
         "calibration_skill": report_document["calibration_skill"],
         "flag_rate": sb.get("flag_rate"),
         "send_back_skill": report_document["send_back_skill"],

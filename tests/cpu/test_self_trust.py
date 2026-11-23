@@ -251,6 +251,46 @@ def test_interval_calibration_by_hand():
     assert b["coverage"] == 1.0 and b["mean_interval_score_u"] == pytest.approx(1.0)
     assert b["calibration_skill"] == pytest.approx(1 - 1 / 6)
     assert out["calibration_skill"] == pytest.approx(0.5 * 0.5 + 0.5 * (1 - 1 / 6))
+    # sharpness: band width 2 on every case; a's |errors| 0, 3, 2 -> median 2; b never errs
+    assert a["median_width_u"] == pytest.approx(1.0)  # width 2 / U 2
+    assert a["sharpness"] == pytest.approx(1.0)  # median width 2 / median |error| 2
+    assert b["median_width_u"] == pytest.approx(1.0)
+    assert b["sharpness"] is None  # median error 0: no ratio
+
+
+def _scaled_sigma_cases(r, scale, n=200):
+    """Errors at the exact quantiles of N(0, 1) on both outputs; the stated sigma is
+    `scale` x the true 1 (1 honest, 0.1 overconfident, 10 underconfident)."""
+    cases = []
+    for i in range(n):
+        e = NormalDist().inv_cdf((i + 0.5) / n)
+        cases.append(
+            case(
+                r,
+                {"a": e, "b": e},
+                {"a": 0.0, "b": 0.0},
+                sigmas={"a": scale, "b": scale},
+            )
+        )
+    return cases
+
+
+def test_coverage_exposes_overconfidence_and_sharpness_exposes_underconfidence():
+    """model-eval 23 Nov: a coverage-only report rates the x10 UNDERCONFIDENT model as well
+    calibrated (wide bands cover everything); the sharpness field is what separates it."""
+    r = rule(st.SIGMA, calibration_weight=1.0)
+    reads = [st.report(r, _scaled_sigma_cases(r, s)) for s in (1.0, 0.1, 10.0)]
+    honest, over, under = (read["outputs"]["a"] for read in reads)
+    assert honest["coverage"] == pytest.approx(0.5, abs=0.01)  # nominal c = 0.5
+    assert over["coverage"] < 0.1  # coverage exposes x0.1
+    assert under["coverage"] == 1.0 >= honest["coverage"]  # coverage alone flatters x10
+    # honest: width 2 z sigma over median |error| z sigma (z = Phi^-1(0.75) at c = 0.5)
+    assert honest["sharpness"] == pytest.approx(2.0, rel=0.02)
+    assert under["sharpness"] == pytest.approx(10 * honest["sharpness"])  # exposes x10
+    assert over["sharpness"] == pytest.approx(0.1 * honest["sharpness"])
+    # the proper score ranks honest first
+    best_bad = min(over["mean_interval_score_u"], under["mean_interval_score_u"])
+    assert honest["mean_interval_score_u"] < best_bad
 
 
 def test_sigma_band_uses_the_registered_coverage():
@@ -437,6 +477,7 @@ def test_public_projection_is_the_allow_list_only():
     ):
         assert private not in flat
     assert set(projected["coverage"]) == {"a", "b"}
+    assert set(projected["sharpness"]) == {"a", "b"}  # never coverage without it
 
 
 # -- isolation: no sealing version reads this module ---------------------------------------------------------------------
