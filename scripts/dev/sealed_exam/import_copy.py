@@ -14,7 +14,11 @@ copy again changes nothing.
 (`validator_host.pinned_producer_key`); give it only for a rehearsal copy signed by a rehearsal key. With the pinned key,
 the store is bound to the installed network (`SealedPackStore.bind_network`): a store already bound to, or holding,
 another network's exams refuses, and `receiver_setup prepare --pack-store` takes a store only for its own network.
-A rehearsal key never imports into a store that records its network (``answer_key_store_bound_rehearsal_key``).
+A rehearsal key never imports into a store that records its network (``answer_key_store_bound_rehearsal_key``), with one
+exception: a process bound to the disposable LOCALNET (a launch rehearsal door, owner G-LEAD-58) binds its store to that
+localnet and imports the rehearsal copy there. No producer key is pinned for localnet at all, so a localnet record never
+stands for 'pinned-key copies only', and the door takes a store of its own network only (`receiver_setup
+._require_store_network`). testnet and finney stores are unchanged.
 
 Then: `receiver_setup prepare --pack-store <store> --pack-digest <digest> --speed-sample-key-file <K_speed file> ...`.
 """
@@ -33,6 +37,7 @@ if str(ROOT) not in sys.path:
 
 def import_one(store, copy, hotkey, producer_public_key=None):
     """The canonical manifest digest of the imported copy (see the module docstring)."""
+    from carbon.chain.models import LOCALNET
     from carbon.challenge_validator import copy_delivery
     from carbon.challenge_validator.answer_key import AnswerKeyRefused
     from carbon.challenge_validator.sealed_pack_import import (
@@ -49,6 +54,11 @@ def import_one(store, copy, hotkey, producer_public_key=None):
     if producer_public_key is None:
         key = pinned_producer_key()
         pack_store.bind_network(installed_network())
+    elif installed_network().startswith(LOCALNET + "-"):
+        # a launch rehearsal door (G-LEAD-58; R0 F12): localnet has no pinned key, so its store binds to it and holds
+        # rehearsal copies; a store bound to any other network refuses (answer_key_store_network_mismatch)
+        pack_store.bind_network(installed_network())
+        key = producer_public_key
     else:
         # (Deploy-C 11 Nov) a store that records its network holds only copies its pinned key verified: a rehearsal
         # copy never joins it, so the record alone proves every import in it used the pinned key (release precheck)

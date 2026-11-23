@@ -497,3 +497,41 @@ def test_importing_with_the_pinned_key_binds_the_store_to_this_network(
     ):
         tool.import_one(store, _copy_file(job, TWO), TWO, job["key"].public_key)
     assert sorted(p.name for p in store.rglob("*")) == before
+
+
+def test_a_localnet_rehearsal_door_binds_its_store_and_imports_a_rehearsal_copy(
+    job, tmp_path, monkeypatch
+):
+    # Launch rehearsal R0 F12 (owner G-LEAD-58): a localnet door takes only a localnet-bound store, and localnet has no
+    # pinned producer key, so a rehearsal-key copy binds the store to localnet there (and only there)
+    from carbon.challenge_validator import sealed_pack_import as sp
+    from carbon.challenge_validator import validator_host
+
+    issuance.issue(job["config"])
+    tool = _tool()
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "localnet-2")
+    store = tmp_path / "localnet-store"
+    digest = tool.import_one(store, _copy_file(job, ONE), ONE, job["key"].public_key)
+    assert digest == delivery._sha(job["manifest"])
+    assert sp.SealedPackStore(store).network() == "localnet-2"
+    # importing again into the same localnet store changes nothing
+    assert (
+        tool.import_one(store, _copy_file(job, ONE), ONE, job["key"].public_key)
+        == digest
+    )
+    # a store already bound to another network refuses from a localnet process
+    monkeypatch.setattr(
+        validator_host, "pinned_producer_key", lambda: job["key"].public_key
+    )
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "finney-116")
+    mainnet = tmp_path / "mainnet-store"
+    tool.import_one(mainnet, _copy_file(job, ONE), ONE)
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "localnet-2")
+    with pytest.raises(sp.AnswerKeyRefused, match="answer_key_store_network_mismatch"):
+        tool.import_one(mainnet, _copy_file(job, TWO), TWO, job["key"].public_key)
+    # and the finney process still never adds a rehearsal copy to a bound store
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "finney-116")
+    with pytest.raises(
+        sp.AnswerKeyRefused, match="answer_key_store_bound_rehearsal_key"
+    ):
+        tool.import_one(mainnet, _copy_file(job, TWO), TWO, job["key"].public_key)
