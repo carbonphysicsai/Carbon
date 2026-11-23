@@ -1473,9 +1473,15 @@ def _handler(intake):
 
         def _answer(self, answer):
             self.close_connection = True
-            payload = json.dumps(answer.body, sort_keys=True).encode()
+            if type(answer.body) is bytes:
+                # a public text served byte for byte (the submission terms, owner G-LEAD-50): its sha256 is named in
+                # the door's facts, so it is never re-encoded
+                payload, content_type = answer.body, "text/markdown; charset=utf-8"
+            else:
+                payload = json.dumps(answer.body, sort_keys=True).encode()
+                content_type = "application/json"
             self.send_response(answer.status)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(payload)))
             if answer.status in (429, 503):
                 retry = answer.body.get("retry_after_s")

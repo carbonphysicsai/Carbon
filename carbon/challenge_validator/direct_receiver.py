@@ -56,6 +56,9 @@ _OPTIONAL_FIELDS = {
     # public feed key (64 hex) it must be signed by. The receiver verifies; it never holds the private key.
     "launch_board",
     "launch_board_key",
+    # Owner G-LEAD-50 (submission terms v0): the operator's file holding the terms text this door's Challenge version
+    # requires (`submission_terms.TERMS_BY_VERSION`); served only when its sha256 is the one pinned in code.
+    "submission_terms_text",
     # The graph route's GPU lane (OWNER-GPU-REBUILD-RENTED-4090-01): a JAX GPU worker and the record of ops its hardware
     # class repeats bit for bit. Both or neither.
     "graph_gpu_image_manifest",
@@ -402,6 +405,11 @@ def load_config(path: Path) -> dict:
         or not Path(value["launch_board"]).is_absolute()
     ):
         raise ValueError("invalid launch_board file")
+    if "submission_terms_text" in value and (
+        type(value["submission_terms_text"]) is not str
+        or not Path(value["submission_terms_text"]).is_absolute()
+    ):
+        raise ValueError("invalid submission_terms_text file")
     if "chain_network" in value and not _chain_network_shape(value["chain_network"]):
         raise ValueError("invalid chain_network")
     if "launch_board_key" in value and (
@@ -3747,6 +3755,25 @@ def serve(
             )
             # Owner decision #9: the earlier versions' closed submissions this door answers ``version_closed`` for.
             intake.version_closed = _version_closed(cfg)
+            # Owner G-LEAD-50: a Challenge version that requires submission terms keeps every acceptance beside the
+            # door's ledger and refuses every submission until its pinned, published text is served (refuse-without).
+            from carbon.battery.intake import log
+            from carbon.challenge_validator import submission_terms
+
+            intake.submission_terms = submission_terms.for_door(
+                intake.challenge.challenge_id,
+                intake.challenge.version,
+                cfg.get("submission_terms_text"),
+            )
+            if intake.submission_terms is not None:
+                intake.terms_store = submission_terms.AcceptanceStore(
+                    root / submission_terms.RECORD_NAME
+                )
+                log(
+                    "receiver_submission_terms",
+                    version=intake.submission_terms.version,
+                    ready=intake.submission_terms.ready,
+                )
             # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
             # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
             from carbon.challenge_validator import allowance_groups, exam_cap

@@ -53,7 +53,7 @@ from carbon.transport.models import (
 )
 
 from . import funder_map as funder_maps
-from . import koth_public, queue_public
+from . import koth_public, queue_public, submission_terms
 from .dispatch import Adapters, Validator
 from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
@@ -306,6 +306,11 @@ class DirectRecipeIntake(BatteryIntake):
         #: The auto-grade marker reader (`AutoGrader.marker`), or None when this receiver does not
         #: grade its own submissions (then no grade state is served).
         self.grade_marker = None
+        #: This door's submission terms (`submission_terms.for_door`; owner G-LEAD-50), or None when its Challenge
+        #: version requires none (then discovery and construction_submit are unchanged).
+        self.submission_terms = None
+        #: The append-only acceptance record (`submission_terms.AcceptanceStore`), set with `submission_terms`.
+        self.terms_store = None
         #: The withdrawal's marker writer (`AutoGrader.withdrawn`), or None: then no withdrawal is advertised or taken.
         self.withdraw_marker = None
         #: No door-wide writer lock (LOCK + CACHE AUDIT #2, 19 Nov 2026): an admission holds its OWNER's lock, then the
@@ -555,6 +560,11 @@ class DirectRecipeIntake(BatteryIntake):
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
                     "signature_max_age_s": 10.0,
                 },
+                **(
+                    {}
+                    if getattr(self, "submission_terms", None) is None
+                    else {"terms": self.submission_terms.facts()}
+                ),
                 "score_pack": None,
                 "qualification": False,
                 "reward": False,
@@ -578,6 +588,8 @@ class DirectRecipeIntake(BatteryIntake):
             return self._queue(path)
         if method == "GET" and path == FEED_PATH + self.challenge.challenge_id:
             return self._board()
+        if method == "GET" and DirectRecipeIntake._terms_path(self) == path:
+            return DirectRecipeIntake._terms_text(self)
         if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
@@ -593,6 +605,9 @@ class DirectRecipeIntake(BatteryIntake):
             return None
         challenge = self.challenge.challenge_id
         known = {INFO_PATH, FEED_PATH + challenge}
+        terms_path = DirectRecipeIntake._terms_path(self)
+        if terms_path is not None:
+            known.add(terms_path)
         known.update(
             koth_public.PATH + challenge + suffix
             for suffix in ("", koth_public.V2_SUFFIX, koth_public.V3_SUFFIX)
@@ -616,7 +631,27 @@ class DirectRecipeIntake(BatteryIntake):
             return self._koth(key)
         if key.startswith(queue_public.PATH):
             return self._queue(key)
+        if key == DirectRecipeIntake._terms_path(self):
+            return DirectRecipeIntake._terms_text(self)
         return self._board()
+
+    def _terms_path(self):
+        """The path this door serves its terms text at, or None (no terms door)."""
+        terms = getattr(self, "submission_terms", None)
+        return None if terms is None else submission_terms.path_of(terms.version)
+
+    def _terms_text(self):
+        """The terms text a client shows and the miner accepts: the pinned published bytes, served as they are
+        (text/markdown, never re-encoded: the client checks their sha256 against the facts); else 503.
+        """
+        terms = getattr(self, "submission_terms", None)
+        if terms is None:
+            return _refused(404, "not_found")
+        if not terms.ready:
+            return Answer(
+                503, submission_terms.refusal(submission_terms.UNAVAILABLE, terms)
+            )
+        return Answer(200, terms.text)
 
     def _public_get(self, key, build):
         """One shared public answer for ``key``: fresh for `PUBLIC_GET_FRESH_S`; rebuilt by ONE caller at a time outside
@@ -762,16 +797,41 @@ class DirectRecipeIntake(BatteryIntake):
             return self._stage(received)
         fields = {field.name: field.value for field in received.call.fields}
         if received.call.tool == SUBMIT_TOOL:
-            if set(fields) != {"strategy_json", "contract_digest"}:
-                return _refused(400, "submission_fields")
+            terms = getattr(self, "submission_terms", None)
+            code, recipe_fields = submission_terms.check_fields(terms, fields)
+            if code == "submission_fields":
+                return _refused(400, code)
+            if code is not None:
+                return Answer(400, submission_terms.refusal(code, terms))
             receipt = received.receipt
+            receipt_facts = {
+                "sequence": receipt.ref.sequence,
+                "digest": receipt.ref.digest,
+                "block": receipt.finalized_block,
+            }
+            if terms is not None:
+                # owner G-LEAD-50: the acceptance (this hotkey-signed request) is kept BEFORE admission; a door that
+                # cannot keep it, or whose terms text is not the pinned published one, admits nothing (refuse-without)
+                try:
+                    if not terms.ready or getattr(self, "terms_store", None) is None:
+                        raise submission_terms.TermsUnavailable()
+                    self.terms_store.record(
+                        receipt=receipt_facts,
+                        hotkey=receipt.hotkey,
+                        challenge=self.challenge,
+                        terms=terms,
+                        body=body,
+                        headers=headers,
+                    )
+                except submission_terms.TermsUnavailable:
+                    return Answer(
+                        503,
+                        submission_terms.refusal(submission_terms.UNAVAILABLE, terms),
+                    )
+            fields = recipe_fields
             submitted = Submission(
                 hotkey=receipt.hotkey,
-                receipt={
-                    "sequence": receipt.ref.sequence,
-                    "digest": receipt.ref.digest,
-                    "block": receipt.finalized_block,
-                },
+                receipt=receipt_facts,
                 challenge_id=self.challenge.challenge_id,
                 challenge_version=self.challenge.version,
                 strategy_json=fields["strategy_json"],
