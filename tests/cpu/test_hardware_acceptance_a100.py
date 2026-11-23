@@ -17,7 +17,9 @@ def test_the_a100_40gb_is_accepted_on_finney_for_both_profiles(profile):
     entry = acceptance.require_accepted(A100, profile, "finney")
     assert entry["record"] == "OWNER-A100-40GB-BUILD-CLASS-01"
     assert entry["by_network"]["finney"]["record"] == "OWNER-A100-40GB-BUILD-CLASS-01"
-    assert entry["networks"] == ("finney",)
+    # G-LEAD-58: also the disposable localnet, for launch-rehearsal doors, under its own record
+    assert entry["networks"] == ("finney", "localnet")
+    assert entry["by_network"]["localnet"]["record"] == "G-LEAD-58-LAUNCH-REHEARSALS"
 
 
 @pytest.mark.parametrize("network", ["testnet", "local", None])

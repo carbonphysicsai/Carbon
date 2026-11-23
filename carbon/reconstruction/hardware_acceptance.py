@@ -20,6 +20,9 @@ way, finney only: the build class of the doors INFRA-17 names (Motor 1.9 and lat
 OWNER-A6000-48GB-BUILD-CLASS-01 (2026-11-23, G-LEAD-60) enters the Lambda RTX A6000 48 GB VM (``NVIDIA RTX A6000``) for
 JAX builds on finney, the launch build class of Motor 1.9 and RB 2.0 (G-LEAD-59 / 60), after infra's class record passed;
 its PyTorch profile is not entered (the record measured JAX only).
+Owner G-LEAD-58 (2026-11-23, launch rehearsals R1-R3b build on the launch build class) adds ``localnet`` for the two
+launch build classes (the A100 40GB and the A6000), for rehearsal doors only: the disposable localnet row exists only in
+a process bound to it (no stage, no publication, no miners, no economics, `carbon.chain.networks`).
 """
 
 from __future__ import annotations
@@ -101,6 +104,22 @@ _OWNER_A6000_48GB_FINNEY = {
 }
 
 
+#: Owner G-LEAD-58, typed in the Lead seat at 2026-11-23T16:41:51Z ("Approve 54"): "approved: launch rehearsals R1-R3b
+#: build on the launch build class (the A100 GPU path) with the door side on gate-class pods, up to USD 50 total, one run
+#: at a time, scratch packs only, deleted or released on DONE." G-LEAD-60 moved the launch class of Motor 1.9 and RB 2.0
+#: to the A6000. A rehearsal door is bound to the disposable localnet (`chain.networks`: a row present only in a process
+#: bound to it, its one endpoint the host's own node, no stage: nothing it does is published, paid or ranked), so these
+#: classes are accepted there for the rehearsals' builds; finney's record and evidence are untouched (``by_network``).
+_OWNER_REHEARSALS_LOCALNET = {
+    "record": "G-LEAD-58-LAUNCH-REHEARSALS",
+    "networks": ("localnet",),
+    "evidence": (
+        "the owner's approval, 2026-11-23 (G-LEAD-58, OWNER_LINES.md), that launch rehearsals build on the launch build "
+        "class with scratch packs only; localnet is staging only (no stage, no publication, no economics)"
+    ),
+}
+
+
 def _entry(*records):
     """One profile's acceptance: the first record's own fields, the networks every record names, and each
     network's record (`by_network`) so a network's acceptance is never read as another's.
@@ -131,8 +150,8 @@ ACCEPTED_DEVICE_CLASSES: dict = {
     },
     # the remote GPU build lane's rented class (OWNER-A100-40GB-BUILD-CLASS-01): the exact name nvidia-smi reports
     "NVIDIA A100-SXM4-40GB": {
-        JAX_GPU: _entry(_OWNER_A100_40GB_FINNEY),
-        TORCH_GPU: _entry(_OWNER_A100_40GB_FINNEY),
+        JAX_GPU: _entry(_OWNER_A100_40GB_FINNEY, _OWNER_REHEARSALS_LOCALNET),
+        TORCH_GPU: _entry(_OWNER_A100_40GB_FINNEY, _OWNER_REHEARSALS_LOCALNET),
     },
     # the Lium build class of Motor 1.9 and later (OWNER-RTX6000ADA-BUILD-CLASS-01, INFRA-17): the exact nvidia-smi name
     "NVIDIA RTX 6000 Ada Generation": {
@@ -140,7 +159,9 @@ ACCEPTED_DEVICE_CLASSES: dict = {
         TORCH_GPU: _entry(_OWNER_RTX6000ADA_FINNEY),
     },
     # the Lambda launch class of Motor 1.9 and RB 2.0 (OWNER-A6000-48GB-BUILD-CLASS-01, G-LEAD-60): JAX only, as measured
-    "NVIDIA RTX A6000": {JAX_GPU: _entry(_OWNER_A6000_48GB_FINNEY)},
+    "NVIDIA RTX A6000": {
+        JAX_GPU: _entry(_OWNER_A6000_48GB_FINNEY, _OWNER_REHEARSALS_LOCALNET)
+    },
 }
 
 

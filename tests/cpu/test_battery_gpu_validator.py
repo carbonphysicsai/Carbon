@@ -419,9 +419,10 @@ def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
     for kind, profiles in ha.ACCEPTED_DEVICE_CLASSES.items():
         expected = {
             "NVIDIA GeForce RTX 4090": ("testnet", "finney"),
-            "NVIDIA A100-SXM4-40GB": ("finney",),
+            # G-LEAD-58: the launch build classes also on the disposable localnet, for rehearsal doors
+            "NVIDIA A100-SXM4-40GB": ("finney", "localnet"),
             "NVIDIA RTX 6000 Ada Generation": ("finney",),
-            "NVIDIA RTX A6000": ("finney",),
+            "NVIDIA RTX A6000": ("finney", "localnet"),
         }.get(kind, ("testnet",))
         assert all(e["networks"] == expected for e in profiles.values()), kind
         for entry in profiles.values():

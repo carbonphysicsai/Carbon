@@ -14,12 +14,16 @@ A6000 = "NVIDIA RTX A6000"
 def test_the_a6000_is_accepted_for_jax_builds_on_finney_only():
     entry = acceptance.require_accepted(A6000, acceptance.JAX_GPU, "finney")
     assert entry["record"] == "OWNER-A6000-48GB-BUILD-CLASS-01"
-    assert entry["networks"] == ("finney",)
+    assert entry["networks"] == ("finney", "localnet")
     assert (
         "54446e4a6675e2e67466961af8ada2d26da2b904ebb0f615d77d80ee4f2e1535"
         in entry["evidence"]
     )
-    for network in ("testnet", "localnet", "mainnet", "", None):
+    # localnet (rehearsal doors, G-LEAD-58) carries its own record; finney's is untouched
+    assert entry["by_network"]["finney"]["record"] == "OWNER-A6000-48GB-BUILD-CLASS-01"
+    assert entry["by_network"]["localnet"]["record"] == "G-LEAD-58-LAUNCH-REHEARSALS"
+    acceptance.require_accepted(A6000, acceptance.JAX_GPU, "localnet")
+    for network in ("testnet", "mainnet", "", None):
         with pytest.raises(acceptance.DeviceClassNotAccepted):
             acceptance.require_accepted(A6000, acceptance.JAX_GPU, network)
 
