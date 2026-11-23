@@ -246,8 +246,8 @@ def test_the_writer_never_raises(tmp_path, capsys):
     ]
     assert lines[0]["sidecar"] == exam_rotation.SE_SIDECAR
     assert lines[0]["error"] == "ValueError"
-    assert lines[1]["status"] == "UNAVAILABLE" and lines[1]["accuracy"] is True
-    assert type(lines[1]["seconds"]) is float and lines[1]["seconds"] >= 0
+    assert lines[2]["status"] == "UNAVAILABLE" and lines[2]["accuracy"] is True
+    assert type(lines[2]["seconds"]) is float and lines[2]["seconds"] >= 0
     assert (tmp_path / "c" / exam_rotation.ACCURACY_SIDECAR).exists()
 
 

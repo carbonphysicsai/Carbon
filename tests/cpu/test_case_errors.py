@@ -104,8 +104,10 @@ def test_the_grade_is_unchanged_and_each_case_names_its_bank_row():
     plain = _plain(the_sets, policies, material)
     result, capture = _measure(the_sets, policies, material)
     assert result == plain
-    arrays = capture["case_errors"]
     assert "case_errors_unavailable" not in capture
+    # the capture holds plain data: two identical grades compare equal (`test_pool_accuracy_only` compares captures)
+    assert _measure(the_sets, policies, material)[1] == capture
+    arrays = case_errors.to_arrays(capture["case_errors"])
     # 8 reserved points per in-range target x 2 sets, plus the out-of-range targets' reserved points
     n = len(arrays["row_index"])
     assert n > 0 and arrays["abs_error"].shape == (n, len(arrays["output_names"]))
@@ -152,7 +154,9 @@ def test_a_key_two_bank_rows_share_maps_to_its_first_row_and_is_counted():
     sink = case_errors.Sink()
     sink.case(0, 0, 0, "c").output("f", 1.0, 2.0, 4.0)
     sink.case(1, -1, 0, "c").output("f", -3.0, 0.0, 0.0)
-    arrays = case_errors.assemble(sink, [(2.0,), (1.0,)], [(1.0,), (2.0,), (2.0,)])
+    content = case_errors.assemble(sink, [(2.0,), (1.0,)], [(1.0,), (2.0,), (2.0,)])
+    assert content["ratio"] == [[0.5], [None]] and content["pct"] == [[25.0], [None]]
+    arrays = case_errors.to_arrays(content)
     assert arrays["row_index"].tolist() == [1, 0]
     assert int(arrays["n_duplicate_keys"]) == 1
     assert arrays["abs_error"][:, 0].tolist() == [1.0, 3.0]
@@ -161,6 +165,25 @@ def test_a_key_two_bank_rows_share_maps_to_its_first_row_and_is_counted():
     assert arrays["pct"][0, 0] == 25.0 and math.isnan(arrays["pct"][1, 0])
     assert arrays["source"].tolist() == [0, 1]
     assert arrays["spec_index"].tolist() == [0, -1]
+
+
+def test_an_empty_grade_still_has_well_shaped_members():
+    content = case_errors.assemble(case_errors.Sink(), [], [(1.0,)])
+    arrays = case_errors.to_arrays(content)
+    assert set(arrays) == set(case_errors.DTYPES)
+    assert arrays["abs_error"].shape == (0, 0) and arrays["typed_ratio"].shape == (0, 0)
+
+
+def test_the_subset_repeat_producer_file_is_untouched():
+    """door-code 5194 asked to hand the file on in `subset_repeat_produce`; that file is in Motor 1.8's producer digest
+    (`motor18_dual_pack._SUBSET_FILES`), so it is NOT edited here (that would re-pin the live sealed pack): its
+    re-measured SE path journals ``grade_case_errors_unavailable`` instead, and the staged capture covers live grades.
+    """
+    from carbon.scoring import motor18_dual_pack, subset_repeat_produce
+
+    assert "subset_repeat_produce.py" in motor18_dual_pack._SUBSET_FILES
+    text = Path(subset_repeat_produce.__file__).read_text(encoding="utf-8")
+    assert "case_errors" not in text
 
 
 def test_misaligned_or_foreign_rows_refuse():
@@ -225,9 +248,11 @@ def test_a_grade_without_per_case_errors_is_one_journal_line(tmp_path, capsys):
 
 
 def test_a_file_that_cannot_be_written_is_one_journal_line(tmp_path, capsys):
-    arrays = {"row_index": np.asarray([0], dtype=np.int64)}
+    sink = case_errors.Sink()
+    sink.case(0, 0, 0, "c").output("f", 1.0, 2.0, 4.0)
+    content = case_errors.assemble(sink, [(1.0,)], [(1.0,)])
     record = {"rows": [], "gate": {"statistic": "p90", "passed": True}}
-    captured = {"accuracy": record, "se_basis": {"gated": True}, "case_errors": arrays}
+    captured = {"accuracy": record, "se_basis": {"gated": True}, "case_errors": content}
     (tmp_path / "a").mkdir()
     (tmp_path / "a" / exam_rotation.CASE_ERRORS_SIDECAR).write_bytes(b"earlier")
     capsys.readouterr()

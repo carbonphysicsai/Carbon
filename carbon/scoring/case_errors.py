@@ -8,7 +8,11 @@ so the bank's one reviewed runner (owner LL-B) can study them on custody2 withou
 What it is and is not:
 - Hidden-derived CUSTODY evidence, retained with the grade; never served, never a miner or public surface, never a score
   input, never on the crown's path. Writing it cannot change or refuse a grade: `Sink` only appends, `assemble` runs
-  after the record is measured and the grader catches its failure (`pool_exam.measure_pool`).
+  after the record is measured and the grader catches its failure (`pool_exam.measure_pool`). The capture holds plain
+  lists (`assemble`); `encode` makes the arrays.
+- Written from the receiver's staged capture (every live pool grade). The re-measured SE path of a SUBSET-REPEAT
+  version (`subset_repeat_produce.bootstrap_total_se`) does not hand it on: that file is in Motor 1.8's producer
+  digest (`motor18_dual_pack._SUBSET_FILES`), so such a grade journals ``grade_case_errors_unavailable`` instead.
 - One entry per ANSWERED case in the order the grader asked them (one served row each): the target cases of
   `pool_physics_score._ratios` (source 0), then the registered in-range case set (source 1).
 - ``row_index`` joins a case to the grade's retained positional predictions: the index in the exam's ``bank_rows`` of
@@ -17,7 +21,7 @@ What it is and is not:
 - No case id, draw id or seed is written: ordinals, class labels, output names and errors only. No truth is written as
   such, but ``abs_error`` with ``pct`` gives |truth|: the file is as private as the hidden pack it was graded on.
 
-Arrays (``.npz``, no pickles; every float is float64, NaN where a value is absent):
+Members (``.npz``, no pickles; every float is float64, NaN where a value is absent; `DTYPES`):
 ``row_index``, ``source``, ``spec_index`` (-1 for an in-range set case), ``case_index``, ``class_index`` (into
 ``class_names``), ``invalid`` (the candidate's invalid answer: no error is measured), ``output_names``, ``abs_error``,
 ``u``, ``ratio`` (|err| / U, NaN where U is 0), ``pct`` (100 |err| / |truth| for a finite non-zero scalar truth),
@@ -47,14 +51,14 @@ def _require(condition, code):
 
 
 def _number(value):
-    """A float, or NaN for anything that is not one finite real number (a waveform's error is already a scalar)."""
+    """A float, or None for anything that is not one finite real number (a waveform's error is already a scalar)."""
     if type(value) is bool:
-        return math.nan
+        return None
     try:
         out = float(value)
     except (TypeError, ValueError):
-        return math.nan
-    return out if math.isfinite(out) else math.nan
+        return None
+    return out if math.isfinite(out) else None
 
 
 class _Case:
@@ -111,10 +115,31 @@ class ServedKeys:
         return self._serve(rows)
 
 
-def assemble(sink, served_keys, bank_keys):
-    """The file's arrays from one grade's `Sink`, the keys served while it was filled, and every bank row's key."""
-    import numpy as np
+#: The file's members and their dtypes (`to_arrays`); 2-D members are (cases, names).
+DTYPES = {
+    "row_index": "int64",
+    "source": "int8",
+    "spec_index": "int64",
+    "case_index": "int64",
+    "class_index": "int64",
+    "class_names": "str",
+    "invalid": "bool",
+    "output_names": "str",
+    "abs_error": "float64",
+    "u": "float64",
+    "ratio": "float64",
+    "pct": "float64",
+    "typed_names": "str",
+    "typed_ratio": "float64",
+    "n_duplicate_keys": "int64",
+}
+_BY_OUTPUT = ("abs_error", "u", "ratio", "pct")
 
+
+def assemble(sink, served_keys, bank_keys):
+    """The file's content from one grade's `Sink`, the keys served while it was filled, and every bank row's key: plain
+    lists and numbers (None where a value is absent), so a capture holding it still compares with ``==``.
+    """
     cases = sink.cases
     _require(len(served_keys) == len(cases), "case_errors_served_rows_misaligned")
     first = {}
@@ -128,53 +153,76 @@ def assemble(sink, served_keys, bank_keys):
     output_names = sorted({o for case in cases for o in case.outputs})
     typed_names = sorted({o for case in cases for o in case.typed_values})
     classes = {name: i for i, name in enumerate(class_names)}
-    shape = (len(cases), len(output_names))
-    abs_error, u_values, ratio, pct = (np.full(shape, np.nan) for _ in range(4))
-    typed_ratio = np.full((len(cases), len(typed_names)), np.nan)
-    for i, case in enumerate(cases):
+    columns = {name: [] for name in _BY_OUTPUT}
+    typed_ratio = []
+    for case in cases:
+        line = {name: [None] * len(output_names) for name in _BY_OUTPUT}
         for j, name in enumerate(output_names):
             if name not in case.outputs:
                 continue
-            error, u, truth = case.outputs[name]
-            error, u, truth = _number(error), _number(u), _number(truth)
-            abs_error[i, j], u_values[i, j] = abs(error), u
-            if u > 0:
-                ratio[i, j] = abs(error) / u
-            if truth != 0 and not math.isnan(truth):
-                pct[i, j] = 100.0 * abs(error) / abs(truth)
-        for j, name in enumerate(typed_names):
-            if case.typed_values.get(name) is not None:
-                typed_ratio[i, j] = _number(case.typed_values[name])
+            error, u, truth = (_number(v) for v in case.outputs[name])
+            size = None if error is None else abs(error)
+            line["abs_error"][j], line["u"][j] = size, u
+            if size is not None and u is not None and u > 0:
+                line["ratio"][j] = size / u
+            if size is not None and truth:
+                line["pct"][j] = 100.0 * size / abs(truth)
+        for name in _BY_OUTPUT:
+            columns[name].append(line[name])
+        typed_ratio.append([_number(case.typed_values.get(n)) for n in typed_names])
     return {
-        "row_index": np.asarray(rows, dtype=np.int64),
-        "source": np.asarray([c.source for c in cases], dtype=np.int8),
-        "spec_index": np.asarray([c.spec_index for c in cases], dtype=np.int64),
-        "case_index": np.asarray([c.case_index for c in cases], dtype=np.int64),
-        "class_index": np.asarray([classes[c.name] for c in cases], dtype=np.int64),
-        "class_names": np.asarray(class_names, dtype=np.str_),
-        "invalid": np.asarray([c.bad for c in cases], dtype=np.bool_),
-        "output_names": np.asarray(output_names, dtype=np.str_),
-        "abs_error": abs_error,
-        "u": u_values,
-        "ratio": ratio,
-        "pct": pct,
-        "typed_names": np.asarray(typed_names, dtype=np.str_),
+        "row_index": rows,
+        "source": [c.source for c in cases],
+        "spec_index": [c.spec_index for c in cases],
+        "case_index": [c.case_index for c in cases],
+        "class_index": [classes[c.name] for c in cases],
+        "class_names": class_names,
+        "invalid": [c.bad for c in cases],
+        "output_names": output_names,
+        **columns,
+        "typed_names": typed_names,
         "typed_ratio": typed_ratio,
-        "n_duplicate_keys": np.asarray(len(bank_keys) - len(first), dtype=np.int64),
+        "n_duplicate_keys": len(bank_keys) - len(first),
     }
 
 
-def encode(arrays, exam_key):
-    """The sidecar's bytes: ``arrays`` plus ``schema`` and ``exam_key``, an ``.npz`` that `numpy.load` reads with
-    ``allow_pickle=False``. Deterministic (members sorted, fixed zip times), so a retried write of the same grade holds
-    exactly the bytes already written (`write_once`)."""
+def to_arrays(content):
+    """`assemble`'s content as the file's numpy arrays (`DTYPES`; None is NaN in a float member)."""
+    import numpy as np
+
+    _require(set(content) == set(DTYPES), "case_errors_members_differ")
+    out = {}
+    for name, dtype in DTYPES.items():
+        value = content[name]
+        if dtype == "str":
+            out[name] = np.asarray(value, dtype=np.str_)
+            continue
+        array = np.asarray(
+            (
+                [[math.nan if v is None else v for v in row] for row in value]
+                if name in _BY_OUTPUT or name == "typed_ratio"
+                else value
+            ),
+            dtype=dtype,
+        )
+        if name in _BY_OUTPUT or name == "typed_ratio":
+            names = content["typed_names" if name == "typed_ratio" else "output_names"]
+            array = array.reshape(len(content["row_index"]), len(names))
+        out[name] = array
+    return out
+
+
+def encode(content, exam_key):
+    """The sidecar's bytes: `to_arrays` of ``content`` plus ``schema`` and ``exam_key``, an ``.npz`` that `numpy.load`
+    reads with ``allow_pickle=False``. Deterministic (members sorted, fixed zip times), so a retried write of the same
+    grade holds exactly the bytes already written (`write_once`)."""
     import zipfile
 
     import numpy as np
 
     _require(type(exam_key) is str and exam_key, "case_errors_exam_key_missing")
     members = {
-        **arrays,
+        **to_arrays(content),
         "schema": np.asarray(SCHEMA, dtype=np.str_),
         "exam_key": np.asarray(exam_key, dtype=np.str_),
     }
