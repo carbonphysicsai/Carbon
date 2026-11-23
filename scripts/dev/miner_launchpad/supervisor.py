@@ -666,6 +666,33 @@ NEXT_ACTIONS = {
         "nothing was charged. The Launchpad's Your place in line card shows when the validator is back. Your frozen "
         "candidate is kept."
     ),
+    # The Carbon submission terms (owner G-LEAD-50; `carbon.development_session.submission_terms`): from a version's open
+    # every submission carries the miner's acceptance of the exact terms text, else the client (before signing) and the
+    # validator refuse it. The four text codes are Carbon's side: the served text could not be shown as the version named it.
+    "terms_not_accepted": (
+        "This version of the Challenge needs you to accept the Carbon submission terms before you submit. Read them and "
+        "accept them in the Launchpad (Submission terms), or run: python -m carbon.development_session.submission_terms "
+        "--door <the validator's URL>. Nothing was sent, graded or charged. Your frozen candidate is kept."
+    ),
+    "terms_facts_invalid": (
+        "The validator named its submission terms in a form this client cannot read, so nothing was sent, graded or "
+        "charged. This is on Carbon's side. Update Carbon and try again; if it persists, send us the UTC time and the "
+        "last 4 characters of your hotkey. Your frozen candidate is kept."
+    ),
+    "terms_text_unavailable": (
+        "The validator's submission terms could not be read just now, so nothing was accepted, sent, graded or charged. "
+        "Try again shortly. Your frozen candidate is kept."
+    ),
+    "terms_text_oversized": (
+        "The submission terms the validator served are larger than this client reads, so they were not shown or "
+        "accepted. This is on Carbon's side; nothing was sent, graded or charged. Send us the UTC time and the last 4 "
+        "characters of your hotkey. Your frozen candidate is kept."
+    ),
+    "terms_text_digest_mismatch": (
+        "The submission terms the validator served do not match the version it named, so they were not shown or "
+        "accepted. This is on Carbon's side; nothing was sent, graded or charged. Send us the UTC time and the last 4 "
+        "characters of your hotkey. Your frozen candidate is kept."
+    ),
     # The validator's own stop cancelled the submission before it ran (`direct_task_cancelled`); the client already sent
     # it once more by itself. Our side: no instruction to submit again.
     "direct_task_cancelled": (

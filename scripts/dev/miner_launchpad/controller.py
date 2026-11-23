@@ -107,6 +107,9 @@ CATALOG_ROUTE = "/api/v1/page/catalog_install"
 KING_ROUTE = "/api/v1/page/king"
 #: The "Your place in line" card (`queue_place.for_profile`): the validator's own public queue feed, read here.
 QUEUE_ROUTE = "/api/v1/page/queue"
+#: The "Submission terms" card (`terms_card`, owner G-LEAD-50): GET shows each validator's required terms text; POST is
+#: the miner's own accept, from this page only (not a setup step or an operation, so no agent door reaches it).
+TERMS_ROUTE = "/api/v1/page/terms"
 
 
 class Rejected(Exception):
@@ -1111,6 +1114,18 @@ class Handler(BaseHTTPRequestHandler):
                         None if runner is None else runner.configuration
                     ),
                 )
+            elif self.path == TERMS_ROUTE:
+                # The submission terms each of this miner's validators requires, read from the validator and shown in
+                # full only when their sha256 is the one it names (G-LEAD-50).
+                from scripts.dev.miner_launchpad import terms_card
+
+                runner = self.server.research_runner
+                self.reply(
+                    200,
+                    terms_card.for_profile(
+                        None if runner is None else runner.configuration
+                    ),
+                )
             elif self.path.startswith("/api/v1/guide/"):
                 # The wiring guide, read from this checkout and rendered by
                 # the page: nothing is fetched from the internet. Only the
@@ -1313,6 +1328,15 @@ class Handler(BaseHTTPRequestHandler):
                 if not self.server.state_dir:
                     raise Rejected("setup_unavailable", 409)
                 result = self.server.start_catalog()
+            elif self.path == TERMS_ROUTE:
+                # The miner's accept of one validator's submission terms, re-read from that validator now; this page
+                # only, as the GPU build (G-LEAD-50).
+                from scripts.dev.miner_launchpad import terms_card
+
+                runner = self.server.research_runner
+                result = terms_card.accept_for_profile(
+                    None if runner is None else runner.configuration, value
+                )
             elif self.path == GPU_BUILD_ROUTE:
                 # Build the GPU worker on this machine, from this page only
                 # (S15a): the installer's own GPU build, on consent to its

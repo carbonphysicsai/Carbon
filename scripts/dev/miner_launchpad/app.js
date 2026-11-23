@@ -2836,6 +2836,8 @@
     if (connected) loadKings();
     renderQueue();
     if (connected) loadQueue();
+    renderTerms();
+    if (connected) loadTerms(false);
   }
   // The "Current king" card (`king.for_profile`, Validator OWNER-INTAKE-EXPOSURE-03K):
   // each Challenge's lines come worded from the controller; read at most once a minute.
@@ -2897,6 +2899,58 @@
         const entry = (caps?.challenges || []).find(c => c.challenge_id === item.challenge_id);
         card.append(el("h3", entry ? plainTitle(entry.title) : String(item.challenge_id).slice(0, 64)));
         for (const line of Array.isArray(item.lines) ? item.lines : []) card.append(el("p", String(line).slice(0, 400)));
+        target.append(card);
+      }
+    });
+  }
+  // The "Submission terms" card (`terms_card`, owner G-LEAD-50): the terms text each validator requires, shown in full as
+  // the validator served it (only when its sha256 is the one the validator names), and the miner's own accept. Read when
+  // connected, at most once every 10 minutes, and again right after an accept.
+  let termsCard = null, termsAt = 0, termsLoading = false, termsError = null;
+  async function loadTerms(force) {
+    if (termsLoading || (!force && Date.now() - termsAt < 600000)) return;
+    termsLoading = true;
+    try { termsCard = await api("/api/v1/page/terms", undefined, undefined, 30000); } catch (_) { termsCard = {unreadable: true}; }
+    termsAt = Date.now();
+    termsLoading = false;
+    renderTerms();
+  }
+  async function acceptTerms(item) {
+    termsError = null;
+    try {
+      await api("/api/v1/page/terms", {challenge_id: item.challenge_id, sha256: item.sha256}, undefined, 30000);
+    } catch (error) {
+      termsError = {challenge_id: item.challenge_id, code: error.code || "request_failed"};
+    }
+    await loadTerms(true);
+  }
+  function renderTerms() {
+    const box = $("overview-terms");
+    if (!box) return;
+    rebuild(box, JSON.stringify([connected, termsCard, termsError]), target => {
+      if (!connected) { target.append(el("p", "Connect to see the submission terms your validators require.", "hint")); return; }
+      if (!termsCard) { target.append(el("p", "Reading each validator's submission terms...", "hint")); return; }
+      if (termsCard.unreadable) { target.append(el("p", "The submission terms couldn't be read just now; try again later.", "hint")); return; }
+      if (typeof termsCard.words === "string") target.append(el("p", termsCard.words.slice(0, 400), "hint"));
+      const rows = (Array.isArray(termsCard.challenges) ? termsCard.challenges : []).filter(item => item.required || item.code);
+      if (!rows.length && typeof termsCard.words !== "string") target.append(el("p", "None of your validators requires submission terms yet.", "hint"));
+      for (const item of rows) {
+        const card = el("article", undefined, "card");
+        const entry = (caps?.challenges || []).find(c => c.challenge_id === item.challenge_id);
+        card.append(el("h3", entry ? plainTitle(entry.title) : String(item.challenge_id).slice(0, 64)));
+        if (item.code) { card.append(el("p", String(item.words || item.code).slice(0, 600), "hint")); target.append(card); continue; }
+        card.append(el("p", "Terms " + String(item.version).slice(0, 64) + " · sha256 " + String(item.sha256).slice(0, 64), "hint"));
+        card.append(el("pre", String(item.text).slice(0, 65536), "terms-text"));
+        if (item.accepted) {
+          card.append(el("p", "You accepted this version on this machine. Each submission carries it."));
+        } else {
+          card.append(el("p", "Submissions to this Challenge are refused until you accept these terms.", "hint"));
+          const button = el("button", "I accept these terms", "button primary");
+          button.type = "button";
+          button.addEventListener("click", () => { button.disabled = true; acceptTerms(item); });
+          card.append(button);
+        }
+        if (termsError && termsError.challenge_id === item.challenge_id) card.append(el("p", "Not accepted: " + String(termsError.code).slice(0, 200), "hint"));
         target.append(card);
       }
     });

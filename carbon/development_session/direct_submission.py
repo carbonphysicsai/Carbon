@@ -229,6 +229,17 @@ def _preflight_catalog(recipe, facts):
         raise error from None
 
 
+def _terms_fields(facts):
+    """The signed acceptance fields for the submission terms the door requires (owner G-LEAD-50); refuses typed, before
+    anything is signed, when this machine holds no acceptance of exactly that version and text."""
+    from carbon.development_session import submission_terms
+
+    try:
+        return submission_terms.submission_fields(facts)
+    except submission_terms.TermsRefused as refused:
+        raise DirectIntakeRefusal(refused.code) from None
+
+
 def read_intake(url: str, *, timeout: float = 10.0) -> dict:
     from carbon.development_session.intake_targets import intake_url
 
@@ -1102,6 +1113,7 @@ def submit_and_wait(
                 else read(url)
             )
             _preflight_catalog(recipe, facts)
+            terms_fields = _terms_fields(facts)
             if admission_attempts > 1:
                 if admission_deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()
@@ -1118,6 +1130,7 @@ def submit_and_wait(
                 fields={
                     "strategy_json": recipe.canonical_bytes.decode("utf-8"),
                     "contract_digest": contract_digest,
+                    **terms_fields,
                 },
                 request=_submit_request(root, epoch, recipe),
             )

@@ -449,3 +449,6 @@ button.checking::after{content:"";display:inline-block;width:12px;height:12px;ma
 .campaign-group{margin:18px 0 6px;font-size:16px}
 .finished-campaigns>summary{cursor:pointer;margin:18px 0 6px;font-weight:600}
 .review-summary{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:8px 0 14px}.review-summary dt{opacity:.7}.review-summary dd{margin:0;font-weight:600}.review-more>summary{cursor:pointer;margin:14px 0 8px}
+
+/* The "Submission terms" card (terms_card): the validator-served text, shown as it is. */
+.terms-text { white-space: pre-wrap; max-height: 24rem; overflow-y: auto; font-size: 0.9rem; }
