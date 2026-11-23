@@ -469,7 +469,7 @@ def _carbon_cut(db, task, paths):
     return retryable(marker.get("code")) and _carbon_settled(db, task)
 
 
-def _requeue_refusal(root, db, door, task, *, auto=False):
+def _requeue_refusal(root, db, door, task, *, auto=False, seen=frozenset()):
     """None when ``requeue`` accepts the task, else its refusal code (read-only). ``auto`` (the receiver's own
     automatic retry, `auto_retry`): the same criteria without the 4 Nov incident's cause filter; a later attempt's
     automatic retry is `_auto_rearm`'s, never this path.
@@ -502,7 +502,19 @@ def _requeue_refusal(root, db, door, task, *, auto=False):
     evaluation = _evaluation_refusal(paths)
     if evaluation is not None:
         return evaluation
-    return _door_refusal(root, db, door, task)
+    return _door_refusal(
+        root,
+        db,
+        door,
+        task,
+        seen=seen,
+        # a given-back twin holds this task back only if THIS path may re-run it (an automatic retry whose twin's
+        # retries are spent re-runs this task instead; the recipe still grades once)
+        rerun=lambda other, asking: _requeue_refusal(
+            root, db, door, other, auto=auto, seen=asking
+        )
+        is None,
+    )
 
 
 #: The door's build re-run log (`lean_recipe.BUILD_RETRIES`, append-only ``{from_task, new_task, chain_root, code, at_ns}``),
@@ -542,9 +554,43 @@ def _never_graded(root, db, task):
     return _marker(_paths(root, task)["marker"]) is None and not _rows(db, task)
 
 
-def _door_refusal(root, db, door, task):
+def _given_back_failed(root, db, task):
+    """The task was given back on infrastructure and has not run since: its marker is FAILED and every exam row it has
+    is FAILED_INFRA (at least one). Such a twin grades only if the door re-runs it."""
+    rows = _rows(db, task)
+    return (
+        _marker(_paths(root, task)["marker"]) == "FAILED"
+        and bool(rows)
+        and all(status == "FAILED_INFRA" for _id, _state, status, *_rest in rows)
+    )
+
+
+def _twin_blocks(root, db, door, task, other, seen, rerun):
+    """Whether same-recipe ``other`` holds the given-back ``task`` back (``given_back_rerun_exists``): any twin that
+    can grade or did (a fresh rerun or resubmit) does. A twin given back on infrastructure too (`_given_back_failed`)
+    does only when it is the EARLIER one by queue place AND the door may itself re-run it, so of several given-back
+    twins of one recipe exactly the earliest re-runnable one runs (the recipe still grades once) and none is held
+    back by a twin that never runs (live 116, 22 Nov 2026: smiley's rtsk_aec3a4b7 and rtsk_1e40c104, one recipe,
+    each refused because of the other, so neither re-ran). An unknown queue place keeps the old answer (blocks).
+    """
+    if not _given_back_failed(root, db, other):
+        return True
+    mine, theirs = _arrival_seq(db, task), _arrival_seq(db, other)
+    if mine is None or theirs is None:
+        return True
+    if theirs > mine or other in seen:
+        return False
+    if rerun is None:
+        return _door_refusal(root, db, door, other, seen=seen | {task}) is None
+    return rerun(other, seen | {task})
+
+
+def _door_refusal(root, db, door, task, *, seen=frozenset(), rerun=None):
     """None when the door may grade the task again (never released, no counted / reserved / graded row, its row in
     its owner's store on the served contract and pack, no same-recipe rerun or delivered grade), else the code.
+    ``seen``: the later twins already asking (`_twin_blocks`), so a chain of given-back twins is read once.
+    ``rerun(other, seen)``: whether the caller's own path (requeue, automatic retry) may re-run a given-back twin;
+    None = the door-level answer (this function), for the regrade paths.
     """
     if _released(root, task):
         # its charged-but-undelivered slot was given back by `release`: never re-graded to replace the record
@@ -588,6 +634,7 @@ def _door_refusal(root, db, door, task):
         # because their withdrawn twin of the same recipe existed)
         and _marker(_paths(root, other)["marker"]) != WITHDRAWN
         and not (other in ancestors and _never_graded(root, db, other))
+        and _twin_blocks(root, db, door, task, other, seen, rerun)
         for other, recipe in recipes.items()
     ):
         # a fresh rerun (or another task) of this same recipe exists: it grades, this one never does twice

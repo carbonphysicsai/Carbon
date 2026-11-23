@@ -1426,6 +1426,60 @@ def test_a_build_retry_predecessor_of_the_same_recipe_is_not_a_fresh_rerun(tmp_p
     assert infra_requeue._build_ancestors(root, A) == {C}
 
 
+def test_given_back_twins_of_one_recipe_rerun_the_earliest_and_never_hold_each_other(
+    tmp_path,
+):
+    """Live 116, 22 Nov 2026 (smiley, rtsk_aec3a4b7 + rtsk_1e40c104): two given-back tasks of ONE recipe each refused
+    given_back_rerun_exists because of the other, so neither re-ran. Now the earliest one the path may re-run goes and
+    the other waits (the recipe still grades once); a later twin never holds the earlier back, a twin this path cannot
+    re-run holds nothing, and a fresh resubmit still holds both."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("shared")
+    _failed(root, ledger, A, recipe=recipe)
+    _row(ledger, A, "RELEASED", "FAILED_INFRA")
+    _failed(root, ledger, B, recipe=recipe)
+    _row(ledger, B, "RELEASED", "FAILED_INFRA")
+    out = infra_requeue.requeue(root, [A, B])  # dry run
+    assert out["requeued"] == [A] and out["refused"] == {B: "given_back_rerun_exists"}
+    # the automatic retry: the earlier twin's own retry is spent (handed back once already), so the later one re-runs
+    kept = _kept(root, A, "marker.json")
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    kept.write_text(json.dumps({"state": "FAILED"}))
+    out = infra_requeue.requeue(root, [A, B], auto=True)
+    assert out["requeued"] == [B] and out["refused"] == {A: "already_requeued"}
+    kept.unlink()
+    # the earlier twin's slot was released (never re-graded): the later one re-runs instead
+    releases = root / "auto-grade" / "requeued" / "releases.jsonl"
+    releases.write_text(json.dumps({"task": A}) + "\n")
+    out = infra_requeue.requeue(root, [A, B])
+    assert out["requeued"] == [B] and out["refused"] == {A: "released_not_regraded"}
+    releases.unlink()
+    # a fresh resubmit of the recipe holds both back, as before
+    _store(root, C, recipe)
+    out = infra_requeue.requeue(root, [A, B])
+    assert out["requeued"] == [] and out["refused"] == {
+        A: "given_back_rerun_exists",
+        B: "given_back_rerun_exists",
+    }
+
+
+def test_a_given_back_twin_that_graded_holds_the_other_back(tmp_path):
+    """The recipe grades once: a twin that ran and graded (marker GRADED) is no given-back twin, so it holds the other."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("shared")
+    _failed(root, ledger, A, recipe=recipe, state="GRADED")
+    _failed(root, ledger, B, recipe=recipe)
+    _row(ledger, B, "RELEASED", "FAILED_INFRA")
+    with ledger._db() as db:
+        assert infra_requeue._given_back_failed(root, db, A) is False
+        assert infra_requeue._given_back_failed(root, db, B) is True
+    assert infra_requeue.requeue(root, [B])["refused"] == {B: "given_back_rerun_exists"}
+
+
 def test_exam_cap_rearms_the_bypass_once_per_later_attempt(tmp_path):
     _root_dir, ledger = _root(tmp_path)
     cap = _cap(ledger)
