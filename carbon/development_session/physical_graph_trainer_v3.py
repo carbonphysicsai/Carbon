@@ -290,10 +290,19 @@ def train_member(
     if layout is not None:
         slices, length = layout["slices"], layout["steps"]
         periodic = set(layout["periodic"])
+    # The layout's curve block is the first slices x steps columns; a version may carry SCALAR columns after it (Motor
+    # 1.9: 240 curve columns + magnet_min_b_t, audit row 5): the curve terms read the curve block only, and the time
+    # weighting weights the curve block and leaves every tail column at 1.0.
+    span = slices * length
+    tail = z.shape[1] - span
+    if layout is not None and tail < 0:
+        raise ValueError("the layout's curve block is wider than the targets")
     column_weights = None
     if tw is not None:
         row = jnp.asarray(tw, dtype=z.dtype)
-        column_weights = jnp.tile(row / jnp.mean(row), slices)
+        column_weights = jnp.concatenate(
+            [jnp.tile(row / jnp.mean(row), slices), jnp.ones(tail, dtype=z.dtype)]
+        )
     region = None if important is None else jnp.asarray(important, dtype=z.dtype)
 
     def extended_loss(values, idx):
@@ -317,7 +326,8 @@ def train_member(
         total = jnp.mean(sample)
         if any(terms):
             shape = (predicted.shape[0], slices, length)
-            p, t = predicted.reshape(shape), target.reshape(shape)
+            p = predicted[:, :span].reshape(shape)
+            t = target[:, :span].reshape(shape)
             for order, weight in ((1, terms[0]), (2, terms[1])):
                 if not weight:
                     continue
