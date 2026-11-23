@@ -592,6 +592,9 @@ def test_no_module_outside_the_grade_reads_the_accuracy_record():
         "carbon/scoring/pool_exam_se.py",  # hands the record to the custody sidecar writer
         "carbon/scoring/pool_physics_score.py",
         "carbon/scoring/pool_proof_suite.py",
+        # R3 (model-eval 5685): reads the record's admitted (scored) cells beside the per-case errors and writes the
+        # custody trust-record.json only; no TRAIN, kit, view, board or miner surface
+        "carbon/scoring/pool_trust.py",
         "carbon/scoring/pool_version.py",  # reads the registered rule (host-only constants)
         # reads the registered in-range CASE SET (inputs and truth names only, through `in_range_cases` and its registered
         # sha) to place Motor 1.8's in-range gate rows in their subset-repeat strata; never the accuracy record

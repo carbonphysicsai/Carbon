@@ -53,7 +53,8 @@ def _require(condition, code):
 @dataclass(frozen=True)
 class PoolTrust:
     """One version's pool trust registration: the trust outputs in the ``sigma.json`` column order, and the trainer's sigma
-    floor per output (the version's trust REGISTRATIONS values: one source, a test holds them equal)."""
+    floor per output (the version's trust REGISTRATIONS values: one source, a test holds them equal).
+    """
 
     outputs: tuple
     sigma_floor: tuple
@@ -86,7 +87,8 @@ def check(trust):
 def sigma_rows(raw, n_rows, trust):
     """The per-bank-row ``{output: sigma}`` of a candidate's ``sigma.json`` bytes, or None when it is unreadable (the
     candidate's: its T is then 0, ``invalid``). ``raw`` None = no trust block (T 0, ``absent``): returns ``()``.
-    ``n_rows`` None takes the file's own row count (`record` then refuses a case row the file does not cover)."""
+    ``n_rows`` None takes the file's own row count (`record` then refuses a case row the file does not cover).
+    """
     check(trust)
     if raw is None:
         return ()
@@ -138,7 +140,8 @@ def _admitted_pairs(admitted):
 def record(content, sigma, admitted, trust, band_level):
     """T over the admitted cells of one pool grade (A1-A2 of `self_trust`), from the grade's per-case content
     (`case_errors.assemble`), the candidate's `sigma_rows` (``()`` absent, None unreadable), the admitted
-    ``(family, class, output)`` cells and the band level. Returns `self_trust.trust_skill`'s dict plus ``n_cells``."""
+    ``(family, class, output)`` cells and the band level. Returns `self_trust.trust_skill`'s dict plus ``n_cells``.
+    """
     check(trust)
     pairs = _admitted_pairs(admitted)
     _require(type(content) is dict, "pool_trust_case_record_malformed")

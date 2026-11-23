@@ -3588,7 +3588,9 @@ def _write_case_errors(submission_id, directory, exam_key, arrays, unavailable):
         )
 
 
-def _write_trust_record(adapter, submission_id, snapshot, directory, artifacts, captured):
+def _write_trust_record(
+    adapter, submission_id, snapshot, directory, artifacts, captured
+):
     """R3 (owner TRUST-AMPLIFIER, model-eval 5685): a trust version's custody trust record (`pool_trust.grade_record`) from
     THIS grade's per-case errors, its accuracy record (the admitted cells) and the candidate's ``sigma.json``, write-once
     beside the binding. Every other version: nothing read, nothing written. Never raises, never the grade, never on the
