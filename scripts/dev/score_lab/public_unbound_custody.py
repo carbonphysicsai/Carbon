@@ -1787,13 +1787,48 @@ _NATIVE_GRAPH_ROLE_CODECS = {
 }
 
 
+def _state_archive_bytes(recipe, allowlist) -> int:
+    """The state.npz byte bound custody applies: the build's own ceiling (`bundle_graph_state.state_limit`, 64 MiB)
+    through allowlist v6. For an uncapped allowlist (owner, 2026-10-21: no model-size cap) the build has no state
+    ceiling of its own and the worker's output envelope binds (`worker_resources_for`, the bound the door's retention
+    read already uses): custody takes that envelope, up to the retained graph file bound `MAX_GRAPH_FILE_BYTES` of the
+    custody inventory this state then enters (live 116, 22 Nov 2026: two Motor 1.8 grades on allowlist v8 refused
+    ``npz_archive_size`` here at a fixed 64 MiB, after build and inference had accepted them). A state above that
+    file bound is still refused at the record step: widening it changes the retained size per grade (CAPS.md).
+    The allowlist resolves as `_bundle_header`'s codec check does (the recipe's registered version when not given);
+    unresolvable = the capped bound.
+    """
+    from carbon.development_session import bundle_graph_state
+    from carbon.level4.allowlist import Allowlist
+    from carbon.reconstruction.worker.model import worker_resources_for
+
+    try:
+        if allowlist is None and recipe is not None:
+            from carbon.challenge_kit.served_versions import graph_allowlist_bytes
+            from carbon.development_session.construction_recipe import (
+                ConstructionRecipe,
+            )
+
+            challenge = ConstructionRecipe.from_bytes(recipe).to_dict()["challenge"]
+            allowlist = graph_allowlist_bytes(challenge["id"], challenge["version"])
+        if allowlist is not None and bundle_graph_state.state_limit(allowlist) is None:
+            permitted = (
+                allowlist if type(allowlist) is Allowlist else Allowlist(allowlist)
+            )
+            envelope = worker_resources_for(permitted.version)
+            return min(envelope["output_bytes"], MAX_GRAPH_FILE_BYTES)
+    except (ValueError, TypeError, KeyError, OverflowError):
+        pass
+    return bundle_graph_state.MAX_BYTES
+
+
 def _bundle_header(
     state: bytes, *, graph_source: bool = False, recipe=None, allowlist=None
 ) -> tuple[dict, dict]:
     """Inspect the producer's inert graph NPZ without loading or executing it."""
     arrays = inspect_numeric_npz(
         state,
-        max_bytes=64 * 1024 * 1024,
+        max_bytes=_state_archive_bytes(recipe, allowlist),
         max_member_count=4101 if graph_source else 4098,
         max_directory_bytes=512 * 1024,
         allow_graph_header=True,
