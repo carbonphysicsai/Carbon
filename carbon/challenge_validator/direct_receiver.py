@@ -1114,6 +1114,8 @@ GRADING_PATHS = (
     "carbon/development_session/trust_infer.py",
     # the per-version trust training registration (SELF_TRUST H3d-2c): the derive and the owner's values the trust trainer reads
     "carbon/development_session/physical_graph_trust_registry.py",
+    # Motor 1.9's trust derive, the jax map that registration names (owner MOTOR19-TRUST-REGISTRATION)
+    "carbon/development_session/motor19_trust_derive.py",
     "carbon/challenge_validator/strict_json.py",
     # which changed grading paths a door's served version never reads (v2 RE-RULING #5): it decides that a change
     # needs no declared record on this door, so its own edits are grading changes
