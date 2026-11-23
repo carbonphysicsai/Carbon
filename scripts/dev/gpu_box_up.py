@@ -11,8 +11,10 @@ typed reason, each idempotent:
 THEIR OWN key. It changes the box and writes nothing on the door side (no box file, no door records needed):
 
   host_key     the box's ed25519 host key equals ``--host-key-fingerprint``; every later ssh pins it
-  shape        >= 28 CPUs (``nproc --all``) with CPUs 0-27 online, and >= 7 x 16 GiB + 8 GiB MemTotal (every box
-               has the same shape: 7 slots x 4 cores x 16 GiB, cpusets 0-3 ... 24-27; the Lambda A100 40GB has 30)
+  shape        >= 28 CPUs (``nproc --all``) with CPUs 0-27 online, and >= 7 x 16 GiB + 8 GiB MemTotal: 7 slots x 4
+               cores x 16 GiB, cpusets 0-3 ... 24-27 (the Lambda A100 40GB has 30). A smaller VM (the Lambda RTX A6000
+               48 GB: 14 vCPUs, owner G-LEAD-60) gets the first N of those slots, N the most that leaves 2 CPUs for the
+               host and fits 16 GiB per slot + 8 GiB (`vm_slot_cpusets`); its shape then names ``slot_cpusets``
   driver       exactly one GPU named ``--device-kind``, driver >= ``--driver-floor`` (an older one is upgraded from the
                provider's apt repo and the run stops: ``driver_upgrade_needs_reboot``)
   docker       Docker Engine ``--docker-version`` and containerd ``--containerd-version`` from Docker's apt repo, the
@@ -198,6 +200,47 @@ MIN_LEGACY_CPUS = 16
 def slot_mem_kib(slots: int) -> int:
     """16 GiB per slot plus 8 GiB for the host, in KiB."""
     return (slots * 16 + 8) * 1024 * 1024
+
+
+#: A VM below the 7 x 4 shape keeps this many logical CPUs for its own processes (the Lambda A100 40GB's 30 vCPUs hold
+#: 7 x 4 with 2 left; owner G-LEAD-60, 23 Nov 2026: the Lambda RTX A6000 48 GB VM has 14).
+VM_HOST_RESERVED_CPUS = 2
+
+
+def vm_slot_cpusets(cpus: int, online: set, mem_kib: int) -> tuple:
+    """A VM's slots, or Refused. ``cpus`` >= `MIN_CPUS`: the 7 x 4 `SLOT_CPUSETS` exactly as before (CPUs 0-27 online,
+    memory for 7 slots). Fewer: the first N of `SLOT_CPUSETS` (each 4 logical CPUs, the door's minimum slot,
+    `remote_gpu_build._box_cpusets`), N the most that leaves `VM_HOST_RESERVED_CPUS` CPUs and fits 16 GiB per slot +
+    8 GiB in MemTotal; N >= 1 or ``slot_shape_cpus`` / ``slot_shape_memory``. Every slot CPU must be online. This is
+    the upper bound on slots: the door's slot COUNT is its own values row (and the door accepts any 1..8 equal,
+    disjoint sets of >= 4 cores).
+    """
+    if cpus >= MIN_CPUS:
+        slots = SLOT_CPUSETS
+        if mem_kib < MIN_MEM_KIB:
+            raise Refused(
+                "slot_shape_memory", f"MemTotal {mem_kib} kB < {MIN_MEM_KIB} kB"
+            )
+    else:
+        by_cpus = max(0, (cpus - VM_HOST_RESERVED_CPUS) // 4)
+        by_memory = max(0, (mem_kib // (1024 * 1024) - 8) // 16)
+        count = min(len(SLOT_CPUSETS), by_cpus, by_memory)
+        if by_cpus < 1:
+            raise Refused(
+                "slot_shape_cpus",
+                f"{cpus} CPUs: not one 4-CPU slot plus {VM_HOST_RESERVED_CPUS} for the host",
+            )
+        if count < 1:
+            raise Refused(
+                "slot_shape_memory",
+                f"MemTotal {mem_kib} kB < {slot_mem_kib(1)} kB for one slot",
+            )
+        slots = SLOT_CPUSETS[:count]
+    wanted = set().union(*(cpu_list(cpuset) for cpuset in slots))
+    if not wanted <= online:
+        last = max(wanted)
+        raise Refused("slot_cpus_offline", f"CPUs 0-{last} are not all online")
+    return tuple(slots)
 
 
 WORKER_UID = "65532"
@@ -1605,17 +1648,13 @@ class Session:
             mem_kib = int(lines[2].split()[1])
         except (IndexError, ValueError):
             raise Refused("shape_unreadable", out.strip()[-200:]) from None
-        if cpus < MIN_CPUS:
-            raise Refused("slot_shape_cpus", f"{cpus} CPUs < {MIN_CPUS}")
-        if not set(range(MIN_CPUS)) <= online_set:
-            raise Refused(
-                "slot_cpus_offline", f"CPUs 0-{MIN_CPUS - 1} are not all online"
-            )
-        if mem_kib < MIN_MEM_KIB:
-            raise Refused(
-                "slot_shape_memory", f"MemTotal {mem_kib} kB < {MIN_MEM_KIB} kB"
-            )
-        return {"cpus": cpus, "online": online, "mem_total_kib": mem_kib}
+        slots = vm_slot_cpusets(cpus, online_set, mem_kib)
+        shape = {"cpus": cpus, "online": online, "mem_total_kib": mem_kib}
+        if slots != SLOT_CPUSETS:
+            # only a VM below 7 x 4 names its slots, so a 7 x 4 VM's shape (and every admin summary recorded for one)
+            # is byte-for-byte what it was
+            shape["slot_cpusets"] = list(slots)
+        return shape
 
     def read_driver(self):
         """``(uuid, driver)`` of the box's one GPU of exactly ``--device-kind``, or None when nvidia-smi fails."""
@@ -2408,8 +2447,8 @@ def bring_up(cfg: Config, runner, *, now=time.time, log=None) -> dict:
             raw_ops=raw_ops,
             commit=commit,
             now=now(),
-            # a pod's slots come from its own cgroup (`pod_shape`); a VM has the one shape
-            slot_cpusets=shape["slot_cpusets"] if cfg.pod else SLOT_CPUSETS,
+            # a pod's slots come from its own cgroup (`pod_shape`), a VM's from its CPUs and memory (`vm_slot_cpusets`)
+            slot_cpusets=shape.get("slot_cpusets", SLOT_CPUSETS),
         )
         session.step = "box_file"
         path = write_box_files(cfg, document, raw_output, raw_ops)

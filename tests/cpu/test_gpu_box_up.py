@@ -929,9 +929,41 @@ def test_no_host_key_refuses(tmp_path):
 
 def test_too_few_cpus_refuses(tmp_path):
     cfg = _admin_config(tmp_path)
-    outcome = _admin(cfg, FakeBox(cfg, nproc=15))
+    # not one 4-CPU slot plus the 2 CPUs a VM keeps for itself
+    outcome = _admin(cfg, FakeBox(cfg, nproc=5, online="0-4"))
     _admin_refused(outcome, "slot_shape_cpus")
     assert outcome["step"] == "shape"
+
+
+def test_a_smaller_vm_gets_the_first_slots_its_cpus_and_memory_hold():
+    # owner G-LEAD-60 (23 Nov 2026): the Lambda RTX A6000 48 GB VM, 14 vCPUs
+    gib = 1024 * 1024
+    assert box_up.vm_slot_cpusets(14, set(range(14)), 64 * gib) == (
+        "0-3",
+        "4-7",
+        "8-11",
+    )
+    # memory binds first: 46 GiB holds 2 slots of 16 GiB + 8 GiB for the host
+    assert box_up.vm_slot_cpusets(14, set(range(14)), 46 * gib) == ("0-3", "4-7")
+    assert box_up.vm_slot_cpusets(6, set(range(6)), 64 * gib) == ("0-3",)
+    # >= 28 CPUs: the 7 x 4 shape exactly as before
+    assert box_up.vm_slot_cpusets(30, set(range(30)), 216 * gib) == box_up.SLOT_CPUSETS
+    for cpus, online, mem, code in (
+        (5, set(range(5)), 64 * gib, "slot_shape_cpus"),
+        (14, set(range(14)), 23 * gib, "slot_shape_memory"),
+        (14, {0, 1, 2, 3, 5, 6, 7, 8}, 64 * gib, "slot_cpus_offline"),
+    ):
+        with pytest.raises(box_up.Refused) as refused:
+            box_up.vm_slot_cpusets(cpus, online, mem)
+        assert refused.value.reason == code
+
+
+def test_a_smaller_vm_is_admitted_with_its_slots_in_the_shape(tmp_path):
+    cfg = _admin_config(tmp_path)
+    box = FakeBox(cfg, nproc=14, online="0-13", mem_kib=46 * 1024 * 1024)
+    outcome = _admin(cfg, box)
+    assert outcome["admin"] == "PASS"
+    assert outcome["shape"]["slot_cpusets"] == ["0-3", "4-7"]
 
 
 def test_too_little_memory_refuses(tmp_path):
