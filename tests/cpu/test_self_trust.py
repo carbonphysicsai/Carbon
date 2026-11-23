@@ -502,8 +502,10 @@ def test_nothing_in_carbon_imports_self_trust_yet():
                     f"{node.module}.{a.name}" for a in node.names
                 ]
             if any(n.endswith("self_trust") for n in names):
-                importers.append(str(path.relative_to(ROOT)))
-    assert importers == []
+                importers.append(path.relative_to(ROOT).as_posix())
+    # R3 (model-eval 5685): the pool-route reader is the one importer; it is itself gated by
+    # its EMPTY `POOL_TRUST` (test_pool_trust), so no registered version's grade moves
+    assert importers == ["carbon/scoring/pool_trust.py"]
 
 
 def test_self_trust_imports_no_carbon_module():

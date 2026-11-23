@@ -3129,6 +3129,11 @@ def _retain_selected_pack_evaluation(
                     task=submission_id,
                     error=type(failure).__name__,
                 )
+            # R3 (owner TRUST-AMPLIFIER): a trust version's T over the admitted cells, custody only (None and nothing
+            # read for every version `pool_trust.POOL_TRUST` does not name)
+            _write_trust_record(
+                adapter, submission_id, snapshot, directory, artifacts, captured
+            )
         elif (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
             accuracy_record = _write_exam_se(
                 adapter,
@@ -3579,6 +3584,50 @@ def _write_case_errors(submission_id, directory, exam_key, arrays, unavailable):
             "grade_sidecar_unwritten",
             task=submission_id,
             sidecar=exam_rotation.CASE_ERRORS_SIDECAR,
+            error=type(failure).__name__,
+        )
+
+
+def _write_trust_record(adapter, submission_id, snapshot, directory, artifacts, captured):
+    """R3 (owner TRUST-AMPLIFIER, model-eval 5685): a trust version's custody trust record (`pool_trust.grade_record`) from
+    THIS grade's per-case errors, its accuracy record (the admitted cells) and the candidate's ``sigma.json``, write-once
+    beside the binding. Every other version: nothing read, nothing written. Never raises, never the grade, never on the
+    crown's path; a failure is one journal line."""
+    try:
+        from carbon.scoring import pool_trust
+
+        key = (adapter.challenge_id, adapter.challenge_version)
+        if key not in pool_trust.POOL_TRUST:
+            return
+        content, accuracy = captured.get("case_errors"), captured.get("accuracy")
+        if content is None or accuracy is None:
+            _journal(
+                "grade_trust_unavailable",
+                task=submission_id,
+                reason="case_errors" if content is None else "accuracy",
+            )
+            return
+        from carbon.development_session.data import write_once
+
+        document = pool_trust.grade_record(
+            *key,
+            sigma_raw=artifacts.get("sigma.json"),
+            case_content=content,
+            accuracy=accuracy,
+        )
+        document["exam_key"] = snapshot.manifest_digest
+        write_once(directory / pool_trust.SIDECAR, _json(document))
+        _journal(
+            "grade_trust",
+            task=submission_id,
+            status=document["record"]["status"],
+            cells=document["record"]["n_cells"],
+        )
+    except Exception as failure:  # noqa: BLE001 - custody evidence, never the grade
+        _journal(
+            "grade_sidecar_unwritten",
+            task=submission_id,
+            sidecar="trust-record.json",
             error=type(failure).__name__,
         )
 
