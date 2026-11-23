@@ -24,9 +24,15 @@ def _row(challenge, url, *, read, fetch, home):
         if required is None:
             return {"challenge_id": challenge, "required": False}
         text = fetch(url, required)
-    except ValueError as refused:  # TermsRefused, or the intake read's own typed refusal
+    except (
+        ValueError
+    ) as refused:  # TermsRefused, or the intake read's own typed refusal
         code = getattr(refused, "code", "construction_intake_unavailable")
-        return {"challenge_id": challenge, "code": code, "words": NEXT_ACTIONS.get(code, "")}
+        return {
+            "challenge_id": challenge,
+            "code": code,
+            "words": NEXT_ACTIONS.get(code, ""),
+        }
     except OSError:
         code = terms.TEXT_UNAVAILABLE
         return {"challenge_id": challenge, "code": code, "words": NEXT_ACTIONS[code]}
@@ -50,14 +56,16 @@ def card(intake_urls, *, read=None, fetch=None, home=None):
     read, fetch = _readers(read, fetch)
     return {
         "challenges": [
-            _row(challenge, url, read=read, fetch=fetch, home=home) for challenge, url in sorted(intake_urls.items())
+            _row(challenge, url, read=read, fetch=fetch, home=home)
+            for challenge, url in sorted(intake_urls.items())
         ]
     }
 
 
 def accept(intake_urls, value, *, read=None, fetch=None, home=None):
     """Record the miner's accept of the terms one validator requires, re-read from that validator now: the sha256 the page
-    showed must still be the one it names, so a miner never accepts a text they were not shown."""
+    showed must still be the one it names, so a miner never accepts a text they were not shown.
+    """
     from scripts.dev.miner_launchpad.controller import Rejected
 
     if (
@@ -97,7 +105,10 @@ def _intakes(configuration):
 def for_profile(configuration):
     urls = _intakes(configuration)
     if urls is None:
-        return {"challenges": [], "words": "Finish Setup to see the submission terms your validators require."}
+        return {
+            "challenges": [],
+            "words": "Finish Setup to see the submission terms your validators require.",
+        }
     return card(urls)
 
 

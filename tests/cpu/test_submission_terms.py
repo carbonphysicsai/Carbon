@@ -16,7 +16,7 @@ from carbon.development_session import submission_terms as terms
 from scripts.dev.miner_launchpad import supervisor
 from tests.cpu import test_direct_submission as fixture
 
-TEXT = "**Carbon submission terms, version v0**\n\nA test text, not the published one.\n".encode("utf-8")
+TEXT = b"**Carbon submission terms, version v0**\n\nA test text, not the published one.\n"
 SHA = hashlib.sha256(TEXT).hexdigest()
 VERSION = "carbon-submission-terms-v0"
 FACT = {"version": VERSION, "sha256": SHA, "path": terms.PATH_PREFIX + VERSION}
@@ -49,7 +49,9 @@ def test_no_terms_in_the_facts_means_none_required_and_nothing_is_added():
 
 
 def test_the_facts_name_one_version_sha_and_the_door_path_of_its_text():
-    assert terms.required(_facts()) == terms.Terms(VERSION, SHA, terms.PATH_PREFIX + VERSION)
+    assert terms.required(_facts()) == terms.Terms(
+        VERSION, SHA, terms.PATH_PREFIX + VERSION
+    )
 
 
 @pytest.mark.parametrize(
@@ -72,7 +74,9 @@ def test_malformed_terms_facts_refuse_rather_than_guess(value):
 
 def test_the_text_is_read_from_the_door_path_and_only_with_the_named_sha():
     seen = []
-    text = terms.fetch_text(fixture._URL, terms.required(_facts()), opener=_opener(seen=seen))
+    text = terms.fetch_text(
+        fixture._URL, terms.required(_facts()), opener=_opener(seen=seen)
+    )
     assert text == TEXT
     assert seen == [fixture._URL + terms.PATH_PREFIX + VERSION]
     for body, code in (
@@ -80,7 +84,9 @@ def test_the_text_is_read_from_the_door_path_and_only_with_the_named_sha():
         (b"x" * (terms.MAX_TEXT_BYTES + 1), terms.TEXT_OVERSIZED),
     ):
         with pytest.raises(terms.TermsRefused) as refused:
-            terms.fetch_text(fixture._URL, terms.required(_facts()), opener=_opener(body))
+            terms.fetch_text(
+                fixture._URL, terms.required(_facts()), opener=_opener(body)
+            )
         assert refused.value.code == code
 
 
@@ -93,7 +99,9 @@ def test_an_unreachable_text_is_a_typed_refusal():
     assert refused.value.code == terms.TEXT_UNAVAILABLE
 
 
-def test_only_the_text_shown_can_be_accepted_and_the_record_binds_version_and_sha(tmp_path):
+def test_only_the_text_shown_can_be_accepted_and_the_record_binds_version_and_sha(
+    tmp_path,
+):
     required = terms.required(_facts())
     with pytest.raises(terms.TermsRefused) as refused:
         terms.accept(required, TEXT + b"edited", home=tmp_path)
@@ -108,7 +116,9 @@ def test_only_the_text_shown_can_be_accepted_and_the_record_binds_version_and_sh
         "accepted_utc": "1970-01-01T00:00:00Z",
     }
     assert terms.accepted(required, home=tmp_path)
-    assert terms.accept(required, TEXT, home=tmp_path, clock=lambda: 99.0) == path  # kept as it is
+    assert (
+        terms.accept(required, TEXT, home=tmp_path, clock=lambda: 99.0) == path
+    )  # kept as it is
     other = terms.required(_facts(sha256="0" * 64))
     assert not terms.accepted(other, home=tmp_path)
 
@@ -117,7 +127,16 @@ def test_an_edited_or_foreign_record_is_not_an_acceptance(tmp_path):
     required = terms.required(_facts())
     path = terms.record_path(required, home=tmp_path)
     tmp_path.mkdir(exist_ok=True)
-    path.write_text(json.dumps({"schema": terms.SCHEMA, "version": VERSION, "sha256": "0" * 64, "accepted_utc": "x"}))
+    path.write_text(
+        json.dumps(
+            {
+                "schema": terms.SCHEMA,
+                "version": VERSION,
+                "sha256": "0" * 64,
+                "accepted_utc": "x",
+            }
+        )
+    )
     assert not terms.accepted(required, home=tmp_path)
     path.write_text("not json")
     assert not terms.accepted(required, home=tmp_path)
@@ -135,13 +154,20 @@ def test_a_symlinked_record_is_not_an_acceptance(tmp_path):
     assert not terms.accepted(required, home=tmp_path / "b")
 
 
-def test_submission_fields_refuse_without_acceptance_and_carry_version_and_sha_after(tmp_path):
+def test_submission_fields_refuse_without_acceptance_and_carry_version_and_sha_after(
+    tmp_path,
+):
     with pytest.raises(terms.TermsRefused) as refused:
         terms.submission_fields(_facts(), home=tmp_path)
     assert refused.value.code == terms.NOT_ACCEPTED
     terms.accept(terms.required(_facts()), TEXT, home=tmp_path)
-    assert terms.submission_fields(_facts(), home=tmp_path) == {"terms_version": VERSION, "terms_sha256": SHA}
-    assert tuple(terms.submission_fields(_facts(), home=tmp_path)) == terms.SUBMIT_FIELDS
+    assert terms.submission_fields(_facts(), home=tmp_path) == {
+        "terms_version": VERSION,
+        "terms_sha256": SHA,
+    }
+    assert (
+        tuple(terms.submission_fields(_facts(), home=tmp_path)) == terms.SUBMIT_FIELDS
+    )
 
 
 def _submit(tmp_path, monkeypatch, facts):
@@ -165,7 +191,7 @@ def _submit(tmp_path, monkeypatch, facts):
             return 202, fixture._answer("ADMITTED")
         return 200, fixture._answer("RECONSTRUCTED")
 
-    run = lambda: client.submit_and_wait(  # noqa: E731
+    run = lambda: client.submit_and_wait(
         fixture._URL,
         "external-signer",
         root=tmp_path / "campaign",
@@ -181,13 +207,17 @@ def _submit(tmp_path, monkeypatch, facts):
     return run, signed, sent
 
 
-def test_a_door_that_requires_terms_is_refused_before_signing_until_the_miner_accepts(tmp_path, monkeypatch):
+def test_a_door_that_requires_terms_is_refused_before_signing_until_the_miner_accepts(
+    tmp_path, monkeypatch
+):
     run, signed, sent = _submit(tmp_path, monkeypatch, _facts())
     with pytest.raises(client.DirectIntakeRefusal) as refused:
         run()
     assert refused.value.code == terms.NOT_ACCEPTED
     assert signed == [] and sent == []
-    terms.accept(terms.required(_facts()), TEXT)  # the default store, under the patched home
+    terms.accept(
+        terms.required(_facts()), TEXT
+    )  # the default store, under the patched home
     assert run()["state"] == "RECONSTRUCTED"
     fields = sent[0]["fields"]
     assert sent[0]["tool"] == client.SUBMIT_TOOL
@@ -195,23 +225,47 @@ def test_a_door_that_requires_terms_is_refused_before_signing_until_the_miner_ac
     assert signed[0]["fields"] == fields  # inside the hotkey-signed body
 
 
-def test_a_door_that_requires_no_terms_gets_exactly_todays_submission_fields(tmp_path, monkeypatch):
-    run, signed, sent = _submit(tmp_path, monkeypatch, fixture._facts())
+def test_a_door_that_requires_no_terms_gets_exactly_todays_submission_fields(
+    tmp_path, monkeypatch
+):
+    run, _signed, sent = _submit(tmp_path, monkeypatch, fixture._facts())
     assert run()["state"] == "RECONSTRUCTED"
     assert set(sent[0]["fields"]) == {"strategy_json", "contract_digest"}
 
 
 def test_the_command_shows_the_text_and_records_only_an_explicit_accept(tmp_path):
     out = io.StringIO()
-    read = lambda url: _facts()  # noqa: E731
-    fetch = lambda url, required: TEXT  # noqa: E731
-    assert terms.main(["--door", fixture._URL], read=read, fetch=fetch, ask=lambda _: "no", out=out, home=tmp_path) == 1
+    read = lambda url: _facts()
+    fetch = lambda url, required: TEXT
+    assert (
+        terms.main(
+            ["--door", fixture._URL],
+            read=read,
+            fetch=fetch,
+            ask=lambda _: "no",
+            out=out,
+            home=tmp_path,
+        )
+        == 1
+    )
     assert TEXT.decode() in out.getvalue() and SHA in out.getvalue()
     assert not terms.accepted(terms.required(_facts()), home=tmp_path)
     args = ["--door", fixture._URL, "--accept", "0" * 64]
-    assert terms.main(args, read=read, fetch=fetch, out=io.StringIO(), home=tmp_path) == 2
+    assert (
+        terms.main(args, read=read, fetch=fetch, out=io.StringIO(), home=tmp_path) == 2
+    )
     assert not terms.accepted(terms.required(_facts()), home=tmp_path)
-    assert terms.main(["--door", fixture._URL], read=read, fetch=fetch, ask=lambda _: "ACCEPT", out=io.StringIO(), home=tmp_path) == 0
+    assert (
+        terms.main(
+            ["--door", fixture._URL],
+            read=read,
+            fetch=fetch,
+            ask=lambda _: "ACCEPT",
+            out=io.StringIO(),
+            home=tmp_path,
+        )
+        == 0
+    )
     assert terms.accepted(terms.required(_facts()), home=tmp_path)
 
 
@@ -226,7 +280,9 @@ def test_every_terms_refusal_has_its_next_step_for_the_miner():
     assert literal == terms.CODES
     for code in literal:
         assert supervisor.NEXT_ACTIONS[code]
-        assert "nothing was" in supervisor.NEXT_ACTIONS[code].lower()  # says nothing was charged
+        assert (
+            "nothing was" in supervisor.NEXT_ACTIONS[code].lower()
+        )  # says nothing was charged
     assert "submission_terms --door" in supervisor.NEXT_ACTIONS["terms_not_accepted"]
     # The door's own two refusals (door-code's wire): same table, same promise that nothing was charged.
     assert "submission_terms --door" in supervisor.NEXT_ACTIONS["terms_mismatch"]
@@ -235,10 +291,13 @@ def test_every_terms_refusal_has_its_next_step_for_the_miner():
 
 # --- the Launchpad card (scripts/dev/miner_launchpad/terms_card.py) ---
 
-from scripts.dev.miner_launchpad import terms_card  # noqa: E402
-from scripts.dev.miner_launchpad.controller import Rejected  # noqa: E402
+from scripts.dev.miner_launchpad import terms_card
+from scripts.dev.miner_launchpad.controller import Rejected
 
-URLS = {"electric-motor-magnetics": fixture._URL, "f08-ribbed-bracket": "http://127.0.0.1:9081"}
+URLS = {
+    "electric-motor-magnetics": fixture._URL,
+    "f08-ribbed-bracket": "http://127.0.0.1:9081",
+}
 
 
 def _read(url):
@@ -284,11 +343,23 @@ def test_the_page_accept_records_exactly_the_text_shown(tmp_path):
     "value, code",
     [
         ({"challenge_id": "electric-motor-magnetics"}, "closed_terms_accept_required"),
-        ({"challenge_id": "electric-motor-magnetics", "sha256": SHA, "extra": 1}, "closed_terms_accept_required"),
-        ({"challenge_id": "electric-motor-magnetics", "sha256": "sha256:" + SHA}, "closed_terms_accept_required"),
-        ({"challenge_id": "chip-cold-plate", "sha256": SHA}, "terms_challenge_not_in_profile"),
+        (
+            {"challenge_id": "electric-motor-magnetics", "sha256": SHA, "extra": 1},
+            "closed_terms_accept_required",
+        ),
+        (
+            {"challenge_id": "electric-motor-magnetics", "sha256": "sha256:" + SHA},
+            "closed_terms_accept_required",
+        ),
+        (
+            {"challenge_id": "chip-cold-plate", "sha256": SHA},
+            "terms_challenge_not_in_profile",
+        ),
         ({"challenge_id": "f08-ribbed-bracket", "sha256": SHA}, "terms_not_required"),
-        ({"challenge_id": "electric-motor-magnetics", "sha256": "0" * 64}, "terms_changed_since_shown"),
+        (
+            {"challenge_id": "electric-motor-magnetics", "sha256": "0" * 64},
+            "terms_changed_since_shown",
+        ),
     ],
 )
 def test_the_page_accept_refuses_anything_but_the_shown_version(tmp_path, value, code):
@@ -315,4 +386,7 @@ def test_the_page_has_the_card_and_both_routes_go_to_the_terms_card():
     assert script.count('"/api/v1/page/terms"') == 2  # the read and the accept
     source = (root / "controller.py").read_text(encoding="utf-8")
     assert source.count("elif self.path == TERMS_ROUTE:") == 2
-    assert "terms_card.accept_for_profile(" in source and "terms_card.for_profile(" in source
+    assert (
+        "terms_card.accept_for_profile(" in source
+        and "terms_card.for_profile(" in source
+    )

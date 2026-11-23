@@ -48,7 +48,13 @@ FACTS_INVALID = "terms_facts_invalid"
 TEXT_UNAVAILABLE = "terms_text_unavailable"
 TEXT_OVERSIZED = "terms_text_oversized"
 TEXT_DIGEST_MISMATCH = "terms_text_digest_mismatch"
-CODES = (NOT_ACCEPTED, FACTS_INVALID, TEXT_UNAVAILABLE, TEXT_OVERSIZED, TEXT_DIGEST_MISMATCH)
+CODES = (
+    NOT_ACCEPTED,
+    FACTS_INVALID,
+    TEXT_UNAVAILABLE,
+    TEXT_OVERSIZED,
+    TEXT_DIGEST_MISMATCH,
+)
 
 
 class TermsRefused(ValueError):
@@ -98,7 +104,11 @@ def accepted(terms: Terms, home=None) -> bool:
     """Whether this machine holds the miner's acceptance of exactly this version and text."""
     path = record_path(terms, home)
     try:
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_RECORD_BYTES:
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or path.stat().st_size > MAX_RECORD_BYTES
+        ):
             return False
         value = json.loads(path.read_bytes())
     except (OSError, ValueError):
@@ -112,9 +122,13 @@ def accepted(terms: Terms, home=None) -> bool:
     )
 
 
-def fetch_text(url: str, terms: Terms, *, timeout: float = 10.0, opener=urllib.request.urlopen) -> bytes:
+def fetch_text(
+    url: str, terms: Terms, *, timeout: float = 10.0, opener=urllib.request.urlopen
+) -> bytes:
     """The exact terms text the door serves, only when its sha256 is the one the facts name."""
-    request = urllib.request.Request(url.rstrip("/") + terms.path, headers=MINER_HEADERS, method="GET")
+    request = urllib.request.Request(
+        url.rstrip("/") + terms.path, headers=MINER_HEADERS, method="GET"
+    )
     try:
         with opener(request, timeout=timeout) as response:
             text = response.read(MAX_TEXT_BYTES + 1)
@@ -142,13 +156,18 @@ def accept(terms: Terms, text: bytes, *, home=None, clock=time.time) -> Path:
         "sha256": terms.sha256,
         "accepted_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(clock())),
     }
-    write_once(path, json.dumps(record, sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n")
+    write_once(
+        path,
+        json.dumps(record, sort_keys=True, separators=(",", ":")).encode("ascii")
+        + b"\n",
+    )
     return path
 
 
 def submission_fields(facts, *, home=None) -> dict:
     """The signed submission fields for the terms the facts require: none when they require none; a typed refusal,
-    before anything is signed, when this machine holds no acceptance of exactly that version and text."""
+    before anything is signed, when this machine holds no acceptance of exactly that version and text.
+    """
     terms = required(facts)
     if terms is None:
         return {}
@@ -157,7 +176,9 @@ def submission_fields(facts, *, home=None) -> dict:
     return {"terms_version": terms.version, "terms_sha256": terms.sha256}
 
 
-def main(argv=None, *, read=None, fetch=fetch_text, ask=input, out=sys.stdout, home=None) -> int:
+def main(
+    argv=None, *, read=None, fetch=fetch_text, ask=input, out=sys.stdout, home=None
+) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m carbon.development_session.submission_terms",
         description="Show the Carbon submission terms a validator requires and record your acceptance.",
@@ -184,16 +205,30 @@ def main(argv=None, *, read=None, fetch=fetch_text, ask=input, out=sys.stdout, h
             return 0
         if args.accept is not None:
             if args.accept != terms.sha256:
-                print("Not accepted: --accept does not match the sha256 of the text shown.", file=out)
+                print(
+                    "Not accepted: --accept does not match the sha256 of the text shown.",
+                    file=out,
+                )
                 return 2
-        elif ask("Type ACCEPT to accept these terms for your submissions: ").strip() != "ACCEPT":
-            print("Not accepted. Submissions to this version are refused until you accept.", file=out)
+        elif (
+            ask("Type ACCEPT to accept these terms for your submissions: ").strip()
+            != "ACCEPT"
+        ):
+            print(
+                "Not accepted. Submissions to this version are refused until you accept.",
+                file=out,
+            )
             return 1
         path = accept(terms, text, home=home)
-    except ValueError as refused:  # TermsRefused, or the intake read's own typed refusal
+    except (
+        ValueError
+    ) as refused:  # TermsRefused, or the intake read's own typed refusal
         print(f"refused: {getattr(refused, 'code', refused)}", file=out)
         return 2
-    print(f"Accepted. Recorded at {path}; each submission now carries this version and sha256.", file=out)
+    print(
+        f"Accepted. Recorded at {path}; each submission now carries this version and sha256.",
+        file=out,
+    )
     return 0
 
 

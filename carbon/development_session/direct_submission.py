@@ -231,7 +231,8 @@ def _preflight_catalog(recipe, facts):
 
 def _terms_fields(facts):
     """The signed acceptance fields for the submission terms the door requires (owner G-LEAD-50); refuses typed, before
-    anything is signed, when this machine holds no acceptance of exactly that version and text."""
+    anything is signed, when this machine holds no acceptance of exactly that version and text.
+    """
     from carbon.development_session import submission_terms
 
     try:
