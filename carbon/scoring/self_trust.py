@@ -600,9 +600,12 @@ def public(report_document):
 #     A cell whose every error is 0 has no reference (w* = 0 scores 0) and gives no T_cell.
 # A2  T = the mean of T_cell over the admitted cells that give one. T = 0 for a model that states no uncertainty (every
 #     case absent) and for an unreadable / partial block (``invalid``): never a penalty for not taking part.
-# A3  S = AD x (1 + gain T) for T >= 0 and AD x (1 + penalty max(T, -1)) for T < 0, so a negative T costs at most the
-#     ``penalty`` fraction. band level, gain (lambda) and penalty are OWNER values with NO default: None is HUMAN_INPUT and
-#     `amplify` refuses. Entering a version's grade is that version's scoring-path FINAL; nothing imports this today.
+# A3  multiplier m = 1 + gain min(T, 1) for T >= 0 and 1 + penalty max(T, -1) for T < 0, so a negative T costs at most the
+#     ``penalty`` fraction; the final score S = AD x m / (1 + gain) (owner TRUST-AMPLIFIER-RESCALE: / 1.5 at the owner's
+#     gain, so S stays in [0, AD] and ranks exactly as AD x m), applied at the final combination only: the version's A and
+#     D minimums gate the unscaled A and D. band level, gain (lambda) and penalty are OWNER values with NO default: None is
+#     HUMAN_INPUT and `amplify` refuses. Entering a version's grade is that version's scoring-path FINAL; nothing imports
+#     this today.
 
 AMPLIFIER_FIELDS = ("band_level", "gain", "penalty")
 
@@ -619,7 +622,8 @@ class TrustAmplifier:
 
 #: The owner's values (TRUST-AMPLIFIER-VALUES, typed 2026-11-23T21:12:42Z, OWNER_LINES.md): a 90% central band
 #: (interval score alpha 0.1), lambda 0.5 with T capped at 1 (at most +50%; T <= 1 holds by construction), penalty 0.1 on
-#: a negative T floored at -1 (at most -10%); no uncertainty: multiplier 1.0. Any retune is a new owner line.
+#: a negative T floored at -1 (at most -10%); no uncertainty: multiplier 1.0; final = A/D x multiplier / 1.5
+#: (TRUST-AMPLIFIER-RESCALE, 21:15:43Z). Any retune is a new owner line.
 OWNER_AMPLIFIER = TrustAmplifier(band_level=0.9, gain=0.5, penalty=0.1)
 
 #: The versions whose grade the amplifier enters, (challenge_id, version) -> TrustAmplifier. EMPTY: a version is added
@@ -757,11 +761,18 @@ def trust_skill(form, band_level, cells):
     return out
 
 
-def amplify(ad_score, t, amplifier):
-    """A3: the version's A/D score times the trust factor. Refuses until all three owner values are set."""
+def multiplier(t, amplifier):
+    """A3: the trust multiplier, 1 + gain min(T, 1) for T >= 0, 1 + penalty max(T, -1) for T < 0 (1.0 at T 0)."""
     check_amplifier(amplifier)
-    _require(_number(ad_score), "self_trust_amplifier_score_not_a_number")
     _require(_number(t) and t <= 1.0, "self_trust_amplifier_t_out_of_range")
     if t >= 0:
-        return ad_score * (1.0 + amplifier.gain * t)
-    return ad_score * (1.0 + amplifier.penalty * max(t, -1.0))
+        return 1.0 + amplifier.gain * min(t, 1.0)
+    return 1.0 + amplifier.penalty * max(t, -1.0)
+
+
+def amplify(ad_score, t, amplifier):
+    """A3 (owner TRUST-AMPLIFIER-RESCALE): the FINAL combination, A/D x multiplier / (1 + gain), so the best multiplier
+    gives back the full A/D score (owner values: / 1.5; no uncertainty shows A/D / 1.5) and the ranking is the
+    unscaled one's. The version's A and D minimums gate the UNSCALED A and D before this, never its result."""
+    _require(_number(ad_score), "self_trust_amplifier_score_not_a_number")
+    return ad_score * multiplier(t, amplifier) / (1.0 + amplifier.gain)

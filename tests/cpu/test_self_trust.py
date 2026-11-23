@@ -605,10 +605,20 @@ def test_the_amplifier_refuses_until_every_owner_value_is_set(field):
 
 def test_the_amplifier_formula():
     amp = st.TrustAmplifier(band_level=0.5, gain=0.2, penalty=0.05)
-    assert st.amplify(0.8, 0.0, amp) == 0.8  # no uncertainty: unchanged
-    assert st.amplify(0.8, 0.5, amp) == pytest.approx(0.8 * 1.1)
-    assert st.amplify(0.8, -0.5, amp) == pytest.approx(0.8 * (1 - 0.025))
-    assert st.amplify(0.8, -40.0, amp) == pytest.approx(0.8 * 0.95)  # capped
+    assert st.multiplier(0.0, amp) == 1.0  # no uncertainty: no change
+    assert st.multiplier(0.5, amp) == pytest.approx(1.1)
+    assert st.multiplier(1.0, amp) == pytest.approx(1.2)  # the best
+    assert st.multiplier(-0.5, amp) == pytest.approx(1 - 0.025)
+    assert st.multiplier(-40.0, amp) == pytest.approx(0.95)  # floored at -1
+    # the final combination rescales by the best multiplier (1 + gain): S <= AD
+    assert st.amplify(0.8, 0.0, amp) == pytest.approx(0.8 / 1.2)
+    assert st.amplify(0.8, 1.0, amp) == pytest.approx(0.8)
+    assert st.amplify(0.8, -40.0, amp) == pytest.approx(0.8 * 0.95 / 1.2)
+    # ranking is the unscaled one's: the rescale is one positive constant
+    ts = (-2.0, -0.3, 0.0, 0.4, 1.0)
+    assert sorted(ts, key=lambda t: st.amplify(0.7, t, amp)) == sorted(
+        ts, key=lambda t: 0.7 * st.multiplier(t, amp)
+    )
     for bad in ({"gain": -0.1}, {"penalty": 1.0}, {"band_level": 1.0}):
         values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05, **bad}
         with pytest.raises(st.SelfTrustRefused):
@@ -635,14 +645,17 @@ def test_owner_values_selftest_prints_the_multiplier_for_the_4_variants(capsys):
     for name, stated in variants.items():
         cells = {("all", "a"): _hetero_cases(stated)}
         t = st.trust_skill(st.SIGMA, level, cells)["t"]
-        multiplier[name] = st.amplify(1.0, t, amp)
-        print(f"{name}: T {t:+.4f} multiplier {multiplier[name]:.4f}")
+        multiplier[name] = st.multiplier(t, amp)
+        final = st.amplify(1.0, t, amp)
+        print(f"{name}: T {t:+.4f} multiplier {multiplier[name]:.4f} final {final:.4f}")
     assert "honest: T +" in capsys.readouterr().out
     assert 1.05 < multiplier["honest"] <= 1.5  # expected ~ 1.12
     assert multiplier["x0.1"] == pytest.approx(0.9)  # T ~ -1.4, floored at -1
     assert multiplier["x10"] == pytest.approx(0.9)
     assert multiplier["constant"] == pytest.approx(1.0, abs=1e-12)
-    assert st.amplify(0.8, 0.0, amp) == 0.8  # no uncertainty: unchanged
+    # owner TRUST-AMPLIFIER-RESCALE: final = A/D x multiplier / 1.5
+    assert st.amplify(0.8, 0.0, amp) == pytest.approx(0.8 / 1.5)  # no uncertainty
+    assert st.amplify(0.8, 1.0, amp) == pytest.approx(0.8)  # the best: full A/D
 
 
 def test_no_version_is_amplified_until_its_own_head_names_it():
