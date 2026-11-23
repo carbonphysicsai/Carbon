@@ -41,7 +41,9 @@ T4  Send-back (per case). A case is BADLY WRONG when |p - t| / U > cut_o for ANY
     never flagging (or worse), 1 = flags exactly the cases it gets badly wrong. B = 0 gives the part no evidence (None).
 T5  Total (report only) = calibration_weight S_cal + (1 - calibration_weight) S_sb. A part with a positive weight and no
     evidence leaves the total None. It never enters any official score, rank, crown or settlement (invariant 11): entering
-    a score is a later, separately registered scientific contract.
+    a score is a later, separately registered scientific contract. That contract's owner-approved form is the trust
+    amplifier (A1-A3 below, owner TRUST-AMPLIFIER 23 Nov): a different quantity (T, against the best constant band), and
+    it too enters a grade only through a version's own scoring-path FINAL with the owner's three values set.
 T6  Read status per model over the read set: ``absent`` (no case carries a block: no report, physics unchanged), ``invalid``
     (some case carries an unreadable block, a wrong width, or the cases mix present and absent: the candidate's, report only,
     no trust scores), ``scored``.
@@ -55,6 +57,7 @@ A reference truth or U that cannot be read is the Challenge's refusal, never the
 from __future__ import annotations
 
 import math
+from bisect import bisect_right
 from dataclasses import dataclass
 from statistics import NormalDist, median
 
@@ -586,3 +589,163 @@ def public(report_document):
     }
     _require(tuple(projected) == PUBLIC_FIELDS, "self_trust_public_fields_drifted")
     return projected
+
+
+# -- A1-A3: the trust amplifier (owner TRUST-AMPLIFIER, 23 Nov 2026, OWNER_LINES.md) --------------------------------------
+#
+# A1  Trust skill of one ADMITTED cell (one output of one class, the admission read's cells): with the same predictions p,
+#     T_cell = 1 - mean(IS(stated band) / U) / mean(IS(p - w*, p + w*) / U), where w* is the ONE constant half-width that
+#     minimises the second mean on these very cases (a hindsight reference, so T never re-scores accuracy: both bands sit
+#     on the same predictions). T_cell > 0: the stated uncertainty beats the best single band; 0: no better; < 0: worse.
+#     A cell whose every error is 0 has no reference (w* = 0 scores 0) and gives no T_cell.
+# A2  T = the mean of T_cell over the admitted cells that give one. T = 0 for a model that states no uncertainty (every
+#     case absent) and for an unreadable / partial block (``invalid``): never a penalty for not taking part.
+# A3  S = AD x (1 + gain T) for T >= 0 and AD x (1 + penalty max(T, -1)) for T < 0, so a negative T costs at most the
+#     ``penalty`` fraction. band level, gain (lambda) and penalty are OWNER values with NO default: None is HUMAN_INPUT and
+#     `amplify` refuses. Entering a version's grade is that version's scoring-path FINAL; nothing imports this today.
+
+AMPLIFIER_FIELDS = ("band_level", "gain", "penalty")
+
+
+@dataclass(frozen=True)
+class TrustAmplifier:
+    """The owner's three values (None = HUMAN_INPUT): the band level c the stated band is read at, the gain lambda on a
+    positive T, and the penalty: the largest fractional cost of a negative T."""
+
+    band_level: object = None
+    gain: object = None
+    penalty: object = None
+
+
+def _check_band_level(level):
+    _require(level is not None, "self_trust_amplifier_band_level_is_human_input")
+    _require(
+        _number(level) and 0 < level < 1,
+        "self_trust_amplifier_band_level_must_be_in_0_1",
+    )
+
+
+def check_amplifier(amplifier):
+    """`SelfTrustRefused` unless all three owner values are present and in their domains."""
+    _require(isinstance(amplifier, TrustAmplifier), "self_trust_amplifier_malformed")
+    for name in AMPLIFIER_FIELDS:
+        _require(
+            getattr(amplifier, name) is not None,
+            f"self_trust_amplifier_{name}_is_human_input",
+        )
+    _check_band_level(amplifier.band_level)
+    _require(
+        _number(amplifier.gain) and amplifier.gain >= 0,
+        "self_trust_amplifier_gain_must_be_non_negative",
+    )
+    _require(
+        _number(amplifier.penalty) and 0 <= amplifier.penalty < 1,
+        "self_trust_amplifier_penalty_must_be_in_0_1",
+    )
+
+
+def best_constant_half_width(band_level, cases, output):
+    """A1: (w*, mean IS / U) of the best constant band p +- w over ``cases`` for ``output``, exactly.
+
+    mean IS / U = (1/n) sum_i [2 w + (2 / a) max(|e_i| - w, 0)] / U_i is convex and piecewise linear in w >= 0 with its
+    kinks at the |e_i|, so its minimum is at 0 or at one of them; ties take the smallest w. Fixed order, deterministic.
+    """
+    _check_band_level(band_level)
+    alpha = 1.0 - band_level
+    points = sorted(
+        (abs(case.predictions[output] - case.truths[output]), 1.0 / case.u[output])
+        for case in cases
+    )
+    n = len(points)
+    _require(n >= 1, "self_trust_read_set_empty")
+    errors = [e for e, _ in points]
+    tail_ev, tail_v = [0.0] * (n + 1), [0.0] * (n + 1)
+    for k in range(n - 1, -1, -1):
+        e, v = points[k]
+        tail_ev[k] = tail_ev[k + 1] + e * v
+        tail_v[k] = tail_v[k + 1] + v
+    mean_v = tail_v[0] / n
+    best = None
+    for w in [0.0, *errors]:
+        k = bisect_right(errors, w)
+        value = 2.0 * w * mean_v + (2.0 / alpha) * (tail_ev[k] - w * tail_v[k]) / n
+        if best is None or value < best[1]:
+            best = (w, value)
+    return best
+
+
+def _stated_band(form, band_level, case, output):
+    if form == INTERVAL:
+        return case.answer.bands[output]
+    half = _z(band_level) * case.answer.sigmas[output]
+    p = case.predictions[output]
+    return (p - half, p + half)
+
+
+def trust_skill(form, band_level, cells):
+    """A1-A2: T over the admitted ``cells`` = {(class, output): [TrustCase, ...]}, each case's answer read at
+    ``band_level``. Returns {"status", "reason", "t", "cells": {cell: T_cell or None}}; ``t`` is 0 unless scored."""
+    _require(form in FORMS, "self_trust_form_unknown")
+    _check_band_level(band_level)
+    _require(type(cells) is dict and len(cells) >= 1, "self_trust_cells_malformed")
+    every = []
+    for key, cases in cells.items():
+        _require(
+            type(key) is tuple and len(key) == 2 and type(key[1]) is str,
+            "self_trust_cell_key_malformed",
+        )
+        _require(
+            type(cases) in (list, tuple) and len(cases) >= 1,
+            "self_trust_cases_malformed",
+        )
+        for case in cases:
+            _require(isinstance(case, TrustCase), "self_trust_cases_malformed")
+            for field in ("predictions", "truths", "u"):
+                _require(
+                    type(getattr(case, field)) is dict
+                    and key[1] in getattr(case, field),
+                    f"self_trust_case_{field}_missing_an_output",
+                )
+            _require(_number(case.truths[key[1]]), "self_trust_truth_not_a_number")
+            _require(
+                _number(case.u[key[1]]) and case.u[key[1]] > 0,
+                "self_trust_u_must_be_positive",
+            )
+            _require(
+                _number(case.predictions[key[1]]),
+                "self_trust_prediction_not_a_valid_answer",
+            )
+        every.extend(cases)
+    status, reason = _status(every)
+    out = {"status": status, "reason": reason, "t": 0.0, "cells": None}
+    if status != SCORED:
+        return out
+    if any(case.answer.form != form for case in every):
+        out.update(status=INVALID, reason="self_trust_block_form_differs")
+        return out
+    per_cell = {}
+    for key in sorted(cells):
+        output, cases = key[1], cells[key]
+        _, reference = best_constant_half_width(band_level, cases, output)
+        if reference <= 0:
+            per_cell[key] = None
+            continue
+        scores = []
+        for case in cases:
+            lo, hi = _stated_band(form, band_level, case, output)
+            y = case.truths[output]
+            scores.append(interval_score(lo, hi, y, band_level) / case.u[output])
+        per_cell[key] = 1.0 - (math.fsum(scores) / len(cases)) / reference
+    given = [v for v in per_cell.values() if v is not None]
+    out.update(cells=per_cell, t=math.fsum(given) / len(given) if given else 0.0)
+    return out
+
+
+def amplify(ad_score, t, amplifier):
+    """A3: the version's A/D score times the trust factor. Refuses until all three owner values are set."""
+    check_amplifier(amplifier)
+    _require(_number(ad_score), "self_trust_amplifier_score_not_a_number")
+    _require(_number(t) and t <= 1.0, "self_trust_amplifier_t_out_of_range")
+    if t >= 0:
+        return ad_score * (1.0 + amplifier.gain * t)
+    return ad_score * (1.0 + amplifier.penalty * max(t, -1.0))

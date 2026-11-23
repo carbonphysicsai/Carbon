@@ -514,3 +514,102 @@ def test_self_trust_imports_no_carbon_module():
         a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names
     }
     assert not any(m and m.startswith("carbon") for m in modules)
+
+
+# -- the trust amplifier (owner TRUST-AMPLIFIER, 23 Nov) ---------------------------------------------------------------
+#
+# Fixture values only (band level 0.5, gain, penalty): the owner's are HUMAN_INPUT and no registration carries them.
+
+LEVEL = 0.5
+SCALES = (0.5, 1.0, 2.0)  # heteroscedastic: three error scales
+
+
+def _hetero_cases(stated, n=200):
+    """Errors at the exact quantiles of N(0, s^2) for each true scale s in SCALES; the
+    stated sigma is stated(s) (honest: s)."""
+    r = rule(st.SIGMA)
+    cases = []
+    for s in SCALES:
+        for i in range(n):
+            e = s * NormalDist().inv_cdf((i + 0.5) / n)
+            cases.append(case(r, {"a": e}, {"a": 0.0}, sigmas={"a": stated(s)}))
+    return cases
+
+
+def _t(stated):
+    return st.trust_skill(st.SIGMA, LEVEL, {("all", "a"): _hetero_cases(stated)})
+
+
+def test_best_constant_half_width_by_hand():
+    # |e| = 1, 2, 3, U 1, level 0.5 (a = 0.5): f(w) = 2 w + 4 mean(max(|e| - w, 0))
+    # f(0) = 8, f(1) = 6, f(2) = 16 / 3, f(3) = 6 -> w* = 2
+    r = rule(st.SIGMA)
+    cases = [case(r, {"a": e}, {"a": 0.0}, sigmas={"a": 1.0}) for e in (1.0, -2.0, 3.0)]
+    w, value = st.best_constant_half_width(LEVEL, cases, "a")
+    assert w == 2.0 and value == pytest.approx(16 / 3)
+
+
+def test_trust_skill_selftest_honest_over_under_constant():
+    """The owner's 4 variants on heteroscedastic data: honest T > 0, x0.1 T < 0, x10 T < 0,
+    and a constant band at the best constant width T = 0."""
+    honest = _t(lambda s: s)
+    over = _t(lambda s: 0.1 * s)
+    under = _t(lambda s: 10.0 * s)
+    w, _ = st.best_constant_half_width(LEVEL, _hetero_cases(lambda s: s), "a")
+    z = NormalDist().inv_cdf((1 + LEVEL) / 2)
+    constant = _t(lambda s: w / z)
+    assert {v["status"] for v in (honest, over, under, constant)} == {st.SCORED}
+    assert honest["t"] > 0.02
+    assert over["t"] < -0.05 and under["t"] < -1.0
+    assert constant["t"] == pytest.approx(0.0, abs=1e-12)
+    assert honest["t"] > max(over["t"], under["t"], constant["t"])
+
+
+def test_trust_skill_is_the_mean_over_admitted_cells():
+    one = _hetero_cases(lambda s: s)
+    two = _hetero_cases(lambda s: 0.1 * s)
+    both = st.trust_skill(st.SIGMA, LEVEL, {("k1", "a"): one, ("k2", "a"): two})
+    t1 = st.trust_skill(st.SIGMA, LEVEL, {("k1", "a"): one})["t"]
+    t2 = st.trust_skill(st.SIGMA, LEVEL, {("k2", "a"): two})["t"]
+    assert both["t"] == pytest.approx((t1 + t2) / 2)
+    assert set(both["cells"]) == {("k1", "a"), ("k2", "a")}
+
+
+def test_no_uncertainty_or_an_unreadable_block_is_t_zero_never_a_penalty():
+    r = rule(st.SIGMA)
+    absent = [case(r, {"a": 1.0}, {"a": 0.0}, status=st.ABSENT) for _ in range(3)]
+    out = st.trust_skill(st.SIGMA, LEVEL, {("k", "a"): absent})
+    assert out["status"] == st.ABSENT and out["t"] == 0.0
+    mixed = absent[:2] + [case(r, {"a": 1.0}, {"a": 0.0}, sigmas={"a": 1.0})]
+    out = st.trust_skill(st.SIGMA, LEVEL, {("k", "a"): mixed})
+    assert out["status"] == st.INVALID and out["t"] == 0.0
+
+
+def test_a_cell_with_no_error_gives_no_t_cell():
+    r = rule(st.SIGMA)
+    exact = [case(r, {"a": 0.0}, {"a": 0.0}, sigmas={"a": 1.0}) for _ in range(3)]
+    out = st.trust_skill(st.SIGMA, LEVEL, {("k", "a"): exact})
+    assert out["cells"] == {("k", "a"): None} and out["t"] == 0.0
+
+
+@pytest.mark.parametrize("field", st.AMPLIFIER_FIELDS)
+def test_the_amplifier_refuses_until_every_owner_value_is_set(field):
+    values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05}
+    values[field] = None
+    with pytest.raises(st.SelfTrustRefused) as refused:
+        st.amplify(0.8, 0.1, st.TrustAmplifier(**values))
+    assert refused.value.code == f"self_trust_amplifier_{field}_is_human_input"
+    with pytest.raises(st.SelfTrustRefused):
+        st.trust_skill(st.SIGMA, None, {("k", "a"): _hetero_cases(lambda s: s)})
+
+
+def test_the_amplifier_formula():
+    amp = st.TrustAmplifier(band_level=0.5, gain=0.2, penalty=0.05)
+    assert st.amplify(0.8, 0.0, amp) == 0.8  # no uncertainty: unchanged
+    assert st.amplify(0.8, 0.5, amp) == pytest.approx(0.8 * 1.1)
+    assert st.amplify(0.8, -0.5, amp) == pytest.approx(0.8 * (1 - 0.025))
+    assert st.amplify(0.8, -40.0, amp) == pytest.approx(0.8 * 0.95)  # capped
+    for bad in ({"gain": -0.1}, {"penalty": 1.0}, {"band_level": 1.0}):
+        values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05, **bad}
+        with pytest.raises(st.SelfTrustRefused):
+            st.amplify(0.8, 0.1, st.TrustAmplifier(**values))
