@@ -28,8 +28,9 @@ def test_the_rtx_6000_ada_is_accepted_on_no_other_network(network):
         acceptance.require_accepted(ADA, acceptance.JAX_GPU, network)
 
 
+# "NVIDIA RTX A6000" is its own class since OWNER-A6000-48GB-BUILD-CLASS-01 (test_hardware_acceptance_a6000.py)
 @pytest.mark.parametrize(
-    "kind", ["NVIDIA RTX 6000 Ada", "NVIDIA RTX A6000", "NVIDIA RTX PRO 6000 Blackwell"]
+    "kind", ["NVIDIA RTX 6000 Ada", "NVIDIA RTX PRO 6000 Blackwell"]
 )
 def test_other_rtx_6000_names_are_not_entered(kind):
     with pytest.raises(acceptance.DeviceClassNotAccepted):
