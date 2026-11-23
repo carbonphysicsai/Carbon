@@ -42,6 +42,7 @@ import statistics
 from dataclasses import replace
 
 from carbon.scoring import (
+    case_errors,
     pool_gates,
     pool_grader,
     pool_physics_score,
@@ -425,13 +426,51 @@ def measure_pool(
                 "skipped": AGEN_VALIDITY_GATE,
             }
         else:
+            predictor, case_rows, sink = (
+                pool_plugin.pool_predictor(submitted, serve),
+                case_predict,
+                None,
+            )
+            if capture is not None:
+                # LL2 (owner LL-A): the same measure, its rows served through a recorder, so each answered case's errors
+                # are kept with the bank row it was answered from. Custody only; the record and the gate are unchanged.
+                sink = case_errors.Sink()
+                served = case_errors.ServedKeys(
+                    serve,
+                    lambda row: tuple(quantize(row)[n] for n in binding.input_names),
+                )
+                predictor = pool_plugin.pool_predictor(submitted, served)
+                if case_predict is not None:
+
+                    def case_rows(rows):
+                        answers = served(rows)
+                        return [
+                            submitted.derive(row, out)
+                            for row, out in zip(rows, answers)
+                        ]
+
             accuracy = pool_physics_score.accuracy_record(
                 all_specs,
-                pool_plugin.pool_predictor(submitted, serve),
+                predictor,
                 policies.optimizer.coverage_plan,
                 policies.physics,
-                case_predict,
+                case_rows,
+                sink,
             )
+            if sink is not None:
+                try:
+                    bank_keys = [
+                        tuple(quantize(r["inputs"])[n] for n in binding.input_names)
+                        for r in bank_rows
+                    ]
+                    capture["case_errors"] = case_errors.assemble(
+                        sink, served.keys, bank_keys
+                    )
+                except Exception as failure:  # noqa: BLE001
+                    # custody evidence, never the grade
+                    capture["case_errors_unavailable"] = getattr(
+                        failure, "code", type(failure).__name__
+                    )
         # The sealed grader's measured laws (Validator 5 Nov, condition before FINAL): with A the family value, a law
         # measured but not yet given a gate margin is neither scored nor gated, so every grade records it here (custody)
         # until the owner registers its margin. Copied as the Challenge's physics half reported it; never scored.

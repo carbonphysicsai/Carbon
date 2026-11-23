@@ -587,6 +587,7 @@ def test_no_module_outside_the_grade_reads_the_accuracy_record():
     )
     assert found == [
         "carbon/challenge_validator/exam_rotation.py",  # the custody sidecar's name only
+        "carbon/scoring/case_errors.py",  # LL2: the per-case custody file the record was reduced from (owner LL-A)
         "carbon/scoring/pool_exam.py",
         "carbon/scoring/pool_exam_se.py",  # hands the record to the custody sidecar writer
         "carbon/scoring/pool_physics_score.py",

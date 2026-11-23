@@ -916,11 +916,14 @@ def _summary(values):
     }
 
 
-def _ratios(specs, predict, ranges, rule):
+def _ratios(specs, predict, ranges, rule, sink=None):
     """``{(class, output): [|err|/U, ...]}`` over every reserved case; also ``{(class, output): [|err|, ...]}`` for cases
-    whose U is zero (an exact output: reported raw, never divided)."""
+    whose U is zero (an exact output: reported raw, never divided).
+
+    ``sink`` (LL2, default None: nothing else changes) receives one `case_errors` case per ANSWERED case, in the order the
+    cases were asked (one served row each), an invalid answer included."""
     ratios, raw, invalid = {}, {}, {}
-    for spec, name in specs:
+    for spec_index, (spec, name) in enumerate(specs):
         indices = _cases(spec, ranges[name] == IN_RANGE, rule)
         if not indices:
             continue
@@ -930,32 +933,38 @@ def _ratios(specs, predict, ranges, rule):
             "accuracy_prediction_invalid",
         )
         for index, prediction in zip(indices, batch):
+            case = None if sink is None else sink.case(0, spec_index, index, name)
             if not _valid(prediction, spec, rule):
                 # the candidate's invalid answer: counted, and an in-range class holding one fails the gate
                 invalid[name] = invalid.get(name, 0) + 1
+                if case is not None:
+                    case.invalid()
                 continue
             for output in _typed_names(spec):
                 # S7: |err| / U only where truth and prediction both carry a value (a state mismatch never enters)
                 typed = typed_map(rule)[output]
-                ratios.setdefault((name, output), []).extend(
-                    tso.gate_ratios(
-                        typed, [_typed_case(spec, index, prediction, typed)]
-                    )
+                found = tso.gate_ratios(
+                    typed, [_typed_case(spec, index, prediction, typed)]
                 )
+                ratios.setdefault((name, output), []).extend(found)
+                if case is not None:
+                    case.typed(output, found[0] if found else None)
             for output in spec.outputs:
-                error = pool_grader.difference(
-                    output, prediction[output], spec.truths[index][output]
-                )
+                truth = spec.truths[index][output]
+                error = pool_grader.difference(output, prediction[output], truth)
                 u = spec.u_at(index, output)
                 if u > 0:
                     ratios.setdefault((name, output), []).append(error / u)
                 else:
                     raw.setdefault((name, output), []).append(error)
+                if case is not None:
+                    case.output(output, error, u, truth)
     return ratios, raw, invalid
 
 
-def _case_ratios(extra, case_predict, ratios, invalid, outputs, rule=None):
-    # Adds the in-range case set's |err|/U into ``ratios`` (by its class), counting invalid answers.
+def _case_ratios(extra, case_predict, ratios, invalid, outputs, rule=None, sink=None):
+    # Adds the in-range case set's |err|/U into ``ratios`` (by its class), counting invalid answers. ``sink``: as `_ratios`
+    # (source 1, case index = the case's position in the set).
     rows = [dict(inputs) for _name, inputs, _t, _u in extra.cases]
     answers = case_predict(rows)
     _require(
@@ -963,19 +972,25 @@ def _case_ratios(extra, case_predict, ratios, invalid, outputs, rule=None):
         "accuracy_prediction_invalid",
     )
     typed = set(typed_map(rule)) if rule is not None else set()
-    for (name, _inputs, truths, u), answer in zip(extra.cases, answers):
+    for position, ((name, _inputs, truths, u), answer) in enumerate(
+        zip(extra.cases, answers)
+    ):
+        case = None if sink is None else sink.case(1, -1, position, name)
         outputs.setdefault(name, set()).update(truths)
         if typed and type(answer) is dict:
             # the case set holds numeric truths only: a typed output's answer is not graded here
             answer = {k: v for k, v in answer.items() if k not in typed}
         if not _case_answer_valid(answer, truths):
             invalid[name] = invalid.get(name, 0) + 1
+            if case is not None:
+                case.invalid()
             continue
         for output, truth in truths.items():
             # a scalar: |a - t| / U exactly as before; a registered waveform: its registered error (shape_error) / U (B6)
-            ratios.setdefault((name, output), []).append(
-                pool_grader.difference(output, answer[output], truth) / u[output]
-            )
+            error = pool_grader.difference(output, answer[output], truth)
+            ratios.setdefault((name, output), []).append(error / u[output])
+            if case is not None:
+                case.output(output, error, u[output], truth)
 
 
 def _case_answer_valid(answer, truths):
@@ -1024,7 +1039,7 @@ def _headroom_row(rule, name, output, values):
     }
 
 
-def accuracy_record(specs, predict, plan, rule, case_predict=None):
+def accuracy_record(specs, predict, plan, rule, case_predict=None, case_sink=None):
     """The custody accuracy record of one graded model (see the module docstring) and the gate verdict.
 
     ``{"schema", "rows": [{"class", "range", "family", "output", "scored", "n", "median", "p90", "max", "n_exact",
@@ -1035,12 +1050,20 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
 
     ``case_predict(rows)`` answers the registered in-range case set's input rows (derived outputs per row, or None for an
     invalid answer); its classes follow the plan's, in name order (a class the plan also holds merges with it).
+
+    ``case_sink`` (LL2, owner LL-A 23 Nov 2026; default None) is a `case_errors.Sink` that receives every answered case's
+    per-output error as it is measured, for the per-case custody file. Write-only: the record and the gate are the same
+    with or without it.
     """
     check_rule(rule)
     _require(rule.cells is not None, "scoring_cells_not_attached")
     ranges = class_ranges(specs, plan)
     ratios, raw, invalid = _ratios(
-        [(spec, plan.class_of(spec.target_id)) for spec in specs], predict, ranges, rule
+        [(spec, plan.class_of(spec.target_id)) for spec in specs],
+        predict,
+        ranges,
+        rule,
+        case_sink,
     )
     scored = {(c, o) for _f, c, o in rule.cells.scored}
     outputs = {}
@@ -1051,7 +1074,9 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
     order = [name for name in plan.classes if name in ranges]
     if rule.in_range is not None:
         _require(case_predict is not None, "in_range_cases_need_the_exam_table")
-        _case_ratios(rule.in_range, case_predict, ratios, invalid, outputs, rule)
+        _case_ratios(
+            rule.in_range, case_predict, ratios, invalid, outputs, rule, case_sink
+        )
         for name in rule.in_range.classes():
             ranges.setdefault(name, IN_RANGE)
             if name not in order:

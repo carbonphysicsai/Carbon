@@ -35,6 +35,8 @@ SE_SCHEMA = "carbon.exam.total-se.v1"
 #: miner surface): the per class x output aggregates, written once per evaluation.
 ACCURACY_SIDECAR = "accuracy-record.json"
 ACCURACY_SIDECAR_SCHEMA = "carbon.exam.accuracy-record-sidecar.v1"
+#: LL2 (owner LL-A, 23 Nov 2026): beside the accuracy record, the per-case errors it was reduced from (`case_errors`).
+CASE_ERRORS_SIDECAR = "case-errors.npz"
 ROTATE, KEEP, UNAVAILABLE = "ROTATE", "KEEP", "UNAVAILABLE"
 
 _DDL = """

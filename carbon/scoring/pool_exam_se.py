@@ -85,6 +85,9 @@ def bootstrap_total_se(
             # A version with physics scoring: the custody accuracy record of this grade (`pool_physics_score`), kept
             # even when the SE below refuses (a gated model still has its accuracy data recorded).
             report["accuracy"] = capture["accuracy"]
+            if "case_errors" in capture:
+                # LL2: the per-case errors that record was reduced from (`case_errors`), custody alike
+                report["case_errors"] = capture["case_errors"]
         spread, sizes = pool_exam.target_bootstrap_se(
             capture.get("se_basis"), exam_key, resamples=resamples
         )

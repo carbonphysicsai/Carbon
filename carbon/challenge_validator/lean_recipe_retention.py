@@ -3413,6 +3413,14 @@ def _write_captured_exam_se(
                     sidecar=name,
                     error=type(failure).__name__,
                 )
+        if accuracy is not None:
+            _write_case_errors(
+                submission_id,
+                directory,
+                exam_key,
+                captured.get("case_errors"),
+                captured.get("case_errors_unavailable"),
+            )
         _journal(
             "grade_exam_se",
             task=submission_id,
@@ -3535,7 +3543,44 @@ def _write_exam_se(
                 }
             ),
         )
+        _write_case_errors(
+            directory.name,
+            directory,
+            snapshot.manifest_digest,
+            report.get("case_errors"),
+            None,
+        )
     return report.get("accuracy")
+
+
+def _write_case_errors(submission_id, directory, exam_key, arrays, unavailable):
+    """LL2 (owner LL-A, 23 Nov 2026): the per-case error file beside a grade's accuracy record (`case_errors`), write-once.
+    Custody evidence only: never raises, never the grade, never on the crown's path. A grade whose measure kept no
+    per-case errors, or whose file cannot be written, is one journal line."""
+    from carbon.challenge_validator import exam_rotation
+
+    try:
+        if arrays is None:
+            _journal(
+                "grade_case_errors_unavailable",
+                task=submission_id,
+                reason=unavailable or "not_collected",
+            )
+            return
+        from carbon.development_session.data import write_once
+        from carbon.scoring import case_errors
+
+        write_once(
+            directory / exam_rotation.CASE_ERRORS_SIDECAR,
+            case_errors.encode(arrays, exam_key),
+        )
+    except Exception as failure:  # noqa: BLE001 - custody evidence, never the grade
+        _journal(
+            "grade_sidecar_unwritten",
+            task=submission_id,
+            sidecar=exam_rotation.CASE_ERRORS_SIDECAR,
+            error=type(failure).__name__,
+        )
 
 
 def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):

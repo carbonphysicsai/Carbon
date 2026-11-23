@@ -54,11 +54,15 @@ def kept_local(name):
     """True for a file the archive never moves (`KEPT_LOCAL_SUFFIXES`, `KEPT_LOCAL_PARTS`, and the exam's two custody
     sidecars by the names their writer owns, `exam_rotation`; never opened here: only kept where they are).
     """
-    from carbon.challenge_validator.exam_rotation import ACCURACY_SIDECAR, SE_SIDECAR
+    from carbon.challenge_validator.exam_rotation import (
+        ACCURACY_SIDECAR,
+        CASE_ERRORS_SIDECAR,
+        SE_SIDECAR,
+    )
 
     return (
         name.endswith(KEPT_LOCAL_SUFFIXES)
-        or name in (SE_SIDECAR, ACCURACY_SIDECAR)
+        or name in (SE_SIDECAR, ACCURACY_SIDECAR, CASE_ERRORS_SIDECAR)
         or any(part in name for part in KEPT_LOCAL_PARTS)
     )
 

@@ -241,6 +241,7 @@ def test_the_writer_never_raises(tmp_path, capsys):
     lines = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
     assert [line["event"] for line in lines] == [
         "grade_sidecar_unwritten",
+        "grade_case_errors_unavailable",  # LL2: this stand-in measure kept no per-case errors
         "grade_exam_se",
     ]
     assert lines[0]["sidecar"] == exam_rotation.SE_SIDECAR
