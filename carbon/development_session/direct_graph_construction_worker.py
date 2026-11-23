@@ -565,7 +565,13 @@ PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 #: `physical_graph_adapter_v2.JIT_BUILD_VERSIONS` (the shared `carbon.level4.train.JIT_FORWARD_VERSIONS` stays empty):
 #: they never meet the judge's outputs. For a graph whose branches or loop counts turn on a value (comparisons, rounding,
 #: a tolerance loop), compiled and eager answers can differ by more than rounding; every judged call is compiled alike.
-JIT_INFERENCE_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
+#: Motor 1.9 (blind-audit row 16, 23 Nov 2026): compiled from its first grade, so no 1.9 answer was ever eager. It is NOT
+#: in `CASE_PROCS_INFERENCE_VERSIONS`: 1.9 offers trust outputs and the per-case-processes program has no trust variant
+#: (`v2_trust_infer_query` refuses it), so 1.9 grades in ONE process; whether that fits its registered inference wall is
+#: measured on the rehearsal grade (R1a), not assumed here.
+JIT_INFERENCE_VERSIONS = frozenset(
+    {("electric-motor-magnetics", "1.8"), ("electric-motor-magnetics", "1.9")}
+)
 _EAGER_MEMBER = "member_forward = rebuild(doc, allowed)\n"
 _COMPILED_MEMBER = (
     "import jax\n"
@@ -705,9 +711,9 @@ def vmap64_infer_template() -> str:
 
 def _version_memory_bytes(challenge_id: str, version: str) -> int:
     """The version's registered worker memory (`memory_bytes_max` of its construction limits)."""
-    from carbon.challenge_kit import physical_public
+    from carbon.challenge_kit import physical_material
 
-    policy = physical_public.construction_limits_document(challenge_id, version)[
+    policy = physical_material.construction_limits_document(challenge_id, version)[
         "reconstruction_resource_policy"
     ]
     memory = policy["memory_bytes_max"]
@@ -812,9 +818,9 @@ def case_procs_infer_program(challenge_id: str, version: str) -> str:
 
     if (challenge_id, version) not in CASE_PROCS_INFERENCE_VERSIONS:
         raise RuntimeError("not a per-case processes version")
-    from carbon.challenge_kit import physical_public
+    from carbon.challenge_kit import physical_material
 
-    wall = physical_public.construction_limits_document(challenge_id, version)[
+    wall = physical_material.construction_limits_document(challenge_id, version)[
         "reconstruction_resource_policy"
     ]["inference_wall_seconds_max"]
     return case_procs.procs_program(

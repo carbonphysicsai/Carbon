@@ -68,6 +68,15 @@ def _public(challenge_id: str):
     return physical_public
 
 
+def construction_limits_document(challenge_id: str, version: str) -> dict:
+    """The registered construction limits document, from the public module `bundle_material` reads it from (each family
+    its own: F08 / F02 / Battery keep theirs), so no program builder reads a family-specific module itself.
+    """
+    if not is_registered(challenge_id, version):
+        raise ValueError("unregistered public physical Challenge")
+    return _public(challenge_id).construction_limits_document(challenge_id, version)
+
+
 def construction_kit(challenge_id: str, version: str) -> dict:
     """The registered five-field construction kit, from the same public module
     `bundle_material` reads it from, without building the practice bank."""
