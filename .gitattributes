@@ -18,6 +18,8 @@ docs/development/evidence/f02-cold-pack-20261020/train40v2.summary.json -text wh
 *.json -text
 *.jsonl -text
 docs/development/evidence/** -text
+# The published submission terms: their sha256 is pinned (dashboard build, doors, every submission).
+docs/terms/*.md -text
 # Pinned source files outside those patterns (found by that test).
 carbon/development_session/physical_graph_trainer.py -text
 carbon/development_session/physical_graph_trainer_v2.py -text

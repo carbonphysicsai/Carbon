@@ -65,6 +65,18 @@ FAVICONS = {
 }
 
 
+#: The Carbon submission terms (owner G-LEAD-50, 23 Nov 2026), published verbatim at a versioned path that is never
+#: reused (a later version gets its own file and path; this one stays): file in the repository -> (published path,
+#: sha256). The sha256 is the terms digest each submission records and the doors pin; v2 verified it against section (a)
+#: of the approved wording (without section 9 and the counsel drafting line). A changed byte refuses the build.
+TERMS = {
+    "docs/terms/carbon-submission-terms-v0.md": (
+        "terms/carbon-submission-terms-v0.md",
+        "946244f64b9c8580010595822ad997eb22e7184dd4074dfca808868c30232faa",
+    ),
+}
+
+
 def _write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -103,6 +115,17 @@ def _copy_web(out):
     return copied
 
 
+def _copy_terms(out):
+    """Publish each `TERMS` file byte for byte at its versioned path; a changed byte refuses the build."""
+    for relative, (published, expected) in TERMS.items():
+        body = (REPOSITORY / relative).read_bytes()
+        if hashlib.sha256(body).hexdigest() != expected:
+            raise ValueError(f"submission terms digest mismatch: {relative}")
+        target = out / published
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(body)
+
+
 def _previous(out, slug):
     path = out / "data" / "boards" / f"{slug}.json"
     if not path.is_file():
@@ -138,6 +161,7 @@ def build(out, documents, trust, *, showcase=False, now=None):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     brand = _copy_web(out)
+    _copy_terms(out)
     write_updates(out)
     entries = {}
     leaders = []

@@ -674,6 +674,17 @@ NEXT_ACTIONS = {
         "accept them in the Launchpad (Submission terms), or run: python -m carbon.development_session.submission_terms "
         "--door <the validator's URL>. Nothing was sent, graded or charged. Your frozen candidate is kept."
     ),
+    # The door's own two (door-code's terms wire, RECEIPTS 23 Nov 02:43:22Z): the accepted version or sha is not the door's current one; or the
+    # door cannot serve or record terms just now (not counted, nothing admitted).
+    "terms_mismatch": (
+        "The validator's submission terms changed since you accepted them. Read and accept the current version in the "
+        "Launchpad (Submission terms), or run: python -m carbon.development_session.submission_terms --door <the "
+        "validator's URL>, then submit again. Nothing was graded or charged. Your frozen candidate is kept."
+    ),
+    "terms_unavailable": (
+        "The validator cannot take submissions under its terms just now. This is on Carbon's side: nothing was admitted, "
+        "graded or charged, and it does not count against you. Try again later. Your frozen candidate is kept."
+    ),
     "terms_facts_invalid": (
         "The validator named its submission terms in a form this client cannot read, so nothing was sent, graded or "
         "charged. This is on Carbon's side. Update Carbon and try again; if it persists, send us the UTC time and the "

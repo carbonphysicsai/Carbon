@@ -228,6 +228,9 @@ def test_every_terms_refusal_has_its_next_step_for_the_miner():
         assert supervisor.NEXT_ACTIONS[code]
         assert "nothing was" in supervisor.NEXT_ACTIONS[code].lower()  # says nothing was charged
     assert "submission_terms --door" in supervisor.NEXT_ACTIONS["terms_not_accepted"]
+    # The door's own two refusals (door-code's wire): same table, same promise that nothing was charged.
+    assert "submission_terms --door" in supervisor.NEXT_ACTIONS["terms_mismatch"]
+    assert "does not count against you" in supervisor.NEXT_ACTIONS["terms_unavailable"]
 
 
 # --- the Launchpad card (scripts/dev/miner_launchpad/terms_card.py) ---
