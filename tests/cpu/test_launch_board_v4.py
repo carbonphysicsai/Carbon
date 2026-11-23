@@ -129,9 +129,6 @@ def test_a_measure_outside_its_closed_shape_refuses(measure):
         lambda c: c[0].update(reason="mean_within_margin_or_tie"),  # a raw code field
         lambda c: c[0].update(seed=3),
         lambda c: c.append(dict(c[0])),  # a contender twice
-        lambda c: c.extend(
-            {**c[0], "hotkey": "5" + chr(67 + i) * 47} for i in range(10)
-        ),  # more than 10
     ],
 )
 def test_crown_checks_outside_their_closed_shape_refuse(mutate):
@@ -139,6 +136,17 @@ def test_crown_checks_outside_their_closed_shape_refuse(mutate):
     mutate(checks)
     with pytest.raises(lb.BoardRefused):
         _build(checks=checks)
+
+
+def test_more_than_10_crown_checks_are_cut_to_the_first_10_never_a_refused_board():
+    # CAPS.md 3 item 4: a longer list keeps its first (newest) MAX_CROWN_CHECKS, the rest are left out
+    checks = json.loads(json.dumps(CHECKS))
+    # ten more contenders, each a public-shape hotkey (base58 has no I or O)
+    checks.extend({**checks[0], "hotkey": "5" + letter * 47} for letter in "CDEFGHJKMN")
+    board = _build(checks=checks)
+    assert len(checks) == 12 and lb.MAX_CROWN_CHECKS == 10
+    assert board["crown_checks"] == checks[: lb.MAX_CROWN_CHECKS]
+    assert lb.verify(board, KEY.public_key) == board
 
 
 def test_v4_needs_the_v3_inputs():
