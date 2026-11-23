@@ -1,5 +1,7 @@
 # Carbon Commercial Operating Model v1
 
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
+
 **Status:** OWNER-CANONICAL operating architecture.  
 **Purpose:** define the commercial objects, rights/privacy boundaries, engagement lifecycle, and delivery controls required to turn the business plan into repeatable enterprise execution.
 
@@ -9,7 +11,7 @@
 
 Carbon and the customer first agree the engineering decision, model or research problem, reference source, and evidence scope. They then define access, confidentiality, rights, deliverables, price, and acceptance before execution.
 
-For an Evidence Audit, the intended delivery includes findings, failure regions, limitations, and next steps. For Sponsored Discovery, it includes the research program and resulting evidence, whether or not a candidate improves. Customer acceptance does not change the scientific result.
+For the primary custom model discovery and design offer, the scope identifies the research and development work, intended candidate or construction method, reproducibility material, independent evaluation findings and known limitations. It also defines acceptance when no candidate meets the requirements. Qualification and integration are included only when explicitly scoped and supported. A complementary Evidence Audit delivers evaluation findings for an existing model. Customer acceptance does not change the scientific result.
 
 The architecture below defines the records and controls for those engagements. Private, customer-hosted, and air-gapped modes require their own implementation and review before Carbon offers them. [Project status](../docs/publications/PROJECT_STATUS.md) describes current maturity.
 

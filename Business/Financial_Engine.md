@@ -1,5 +1,7 @@
 # Carbon Financial Engine v1
 
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
+
 **Status:** OWNER-CANONICAL financial architecture.  
 **Purpose:** define how Carbon should model revenue, cost, margin progression, capital needs, and investor scenarios without confusing assumptions with traction or forecasts.
 
@@ -7,7 +9,7 @@
 
 ## Economic model
 
-Carbon plans to earn initial revenue from scoped audits, reference integration, and research programs. The long-term goal is to reuse those workflows through qualification, lifecycle support, software, and APIs.
+Carbon plans to earn initial revenue from scoped custom model discovery, design and development, including the necessary reference integration and independent evaluation. The long-term goal is to reuse methods, adapters and workflows through further modeling programs, qualification, lifecycle support, software and APIs. Standalone audits are complementary rather than the base-case entry product.
 
 The key economic test is whether Carbon can deliver more customer value with fewer custom hours per engagement. Reference calculations, reconstruction, security requirements, and support remain real costs even when model inference is fast.
 
@@ -132,7 +134,7 @@ Expected qualitative progression:
 
 ```text
 EARLY
-expert-heavy audits / integration
+expert-led model discovery / development / integration
 lower gross margin
         ↓
 REPEATABLE SERVICES
@@ -206,7 +208,7 @@ CONSERVATIVE
 slow sales conversion, services-heavy, limited platform/network leverage
 
 BASE ARCHITECTURE
-successful Audit wedge, meaningful expansion, recurring lifecycle/platform growth
+repeatable discovery/development programs, account expansion, lifecycle/platform growth
 
 UPSIDE
 strong enterprise adoption, OEM/API distribution, network-backed discovery, higher recurring mix
@@ -215,8 +217,9 @@ strong enterprise adoption, OEM/API distribution, network-backed discovery, high
 Scenario variables should include:
 
 - number of qualified accounts;
-- Evidence Audit price and volume;
-- Sponsored Discovery price/volume;
+- Sponsored Discovery price and volume;
+- Model Development price and volume;
+- complementary Evidence Audit price and volume;
 - Qualification attach rate;
 - Lifecycle attach rate;
 - Platform customer count / ACV;
@@ -257,11 +260,11 @@ Preferred milestone ladder:
 ```text
 F0 business architecture locked
 F1 validated buyer pain
-F2 first paid Evidence Audit
+F2 first paid discovery or model-development program
 F3 repeatable second/third delivery
 F4 first expansion within an account
 F5 first recurring/lifecycle revenue
-F6 first Sponsored Discovery with credible network economics
+F6 demonstrated competitive-discovery benefit with credible network economics
 F7 first platform/usage commitment
 F8 first OEM/API or multi-team enterprise deployment
 F9 demonstrated margin/productization improvement
@@ -319,4 +322,4 @@ runway
 
 # 14. Financial north star
 
-> **Grow from high-value expert-led evidence work into recurring, software-led, network-leveraged infrastructure while improving gross margin and preserving scientific independence.**
+> **Grow from valuable custom model discovery and development into reusable, recurring software and services, improving delivery economics while preserving scientific independence.**

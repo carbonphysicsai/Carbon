@@ -1,28 +1,30 @@
 # Carbon business plan
 
-Carbon is building discovery and evidence infrastructure for fast physical models. The company plans to help engineers find better methods, establish where a model works, and maintain that evidence as the model and its use change.
+**Commercial focus updated 20 November 2026:** [custom model discovery and design](../.agent/decisions/2026-11-20-OWNER-CUSTOM-MODEL-DISCOVERY-DESIGN-01.md).
 
-The near-term commercial focus is a scoped **Evidence Audit**, followed by **Sponsored Discovery** when a customer needs a better candidate. Recurring qualification, lifecycle support, and evidence software are expansion paths. This is the company plan; [Project status](../docs/publications/PROJECT_STATUS.md) distinguishes current software and research evidence from future products and sales.
+Carbon focuses on custom model discovery and design for engineering problems. The company combines the search for useful model-building methods, problem-specific development and independent evaluation so customers can assess candidates against the requirements of their job.
+
+The primary offer uses **Sponsored Discovery** and **Model Development**, supported by feasibility and reference integration. Qualification, integration, lifecycle support and recurring software are potential follow-on services. **Evidence Audit** remains complementary. This plan does not establish product availability, scientific qualification or sales; [Project status](../docs/publications/PROJECT_STATUS.md) retains dated research and implementation evidence.
 
 ## Customers and entry points
 
 | Customer situation | Initial engagement |
 |---|---|
-| Existing fast model with uncertain reliability | Evidence Audit |
-| Valuable modeling opportunity without a defensible reference or scope | Challenge Feasibility / Design |
-| Defined problem that needs a better method | Sponsored Discovery or Model Development |
+| Defined engineering problem requiring a new or better model | Sponsored Discovery and/or Model Development |
+| Modeling opportunity that needs reference or scope work | Challenge Feasibility / Design |
+| Existing model needing independent evaluation | Complementary Evidence Audit |
 | Candidate approaching a specific deployment | Qualified Model Program |
 
 Initial direct-sales segments are aerospace, space and defense, and energy, turbomachinery and industrial physics. Technical buyers include simulation leaders, chief engineers, R&D owners, and model-validation teams. CAE, engineering-AI, and simulation infrastructure companies can become customers, suppliers, or distribution partners.
 
-The four engineering launch directions are battery fast charging and ageing, AI-chip cold plates, electric motors, and silicon photonics. Portfolio membership states a research priority; it does not establish customer demand or a qualified commercial model.
+Challenge research provides bounded examples of the modeling workflow. Its scope and availability follow the current technical records. Portfolio membership does not establish customer demand or a qualified commercial model.
 
 ## Delivery sequence
 
 1. **Scope the decision.** Agree the intended use, required outputs, important conditions, and the consequence of error.
 2. **Check feasibility.** Establish reference access, evaluation cost, rights, and a supportable evidence claim.
-3. **Deliver the program.** Run the agreed audit or research work and retain evidence, including failures and unresolved findings.
-4. **Evaluate expansion.** Consider remediation, a deeper qualification program, deployment support, or further discovery.
+3. **Discover, design and evaluate.** Run the agreed method search and model development, independently evaluate candidates, and retain findings including failures and unresolved outcomes.
+4. **Evaluate follow-on work.** Consider additional modeling needs, qualification for a defined use, integration or lifecycle support.
 5. **Reuse permitted work.** Retain adapters, templates, and evidence workflows that can support repeat delivery under the customer's rights agreement.
 
 Customer acceptance concerns the agreed deliverables. Scientific acceptance concerns what the evidence supports. Carbon charges for legitimate work even when it cannot substantiate the customer's initial claim.
@@ -41,7 +43,7 @@ Progress should appear in lower custom hours per engagement, shorter setup time,
 
 ## Competitive position
 
-Carbon aims to work across model builders and simulation toolchains. Customers need not replace their CAE stack to buy an evaluation. The competitive case combines producer-independent testing, reproducible method discovery, and evidence for a defined engineering use.
+Carbon aims to work across model builders and simulation toolchains. Customers can keep their CAE stack while commissioning model discovery and development. The competitive case combines access to research approaches, reproducible custom models and producer-independent testing against the engineering job.
 
 Incumbents can develop competing capabilities. Carbon needs to demonstrate that its workflow saves time, exposes meaningful failures, improves model selection, or brings useful external research at a cost customers will pay. See [Business and market](Investor_Positioning_and_Market.md).
 
@@ -57,10 +59,10 @@ Work moves from `OFFCHAIN_ONLY` to `NETWORK_ELIGIBLE` or `NETWORK_REQUIRED` only
 |---|---|
 | B0: business architecture | A coherent offer, buyer, delivery model, and cost structure |
 | B1: customer discovery | Recorded interviews and repeated evidence of a costly problem |
-| B2: first paid Evidence Audit | A contracted scope, delivered evidence, and payment |
-| B3: repeatable audits | Further delivery with measured cost and reusable work |
+| B2: first paid discovery or model-development program | A contracted scope, agreed deliverables and findings, and payment |
+| B3: repeatable modeling programs | Further delivery with measured cost and reusable methods, integrations or workflows |
 | B4: account expansion | A customer buys follow-on work |
-| B5: Sponsored Discovery | A funded and delivered research program |
+| B5: useful competitive discovery | A delivered research program with measured candidate quality, time and cost against credible alternatives |
 | B6: qualification/lifecycle attachment | A customer purchases bounded qualification or ongoing evidence support |
 | B7: recurring commitment | Renewed or committed software, support, or usage revenue |
 | B8: productized workflow | Customers repeat the workflow through maintained software |
