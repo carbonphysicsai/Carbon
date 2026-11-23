@@ -203,6 +203,26 @@ def test_a_task_whose_rerun_also_failed_on_our_side_is_rearmed_once(tmp_path):
     }
 
 
+def test_an_earlier_twin_its_automatic_rearm_takes_holds_the_later_twin_back(tmp_path):
+    """The recipe grades once across paths: an EARLIER given-back twin at a later attempt re-runs by the automatic
+    re-arm, so the later twin's automatic retry waits; once the earlier one cannot re-run (released), the later goes.
+    """
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("shared")
+    _custody_task(root, ledger, A, recipe)
+    infra_requeue.requeue(root, [A], apply=True, auto=True)  # A's automatic re-run
+    _rerun_failed_again(root, ledger, A, code=CUSTODY)
+    _custody_task(root, ledger, B, recipe)
+    out = infra_requeue.requeue(root, [A, B], auto=True)  # dry
+    assert out["requeued"] == [A] and out["refused"] == {B: "given_back_rerun_exists"}
+    releases = root / "auto-grade" / "requeued" / "releases.jsonl"
+    releases.write_text(json.dumps({"task": A}) + "\n")
+    out = infra_requeue.requeue(root, [A, B], auto=True)
+    assert out["requeued"] == [B] and out["refused"] == {A: "released_not_regraded"}
+
+
 def test_a_rerun_that_failed_on_an_image_change_keeps_its_evaluation_files_aside(
     tmp_path,
 ):

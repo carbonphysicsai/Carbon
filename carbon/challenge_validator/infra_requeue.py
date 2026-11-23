@@ -510,11 +510,21 @@ def _requeue_refusal(root, db, door, task, *, auto=False, seen=frozenset()):
         seen=seen,
         # a given-back twin holds this task back only if THIS path may re-run it (an automatic retry whose twin's
         # retries are spent re-runs this task instead; the recipe still grades once)
-        rerun=lambda other, asking: _requeue_refusal(
+        rerun=lambda other, asking: _may_rerun(
             root, db, door, other, auto=auto, seen=asking
-        )
-        is None,
+        ),
     )
+
+
+def _may_rerun(root, db, door, task, *, auto, seen):
+    """Whether the door's own re-run path for ``task`` accepts it now (read-only): a LATER attempt re-runs by
+    ``rearm`` (`_rearm_refusal`; the automatic one with ``auto``), a first attempt by ``requeue`` (`_requeue_refusal`).
+    Used by `_twin_blocks`: an earlier given-back twin holds a task back only while this is true.
+    """
+    later = _restore_attempt(root, task)
+    if later is not None and later > _ATTEMPT:
+        return _rearm_refusal(root, db, door, task, auto=auto, seen=seen)[2] is None
+    return _requeue_refusal(root, db, door, task, auto=auto, seen=seen) is None
 
 
 #: The door's build re-run log (`lean_recipe.BUILD_RETRIES`, append-only ``{from_task, new_task, chain_root, code, at_ns}``),
@@ -568,8 +578,9 @@ def _given_back_failed(root, db, task):
 def _twin_blocks(root, db, door, task, other, seen, rerun):
     """Whether same-recipe ``other`` holds the given-back ``task`` back (``given_back_rerun_exists``): any twin that
     can grade or did (a fresh rerun or resubmit) does. A twin given back on infrastructure too (`_given_back_failed`)
-    does only when it is the EARLIER one by queue place AND the door may itself re-run it, so of several given-back
-    twins of one recipe exactly the earliest re-runnable one runs (the recipe still grades once) and none is held
+    does only when it is the EARLIER one by queue place AND the caller's re-run path may itself re-run it
+    (`_may_rerun`), so of several given-back twins of one recipe exactly the earliest re-runnable one runs (the recipe
+    still grades once) and none is held
     back by a twin that never runs (live 116, 22 Nov 2026: smiley's rtsk_aec3a4b7 and rtsk_1e40c104, one recipe,
     each refused because of the other, so neither re-ran). An unknown queue place keeps the old answer (blocks).
     """
@@ -1773,7 +1784,7 @@ def _rearm_causes(root, task, attempt):
     ] + [_marker_body(_paths(root, task, attempt)["marker"])[1]]
 
 
-def _rearm_refusal(root, db, door, task, *, auto=False):
+def _rearm_refusal(root, db, door, task, *, auto=False, seen=frozenset()):
     """``(attempt, code, None)`` when ``rearm`` accepts the task, else ``(None, None, refusal)`` (read-only). ``auto``
     (the receiver's automatic retry of a later attempt, `requeue(auto=True)`): the same criteria, not once per task
     (`auto_retry` bounds it per cause)."""
@@ -1809,7 +1820,16 @@ def _rearm_refusal(root, db, door, task, *, auto=False):
         if not carbons:
             # an earlier attempt that was the candidate's own outcome: not "failed on our side"
             return None, None, "earlier_attempt_not_carbons"
-    refusal = _evaluation_refusal(paths) or _door_refusal(root, db, door, task)
+    refusal = _evaluation_refusal(paths) or _door_refusal(
+        root,
+        db,
+        door,
+        task,
+        seen=seen,
+        rerun=lambda other, asking: _may_rerun(
+            root, db, door, other, auto=auto, seen=asking
+        ),
+    )
     if refusal is not None:
         return None, None, refusal
     return attempt, code if type(code) is str else None, None

@@ -1443,12 +1443,15 @@ def test_given_back_twins_of_one_recipe_rerun_the_earliest_and_never_hold_each_o
     _row(ledger, B, "RELEASED", "FAILED_INFRA")
     out = infra_requeue.requeue(root, [A, B])  # dry run
     assert out["requeued"] == [A] and out["refused"] == {B: "given_back_rerun_exists"}
-    # the automatic retry: the earlier twin's own retry is spent (handed back once already), so the later one re-runs
+    # the automatic retry: the earlier twin is at a later attempt that its own re-arm path refuses (its kept attempt
+    # is no Carbon failure), so the later one re-runs
     kept = _kept(root, A, "marker.json")
     kept.parent.mkdir(parents=True, exist_ok=True)
     kept.write_text(json.dumps({"state": "FAILED"}))
     out = infra_requeue.requeue(root, [A, B], auto=True)
-    assert out["requeued"] == [B] and out["refused"] == {A: "already_requeued"}
+    assert out["requeued"] == [B] and out["refused"] == {
+        A: "earlier_attempt_not_carbons"
+    }
     kept.unlink()
     # the earlier twin's slot was released (never re-graded): the later one re-runs instead
     releases = root / "auto-grade" / "requeued" / "releases.jsonl"
