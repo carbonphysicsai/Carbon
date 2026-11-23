@@ -613,3 +613,39 @@ def test_the_amplifier_formula():
         values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05, **bad}
         with pytest.raises(st.SelfTrustRefused):
             st.amplify(0.8, 0.1, st.TrustAmplifier(**values))
+
+
+def test_owner_values_selftest_prints_the_multiplier_for_the_4_variants(capsys):
+    """Owner TRUST-AMPLIFIER-VALUES (23 Nov): 90% band, lambda 0.5, penalty 0.1. On the
+    heteroscedastic selftest data: honest boosts, x0.1 and x10 cost the full 10%
+    (T floored at -1), the best constant band leaves the score unchanged."""
+    amp = st.OWNER_AMPLIFIER
+    assert (amp.band_level, amp.gain, amp.penalty) == (0.9, 0.5, 0.1)
+    st.check_amplifier(amp)
+    level = amp.band_level
+    z = NormalDist().inv_cdf((1 + level) / 2)
+    w, _ = st.best_constant_half_width(level, _hetero_cases(lambda s: s), "a")
+    variants = {
+        "honest": lambda s: s,
+        "x0.1": lambda s: 0.1 * s,
+        "x10": lambda s: 10.0 * s,
+        "constant": lambda s: w / z,
+    }
+    multiplier = {}
+    for name, stated in variants.items():
+        cells = {("all", "a"): _hetero_cases(stated)}
+        t = st.trust_skill(st.SIGMA, level, cells)["t"]
+        multiplier[name] = st.amplify(1.0, t, amp)
+        print(f"{name}: T {t:+.4f} multiplier {multiplier[name]:.4f}")
+    assert "honest: T +" in capsys.readouterr().out
+    assert 1.05 < multiplier["honest"] <= 1.5  # expected ~ 1.12
+    assert multiplier["x0.1"] == pytest.approx(0.9)  # T ~ -1.4, floored at -1
+    assert multiplier["x10"] == pytest.approx(0.9)
+    assert multiplier["constant"] == pytest.approx(1.0, abs=1e-12)
+    assert st.amplify(0.8, 0.0, amp) == 0.8  # no uncertainty: unchanged
+
+
+def test_no_version_is_amplified_until_its_own_head_names_it():
+    assert st.VERSION_AMPLIFIERS == {}
+    assert st.amplifier_for("electric-motor-magnetics", "1.8") is None
+    assert st.amplifier_for("electric-motor-magnetics", "1.9") is None

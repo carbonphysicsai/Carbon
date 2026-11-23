@@ -617,6 +617,22 @@ class TrustAmplifier:
     penalty: object = None
 
 
+#: The owner's values (TRUST-AMPLIFIER-VALUES, typed 2026-11-23T21:12:42Z, OWNER_LINES.md): a 90% central band
+#: (interval score alpha 0.1), lambda 0.5 with T capped at 1 (at most +50%; T <= 1 holds by construction), penalty 0.1 on
+#: a negative T floored at -1 (at most -10%); no uncertainty: multiplier 1.0. Any retune is a new owner line.
+OWNER_AMPLIFIER = TrustAmplifier(band_level=0.9, gain=0.5, penalty=0.1)
+
+#: The versions whose grade the amplifier enters, (challenge_id, version) -> TrustAmplifier. EMPTY: a version is added
+#: only by its own scoring-path head (its registration names the amplifier, the real-king test has passed, v2 FINALs it
+#: before the seal), so every other version, sealed or live, is byte-unchanged in effect (invariant 10).
+VERSION_AMPLIFIERS: dict = {}
+
+
+def amplifier_for(challenge_id, version):
+    """The amplifier a version's registration names, or None: its grade is then exactly the A/D score."""
+    return VERSION_AMPLIFIERS.get((challenge_id, version))
+
+
 def _check_band_level(level):
     _require(level is not None, "self_trust_amplifier_band_level_is_human_input")
     _require(
