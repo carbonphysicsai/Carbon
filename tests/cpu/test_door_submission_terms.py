@@ -257,7 +257,7 @@ def test_a_terms_door_refuses_without_the_signed_acceptance_and_keeps_the_one_it
         answer, _ = _submit(intake, request, state, n, **fields)
         assert answer.status == 400
         assert answer.body == {"refused": code, "terms": facts}
-    assert provider.queued_tasks() == [] and intake.terms_store.rows() == []
+    assert len(provider.queued_tasks()) == 0 and intake.terms_store.rows() == []
 
     answer, body = _submit(
         intake, request, state, 3, terms_version=VERSION, terms_sha256=SHA
@@ -288,7 +288,7 @@ def test_an_unpinned_or_unready_terms_door_admits_nothing(door):
         intake, request, state, 2, terms_version=VERSION, terms_sha256=SHA
     )
     assert answer.status == 503 and answer.body["refused"] == st.UNAVAILABLE
-    assert provider.queued_tasks() == [] and intake.terms_store.rows() == []
+    assert len(provider.queued_tasks()) == 0 and intake.terms_store.rows() == []
 
 
 # --- the receiver config key ---
