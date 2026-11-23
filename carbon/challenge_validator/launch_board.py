@@ -175,8 +175,10 @@ CHALLENGE_FIELDS = frozenset({"id", "version", "exam_version_label"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
 LADDER_FIELDS_V5 = LADDER_FIELDS | {"reason"}
 COUNT_FIELDS = ("graded", "scored", "gate_failed", "not_scored")
-#: A ladder this long is the whole table; the board shows no more rows than this.
-MAX_LADDER = 512
+#: A ladder this long is the whole table; the board shows no more rows than this. 2048 since 23 Nov 2026 (board step
+#: 2; was 512: live 116 Motor 1.8 passed 512 counted hotkeys on 22 Nov). Raised only AFTER the readers that accept it
+#: were live (`launch.MAX_LADDER`, the Worker's LAUNCH_MAX_LADDER: infra row 4729); never above them.
+MAX_LADDER = 2048
 #: A GATE_FAILED row shows at most this many gate names (the first ones; the miner's own feedback names every gate). A
 #: longer list is CUT to this, never a refused board (CAPS.md 3 item 2, owner: no cap without a named harm).
 MAX_GATES = 16

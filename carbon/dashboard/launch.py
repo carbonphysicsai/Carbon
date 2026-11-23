@@ -101,8 +101,8 @@ UNIT_V6 = "0 to 1, to 3 decimals"
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")
 NETWORK_LABELS = {"testnet": ["DEVELOPMENT", "TESTNET"], "mainnet": ["DEVELOPMENT"]}
 #: The reader's ladder bound (also the Worker's LAUNCH_MAX_LADDER, feed.mjs). 2048 since 23 Nov 2026 (was 512: live
-#: 116 Motor 1.8 passed 512 counted hotkeys on 22 Nov, Lead handoff 7 3a): the reader is raised FIRST, so the producer
-#: (`launch_board.MAX_LADDER`, still 512) may follow once this reader and the Worker are deployed; never the reverse.
+#: 116 Motor 1.8 passed 512 counted hotkeys on 22 Nov, Lead handoff 7 3a): the reader was raised FIRST, and the
+#: producer (`launch_board.MAX_LADDER`) followed to 2048 once this reader and the Worker were live; never the reverse.
 MAX_LADDER = 2048
 MAX_GATES = 16
 #: The public hotkey shape, the same everywhere (launch_board._SS58, the Worker's SS58 / LAUNCH_SS58): the markup guard.

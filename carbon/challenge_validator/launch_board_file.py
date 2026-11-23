@@ -37,8 +37,11 @@ import json
 from decimal import Decimal
 from pathlib import Path
 
-#: A launch board is at most 512 ladder rows; this is far above a real one.
-MAX_BYTES = 262144
+#: A launch board is at most `launch_board.MAX_LADDER` (2048) ladder rows. Its worst case, every row GATE_FAILED with
+#: `MAX_GATES` names of 64 characters, written as `feed_file.write_feed` writes it, is about 2.7 MB; this bound is above
+#: that (test_launch_board_ladder_cap). It was 262144 for 512 rows. It stays a bound because the door reads and
+#: verifies this file on every feed request.
+MAX_BYTES = 4 * 1024 * 1024
 #: The seed of the dashboard's public fixture key (`carbon.dashboard.fixtures`).
 _FIXTURE_SEED = hashlib.sha256(b"carbon.dashboard.fixture-key.v1").digest()
 

@@ -3,7 +3,8 @@ Motor 1.8 passed 512 counted hotkeys and every board run refused `board_ladder_s
 
 Claims: a ladder longer than `MAX_LADDER` publishes exactly its best `MAX_LADDER` rows in rank order (rank 1 first);
 the rows left out are the lowest totals; the board's counts are the shown rows' tally (what every validator checks);
-a ladder at or under the cap is unchanged. Synthetic hotkeys and totals only.
+a ladder at or under the cap is unchanged; the producer's cap equals the deployed readers' (board step 2, 23 Nov) and
+the door serves a worst-case board at that cap (`launch_board_file.MAX_BYTES`). Synthetic hotkeys and totals only.
 """
 
 from __future__ import annotations
@@ -66,8 +67,10 @@ def test_the_reader_and_the_worker_share_one_raised_cap_above_the_producer():
     ).read_text(encoding="utf-8")
     (js_cap,) = re.findall(r"const LAUNCH_MAX_LADDER = (\d+);", worker)
     assert int(js_cap) == launch.MAX_LADDER == 2048
-    # the producer never publishes more rows than the deployed readers accept (it rises only after they are live)
+    # the producer never publishes more rows than the deployed readers accept (it rose only after they were live:
+    # board step 2, infra row 4729), and it now shows as many as they accept
     assert lb.MAX_LADDER <= launch.MAX_LADDER
+    assert lb.MAX_LADDER == launch.MAX_LADDER == 2048
 
 
 def test_the_reader_accepts_a_board_up_to_its_cap_and_refuses_one_row_more(
@@ -86,3 +89,36 @@ def test_the_reader_accepts_a_board_up_to_its_cap_and_refuses_one_row_more(
     with pytest.raises(feed.FeedRefused) as refused:
         feed.project(board, trust)
     assert refused.value.code == "ladder_invalid"
+
+
+# --- board step 2: the door serves the largest board the producer can now write ---
+
+
+def test_the_door_serves_a_worst_case_board_at_the_producer_cap(tmp_path):
+    from carbon.challenge_validator import launch_board_file as lbf
+    from carbon.challenge_validator.feed_file import write_feed
+    from tests.cpu import test_launch_board_feed as tlbf
+
+    # every row but the king's GATE_FAILED with MAX_GATES names of 64 characters (the longest `_GATE` allows)
+    gates = [f"g{i:02d}" + "x" * 61 for i in range(lb.MAX_GATES)]
+    assert all(len(g) == 64 and lb._GATE.fullmatch(g) for g in gates)
+    rows = [(tlbf.KING, {"total": 0.64}, {"status": "IMPROVED", "gate_names": []})]
+    rows += [
+        (_hotkey(i), None, {"status": "GATE_FAILED", "gate_names": gates})
+        for i in range(lb.MAX_LADDER - 1)
+    ]
+    signer = tlbf._signer()
+    board = lb.build(
+        king_document=tlbf._king_document(),
+        rows=rows,
+        network="testnet",
+        key=signer,
+        version=3,
+        now=tlbf.NOW,
+    )
+    assert len(board["ladder"]) == lb.MAX_LADDER
+    path = tmp_path / "board.json"
+    write_feed(path, board)  # as the operator writes it
+    assert path.stat().st_size <= lbf.MAX_BYTES
+    served = lbf.read_board(path, tlbf.CHALLENGE.challenge_id)
+    assert served is not None and len(served["ladder"]) == lb.MAX_LADDER
