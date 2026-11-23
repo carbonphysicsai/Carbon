@@ -277,7 +277,8 @@ def _scaled_sigma_cases(r, scale, n=200):
 
 def test_coverage_exposes_overconfidence_and_sharpness_exposes_underconfidence():
     """model-eval 23 Nov: a coverage-only report rates the x10 UNDERCONFIDENT model as well
-    calibrated (wide bands cover everything); the sharpness field is what separates it."""
+    calibrated (wide bands cover everything); the sharpness field is what separates it.
+    """
     r = rule(st.SIGMA, calibration_weight=1.0)
     reads = [st.report(r, _scaled_sigma_cases(r, s)) for s in (1.0, 0.1, 10.0)]
     honest, over, under = (read["outputs"]["a"] for read in reads)

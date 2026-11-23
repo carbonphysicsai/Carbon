@@ -704,7 +704,8 @@ def _stated_band(form, band_level, case, output):
 
 def trust_skill(form, band_level, cells):
     """A1-A2: T over the admitted ``cells`` = {(class, output): [TrustCase, ...]}, each case's answer read at
-    ``band_level``. Returns {"status", "reason", "t", "cells": {cell: T_cell or None}}; ``t`` is 0 unless scored."""
+    ``band_level``. Returns {"status", "reason", "t", "cells": {cell: T_cell or None}}; ``t`` is 0 unless scored.
+    """
     _require(form in FORMS, "self_trust_form_unknown")
     _check_band_level(band_level)
     _require(type(cells) is dict and len(cells) >= 1, "self_trust_cells_malformed")
@@ -773,6 +774,7 @@ def multiplier(t, amplifier):
 def amplify(ad_score, t, amplifier):
     """A3 (owner TRUST-AMPLIFIER-RESCALE): the FINAL combination, A/D x multiplier / (1 + gain), so the best multiplier
     gives back the full A/D score (owner values: / 1.5; no uncertainty shows A/D / 1.5) and the ranking is the
-    unscaled one's. The version's A and D minimums gate the UNSCALED A and D before this, never its result."""
+    unscaled one's. The version's A and D minimums gate the UNSCALED A and D before this, never its result.
+    """
     _require(_number(ad_score), "self_trust_amplifier_score_not_a_number")
     return ad_score * multiplier(t, amplifier) / (1.0 + amplifier.gain)
