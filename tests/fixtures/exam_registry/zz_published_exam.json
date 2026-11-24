@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.published-exam.file.v1",
+  "version": "zz-synthetic 0.1",
+  "kind": "menu_d_headroom_a",
+  "a_acc": "synthetic accuracy of the model's outputs on the exam's cases",
+  "gates": [
+    {
+      "id": "finite_outputs",
+      "passes_when": "every predicted output is a finite number",
+      "value": null
+    }
+  ],
+  "sections": {
+    "minimums": {
+      "rule": "synthetic"
+    },
+    "limits": {
+      "inputs": {
+        "a": [0.0, 1.0]
+      },
+      "source": "synthetic"
+    }
+  }
+}

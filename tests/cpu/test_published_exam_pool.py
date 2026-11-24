@@ -91,10 +91,11 @@ POOL_KEYS = frozenset(
 
 
 def test_only_the_pool_versions_are_pool_graded():
-    assert pe._POOL_VERSIONS == POOL_KEYS
+    # a version published from its exam registry row is pool-graded with no edit here
+    assert pe._POOL_VERSIONS - pe.FROM_REGISTRY == POOL_KEYS
     for key in SERVED:
         block = pe.for_version(*key)
-        if key in POOL_KEYS:
+        if key in pe._POOL_VERSIONS:
             assert block["schema"] == pe.SCHEMA_POOL
             if key in pe._REGISTERED_POOL:
                 assert block["design_search"] != pe._DESIGN_SEARCH
@@ -217,7 +218,8 @@ def test_a_pool_version_serves_the_how_you_are_tested_lines(pool_version):
 
 def test_only_the_pool_versions_carry_them():
     for key in SERVED:
-        assert ("how_you_are_tested" in pe.for_version(*key)) == (key in POOL_KEYS)
+        pool = key in pe._POOL_VERSIONS
+        assert ("how_you_are_tested" in pe.for_version(*key)) == pool
 
 
 def test_nothing_hidden_is_on_the_how_you_are_tested_lines():

@@ -11,14 +11,21 @@ appears. A value that is not registered is the words "not yet registered",
 never a blank or a placeholder number.
 
 This module is data only (standard library, no scoring import), so the miner
-door carries no exam code.
+door carries no exam code. A version with no block here publishes one from the
+file its exam registry row names (`exam_registry`, ``published``; see
+`_add_registered_blocks`): the same sections, checked the same way.
 """
 
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
+import logging
+from pathlib import Path
 
-from carbon.challenge_registry import speed_gate
+from carbon.challenge_kit import version_registry
+from carbon.challenge_registry import exam_registry, speed_gate
 
 SCHEMA = "carbon.published-exam.v1"
 #: The block of a pool-graded version (design search over solved designs, no
@@ -662,7 +669,7 @@ def how_you_are_tested(challenge_id, version=None):
     """The "How you are tested" lines of a pool-graded version of
     ``challenge_id``: id, title and text each; the speed line also names this
     Challenge's ceiling per design."""
-    ceiling = _SPEED_CEILING_SECONDS[challenge_id]
+    ceiling = speed_gate.ceiling_seconds(challenge_id, version)
     registered = registered_pool(challenge_id, version)
     menu_lines = (
         _menu_headroom_lines(registered) if _is_menu_headroom(registered) else {}
@@ -1273,6 +1280,179 @@ _BY_VERSION = {
 }
 
 
+#: Versions the host overlay registers under a pool evaluation are pool-graded whether or not their block is published
+#: yet (an unpublished one has no registered pool, so it is offered to nobody and grades nothing).
+_POOL_VERSIONS |= {
+    key
+    for key, entry in version_registry.VERSIONS.items()
+    if "-pool-sealed-" in (entry.sealed_evaluation or "")
+}
+
+#: A registry version's published file (`exam_registry`, ``published``).
+PUBLISHED_FILE_SCHEMA = "carbon.published-exam.file.v1"
+#: What the file itself may state; every other section of the block is written here, the same for every version.
+_FILE_SECTIONS = frozenset(
+    {
+        "minimums",
+        "physics_laws",
+        "design_value_scales",
+        "limits",
+        "uncertainty",
+        "exam_shape",
+    }
+)
+#: The kinds of registered constants a file may name: the two this module publishes.
+PICK_D = "pick_d"
+_KINDS = (PICK_D, MENU_HEADROOM)
+_ROOT = Path(__file__).resolve().parents[2]
+_POOL_CONSTANTS = _ROOT / "scripts" / "validator_host_classes" / "pool_constants.json"
+_CONSTANTS_SOURCE = "scripts/validator_host_classes/pool_constants.json"
+#: The versions whose block came from a registry file, and why a named file was not published.
+FROM_REGISTRY = set()
+REFUSED = {}
+
+
+class _FileRefused(ValueError):
+    pass
+
+
+def _need(condition, reason):
+    if not condition:
+        raise _FileRefused(reason)
+
+
+def _text(value):
+    return type(value) is str and bool(value.strip())
+
+
+def _published_file(key, named):
+    """The version's published file at its registered digest, shape-checked."""
+    try:
+        raw = (_ROOT / named["path"]).read_bytes()
+    except OSError:
+        raise _FileRefused("file_missing") from None
+    _need(hashlib.sha256(raw).hexdigest() == named["sha256"], "file_digest")
+    try:
+        own = json.loads(raw)
+    except ValueError:
+        raise _FileRefused("file_not_json") from None
+    _need(
+        type(own) is dict
+        and set(own) == {"schema", "version", "kind", "a_acc", "gates", "sections"}
+        and own["schema"] == PUBLISHED_FILE_SCHEMA
+        and own["version"] == " ".join(key)
+        and own["kind"] in _KINDS
+        and _text(own["a_acc"])
+        and type(own["sections"]) is dict
+        and set(own["sections"]) <= _FILE_SECTIONS
+        and bool(own["sections"].get("minimums"))
+        and type(own["gates"]) is list
+        and bool(own["gates"]),
+        "file_shape",
+    )
+    shared = {gate["id"] for gate in _POOL_GATES}
+    ids = set()
+    for gate in own["gates"]:
+        _need(
+            type(gate) is dict
+            and set(gate) == {"id", "passes_when", "value"}
+            and _text(gate["id"])
+            and _text(gate["passes_when"])
+            and gate["id"] not in ids | shared,
+            "file_gates",
+        )
+        ids.add(gate["id"])
+    return own
+
+
+def registration(kind, row):
+    """What a pool-constants row publishes under ``kind``, or None while the row is absent or holds a HUMAN_INPUT. The
+    code registrations above are the same reading of their own rows (a test holds them equal).
+    """
+    if row is None or "HUMAN_INPUT" in json.dumps(row):
+        return None
+    if kind == MENU_HEADROOM:
+        menu, physics = row["menu"], row["physics"]
+        return {
+            "kind": MENU_HEADROOM,
+            "d": {
+                "rule": "menu",
+                "tasks_per_epoch": menu["tasks_per_epoch"],
+                "aggregate": menu["aggregate"],
+                "rotation_days": menu["rotation_days"],
+            },
+            "a": {
+                name: physics[name]
+                for name in ("scoring", "skill_form", "h_min", "h_lo", "n_min")
+            },
+            "gate": {
+                "statistic": physics["gate_statistic"],
+                "threshold_u": physics["gate_threshold"],
+            },
+            "total": {"rule": physics["total_rule"], "ad_split": physics["ad_split"]},
+            "c_rule": row["c_rule"]["kind"],
+            "source": _CONSTANTS_SOURCE,
+        }
+    return {
+        "query_budget": row["optimizer"]["budget"],
+        "initial_step": row["optimizer"]["sigma0"],
+        "honesty_scale": row["honesty"]["scale"],
+        "honesty_reduction": row["honesty"]["reduction"],
+        "a_multiplier": row["a_multiplier"],
+        "a_gen_rule": row["a_rule"]["kind"],
+        "a_gen_scales": row["agen_scales"],
+        "c_rule": row["c_rule"]["kind"],
+        "source": _CONSTANTS_SOURCE,
+    }
+
+
+def _constants_rows():
+    try:
+        return json.loads(_POOL_CONSTANTS.read_bytes())["versions"]
+    except FileNotFoundError:
+        return {}
+
+
+def _registry_block(key, own):
+    """A registry version's block: its file's sections under its own sealed evaluation, the pool score and pool gates."""
+    return _pool_block(
+        {
+            **own["sections"],
+            "score": {"legs": [{"measures": own["a_acc"]}]},
+            "gates": [dict(gate) for gate in own["gates"]],
+        },
+        " ".join(key),
+        version_registry.entry(*key).sealed_evaluation,
+    )
+
+
+def _add_registered_blocks():
+    """Publish every registry version's file; a version with a block above keeps it. A file that does not hold up is not
+    published (`REFUSED`): its version has no block and no registered pool, so it grades nothing.
+    """
+    for key in exam_registry.keys("published"):
+        try:
+            _need(key not in _BY_VERSION, "version_published_in_code")
+            _need(key in _POOL_VERSIONS, "not_a_pool_version")
+            own = _published_file(key, exam_registry.field(*key, "published"))
+            speed_gate.solver_seconds(*key)
+            constants = registration(own["kind"], _constants_rows().get(" ".join(key)))
+            block = _registry_block(key, own)
+        except (_FileRefused, KeyError, TypeError, ValueError, OSError) as refused:
+            REFUSED[key] = f"{type(refused).__name__}: {refused}"
+            logging.getLogger(__name__).warning(
+                "published exam of %s refused: %s", " ".join(key), REFUSED[key]
+            )
+            continue
+        _BY_VERSION[key] = block
+        if constants is not None:
+            _REGISTERED_POOL[key] = constants
+        FROM_REGISTRY.add(key)
+
+
+_add_registered_blocks()
+
+
 def for_version(challenge_id, version):
     """The published exam block for a launch Challenge version, or None."""
     own = _BY_VERSION.get((challenge_id, version))
@@ -1304,10 +1484,12 @@ def for_version(challenge_id, version):
             "ratio": speed_gate.RATIO,
             "rule": "seconds per design <= the reference solver's seconds "
             "per design / ratio",
-            "solver_seconds_per_design": speed_gate.SOLVER_SECONDS_PER_DESIGN[
-                challenge_id
-            ],
-            "ceiling_seconds_per_design": speed_gate.ceiling_seconds(challenge_id),
+            "solver_seconds_per_design": speed_gate.solver_seconds(
+                challenge_id, version
+            ),
+            "ceiling_seconds_per_design": speed_gate.ceiling_seconds(
+                challenge_id, version
+            ),
             "failure": "GATE_FAILED (speed)",
             "source": "carbon/challenge_registry/speed_gate.py",
         }

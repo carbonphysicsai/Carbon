@@ -29,6 +29,8 @@ FAMILY, VERSION = "zz-synthetic", "0.1"
 #: The synthetic exam's build module, searched as ``carbon.zz_synthetic_build`` only inside the walk.
 FIXTURES = REPOSITORY / "tests" / "fixtures" / "exam_registry"
 BUILD_MODULE = "carbon.zz_synthetic_build"
+#: The synthetic published-exam file the registry row names.
+PUBLISHED = "tests/fixtures/exam_registry/zz_published_exam.json"
 
 #: The overlay entry: every field a registered version carries, every value synthetic (no code names any of them).
 ENTRY = {
@@ -58,6 +60,10 @@ EXAM_ROW = {
     "solver_seconds_per_design": {"value": 100, "source": "synthetic"},
     "terms": {"version": "zz-terms-v0", "sha256": "b" * 64},
     "verify_set": {"path": "kits/zz/verify_set.json", "sha256": "c" * 64},
+    "published": {
+        "path": PUBLISHED,
+        "sha256": hashlib.sha256((REPOSITORY / PUBLISHED).read_bytes()).hexdigest(),
+    },
 }
 
 #: (probe id, stage, audit row, site): the walk in order. The probe bodies are in `_PROBE_PROGRAM`.
@@ -237,7 +243,6 @@ KNOWN_GAPS = {
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
     "grade.pool_kind": "family pool_kind + register_kind (H1)",
-    "grade.published": "published block derived from the version's sealed evaluation + pool rows",
     "grade.copy_opacity": "family copy_opacity (through H1, a shared producer file)",
     "weights.pay_share": "paying families from the registry (owner economics line, not code)",
 }
@@ -423,7 +428,9 @@ def probe_grade_speed_gate():
 
 def probe_grade_published():
     from carbon.challenge_registry import published_exam
-    assert (family, version) in published_exam._BY_VERSION
+    block = published_exam.for_version(family, version)
+    assert block["scoring_version"] == "zz-synthetic-pool-sealed-v1"
+    assert (family, version) in published_exam._POOL_VERSIONS
 
 
 def probe_grade_copy_opacity():
