@@ -34,9 +34,15 @@ class SpeedGateUnregistered(KeyError):
     code = "speed_gate_unregistered"
 
 
+class SpeedGateRefused(ValueError):
+    """The version's registry row is malformed: no value is read for it, its Challenge's included (Carbon's failure)."""
+
+    code = "speed_gate_row_refused"
+
+
 def solver_seconds(challenge_id: str, version: str | None = None) -> float:
     """The reference solver's seconds per design: the version's own registered value, else its Challenge's value above,
-    else `SpeedGateUnregistered`. A version whose registry row is malformed refuses; it never takes the Challenge's value.
+    else `SpeedGateUnregistered`. A version whose registry row is malformed is `SpeedGateRefused`.
     """
     if version is not None:
         try:
@@ -44,7 +50,7 @@ def solver_seconds(challenge_id: str, version: str | None = None) -> float:
                 challenge_id, version, "solver_seconds_per_design"
             )
         except exam_registry.ExamRowRefused as refused:
-            raise SpeedGateUnregistered(str(refused)) from None
+            raise SpeedGateRefused(str(refused)) from None
         if own is not None:
             return own["value"]
     try:

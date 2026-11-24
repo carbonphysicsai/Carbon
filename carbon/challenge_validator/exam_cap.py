@@ -369,17 +369,19 @@ def registered_cadence(path=None) -> dict:
 
 
 def _add_registered_lane_hours(hours):
-    """Add the exam registry's measured lane-hours of every Challenge ``hours`` does not value (its newest row's)."""
+    """Add the exam registry's measured lane-hours of every Challenge ``hours`` does not value: its newest row's. A
+    Challenge whose newest row is refused stays unvalued (the cap then refuses it), never valued by an older row.
+    """
     from carbon.challenge_registry import exam_registry
 
     name = "rebuild_gpu_lane_hours"
-    # keys come in version order within a Challenge, so the newest row's value is the one kept
-    added = {
-        challenge_id: exam_registry.field(challenge_id, version, name)["value"]
-        for challenge_id, version in exam_registry.keys(name)
-    }
-    for challenge_id, value in added.items():
-        hours.setdefault(challenge_id, value)
+    rows = {}
+    for key in (*exam_registry.keys(name), *exam_registry.refused_keys()):
+        rows.setdefault(key[0], []).append(key)
+    for challenge_id, keys in rows.items():
+        own = exam_registry.field(*exam_registry.newest(keys), name)
+        if own is not None:
+            hours.setdefault(challenge_id, own["value"])
 
 
 def grading_deadline_seconds(material):

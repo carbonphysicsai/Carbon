@@ -49,13 +49,16 @@ exam_registry.install(sys.argv[2])
 def ask(function, *args):
     try:
         return function(*args)
-    except KeyError as refused:
+    except (KeyError, ValueError) as refused:
         return type(refused).__name__
 
 
 def grade(challenge, version):
     adapter = SimpleNamespace(challenge_id=challenge, challenge_version=version)
-    return lean_recipe_retention._speed_ceiling(adapter)
+    try:
+        return lean_recipe_retention._speed_ceiling(adapter)
+    except lean_recipe_retention.RetentionUnavailable as failure:
+        return "unavailable: " + str(failure)
 
 
 pairs = json.loads(sys.argv[3])
@@ -185,11 +188,44 @@ def test_a_malformed_row_refuses_its_version_and_never_takes_the_challenges_valu
     pairs = [["f02", "99.1"], ["zz-synthetic", "0.1"], ["f02", "2.5"]]
     out = _run(tmp_path, rows, pairs)
     assert out["ceilings"] == {
-        "f02 99.1": "SpeedGateUnregistered",
-        "zz-synthetic 0.1": "SpeedGateUnregistered",
+        "f02 99.1": "SpeedGateRefused",
+        "zz-synthetic 0.1": "SpeedGateRefused",
         "f02 2.5": 0.38,
     }
-    assert out["grade"] == {"f02 99.1": None, "zz-synthetic 0.1": None, "f02 2.5": 0.38}
+    # Carbon's failure, never a stage with no ceiling and never the candidate's
+    refused = "unavailable: speed_gate_row_refused"
+    assert out["grade"] == {
+        "f02 99.1": refused,
+        "zz-synthetic 0.1": refused,
+        "f02 2.5": 0.38,
+    }
+    kept = lean_recipe_retention._KEPT_UNAVAILABLE
+    assert speed_gate.SpeedGateRefused.code not in kept
+
+
+@pytest.mark.parametrize(("bad", "valued"), [("0.2", False), ("0.1", True)])
+def test_a_refused_newest_row_leaves_its_challenge_unvalued(tmp_path, bad, valued):
+    def row(hours):
+        return {
+            "rebuild_gpu_lane_hours": {"value": hours, "measurement_digest": DIGEST}
+        }
+
+    rows = {f"zz-synthetic {v}": row(0.02) for v in ("0.1", "0.2")}
+    rows[f"zz-synthetic {bad}"] = row(0)
+    out = _run(tmp_path, rows, [[MOTOR, "1.8"]])
+    hours = out["after"]["rebuild_gpu_lane_hours"]
+    assert hours.get("zz-synthetic") == (0.02 if valued else None)
+    assert {k: v for k, v in hours.items() if k != "zz-synthetic"} == (
+        out["before"]["rebuild_gpu_lane_hours"]
+    )
+
+
+def test_no_committed_row_gives_a_valued_challenge_a_second_ceiling():
+    """Until every reader asks by version (pool_version, pool_gates, practice_speed), a version of a Challenge valued in
+    code may not carry its own seconds: one grade would be judged by two ceilings. The head that moves the last reader
+    deletes this test (review-b 6404)."""
+    families = {c for c, _ in exam_registry.keys("solver_seconds_per_design")}
+    assert not families & set(speed_gate.SOLVER_SECONDS_PER_DESIGN)
 
 
 def test_an_unregistered_challenge_is_a_typed_refusal_that_old_readers_still_catch():

@@ -2551,13 +2551,17 @@ SPEED_ALONE_NOT_QUIET = "single_call_alone_host_not_quiet"
 
 
 def _speed_ceiling(adapter):
-    """The registered speed ceiling (seconds per design) of the adapter's Challenge, or None when none is registered."""
+    """The registered speed ceiling (seconds per design) of the adapter's Challenge, or None when none is registered. A
+    version whose registered row cannot be read is Carbon's failure, never a stage with no ceiling.
+    """
     from carbon.challenge_registry import speed_gate
 
     try:
         return speed_gate.ceiling_seconds(
             adapter.challenge_id, getattr(adapter, "challenge_version", None)
         )
+    except speed_gate.SpeedGateRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
     except (KeyError, AttributeError, TypeError, ZeroDivisionError):
         return None
 
