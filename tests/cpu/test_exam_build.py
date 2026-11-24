@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import copy
 import hashlib
 import json
@@ -201,7 +202,7 @@ version_overlay.install(path=folder / "overlay.json")
 from carbon.challenge_registry import exam_build, exam_registry
 exam_registry.install(path=folder / "exams.json")
 from carbon.challenge_kit import physical_material, physical_pack, physical_public_train
-from carbon.development_session import bundle_construction_worker, construction_recipe
+from carbon.development_session import bundle_construction_worker, physical_graph_adapter_v2
 KEY = tuple(sys.argv[2:4])
 binding = {"id": KEY[0], "version": KEY[1]}
 SITES = {
@@ -212,6 +213,7 @@ SITES = {
     "roles": lambda: physical_pack.public_roles(*KEY),
     "bank": lambda: physical_pack.development_bank(*KEY),
     "train": lambda: physical_public_train.load_public_train(*KEY),
+    "spec": lambda: physical_graph_adapter_v2.spec_for(*KEY),
     "policy": lambda: bundle_construction_worker.verify_direct_resource_policy(binding, {}),
 }
 out = {}
@@ -405,6 +407,56 @@ def test_the_code_declares_every_spec_and_stages_no_extra_file_for_one():
         adapter.served_allowlist_bytes(*key),
     )
     assert set(files) == {name + ".py" for name in worker.PHYSICAL_V2_STAGED_MODULES}
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "carbon.challenge_registry.exam_build",
+        "carbon.challenge_registry.pinned_module",
+        "carbon.challenge_kit.physical_material",
+        "carbon.challenge_kit.physical_pack",
+        "carbon.challenge_kit.physical_public_train",
+        "carbon.challenge_kit.task_wall_overrides",
+        "carbon.development_session.bundle_construction_worker",
+        "carbon.development_session.direct_graph_construction_worker",
+        "carbon.development_session.physical_graph_adapter_v2",
+        "carbon.development_session.research_service",
+    ],
+)
+def test_each_build_module_imports_first_in_a_fresh_process(module):
+    """No import cycle through `carbon.challenge_registry`, whichever module a process imports first."""
+    subprocess.run(
+        [sys.executable, "-c", f"import {module}"],
+        cwd=FIXTURES.parents[2],
+        capture_output=True,
+        check=True,
+        timeout=300,
+    )
+
+
+def test_only_a_missing_host_package_means_a_container(monkeypatch):
+    """A broken host import raises; it is never read as 'no registered Specs'."""
+    for name, container in (
+        ("carbon.challenge_registry", True),
+        ("carbon.challenge_kit", True),
+        ("carbon.reconstruction.missing", False),
+        ("numpy", False),
+    ):
+        real = builtins.__import__
+
+        def broken(asked, *rest, _name=name, _real=real, **more):
+            if asked.startswith(("carbon.challenge_kit", "carbon.challenge_registry")):
+                raise ModuleNotFoundError(name=_name)
+            return _real(asked, *rest, **more)
+
+        with monkeypatch.context() as patch:
+            patch.setattr(builtins, "__import__", broken)
+            if container:
+                assert adapter._registered_specs() == {}
+            else:
+                with pytest.raises(ModuleNotFoundError):
+                    adapter._registered_specs()
 
 
 def test_a_registered_spec_reads_back_from_its_row(row):

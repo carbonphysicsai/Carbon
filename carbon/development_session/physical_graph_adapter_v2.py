@@ -391,6 +391,8 @@ SPECS = {
 }
 #: The Specs the code declares; every other one comes from the exam registry (`_registered_specs`).
 CODE_SPECS = frozenset(SPECS)
+#: The host packages a build container does not have: only their absence means "in a container" (`_registered_specs`).
+_HOST_PACKAGES = ("carbon.challenge_kit", "carbon.challenge_registry")
 #: The one file a build container of a registry version is staged with: its Spec (`staged_spec`).
 STAGED_SPEC = "graph-spec.json"
 _SPEC_FIELDS = (
@@ -428,7 +430,7 @@ def _registered_specs() -> dict:
         from carbon.challenge_kit import version_registry
         from carbon.challenge_registry import exam_build
     except ModuleNotFoundError as missing:
-        if not (missing.name or "").startswith("carbon."):
+        if missing.name not in _HOST_PACKAGES:
             raise
         staged = Path(__file__).resolve().parents[2] / STAGED_SPEC
         if not staged.is_file():
@@ -450,7 +452,8 @@ def _registered_specs() -> dict:
     return found
 
 
-# Add-only: a Spec the code declares is never replaced (`exam_build` refuses a row for one before it gets here).
+# Add-only: a Spec the code declares is never replaced (`exam_build` never reads a row for one). Read once, at import: a
+# row refused then has no Spec until the process restarts with a good row, and `spec_for` says so typed.
 SPECS.update(
     (key, spec) for key, spec in _registered_specs().items() if key not in CODE_SPECS
 )
@@ -480,8 +483,18 @@ GAP_SUFFIXES = ("challenge_version_unregistered", "surface_unserved")
 
 
 def spec_for(challenge_id: str, version: str) -> Spec:
+    """The version's Spec. A version with none is Carbon's gap; one whose registry row is refused raises
+    `exam_build.ExamBuildRefused` (Carbon's registration fault, never the candidate's).
+    """
     spec = SPECS.get((challenge_id, version))
     if spec is None:
+        try:
+            from carbon.challenge_registry import exam_build
+        except ModuleNotFoundError as missing:
+            if missing.name not in _HOST_PACKAGES:
+                raise
+        else:
+            exam_build.block(challenge_id, version)
         raise RecipeRefused(CODE + "challenge_version_unregistered")
     return spec
 
