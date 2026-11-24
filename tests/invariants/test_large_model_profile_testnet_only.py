@@ -76,6 +76,14 @@ MAINNET_ENTRIES = (
     | A100_ENTRIES
     | ADA_ENTRIES
 )
+#: The launch rehearsals (owner G-LEAD-58, "rehearsals build on the launch build class"; the record
+#: G-LEAD-58-LAUNCH-REHEARSALS in `hardware_acceptance`): the disposable LOCALNET chain, never mainnet, for exactly the
+#: launch build classes' entries. No mainnet image is built for localnet; any other localnet entry still fails.
+REHEARSAL_NETWORK = "localnet"
+REHEARSAL_RECORD = "G-LEAD-58-LAUNCH-REHEARSALS"
+REHEARSAL_ENTRIES = A100_ENTRIES | frozenset(
+    {("NVIDIA RTX A6000", hardware_acceptance.JAX_GPU)}
+)
 WHY = (
     "a mainnet profile is built while LARGE_MODEL_PROFILE_APPLIED is True "
     "(OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01: testnet only); accept the "
@@ -91,6 +99,13 @@ def _mainnet_profiles(host, classes):
         for profile, entry in profiles.items():
             for network in sorted(set(entry["networks"]) - ACCEPTED_NETWORKS):
                 if network == MAINNET_NETWORK and (device, profile) in MAINNET_ENTRIES:
+                    continue
+                if (
+                    network == REHEARSAL_NETWORK
+                    and (device, profile) in REHEARSAL_ENTRIES
+                    and entry.get("by_network", {}).get(network, {}).get("record")
+                    == REHEARSAL_RECORD
+                ):
                     continue
                 found.append((device, profile, network))
     return found
@@ -114,6 +129,27 @@ def test_the_check_sees_a_mainnet_profile():
     ]
     assert _mainnet_profiles({"scope": "MAINNET"}, {}) == [
         ("validator host class", "MAINNET")
+    ]
+
+
+def test_the_localnet_rehearsal_entries_are_exactly_the_recorded_ones():
+    """G-LEAD-58: localnet is opened for exactly the launch classes' rehearsal entries, each under its own record."""
+    opened = {
+        (device, profile)
+        for device, profiles in hardware_acceptance.ACCEPTED_DEVICE_CLASSES.items()
+        for profile, entry in profiles.items()
+        if REHEARSAL_NETWORK in entry["networks"]
+    }
+    assert opened == REHEARSAL_ENTRIES
+    for device, profile in opened:
+        entry = hardware_acceptance.ACCEPTED_DEVICE_CLASSES[device][profile]
+        assert entry["by_network"][REHEARSAL_NETWORK]["record"] == REHEARSAL_RECORD
+    # a localnet entry without the rehearsal record is still a mainnet profile
+    host = {"scope": "DEVELOPMENT"}
+    device, profile = sorted(REHEARSAL_ENTRIES)[0]
+    plain = {"record": "X", "networks": ("localnet",), "evidence": "X"}
+    assert _mainnet_profiles(host, {device: {profile: plain}}) == [
+        (device, profile, REHEARSAL_NETWORK)
     ]
 
 
