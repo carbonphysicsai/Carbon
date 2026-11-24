@@ -296,6 +296,10 @@ _SOURCE_PATHS = (
     "carbon/challenge_kit/physical_public.py",
     "carbon/challenge_kit/physical_public_train.py",
     "carbon/challenge_kit/version_registry.py",
+    # How a registered version's build row is read (the rows are data: a new one must not move any door's identity).
+    "carbon/challenge_registry/exam_build.py",
+    "carbon/challenge_registry/exam_registry.py",
+    "carbon/challenge_registry/pinned_module.py",
 )
 
 
