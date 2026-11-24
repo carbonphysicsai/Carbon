@@ -639,7 +639,8 @@ def _view_node(data, at, depth, budget):
 
 def view_tokens(raw, task):
     """``(state, refusal_code)`` of ``task``'s stored view, or ``(None, None)``: ONLY the closed task-state name and the
-    terminal receipt's public refusal code (V2 6111 (3)); nothing else of the view is kept or printed."""
+    terminal receipt's public refusal code (V2 6111 (3)); nothing else of the view is kept or printed.
+    """
     if (
         type(raw) is not bytes
         or len(raw) > MAX_VIEW_BYTES
@@ -691,7 +692,8 @@ class Root:
 
     def task_store(self, task):
         """``(state, refusal_code)`` of the asked task from the door's task store (`view_tokens`), or ``(None, None)``: one row by
-        id, opened read-only and query-only; an absent store, row or unreadable view says nothing."""
+        id, opened read-only and query-only; an absent store, row or unreadable view says nothing.
+        """
         if self.tasks is None or not TASK_ID.fullmatch(task):
             return None, None
         try:
@@ -921,10 +923,15 @@ def _rerun(db, task, hotkey):
 
 def _store_state(store):
     """The door's own projection of a task-store state with no grade marker (`lean_recipe._project`):
-    `(state, code, charged, slot_given_back)` or None (the store says nothing that changes the ledger's answer)."""
+    `(state, code, charged, slot_given_back)` or None (the store says nothing that changes the ledger's answer).
+    """
     state, refusal = store
     if state == "REFUSED":
-        code = refusal if refusal is not None and _words(refusal) else CANDIDATE_BUILD_REFUSED
+        code = (
+            refusal
+            if refusal is not None and _words(refusal)
+            else CANDIDATE_BUILD_REFUSED
+        )
         return "RECONSTRUCTION_FAILED", code, "not stated", "not stated"
     if state in ("FAILED_INFRA", "UNRESOLVED", "CANCELLED"):
         return "FAILED_INFRA", "FAILED_INFRA", "no", "yes"
@@ -1260,7 +1267,15 @@ def _config(path):
         body = json.loads(Path(path).read_bytes())
     except (OSError, ValueError) as error:
         raise Refused("config_unreadable") from error
-    allowed = {"ledger", "markers", "owed_tasks", "queue_url", "board", "audit", "direct_tasks"}
+    allowed = {
+        "ledger",
+        "markers",
+        "owed_tasks",
+        "queue_url",
+        "board",
+        "audit",
+        "direct_tasks",
+    }
     if (
         type(body) is not dict
         or set(body) - allowed

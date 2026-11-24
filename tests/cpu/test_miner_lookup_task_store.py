@@ -19,13 +19,18 @@ from scripts.dev import miner_lookup as ml
 TASK = "rtsk_" + "5a" * 32
 NEW = "rtsk_" + "6b" * 32
 KEY = research.ChallengeKey("electric-motor-magnetics", "1.8")
-BINDINGS = research.DirectTaskBindingsV3(KEY, *("sha256:" + c * 64 for c in "123456789"))
+BINDINGS = research.DirectTaskBindingsV3(
+    KEY, *("sha256:" + c * 64 for c in "123456789")
+)
 
 
 def _view(task, state, refusal=None):
     state = research.DirectTaskStateV3(state)
     receipt = None
-    if state in (research.DirectTaskStateV3.REFUSED, research.DirectTaskStateV3.FAILED_INFRA):
+    if state in (
+        research.DirectTaskStateV3.REFUSED,
+        research.DirectTaskStateV3.FAILED_INFRA,
+    ):
         infra = (
             research.InfrastructureFailureClass.INTERNAL
             if state is research.DirectTaskStateV3.FAILED_INFRA
@@ -54,7 +59,9 @@ def _tasks(path, rows):
         "CREATE TABLE direct_tasks (id TEXT PRIMARY KEY, request BLOB NOT NULL, view BLOB NOT NULL, cancellation TEXT)"
     )
     for task, view in rows:
-        db.execute("INSERT INTO direct_tasks VALUES(?,?,?,NULL)", (task, CANARY.encode(), view))
+        db.execute(
+            "INSERT INTO direct_tasks VALUES(?,?,?,NULL)", (task, CANARY.encode(), view)
+        )
     db.commit()
     db.close()
     return path
@@ -72,7 +79,10 @@ def test_view_tokens_keep_only_the_state_and_the_public_refusal_code():
     assert ml.view_tokens(raw, TASK) == ("REFUSED", "graph_submission_invalid")
     assert ml.view_tokens(_view(TASK, "QUEUED"), TASK) == ("QUEUED", None)
     # a code outside the public token shape is never kept; another task's view, a cut or foreign blob says nothing
-    assert ml.view_tokens(_view(TASK, "REFUSED", "graph-submission"), TASK) == ("REFUSED", None)
+    assert ml.view_tokens(_view(TASK, "REFUSED", "graph-submission"), TASK) == (
+        "REFUSED",
+        None,
+    )
     assert ml.view_tokens(raw, NEW) == (None, None)
     assert ml.view_tokens(raw[:-3], TASK) == (None, None)
     assert ml.view_tokens(raw + b"\x00", TASK) == (None, None)
@@ -83,11 +93,17 @@ def test_view_tokens_keep_only_the_state_and_the_public_refusal_code():
 def test_a_refused_build_reads_reconstruction_failed_not_queued(tmp_path):
     _seed(
         tmp_path / "attempts.sqlite3",
-        [(T0, "RECEIVED", None, HOTKEY, TASK, None), (T0 + 5, "OUTCOME", None, HOTKEY, TASK, "ADMITTED")],
+        [
+            (T0, "RECEIVED", None, HOTKEY, TASK, None),
+            (T0 + 5, "OUTCOME", None, HOTKEY, TASK, "ADMITTED"),
+        ],
     )
     # without the 5th source (no config): unchanged, as before
     assert _ask(tmp_path, "task", TASK)[0]["task"]["state"] == "QUEUED"
-    tasks = _tasks(tmp_path / "direct-tasks.sqlite3", [(TASK, _view(TASK, "REFUSED", "graph_submission_invalid"))])
+    tasks = _tasks(
+        tmp_path / "direct-tasks.sqlite3",
+        [(TASK, _view(TASK, "REFUSED", "graph_submission_invalid"))],
+    )
     document, text = _ask(tmp_path, "task", TASK, tasks=tasks)
     shown = document["task"]
     assert shown["state"] == "RECONSTRUCTION_FAILED"
@@ -96,11 +112,22 @@ def test_a_refused_build_reads_reconstruction_failed_not_queued(tmp_path):
     assert set(shown) <= ml.ALLOWED_FIELDS["task"] and CANARY not in text
     # a Carbon-side end with no marker reads FAILED_INFRA; a store still QUEUED stays QUEUED
     _tasks(tmp_path / "t2.sqlite3", [(TASK, _view(TASK, "FAILED_INFRA"))])
-    assert _ask(tmp_path, "task", TASK, tasks=tmp_path / "t2.sqlite3")[0]["task"]["state"] == "FAILED_INFRA"
+    assert (
+        _ask(tmp_path, "task", TASK, tasks=tmp_path / "t2.sqlite3")[0]["task"]["state"]
+        == "FAILED_INFRA"
+    )
     _tasks(tmp_path / "t3.sqlite3", [(TASK, _view(TASK, "QUEUED"))])
-    assert _ask(tmp_path, "task", TASK, tasks=tmp_path / "t3.sqlite3")[0]["task"]["state"] == "QUEUED"
+    assert (
+        _ask(tmp_path, "task", TASK, tasks=tmp_path / "t3.sqlite3")[0]["task"]["state"]
+        == "QUEUED"
+    )
     # an absent store file says nothing (QUEUED as before), never a refusal of the whole answer
-    assert _ask(tmp_path, "task", TASK, tasks=tmp_path / "missing.sqlite3")[0]["task"]["state"] == "QUEUED"
+    assert (
+        _ask(tmp_path, "task", TASK, tasks=tmp_path / "missing.sqlite3")[0]["task"][
+            "state"
+        ]
+        == "QUEUED"
+    )
 
 
 def _grant(path, new, old, hotkey):
@@ -132,7 +159,14 @@ def test_a_miners_own_resubmission_or_another_hotkeys_task_is_not_a_rerun(tmp_pa
         tmp_path / "attempts.sqlite3",
         [
             (T0, "OUTCOME", None, HOTKEY, TASK, "ADMITTED"),
-            (T0 + 9, "OUTCOME", None, HOTKEY, NEW, "ADMITTED"),  # a grant without the door's requeue code
+            (
+                T0 + 9,
+                "OUTCOME",
+                None,
+                HOTKEY,
+                NEW,
+                "ADMITTED",
+            ),  # a grant without the door's requeue code
         ],
     )
     _grant(tmp_path / "attempts.sqlite3", NEW, TASK, HOTKEY)
