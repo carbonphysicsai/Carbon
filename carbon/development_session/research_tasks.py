@@ -267,12 +267,17 @@ def _same_principal(old, new):
 def _failure_is_carbons(exc, child_states) -> bool:
     """The typed Carbon-side failures that used to end UNRESOLVED (live 116, 18 Nov 2026, V2: all ours): the ledger's
     "one numerical worker" refusal (a stale RESERVED op of this owner, never the candidate's), and the worker's own
-    export stream timing out after every child SUCCEEDED (Carbon copying a finished child's output). Anything else keeps
+    export stream timing out after every child SUCCEEDED (Carbon copying a finished child's output); and a refused exam
+    registry row (`exam_build.ExamBuildRefused`: Carbon's own registration fault, met on the host). Anything else keeps
     its class: a SUCCEEDED child whose evidence fails verification stays UNRESOLVED (never a free re-run).
     """
+    from carbon.challenge_registry.exam_build import ExamBuildRefused
+
     from .research_carrier import ONE_NUMERICAL_WORKER
 
     if type(exc) is ValueError and str(exc) == ONE_NUMERICAL_WORKER:
+        return True
+    if isinstance(exc, ExamBuildRefused):
         return True
     return (
         isinstance(exc, WorkerFailure)

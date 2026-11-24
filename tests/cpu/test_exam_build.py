@@ -308,6 +308,16 @@ def test_an_incomplete_module_refuses(row, monkeypatch):
         exam_build.module(*KEY)
 
 
+def test_a_refused_row_met_in_a_build_is_carbon_s_failure():
+    """FAILED_INFRA (re-run free), never REFUSED or UNRESOLVED; any other exception keeps its class."""
+    from carbon.development_session import research_tasks
+
+    refused = exam_build.ExamBuildRefused("build_block_fields")
+    assert research_tasks._failure_is_carbons(refused, [])
+    assert research_tasks._failure_is_carbons(refused, ["SUCCEEDED"])
+    assert not research_tasks._failure_is_carbons(RuntimeError("other"), [])
+
+
 def _doc(value):
     raw = json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False, default=list
