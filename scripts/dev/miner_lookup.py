@@ -189,7 +189,7 @@ WORDS_NEXT = {
     "PAYLOAD_MISMATCH": "Your signer's own rebuild of the transaction differs from what was prepared, so it signed nothing and nothing was sent. Check that your signer and Carbon are the same version, then commit again (carbon_commit).",
     "STALE_CHAIN_CONTEXT": "The chain moved on while your signer was asked, so it signed nothing and nothing was sent. Commit again (carbon_commit).",
     "TRANSPORT_CAPACITY": "The validator's receipt journal is full; that is on its side. Submit again later; the frozen candidate is kept.",
-    "TRANSPORT_CONFLICT": "The validator holds a different request under this request id. Submit again; a new request id is used, and the frozen candidate is kept.",
+    "TRANSPORT_CONFLICT": "The validator already has a request with this id from your hotkey, and this one differs from it, so it was not taken. Nothing was admitted or charged. Start a new submit; your earlier one stands.",
     "TRANSPORT_CONTEXT": "The validator serves another network, subnet or Challenge than the request names. Check this Challenge's validator intake address under Set up your environment, then submit again; the frozen candidate is kept.",
     "TRANSPORT_IDENTITY": "The validator does not find your hotkey (or its own) registered on this subnet. Check your registration (carbon_onboarding_status), then submit again; the frozen candidate is kept.",
     "TRANSPORT_MALFORMED": "The validator did not read the request as a Carbon request. Check that the intake address serves this Carbon version, then submit again; the frozen candidate is kept.",

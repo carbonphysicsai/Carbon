@@ -1317,9 +1317,9 @@ NEXT_ACTIONS = {
         "is kept."
     ),
     "TRANSPORT_CONFLICT": (
-        "The validator holds a different request under this request id. "
-        "Submit again; a new request id is used, and the frozen candidate is "
-        "kept."
+        "The validator already has a request with this id from your hotkey, "
+        "and this one differs from it, so it was not taken. Nothing was "
+        "admitted or charged. Start a new submit; your earlier one stands."
     ),
     "TRANSPORT_CONTEXT": (
         "The validator serves another network, subnet or Challenge than the "

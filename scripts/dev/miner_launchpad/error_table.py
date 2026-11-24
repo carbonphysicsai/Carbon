@@ -43,9 +43,16 @@ ROWS = (
     ("next", "door_updating", OURS, "No: nothing was charged"),
     ("next", "capacity", OURS, NOT_STATED),
     ("next", "TRANSPORT_CAPACITY", OURS, NOT_STATED),
-    # v2 6286 / miner-ux code read: a store failure is raised inside the transport receive, before the funder group's
-    # request bucket is charged (the door charges the shared guard instead) and before any admission, try or allowance
+    # A store failure is raised inside the transport receive, before any request bucket, admission, try or allowance is
+    # charged (the door's STORE answer charges no bucket).
     ("next", "TRANSPORT_STORE", OURS, "No: turned away before it was admitted"),
+    # raised inside the admission transaction, before its receipt is written: the earlier request stands
+    (
+        "next",
+        "TRANSPORT_CONFLICT",
+        NOT_STATED,
+        "No: turned away before it was admitted",
+    ),
     ("next", "allowance_group_unmapped", OURS, "No graded-exam slot was used"),
     ("next", "allowance_group_unresolved", OURS, "No graded-exam slot was used"),
     # --- the validator stopped or closed before it ran your submission: ours ---
