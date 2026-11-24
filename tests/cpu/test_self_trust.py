@@ -645,7 +645,12 @@ def test_owner_values_selftest_prints_the_multiplier_for_the_4_variants(capsys):
     heteroscedastic selftest data: honest boosts, x0.1 and x10 cost the full 10%
     (T floored at -1), the best constant band leaves the score unchanged."""
     amp = st.OWNER_AMPLIFIER
-    assert (amp.band_level, amp.gain, amp.penalty, amp.dead_zone) == (0.9, 0.5, 0.1, 0.1)
+    assert (amp.band_level, amp.gain, amp.penalty, amp.dead_zone) == (
+        0.9,
+        0.5,
+        0.1,
+        0.1,
+    )
     st.check_amplifier(amp)
     level = amp.band_level
     z = NormalDist().inv_cdf((1 + level) / 2)

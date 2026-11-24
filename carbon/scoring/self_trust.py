@@ -615,7 +615,8 @@ AMPLIFIER_FIELDS = ("band_level", "gain", "penalty", "dead_zone")
 @dataclass(frozen=True)
 class TrustAmplifier:
     """The owner's four values (None = HUMAN_INPUT): the band level c the stated band is read at, the gain lambda on a
-    positive T, the penalty: the largest fractional cost of a negative T, and the dead zone d: no penalty for -d <= T < 0."""
+    positive T, the penalty: the largest fractional cost of a negative T, and the dead zone d: no penalty for -d <= T < 0.
+    """
 
     band_level: object = None
     gain: object = None
