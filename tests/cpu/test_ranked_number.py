@@ -320,8 +320,9 @@ def test_old_ladder_documents_are_neither_served_nor_rewritten(tmp_path, monkeyp
 class _Kept:
     """The pool store's readers, over synthetic evaluations."""
 
-    def __init__(self, bodies, king=None, decided=(), paused=()):
+    def __init__(self, bodies, king=None, decided=(), paused=(), journal=()):
         self.bodies, self.king, self.decided = bodies, king, set(decided)
+        self.journal = list(journal)
         self.paused = list(paused)
         self.decisions = []
 
@@ -341,8 +342,8 @@ class _Kept:
 
     def events(self, kind):
         return [
-            {"body": {"model_id": TASKS["b"], "previous": None}},
-            {"body": {"model_id": TASKS["a"], "previous": TASKS["b"]}},
+            {"body": {"model_id": model, "previous": previous}}
+            for model, previous in self.journal
         ]
 
     def crown_decided_by(self, model_id):
@@ -379,7 +380,11 @@ def _kept(name, total, accuracy, status=bp.SCORED, exam=EXAM, task=None):
 
 
 def test_the_king_page_and_the_exact_order_read_the_ranked_number(by_accuracy):
-    store = _Kept([_kept("a", 0.5, 0.75), _kept("b", 0.75, 0.5)], king=TASKS["a"])
+    store = _Kept(
+        [_kept("a", 0.5, 0.75), _kept("b", 0.75, 0.5)],
+        king=TASKS["a"],
+        journal=[(TASKS["b"], None), (TASKS["a"], TASKS["b"])],
+    )
     value = crown_official.reader(CHALLENGE, VERSION)
 
     def view(**extra):
@@ -489,6 +494,19 @@ def test_a_paused_or_undecided_crown_is_tried_again(tmp_path, by_accuracy):
     assert not rerank._log_path(tmp_path).exists()
     keeps = {"outcome": bp.INCUMBENT_KEEPS, "reason": "tie", "evaluation_key": KEY}
     assert _step(tmp_path, store, [keeps], calls) is True and len(calls) == 4
+
+
+def test_a_former_king_is_declined_by_name(tmp_path, by_accuracy):
+    store = _Kept(
+        [_kept("k", 0.9, 0.5), _kept("a", 0.1, 0.8)],
+        king=TASKS["k"],
+        journal=[(TASKS["a"], None), (TASKS["k"], TASKS["a"])],
+    )
+    calls = []
+    assert _step(tmp_path, store, [], calls) is True
+    assert calls == [] and store.incumbent()["model_id"] == TASKS["k"]
+    line = json.loads(rerank._log_path(tmp_path).read_text(encoding="utf-8"))
+    assert (line["outcome"], line["reason"]) == ("DECLINED", "former_incumbent")
 
 
 def test_a_hotkey_not_registered_now_is_not_contended_for(tmp_path, by_accuracy):

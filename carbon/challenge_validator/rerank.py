@@ -15,7 +15,7 @@ The crown is decided first, and until both are made no grade is claimed, for a b
   ordinary decision (`lean_recipe_retention.reconsider_paused_pack`: the margin, the queue, the pause, the hold, the
   records). Nobody below it can win what it cannot. No hotkey and no submission is named in code or configuration. A
   hotkey the chain does not show registered now is not contended for (its rows stay ranked); while the chain cannot be
-  read the step waits.
+  read the step waits. A first that held this crown before is declined (``former_incumbent``) and the king stays.
 
 A kept grade that holds no such number, or does not show that its row check passed (`crown_official.row_check_unknown`),
 is not ranked and gets no value (`ranking` counts it by reason). The crown step
@@ -45,7 +45,14 @@ _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 #: Crown outcomes that decide the re-rank; anything else (paused, queued, held, undecided) is tried again.
 DECIDED = frozenset(
-    {"FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "DETHRONED"}
+    {
+        "FIRST_INCUMBENT",
+        "CHALLENGER",
+        "INCUMBENT_KEEPS",
+        "NO_WINNER",
+        "DETHRONED",
+        "DECLINED",
+    }
 )
 #: Seconds between two tries of a crown step that could not be decided (the crown sweep's own spacing; sooner while it
 #: holds the first grades back, `auto_grade.RERANK_START_RETRY_SECONDS`).
@@ -289,6 +296,12 @@ def step(
         incumbent = (pool.incumbent() or {}).get("model_id")
         if incumbent == first:
             outcome = {"outcome": "INCUMBENT_KEEPS", "reason": "already_incumbent"}
+        elif any(
+            event["body"].get("model_id") == first for event in pool.events("incumbent")
+        ):
+            # the pay ledger keeps one record per crowned model, with the king it beat: a former king crowned again would be
+            # refused by the pay loop every cycle (v2 7300). Declined by name, the sitting king stays, for a human to rule.
+            outcome = {"outcome": "DECLINED", "reason": "former_incumbent"}
         else:
             record = {
                 "submission_id": first,
