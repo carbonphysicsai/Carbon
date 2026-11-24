@@ -499,6 +499,7 @@ WORDS_GRADE = {
     "NOT_GRADED": "not graded: the slot was given back and nothing was charged",
     "QUEUED": "waiting at this validator: not built or not graded yet",
     "RECONSTRUCTION_FAILED": "your recipe's own run failed before it could be graded: nothing was graded",
+    "RERUN": "Carbon re-ran this submission at no charge under a new id; read that id for its result",
     "ROUND_LIMIT_REACHED": "not graded: your key's graded exams for this round or this day were already used",
     "SUPERSEDED_BY_OWN_LATER_SUBMIT": "not graded: your own later submission took this round's graded slot",
     "WITHDRAWN_BY_MINER": "withdrawn by you while it was still queued: not built, not graded, and it used no try",
