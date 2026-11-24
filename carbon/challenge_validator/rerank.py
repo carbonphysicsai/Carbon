@@ -4,6 +4,9 @@
 things ONCE per rule entry and exam, from the private evaluations it already keeps, and nothing is graded, rescored or
 rewritten:
 
+The crown is decided first, and until both are made no grade is claimed, for a bounded time
+(`auto_grade.AutoGrader._rerank_holds_grades`).
+
 - LADDER: the version's Ladder has a new key (`ladder_store.ladder_label`), so it starts empty. For every hotkey with no
   document under it yet, the best kept evaluation and then the latest one are recorded through the receiver's own path
   (`lean_recipe_retention._record_ladder`), so the board and each miner's feedback follow the new number. Documents under
@@ -44,7 +47,8 @@ _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 DECIDED = frozenset(
     {"FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "DETHRONED"}
 )
-#: Seconds between two tries of a crown step that could not be decided (the crown sweep's own spacing).
+#: Seconds between two tries of a crown step that could not be decided (the crown sweep's own spacing; sooner while it
+#: holds the first grades back, `auto_grade.RERANK_START_RETRY_SECONDS`).
 RETRY_SECONDS = 5 * 60
 
 
@@ -256,7 +260,7 @@ def step(
     reconsider=None,
     start=backfill,
 ):
-    """The re-rank of the served version, if its rule asks for one and it was not decided: the Ladder start, then the crown.
+    """The re-rank of the served version, if its rule asks for one and it was not decided: the crown, then the Ladder start.
     Returns True when there is nothing (more) to do, False when the crown step must be tried again.
     """
     active = crown_official.ACTIVE
@@ -270,7 +274,6 @@ def step(
         koth_journal.note("rerank_waits", reason="registration_unknown")
         return False
     rows = kept(pool, challenge_id=active["challenge"], exam=exam)
-    recorded, refused = start(adapter, rows, score)
     everyone, unranked = ranking(rows, score)
     ranked = [row for row in everyone if registered(row["hotkey"])]
     koth_journal.note(
@@ -278,8 +281,6 @@ def step(
         ranked=len(everyone),
         unregistered=len(everyone) - len(ranked),
         unranked=sum(unranked.values()),
-        ladder_recorded=recorded,
-        ladder_refused=refused,
     )
     if not ranked:
         outcome, first = {"outcome": "NO_WINNER", "reason": "nothing_ranked"}, None
@@ -318,6 +319,9 @@ def step(
     )
     if outcome.get("outcome") not in DECIDED:
         return False
+    # the crown first, then the Ladder: a start cut short between the two meets a decided crown and starts the rest
+    recorded, refused = start(adapter, rows, score)
+    koth_journal.note("rerank_ladder", recorded=recorded, refused=refused)
     _log(
         root,
         {

@@ -82,6 +82,12 @@ UPKEEP_DEFER_MAX_SECONDS = 30 * 60
 #: grades back (`AutoGrader._stranded_holds_grades`; the shorter of this and `UPKEEP_DEFER_MAX_SECONDS`), so a filing
 #: that keeps being skipped or refused can never stop grading the way the every-owner wait did.
 STRANDED_GRADE_HOLD_SECONDS = 60  # case-procs + V2 (18 Nov 2026): was 600; the builds now wait for the filing first
+#: OPERATIONAL (V2, 24 Nov 2026): the longest the start-up re-rank of a version whose crown row names another number than
+#: its total (`rerank`) keeps the door from claiming a grade (`AutoGrader._rerank_holds_grades`): no contender of the new
+#: rule is decided ahead of it. Past it grading goes on with one alert and the re-rank is still tried.
+RERANK_GRADE_HOLD_SECONDS = 300
+#: How soon an undecided re-rank is tried again while it holds the grades back.
+RERANK_START_RETRY_SECONDS = 30
 #: OPERATIONAL (V2's ruling, 18 Nov 2026): the longest the incumbent's steps wait, INSIDE the sequencer's exclusive,
 #: for owners other rounds hold (the overdue path, or unreadable owners), polling each second; then they let go and
 #: are deferred again (`prelude_owners_busy`), so no running build can stop grading past it.
@@ -551,7 +557,40 @@ class AutoGrader:
                 code=str(getattr(error, "code", None) or type(error).__name__),
             )
         if not getattr(self, "_rerank_done", False):
-            self._rerank_next = time.monotonic() + rerank.RETRY_SECONDS
+            self._rerank_next = time.monotonic() + (
+                RERANK_START_RETRY_SECONDS
+                if self._rerank_holds_grades()
+                else rerank.RETRY_SECONDS
+            )
+
+    def _rerank_holds_grades(self):
+        """Whether this round claims no grade because the served version's re-rank is not decided yet (V2, 24 Nov 2026: the
+        first crown decision under the new number is the re-rank's, and the fresh Ladder is started before a grade is
+        recorded in it). Bounded (`RERANK_GRADE_HOLD_SECONDS` from the first round that found it pending): then grading
+        goes on, with ONE alert line ``rerank_overdue``, and the re-rank is still tried every round it is due. Nothing
+        is paused: builds go on, and a version ranked by its total never holds anything.
+        """
+        from . import crown_official
+
+        active = crown_official.ACTIVE
+        if (
+            active is None
+            or active.get("score", crown_official.TOTAL) == crown_official.TOTAL
+            or getattr(self, "_rerank_done", False)
+            # a grader built without a pool store (one-shot tools, test doubles) has no crown to decide
+            or getattr(self, "pool_store", None) is None
+        ):
+            return False
+        now = time.monotonic()
+        since = self.__dict__.setdefault("_rerank_hold_since", now)
+        if now - since < RERANK_GRADE_HOLD_SECONDS:
+            return True
+        if not getattr(self, "_rerank_overdue_logged", False):
+            from carbon.battery.intake import log
+
+            log("rerank_overdue", alert=True, seconds=round(now - since))
+            self._rerank_overdue_logged = True
+        return False
 
     def _run_once(self):
         sequencer = getattr(self, "sequencer", None)
@@ -562,6 +601,8 @@ class AutoGrader:
             return None  # (H8) a stale chain: grade nothing, mark nothing
         self._settle_queue_places()
         self._crown_steps()
+        if self._rerank_holds_grades():
+            return None
         pending = self.pending()
         if self._apply_due_retries(idle=not pending):
             pending = self.pending()  # a retry handed back is graded in this round
@@ -618,6 +659,7 @@ class AutoGrader:
             (self._stranded_due() and getattr(self, "pool_store", None) is not None)
             or retries
             or self._crowns_due()
+            or self._rerank_due()
             or self._upkeep_due()
         )
         if due:
@@ -810,6 +852,8 @@ class AutoGrader:
             # the start-up filing of stranded challengers is not made yet (skipped, deferred, or another round runs
             # it): no grade starts ahead of it (ruling C); builds go on, and the next round asks again
             return None
+        if self._rerank_holds_grades():
+            return None  # nor ahead of the start-up re-rank, for the same reason
         skipped = set()
         self._scan_local().codes = {}
         started = time.monotonic()

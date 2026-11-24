@@ -13,6 +13,7 @@ Every grade, digest, hotkey and model here is a SYNTHETIC fixture.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from types import SimpleNamespace
@@ -559,6 +560,136 @@ def test_the_receiver_runs_it_until_it_is_decided(monkeypatch, by_accuracy):
     grader._rerank_next = 0.0
     grader._rerank()
     assert len(ran) == 3 and grader._rerank_due() is False
+
+
+def _grader(monkeypatch, answers):
+    """A parallel grader whose re-rank answers ``answers`` in turn; ``clock[0]`` is its monotonic clock."""
+    from carbon.challenge_validator import auto_grade
+
+    clock = [1000.0]
+    monkeypatch.setattr(
+        auto_grade,
+        "time",
+        SimpleNamespace(monotonic=lambda: clock[0], time_ns=lambda: 0, time=lambda: 0),
+    )
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.intake = SimpleNamespace(adapter=None)
+    grader.root = grader.artifacts = grader.entries = None
+    grader.pool_store = "pool"
+    grader._pool = lambda: None
+    grader._stranded_filed = True
+    for name in ("_crowns_due", "_upkeep_due", "_stranded_due"):
+        setattr(grader, name, lambda: False)
+    grader._crown_held = lambda: False
+    grader._upkeep_deferred = lambda: True
+    grader._file_stranded = lambda: (True, None)
+    grader._resume_paused_crowns = lambda: None
+    grader._settle_queue_places = lambda: None
+    grader._apply_due_retries = lambda idle: None
+    grader.chain_degraded = lambda: False
+    grader._end_hung_grades = lambda sequencer: None
+    grader.pending = lambda: ["task"]
+    grader.ran, grader.claimed = [], []
+
+    def step(*args, **kwargs):
+        grader.ran.append(clock[0])
+        return answers.pop(0)
+
+    monkeypatch.setattr(rerank, "step", step)
+
+    @contextlib.contextmanager
+    def task():
+        yield "ticket"
+
+    def claim(sequencer, ticket, skipped, claims, taken):
+        grader.claimed.append(clock[0])
+        return "graded"
+
+    grader._claim_and_grade = claim
+    grader._log_claim_scan = lambda *args: None
+    grader._scan_local = lambda: SimpleNamespace()
+    return grader, SimpleNamespace(task=task), clock
+
+
+def test_no_grade_is_claimed_before_the_re_rank_decides(monkeypatch, by_accuracy):
+    grader, sequencer, clock = _grader(monkeypatch, [False, True])
+    assert grader._run_once_parallel(sequencer) is None
+    assert len(grader.ran) == 1 and grader.claimed == []
+    # not tried again yet, and still nothing claimed
+    clock[0] += 5
+    assert grader._run_once_parallel(sequencer) is None
+    assert len(grader.ran) == 1 and grader.claimed == []
+    # a step that failed once is retried by itself, with no other step due; then the round grades
+    clock[0] += grader.PRELUDE_MIN_SECONDS
+    assert grader._run_once_parallel(sequencer) == "graded"
+    assert len(grader.ran) == 2 and len(grader.claimed) == 1
+    # decided: it never runs or holds again
+    clock[0] += 10_000
+    assert grader._run_once_parallel(sequencer) == "graded" and len(grader.ran) == 2
+
+
+def test_a_re_rank_that_cannot_be_decided_holds_a_bounded_time(
+    monkeypatch, by_accuracy
+):
+    from carbon.battery import intake
+    from carbon.challenge_validator import auto_grade
+
+    lines = []
+    monkeypatch.setattr(
+        intake, "log", lambda event, **fields: lines.append((event, fields))
+    )
+    grader, sequencer, clock = _grader(monkeypatch, [False] * 50)
+    start = clock[0]
+    while clock[0] - start < auto_grade.RERANK_GRADE_HOLD_SECONDS:
+        assert grader._run_once_parallel(sequencer) is None
+        clock[0] += 20
+    assert len(grader.ran) >= 4 and grader.claimed == []
+    tries = len(grader.ran)
+    for _ in range(3):
+        assert grader._run_once_parallel(sequencer) == "graded"
+        clock[0] += rerank.RETRY_SECONDS
+    assert len(grader.ran) > tries  # still tried
+    overdue = [fields for event, fields in lines if event == "rerank_overdue"]
+    assert len(overdue) == 1 and overdue[0]["alert"] is True
+
+
+def test_the_serial_round_waits_for_it_too(monkeypatch, by_accuracy):
+    grader, _sequencer, _clock = _grader(monkeypatch, [False])
+    assert grader._run_once() is None
+    assert len(grader.ran) == 1
+
+
+def test_a_version_ranked_by_its_total_holds_no_grade(tmp_path, monkeypatch):
+    _install(tmp_path, monkeypatch, {"margin": MARGIN})
+    grader, sequencer, _clock = _grader(monkeypatch, [])
+    assert grader._rerank_holds_grades() is False
+    assert grader._run_once_parallel(sequencer) == "graded" and grader.ran == []
+
+
+def test_the_ladder_starts_after_the_crown_and_before_it_is_done(tmp_path, by_accuracy):
+    store = _Kept([_kept("k", 0.9, 0.5), _kept("a", 0.1, 0.8)], king=TASKS["k"])
+    order = []
+
+    def reconsider(record):
+        order.append("crown")
+        return {"outcome": bp.CHALLENGER, "reason": "r", "evaluation_key": KEY}
+
+    def start(adapter, rows, score):
+        order.append("ladder")
+        assert not rerank._log_path(tmp_path).exists()
+        return 2, 0
+
+    assert rerank.step(
+        _adapter(),
+        store,
+        root=tmp_path,
+        artifacts=None,
+        entries=None,
+        registered=lambda hotkey: True,
+        reconsider=reconsider,
+        start=start,
+    )
+    assert order == ["crown", "ladder"] and rerank._log_path(tmp_path).exists()
 
 
 def test_the_pause_flag_is_the_ordinary_one(tmp_path, monkeypatch, by_accuracy):
