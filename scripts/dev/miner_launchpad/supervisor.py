@@ -1342,7 +1342,8 @@ NEXT_ACTIONS = {
     ),
     "TRANSPORT_STORE": (
         "The validator could not record the request; that is on its side. "
-        "Submit again; the frozen candidate is kept."
+        "Nothing was admitted or charged. Submit again; the frozen candidate "
+        "is kept."
     ),
     "AUTH_BAD_SIGNATURE": (
         "The validator could not verify the signature for your hotkey. Check "

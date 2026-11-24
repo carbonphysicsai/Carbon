@@ -196,7 +196,7 @@ WORDS_NEXT = {
     "TRANSPORT_RATE": "Too many requests reached the validator from your hotkey at once. Wait a moment, then submit again; the frozen candidate is kept.",
     "TRANSPORT_REPLAY": "The validator had already received this exact request. Submit again; a new request is built and signed, and the frozen candidate is kept.",
     "TRANSPORT_STALE": "The validator turned this request away before admitting it, even after Carbon sent it again a few times. This is on the validator's side, not your machine's clock. Submit again shortly; the request is rebuilt and signed afresh, and the frozen candidate is kept.",
-    "TRANSPORT_STORE": "The validator could not record the request; that is on its side. Submit again; the frozen candidate is kept.",
+    "TRANSPORT_STORE": "The validator could not record the request; that is on its side. Nothing was admitted or charged. Submit again; the frozen candidate is kept.",
     "WRONG_NETUID": "Your signer refused a commitment for another subnet than the one it started for; nothing was signed or sent. Start it for the subnet your profile names, then commit again (carbon_commit).",
     "WRONG_NETWORK": "Your signer refused a commitment for another network than the one it started for; nothing was signed or sent. Start it for the network your profile names, then commit again (carbon_commit).",
     "allowance_group_unmapped": "This is not a mistake on your side. The validator cannot yet place your coldkey in its list for graded exams, so it cannot grade this submission yet. No graded-exam slot was used for it. Try again later; if it keeps happening, send us the UTC time and the last 4 characters of your hotkey. Your frozen candidate is kept.",
