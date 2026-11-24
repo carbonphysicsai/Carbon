@@ -626,6 +626,14 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "module_name",
         ),
         (
+            # A host-named exam module (registry RB0, reviewed): imported only after its file's bytes hash to the pinned
+            # sha256; grading_scope lists the same site in DYNAMIC_SITES.
+            "carbon/challenge_registry/pinned_module.py",
+            "load",
+            "importlib.import_module",
+            "name",
+        ),
+        (
             # The worker image build-time smoke (reviewed): imports each module its generated list names, nothing else.
             "carbon/reconstruction/worker/image_modules.py",
             "smoke",
