@@ -1,0 +1,5 @@
+{
+  "schema": "carbon.challenge-registry.exam-registry.v1",
+  "source": "One row per '<challenge id> <version>' for the facts a version has no code-table row for (owner G-LEAD-61). Every value is the owner's, measured or receipted before it is added; a built-in row in a code table is never repeated here. Read by carbon/challenge_registry/exam_registry.py.",
+  "exams": {}
+}
