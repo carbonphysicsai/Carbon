@@ -39,6 +39,8 @@ NEXT_STEPS = {
     "after Carbon posts the fix.",
     "resubmit_program_changed": "Carbon's grading program changed while this grade was in progress; no slot was charged "
     "for it; resubmit it and it is built and graded again from the start under the current program.",
+    "nonfinite_first_returned": "The model returned a non-finite value. The first one in a day is given back and uses no "
+    "slot; a further one in the same day counts as a try.",
 }
 #: Carbon codes an automatic retry cannot fix (review of 15 Nov, finding 3): a vmap-64 grade off its sealed pack
 #: (`VMAP64_NEEDS_SEALED_PACK`). Never retried. (``graded_program_changed`` IS retried since switch 5: its hand-back
@@ -47,6 +49,11 @@ _NOT_RETRIED = frozenset({"vmap64_grade_needs_sealed_pack"})
 #: The next step a FAILED marker shows for a code that names its own (the operator's plain line), else the usual rule.
 #: ``resubmit_program_changed`` stays a closed code for markers written before switch 5; no code chooses it now.
 OWN_NEXT_STEPS = {}
+#: A proven non-finite answer of a version under owner G-LEAD-75 (`nonfinite_infer`), the first of its group's day: its slot
+#: is given back, it is the model's and never Carbon's, so no automatic retry and no owed list. A further one is
+#: CANDIDATE_FAILED under the same code (`AutoGrader._nonfinite`).
+NONFINITE_OUTPUT = "nonfinite_output"
+OWN_NEXT_STEPS[NONFINITE_OUTPUT] = "nonfinite_first_returned"
 #: Spacing of a task's second and later retry of the SAME cause after its scheduling (`due`): a backstop against a hot
 #: loop on one fault, with the per-cause and per-task caps below. 5 min (Validator-2's ruling on the over-broad rules
 #: audit #6, 18 Nov 2026: next tick for the first retry, then 5 min; was 15 min).
@@ -57,7 +64,7 @@ PER_CAUSE_RETRIES = 3
 TASK_RETRIES = 5
 #: A smaller bound for a code whose repeat is not plainly Carbon's: a timed answer beyond the speed-match tolerance
 #: keeps its one retry (Validator-2B ruling, 15 Nov; the speed gate stays honest), a second stays FAILED.
-CAUSE_RETRIES = {"speed_outputs_disagree": 1}
+CAUSE_RETRIES = {"speed_outputs_disagree": 1, NONFINITE_OUTPUT: 0}
 #: A graded inference whose worker program refused its own output (`bundle_construction_worker`'s check: shape, dtype,
 #: kind or a non-finite value; the carrier's marker OUTPUT_CONTRACT_DIFFERS). Deterministic: the same state and query
 #: give byte-identical failures (live-ops 20 Nov 20:27Z: 3 Motor 1.8 tasks, 4 attempts each, about 96 lane-min). Its

@@ -7,7 +7,9 @@ A row of ``exam_registry.json`` may carry ``build``:
 - ``graph_spec``: the graph route v2 facts of the version (`SPEC_FIELDS`), or null when it takes no graph recipes;
 - ``inference_program``: ``eager``, ``compiled`` or ``per_case`` (null exactly when ``graph_spec`` is);
 - ``total_wall_seconds`` (may be left out): the version's whole-task wall, an owner value at or above the one every
-  version with its rebuild wall has (`version_registry.task_wall_seconds`); raise-only.
+  version with its rebuild wall has (`version_registry.task_wall_seconds`); raise-only;
+- ``nonfinite_rule`` (may be left out): the version's rule for a proven non-finite answer (`NONFINITE_RULES`, owner
+  G-LEAD-75; `carbon.development_session.nonfinite_infer`); a version without it keeps today's.
 
 Every build site asks here FIRST and, for a version with no build row, runs the code it always ran. A version the code
 serves itself (`code_serves`) is never read from a row, so no row can move a live version; only a NEW version of any
@@ -52,7 +54,9 @@ SPEC_FIELDS = (
     "trust_outputs",
 )
 _BLOCK = {"module", "sha256", "graph_spec", "inference_program"}
-_OPTIONAL = {"total_wall_seconds"}
+_OPTIONAL = {"total_wall_seconds", "nonfinite_rule"}
+#: The registered non-finite rules (`nonfinite_infer.RULE`; a test holds them equal).
+NONFINITE_RULES = ("first_free_per_day.v1",)
 _SHA = re.compile(r"[0-9a-f]{64}")
 _LOG = logging.getLogger(__name__)
 _REFUSED: dict = {}
@@ -94,6 +98,10 @@ def _check(key, block) -> None:
     ):
         raise ExamBuildRefused("build_total_wall_seconds")
     spec, program = block["graph_spec"], block["inference_program"]
+    if "nonfinite_rule" in block and (
+        block["nonfinite_rule"] not in NONFINITE_RULES or spec is None
+    ):
+        raise ExamBuildRefused("build_nonfinite_rule")
     if (spec is not None) != (entry.graph_adapter == "v2"):
         raise ExamBuildRefused("build_graph_spec_differs_from_the_version")
     if spec is None:
@@ -177,6 +185,12 @@ def total_wall_seconds(challenge_id: str, version: str) -> int | None:
     """The whole-task wall the version's build row names, or None."""
     found = block(challenge_id, version)
     return None if found is None else found.get("total_wall_seconds")
+
+
+def nonfinite_rule(challenge_id: str, version: str) -> str | None:
+    """The non-finite rule the version's build row names, or None."""
+    found = block(challenge_id, version)
+    return None if found is None else found.get("nonfinite_rule")
 
 
 def graph_specs():

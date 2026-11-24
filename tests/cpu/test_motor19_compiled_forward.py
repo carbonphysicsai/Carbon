@@ -14,7 +14,7 @@ import pytest
 
 from carbon.challenge_kit import physical_material, physical_public
 from carbon.development_session import direct_graph_construction_worker as worker
-from carbon.development_session import physical_graph_adapter_v2
+from carbon.development_session import nonfinite_infer, physical_graph_adapter_v2
 
 MOTOR_18 = ("electric-motor-magnetics", "1.8")
 MOTOR_19 = ("electric-motor-magnetics", "1.9")
@@ -33,7 +33,8 @@ def test_motor_1_9_is_compiled_and_grades_in_one_process():
 def test_motor_1_9_gets_the_compiled_program_and_keeps_its_trust_query():
     assert (
         worker.v2_infer_query(*MOTOR_19)["program"]
-        == worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+        # its output check split in two (owner G-LEAD-75), nothing else
+        == nonfinite_infer.program(worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM)
     )
     spec = physical_graph_adapter_v2.SPECS[MOTOR_19]
     if spec.trust_outputs:

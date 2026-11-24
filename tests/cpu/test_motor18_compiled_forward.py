@@ -27,6 +27,7 @@ from carbon.challenge_validator import speed_match
 from carbon.development_session import (
     bundle_construction_worker,
     direct_graph_construction_worker,
+    nonfinite_infer,
     paired_inference,
     physical_graph_adapter_v2,
     single_call_timing,
@@ -67,7 +68,9 @@ def test_only_motor_1_8_gets_the_vmap64_program_and_every_other_program_keeps_it
         if key == MOTOR_18:
             expected = _vmap64()
         elif key in worker.JIT_INFERENCE_VERSIONS:
-            expected = worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+            expected = nonfinite_infer.for_version(
+                *key, worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+            )
         else:
             expected = worker.PHYSICAL_V2_INFER_PROGRAM
         assert program == expected, key

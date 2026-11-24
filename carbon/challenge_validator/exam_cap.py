@@ -112,6 +112,8 @@ COUNTED = frozenset(
         # The candidate's graph hit the inference wall twice in the official grade's pair
         # (Validator ruling, 2026-11-01): typed, unscored, charged.
         "WORKER_WALL_LIMIT_REACHED",
+        # A further proven non-finite answer of a group's day on a version under G-LEAD-75 (`settle_nonfinite`).
+        "NONFINITE_OUTPUT",
         # A copy of a recipe already graded on this key (OWNER-PROBING-COUNTERS-01 (b), `recipe_copies`): no exam read,
         # answered with the first copy's grade, its slot charged to its own allowance (Carbon Validator 6 Nov 11:03 (3): no free probe).
         "DUPLICATE_OF_EARLIER",
@@ -1082,6 +1084,72 @@ class ExamCap:
                     hotkey,
                     int(since_ns),
                 ),
+            ).rowcount
+        return "COUNTED" if changed == 1 else None
+
+    def settle_nonfinite(
+        self,
+        *,
+        hotkey,
+        challenge_id,
+        challenge_version,
+        exam_key,
+        submission_id,
+        since_ns,
+        returned,
+    ) -> str | None:
+        """A proven non-finite answer of a version under owner G-LEAD-75 (`nonfinite_infer`): the first in a day of its
+        allowance group on this Challenge is left RELEASED (``"FIRST"``: the caller gives it back), every further one
+        is COUNTED / NONFINITE_OUTPUT (``"COUNTED"``). The group is the one the row was filed under (`group_of`): its
+        own hotkey until an allowance grouping is installed, plus this hotkey's own rows, as the daily limit reads them.
+
+        Only this attempt's own GRADED row in exactly RELEASED / UNAVAILABLE (the bank grade settled it so before the
+        failure reached the auto-grader), as `count_candidate_wall`; else None and nothing moves. An earlier one is a row
+        COUNTED / NONFINITE_OUTPUT, or RELEASED / FAILED_INFRA for which ``returned(submission_id)`` is true (its grade
+        marker names the non-finite code). No new column and no new table. The day is the daily allowance's
+        (`DAY_EPOCHS` rounds), on either side: two rounds graded out of order are still one day.
+        """
+        values = (hotkey, challenge_id, challenge_version, exam_key, submission_id)
+        if not all(type(value) is str and value for value in values):
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        with self.ledger._db() as db:
+            row = db.execute(
+                f"SELECT id, epoch, {_ROW_GROUP} FROM exam_graded WHERE challenge_id=? AND challenge_version=? AND "
+                "exam_key=? AND submission_id=? AND hotkey=? AND kind='GRADED' AND state='RELEASED' AND "
+                "status='UNAVAILABLE' AND reserved_ns>=?",
+                (
+                    challenge_id,
+                    challenge_version,
+                    exam_key,
+                    submission_id,
+                    hotkey,
+                    int(since_ns),
+                ),
+            ).fetchone()
+            if row is None:
+                return None
+            number, epoch, group = row
+            earlier = db.execute(
+                f"SELECT state, status, submission_id FROM exam_graded WHERE ({_ROW_GROUP}=? OR hotkey=?) AND "
+                "challenge_id=? AND kind='GRADED' AND submission_id<>? AND epoch>? AND epoch<? AND "
+                "((state='COUNTED' AND status='NONFINITE_OUTPUT') OR (state='RELEASED' AND status='FAILED_INFRA'))",
+                (
+                    group,
+                    hotkey,
+                    challenge_id,
+                    submission_id,
+                    epoch - DAY_EPOCHS,
+                    epoch + DAY_EPOCHS,
+                ),
+            ).fetchall()
+            if not any(
+                state == "COUNTED" or returned(other) for state, _, other in earlier
+            ):
+                return "FIRST"
+            changed = db.execute(
+                "UPDATE exam_graded SET state='COUNTED', status='NONFINITE_OUTPUT', settled_ns=? WHERE id=? AND "
+                "state='RELEASED' AND status='UNAVAILABLE'",
+                (int(self.clock()), number),
             ).rowcount
         return "COUNTED" if changed == 1 else None
 

@@ -107,6 +107,8 @@ class _NextTask(Exception):
 _NEXT = object()
 #: The set of stalled tasks is replaced whole by a door's grade threads; one at a time.
 _STALLED_LOCK = threading.Lock()
+#: One non-finite decision at a time (`AutoGrader._nonfinite`).
+_NONFINITE_LOCK = threading.Lock()
 #: When this module was first loaded (the door's start, near enough): `stranded_filed` names its seconds after it.
 _PROCESS_START = time.monotonic()
 
@@ -1530,6 +1532,9 @@ class AutoGrader:
                     pass_name=getattr(failure, "carbon_pass", None),
                 )
                 return submission_id, "CANDIDATE_FAILED"
+            outcome = self._nonfinite(submission_id, failure, started_ns)
+            if outcome is not None:
+                return submission_id, outcome
             from . import auto_retry
 
             self._fail(
@@ -1990,6 +1995,77 @@ class AutoGrader:
         except OSError:
             pass
         return counted
+
+    def _nonfinite(self, submission_id, failure, started_ns):
+        """Owner G-LEAD-75 on a version under the rule: a PROVEN non-finite answer (`nonfinite_infer.proven`) is the
+        model's. The first of its group's day is FAILED / nonfinite_output with its slot given back; every further one is
+        CANDIDATE_FAILED / nonfinite_output, COUNTED. None (the usual path) for anything else. One at a time, marker
+        included: the next decision reads this one's marker.
+        """
+        from carbon.development_session import nonfinite_infer
+
+        from . import auto_retry, exam_cap
+
+        adapter = self.intake.adapter
+        if not nonfinite_infer.proven(failure):
+            return None
+        challenge = getattr(adapter, "challenge_id", None)
+        version = getattr(adapter, "challenge_version", None)
+        try:
+            if not nonfinite_infer.applies(challenge, version):
+                return None
+        except Exception:  # noqa: BLE001 - an unreadable registry row: the usual path
+            return None
+
+        def returned(other):
+            marker = self.marker(other) or {}
+            return (
+                marker.get("state") == "FAILED"
+                and marker.get("code") == auto_retry.NONFINITE_OUTPUT
+            )
+
+        with _NONFINITE_LOCK:
+            settled = None
+            try:
+                owner = adapter.owner(submission_id)
+                exam_key = adapter.discovery.evaluation_pack_digest
+                if owner is not None and exam_key is not None:
+                    settled = exam_cap.ExamCap(adapter.ledger).settle_nonfinite(
+                        hotkey=owner,
+                        challenge_id=challenge,
+                        challenge_version=version,
+                        exam_key=exam_key,
+                        submission_id=submission_id,
+                        since_ns=started_ns,
+                        returned=returned,
+                    )
+            except Exception:  # noqa: BLE001 - given back, never a crash
+                settled = None
+            if settled == "COUNTED":
+                self._write(
+                    submission_id,
+                    "CANDIDATE_FAILED",
+                    code=auto_retry.NONFINITE_OUTPUT,
+                )
+            else:
+                self._fail(submission_id, auto_retry.NONFINITE_OUTPUT)
+        try:
+            from carbon.battery.intake import log
+
+            log(
+                "nonfinite_output",
+                task=submission_id,
+                settled=settled,
+                # the owner's count is per funding group; until a grouping is installed it is per hotkey
+                counted_per=(
+                    "hotkey_no_grouping_installed"
+                    if exam_cap.GROUPING is None
+                    else "allowance_group"
+                ),
+            )
+        except Exception:  # noqa: BLE001, S110 - a log line never stops a grade
+            pass
+        return "CANDIDATE_FAILED" if settled == "COUNTED" else "FAILED"
 
     def _count_wall(self, submission_id, *, since_ns):
         """Re-settle this task's slot COUNTED as the candidate's wall stop (`ExamCap.count_candidate_wall`); False

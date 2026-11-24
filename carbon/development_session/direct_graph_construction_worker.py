@@ -21,6 +21,7 @@ from carbon.challenge_validator.strict_json import MalformedStrategy, parse_stra
 from carbon.level4 import staging
 from carbon.reconstruction.worker.model import WorkerImageIdentity
 
+from . import nonfinite_infer
 from .bundle_construction_worker import (
     TIMING_WALL_SECONDS_MAX,
     BundleBuildResult,
@@ -825,10 +826,14 @@ def case_procs_infer_program(challenge_id: str, version: str) -> str:
     wall = physical_material.construction_limits_document(challenge_id, version)[
         "reconstruction_resource_policy"
     ]["inference_wall_seconds_max"]
-    return case_procs.procs_program(
-        PHYSICAL_V2_COMPILED_INFER_PROGRAM,
-        _version_memory_bytes(challenge_id, version),
-        wall,
+    return nonfinite_infer.for_version(
+        challenge_id,
+        version,
+        case_procs.procs_program(
+            PHYSICAL_V2_COMPILED_INFER_PROGRAM,
+            _version_memory_bytes(challenge_id, version),
+            wall,
+        ),
     )
 
 
@@ -875,10 +880,14 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
             else (
                 case_procs_infer_program(challenge_id, version)
                 if procs
-                else (
-                    PHYSICAL_V2_COMPILED_INFER_PROGRAM
-                    if compiled
-                    else PHYSICAL_V2_INFER_PROGRAM
+                else nonfinite_infer.for_version(
+                    challenge_id,
+                    version,
+                    (
+                        PHYSICAL_V2_COMPILED_INFER_PROGRAM
+                        if compiled
+                        else PHYSICAL_V2_INFER_PROGRAM
+                    ),
                 )
             )
         ),
@@ -911,6 +920,8 @@ def v2_trust_infer_query(challenge_id: str, version: str, trust_outputs: int) ->
         "carbon.development_session.physical_graph_state_v2",
     )
     program = trust_program(query["program"])
+    if nonfinite_infer.applies(challenge_id, version):
+        program = nonfinite_infer.trust(program)
     if program.count(repr(modules)) != 1:
         raise RuntimeError("graph route v2 trust inference program anchor moved")
     program = program.replace(repr(modules), repr((*modules, state_v3)))

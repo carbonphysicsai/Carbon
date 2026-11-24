@@ -19,6 +19,7 @@ from carbon.development_session import (
     direct_graph_construction_worker as graph_worker,
 )
 from carbon.development_session import (
+    nonfinite_infer,
     trust_infer,
 )
 from carbon.development_session.construction_recipe import RecipeRefused
@@ -245,6 +246,8 @@ def test_the_trust_query_is_the_versions_own_program_plus_the_count():
         "carbon.development_session.physical_graph_state_v2",
     )
     expected = trust_infer.trust_program(plain["program"])
+    if nonfinite_infer.applies(*key):
+        expected = nonfinite_infer.trust(expected)
     assert expected.count(repr(modules)) == 1
     assert trust["program"] == expected.replace(
         repr(modules), repr((*modules, state_v3))

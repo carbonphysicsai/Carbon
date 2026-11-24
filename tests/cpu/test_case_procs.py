@@ -30,6 +30,7 @@ from carbon.development_session import (
     bundle_construction_worker,
     case_procs,
     direct_graph_construction_worker,
+    nonfinite_infer,
     paired_inference,
     physical_graph_adapter_v2,
     single_call_timing,
@@ -64,7 +65,10 @@ def test_only_motor_1_8_gets_the_per_case_processes_program():
             expected = _procs()
         elif key in worker.JIT_INFERENCE_VERSIONS:
             # Motor 1.9 (audit #16): compiled, one process (its trust query needs a program with a trust variant)
-            expected = worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+            # (its output check split for a version under owner G-LEAD-75's rule)
+            expected = nonfinite_infer.for_version(
+                *key, worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+            )
         else:
             expected = worker.PHYSICAL_V2_INFER_PROGRAM
         assert program == expected, key

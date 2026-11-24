@@ -1112,6 +1112,8 @@ GRADING_PATHS = (
     "carbon/development_session/single_call_timing.py",
     # the self-trust inference program variant (SELF_TRUST H3f): the graded container's split of a trust candidate's output
     "carbon/development_session/trust_infer.py",
+    # the non-finite rule's split of a program's output check (owner G-LEAD-75)
+    "carbon/development_session/nonfinite_infer.py",
     # the per-version trust training registration (SELF_TRUST H3d-2c): the derive and the owner's values the trust trainer reads
     "carbon/development_session/physical_graph_trust_registry.py",
     # Motor 1.9's trust derive, the jax map that registration names (owner MOTOR19-TRUST-REGISTRATION)

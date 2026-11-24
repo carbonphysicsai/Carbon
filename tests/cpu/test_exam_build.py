@@ -177,6 +177,8 @@ def _spec(**changes):
         _block(total_wall_seconds=version_registry.task_wall_seconds(648) - 1),
         _block(total_wall_seconds=2000.0),
         _block(total_wall_seconds=None),
+        _block(nonfinite_rule="always_free"),
+        _block(nonfinite_rule=None),
         _block(graph_spec=_spec(trust_outputs=1), inference_program="per_case"),
     ],
 )

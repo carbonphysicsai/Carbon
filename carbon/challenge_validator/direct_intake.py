@@ -161,6 +161,9 @@ WITHDRAW_FACTS_NAME = "construction_withdraw_v1"
 FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 #: The reasons only a v7 reply carries.
 V7_ONLY_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
+#: The closed public code of a proven non-finite answer (owner G-LEAD-75, `auto_retry.NONFINITE_OUTPUT`; a test holds
+#: them equal), in the ``failure`` of a v4+ reply. A reply's shape does not change.
+NONFINITE_OUTPUT = "nonfinite_output"
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V4 = (
     *GRADE_STATES_V3,
@@ -1350,12 +1353,19 @@ class DirectRecipeIntake(BatteryIntake):
                 return state, self.failure_v4(child, observation, code)
             return ("FAILED_INFRA" if state == "FAILED_INFRA" else "QUEUED"), None
         if marker.get("state") == "CANDIDATE_FAILED":
+            if marker.get("code") == NONFINITE_OUTPUT:
+                return "CANDIDATE_FAILED", self.failure_v4(
+                    "inference", None, NONFINITE_OUTPUT
+                )
             return "CANDIDATE_FAILED", self.failure_v4("inference", marker.get("code"))
         if marker.get("state") == "DUPLICATE":
             # A copy of a recipe already graded on this key (OWNER-PROBING-COUNTERS-01 (b)): its own slot is counted
             # (no free probe), so v4 says GRADED, never NOT_GRADED ('given back, nothing charged': Validator-2B 7 Nov).
             # Nothing of the first's is added to the copier's reply: not its id, its owner or its private feedback.
             return "GRADED", None
+        if marker.get("state") == "FAILED" and marker.get("code") == NONFINITE_OUTPUT:
+            # the first proven non-finite answer of a day (owner G-LEAD-75): the model's, given back, never Carbon's
+            return "NOT_GRADED", self.failure_v4("inference", None, NONFINITE_OUTPUT)
         if marker.get("state") == "FAILED":
             return "FAILED_INFRA", None
         if marker.get("state") == "VERSION_CLOSED":
