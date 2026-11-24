@@ -17,7 +17,9 @@ NOW = 1_800_000_000_000
 def test_v4_is_v3_with_only_the_live_challenge():
     v3, v4 = wd.load_policy("mainnet-winner-v3"), wd.load_policy("mainnet-winner-v4")
     assert v4.challenges == (MOTOR,) and v4.share == Q12
-    assert v3.share * 4 == Q12  # v3: four Challenges x 1/4 (three unlaunched = 75 % burned)
+    assert (
+        v3.share * 4 == Q12
+    )  # v3: four Challenges x 1/4 (three unlaunched = 75 % burned)
     for field in (
         "network",
         "netuid",
