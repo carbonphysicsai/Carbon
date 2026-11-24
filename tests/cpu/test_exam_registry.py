@@ -27,6 +27,9 @@ GOOD = {
     "published": {"path": "kits/zz/published.json", "sha256": SHA},
     "build": {"anything": 1},
 }
+NESTED = 0
+for _ in range(exam_registry.MAX_DEPTH + 1):
+    NESTED = [NESTED]
 ENTRY = {
     "challenge_id": "zz-synthetic",
     "version": "0.1",
@@ -134,6 +137,10 @@ def test_a_row_of_an_unregistered_version_answers_nothing(tmp_path):
         {"verify_set": {"path": "a//b", "sha256": SHA}},
         {"published": {"path": "a\\b", "sha256": SHA}},
         {"build": {}},
+        # an integer too large for a float, an infinite number, a value nested deeper than the bound
+        {"solver_seconds_per_design": {"value": 10**400, "source": "s"}},
+        {"rebuild_gpu_lane_hours": {"value": 10**400, "measurement_digest": DIGEST}},
+        {"build": {"nested": NESTED}},
     ],
 )
 def test_a_malformed_row_refuses_itself_and_no_other_row(tmp_path, change):
@@ -143,6 +150,15 @@ def test_a_malformed_row_refuses_itself_and_no_other_row(tmp_path, change):
     assert set(out["fields"].values()) == {None}
     assert out["require"].startswith("zz-synthetic 0.1: ")
     assert out["steps"] == [None]
+
+
+def test_an_infinite_number_in_a_row_refuses_that_row(tmp_path):
+    path = tmp_path / "r.json"
+    good = json.dumps(GOOD)
+    text = '{"zz-synthetic 0.1": {"build": {"x": 1e999}}, "zz-other 0.1": ' + good
+    path.write_text(_HEAD + text + "}}", encoding="utf-8")
+    out = _run(tmp_path, [str(path)])
+    assert list(out["refused"]) == ["zz-synthetic 0.1"] and out["steps"] == [None]
 
 
 def test_a_key_that_names_no_version_is_refused_alone(tmp_path):
@@ -186,6 +202,11 @@ _HEAD = (
         '{"schema": "other", "source": "", "exams": {}}',
         _HEAD + '{"zz-a 1": {}, "zz-a 1": {}}}',
         _HEAD + '{"zz-a 1": {"build": {"x": NaN}}}}',
+        # nesting beyond the JSON reader's own limit
+        pytest.param(
+            _HEAD + '{"zz-a 1": {"build": ' + "[" * 200_000 + "]" * 200_000 + "}}}",
+            id="nested-too-deep",
+        ),
     ],
 )
 def test_a_file_that_is_not_a_registry_is_refused_whole(tmp_path, text):
