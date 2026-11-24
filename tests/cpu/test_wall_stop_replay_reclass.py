@@ -569,3 +569,96 @@ def test_a_resume_that_cannot_replace_the_marker_changes_nothing_more(
     assert out["refused"] == "reclass_marker_replace_failed"
     assert len(_records(root)) == 1  # no second record for a failed resume
     assert sorted(p.name for p in path.parent.iterdir()) == [A + ".json"]
+
+
+# -- a counted non-finite answer ruled wrong (owner G-LEAD-75; v2 24 Nov 2026) -----------------------------------------------------
+
+
+def _counted_nonfinite(tmp_path):
+    root, ledger = _root(tmp_path)
+    path = _marker_file(root, A, code=auto_retry.NONFINITE_OUTPUT)
+    _row(ledger, A, "COUNTED", "NONFINITE_OUTPUT")
+    return root, ledger, path
+
+
+def test_a_counted_non_finite_answer_is_given_back_the_same_way(tmp_path):
+    root, ledger, path = _counted_nonfinite(tmp_path)
+    before = path.read_bytes()
+    dry = infra_requeue.reclass(root, A, ruling=RULING)
+    assert dry["reclassed"]["prior_status"] == "NONFINITE_OUTPUT"
+    assert path.read_bytes() == before
+    out = infra_requeue.reclass(root, A, ruling=RULING, apply=True, clock=lambda: 7)
+    assert "refused" not in out
+    assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
+    marker = _read(path)
+    assert (marker["state"], marker["code"]) == (
+        "FAILED",
+        infra_requeue.RECLASSED_CODE,
+    )
+    (line,) = (
+        (root / "auto-grade" / "requeued" / "reclass.jsonl").read_text().splitlines()
+    )
+    record = json.loads(line)
+    assert record["marker_code"] == "nonfinite_output"
+    assert record["prior_status"] == "NONFINITE_OUTPUT"
+    assert record["reason"] == "counted_nonfinite_output_ruled_not_the_candidates"
+    # it is Carbon's now, and no longer an earlier non-finite answer of the day (its marker names another code)
+    assert _Intake(path)._grade_state_v4("hotkey", A) == ("FAILED_INFRA", None)
+    assert marker["code"] != auto_retry.NONFINITE_OUTPUT
+    again = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert again["refused"] == "already_given_back"
+
+
+def test_a_marker_and_a_row_of_two_outcomes_are_refused(tmp_path):
+    for n, (code, status) in enumerate(
+        (
+            ("WORKER_WALL_LIMIT_REACHED", "NONFINITE_OUTPUT"),
+            (auto_retry.NONFINITE_OUTPUT, "WORKER_WALL_LIMIT_REACHED"),
+        )
+    ):
+        (tmp_path / str(n)).mkdir(mode=0o700)
+        root, ledger = _root(tmp_path / str(n))
+        _marker_file(root, A, code=code)
+        _row(ledger, A, "COUNTED", status)
+        out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+        assert out["refused"] == "reclass_no_single_counted_wall_row"
+        assert _rows(ledger, A) == [("COUNTED", status)]
+
+
+def test_the_cap_gives_back_only_the_two_counted_candidate_outcomes(tmp_path):
+    root, ledger = _root(tmp_path)
+    del root
+    _row(ledger, A, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+    with pytest.raises(ExamCapRefused) as caught:
+        ExamCap(ledger).reclass_counted_wall(A, status="SCORED_DEVELOPMENT_CANDIDATE")
+    assert caught.value.code == "reclass_status_not_a_counted_candidate_outcome"
+    assert _rows(ledger, A) == [("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")]
+    assert set(infra_requeue.RECLASSED_OUTCOMES) == {
+        "WORKER_WALL_LIMIT_REACHED",
+        auto_retry.NONFINITE_OUTPUT,
+    }
+
+
+def test_an_interrupted_non_finite_reclass_is_finished_by_the_same_command(
+    tmp_path, monkeypatch
+):
+    root, ledger, path = _counted_nonfinite(tmp_path)
+    real = infra_requeue._write_reclassed_marker
+
+    def refuse(*_args):
+        raise OSError("disk")
+
+    monkeypatch.setattr(infra_requeue, "_write_reclassed_marker", refuse)
+    out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert out["marker"]["replaced"] is False
+    monkeypatch.setattr(infra_requeue, "_write_reclassed_marker", real)
+    done = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert done["marker"]["replaced"] is True
+    assert _read(path)["code"] == infra_requeue.RECLASSED_CODE
+    assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
+    last = json.loads(
+        (root / "auto-grade" / "requeued" / "reclass.jsonl")
+        .read_text()
+        .splitlines()[-1]
+    )
+    assert (last["marker_code"], last["resumed"]) == ("nonfinite_output", True)

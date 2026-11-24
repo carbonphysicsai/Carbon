@@ -78,10 +78,11 @@ or when the row is not COUNTED. Whether the result was filed in the pool/KOTH st
 
 ``reclass`` (13 Nov; the owner path for a COUNTED candidate wall stop the Validator ruled was not the candidate's): one
 task whose marker is CANDIDATE_FAILED / WORKER_WALL_LIMIT_REACHED and whose exam row is exactly one GRADED row COUNTED /
-WORKER_WALL_LIMIT_REACHED is given back through `ExamCap.reclass_counted_wall`: RELEASED / FAILED_INFRA, so the miner's
-resubmit of the recipe runs as a FRESH task in their next slot. ``--ruling`` names the Validator's ruling (a closed id, e.g.
-``CVMOTORC-L9753``) and is required; it is written, with the prior state, to ``requeued/reclass.jsonl``. NO regrade, NO
-rescore, NO re-queue (a re-queue would replay the task's settled FAILED_MINER operation). The miner-facing marker is
+WORKER_WALL_LIMIT_REACHED (or, for a proven non-finite answer ruled wrong, CANDIDATE_FAILED / nonfinite_output with
+COUNTED / NONFINITE_OUTPUT: `RECLASSED_OUTCOMES`) is given back through `ExamCap.reclass_counted_wall`: RELEASED /
+FAILED_INFRA, so the miner's resubmit of the recipe runs as a FRESH task in their next slot. ``--ruling`` names the
+Validator's ruling (a closed id, e.g. ``CVMOTORC-L9753``) and is required; it is written, with the prior state, to
+``requeued/reclass.jsonl``. NO regrade, NO rescore, NO re-queue (a re-queue would replay the task's settled FAILED_MINER operation). The miner-facing marker is
 REPLACED, so the miner stops seeing "your program hit the wall" once the ledger says RELEASED / FAILED_INFRA (invariant 7;
 Validator-2C): the old marker is first copied byte-for-byte to ``requeued/reclass-kept/<id>.json`` (create-only, fsynced; its
 sha256 goes into the reclass record), then the new marker (FAILED, ``reclassed_not_the_candidates``, next step
@@ -1000,6 +1001,17 @@ def release(root, task, *, apply=False, clock=time.time_ns):
 _RULING = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{2,95}")
 #: The marker code and next step a re-classed task shows (`auto_retry.NEXT_STEPS`: "slot_returned").
 RECLASSED_CODE = "reclassed_not_the_candidates"
+#: The counted candidate outcomes ``reclass`` may give back: ``{marker code: (the exam row's status, the record's reason)}``.
+RECLASSED_OUTCOMES = {
+    "WORKER_WALL_LIMIT_REACHED": (
+        "WORKER_WALL_LIMIT_REACHED",
+        "counted_wall_stop_ruled_not_the_candidates",
+    ),
+    "nonfinite_output": (
+        "NONFINITE_OUTPUT",
+        "counted_nonfinite_output_ruled_not_the_candidates",
+    ),
+}
 
 
 def _marker_body(path):
@@ -1131,7 +1143,7 @@ def _resumable(root, task, paths, records):
     if (
         document is None
         or document.get("state") != "CANDIDATE_FAILED"
-        or document.get("code") != "WORKER_WALL_LIMIT_REACHED"
+        or document.get("code") not in RECLASSED_OUTCOMES
     ):
         return None
     if any(record.get("marker_replaced") is not False for record in records):
@@ -1145,6 +1157,7 @@ def _resumable(root, task, paths, records):
         "row": rows[0][0],
         "kept_sha256": hashlib.sha256(kept_bytes).hexdigest(),
         "entry_id": document.get("entry_id"),
+        "code": document["code"],
     }
 
 
@@ -1172,13 +1185,13 @@ def _resume(root, task, paths, resumable, records, out, *, ruling, clock):
         "prior_state": earlier.get("prior_state"),
         "prior_status": earlier.get("prior_status"),
         "marker_state": "CANDIDATE_FAILED",
-        "marker_code": "WORKER_WALL_LIMIT_REACHED",
+        "marker_code": resumable["code"],
         "marker_kept_sha256": resumable["kept_sha256"],
         "marker_replaced": True,
         "resumed": True,
         "state": "RELEASED",
         "status": "FAILED_INFRA",
-        "reason": "counted_wall_stop_ruled_not_the_candidates",
+        "reason": RECLASSED_OUTCOMES[resumable["code"]][1],
         "ruling": ruling,
         "wall_stop": wall_stop,
         "at_ns": int(clock()),
@@ -1223,14 +1236,13 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
         # an incomplete earlier run whose state is no longer what it left: nothing to finish, nothing to redo
         return {**out, "refused": "already_given_back"}
     state, code = _marker_body(paths["marker"])
-    if state != "CANDIDATE_FAILED" or code != "WORKER_WALL_LIMIT_REACHED":
+    if state != "CANDIDATE_FAILED" or code not in RECLASSED_OUTCOMES:
         return {**out, "refused": "marker_is_not_a_counted_wall_stop"}
+    status, reason = RECLASSED_OUTCOMES[code]
     ledger, cap = _ledger(root)
     with ledger._db() as db:
         counted = [
-            row
-            for row in _rows(db, task)
-            if row[1] == "COUNTED" and row[2] == "WORKER_WALL_LIMIT_REACHED"
+            row for row in _rows(db, task) if row[1] == "COUNTED" and row[2] == status
         ]
         if len(counted) != 1 or len(_rows(db, task)) != 1:
             return {**out, "refused": "reclass_no_single_counted_wall_row"}
@@ -1251,7 +1263,7 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
     except OSError:
         return {**out, "refused": "reclass_kept_copy_unavailable"}
     try:
-        done = cap.reclass_counted_wall(task)
+        done = cap.reclass_counted_wall(task, status=status)
     except ExamCapRefused as refused:
         return {**out, "refused": refused.code}
     marker_replaced = True
@@ -1270,7 +1282,7 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
         "marker_replaced": marker_replaced,
         "state": "RELEASED",
         "status": "FAILED_INFRA",
-        "reason": "counted_wall_stop_ruled_not_the_candidates",
+        "reason": reason,
         "ruling": ruling,
         "wall_stop": wall_stop,
         "at_ns": int(clock()),
