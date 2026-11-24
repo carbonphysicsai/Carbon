@@ -587,13 +587,16 @@ class WinnerLedger:
         *,
         belongs=None,
         fallback=None,
+        decided_as=None,
     ):
         """The Challenge's current record, recording `promotion` first if it
         is new. None when the Challenge has no incumbent. ``journal`` (the door
         event that crowned it, from a replay) is stored beside the decision; it
         never enters the decision. ``belongs`` (a king hand-over) limits the
         predecessor to the records of `promotion`'s own store; ``fallback`` is
-        the predecessor while that store has none."""
+        the predecessor while that store has none; ``decided_as`` is the
+        promotion the decision reads when the crown it beat was never recorded
+        (the record keeps `promotion` itself)."""
         if promotion is None:
             return None
         mine = self.records(challenge)
@@ -604,8 +607,15 @@ class WinnerLedger:
             mine = [r for r in mine if belongs(r)]
         previous = mine[-1] if mine else fallback
         record = decide(
-            policy, challenge, promotion, previous, coldkeys, now_ms, crowned_ms
+            policy,
+            challenge,
+            promotion if decided_as is None else decided_as,
+            previous,
+            coldkeys,
+            now_ms,
+            crowned_ms,
         )
+        record = {**record, "promotion": promotion}
         if journal is not None:
             record = {**record, "journal": journal}
         self._append(record)

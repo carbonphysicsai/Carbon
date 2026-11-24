@@ -381,12 +381,16 @@ class TestnetWinnerIntentIssuer:
         }
 
     def _handed_over(self, challenge, snapshot, *, observe, preview):
-        """The one record a Challenge in a king hand-over pays, never two: the new version's king once one is payable
-        (or was when it was recorded), else the previous version's. A king of one store is never another store's
-        predecessor, except that the new version's FIRST king follows the last previous one (`decide`'s same-miner
-        rule, unchanged). A new crown graded on a pack the policy does not qualify is not recorded (a record is
-        permanent) and takes nothing from the previous king; under the policy that qualifies it, it is replayed.
-        """
+        """The one record a Challenge in a king hand-over pays, never two: the new version's king once one is payable,
+        else the previous version's. A king of one store is never another store's predecessor, except that the new
+        version's FIRST recorded king follows the last previous one (`decide`'s same-miner rule, unchanged).
+
+        Until it is over, a new crown that cannot be paid takes nothing from the previous king and stops no cycle: one
+        graded on a pack the policy does not qualify, or whose hotkey is not registered, is not recorded (a record is
+        permanent) and is replayed later; one inside the replayed journal is passed over (`_steps`). Under a registered
+        baseline the new store's first incumbent is recorded ineligible, as on a fresh ledger. It is over once a new
+        king was payable when the loop observed him (a king replayed behind a later one never was); from then on only
+        the new store is read, by the ordinary rules."""
         from carbon.challenge_validator.canary import is_canary
 
         handover = self.handovers[challenge]
@@ -405,34 +409,47 @@ class TestnetWinnerIntentIssuer:
         registered = {p.hotkey for p in snapshot.participants}
         mine = self.ledger.records(challenge)
         before = [r for r in mine if old(r)]
+        # the last king recorded in each observation: the one that held the crown when the loop looked
+        seen = {r["observed_ms"]: r for r in mine if new(r)}
+        over = any(
+            r["eligible"]
+            and r.get("winner_coldkey") is not None
+            and not is_canary(r["promotion"]["hotkey"])
+            for r in seen.values()
+        )
         promotion = self._promotion(challenge)
-        current = None
-        if promotion is not None and self._qualified(challenge, promotion):
+        fallback = before[-1] if before else None
+        if over:
+            return self._record(
+                challenge,
+                promotion,
+                self.replays[challenge],
+                snapshot,
+                belongs=new,
+                fallback=fallback,
+                **mode,
+            )
+        if (
+            promotion is not None
+            and promotion["hotkey"] in registered
+            and self._qualified(challenge, promotion)
+        ):
             current = self._record(
                 challenge,
                 promotion,
                 self.replays[challenge],
                 snapshot,
                 belongs=new,
-                fallback=before[-1] if before else None,
+                fallback=(
+                    fallback if self.policy.baseline(challenge) is None else None
+                ),
                 whole=True,
                 **mode,
             )
-        if (
-            current is not None
-            and payable(current, registered) is not None
-            and not is_canary(current["promotion"]["hotkey"])
-        ):
-            return current
-        if any(
-            new(r) and r["eligible"]
-            # its hotkey was in the snapshot when the crown was recorded
-            and r.get("winner_coldkey") is not None
-            and not is_canary(r["promotion"]["hotkey"])
-            for r in mine
-        ):
-            # the hand-over is over: the previous version's king is never paid again
-            return current
+            if payable(current, registered) is not None and not is_canary(
+                current["promotion"]["hotkey"]
+            ):
+                return current
         return self._record(
             challenge,
             self._promotion(challenge, handover.source),
@@ -441,6 +458,29 @@ class TestnetWinnerIntentIssuer:
             belongs=old,
             **mode,
         )
+
+    @staticmethod
+    def _steps(crowns, mine, coldkeys, whole):
+        """Each replayed crown as ``(crown, decided_as, journal, crowned_ms)``. In a hand-over (``whole``) a crown whose
+        hotkey is not registered is passed over, and the next one is decided against the last king that IS recorded: as
+        a first incumbent while its store has none. Otherwise every crown, decided as itself.
+        """
+        last = mine[-1]["promotion"] if mine else None
+        for crown, journal, crowned_ms in crowns:
+            decided = None
+            if whole:
+                if crown["hotkey"] not in coldkeys:
+                    continue
+                if crown["kind"] != FIRST and last is None:
+                    decided = {**crown, "kind": FIRST}
+                elif crown["kind"] != FIRST and crown["previous"] != last["model_id"]:
+                    decided = {
+                        **crown,
+                        "previous": last["model_id"],
+                        "previous_hotkey": last["hotkey"],
+                    }
+            yield crown, decided, journal, crowned_ms
+            last = crown
 
     def _qualified(self, challenge, promotion):
         """Whether a sealed crown's packs are ones this policy names (`decide`'s own test, before it records)."""
@@ -484,8 +524,11 @@ class TestnetWinnerIntentIssuer:
         try:
             if observe:
                 # each crown since the last record, in the door's order, each with its own predecessor
-                for crown, journal, crowned_ms in self._crowns(
-                    replay, mine, promotion, snapshot, whole
+                for crown, decided, journal, crowned_ms in self._steps(
+                    self._crowns(replay, mine, promotion, snapshot, whole),
+                    mine,
+                    coldkeys,
+                    whole,
                 ):
                     found = self.ledger.observe(
                         self.policy,
@@ -497,12 +540,16 @@ class TestnetWinnerIntentIssuer:
                         crowned_ms,
                         belongs=belongs,
                         fallback=fallback,
+                        decided_as=decided,
                     )
             elif preview:
                 # the same replay in memory: nothing is written
                 seen = list(mine)
-                for crown, journal, crowned_ms in self._crowns(
-                    replay, mine, promotion, snapshot, whole
+                for crown, decided, journal, crowned_ms in self._steps(
+                    self._crowns(replay, mine, promotion, snapshot, whole),
+                    mine,
+                    coldkeys,
+                    whole,
                 ):
                     again = [
                         r
@@ -515,7 +562,7 @@ class TestnetWinnerIntentIssuer:
                         else decide(
                             self.policy,
                             challenge,
-                            crown,
+                            crown if decided is None else decided,
                             seen[-1] if seen else fallback,
                             coldkeys,
                             snapshot.timestamp_ms,
@@ -523,6 +570,7 @@ class TestnetWinnerIntentIssuer:
                         )
                     )
                     if not again:
+                        record = {**record, "promotion": crown}
                         if journal is not None:
                             record = {**record, "journal": journal}
                         seen.append(record)

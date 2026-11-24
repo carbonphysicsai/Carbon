@@ -261,3 +261,94 @@ def test_a_replay_from_the_start_ignores_a_withdrawn_crown():
         "new-2",
     ]
     assert twp.crowned_models(store) == {"new-1", "new-2"}
+
+
+# --- v2 row 6483: an unpayable new crown stops no cycle, wherever it is in the new store's journal ----------------------
+
+
+def test_an_unregistered_new_king_writes_nothing(tmp_path):
+    issuer, _old, new = rig(tmp_path)
+    new.crown("new-1", NEW, at=1.0)
+    before = issuer.ledger.path.read_bytes()
+    issuer.resolve(issuer.issue(at(1100, hotkeys=())), at(1100, hotkeys=()))
+    assert issuer.ledger.path.read_bytes() == before
+
+
+def test_a_registered_king_who_beat_an_unregistered_one_is_paid(tmp_path):
+    """The first new crown's miner is not registered, so it is never recorded; the king who beat it is the new store's
+    first recorded king, decided as a first incumbent, and his record keeps the crown he really beat.
+    """
+    issuer, _old, new = rig(tmp_path)
+    new.crown("new-1", NEW, at=1.0)
+    new.crown("new-2", NEXT, previous="new-1", at=2.0)
+    state = at(1100, hotkeys=(NEXT,))
+    assert paid(issuer, state) == [NEXT]
+    issuer.resolve(issuer.issue(state), state)
+    assert models(issuer) == ["old-1", "new-2"]
+    record = issuer.ledger.records(BATTERY)[-1]
+    assert (record["eligible"], record["reason"]) == (
+        True,
+        "first_incumbent_no_baseline",
+    )
+    assert record["promotion"] == we.lean_promotion(new)
+    assert record["promotion"]["previous"] == "new-1"
+    assert paid(issuer, at(1500, hotkeys=(NEXT,))) == [NEXT]
+
+
+def test_an_unregistered_king_between_two_registered_ones_is_passed_over(tmp_path):
+    issuer, _old, new = rig(tmp_path)
+    new.crown("new-1", NEW, at=1.0)
+    new.crown("new-2", "left", previous="new-1", at=2.0)
+    new.crown("new-3", NEXT, previous="new-2", at=3.0)
+    assert paid(issuer, at(1100)) == [NEXT]
+    issuer.issue(at(1100))
+    assert models(issuer) == ["old-1", "new-1", "new-3"]
+    assert issuer.ledger.records(BATTERY)[-1]["reason"] == "bank_improvement"
+
+
+def test_a_king_replayed_behind_an_unpayable_one_does_not_end_the_hand_over(
+    tmp_path, monkeypatch
+):
+    """He held the crown between two observations only: no cycle could pay him. Preview, issue and resolve agree."""
+    from carbon.challenge_validator import canary
+
+    monkeypatch.setattr(canary, "is_canary", lambda hotkey: hotkey == NEXT)
+    issuer, _old, new = rig(tmp_path)
+    new.crown("new-1", NEW, at=1.0)
+    new.crown("new-2", NEXT, previous="new-1", at=2.0)
+    assert paid(issuer, at(1100)) == [OLD]
+    issuer.resolve(issuer.issue(at(1100)), at(1100))
+    assert models(issuer) == ["old-1", "new-1", "new-2"]
+    assert paid(issuer, at(1500)) == [OLD]
+
+
+def test_a_registered_baseline_stops_no_cycle_and_its_first_king_is_not_paid(tmp_path):
+    issuer, _old, new = rig(tmp_path)
+    issuer.policy = dataclasses.replace(
+        POLICY,
+        baselines=tuple(
+            (c, "sha256:" + "c" * 64 if c == BATTERY else None)
+            for c in POLICY.challenges
+        ),
+    )
+    new.crown("new-1", NEW, at=1.0)
+    assert paid(issuer, at(1100)) == [OLD]
+    issuer.issue(at(1100))
+    record = issuer.ledger.records(BATTERY)[-1]
+    assert (record["eligible"], record["reason"]) == (
+        False,
+        "baseline_registered_first_incumbent_unchecked",
+    )
+    new.crown("new-2", NEXT, previous="new-1", at=2.0)
+    assert paid(issuer, at(1500)) == [NEXT]  # he beat the new store's king
+
+
+def test_after_the_hand_over_an_unregistered_king_refuses_as_on_any_door(tmp_path):
+    issuer, _old, new = rig(tmp_path)
+    new.crown("new-1", NEW, at=1.0)
+    issuer.issue(at(1100))
+    new.crown("new-2", "left", previous="new-1", at=2.0)
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="WINNER_IDENTITY_UNAVAILABLE"
+    ):
+        twp.preview(issuer, at(1500))
