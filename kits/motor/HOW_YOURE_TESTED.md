@@ -150,8 +150,8 @@ are not shown.
 
 ## 5. The crown
 
-- Every score is shown rounded down to the Ladder step, so scores within one
-  step show the same number.
+- Your own score is shown rounded down to the Ladder step. Scores on the board
+  are shown rounded down to two decimals.
 - Crowns come straight from your official graded score; there are no crown
   rebuilds. A grade that passes every gate and minimum takes the crown when
   its official score beats the sitting king's official score by more than the
@@ -160,9 +160,8 @@ are not shown.
   are decided in queue order, each against the king of that moment. An
   infrastructure failure is retried and never counts against you.
 - The king's public page shows the score to beat: an official score above it,
-  passing every gate and minimum, takes the crown. Public scores are rounded
-  down to the Ladder step, so the page also shows the range the exact bar (the
-  king's official score plus the margin) lies in.
+  passing every gate and minimum, takes the crown. It is the king's official
+  score plus the margin, shown rounded up to two decimals.
 - When there is no king, the first crown waits until a floor on this score is
   registered.
 
