@@ -600,31 +600,36 @@ def public(report_document):
 #     A cell whose every error is 0 has no reference (w* = 0 scores 0) and gives no T_cell.
 # A2  T = the mean of T_cell over the admitted cells that give one. T = 0 for a model that states no uncertainty (every
 #     case absent) and for an unreadable / partial block (``invalid``): never a penalty for not taking part.
-# A3  multiplier m = 1 + gain min(T, 1) for T >= 0 and 1 + penalty max(T, -1) for T < 0, so a negative T costs at most the
-#     ``penalty`` fraction; the final score S = AD x m / (1 + gain) (owner TRUST-AMPLIFIER-RESCALE: / 1.5 at the owner's
+# A3  multiplier m = 1 + gain min(T, 1) for T >= 0, 1.0 inside the penalty dead zone (-dead_zone <= T < 0), and
+#     1 + penalty max(T, -1) below it (T < -dead_zone; owner TRUST-PENALTY-DEADZONE, 24 Nov), so a negative T costs at most
+#     the ``penalty`` fraction and a slightly negative one costs nothing; the final score S = AD x m / (1 + gain) (owner TRUST-AMPLIFIER-RESCALE: / 1.5 at the owner's
 #     gain, so S stays in [0, AD] and ranks exactly as AD x m), applied at the final combination only: the version's A and
-#     D minimums gate the unscaled A and D. band level, gain (lambda) and penalty are OWNER values with NO default: None is
+#     D minimums gate the unscaled A and D. band level, gain (lambda), penalty and dead zone are OWNER values with NO
+#     default: None is
 #     HUMAN_INPUT and `amplify` refuses. Entering a version's grade is that version's scoring-path FINAL; nothing imports
 #     this today.
 
-AMPLIFIER_FIELDS = ("band_level", "gain", "penalty")
+AMPLIFIER_FIELDS = ("band_level", "gain", "penalty", "dead_zone")
 
 
 @dataclass(frozen=True)
 class TrustAmplifier:
-    """The owner's three values (None = HUMAN_INPUT): the band level c the stated band is read at, the gain lambda on a
-    positive T, and the penalty: the largest fractional cost of a negative T."""
+    """The owner's four values (None = HUMAN_INPUT): the band level c the stated band is read at, the gain lambda on a
+    positive T, the penalty: the largest fractional cost of a negative T, and the dead zone d: no penalty for -d <= T < 0."""
 
     band_level: object = None
     gain: object = None
     penalty: object = None
+    dead_zone: object = None
 
 
 #: The owner's values (TRUST-AMPLIFIER-VALUES, typed 2026-11-23T21:12:42Z, OWNER_LINES.md): a 90% central band
 #: (interval score alpha 0.1), lambda 0.5 with T capped at 1 (at most +50%; T <= 1 holds by construction), penalty 0.1 on
 #: a negative T floored at -1 (at most -10%); no uncertainty: multiplier 1.0; final = A/D x multiplier / 1.5
-#: (TRUST-AMPLIFIER-RESCALE, 21:15:43Z). Any retune is a new owner line.
-OWNER_AMPLIFIER = TrustAmplifier(band_level=0.9, gain=0.5, penalty=0.1)
+#: (TRUST-AMPLIFIER-RESCALE, 21:15:43Z). Dead zone 0.1 (REGISTRATION-BATCH-24NOV item 3 TRUST-PENALTY-DEADZONE, typed
+#: 2026-11-24T10:26:24Z: 'Trust penalty applies only when T < -0.1'; supersedes the penalty clause above: 1.0 for
+#: -0.1 <= T < 0). Any retune is a new owner line.
+OWNER_AMPLIFIER = TrustAmplifier(band_level=0.9, gain=0.5, penalty=0.1, dead_zone=0.1)
 
 #: The versions whose grade the amplifier enters, (challenge_id, version) -> TrustAmplifier. EMPTY: a version is added
 #: only by its own scoring-path head (its registration names the amplifier, the real-king test has passed, v2 FINALs it
@@ -646,7 +651,7 @@ def _check_band_level(level):
 
 
 def check_amplifier(amplifier):
-    """`SelfTrustRefused` unless all three owner values are present and in their domains."""
+    """`SelfTrustRefused` unless all four owner values are present and in their domains."""
     _require(isinstance(amplifier, TrustAmplifier), "self_trust_amplifier_malformed")
     for name in AMPLIFIER_FIELDS:
         _require(
@@ -661,6 +666,10 @@ def check_amplifier(amplifier):
     _require(
         _number(amplifier.penalty) and 0 <= amplifier.penalty < 1,
         "self_trust_amplifier_penalty_must_be_in_0_1",
+    )
+    _require(
+        _number(amplifier.dead_zone) and 0 <= amplifier.dead_zone < 1,
+        "self_trust_amplifier_dead_zone_must_be_in_0_1",
     )
 
 
@@ -763,11 +772,14 @@ def trust_skill(form, band_level, cells):
 
 
 def multiplier(t, amplifier):
-    """A3: the trust multiplier, 1 + gain min(T, 1) for T >= 0, 1 + penalty max(T, -1) for T < 0 (1.0 at T 0)."""
+    """A3: the trust multiplier: 1 + gain min(T, 1) for T >= 0; 1.0 in the dead zone -dead_zone <= T < 0; 1 + penalty
+    max(T, -1) for T < -dead_zone (1.0 at T 0)."""
     check_amplifier(amplifier)
     _require(_number(t) and t <= 1.0, "self_trust_amplifier_t_out_of_range")
     if t >= 0:
         return 1.0 + amplifier.gain * min(t, 1.0)
+    if t >= -amplifier.dead_zone:
+        return 1.0
     return 1.0 + amplifier.penalty * max(t, -1.0)
 
 

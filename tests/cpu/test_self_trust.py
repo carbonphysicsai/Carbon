@@ -597,7 +597,7 @@ def test_a_cell_with_no_error_gives_no_t_cell():
 
 @pytest.mark.parametrize("field", st.AMPLIFIER_FIELDS)
 def test_the_amplifier_refuses_until_every_owner_value_is_set(field):
-    values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05}
+    values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05, "dead_zone": 0.0}
     values[field] = None
     with pytest.raises(st.SelfTrustRefused) as refused:
         st.amplify(0.8, 0.1, st.TrustAmplifier(**values))
@@ -607,7 +607,7 @@ def test_the_amplifier_refuses_until_every_owner_value_is_set(field):
 
 
 def test_the_amplifier_formula():
-    amp = st.TrustAmplifier(band_level=0.5, gain=0.2, penalty=0.05)
+    amp = st.TrustAmplifier(band_level=0.5, gain=0.2, penalty=0.05, dead_zone=0.0)
     assert st.multiplier(0.0, amp) == 1.0  # no uncertainty: no change
     assert st.multiplier(0.5, amp) == pytest.approx(1.1)
     assert st.multiplier(1.0, amp) == pytest.approx(1.2)  # the best
@@ -622,8 +622,20 @@ def test_the_amplifier_formula():
     assert sorted(ts, key=lambda t: st.amplify(0.7, t, amp)) == sorted(
         ts, key=lambda t: 0.7 * st.multiplier(t, amp)
     )
-    for bad in ({"gain": -0.1}, {"penalty": 1.0}, {"band_level": 1.0}):
-        values = {"band_level": 0.5, "gain": 0.2, "penalty": 0.05, **bad}
+    for bad in (
+        {"gain": -0.1},
+        {"penalty": 1.0},
+        {"band_level": 1.0},
+        {"dead_zone": -0.1},
+        {"dead_zone": 1.0},
+    ):
+        values = {
+            "band_level": 0.5,
+            "gain": 0.2,
+            "penalty": 0.05,
+            "dead_zone": 0.0,
+            **bad,
+        }
         with pytest.raises(st.SelfTrustRefused):
             st.amplify(0.8, 0.1, st.TrustAmplifier(**values))
 
@@ -633,7 +645,7 @@ def test_owner_values_selftest_prints_the_multiplier_for_the_4_variants(capsys):
     heteroscedastic selftest data: honest boosts, x0.1 and x10 cost the full 10%
     (T floored at -1), the best constant band leaves the score unchanged."""
     amp = st.OWNER_AMPLIFIER
-    assert (amp.band_level, amp.gain, amp.penalty) == (0.9, 0.5, 0.1)
+    assert (amp.band_level, amp.gain, amp.penalty, amp.dead_zone) == (0.9, 0.5, 0.1, 0.1)
     st.check_amplifier(amp)
     level = amp.band_level
     z = NormalDist().inv_cdf((1 + level) / 2)
@@ -659,6 +671,20 @@ def test_owner_values_selftest_prints_the_multiplier_for_the_4_variants(capsys):
     # owner TRUST-AMPLIFIER-RESCALE: final = A/D x multiplier / 1.5
     assert st.amplify(0.8, 0.0, amp) == pytest.approx(0.8 / 1.5)  # no uncertainty
     assert st.amplify(0.8, 1.0, amp) == pytest.approx(0.8)  # the best: full A/D
+
+
+def test_owner_dead_zone_no_penalty_for_a_slightly_negative_t():
+    """Owner TRUST-PENALTY-DEADZONE (REGISTRATION-BATCH-24NOV item 3): 1.0 for -0.1 <= T < 0; 1 + 0.1 max(T, -1) below
+    -0.1; the boost unchanged. The real-king test's honest class-constant sigma (T ~ -0.057, miner-ux 6053) now costs
+    nothing."""
+    amp = st.OWNER_AMPLIFIER
+    assert st.multiplier(-0.057, amp) == 1.0
+    assert st.multiplier(-0.1, amp) == 1.0  # the edge is inside the dead zone
+    assert st.multiplier(-0.10001, amp) == pytest.approx(1 - 0.010001)
+    assert st.multiplier(-0.5, amp) == pytest.approx(0.95)
+    assert st.multiplier(-40.0, amp) == pytest.approx(0.9)  # floored at -1
+    assert st.multiplier(0.3, amp) == pytest.approx(1.15)  # boost unchanged
+    assert st.amplify(0.8, -0.05, amp) == pytest.approx(0.8 / 1.5)  # = no uncertainty
 
 
 def test_no_version_is_amplified_until_its_own_head_names_it():
