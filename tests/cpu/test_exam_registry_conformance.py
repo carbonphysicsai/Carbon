@@ -56,7 +56,7 @@ PROBES = (
         "registry.family",
         "REGISTRY",
         "7",
-        "scoring/family_registry.py (door-code #1, H1)",
+        "challenge_kit/family_registry.py family (door-code H1)",
     ),
     ("build.material", "BUILD", "11", "challenge_kit/physical_material.py REGISTERED"),
     (
@@ -187,8 +187,8 @@ def probe_registry_overlay():
 
 
 def probe_registry_family():
-    from carbon.scoring import family_registry  # noqa: F401
-    assert family in family_registry.registered_families()
+    from carbon.challenge_kit import family_registry
+    assert family_registry.family(family) is not None
 
 
 def probe_build_material():
