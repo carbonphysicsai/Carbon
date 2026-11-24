@@ -440,6 +440,23 @@ def _readonly(path):
     return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
 
 
+class LadderUnavailable(ValueError):
+    """The Ladder could not be read (a locked or busy ledger, an I/O error): never an empty Ladder. A ValueError, so the
+    board operator refuses THAT board (its last good board stays served) and goes on with the others.
+    """
+
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def _no_ladder_tables(failure):
+    """Whether a read failed only because the receiver has not created the Ladder's tables yet. Any other sqlite
+    failure is NOT an empty Ladder (`LadderUnavailable`), so an empty signed board never replaces a real one
+    (CAPS.md section 3)."""
+    return str(failure).startswith("no such table")
+
+
 def _identity(challenge):
     from carbon.scoring.sealed_versions import ladder_key
 
@@ -474,7 +491,9 @@ def latest_exam_key(path, challenge):
             ).fetchall()
             if ladder_key(challenge_id, version) == evaluation
         ]
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as failure:
+        if not _no_ladder_tables(failure):
+            raise LadderUnavailable("ladder_ledger_unreadable") from failure
         return None  # the receiver has not created the Ladder's tables yet
     finally:
         db.close()
@@ -508,7 +527,9 @@ def board_rows(path, challenge, exam_key):
             if hotkey not in known and ladder_key(challenge_id, version) == evaluation:
                 known.add(hotkey)
                 rows.append((hotkey, best, latest))
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as failure:
+        if not _no_ladder_tables(failure):
+            raise LadderUnavailable("ladder_ledger_unreadable") from failure
         return []  # the receiver has not created the Ladder's tables yet
     finally:
         db.close()
