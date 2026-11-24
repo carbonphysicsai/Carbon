@@ -146,6 +146,14 @@ BUILD_REQUEUED_REASON = (
     "Carbon's build of this submission was requeued and the ledger shows nothing after it: it is not waiting in line. "
     "Check its owed record, if any; otherwise ask the validator team."
 )
+#: A door re-run's OWN task (its first ledger outcome is `BUILD_REQUEUED`, or an `exam_requeues` row names it): the door
+#: re-ran it after a failure on Carbon's side, and its grade took no try and none of the allowance (`ExamCap.mark_requeued`:
+#: its reservation bypasses the round and day limits once and counts against no later submission; door-code 6174, live-ops
+#: 6183 in data). A tool-authored sentence like `OWED_REASON`: the grade-state sentence 'counted as your try' would mislead.
+REQUEUED_REASON = (
+    "Carbon re-ran this submission after a failure on its side. Its grade stands, and the re-run cost you no try and none "
+    "of your allowance."
+)
 LIMIT_CODES = ("epoch_limit_reached", "exam_daily_allowance_reached")
 TERMINAL_KINDS = ("OUTCOME", "FAILED_INFRA", "UNAVAILABLE", "REFUSED")
 
@@ -921,6 +929,23 @@ def _rerun(db, task, hotkey):
     return grant[0]
 
 
+def _door_rerun(db, task, rows):
+    """Whether ``task`` is itself a door re-run: its first ledger OUTCOME carries `BUILD_REQUEUED`, or the exam cap's
+    `exam_requeues` table names it. A ledger without that table says only the first part."""
+    first = next((row for row in rows if row[1] == "OUTCOME"), None)
+    if first is not None and BUILD_REQUEUED in (first[2], first[3]):
+        return True
+    try:
+        return (
+            db.execute(
+                "SELECT 1 FROM exam_requeues WHERE submission_id=?", (task,)
+            ).fetchone()
+            is not None
+        )
+    except sqlite3.Error:
+        return False
+
+
 def _store_state(store):
     """The door's own projection of a task-store state with no grade marker (`lean_recipe._project`):
     `(state, code, charged, slot_given_back)` or None (the store says nothing that changes the ledger's answer).
@@ -990,6 +1015,7 @@ def _task(root, db, task, owed, *, detail):
     marker_code = marker.get("code")
     stopped = marker_code in MARKER_TO_CODE
     latest = next((row[1] for row in reversed(rows) if row[1] in TERMINAL_KINDS), None)
+    requeued = False  # set below for a door re-run's own task
     if withdrawn or stopped or marker.get("state") == "WITHDRAWN_BY_MINER":
         state, code = "CANCELLED", _vocab_code(
             MARKER_TO_CODE.get(marker_code), rows[-1][2], rows[-1][3]
@@ -1017,6 +1043,11 @@ def _task(root, db, task, owed, *, detail):
         if rerun_task_id is not None:
             # the door re-ran this submission as a new task (the v12 reply's RERUN): name it, never QUEUED / FAILED_INFRA
             state, code, charged, given_back = "RERUN", "RERUN", "no", "not stated"
+        requeued = rerun_task_id is None and _door_rerun(db, task, rows)
+        if requeued and charged == "yes":
+            # v2 6168: an owed / automatic re-run costs the miner nothing; the slot is COUNTED (it stands on the board),
+            # but it was never a try against the hotkey's limits
+            charged = "no"
         if code is None:
             code = _vocab_code(rows[-1][2], rows[-1][3])
     shown = {
@@ -1035,6 +1066,8 @@ def _task(root, db, task, owed, *, detail):
     if detail:
         if shown["owed"]:
             shown["reason"] = OWED_REASON
+        elif requeued and state in ("GRADED", "CROWN_HELD_FOR_REVIEW"):
+            shown["reason"] = REQUEUED_REASON
         elif state == BUILD_REQUEUED:
             shown["reason"] = BUILD_REQUEUED_REASON
         else:

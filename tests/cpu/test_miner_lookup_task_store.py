@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from test_miner_lookup import CANARY, HOTKEY, OTHER, T0, _ask, _seed
+from test_miner_lookup import CANARY, HOTKEY, OTHER, T0, _ask, _marker, _seed
 
 from carbon import research
 from carbon.research.refs import RESEARCH_DOCUMENT_HEADER
@@ -183,3 +183,42 @@ def test_a_miners_own_resubmission_or_another_hotkeys_task_is_not_a_rerun(tmp_pa
     )
     _grant(other / "attempts.sqlite3", NEW, TASK, OTHER)
     assert "rerun_task_id" not in _ask(other, "task", TASK)[0]["task"]
+
+
+def test_a_door_reruns_own_graded_task_reads_uncharged(tmp_path):
+    """v2 6168 / live-ops 6183 (rtsk_3b596e44): the re-run's slot is COUNTED (it stands on the board) but it took no try;
+    the lookup says charged no and the re-run sentence, never 'counted as your try'."""
+    _seed(
+        tmp_path / "attempts.sqlite3",
+        [(T0, "OUTCOME", ml.BUILD_REQUEUED, HOTKEY, NEW, "ADMITTED")],
+        slots=[(NEW, HOTKEY, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")],
+    )
+    _marker(tmp_path, NEW, state="GRADED", code=None)
+    shown = _ask(tmp_path, "task", NEW)[0]["task"]
+    assert shown["state"] == "GRADED" and shown["charged"] == "no"
+    assert shown["reason"] == ml.REQUEUED_REASON
+    # the exam cap's own requeue row alone says the same (a re-run whose first ledger code is not the requeue's)
+    other = tmp_path / "second"
+    other.mkdir()
+    _seed(
+        other / "attempts.sqlite3",
+        [(T0, "OUTCOME", None, HOTKEY, NEW, "ADMITTED")],
+        slots=[(NEW, HOTKEY, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")],
+    )
+    db = sqlite3.connect(other / "attempts.sqlite3")
+    db.execute("INSERT INTO exam_requeues(submission_id,attempt,queued_ns,reserved_ns) VALUES(?,?,?,?)", (NEW, 2, 1, 2))
+    db.commit()
+    db.close()
+    _marker(other, NEW, state="GRADED", code=None)
+    assert _ask(other, "task", NEW)[0]["task"]["charged"] == "no"
+    # an ordinary graded task is still charged
+    plain = tmp_path / "third"
+    plain.mkdir()
+    _seed(
+        plain / "attempts.sqlite3",
+        [(T0, "OUTCOME", None, HOTKEY, TASK, "ADMITTED")],
+        slots=[(TASK, HOTKEY, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")],
+    )
+    _marker(plain, TASK, state="GRADED", code=None)
+    seen = _ask(plain, "task", TASK)[0]["task"]
+    assert seen["charged"] == "yes" and seen["reason"] != ml.REQUEUED_REASON
