@@ -164,7 +164,6 @@ KNOWN_GAPS = {
     "grade.terms": "version terms (version string + digest; G-LEAD-50: no terms, no submission)",
     "crown.koth_key": "koth rows keyed by the registry (door-code #15)",
     "weights.pay_share": "paying families from the registry (owner economics line, not code)",
-    "board.version_key": "board key from (family, version, class)",
 }
 
 _PROBE_PROGRAM = r"""
