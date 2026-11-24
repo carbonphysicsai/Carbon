@@ -146,7 +146,7 @@ def test_the_localnet_rehearsal_entries_are_exactly_the_recorded_ones():
         assert entry["by_network"][REHEARSAL_NETWORK]["record"] == REHEARSAL_RECORD
     # a localnet entry without the rehearsal record is still a mainnet profile
     host = {"scope": "DEVELOPMENT"}
-    device, profile = sorted(REHEARSAL_ENTRIES)[0]
+    device, profile = min(REHEARSAL_ENTRIES)
     plain = {"record": "X", "networks": ("localnet",), "evidence": "X"}
     assert _mainnet_profiles(host, {device: {profile: plain}}) == [
         (device, profile, REHEARSAL_NETWORK)
