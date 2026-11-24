@@ -227,7 +227,7 @@ def test_feedback_v10_is_opt_in_and_serves_only_the_closed_row():
 
     assert direct_intake.feedback_reply({"reply": "v10", "submission_id": "t"}) == "v10"
     assert direct_intake.feedback_reply({"reply": "v11", "submission_id": "t"}) == "v11"
-    assert direct_intake.feedback_reply({"reply": "v13", "submission_id": "t"}) is None
+    assert direct_intake.feedback_reply({"reply": "v99", "submission_id": "t"}) is None
     door = SimpleNamespace(
         grade_marker=lambda sid: None,
         adapter=SimpleNamespace(

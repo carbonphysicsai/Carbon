@@ -37,7 +37,7 @@ class _View:
 def provider(monkeypatch):
     """A task provider holding one view and the evidence table alone."""
     monkeypatch.setattr(rt, "canonical_bytes", lambda value: repr(value).encode())
-    found = rt.PublicDevelopmentResearchTasks.__new__(rt.PublicDevelopmentResearchTasks)
+    found = rt.DirectDevelopmentTasksV3.__new__(rt.DirectDevelopmentTasksV3)
     db = sqlite3.connect(":memory:")
     db.execute("CREATE TABLE direct_evidence (id TEXT PRIMARY KEY, body BLOB)")
     view = _View(SimpleNamespace(value="rtsk_a"), DirectTaskStateV3.RUNNING)
