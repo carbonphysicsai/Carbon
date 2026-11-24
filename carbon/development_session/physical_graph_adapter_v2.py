@@ -36,8 +36,10 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -387,6 +389,71 @@ SPECS = {
         "1.7",
     ),
 }
+#: The Specs the code declares; every other one comes from the exam registry (`_registered_specs`).
+CODE_SPECS = frozenset(SPECS)
+#: The one file a build container of a registry version is staged with: its Spec (`staged_spec`).
+STAGED_SPEC = "graph-spec.json"
+_SPEC_FIELDS = (
+    "challenge_id",
+    "version",
+    "adapter_id",
+    "train_use",
+    "train_sha256",
+    "rows",
+    "inputs",
+    "outputs",
+    "dtype",
+    "predecessor",
+    "trainer",
+    "layout",
+    "trust_outputs",
+)
+
+
+def staged_spec(spec: Spec) -> bytes:
+    """The bytes a build container of a registry version is staged with: exactly its Spec."""
+    return json.dumps(
+        {name: getattr(spec, name) for name in _SPEC_FIELDS},
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode()
+
+
+def _registered_specs() -> dict:
+    """The Specs of the versions the exam registry's build rows serve (`exam_build`): on the host, from the rows and the
+    version registry; in a build container, which has neither, from the one staged Spec, if any.
+    """
+    try:
+        from carbon.challenge_kit import version_registry
+        from carbon.challenge_registry import exam_build
+    except ModuleNotFoundError as missing:
+        if not (missing.name or "").startswith("carbon."):
+            raise
+        staged = Path(__file__).resolve().parents[2] / STAGED_SPEC
+        if not staged.is_file():
+            return {}
+        fields = json.loads(staged.read_bytes())
+        if set(fields) != set(_SPEC_FIELDS):
+            raise ValueError("staged graph spec differs") from None
+        return {(fields["challenge_id"], fields["version"]): Spec(**fields)}
+    found = {}
+    for key, row in exam_build.graph_specs().items():
+        entry = version_registry.entry(*key)
+        found[key] = Spec(
+            *key,
+            adapter_id=f"{key[0]}-public-jax-graph-v2",
+            train_use=entry.train,
+            predecessor=entry.predecessor,
+            **row,
+        )
+    return found
+
+
+# Add-only: a Spec the code declares is never replaced (`exam_build` refuses a row for one before it gets here).
+SPECS.update(
+    (key, spec) for key, spec in _registered_specs().items() if key not in CODE_SPECS
+)
 ADAPTER_IDS = frozenset(spec.adapter_id for spec in SPECS.values())
 
 #: Every closed refusal code this adapter raises: REFUSED (the candidate's),
@@ -961,8 +1028,6 @@ def served_allowlist_bytes(challenge_id: str, version: str) -> bytes:
 def trainer_source(spec: Spec | None = None) -> bytes:
     """The version's trainer's exact bytes (v2's unless the Spec names v3), or
     ValueError if they moved."""
-    from pathlib import Path
-
     v3 = spec is not None and spec.trainer == "v3"
     path, pinned = (
         (TRAINER_V3_PATH, TRAINER_V3_SHA256) if v3 else (TRAINER_PATH, TRAINER_SHA256)
@@ -975,8 +1040,6 @@ def trainer_source(spec: Spec | None = None) -> bytes:
 
 def trust_trainer_source() -> bytes:
     """The trust trainer's (v4) exact bytes, or ValueError if they moved: a trust version's build stages them."""
-    from pathlib import Path
-
     raw = (Path(__file__).resolve().parents[2] / TRAINER_V4_PATH).read_bytes()
     if hashlib.sha256(raw).hexdigest() != TRAINER_V4_SHA256:
         raise ValueError("pinned physical graph trust trainer bytes differ")

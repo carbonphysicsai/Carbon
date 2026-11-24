@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
+from carbon.challenge_registry import exam_build
 from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
 from carbon.level4 import staging
 from carbon.reconstruction.worker.model import WorkerImageIdentity
@@ -569,9 +570,10 @@ PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 #: in `CASE_PROCS_INFERENCE_VERSIONS`: 1.9 offers trust outputs and the per-case-processes program has no trust variant
 #: (`v2_trust_infer_query` refuses it), so 1.9 grades in ONE process; whether that fits its registered inference wall is
 #: measured on the rehearsal grade (R1a), not assumed here.
+#: A version registered by data names its program in its build row (`exam_build`); these are the code-served ones.
 JIT_INFERENCE_VERSIONS = frozenset(
     {("electric-motor-magnetics", "1.8"), ("electric-motor-magnetics", "1.9")}
-)
+) | exam_build.versions_running("compiled", "per_case")
 _EAGER_MEMBER = "member_forward = rebuild(doc, allowed)\n"
 _COMPILED_MEMBER = (
     "import jax\n"
@@ -807,7 +809,7 @@ def vmap64_rerun_rows(positions, row_count: int, lanes: int) -> tuple:
 #: `VMAP64_INFERENCE_VERSIONS` (which wins). A program change: it reaches a door only by a door switch on the owner's words.
 CASE_PROCS_INFERENCE_VERSIONS: frozenset = frozenset(
     {("electric-motor-magnetics", "1.8")}
-)
+) | exam_build.versions_running("per_case")
 
 
 @functools.lru_cache(maxsize=8)
@@ -1079,6 +1081,9 @@ def _v2_stage(
             PHYSICAL_V2_TRUST_STAGED_MODULES if trust else PHYSICAL_V2_STAGED_MODULES
         )
     }
+    if (spec.challenge_id, spec.version) not in adapter.CODE_SPECS:
+        # A registry version's Spec is data: its container gets it as the one extra file.
+        files[adapter.STAGED_SPEC] = adapter.staged_spec(spec)
     return spec, Allowlist(allowlist_bytes), files
 
 

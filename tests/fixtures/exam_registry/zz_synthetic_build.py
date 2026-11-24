@@ -67,6 +67,7 @@ def interface_document(challenge_id: str, version: str) -> dict:
 def construction_limits_document(challenge_id: str, version: str) -> dict:
     from carbon.challenge_kit import served_versions, version_registry
     from carbon.challenge_kit.task_wall_overrides import total_wall_seconds
+    from carbon.development_session import graph_adapters
     from carbon.development_session.research_carrier import (
         LIBRARY_BUILD_PROVENANCE,
         _worker_profile,
@@ -102,6 +103,7 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
             "network": profile["security"]["network"],
             "cleanup_required": True,
         },
+        "graph_training_adapter": graph_adapters.adapter_block(challenge_id, version),
         "training_step_cap": None,
         "training_limit": "build_wall_seconds_max",
         "accuracy_gate": None,

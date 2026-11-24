@@ -161,6 +161,12 @@ PROBES = (
         "development_session/direct_graph_construction_worker.py v2_infer_query",
     ),
     (
+        "build.stage",
+        "BUILD",
+        "15",
+        "development_session/direct_graph_construction_worker.py _v2_stage (the container's Spec)",
+    ),
+    (
         "build.sealed_target",
         "BUILD",
         "6",
@@ -224,8 +230,6 @@ PROBES = (
 #: deleted by the head that makes its probe pass.
 KNOWN_GAPS = {
     "registry.family": "family_registry.json + reader (door-code #1, H1)",
-    "build.spec": "graph Spec derived from the version entry",
-    "build.program": "version inference_program (eager / compiled / per-case)",
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
     "build.trust": "a version's trust registration (derive module + sha, floor, epochs, learning rate) as build data",
     "build.entry": "the miner-facing Entry of a registered version (title, status, portfolio, description) as data",
@@ -357,12 +361,35 @@ def probe_build_train():
 
 def probe_build_spec():
     from carbon.development_session import physical_graph_adapter_v2
-    physical_graph_adapter_v2.spec_for(family, version)
+    spec = physical_graph_adapter_v2.spec_for(family, version)
+    assert (spec.rows, spec.inputs, spec.outputs) == (8, 2, 1)
+    assert spec.adapter_id in physical_graph_adapter_v2.ADAPTER_IDS
 
 
 def probe_build_program():
     from carbon.development_session import direct_graph_construction_worker
-    direct_graph_construction_worker.v2_infer_query(family, version)
+    query = direct_graph_construction_worker.v2_infer_query(family, version)
+    assert query["program"] == direct_graph_construction_worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+
+
+def probe_build_stage():
+    from carbon.challenge_kit import physical_material
+    from carbon.development_session import (
+        direct_graph_construction_worker,
+        physical_graph_adapter_v2,
+    )
+    kit = physical_material.construction_kit(family, version)
+    binding = {
+        "challenge_id": family,
+        "challenge_version": version,
+        "train_digest": kit["train_digest"],
+    }
+    spec, _, files = direct_graph_construction_worker._v2_stage(
+        binding,
+        physical_material.construction_limits_document(family, version),
+        physical_graph_adapter_v2.served_allowlist_bytes(family, version),
+    )
+    assert files["graph-spec.json"] == physical_graph_adapter_v2.staged_spec(spec)
 
 
 def probe_build_sealed_target():

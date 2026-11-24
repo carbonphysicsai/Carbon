@@ -23,6 +23,7 @@ from carbon.challenge_kit import (
 )
 from carbon.challenge_kit.task_wall_overrides import total_wall_seconds
 from carbon.challenge_registry import exam_build, exam_registry
+from carbon.development_session import direct_graph_construction_worker as worker
 from carbon.development_session import physical_graph_adapter_v2 as adapter
 from carbon.development_session.research_service import _practice_dtype
 
@@ -92,7 +93,10 @@ def row(monkeypatch):
         "entry",
         lambda *key: (
             SimpleNamespace(
-                graph_adapter=held.get("adapter", "v2"), rebuild_wall_seconds=648
+                rebuild_wall_seconds=648,
+                graph_adapter=held.get("adapter", "v2"),
+                train=held.get("train"),
+                predecessor=None,
             )
             if key == KEY
             else real_entry(*key)
@@ -380,6 +384,75 @@ def test_every_live_build_document_is_the_one_main_served(name):
     }
     assert roles == golden["roles"]
     assert _bank(physical_pack.development_bank(*key)) == golden["bank"]
+    assert (key in adapter.SPECS) == ("adapter_block" in golden)
+    if key in adapter.SPECS:
+        assert _doc(adapter.adapter_block(*key)) == golden["adapter_block"]
+        program = worker.v2_infer_query(*key)["program"].encode()
+        assert hashlib.sha256(program).hexdigest() == golden["program"]
+
+
+def test_the_code_declares_every_spec_and_stages_no_extra_file_for_one():
+    assert set(adapter.SPECS) == adapter.CODE_SPECS
+    key = ("electric-motor-magnetics", "1.8")
+    spec = adapter.SPECS[key]
+    _, _, files = worker._v2_stage(
+        {
+            "challenge_id": key[0],
+            "challenge_version": key[1],
+            "train_digest": "sha256:" + spec.train_sha256,
+        },
+        physical_material.construction_limits_document(*key),
+        adapter.served_allowlist_bytes(*key),
+    )
+    assert set(files) == {name + ".py" for name in worker.PHYSICAL_V2_STAGED_MODULES}
+
+
+def test_a_registered_spec_reads_back_from_its_row(row):
+    row["block"] = _block()
+    row["train"] = "zz-train"
+    spec = adapter._registered_specs()[KEY]
+    assert spec.adapter_id == "zz-synthetic-public-jax-graph-v2"
+    assert (spec.train_use, spec.predecessor) == ("zz-train", None)
+    assert (spec.rows, spec.inputs, spec.outputs, spec.dtype) == (8, 2, 1, "float64")
+
+
+def test_a_build_container_reads_the_one_staged_spec(tmp_path):
+    """The container holds only the staged modules: a registry version's Spec is the staged file, a code one the code's."""
+    spec = adapter.Spec(
+        *KEY, "zz-adapter", "zz-train", "0" * 64, 8, 2, 1, "float64", None
+    )
+    for package in (
+        "carbon",
+        "carbon/challenge_validator",
+        "carbon/level4",
+        "carbon/development_session",
+    ):
+        (tmp_path / package).mkdir(parents=True, exist_ok=True)
+        (tmp_path / package / "__init__.py").write_text("")
+    root = Path(adapter.__file__).resolve().parents[2]
+    for name in worker.PHYSICAL_V2_STAGED_MODULES:
+        path = name.replace(".", "/") + ".py"
+        (tmp_path / path).write_bytes((root / path).read_bytes())
+    program = (
+        "import sys; sys.path.insert(0, sys.argv[1])\n"
+        "from carbon.development_session import physical_graph_adapter_v2 as a\n"
+        "print(sorted(set(a.SPECS) - a.CODE_SPECS), len(a.CODE_SPECS))\n"
+    )
+
+    def ask():
+        return subprocess.run(
+            [sys.executable, "-c", program, str(tmp_path)],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=300,
+        ).stdout.strip()
+
+    count = len(adapter.CODE_SPECS)
+    assert ask() == f"[] {count}"
+    (tmp_path / adapter.STAGED_SPEC).write_bytes(adapter.staged_spec(spec))
+    assert ask() == f"[{KEY!r}] {count}"
 
 
 def test_the_goldens_cover_the_live_rows():
