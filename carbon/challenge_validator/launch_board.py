@@ -463,6 +463,7 @@ def ladder_rows(
     rebuild_noise=None,
     reasons=False,
     three=False,
+    decimals=None,
 ):
     """The board's ladder from `ladder_store.board_rows`: ``[(hotkey, best,
     latest)]`` with each document as the Ladder serves it. One row per hotkey:
@@ -486,7 +487,8 @@ def ladder_rows(
     With ``three`` (a v6 board, with ``exact``; owner 16 Nov, display only, the order above unchanged) a row whose exact
     total is its own (the check above) shows it at `koth_public.TOTAL_DECIMALS`, half up (`koth_public.shown_total`); a
     row with none keeps its floored total; the KING row shows ``king_shown`` (the v3 king page's total) when given, so
-    the board and the king page always agree. The exact totals themselves still never leave this function.
+    the board and the king page always agree. The exact totals themselves still never leave this function. ``decimals``
+    (`crown_official.shown_decimals`): the version's number is shown at that many, rounded down, a floored total too.
     """
     kept = []
     reason_of = {}
@@ -532,7 +534,15 @@ def ladder_rows(
                     (
                         king_shown
                         if h == king_hotkey and king_shown is not None
-                        else t if own[h] is None else shown_total(own[h])
+                        else (
+                            (
+                                t
+                                if t is None or decimals is None
+                                else shown_total(t, decimals)
+                            )
+                            if own[h] is None
+                            else shown_total(own[h], decimals)
+                        )
                     ),
                     st,
                     g,
@@ -734,6 +744,7 @@ def build(
     crowned_utc=_ABSENT,
     v6=False,
     designs=_ABSENT,
+    decimals=None,
 ):
     """The signed launch board for one Challenge.
 
@@ -804,6 +815,7 @@ def build(
         rebuild_noise=rebuild_noise if v2 else None,
         reasons=v5,
         three=v6,
+        decimals=decimals,
     )
     if v5 and not _crowned_ok(crowned_utc, king["king"]):
         raise BoardRefused("board_crowned_utc")
@@ -1050,6 +1062,7 @@ def build_from_ledger(
     crowned_utc=_ABSENT,
     v6=False,
     designs=_ABSENT,
+    decimals=None,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -1074,6 +1087,7 @@ def build_from_ledger(
         crown_checks=crown_checks,
         crowned_utc=crowned_utc,
         v6=v6,
+        decimals=decimals,
         designs=designs,
     )
 

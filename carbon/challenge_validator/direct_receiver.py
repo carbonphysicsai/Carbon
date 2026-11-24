@@ -4175,6 +4175,9 @@ def _king_view(intake, pool_store):
         ),
         crown_bar_of=lambda challenge_id: _crown_bar(pool_store, challenge_id),
         value=ranked,
+        decimals=crown_official.shown_decimals(
+            challenge.challenge_id, challenge.version
+        ),
     )
 
 

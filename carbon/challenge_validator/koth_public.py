@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import math
 import re
-from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
+from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
 from carbon.scoring import grade_feedback as gf
 
@@ -175,29 +175,36 @@ def to_beat_v2(base, margin):
     return _rounded_up(base, gf.step(margin), margin)
 
 
-def to_beat_exact(total, margin):
+def to_beat_exact(total, margin, decimals=None):
     """The v3 single-grade score to beat (`TO_BEAT_RULE_EXACT`): the king's EXACT total (or Carbon's exact baseline)
-    plus the registered margin, the crown rule's own bar, rounded UP to `TO_BEAT_DECIMALS`, capped at 1. A challenger
-    is crowned iff his exact total exceeds ``total + margin``; the shown bar is never below that.
+    plus the registered margin, the crown rule's own bar, rounded UP to `TO_BEAT_DECIMALS` (or ``decimals``: a bar shown
+    finer than the score would give the score back), capped at 1. A challenger is crowned iff his exact total exceeds
+    ``total + margin``; the shown bar is never below that.
     """
-    return _rounded_up(total, 0.0, margin)
+    return _rounded_up(
+        total, 0.0, margin, TO_BEAT_DECIMALS if decimals is None else decimals
+    )
 
 
-def shown_total(value):
+def shown_total(value, decimals=None):
     """A total as a v3 document shows it: ``value`` rounded HALF UP to `TOTAL_DECIMALS`, exactly (decimal arithmetic
-    on the float's shortest form), so 0.7795 shows 0.780 and 0.77949 shows 0.779."""
+    on the float's shortest form), so 0.7795 shows 0.780 and 0.77949 shows 0.779. With ``decimals``
+    (`crown_official.shown_decimals`): rounded DOWN to that many, never above what was earned.
+    """
     exact = Decimal(repr(float(value)))
+    if decimals is not None:
+        return float(exact.quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_FLOOR))
     grid = Decimal(1).scaleb(-TOTAL_DECIMALS)
     return float(exact.quantize(grid, rounding=ROUND_HALF_UP))
 
 
-def _rounded_up(base, step, margin):
+def _rounded_up(base, step, margin, decimals=TO_BEAT_DECIMALS):
     raw = (
         Decimal(repr(float(base)))
         + Decimal(repr(float(step)))
         + Decimal(repr(float(margin)))
     )
-    shown = raw.quantize(Decimal(1).scaleb(-TO_BEAT_DECIMALS), rounding=ROUND_CEILING)
+    shown = raw.quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_CEILING)
     return min(1.0, float(shown))
 
 
@@ -235,12 +242,13 @@ def document_v2(*, crown_bar=None, **kwargs):
     return result
 
 
-def document_v3(*, crown_bar=None, **kwargs):
+def document_v3(*, crown_bar=None, decimals=None, **kwargs):
     """The v3 public document (owner 16 Nov): `document` (same arguments, same checks) with ``to_beat_rule``; the
     king's total and Carbon's baseline shown at `TOTAL_DECIMALS`, half up, from their EXACT values; the score to beat
     `to_beat_exact` (exact total + margin, rounded up) under `TO_BEAT_RULE_EXACT`. ``margin`` and every other field are
     exactly v1's. ``crown_bar`` (`PoolKingView.crown_bar`) is the averaged bar of a door with crown averaging on; the
-    score to beat is then `to_beat_averaged` under `TO_BEAT_RULE_AVERAGED`, as on v2.
+    score to beat is then `to_beat_averaged` under `TO_BEAT_RULE_AVERAGED`, as on v2. ``decimals``: the version shows its
+    number at that many (`shown_total`, `to_beat_exact`).
     """
     base = document(**kwargs)
     result = {**base, "schema": SCHEMA_V3, "to_beat_rule": TO_BEAT_RULE_EXACT}
@@ -248,16 +256,16 @@ def document_v3(*, crown_bar=None, **kwargs):
     exact = None
     if base["king"] is not None:
         exact = float(kwargs["king"]["total"])
-        result["king"] = {**base["king"], "total": shown_total(exact)}
+        result["king"] = {**base["king"], "total": shown_total(exact, decimals)}
     elif base["baseline_total"] is not None:
         exact = float(kwargs["baseline_total"])
-        result["baseline_total"] = shown_total(exact)
+        result["baseline_total"] = shown_total(exact, decimals)
     margin = base["margin"]
     if margin is not None and crown_bar is not None:
         result["to_beat"] = to_beat_averaged(crown_bar, margin)
         result["to_beat_rule"] = TO_BEAT_RULE_AVERAGED
     elif margin is not None:
-        result["to_beat"] = to_beat_exact(exact, margin)
+        result["to_beat"] = to_beat_exact(exact, margin, decimals)
     if set(result) != FIELDS_V3:
         raise KothPublicRefused("koth_fields")
     return result
@@ -279,9 +287,12 @@ class PoolKingView:
         baseline=lambda: None,
         crown_bar_of=None,
         value=None,
+        decimals=None,
     ):
-        # ``value(model)``: the number this version is ranked by when it is not its total (`crown_official`)
+        # ``value(model)``: the number this version is ranked by when it is not its total (`crown_official`), and the
+        # decimals it is shown at
         self._standing = {} if value is None else {"value": value}
+        self.decimals = decimals
         self._open, self._epoch_of = open_store, epoch_of
         self._crown_bar_of = crown_bar_of
         self.exam_version_label = exam_version_label
@@ -331,7 +342,11 @@ class PoolKingView:
             if not _SS58.fullmatch(hotkey):
                 return None
             exact = _unit(standing["total"], "koth_king")
-            total = shown_total(exact) if v3 else gf.floor_to_step(exact, noise)
+            total = (
+                shown_total(exact, self.decimals if ranked else None)
+                if v3
+                else gf.floor_to_step(exact, noise)
+            )
             return hotkey, total, epoch
 
         changes = []
@@ -411,6 +426,8 @@ def serve(view, challenge, build=None):
         if build in (document_v2, document_v3) and hasattr(view, "crown_bar"):
             # only the v2 and v3 documents name their rule; v1 keeps the single-grade bar it has always stated
             averaged = {"crown_bar": view.crown_bar(challenge.challenge_id)}
+        if build is document_v3 and getattr(view, "decimals", None) is not None:
+            averaged["decimals"] = view.decimals
         return 200, (build or document)(
             challenge_id=challenge.challenge_id,
             challenge_version=challenge.version,

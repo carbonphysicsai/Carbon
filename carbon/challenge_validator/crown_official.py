@@ -67,6 +67,9 @@ UNRANKED = "INDETERMINATE_EVIDENCE"
 #: What a version ranked by each number adds to its Ladder key, so a change of the number starts a fresh Ladder and no old
 #: document is rewritten (`ladder_store.ladder_label`).
 _LABEL = {TOTAL: "", ACCURACY: "+accuracy"}
+#: The decimals every public place shows a version's number at, rounded DOWN, when it is ranked by each number (owner
+#: G-LEAD-91, 24 Nov 2026: two on the accuracy board); None: as the page's own version shows a total.
+_SHOWN = {TOTAL: None, ACCURACY: 2}
 #: The reason of a crown decision that waits for its version's margin row (filed and swept like a queued crown).
 CROWN_MARGIN_UNSET = "crown_margin_unset"
 #: The noise slot's digest while no margin is registered: the comparison then only screens (margin 0) which contenders
@@ -158,6 +161,11 @@ def reader(challenge_id, version):
     """``value`` of the number this version is ranked by, for the readers that take one; None for the total."""
     score = score_of(challenge_id, version)
     return None if score == TOTAL else lambda model: value(model, score)
+
+
+def shown_decimals(challenge_id, version):
+    """The decimals this version's number is shown at (`_SHOWN`)."""
+    return _SHOWN[score_of(challenge_id, version)]
 
 
 def label(challenge_id, version):
@@ -266,5 +274,6 @@ __all__ = [
     "registered",
     "row_check_unknown",
     "score_of",
+    "shown_decimals",
     "value",
 ]

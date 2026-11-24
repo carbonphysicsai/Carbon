@@ -318,6 +318,7 @@ def v2_sources(config, item, king_document, exam_key, *, v3=False):
             item["id"], version=item["version"]
         ),
         value=ranked,
+        decimals=shown_decimals(item),
     )
     changes = view.crown_changes(limit=launch_board.MAX_CROWN_CHANGES, v3=v3)
     king_model_id = None
@@ -344,6 +345,36 @@ def v2_sources(config, item, king_document, exam_key, *, v3=False):
         value=ranked,
     )
     return changes, exact
+
+
+def shown_decimals(item):
+    """The decimals ``item``'s version shows its number at (`crown_official.shown_decimals`), or None as before."""
+    from carbon.challenge_validator import crown_official
+
+    try:
+        return crown_official.shown_decimals(item["id"], item["version"])
+    except crown_official.CrownOfficialInvalid:
+        raise OperatorRefused("crown_official_invalid") from None
+
+
+def shown_king(king, exact, decimals):
+    """The v3 king document at ``decimals`` whatever the door shows: the king's number and the score to beat are taken from
+    his own exact standing (``exact``, the board's source), so the signed board never carries a finer one than the rule.
+    """
+    if decimals is None or king["king"] is None:
+        return king
+    own = exact.get(king["king"]["hotkey"])
+    if type(own) is not float:
+        raise OperatorRefused("king_moved_during_run")
+    return {
+        **king,
+        "king": {**king["king"], "total": koth_public.shown_total(own, decimals)},
+        "to_beat": (
+            None
+            if king["margin"] is None
+            else koth_public.to_beat_exact(own, king["margin"], decimals)
+        ),
+    }
 
 
 def ranked_by(item):
@@ -627,6 +658,11 @@ def run_once(config, *, version=None):
                     changes, exact = v2_sources(config, item, king, exam_key, **three)
                 except (sqlite3.Error, StateError):
                     raise OperatorRefused("pool_store_unavailable") from None
+                if v6:
+                    decimals = shown_decimals(item)
+                    king = shown_king(king, exact, decimals)
+                    if decimals is not None:
+                        extra["decimals"] = decimals
                 extra = {
                     **extra,
                     "crown_changes": changes,

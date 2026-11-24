@@ -147,7 +147,14 @@ def parse(document, challenge_id):
             raise KingUnreadable("to_beat")
         low = min(1.0, math.ceil((held - 0.0005 + margin) * 1000 - 1e-6) / 1000)
         high = min(1.0, math.ceil((held + 0.0005 + margin) * 1000 - 1e-6) / 1000)
-        if not low - 1e-9 <= to_beat <= high + 1e-9:
+        # or a version shown at 2 decimals: the total rounded DOWN, the bar rounded up, both to 2 places, so the exact
+        # total lies less than one unit above the shown one
+        two = all(abs(v * 100 - round(v * 100)) < 1e-6 for v in (held, to_beat))
+        low2 = min(1.0, math.ceil((held + margin) * 100 - 1e-6) / 100)
+        high2 = min(1.0, math.ceil((held + 0.01 + margin) * 100 - 1e-6) / 100)
+        if not low - 1e-9 <= to_beat <= high + 1e-9 and not (
+            two and low2 - 1e-9 <= to_beat <= high2 + 1e-9
+        ):
             raise KingUnreadable("to_beat")
     elif to_beat is not None and v2:
         # the conservative bar: the shown (step-floored) score + one step + the margin, rounded up to 3 places
