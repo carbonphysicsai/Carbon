@@ -420,9 +420,10 @@ def _fresh(name: str, challenge_id: str) -> dict:
 #: Motor 1.9's TRAIN (owner MAGNET CELLS MOTOR, 21 Nov 2026; model-eval: NOT grown): Motor 1.8's fresh lambda TRAIN,
 #: every row and input unchanged, plus ONE target column, ``magnet_min_b_t`` (tesla) at column 240: the `scalar` (the
 #: minimum over the 60 rotor steps) of row i of the public LOADED TRAIN solve's magnet table (box3,
-#: MOTOR_19_PUBLIC_TRAIN_SOLVES_20261119 out-loaded.tar member RUN/loaded/table/magnet_min_b.json). The npz is the
-#: bytes of exam-motor's train241 PUBLIC run (release, RECEIPTS 4465); the loader re-derives its arrays from the two
-#: pinned sources and refuses any difference.
+#: MOTOR_19_PUBLIC_TRAIN_SOLVES_20261119 out-loaded.tar member RUN/loaded/table/magnet_min_b.json). No npz is
+#: committed: the loader derives the TRAIN from the two pinned sources and writes it with this module's canonical
+#: writer (`_npz`), whose bytes are pinned here; they equal exam-motor's train241 PUBLIC run byte for byte (release,
+#: RECEIPTS 4465, 095a3ef0).
 MAGNET_TRAIN = {
     "motor-dev-train-1p9-v1": {
         "challenge": motor.CHALLENGE.challenge_id,
@@ -504,28 +505,15 @@ def derive_motor19_public_train(name: str, magnet_raw: bytes) -> tuple[dict, dic
 
 def _load_magnet(name: str, challenge_id: str) -> dict:
     spec = _magnet(name, challenge_id)
-    train_raw = (_EXTENDED_DATA / f"{name}.npz").read_bytes()
     magnet_raw = (
         _EXTENDED_DATA / f"{name.removesuffix('-v1')}-magnet-v1.json"
     ).read_bytes()
-    if _sha(train_raw) != spec["train_sha256"]:
-        raise ValueError("magnet-column public TRAIN artifact identity differs")
     want, provenance = derive_motor19_public_train(name, magnet_raw)
-    with zipfile.ZipFile(io.BytesIO(train_raw)) as archive:
-        if sorted(m.filename for m in archive.infolist()) != [
-            "inputs.npy",
-            "targets.npy",
-        ]:
-            raise ValueError("magnet-column public TRAIN members differ")
-    with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
-        x, y = data["inputs"], data["targets"]
-    for got, ref in ((x, want["inputs"]), (y, want["targets"])):
-        if (
-            got.dtype != np.dtype("<f8")
-            or got.shape != ref.shape
-            or got.tobytes() != np.ascontiguousarray(ref, dtype="<f8").tobytes()
-        ):
-            raise ValueError("magnet-column public TRAIN differs from its sources")
+    x = np.ascontiguousarray(want["inputs"], dtype="<f8")
+    y = np.ascontiguousarray(want["targets"], dtype="<f8")
+    train_raw = _npz(x, y)
+    if _sha(train_raw) != spec["train_sha256"]:
+        raise ValueError("magnet-column public TRAIN differs from its sources")
     x.setflags(write=False)
     y.setflags(write=False)
     return {

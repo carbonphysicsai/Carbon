@@ -1,7 +1,7 @@
 """Motor 1.9's public TRAIN (Lead audit #18): Motor 1.8's 194 rows unchanged + magnet_min_b_t at column 240.
 
-The served npz is exam-motor's train241 PUBLIC run bytes (release, RECEIPTS 4465); the loader re-derives its arrays from
-Motor 1.8's TRAIN and the pinned magnet table and refuses any difference.
+No npz is committed: the loader derives the TRAIN from Motor 1.8's TRAIN and the pinned magnet table and writes it with
+the canonical writer; those bytes are pinned and equal exam-motor's train241 PUBLIC run (release, RECEIPTS 4465).
 """
 
 from __future__ import annotations
@@ -72,23 +72,13 @@ def test_a_magnet_table_other_than_the_pinned_one_refuses(edit, monkeypatch):
         ppt.derive_motor19_public_train(NAME, raw)
 
 
-def test_a_served_npz_that_differs_from_its_sources_refuses(tmp_path, monkeypatch):
-    for name in (
-        "motor-dev-train-1p8-v1.npz",
-        "motor-dev-train-1p8-v1.provenance.json",
-        "motor-dev-train-1p8-v1.source.jsonl",
-        "motor-dev-train-1p9-magnet-v1.json",
-    ):
-        (tmp_path / name).write_bytes((ppt._DATA / name).read_bytes())
-    good = ppt.load_extended_train(NAME, MOTOR)
-    targets = np.array(good["targets"])
-    targets[0, 240] += 1e-9
-    raw = ppt._npz(np.asarray(good["inputs"]), targets)
-    (tmp_path / f"{NAME}.npz").write_bytes(raw)
-    monkeypatch.setattr(ppt, "_EXTENDED_DATA", tmp_path)
-    with pytest.raises(ValueError, match="identity differs"):
-        ppt.load_extended_train(NAME, MOTOR)
-    spec = {**ppt.MAGNET_TRAIN[NAME], "train_sha256": hashlib.sha256(raw).hexdigest()}
+def test_no_npz_is_committed_and_a_moved_pin_refuses(monkeypatch):
+    # the TRAIN is derived at load and written by the canonical writer (no npz payload in the tree, cauth1 invariant);
+    # its bytes are the release run's 095a3ef0
+    assert not (ppt._DATA / f"{NAME}.npz").exists()
+    got = ppt.load_extended_train(NAME, MOTOR)
+    assert got["train"] == ppt._npz(got["inputs"], got["targets"])
+    spec = {**ppt.MAGNET_TRAIN[NAME], "train_sha256": "0" * 64}
     monkeypatch.setitem(ppt.MAGNET_TRAIN, NAME, spec)
     with pytest.raises(ValueError, match="differs from its sources"):
         ppt.load_extended_train(NAME, MOTOR)
