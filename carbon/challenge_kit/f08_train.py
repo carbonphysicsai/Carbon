@@ -33,12 +33,18 @@ CHALLENGE_VERSION = "1.0"
 #: the version registry (`version_registry`): an unregistered version is
 #: refused, never sent to v1 (Validator, X23).
 CHALLENGE_VERSIONS = version_registry.versions(CHALLENGE_ID)
-#: Each version's TRAIN, by name: v1 (255 rows) or v2 (287 rows).
+#: The TRAIN names THIS loader serves: v1 (255 rows) or v2 (287 rows).
+_SERVED_TRAINS = {
+    version_registry.F08_TRAIN_V1: "v1",
+    version_registry.F08_TRAIN_V2: "v2",
+}
+#: Each version whose TRAIN this loader serves, by name. A registered F08 version whose TRAIN another module serves
+#: (RB 2.0: `f08_v2_train`) is not in it, so `load_public_train` refuses it typed; never a KeyError at IMPORT, which
+#: would stop every module that imports this one, the live doors' included (blind-audit row 1, 23 Nov 2026).
 TRAIN_FOR_VERSION = {
-    version: {version_registry.F08_TRAIN_V1: "v1", version_registry.F08_TRAIN_V2: "v2"}[
-        version_registry.entry(CHALLENGE_ID, version).train
-    ]
+    version: _SERVED_TRAINS[version_registry.entry(CHALLENGE_ID, version).train]
     for version in CHALLENGE_VERSIONS
+    if version_registry.entry(CHALLENGE_ID, version).train in _SERVED_TRAINS
 }
 TRAIN_SHA256 = "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
 PROVENANCE_SHA256 = "f510f92f77ec0c1d3655069703e70d25585648dc2766e14cef5f4689089c1860"
