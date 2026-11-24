@@ -193,13 +193,80 @@ def test_each_stores_next_king_follows_its_own_last_record(tmp_path, monkeypatch
     assert issuer.ledger.records(BATTERY)[-1]["reason"] == "bank_improvement"
 
 
-def test_the_old_king_winning_the_new_exam_keeps_his_clock_as_registered(tmp_path):
-    """`decide`'s same-miner rule, unchanged: a first incumbent of the same miner starts no fresh clock."""
+def test_the_old_king_winning_the_first_new_crown_starts_a_fresh_clock(tmp_path):
+    """Owner G-LEAD-81: the 1.8 king's miner winning the first new crown is paid from that crown, not from his old one."""
     issuer, _old, new = rig(tmp_path)
     clock = issuer.ledger.records(BATTERY)[0]["clock_ms"]
     new.crown("new-1", OLD, at=1.0)
-    record = twp.preview(issuer, at(1100))["records"][BATTERY]
-    assert (record["reason"], record["clock_ms"]) == ("same_miner_no_reset", clock)
+    state = at(1100)
+    before = twp.preview(issuer, state)
+    issuer.issue(state)
+    first, record = issuer.ledger.records(BATTERY)
+    assert (record["eligible"], record["reason"]) == (
+        True,
+        "first_incumbent_no_baseline",
+    )
+    assert record["clock_ms"] > clock
+    assert first["clock_ms"] == clock  # his old record is never rewritten
+    assert paid(issuer, at(1500)) == [OLD]
+    # the preview read the same decision before anything was written
+    assert [h["hotkey"] for h, _ in before["targets"]["winners"]] == [OLD]
+
+
+def test_another_miner_winning_the_first_new_crown_is_decided_as_before(tmp_path):
+    issuer, _old, new = rig(tmp_path)
+    clock = issuer.ledger.records(BATTERY)[0]["clock_ms"]
+    new.crown("new-1", NEW, at=1.0)
+    issuer.issue(at(1100))
+    record = issuer.ledger.records(BATTERY)[-1]
+    assert (record["eligible"], record["reason"]) == (
+        True,
+        "first_incumbent_no_baseline",
+    )
+    assert record["clock_ms"] > clock
+
+
+def test_the_old_kings_second_new_crown_follows_the_new_stores_own_rule(tmp_path):
+    """Only the FIRST new crown is fresh: once he is the new store's king, beating himself is the ordinary rule."""
+    issuer, _old, new = rig(tmp_path)
+    new.crown("new-1", OLD, at=1.0)
+    issuer.issue(at(1100))
+    started = issuer.ledger.records(BATTERY)[-1]["clock_ms"]
+    new.crown("new-2", OLD, previous="new-1", at=2.0)
+    issuer.issue(at(1500))
+    record = issuer.ledger.records(BATTERY)[-1]
+    assert record["promotion"]["model_id"] == "new-2"
+    ordinary = we.decide(
+        issuer.policy,
+        BATTERY,
+        record["promotion"],
+        issuer.ledger.records(BATTERY)[-2],
+        {OLD: record["winner_coldkey"]},
+        record["observed_ms"],
+        record["clock_ms"],
+    )
+    assert (record["eligible"], record["reason"]) == (
+        ordinary["eligible"],
+        ordinary["reason"],
+    )
+    assert record["reason"] in ("same_miner_no_reset", "self_improvement_reset")
+    if record["reason"] == "same_miner_no_reset":
+        assert record["clock_ms"] == started
+
+
+def test_an_ineligible_old_kings_miner_gains_nothing_from_the_new_deployment(
+    tmp_path,
+):
+    issuer, _old, new = rig(tmp_path)
+    path = issuer.ledger.path
+    raw = path.read_text(encoding="utf-8")
+    path.write_text(raw.replace('"eligible": true', '"eligible": false'), "utf-8")
+    assert issuer.ledger.records(BATTERY)[0]["eligible"] is False
+    new.crown("new-1", OLD, at=1.0)
+    issuer.issue(at(1100))
+    record = issuer.ledger.records(BATTERY)[-1]
+    assert (record["eligible"], record["reason"]) == (False, "same_miner_no_reset")
+    assert paid(issuer, at(1500)) == []
 
 
 def test_the_published_intent_resolves_to_the_targets_it_was_issued_with(tmp_path):

@@ -382,8 +382,10 @@ class TestnetWinnerIntentIssuer:
 
     def _handed_over(self, challenge, snapshot, *, observe, preview):
         """The one record a Challenge in a king hand-over pays, never two: the new version's king once one is payable,
-        else the previous version's. A king of one store is never another store's predecessor, except that the new
-        version's FIRST recorded king follows the last previous one (`decide`'s same-miner rule, unchanged).
+        else the previous version's. A king of one store is never another store's predecessor: the new version's FIRST
+        recorded king starts a fresh clock, the previous king's own miner included (owner G-LEAD-81, 24 Nov 2026). One
+        thing carries over: an INELIGIBLE previous king's miner gains no eligibility from the new deployment (`decide`'s
+        same-miner rule, unchanged).
 
         Until it is over, a new crown that cannot be paid takes nothing from the previous king and stops no cycle: one
         graded on a pack the policy does not qualify, or whose hotkey is not registered, is not recorded (a record is
@@ -418,7 +420,7 @@ class TestnetWinnerIntentIssuer:
             for r in seen.values()
         )
         promotion = self._promotion(challenge)
-        fallback = before[-1] if before else None
+        fallback = before[-1] if before and not before[-1]["eligible"] else None
         if over:
             return self._record(
                 challenge,
