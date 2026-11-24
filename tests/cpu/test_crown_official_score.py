@@ -178,13 +178,25 @@ def test_the_rule_is_registered_with_no_default_and_malformed_refuses(tmp_path):
         crown_official.registered(CHALLENGE, VERSION, path=bad)
 
 
-def test_the_repositorys_registry_turns_it_on_for_motor_18_only():
+#: Owner REGISTRATION-BATCH-24NOV line 6, CROWN-MARGIN-19-RB20 (2026-11-24T10:26:24Z, typed in the model-eval seat,
+#: answered "6. approve"): the owner-set margin of Motor 1.9 and RB 2.0 until each version's repeat-grade noise is
+#: measured at its seal rehearsal, then replaced by row (0.0129 / 1.5; a declared row, never derived by code).
+OWNER_PROVISIONAL_19_RB20 = {
+    ("electric-motor-magnetics", "1.9"): 0.0086,
+    ("f08-ribbed-bracket", "2.0"): 0.0086,
+}
+
+
+def test_the_repositorys_registry_turns_it_on_for_the_owner_set_versions():
     on = crown_official.registered("electric-motor-magnetics", "1.8")
     assert on is not None and on["margin"] == MARGIN
+    for version, margin in OWNER_PROVISIONAL_19_RB20.items():
+        row = crown_official.registered(*version)
+        assert row is not None and row["margin"] == margin
     for other in (
         ("electric-motor-magnetics", "1.7"),
         ("chip-cold-plate", "1.8"),
-        ("f08-ribbed-bracket", "2.0"),
+        ("f08-ribbed-bracket", "1.9"),
     ):
         assert crown_official.registered(*other) is None
 

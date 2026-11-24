@@ -4,6 +4,12 @@
   "versions": {
     "electric-motor-magnetics 1.8": {
       "margin": 0.0129
+    },
+    "electric-motor-magnetics 1.9": {
+      "margin": 0.0086
+    },
+    "f08-ribbed-bracket 2.0": {
+      "margin": 0.0086
     }
   }
 }
