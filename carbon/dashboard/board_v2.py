@@ -656,6 +656,12 @@ def _launch(board):
                 else {"crowned_utc": launch["crowned_utc"]}
             ),
             **({"reasons": dict(launch["reasons"])} if launch.get("reasons") else {}),
+            # v7 boards only: the door's unique admitted model designs, all time (a signed aggregate count)
+            **(
+                {}
+                if launch.get("unique_designs") is None
+                else {"unique_designs": launch["unique_designs"]}
+            ),
         }
     }
 

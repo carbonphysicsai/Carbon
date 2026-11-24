@@ -266,6 +266,14 @@ assert.deepEqual(D.parseRoute("#/b/x--cpu/m/5abc"), {view: "miner", slug: "x--cp
   assert.equal(D.aliasEntry(boards, "y--no-class"), null);
   assert.equal(D.aliasEntry(boards, "x-1.8--no-class"), null);
 }
+// Owner DASHBOARD-ALL-TIME-SUBMISSIONS (v2 5744): the tile sums each board's signed unique_designs; none -> no tile
+{
+  const index = {boards: [{slug: "a"}, {slug: "b"}, {slug: "c"}, {slug: null}]};
+  const v2 = n => ({launch: n === undefined ? {} : {unique_designs: n}});
+  assert.equal(D.uniqueDesigns(index, {a: v2(3891), b: v2(12), c: v2(undefined)}), 3903);
+  assert.equal(D.uniqueDesigns(index, {a: v2(undefined), b: {}, c: null}), null);
+  assert.equal(D.uniqueDesigns(index, {a: v2(-1), b: v2(1.5), c: v2(2)}), 2);
+}
 assert.deepEqual(D.parseRoute("#/mine"), {view: "mine"});
 assert.deepEqual(D.parseRoute("#/"), {view: "home"});
 assert.equal(D.countdown(3723), "01:02:03");

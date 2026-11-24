@@ -75,6 +75,11 @@ no v3 yet is refused (`receiver_no_v3`), never shown as kingless. The same rule 
 turn v6 on only after the Worker that reads launch-board.v6 and the door that serves
 v3 are deployed; v1-v5 runs are unchanged.
 
+`"board": "v7"` (owner DASHBOARD-ALL-TIME-SUBMISSIONS, pick "unique model designs"; definition v2 5744) is the v6 run
+plus ONE signed count, ``designs.unique_submitted``: the distinct recipe digests among this door's admitted submissions,
+all time (`unique_designs`, the ledger read-only). Order: the Worker that reads launch-board.v7 first, then the door
+that serves it (`launch_board_file`), then this config; v1-v6 runs are unchanged.
+
 Exit codes: 0 every board written and uploaded; 2 a board could not be built, checked
 or uploaded (the run names which and why).
 
@@ -110,7 +115,7 @@ from carbon.dashboard import feed as dashboard_feed
 CONFIG_SCHEMA = "carbon.launch-board.operator.config.v1"
 NAMES = {"schema", "network", "ledger", "receiver_url", "key", "out", "challenges"}
 OPTIONAL = {"upload_command", "fetch_timeout_seconds", "board"}
-BOARDS = ("v1", "v2", "v3", "v4", "v5", "v6")
+BOARDS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7")
 CHALLENGE_NAMES = {"id", "version", "exam_version_label"}
 CHALLENGE_OPTIONAL = {"exam_key"}
 #: What a v2 Challenge must also name; a v1 config never carries them.
@@ -146,8 +151,9 @@ def load_config(path):
         "v4",
         "v5",
         "v6",
+        "v7",
     )  # v3 is v2 plus the king's stability; v4 adds measure + checks; v5 is v3 plus crown time + row reasons; v6 is
-    # v5's shape with totals to 3 decimals
+    # v5's shape with totals to 3 decimals; v7 is v6 plus the signed unique-designs count
     for item in raw["challenges"]:
         required = CHALLENGE_NAMES | (CHALLENGE_V2 if v2 else set())
         if (
@@ -524,6 +530,25 @@ def crown_checks(config, item):
     return out
 
 
+def unique_designs(config):
+    """The v7 board's count (owner DASHBOARD-ALL-TIME-SUBMISSIONS; definition v2 5744): the number of DISTINCT recipe
+    digests among this door's ADMITTED submissions, all time, from the receiver's attempt ledger read-only. Every
+    admitted submission's digest is written there at admission (`recipe_copies.note_admitted`); a refused-at-intake
+    submission never is. One aggregate number: no id, digest or hotkey leaves this function. An unreadable ledger or a
+    ledger without the table refuses the run (the last good board is kept), never a 0.
+    """
+    try:
+        with contextlib.closing(_readonly(Path(config["ledger"]))) as db:
+            (count,) = db.execute(
+                "SELECT COUNT(DISTINCT recipe_digest) FROM recipe_copy_digests"
+            ).fetchone()
+    except (sqlite3.Error, OSError, TypeError, ValueError):
+        raise OperatorRefused("ledger_designs_unavailable") from None
+    if type(count) is not int or count < 0:
+        raise OperatorRefused("ledger_designs_unavailable")
+    return count
+
+
 def slug_of(challenge):
     return dashboard_feed.board_slug(challenge["id"], "no-class")
 
@@ -552,8 +577,11 @@ def run_once(config, *, version=None):
     out.mkdir(parents=True, exist_ok=True)
     version = launch_board.now_version() if version is None else version
     timeout = config.get("fetch_timeout_seconds", 10)
-    v2 = config.get("board") in ("v2", "v3", "v4", "v5", "v6")
-    v6 = config.get("board") == "v6"  # v5's run, from the v3 king document
+    v2 = config.get("board") in ("v2", "v3", "v4", "v5", "v6", "v7")
+    v7 = (
+        config.get("board") == "v7"
+    )  # v6's run plus the door's unique admitted designs count
+    v6 = v7 or config.get("board") == "v6"  # v5's run, from the v3 king document
     v5 = v6 or config.get("board") == "v5"
     three = {"v3": True} if v6 else {}
     v4 = config.get("board") == "v4"
@@ -607,6 +635,8 @@ def run_once(config, *, version=None):
                             extra["crowned_utc"] = crowned_utc(config, item, king)
                     except (sqlite3.Error, StateError):
                         raise OperatorRefused("pool_store_unavailable") from None
+                if v7:
+                    extra["designs"] = unique_designs(config)
             board = launch_board.build_from_ledger(
                 ledger=config["ledger"],
                 challenge=challenge,
@@ -637,9 +667,13 @@ def run_once(config, *, version=None):
             if v2:
                 row.update(
                     board=(
-                        "v6"
-                        if v6
-                        else "v5" if v5 else "v4" if v4 else "v3" if v3 else "v2"
+                        "v7"
+                        if v7
+                        else (
+                            "v6"
+                            if v6
+                            else "v5" if v5 else "v4" if v4 else "v3" if v3 else "v2"
+                        )
                     ),
                     crown_changes=len(board["crown_changes"]),
                 )

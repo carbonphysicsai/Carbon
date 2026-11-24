@@ -366,6 +366,35 @@ def _variants(signer, boards):
     v6("v6_wrong_rule", rule="king_plus_nothing")
     v6("v6_signed_under_v5_domain", signed_under=launch.DOMAIN_V5)
     v5("v5_signed_under_v6_domain", signed_under=launch.DOMAIN_V6)
+
+    # v7 (owner DASHBOARD-ALL-TIME-SUBMISSIONS; v2 5744): v6 plus the signed designs count, under its own domain
+    def designs(value):
+        def mutate(body):
+            three_places(body)
+            body["designs"] = value
+
+        return mutate
+
+    def v7(name, **changes):
+        v6(
+            name,
+            **{"schema": launch.SCHEMA_V7, "signed_under": launch.DOMAIN_V7, **changes},
+        )
+
+    v7("v7_designs", mutate=designs({"unique_submitted": 3891}))
+    v7("v7_designs_zero", mutate=designs({"unique_submitted": 0}))
+    v7("v7_designs_negative", mutate=designs({"unique_submitted": -1}))
+    v7("v7_designs_too_big", mutate=designs({"unique_submitted": 10**9 + 1}))
+    v7("v7_designs_bool", mutate=designs({"unique_submitted": True}))
+    v7("v7_designs_extra_key", mutate=designs({"unique_submitted": 1, "graded": 1}))
+    v7("v7_designs_not_a_dict", mutate=designs([1]))
+    v7("v7_without_designs", mutate=three_places)
+    v7(
+        "v7_signed_under_v6_domain",
+        signed_under=launch.DOMAIN_V6,
+        mutate=designs({"unique_submitted": 5}),
+    )
+    v6("v6_with_designs", mutate=designs({"unique_submitted": 5}))
     return out
 
 
@@ -389,6 +418,23 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
     for (name, want), have in zip(expected_v2, got_v2, strict=True):
         assert have == want, name
     codes = {name: want.get("code") for name, want in expected}
+    # v7: the signed designs count reaches both projections; every malformed count or shape refuses
+    assert codes["v7_designs"] is None and codes["v7_designs_zero"] is None
+    shown = dict(expected)["v7_designs"]["board"]["launch"]
+    assert shown["unique_designs"] == 3891
+    assert dict(expected_v2)["v7_designs"]["board"]["launch"]["unique_designs"] == 3891
+    assert "unique_designs" not in dict(expected)["graded"]["board"]["launch"]
+    for name in (
+        "v7_designs_negative",
+        "v7_designs_too_big",
+        "v7_designs_bool",
+        "v7_designs_extra_key",
+        "v7_designs_not_a_dict",
+        "v7_without_designs",
+        "v7_signed_under_v6_domain",
+        "v6_with_designs",
+    ):
+        assert codes[name] is not None, name
     assert codes["empty"] is None and codes["graded"] is None
     assert codes["v2_averaged_rule"] is None and codes["v3_averaged_rule"] is None
     for name in ("v4_measured", "v4_in_progress", "v4_unmeasured", "v4_unstable"):

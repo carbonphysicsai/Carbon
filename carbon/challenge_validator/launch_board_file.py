@@ -10,7 +10,7 @@ key.** It verifies; it does not sign.
 A board is served only when all of these hold:
 
 - the file is a readable JSON object of at most `MAX_BYTES`;
-- it is a v1, v2, v3, v4, v5 or v6 board (`launch_board.SCHEMA` .. `SCHEMA_V6`) in its closed shape
+- it is a v1-v7 board (`launch_board.SCHEMA` .. `SCHEMA_V7`; v7 = v6 + the signed designs count) in its closed shape
   (`launch_board.check`): no field outside that schema's allow-lists, so nothing finer
   than the Ladder's rounded totals, the king document, counts and (v2) the crown
   changes can appear; an exact total never can;
@@ -80,6 +80,7 @@ def read_board(path, challenge_id, pinned_key=None):
                 launch_board.SCHEMA_V4,
                 launch_board.SCHEMA_V5,
                 launch_board.SCHEMA_V6,
+                launch_board.SCHEMA_V7,
             )
             or (board.get("challenge") or {}).get("id") != challenge_id
         ):
@@ -123,7 +124,7 @@ def _on_the_ladder_step(board):
     nudge = Decimal(1).scaleb(-9)
     # owner 16 Nov: a v6 board shows a total at 3 decimals (koth_public.TOTAL_DECIMALS, half up from the exact one)
     # wherever the exact total is held; any other total there is still the Ladder's floored one
-    three = board["schema"] == launch_board.SCHEMA_V6
+    three = board["schema"] in (launch_board.SCHEMA_V6, launch_board.SCHEMA_V7)
     grid = Decimal(1).scaleb(-koth_public.TOTAL_DECIMALS)
 
     def on_grid(total):

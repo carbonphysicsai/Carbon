@@ -33,6 +33,11 @@ export const LAUNCH_DOMAIN_V5 = "carbon.validator.launch-board.v5\u0000";
 // v6 (owner 16 Nov) = v5's shape exactly: totals to 3 decimals, the bar king_plus_margin (held equal to launch.py's v6).
 export const LAUNCH_SCHEMA_V6 = "carbon.validator.launch-board.v6";
 export const LAUNCH_DOMAIN_V6 = "carbon.validator.launch-board.v6\u0000";
+// v7 (owner DASHBOARD-ALL-TIME-SUBMISSIONS; v2 5744) = v6 plus ONE signed field, `designs` = {unique_submitted: n}: the door's
+// distinct admitted recipe digests, all time (held equal to launch.py's v7). Accepted here BEFORE any door emits it.
+export const LAUNCH_SCHEMA_V7 = "carbon.validator.launch-board.v7";
+export const LAUNCH_DOMAIN_V7 = "carbon.validator.launch-board.v7\u0000";
+const LAUNCH_MAX_DESIGNS = 10 ** 9;
 const LAUNCH_PUBLIC_REASONS = ["TIMED_OUT", "STOPPED_EARLY"];
 const LAUNCH_MEASURE_STATES = ["MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED"];
 const LAUNCH_DECIDED = ["FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "INCUMBENT_DETHRONED"];
@@ -707,13 +712,21 @@ function launchCrownChecks(checks) {
     seen.add(c.hotkey);
   }
 }
+function launchDesigns(designs) {
+  // = launch.py _designs: exactly {unique_submitted: a whole number in [0, 10^9]}
+  if (!isDict(designs) || !sameKeys(designs, ["unique_submitted"]) || !launchInt(designs.unique_submitted)
+      || designs.unique_submitted.value < 0 || designs.unique_submitted.value > LAUNCH_MAX_DESIGNS) throw new FeedRefused("designs_invalid");
+  return designs.unique_submitted.value;
+}
 function launchCheck(document) {
-  const v6 = get(document, "schema") === LAUNCH_SCHEMA_V6;
+  const v7 = get(document, "schema") === LAUNCH_SCHEMA_V7;
+  const v6 = v7 || get(document, "schema") === LAUNCH_SCHEMA_V6;
   const v5 = v6 || get(document, "schema") === LAUNCH_SCHEMA_V5;
   const v4 = get(document, "schema") === LAUNCH_SCHEMA_V4;
   const v3 = v5 || v4 || get(document, "schema") === LAUNCH_SCHEMA_V3;
   const v2 = v3 || get(document, "schema") === LAUNCH_SCHEMA_V2;
-  if (!sameKeys(document, v4 ? [...LAUNCH_FIELDS, "crown_changes", "crown_checks"].sort() : v2 ? [...LAUNCH_FIELDS, "crown_changes"].sort() : LAUNCH_FIELDS)) throw new FeedRefused("board_fields");
+  if (!sameKeys(document, v7 ? [...LAUNCH_FIELDS, "crown_changes", "designs"].sort() : v4 ? [...LAUNCH_FIELDS, "crown_changes", "crown_checks"].sort() : v2 ? [...LAUNCH_FIELDS, "crown_changes"].sort() : LAUNCH_FIELDS)) throw new FeedRefused("board_fields");
+  if (v7) launchDesigns(document.designs);
   if (v2) launchCrownChanges(document.crown_changes);
   if (v4) launchCrownChecks(document.crown_checks);
   const network = get(document, "network");
@@ -775,13 +788,14 @@ function launchCheck(document) {
 }
 async function projectLaunch(document, pinned) {
   if (pinned.fixture) throw new FeedRefused("fixture_launch_board");
-  const v6 = document.schema === LAUNCH_SCHEMA_V6;
+  const v7 = document.schema === LAUNCH_SCHEMA_V7;
+  const v6 = v7 || document.schema === LAUNCH_SCHEMA_V6;
   const v5 = v6 || document.schema === LAUNCH_SCHEMA_V5;
   const v4 = document.schema === LAUNCH_SCHEMA_V4;
   const v3 = v5 || v4 || document.schema === LAUNCH_SCHEMA_V3;
   const v2 = v3 || document.schema === LAUNCH_SCHEMA_V2;
-  const domain = v6 ? LAUNCH_DOMAIN_V6 : v5 ? LAUNCH_DOMAIN_V5 : v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
-  const signer = await verify(document, pinned, domain, v6 ? LAUNCH_SCHEMA_V6 : v5 ? LAUNCH_SCHEMA_V5 : v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
+  const domain = v7 ? LAUNCH_DOMAIN_V7 : v6 ? LAUNCH_DOMAIN_V6 : v5 ? LAUNCH_DOMAIN_V5 : v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
+  const signer = await verify(document, pinned, domain, v7 ? LAUNCH_SCHEMA_V7 : v6 ? LAUNCH_SCHEMA_V6 : v5 ? LAUNCH_SCHEMA_V5 : v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
   const counts = launchCheck(document);
   const ladder = document.ladder;
   const king = document.king;
@@ -845,6 +859,8 @@ async function projectLaunch(document, pinned) {
       to_beat_rule: v2 ? king.to_beat_rule : null,
       crowned_utc: v5 ? king.crowned_utc : null,
       reasons: v5 ? Object.fromEntries(ladder.filter(e => e.reason).map(e => [e.hotkey, e.reason])) : {},
+      // v7 only (absent before, so v1-v6 projections stay byte-identical): the door's unique admitted designs, all time
+      ...(v7 ? {unique_designs: document.designs.unique_submitted.value} : {}),
       crown_changes: v2 ? document.crown_changes.slice(0, LAUNCH_MAX_CROWN_CHANGES).map(c => ({
         hotkey: c.to_hotkey, from_hotkey: c.from_hotkey, since_epoch: c.since_epoch.value, total: c.total.value,
       })) : null,
@@ -858,7 +874,7 @@ async function projectLaunch(document, pinned) {
 }
 
 export async function project(document, pinned) {
-  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4, LAUNCH_SCHEMA_V5, LAUNCH_SCHEMA_V6].includes(get(document, "schema"))) return projectLaunch(document, pinned);
+  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4, LAUNCH_SCHEMA_V5, LAUNCH_SCHEMA_V6, LAUNCH_SCHEMA_V7].includes(get(document, "schema"))) return projectLaunch(document, pinned);
   const signer = await verify(document, pinned);
   if (own(document, "live")) throw new FeedRefused("live_not_authorized");
   const vals = values(get(document, "values"));
@@ -1384,6 +1400,8 @@ function launchV2(board) {
     ...(typeof launch.crowned_utc === "string" ? {crowned_utc: launch.crowned_utc} : {}),
     ...(isDict(launch.reasons) && Object.keys(launch.reasons).length ? {reasons: {...launch.reasons}} : {}),
     ...(!Array.isArray(launch.crown_changes) ? {} : {crown_changes: launch.crown_changes.map(c => ({...c}))}),
+    // v7 boards only (= board_v2.py): the door's unique admitted model designs, all time
+    ...(Number.isInteger(launch.unique_designs) ? {unique_designs: launch.unique_designs} : {}),
   }};
 }
 

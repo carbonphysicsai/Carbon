@@ -341,7 +341,8 @@ def build_card(board, pinned_key, facts):
         board = lb.verify(board, pinned_key)
     except lb.BoardRefused as refused:
         raise CardRefused(refused.code) from None
-    if board["schema"] != lb.SCHEMA_V6:
+    # a v7 board is the v6 board plus the designs count (the card reads none of it)
+    if board["schema"] not in (lb.SCHEMA_V6, lb.SCHEMA_V7):
         raise CardRefused("card_board_version")
     king_section = board["king"]
     king = king_section["king"]

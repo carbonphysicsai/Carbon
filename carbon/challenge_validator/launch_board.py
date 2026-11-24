@@ -103,6 +103,14 @@ BOARD_DOMAIN_V5 = b"carbon.validator.launch-board.v5\x00"
 #: because the dashboard readers before 16 Nov refuse the new rule id on a v2-v5 board: v1-v5 stay byte-identical.
 SCHEMA_V6 = "carbon.validator.launch-board.v6"
 BOARD_DOMAIN_V6 = b"carbon.validator.launch-board.v6\x00"
+#: The v7 board (owner DASHBOARD-ALL-TIME-SUBMISSIONS, pick "unique model designs"; definition v2 5744): v6's shape plus ONE
+#: top-level field, ``designs`` = ``{"unique_submitted": n}``, under its OWN signing domain. n = the number of DISTINCT recipe
+#: digests among this door's ADMITTED submissions, all time (`recipe_copies.unique_admitted_designs`): an aggregate count,
+#: no hotkey, no per-version split, never mixed with the ladder's counts. A recipe binds its Challenge version, so the
+#: page's sum over boards is the all-doors number. v1-v6 stay byte-identical; readers accept v7 BEFORE a door emits it.
+SCHEMA_V7 = "carbon.validator.launch-board.v7"
+BOARD_DOMAIN_V7 = b"carbon.validator.launch-board.v7\x00"
+DESIGNS_FIELDS = frozenset({"unique_submitted"})
 #: The NOT_SCORED reasons a public row may name (`grade_feedback.REASONS`): the two counted wall outcomes only. Any other
 #: reason stays the miner's own feedback; the row says null.
 PUBLIC_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
@@ -168,6 +176,8 @@ KING_SECTION_V3 = (*KING_SECTION_V2, "stability")
 KING_SECTION_V4 = (*KING_SECTION_V3, "measure")
 KING_SECTION_V5 = (*KING_SECTION_V3, "crowned_utc")
 FIELDS_V4 = FIELDS_V2 | {"crown_checks"}
+#: v7 = v6 (= v5's fields, FIELDS_V2) plus the designs count.
+FIELDS_V7 = FIELDS_V2 | {"designs"}
 #: A board shows at most this many changes of king, newest first.
 MAX_CROWN_CHANGES = 5
 CROWN_CHANGE_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
@@ -229,6 +239,8 @@ class BoardRefused(ValueError):
 def _domain(document):
     """The signing domain of a board's schema: v2 and v3 each have their own, anything else is v1's."""
     schema = document.get("schema")
+    if schema == SCHEMA_V7:
+        return BOARD_DOMAIN_V7
     if schema == SCHEMA_V6:
         return BOARD_DOMAIN_V6
     if schema == SCHEMA_V5:
@@ -679,6 +691,15 @@ def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None):
     return best
 
 
+#: The largest designs count a board carries: a whole number far above any door's admissions (a JSON-safe integer).
+MAX_DESIGNS = 10**9
+
+
+def _designs_ok(value):
+    """A v7 board's unique admitted recipe count: a whole number (never a bool) in [0, MAX_DESIGNS]."""
+    return type(value) is int and 0 <= value <= MAX_DESIGNS
+
+
 def counts(ladder):
     """How many hotkeys have a graded result, and how many sit in each status."""
     by = {"IMPROVED": 0, "NO_IMPROVEMENT": 0, "GATE_FAILED": 0, "NOT_SCORED": 0}
@@ -708,6 +729,7 @@ def build(
     crown_checks=None,
     crowned_utc=_ABSENT,
     v6=False,
+    designs=_ABSENT,
 ):
     """The signed launch board for one Challenge.
 
@@ -718,9 +740,13 @@ def build(
     when it does not). A v2 board also takes ``exact_totals`` and ``rebuild_noise`` (the Challenge's registration, or
     None when none is registered: the Ladder's step), with no default, so neither can be left out. ``v6`` (a v5
     board's arguments, and the v3 king document `koth_public.document_v3`) builds the v6 board: totals to 3 decimals.
+    ``designs`` (a v6 board's arguments plus the door's unique admitted recipe count) builds the v7 board.
     """
     if network not in NETWORKS:
         raise BoardRefused("board_network")
+    v7 = designs is not _ABSENT
+    if v7 and (not v6 or not _designs_ok(designs)):
+        raise BoardRefused("board_designs")  # v7 is v6 plus the designs count
     if type(version) is not int or version < 1:
         raise BoardRefused("board_version")
     if v6 is not False and v6 is not True:
@@ -780,15 +806,19 @@ def build(
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
         "schema": (
-            SCHEMA_V6
-            if v6
+            SCHEMA_V7
+            if v7
             else (
-                SCHEMA_V5
-                if v5
+                SCHEMA_V6
+                if v6
                 else (
-                    SCHEMA_V4
-                    if v4
-                    else SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA
+                    SCHEMA_V5
+                    if v5
+                    else (
+                        SCHEMA_V4
+                        if v4
+                        else SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA
+                    )
                 )
             )
         ),
@@ -810,6 +840,7 @@ def build(
         "counts": counts(ladder),
         **({"crown_changes": crown_changes_checked(crown_changes)} if v2 else {}),
         **({"crown_checks": crown_checks_checked(crown_checks)} if v4 else {}),
+        **({"designs": {"unique_submitted": designs}} if v7 else {}),
     }
     check(document, unsigned=True)
     return {**document, "signature": key.sign(document)}
@@ -818,22 +849,37 @@ def build(
 def check(document, *, unsigned=False):
     """The document when it has exactly the board's closed shape, else a
     `BoardRefused`: the writer's last step and the reader's first."""
-    v6 = type(document) is dict and document.get("schema") == SCHEMA_V6
+    v7 = type(document) is dict and document.get("schema") == SCHEMA_V7
+    v6 = v7 or (type(document) is dict and document.get("schema") == SCHEMA_V6)
     v5 = v6 or (type(document) is dict and document.get("schema") == SCHEMA_V5)
     v4 = type(document) is dict and document.get("schema") == SCHEMA_V4
     v3 = v5 or v4 or (type(document) is dict and document.get("schema") == SCHEMA_V3)
     v2 = v3 or (type(document) is dict and document.get("schema") == SCHEMA_V2)
-    want = (FIELDS_V4 if v4 else FIELDS_V2 if v2 else FIELDS) - (
+    want = (FIELDS_V7 if v7 else FIELDS_V4 if v4 else FIELDS_V2 if v2 else FIELDS) - (
         {"signature"} if unsigned else set()
     )
     if type(document) is not dict or set(document) != want:
         raise BoardRefused("board_fields")
     if (
         document["schema"]
-        not in (SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6)
+        not in (
+            SCHEMA,
+            SCHEMA_V2,
+            SCHEMA_V3,
+            SCHEMA_V4,
+            SCHEMA_V5,
+            SCHEMA_V6,
+            SCHEMA_V7,
+        )
         or document["network"] not in NETWORKS
     ):
         raise BoardRefused("board_schema")
+    if v7 and (
+        type(document["designs"]) is not dict
+        or set(document["designs"]) != DESIGNS_FIELDS
+        or not _designs_ok(document["designs"]["unique_submitted"])
+    ):
+        raise BoardRefused("board_designs")
     if document["labels"] != LABELS[document["network"]]:
         raise BoardRefused("board_labels")
     if type(document["version"]) is not int or document["version"] < 1:
@@ -999,6 +1045,7 @@ def build_from_ledger(
     crown_checks=None,
     crowned_utc=_ABSENT,
     v6=False,
+    designs=_ABSENT,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -1023,6 +1070,7 @@ def build_from_ledger(
         crown_checks=crown_checks,
         crowned_utc=crowned_utc,
         v6=v6,
+        designs=designs,
     )
 
 

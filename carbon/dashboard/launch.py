@@ -58,6 +58,11 @@ DOMAIN_V5 = b"carbon.validator.launch-board.v5\x00"
 # `king_plus_margin` (the king's exact total + the margin, rounded up). Held equal to launch_board's v6.
 SCHEMA_V6 = "carbon.validator.launch-board.v6"
 DOMAIN_V6 = b"carbon.validator.launch-board.v6\x00"
+# v7 (owner DASHBOARD-ALL-TIME-SUBMISSIONS; v2 5744) = v6 plus ONE signed field, `designs` = {"unique_submitted": n}: the
+# door's distinct admitted recipe digests, all time. Held equal to launch_board's v7; readers accept it BEFORE a door emits it.
+SCHEMA_V7 = "carbon.validator.launch-board.v7"
+DOMAIN_V7 = b"carbon.validator.launch-board.v7\x00"
+MAX_DESIGNS = 10**9
 PUBLIC_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
 MEASURE_STATES = ("MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED")
 DECIDED_OUTCOMES = (
@@ -86,6 +91,7 @@ SCHEMAS = {
     SCHEMA_V4: DOMAIN_V4,
     SCHEMA_V5: DOMAIN_V5,
     SCHEMA_V6: DOMAIN_V6,
+    SCHEMA_V7: DOMAIN_V7,
 }
 MAX_CROWN_CHANGES = 5
 TOTAL = "total"
@@ -278,16 +284,33 @@ def _crown_checks(checks):
         seen.add(entry["hotkey"])
 
 
+def _designs(designs):
+    """A v7 board's designs count: exactly {"unique_submitted": a whole number in [0, MAX_DESIGNS]}."""
+    if (
+        type(designs) is not dict
+        or set(designs) != {"unique_submitted"}
+        or type(designs["unique_submitted"]) is not int
+        or not 0 <= designs["unique_submitted"] <= MAX_DESIGNS
+    ):
+        raise LaunchRefused("designs_invalid")
+    return designs["unique_submitted"]
+
+
 def _check(document):
-    v6 = document.get("schema") == SCHEMA_V6
+    v7 = document.get("schema") == SCHEMA_V7
+    v6 = v7 or document.get("schema") == SCHEMA_V6
     v5 = v6 or document.get("schema") == SCHEMA_V5
     v4 = document.get("schema") == SCHEMA_V4
     v3 = v5 or v4 or document.get("schema") == SCHEMA_V3
     v2 = v3 or document.get("schema") == SCHEMA_V2
     if set(document) != (
-        FIELDS_V2 | {"crown_checks"} if v4 else FIELDS_V2 if v2 else FIELDS
+        FIELDS_V2 | {"designs"}
+        if v7
+        else FIELDS_V2 | {"crown_checks"} if v4 else FIELDS_V2 if v2 else FIELDS
     ):
         raise LaunchRefused("board_fields")
+    if v7:
+        _designs(document["designs"])
     if v4:
         _crown_checks(document["crown_checks"])
     if v2:
@@ -489,7 +512,11 @@ def project(document, trust):
         "section_meta": {
             TOTAL: {
                 **SECTION_META[TOTAL],
-                **({"unit": UNIT_V6} if document["schema"] == SCHEMA_V6 else {}),
+                **(
+                    {"unit": UNIT_V6}
+                    if document["schema"] in (SCHEMA_V6, SCHEMA_V7)
+                    else {}
+                ),
             }
         },
         "release": None,
@@ -540,6 +567,13 @@ def project(document, trust):
             # v5 only: when the crown was DECIDED (UTC), and why a NOT_SCORED row stopped (hotkey -> public reason)
             "crowned_utc": king.get("crowned_utc"),
             "reasons": {e["hotkey"]: e["reason"] for e in ladder if e.get("reason")},
+            # v7 only: the door's unique admitted model designs, all time (a signed count); absent before v7, so
+            # every v1-v6 projection stays byte-identical
+            **(
+                {"unique_designs": document["designs"]["unique_submitted"]}
+                if "designs" in document
+                else {}
+            ),
             "crown_changes": (
                 None
                 if document["schema"] == SCHEMA

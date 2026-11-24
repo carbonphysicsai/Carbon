@@ -1087,6 +1087,27 @@
       moreLine(items.length < NETWORK_FIELDS.length));
   }
 
+  // Owner DASHBOARD-ALL-TIME-SUBMISSIONS (v2 5744): the unique model designs submitted, all time = the sum of each live
+  // door's SIGNED count (a v7 board's launch.unique_designs; a recipe binds its Challenge version, so the sum counts each
+  // design once). Aggregate only: no per-miner, hotkey or version split, never mixed with miners or graded counts.
+  // Null (no tile) until a board carries the count.
+  function uniqueDesigns(index, boards) {
+    let total = null;
+    for (const e of (index && index.boards) || []) {
+      const b = e.slug && boards ? boards[e.slug] : null;
+      const n = b && b.launch ? b.launch.unique_designs : undefined;
+      if (Number.isInteger(n) && n >= 0) total = (total || 0) + n;
+    }
+    return total;
+  }
+  function designsTile(index, boards) {
+    const n = uniqueDesigns(index, boards);
+    if (n === null) return null;
+    return section("designs", {class: "network-block", "aria-label": "Unique model designs submitted"},
+      h("div", {class: "network"}, h("div", {class: "net-item"}, h("span", {class: "eyebrow"}, "Unique model designs submitted (all time)"), h("span", {class: "net-value"}, n.toLocaleString("en-US")))),
+      h("p", {class: "hint"}, "A resubmitted identical recipe counts once."));
+  }
+
   // A named Challenge with no board yet: said plainly, with no score, leader or date.
   function launchingCards(index) {
     const live = new Set(index.boards.filter(e => e.challenge).map(e => e.challenge.id));
@@ -1124,6 +1145,7 @@
         h("p", {class: "lede"}, "Each board is one Challenge on one device class, drawn from the Carbon Validator's signed score feed. CPU and GPU results are never ranked together."),
         h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), SHOWCASE ? h("a", {class: "btn", href: "#/showcase"}, "Design showcase") : null)),
       networkStrip(c.network),
+      designsTile(index, boards),
       index.fixture ? h("p", {class: "notice"}, h("strong", null, "Fixture data. "), "These boards are synthetic, made to build and test the page. They are not results of any model or Challenge.") : null,
       c.net ? h("div", {class: "actions", role: "group", "aria-label": "Network"}, ["Mainnet", "Testnet"].map(t => {
         const on = c.net === t.toLowerCase();
@@ -1191,7 +1213,7 @@
 
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
-    h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, aliasEntry, labelsOf,
+    h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, aliasEntry, uniqueDesigns, labelsOf,
     queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, finds, rowShown, pagerText, QUEUE_PAGE, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
