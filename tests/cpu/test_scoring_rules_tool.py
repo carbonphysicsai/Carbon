@@ -80,7 +80,9 @@ def test_the_rules_are_the_published_block_cut_to_the_allow_list(key):
         *SCORING_RULES_SECTIONS,
     }
     # The formula, the legs, the gates and the minimums are all there.
-    assert rules["score"]["formula"] == "TOTAL = 0.5 * A + 0.5 * D"
+    assert rules["score"]["formula"] == (
+        "TOTAL = A" if pe.ranked_by_accuracy(*key) else "TOTAL = 0.5 * A + 0.5 * D"
+    )
     assert rules["gates"] and rules["minimums"]
 
 

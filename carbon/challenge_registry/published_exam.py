@@ -668,7 +668,12 @@ def _accuracy_ranked(path):
     """The ``"<id> <version>"`` names ranked by accuracy. Read once: a row lands with a restart, as the crown rule itself."""
     try:
         rows = json.loads(Path(path).read_bytes())["versions"]
-        return frozenset(name for name, row in rows.items() if row.get("score") == "A")
+        # exactly the rule's own shape: a row the receiver refuses states nothing new here
+        return frozenset(
+            name
+            for name, row in rows.items()
+            if set(row) == {"margin", "score"} and row["score"] == "A"
+        )
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return frozenset()
 
@@ -678,7 +683,11 @@ def ranked_by_accuracy(challenge_id, version):
     return f"{challenge_id} {version}" in _accuracy_ranked(_CROWN_ROWS)
 
 
-_RANKED_TOTAL = "The score is A alone: design value is not counted."
+_RANKED_TOTAL = (
+    "The score is A alone: design value is not counted. A grade is ranked only when its result shows that your model answers "
+    "each design the same way whatever else is in the batch."
+)
+_RANKED_PRACTICE = " The practice total still holds a design value part, which the exam does not count."
 
 
 def _ranked_score(score, own):
@@ -708,14 +717,12 @@ def _ranked_lines(own):
         "variants": None,
         "out_of_range": (
             "Outside the training range",
-            "Some exam questions lie just outside the range your training data covers. They count: accuracy there, and the "
-            "physics gates there. How far that range extends, and where its questions are, is not published.",
+            (
+                "Some exam questions lie just outside the range your training data covers. They count: accuracy there, and "
+                "the physics gates there. How far that range extends, and where its questions are, is not published."
+            ),
         ),
-        "practice": (
-            "Practice",
-            _PRACTICE_POOL
-            + " The practice total still holds a design value part, which the exam does not count.",
-        ),
+        "practice": ("Practice", _PRACTICE_POOL + _RANKED_PRACTICE),
     }
 
 

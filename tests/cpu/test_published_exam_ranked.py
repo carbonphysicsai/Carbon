@@ -82,6 +82,31 @@ def test_a_row_that_names_accuracy_states_accuracy_alone(tmp_path, monkeypatch):
     assert block["score"]["rule"]["gate"] == pe._gate_text(own)
     assert "practice total still holds a design value part" in block["practice_vs_exam"]
     assert block["practice_vs_exam"] == lines["practice"]
+    # the row check still counts (`crown_official.row_check_unknown`), and each part keeps its minimum
+    assert "whatever else is in the batch" in lines["score"]
+    assert "Each score part also has a minimum" in lines["minimums"]
+
+
+def test_the_row_check_sentence_is_the_crown_rules_own():
+    passed = {"physics_benefit": 0.5, "design_benefit": 0.1}
+    score = crown_official.ACCURACY
+    assert crown_official.value(passed, score) == 0.5
+    assert crown_official.value({**passed, "design_benefit": 0.0}, score) is None
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"margin": 0.5, "score": "total"},
+        {"margin": 0.5, "score": "A", "other": 1},
+        {"score": "A"},
+        {"margin": 0.5},
+    ],
+)
+def test_a_row_the_crown_rule_refuses_states_nothing_new(tmp_path, monkeypatch, entry):
+    _rows(tmp_path, monkeypatch, entry)
+    assert not pe.ranked_by_accuracy(*KEY)
+    assert _digest(pe.for_version(*KEY)) == BLOCK_18
 
 
 def test_everything_else_the_block_states_is_the_same(tmp_path, monkeypatch):
