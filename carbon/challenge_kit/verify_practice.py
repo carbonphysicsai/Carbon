@@ -97,8 +97,6 @@ def registered(challenge_id: str, version: str) -> bool:
 
 def source(challenge_id: str, version: str, *, root=None, registry=None):
     """This version's verify-set practice source, or None when it keeps its current practice."""
-    from carbon.challenge_kit import local_scorer
-
     if registry is None:
         entry = entry_of(challenge_id, version)
     else:
@@ -111,17 +109,7 @@ def source(challenge_id: str, version: str, *, root=None, registry=None):
         raw = path.read_bytes()
     except OSError:
         raise VerifyPracticeRefused("verify_set_missing") from None
-    if challenge_id not in (MOTOR, COOLING):
-        document = _load_registered(raw, sha256)
-        return VerifySource(challenge_id, version, document, sha256)
-    names = _input_names(challenge_id)
-    if challenge_id == COOLING:
-        document = _load_cooling(raw, sha256, names)
-        return VerifySource(challenge_id, version, document, sha256)
-    try:
-        document = local_scorer.load_verify_set(raw, sha256, names)
-    except local_scorer.ScorerRefused as refused:
-        raise VerifyPracticeRefused("verify_set_invalid: " + str(refused)) from None
+    document = _LOADERS.get(challenge_id, _load_registered)(raw, sha256)
     return VerifySource(challenge_id, version, document, sha256)
 
 
@@ -179,16 +167,24 @@ def _load_registered(raw, sha256):
     return document
 
 
-def _input_names(challenge_id):
-    if challenge_id == MOTOR:
-        from carbon.motor import domain
+def _load_motor(raw, sha256):
+    from carbon.challenge_kit import local_scorer
+    from carbon.motor import domain
 
-        return tuple(domain.INPUTS)
-    if challenge_id == COOLING:
-        from carbon.cold_plate import domain
+    try:
+        return local_scorer.load_verify_set(raw, sha256, tuple(domain.INPUTS))
+    except local_scorer.ScorerRefused as refused:
+        raise VerifyPracticeRefused("verify_set_invalid: " + str(refused)) from None
 
-        return tuple(domain.INPUTS)
-    raise VerifyPracticeRefused("verify_practice_challenge_unsupported")
+
+def _load_cooling_set(raw, sha256):
+    from carbon.cold_plate import domain
+
+    return _load_cooling(raw, sha256, tuple(domain.INPUTS))
+
+
+#: The Challenges whose verify sets have their own reader; every other one is read by `_load_registered`.
+_LOADERS = {MOTOR: _load_motor, COOLING: _load_cooling_set}
 
 
 def score_motor(src: VerifySource, rows, train):

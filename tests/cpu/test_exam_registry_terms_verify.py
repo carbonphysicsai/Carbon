@@ -163,8 +163,14 @@ def test_a_row_names_the_terms_and_the_door_serves_only_their_pinned_text(tmp_pa
     assert out["no_text"] == ["zz-terms-v0", TEXT_SHA, False]
 
 
-def test_a_version_with_no_terms_row_requires_none(tmp_path):
+def test_a_row_without_terms_accepts_nothing_and_a_version_without_a_row_is_unchanged(
+    tmp_path,
+):
     out = _run(tmp_path, {"solver_seconds_per_design": {"value": 1, "source": "s"}})
+    assert out["required"] == "refused: TermsUnavailable"
+    assert out["door"] == out["no_text"] == [st.UNREADABLE, None, False]
+    assert out["registered"] is False and out["source"] is None
+    out = _run(tmp_path, None)
     assert out["required"] is None and out["door"] is None
     assert out["registered"] is False and out["source"] is None
 

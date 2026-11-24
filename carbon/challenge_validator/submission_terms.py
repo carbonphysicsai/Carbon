@@ -77,9 +77,10 @@ def required_version(challenge_id, version):
 
 
 def _registered(challenge_id, version):
-    """(terms version, pinned sha256) of a Challenge version: the tables above, else its exam registry row; None when it
-    names none. A malformed row, or one that pins another text for a terms version pinned above, is `TermsUnavailable`:
-    never read as "no terms"."""
+    """(terms version, pinned sha256) of a Challenge version: the tables above, else its exam registry row; None for a
+    version with no row. A version that HAS a row accepts nothing without terms (owner G-LEAD-50): a malformed row, a row
+    with no ``terms``, or one that pins another text for a terms version pinned above, is `TermsUnavailable`.
+    """
     own = TERMS_BY_VERSION.get((challenge_id, version))
     if own is not None:
         return own, PINNED_SHA256[own]
@@ -90,6 +91,8 @@ def _registered(challenge_id, version):
     except exam_registry.ExamRowRefused as refused:
         raise TermsUnavailable() from refused
     if row is None:
+        if exam_registry.digest(challenge_id, version) is not None:
+            raise TermsUnavailable()
         return None
     if PINNED_SHA256.get(row["version"], row["sha256"]) != row["sha256"]:
         raise TermsUnavailable()
@@ -157,7 +160,8 @@ def read_text(path, sha256):
 
 def for_door(challenge_id, version, text_path):
     """This door's `Terms`, or None when its Challenge version requires none. Terms that cannot be read from the registry
-    give a door that is not ready: it starts, and refuses every submission."""
+    give a door that is not ready: it starts, and refuses every submission (400 `terms_not_accepted` / `terms_mismatch`,
+    or 503 `terms_unavailable`)."""
     try:
         found = _registered(challenge_id, version)
     except TermsUnavailable:
