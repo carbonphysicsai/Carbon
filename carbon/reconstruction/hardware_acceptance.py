@@ -17,9 +17,11 @@ under the same two profiles; the A40 has no mainnet acceptance. OWNER-A100-40GB-
 Lambda A100 40GB SXM4 (``NVIDIA A100-SXM4-40GB``) for JAX and PyTorch builds on finney, the remote GPU build lane's class.
 OWNER-RTX6000ADA-BUILD-CLASS-01 (2026-11-21) enters the Lium RTX 6000 Ada (``NVIDIA RTX 6000 Ada Generation``) the same
 way, finney only: the build class of the doors INFRA-17 names (Motor 1.9 and later).
-OWNER-A6000-48GB-BUILD-CLASS-01 (2026-11-23, G-LEAD-60) enters the Lambda RTX A6000 48 GB VM (``NVIDIA RTX A6000``) for
-JAX builds on finney, the launch build class of Motor 1.9 and RB 2.0 (G-LEAD-59 / 60), after infra's class record passed;
-its PyTorch profile is not entered (the record measured JAX only).
+OWNER-A6000-48GB-BUILD-CLASS-01 (2026-11-23, G-LEAD-60) accepted the Lambda RTX A6000 48 GB VM (``NVIDIA RTX A6000``)
+as the JAX build class of Motor 1.9 and RB 2.0. Its FINNEY entry is NOT entered yet (v2 5793): finney builds run the
+LARGE_MODEL worker profile, which needs the owner's own mainnet acceptance for this class (as the A100's and the Ada's),
+and G-LEAD-60 names no profile. The finney entry returns with that line; meanwhile the A6000 is entered only on the
+rehearsal localnet (below), and a finney door bound to it refuses at start (fail closed). PyTorch is not entered.
 Owner G-LEAD-58 (2026-11-23, launch rehearsals R1-R3b build on the launch build class) adds ``localnet`` for the two
 launch build classes (the A100 40GB and the A6000), for rehearsal doors only: the disposable localnet row exists only in
 a process bound to it (no stage, no publication, no miners, no economics, `carbon.chain.networks`).
@@ -159,9 +161,8 @@ ACCEPTED_DEVICE_CLASSES: dict = {
         TORCH_GPU: _entry(_OWNER_RTX6000ADA_FINNEY),
     },
     # the Lambda launch class of Motor 1.9 and RB 2.0 (OWNER-A6000-48GB-BUILD-CLASS-01, G-LEAD-60): JAX only, as measured
-    "NVIDIA RTX A6000": {
-        JAX_GPU: _entry(_OWNER_A6000_48GB_FINNEY, _OWNER_REHEARSALS_LOCALNET)
-    },
+    # finney waits the owner's LARGE_MODEL line for this class (v2 5793): `_OWNER_A6000_48GB_FINNEY` is re-entered with it
+    "NVIDIA RTX A6000": {JAX_GPU: _entry(_OWNER_REHEARSALS_LOCALNET)},
 }
 
 
