@@ -931,7 +931,8 @@ def _rerun(db, task, hotkey):
 
 def _door_rerun(db, task, rows):
     """Whether ``task`` is itself a door re-run: its first ledger OUTCOME carries `BUILD_REQUEUED`, or the exam cap's
-    `exam_requeues` table names it. A ledger without that table says only the first part."""
+    `exam_requeues` table names it. A ledger without that table says only the first part.
+    """
     first = next((row for row in rows if row[1] == "OUTCOME"), None)
     if first is not None and BUILD_REQUEUED in (first[2], first[3]):
         return True

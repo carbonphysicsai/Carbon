@@ -206,7 +206,10 @@ def test_a_door_reruns_own_graded_task_reads_uncharged(tmp_path):
         slots=[(NEW, HOTKEY, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")],
     )
     db = sqlite3.connect(other / "attempts.sqlite3")
-    db.execute("INSERT INTO exam_requeues(submission_id,attempt,queued_ns,reserved_ns) VALUES(?,?,?,?)", (NEW, 2, 1, 2))
+    db.execute(
+        "INSERT INTO exam_requeues(submission_id,attempt,queued_ns,reserved_ns) VALUES(?,?,?,?)",
+        (NEW, 2, 1, 2),
+    )
     db.commit()
     db.close()
     _marker(other, NEW, state="GRADED", code=None)
