@@ -234,6 +234,14 @@ DYNAMIC_SITES = (
         _NONE,
     ),
     (
+        "carbon/challenge_registry/pinned_module.py",
+        "import_module",
+        "name",
+        1,
+        "pinned_row",
+        _NONE,
+    ),
+    (
         "carbon/challenge_registry/registry.py",
         "find_spec",
         "module",
@@ -503,6 +511,7 @@ KINDS = {
     "pinned_file": "one sha-pinned or fixed file outside carbon/",
     "sealed_target": "version_overlay.SEALED_TARGET's literal values (the text check)",
     "overlay_dispatch": "modules a version_overlay.json names: GLOBAL by the dispatch rule and the text check",
+    "pinned_row": "modules an exam_registry.json or family_registry.json row names with their sha256 (the text check)",
     "population_source": "carbon.<package>.population / .domain of a PopulationSource",
     "public_module": "a Challenge's carbon.challenge_kit.<prefix>_public module",
     "adapter_registry": "training_budget/adapters.json and adapters' records 'module:attr' (the text check)",
