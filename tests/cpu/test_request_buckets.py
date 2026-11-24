@@ -35,6 +35,7 @@ from carbon.challenge_validator.request_buckets import (
     claimed_hotkey,
 )
 from carbon.development_session.profile import digest
+from carbon.transport.models import TransportCode, TransportFailure
 from carbon.transport.store import ReceiptJournal
 
 TEST_VALUES = {
@@ -454,6 +455,15 @@ def test_the_hourly_line_carries_counts_only():
         "group_429": 1,
         "chunk_429": 0,
         "capacity_503": 2,
+        "transport_malformed": 0,
+        "transport_context": 0,
+        "transport_identity": 0,
+        "transport_stale": 0,
+        "transport_replay": 0,
+        "transport_conflict": 0,
+        "transport_capacity": 0,
+        "transport_rate": 0,
+        "transport_store": 0,
     }
     assert "cold" not in repr(lines) and group not in repr(lines)
 
@@ -471,3 +481,34 @@ def test_a_full_in_flight_cap_is_counted(door):
         for _ in range(IN_FLIGHT):
             intake.limits._flight.release()
     assert buckets._counts["capacity_503"] == 1
+
+
+def test_a_busy_journal_answers_503_transport_store_and_is_counted_by_code(
+    door, monkeypatch
+):
+    """Release 6232 / door-code 6236: a journal that could not record the request is Carbon's side (503, the same
+    retry text), never the request's fault (400); live-ops 6258: each transport refusal is counted by its code.
+    """
+    buckets = _frozen()
+    intake = door.build(buckets)
+
+    def busy(*args, **kwargs):
+        raise TransportFailure(TransportCode.STORE)
+
+    monkeypatch.setattr(intake.journal, "admit", busy)
+    for _ in range(5):  # more than the guard's burst (3) and the group's (2)
+        answer, _ = door.post(intake, "miner")
+        assert answer.status == 503 and answer.body["refused"] == "TRANSPORT_STORE"
+    assert buckets._counts["transport_store"] == 5
+    assert (
+        buckets._counts["capacity_503"] == 0
+    )  # the listener's own cap is counted apart
+    # v2 FINAL 900: a TRANSPORT_STORE answer takes no R89 bucket (not even the shared guard), no try, no allowance
+    assert buckets._counts["guard_verify_failed"] == 0
+    assert buckets._counts["guard_429"] == 0
+    monkeypatch.undo()
+    first, _ = door.post(intake, "miner")
+    second, _ = door.post(intake, "miner")
+    assert not _rate_refused(first) and not _rate_refused(second)
+    assert first.status != 503 and second.status != 503
+    assert _rate_refused(door.post(intake, "miner")[0])  # the group's burst 2 was whole

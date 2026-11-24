@@ -54,6 +54,18 @@ class TransportFailure(Exception):
         super().__init__(code.value)
 
 
+def refusal_status(code: TransportCode) -> int:
+    """The HTTP status a public door answers a transport refusal with: 401 for an unknown identity; 503 when the
+    door could not record the request (``TRANSPORT_STORE``: its receipt journal busy or failing, Carbon's side, so a
+    retryable unavailability and never the request's fault, AGENTS invariant 7; the code and its 'retry' text are
+    unchanged, release 6232 / door-code 6236); 400 for the rest."""
+    if code is TransportCode.IDENTITY:
+        return 401
+    if code is TransportCode.STORE:
+        return 503
+    return 400
+
+
 def _invalid():
     raise TransportFailure(TransportCode.MALFORMED, _branch=_MalformedBranch.BODY_PARSE)
 

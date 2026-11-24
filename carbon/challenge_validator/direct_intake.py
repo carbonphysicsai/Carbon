@@ -50,6 +50,7 @@ from carbon.transport.models import (
     TransportCode,
     TransportFailure,
     parse_message,
+    refusal_status,
 )
 
 from . import funder_map as funder_maps
@@ -369,6 +370,13 @@ class DirectRecipeIntake(BatteryIntake):
         """The listener's 503 capacity answer, counted for the hourly request-buckets line (no buckets: nothing)."""
         if self.request_buckets is not None:
             self.request_buckets.note("capacity_503")
+
+    def _note_transport(self, failure):
+        """A transport refusal, counted by its code for the hourly request-buckets line (no buckets: nothing).
+        Counts only: live-ops 6258 found no refused answer logged by code (the live TRANSPORT_STORE rate unknown).
+        """
+        if self.request_buckets is not None:
+            self.request_buckets.note(failure.code.value.lower())
 
     def _unverified(self, answer):
         """A POST that failed before or at verification: charged to the guard (never to a group), then refused."""
@@ -775,6 +783,7 @@ class DirectRecipeIntake(BatteryIntake):
             envelope = parse_message(body)
         except TransportFailure as failure:
             self._malformed_diagnostics.note(failure, headers)
+            self._note_transport(failure)
             return self._unverified(_refused(400, failure.code.value))
         snapshot = self.window.get(envelope["snapshot"])
         if snapshot is None:
@@ -794,12 +803,14 @@ class DirectRecipeIntake(BatteryIntake):
             )
         except TransportFailure as failure:
             self._malformed_diagnostics.note(failure, headers)
-            return self._unverified(
-                _refused(
-                    401 if failure.code is TransportCode.IDENTITY else 400,
-                    failure.code.value,
-                )
-            )
+            self._note_transport(failure)
+            refused = _refused(refusal_status(failure.code), failure.code.value)
+            if failure.code is TransportCode.STORE:
+                # v2 FINAL 900: the door could not record the request (Carbon's side, 503): it takes no R89 bucket,
+                # not even the shared guard, and (raised before `_verified_charge` and any admission) no try and no
+                # exam-cap allowance.
+                return refused
+            return self._unverified(refused)
         except AuthFailure as failure:
             return self._unverified(_refused(401, failure.code.value))
         received_at = time.monotonic()

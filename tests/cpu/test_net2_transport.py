@@ -213,6 +213,19 @@ def test_nonce_and_order_commit_atomically_under_concurrency(tmp_path):
     assert sorted(map(str, result)) == ["1", "duplicate"]
 
 
+def test_a_transport_refusal_answers_401_503_or_400_by_code():
+    from carbon.transport.models import TransportCode, refusal_status
+
+    assert {code: refusal_status(code) for code in TransportCode} == {
+        code: (
+            401
+            if code is TransportCode.IDENTITY
+            else 503 if code is TransportCode.STORE else 400
+        )
+        for code in TransportCode
+    }
+
+
 def test_invalid_signature_does_not_poison_nonce_or_receipt(tmp_path):
     gate = gateway(tmp_path)
     signed = headers(wire())

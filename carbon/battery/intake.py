@@ -116,6 +116,7 @@ from carbon.transport.models import (
     TransportFailure,
     _MalformedBranch,
     parse_message,
+    refusal_status,
 )
 
 SCHEMA = "carbon.battery.intake.v1"
@@ -1121,10 +1122,7 @@ class BatteryIntake:
             received = await gateway.receive(body, headers)
         except TransportFailure as failure:
             self._malformed_diagnostics.note(failure, headers)
-            return _refused(
-                401 if failure.code is TransportCode.IDENTITY else 400,
-                failure.code.value,
-            )
+            return _refused(refusal_status(failure.code), failure.code.value)
         except AuthFailure as failure:
             return _refused(401, failure.code.value)
         hotkey = received.receipt.hotkey

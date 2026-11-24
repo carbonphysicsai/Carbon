@@ -36,6 +36,17 @@ COUNTS = (
     "group_429",
     "chunk_429",
     "capacity_503",
+    # every transport refusal of a verified-path POST, by its code (`carbon.transport.models.TransportCode`, lower
+    # case; live-ops 6258 / case-procs 6259: the live rate of TRANSPORT_STORE was not measurable)
+    "transport_malformed",
+    "transport_context",
+    "transport_identity",
+    "transport_stale",
+    "transport_replay",
+    "transport_conflict",
+    "transport_capacity",
+    "transport_rate",
+    "transport_store",
 )
 COUNTS_EVENT = "request_buckets_hourly"
 COUNTS_PERIOD_S = 3600.0
