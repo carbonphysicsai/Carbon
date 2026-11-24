@@ -76,6 +76,7 @@ from .winner_eligibility import (
     BANK,
     FINAL,
     FIRST,
+    SEALED_TESTNET_REASON,
     WinnerCutoverFailure,
     WinnerIdentityFailure,
     WinnerLedger,
@@ -159,6 +160,21 @@ def _context_id(challenge):
     return hashlib.sha256(challenge.encode()).hexdigest()
 
 
+@dataclass(frozen=True)
+class Handover:
+    """One Challenge's king hand-over between two exam versions' pool stores (OWNER G-LEAD-69: the Motor slot pays the
+    last payable 1.8 king from the 1.9 launch until the first PAYABLE 1.9 king).
+
+    A new exam resets the king (`koth_carry`), so the new version's store starts without one. ``source`` and ``replay``
+    read the PREVIOUS version's store; ``models`` returns the model ids the NEW store's own journal ever crowned, which
+    is how a ledger record is told to be the new version's. The issuer's ordinary source is the new store.
+    """
+
+    source: object
+    replay: object
+    models: object
+
+
 class TestnetWinnerIntentIssuer:
     """Issues one epoch's intent from the winner ledger.
 
@@ -177,9 +193,20 @@ class TestnetWinnerIntentIssuer:
     issue): a refused or settling cycle leaves the ledger byte-identical, and
     the next proceeding cycle replays every crown it missed, each clocked when
     it won at the door.
+
+    `handovers` (optional) maps a Challenge to its `Handover`.
     """
 
-    def __init__(self, receipts, authorization, policy, ledger, sources, replays=None):
+    def __init__(
+        self,
+        receipts,
+        authorization,
+        policy,
+        ledger,
+        sources,
+        replays=None,
+        handovers=None,
+    ):
         from carbon.transport.store import ReceiptJournal
 
         if type(receipts) is not ReceiptJournal:
@@ -209,6 +236,9 @@ class TestnetWinnerIntentIssuer:
         self.replays = dict(replays or {})
         if set(self.replays) - set(self.sources):
             _refuse("SOURCE_OUTSIDE_POLICY")
+        self.handovers = dict(handovers or {})
+        if set(self.handovers) - set(self.replays):
+            _refuse("HANDOVER_SOURCE_REQUIRED")
         #: The journal whose stored intents say which epochs the loop published (`_published`): this issuer's own
         #: receipts, or, for a preview on a scratch journal, the loop's real journal read only.
         self.intent_journal = None
@@ -252,11 +282,12 @@ class TestnetWinnerIntentIssuer:
         except sqlite3.Error:
             _refuse("INTENT_JOURNAL_UNREADABLE")
 
-    def _promotion(self, challenge):
-        if challenge not in self.sources:
+    def _promotion(self, challenge, source=None):
+        source = self.sources.get(challenge) if source is None else source
+        if source is None:
             return None
         try:
-            promotion = self.sources[challenge]()
+            promotion = source()
             if promotion is not None and (
                 type(promotion) is not dict
                 or any(
@@ -284,17 +315,18 @@ class TestnetWinnerIntentIssuer:
         }
     )
 
-    def _crowns(self, challenge, mine, promotion, snapshot):
+    def _crowns(self, replay, mine, promotion, snapshot, whole=False):
         """``(promotion, journal, crowned_ms)`` to observe, in order: every crown since the last record
         (``replays``), else the current one alone. ``crowned_ms`` is the door event time of a crown the loop MISSED,
         else None (clocked at observation, as on a cycle that ran normally). Missed (owner: a king's window starts
         'when it actually won'; Validator-2 6 Nov): two or more crowns since the last record, or a single one while the
         previous epoch has no stored intent (the loop skipped or refused it; had it issued, its observation would have
-        recorded any earlier crown)."""
-        if not mine or challenge not in self.replays:
+        recorded any earlier crown). ``whole``: with no record yet, every crown of the store's journal (a hand-over's
+        new store)."""
+        if replay is None or not (mine or whole):
             return [(promotion, None, None)]
         try:
-            crowns = self.replays[challenge](mine[-1]["promotion"]["model_id"])
+            crowns = replay(mine[-1]["promotion"]["model_id"] if mine else None)
         except Exception as failure:  # noqa: BLE001 - closed source failure
             code = getattr(failure, "code", None) or str(failure)
             _refuse(code if code in self.REPLAY_CODES else "WINNER_SOURCE_UNAVAILABLE")
@@ -332,74 +364,173 @@ class TestnetWinnerIntentIssuer:
         return [(c["promotion"], c["journal"], c["journal"]["at_ms"]) for c in crowns]
 
     def _records(self, snapshot, *, observe, preview=False):
+        mode = {"observe": observe, "preview": preview}
+        return {
+            challenge: (
+                self._handed_over(challenge, snapshot, **mode)
+                if challenge in self.handovers
+                else self._record(
+                    challenge,
+                    self._promotion(challenge),
+                    self.replays.get(challenge),
+                    snapshot,
+                    **mode,
+                )
+            )
+            for challenge in self.policy.challenges
+        }
+
+    def _handed_over(self, challenge, snapshot, *, observe, preview):
+        """The one record a Challenge in a king hand-over pays, never two: the new version's king once one is payable
+        (or was when it was recorded), else the previous version's. A king of one store is never another store's
+        predecessor, except that the new version's FIRST king follows the last previous one (`decide`'s same-miner
+        rule, unchanged). A new crown graded on a pack the policy does not qualify is not recorded (a record is
+        permanent) and takes nothing from the previous king; under the policy that qualifies it, it is replayed.
+        """
+        from carbon.challenge_validator.canary import is_canary
+
+        handover = self.handovers[challenge]
+        try:
+            crowned = frozenset(handover.models())
+        except Exception:  # noqa: BLE001 - closed source failure, no stale fallback
+            raise WinnerPublicationRefused("WINNER_SOURCE_UNAVAILABLE") from None
+
+        def new(record):
+            return record["promotion"]["model_id"] in crowned
+
+        def old(record):
+            return not new(record)
+
+        mode = {"observe": observe, "preview": preview}
+        registered = {p.hotkey for p in snapshot.participants}
+        mine = self.ledger.records(challenge)
+        before = [r for r in mine if old(r)]
+        promotion = self._promotion(challenge)
+        current = None
+        if promotion is not None and self._qualified(challenge, promotion):
+            current = self._record(
+                challenge,
+                promotion,
+                self.replays[challenge],
+                snapshot,
+                belongs=new,
+                fallback=before[-1] if before else None,
+                whole=True,
+                **mode,
+            )
+        if (
+            current is not None
+            and payable(current, registered) is not None
+            and not is_canary(current["promotion"]["hotkey"])
+        ):
+            return current
+        if any(
+            new(r) and r["eligible"]
+            # its hotkey was in the snapshot when the crown was recorded
+            and r.get("winner_coldkey") is not None
+            and not is_canary(r["promotion"]["hotkey"])
+            for r in mine
+        ):
+            # the hand-over is over: the previous version's king is never paid again
+            return current
+        return self._record(
+            challenge,
+            self._promotion(challenge, handover.source),
+            handover.replay,
+            snapshot,
+            belongs=old,
+            **mode,
+        )
+
+    def _qualified(self, challenge, promotion):
+        """Whether a sealed crown's packs are ones this policy names (`decide`'s own test, before it records)."""
+        if (
+            promotion.get("incumbent_reason") != SEALED_TESTNET_REASON
+            or self.policy.network == "testnet"
+        ):
+            return True
+        packs = self.policy.qualified_packs(challenge)
+        graded = promotion.get("evaluation_pack_digests")
+        # unreadable evidence stays `decide`'s own refusal
+        return not graded or (packs is not None and set(graded) <= packs)
+
+    def _record(
+        self,
+        challenge,
+        promotion,
+        replay,
+        snapshot,
+        *,
+        observe,
+        preview,
+        belongs=None,
+        fallback=None,
+        whole=False,
+    ):
         from .winner_eligibility import decide, same_crown
 
+        if promotion is None:
+            return None
         coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
-        found = {}
-        for challenge in self.policy.challenges:
-            promotion = self._promotion(challenge)
-            if promotion is None:
-                found[challenge] = None
+        mine = self.ledger.records(challenge)
+        if belongs is not None:
+            mine = [r for r in mine if belongs(r)]
+        known = [r for r in mine if r["promotion"]["model_id"] == promotion["model_id"]]
+        if known:
+            if not same_crown(known[0]["promotion"], promotion):
+                _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
+            return known[0]
+        found = None
+        try:
+            if observe:
+                # each crown since the last record, in the door's order, each with its own predecessor
+                for crown, journal, crowned_ms in self._crowns(
+                    replay, mine, promotion, snapshot, whole
+                ):
+                    found = self.ledger.observe(
+                        self.policy,
+                        challenge,
+                        crown,
+                        coldkeys,
+                        snapshot.timestamp_ms,
+                        journal,
+                        crowned_ms,
+                        belongs=belongs,
+                        fallback=fallback,
+                    )
+            elif preview:
+                # the same replay in memory: nothing is written
+                seen = list(mine)
+                for crown, journal, crowned_ms in self._crowns(
+                    replay, mine, promotion, snapshot, whole
+                ):
+                    again = [
+                        r
+                        for r in seen
+                        if r["promotion"]["model_id"] == crown["model_id"]
+                    ]
+                    record = (
+                        again[0]
+                        if again
+                        else decide(
+                            self.policy,
+                            challenge,
+                            crown,
+                            seen[-1] if seen else fallback,
+                            coldkeys,
+                            snapshot.timestamp_ms,
+                            crowned_ms,
+                        )
+                    )
+                    if not again:
+                        if journal is not None:
+                            record = {**record, "journal": journal}
+                        seen.append(record)
+                    found = record
             else:
-                mine = self.ledger.records(challenge)
-                known = [
-                    r
-                    for r in mine
-                    if r["promotion"]["model_id"] == promotion["model_id"]
-                ]
-                if known:
-                    if not same_crown(known[0]["promotion"], promotion):
-                        _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
-                    found[challenge] = known[0]
-                else:
-                    try:
-                        if observe:
-                            # each crown since the last record, in the door's order, each with its own predecessor
-                            for crown, journal, crowned_ms in self._crowns(
-                                challenge, mine, promotion, snapshot
-                            ):
-                                found[challenge] = self.ledger.observe(
-                                    self.policy,
-                                    challenge,
-                                    crown,
-                                    coldkeys,
-                                    snapshot.timestamp_ms,
-                                    journal,
-                                    crowned_ms,
-                                )
-                        elif preview:
-                            # the same replay in memory: nothing is written
-                            seen = list(mine)
-                            for crown, journal, crowned_ms in self._crowns(
-                                challenge, mine, promotion, snapshot
-                            ):
-                                again = [
-                                    r
-                                    for r in seen
-                                    if r["promotion"]["model_id"] == crown["model_id"]
-                                ]
-                                record = (
-                                    again[0]
-                                    if again
-                                    else decide(
-                                        self.policy,
-                                        challenge,
-                                        crown,
-                                        seen[-1] if seen else None,
-                                        coldkeys,
-                                        snapshot.timestamp_ms,
-                                        crowned_ms,
-                                    )
-                                )
-                                if not again:
-                                    if journal is not None:
-                                        record = {**record, "journal": journal}
-                                    seen.append(record)
-                                found[challenge] = record
-                        else:
-                            _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
-                    except (WinnerIdentityFailure, WinnerCutoverFailure) as failure:
-                        _refuse(str(failure))
+                _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
+        except (WinnerIdentityFailure, WinnerCutoverFailure) as failure:
+            _refuse(str(failure))
         return found
 
     def _targets(self, snapshot, records):
@@ -678,6 +809,15 @@ def _open_lean_pool(path):
     return PoolStore(path)
 
 
+def crowned_models(store):
+    """Every model id a lean pool store's own incumbent journal ever crowned."""
+    return {
+        e["body"]["model_id"]
+        for e in store.events("incumbent")
+        if e["body"].get("model_id") is not None
+    }
+
+
 def _issuer(args, config, journal, *, runtime_spec=None):
     """The issuer `run` and `preview` share: the same policy, standing
     authorization, ledger and weight sources. ``runtime_spec`` (from
@@ -707,7 +847,7 @@ def _issuer(args, config, journal, *, runtime_spec=None):
         from dataclasses import replace
 
         auth = replace(auth, expected_runtime_spec=runtime_spec)
-    sources, replays = {}, {}
+    sources, replays, stores = {}, {}, {}
     if args.battery_deployment:
         try:
             deployment.require_live(
@@ -728,10 +868,29 @@ def _issuer(args, config, journal, *, runtime_spec=None):
         challenge_id, _, path = entry.partition("=")
         if not challenge_id or not path or challenge_id in sources:
             _refuse("LEAN_POOL_ARGUMENT_INVALID")
-        store = _open_lean_pool(Path(path))
+        store = stores[challenge_id] = _open_lean_pool(Path(path))
         sources[challenge_id] = lambda store=store: lean_promotion(store)
         replays[challenge_id] = lambda recorded, store=store: lean_crowns_since(
             store, recorded
+        )
+    handovers = {}
+    for entry in getattr(args, "lean_pool_previous", None) or ():
+        # CHALLENGE_ID=POOL_STORE_PATH: the PREVIOUS exam version's store of a Challenge whose --lean-pool is the new
+        # version's (a king hand-over). Opened read only, and never the same store as the new one.
+        challenge_id, _, path = entry.partition("=")
+        if (
+            not challenge_id
+            or not path
+            or challenge_id not in stores
+            or challenge_id in handovers
+            or Path(path).resolve() == stores[challenge_id].path.resolve()
+        ):
+            _refuse("LEAN_POOL_ARGUMENT_INVALID")
+        old = _open_lean_pool(Path(path))
+        handovers[challenge_id] = Handover(
+            source=lambda old=old: lean_promotion(old),
+            replay=lambda recorded, old=old: lean_crowns_since(old, recorded),
+            models=lambda new=stores[challenge_id]: crowned_models(new),
         )
     issuer = TestnetWinnerIntentIssuer(
         ReceiptJournal(Path(journal), config.context),
@@ -740,6 +899,7 @@ def _issuer(args, config, journal, *, runtime_spec=None):
         WinnerLedger(Path(args.ledger)),
         sources,
         replays,
+        handovers,
     )
     if Path(journal).absolute() != Path(args.journal).absolute():
         # a preview on a scratch journal reads which epochs were published from the loop's real one, read only
@@ -851,6 +1011,12 @@ def main(argv=None):
         action="append",
         metavar="CHALLENGE_ID=PATH",
         help="a direct-receiver Challenge's pool store (repeatable)",
+    )
+    parser.add_argument(
+        "--lean-pool-previous",
+        action="append",
+        metavar="CHALLENGE_ID=PATH",
+        help="the previous exam version's pool store: its king is paid until the new version's first payable king",
     )
     parser.add_argument(
         "--policy-version",

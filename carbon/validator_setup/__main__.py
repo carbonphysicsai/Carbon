@@ -145,6 +145,13 @@ def main(argv=None):
                 metavar="CHALLENGE_ID=PATH",
                 help="a direct-receiver Challenge's pool store (repeatable)",
             )
+            command.add_argument(
+                "--lean-pool-previous",
+                action="append",
+                metavar="CHALLENGE_ID=PATH",
+                help="the previous exam version's pool store: its king is paid until the new version's first payable "
+                "king",
+            )
             command.add_argument("--policy-version")
         if name == "runtime":
             command.add_argument(

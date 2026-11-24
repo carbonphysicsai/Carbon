@@ -169,6 +169,9 @@ def lean_crowns_since(store, recorded_model_id):
     so `decide` still checks every predecessor link. A gap is bridged only from this journal: if the recorded king is
     not in it, or its last crown is not the current incumbent, nothing is replayed
     (``PREDECESSOR_NOT_IN_DOOR_JOURNAL`` / ``DOOR_JOURNAL_DISAGREES_WITH_INCUMBENT``). Read only.
+
+    ``recorded_model_id`` None replays the whole journal: a store none of whose crowns is recorded yet (a new exam
+    version's fresh store during a king hand-over, `testnet_winner_publication.Handover`).
     """
     import hashlib
 
@@ -187,9 +190,11 @@ def lean_crowns_since(store, recorded_model_id):
             "at_ms": times[i],
         }
 
-    recorded = [
-        i for i, b in enumerate(bodies) if b.get("model_id") == recorded_model_id
-    ]
+    recorded = (
+        [-1]
+        if recorded_model_id is None
+        else [i for i, b in enumerate(bodies) if b.get("model_id") == recorded_model_id]
+    )
     if not recorded:
         raise RewardFailure("PREDECESSOR_NOT_IN_DOOR_JOURNAL")
     # a withdrawn crown (model_id None) is not a king; the next crown names previous None (a first incumbent)
@@ -579,18 +584,25 @@ class WinnerLedger:
         now_ms,
         journal=None,
         crowned_ms=None,
+        *,
+        belongs=None,
+        fallback=None,
     ):
         """The Challenge's current record, recording `promotion` first if it
         is new. None when the Challenge has no incumbent. ``journal`` (the door
         event that crowned it, from a replay) is stored beside the decision; it
-        never enters the decision."""
+        never enters the decision. ``belongs`` (a king hand-over) limits the
+        predecessor to the records of `promotion`'s own store; ``fallback`` is
+        the predecessor while that store has none."""
         if promotion is None:
             return None
         mine = self.records(challenge)
         for found in mine:
             if found["promotion"]["model_id"] == promotion["model_id"]:
                 return found
-        previous = mine[-1] if mine else None
+        if belongs is not None:
+            mine = [r for r in mine if belongs(r)]
+        previous = mine[-1] if mine else fallback
         record = decide(
             policy, challenge, promotion, previous, coldkeys, now_ms, crowned_ms
         )
