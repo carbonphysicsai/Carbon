@@ -266,6 +266,18 @@ _BEATS_ONE_PROCESS = (
 )
 
 
+#: The deadline call's registered values, as the program carries them (`CASE_PROCS_DEADLINE_SLACK` first).
+_DEADLINE_VALUES = "  4.0, 1.25, 10.0, 1.5)\n"
+
+
+def _patient(source):
+    """Test variant for the claims that need every worker to ARRIVE: the deadline is as late as the wall allows, so a busy
+    host cannot stop a worker before its answer is read. The registered deadline rule has its own tests, and the variants
+    that test a worker stopped at its deadline keep the registered slack."""
+    assert source.count(_DEADLINE_VALUES) == 1
+    return source.replace(_DEADLINE_VALUES, _DEADLINE_VALUES.replace("4.0", "400.0"))
+
+
 def _file_runner(ledger, seen, change=lambda source: source, gate=False):
     """The local runner, but the program runs from a FILE as the carrier runs /input/program.py (so its workers can
     re-run it); ``change`` edits the program text (test variants only); ``gate`` keeps the deadline's
@@ -398,7 +410,7 @@ def test_the_workers_answer_bit_for_bit_as_one_process(motor18, tmp_path):
         primary, repeat = _graded(
             motor18,
             ledger,
-            _file_runner(ledger, seen, _workers_used),
+            _file_runner(ledger, seen, lambda text: _patient(_workers_used(text))),
             "procs",
             rows,
         )
@@ -424,7 +436,9 @@ _SPAWN = '                    [sys.executable, "-I", script],\n'
     [
         # a worker answer that differs on its checked row: every call in one process
         (
-            lambda source: source.replace(_SAME, "        same = lambda a, b: False\n"),
+            lambda source: _patient(
+                source.replace(_SAME, "        same = lambda a, b: False\n")
+            ),
             "differs from one process",
         ),
         # every worker but the first fails before its first row: their slices in one process
@@ -468,9 +482,11 @@ _SPAWN = '                    [sys.executable, "-I", script],\n'
         ),
         # a worker whose first row agrees but whose LAST row differs: every call in one process
         (
-            lambda source: source.replace(
-                _WORKER_PART,
-                "        blocks[-1] = blocks[-1] + 1.0\n" + _WORKER_PART,
+            lambda source: _patient(
+                source.replace(
+                    _WORKER_PART,
+                    "        blocks[-1] = blocks[-1] + 1.0\n" + _WORKER_PART,
+                )
             ),
             "differs from one process",
         ),
