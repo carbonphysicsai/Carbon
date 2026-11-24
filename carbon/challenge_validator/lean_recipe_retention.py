@@ -4699,7 +4699,7 @@ def _record_ladder(
 
         # the number this version is ranked by (`crown_official`): its total, or its recorded accuracy half
         graded = crown_official.ranked_row(
-            graded, challenge_key.challenge_id, challenge_key.version
+            graded, challenge_key.challenge_id, _registry_version(adapter)
         )
         # Per-part feedback (schema v4) is served only on a Challenge whose custody
         # feedback-leak attack passed (part_feedback_attacks.json); otherwise v3.

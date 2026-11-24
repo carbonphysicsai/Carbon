@@ -640,6 +640,8 @@ def run_once(config, *, version=None):
         name = slug_of(item) + ".json"
         row = {"challenge": item["id"], "version": item["version"], "file": name}
         try:
+            # a malformed crown registry refuses this board first, by its own code: the Ladder is read through it too
+            ranked_by(item)
             king = fetch_king(config["receiver_url"], item, timeout, v2=v2, **three)
             king = unpublished_king(item, v2=v2, **three) if king is None else king
             exam_key = item.get("exam_key", "latest")

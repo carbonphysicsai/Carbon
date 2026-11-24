@@ -98,12 +98,13 @@ def test_a_version_without_the_rule_still_refuses_an_unmeasured_king(
 
 
 def test_a_malformed_registry_refuses(tmp_path, door, frozen, monkeypatch):
+    # the rows were recorded before the registry was broken: writing one now is refused too (`ladder_store.ladder_label`)
+    config, _pool = _v3(tmp_path / "b", door)
     _registry(
         tmp_path,
         monkeypatch,
         {f"{COOLING['id']} {COOLING['version']}": {"margin": "0.0129"}},
     )
-    config, _pool = _v3(tmp_path / "b", door)
     (row,) = operator.run_once(config, version=9)
     assert row["state"] == "REFUSED" and row["code"] == "crown_official_invalid"
 
