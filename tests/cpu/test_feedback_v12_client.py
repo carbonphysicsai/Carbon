@@ -22,7 +22,12 @@ from scripts.dev.miner_launchpad import projection
 
 SID = "rtsk_" + "a" * 64
 NEW = "rtsk_" + "b" * 64
-WORKER = {"cpu_model": "AMD EPYC", "cpu_count": 4, "memory_bytes": 16 * 1024**3, "gpu": False}
+WORKER = {
+    "cpu_model": "AMD EPYC",
+    "cpu_count": 4,
+    "memory_bytes": 16 * 1024**3,
+    "gpu": False,
+}
 CARBON_ROW = infra_diagnosis.public_row(infra_diagnosis.UNCLASSIFIED)
 YOURS_ROW = infra_diagnosis.recipe_spot_row()
 FACTS = {
@@ -78,11 +83,15 @@ def _kit(monkeypatch, reply, versions=ALL):
     monkeypatch.setattr(
         client.ConstructionRecipe,
         "to_dict",
-        lambda self: {"challenge": {"id": "electric-motor-magnetics", "version": "1.8"}},
+        lambda self: {
+            "challenge": {"id": "electric-motor-magnetics", "version": "1.8"}
+        },
     )
     monkeypatch.setattr(client, "_body", lambda facts, **kw: {"fields": kw["fields"]})
     monkeypatch.setattr(
-        client, "BittensorMessageSigner", lambda signer: SimpleNamespace(sign=lambda body, **kw: {})
+        client,
+        "BittensorMessageSigner",
+        lambda signer: SimpleNamespace(sign=lambda body, **kw: {}),
     )
     facts = {"exam_feedback": client.FEEDBACK_FACTS}
     facts.update({"exam_feedback_" + v: FACTS[v] for v in versions})
@@ -118,7 +127,9 @@ def test_the_kit_pins_the_doors_v10_to_v12_values():
             "fields": ["reply", "submission_id"],
             "reply_schema": SCHEMAS[name],
         }
-        assert direct_intake.feedback_reply({"reply": name, "submission_id": SID}) == name
+        assert (
+            direct_intake.feedback_reply({"reply": name, "submission_id": SID}) == name
+        )
 
 
 @pytest.mark.parametrize(
@@ -141,12 +152,16 @@ def test_a_v12_rerun_names_the_new_id_and_the_kit_says_read_that_id(monkeypatch)
     )["why"]
     assert why["grade_state"] == "RERUN" and why["rerun_task_id"] == NEW
     assert why["words"].startswith(
-        "Carbon re-ran this submission at no charge as " + NEW + "; read that id for its result"
+        "Carbon re-ran this submission at no charge as "
+        + NEW
+        + "; read that id for its result"
     )
 
 
 def test_failure_class_rows_read_on_their_own_state_only(monkeypatch):
-    got, _ = _kit(monkeypatch, _reply("v10", "FAILED_INFRA", failure_class=CARBON_ROW), ALL[:-2])
+    got, _ = _kit(
+        monkeypatch, _reply("v10", "FAILED_INFRA", failure_class=CARBON_ROW), ALL[:-2]
+    )
     assert got["submission"]["failure_class"] == CARBON_ROW
     why = projection._grade(
         {"best": None, "latest": None, "submission": got["submission"]},
@@ -156,7 +171,9 @@ def test_failure_class_rows_read_on_their_own_state_only(monkeypatch):
     assert why["failure_class"] == CARBON_ROW
     assert CARBON_ROW["what_happened"].rstrip(".") in why["words"]
     got, _ = _kit(
-        monkeypatch, _reply("v11", "RECONSTRUCTION_FAILED", failure_class=YOURS_ROW), ALL[:-1]
+        monkeypatch,
+        _reply("v11", "RECONSTRUCTION_FAILED", failure_class=YOURS_ROW),
+        ALL[:-1],
     )
     assert got["submission"]["failure_class"]["side"] == "yours"
     # v10 has no recipe-side row; a Carbon row on the recipe's state (or the reverse) is refused whole
@@ -196,7 +213,9 @@ def test_a_v12_reply_of_any_other_shape_is_refused_whole(monkeypatch, submission
         _kit(monkeypatch, _reply("v12", **submission))
 
 
-def test_an_older_schema_where_v12_was_asked_and_rerun_before_v12_are_refused(monkeypatch):
+def test_an_older_schema_where_v12_was_asked_and_rerun_before_v12_are_refused(
+    monkeypatch,
+):
     with pytest.raises(client.DirectIntakeRefusal):
         _kit(monkeypatch, _reply("v11", "QUEUED"))  # asked v12, answered v11
     with pytest.raises(client.DirectIntakeRefusal):

@@ -734,7 +734,7 @@ FAILURE_CLASS_KEYS = (
 )
 #: A bound on one sentence of a failure-class row (a resource bound, not a policy value).
 MAX_FAILURE_CLASS_TEXT = 400
-FAILURE_PASSES =("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
+FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 GRADE_WORKER_KEYS = ("cpu_model", "cpu_count", "memory_bytes", "gpu")
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
@@ -971,15 +971,29 @@ def read_exam_feedback(
                 "reply": (
                     "v12"
                     if v12
-                    else "v11" if v11 else "v10" if v10 else "v9"
-                    if v9
                     else (
-                        "v8"
-                        if v8
+                        "v11"
+                        if v11
                         else (
-                            "v7"
-                            if v7
-                            else "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3"
+                            "v10"
+                            if v10
+                            else (
+                                "v9"
+                                if v9
+                                else (
+                                    "v8"
+                                    if v8
+                                    else (
+                                        "v7"
+                                        if v7
+                                        else (
+                                            "v6"
+                                            if v6
+                                            else "v5" if v5 else "v4" if v4 else "v3"
+                                        )
+                                    )
+                                )
+                            )
                         )
                     )
                 ),
@@ -1005,33 +1019,35 @@ def read_exam_feedback(
             FEEDBACK_REPLY_SCHEMA_V12
             if v12
             else (
-                FEEDBACK_REPLY_SCHEMA_V11
-                if v11
-                else FEEDBACK_REPLY_SCHEMA_V10 if v10 else FEEDBACK_REPLY_SCHEMA_V9
-            )
-            if v9
-            else (
-                FEEDBACK_REPLY_SCHEMA_V8
-                if v8
+                (
+                    FEEDBACK_REPLY_SCHEMA_V11
+                    if v11
+                    else FEEDBACK_REPLY_SCHEMA_V10 if v10 else FEEDBACK_REPLY_SCHEMA_V9
+                )
+                if v9
                 else (
-                    FEEDBACK_REPLY_SCHEMA_V7
-                    if v7
+                    FEEDBACK_REPLY_SCHEMA_V8
+                    if v8
                     else (
-                        FEEDBACK_REPLY_SCHEMA_V6
-                        if v6
+                        FEEDBACK_REPLY_SCHEMA_V7
+                        if v7
                         else (
-                            FEEDBACK_REPLY_SCHEMA_V5
-                            if v5
+                            FEEDBACK_REPLY_SCHEMA_V6
+                            if v6
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V4
-                                if v4
+                                FEEDBACK_REPLY_SCHEMA_V5
+                                if v5
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V3
-                                    if v3
+                                    FEEDBACK_REPLY_SCHEMA_V4
+                                    if v4
                                     else (
-                                        FEEDBACK_REPLY_SCHEMA_V2
-                                        if v2
-                                        else FEEDBACK_REPLY_SCHEMA
+                                        FEEDBACK_REPLY_SCHEMA_V3
+                                        if v3
+                                        else (
+                                            FEEDBACK_REPLY_SCHEMA_V2
+                                            if v2
+                                            else FEEDBACK_REPLY_SCHEMA
+                                        )
                                     )
                                 )
                             )
@@ -1063,15 +1079,17 @@ def read_exam_feedback(
             not in (
                 GRADE_STATES_V12
                 if v12
-                else GRADE_STATES_V9
-                if v9
                 else (
-                    GRADE_STATES_V5
-                    if v5
+                    GRADE_STATES_V9
+                    if v9
                     else (
-                        GRADE_STATES_V4
-                        if v4
-                        else GRADE_STATES_V3 if v3 else GRADE_STATES
+                        GRADE_STATES_V5
+                        if v5
+                        else (
+                            GRADE_STATES_V4
+                            if v4
+                            else GRADE_STATES_V3 if v3 else GRADE_STATES
+                        )
                     )
                 )
             )

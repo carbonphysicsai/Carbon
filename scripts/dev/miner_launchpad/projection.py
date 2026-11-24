@@ -498,7 +498,9 @@ GRADE_STATE_WORDS = {
     "RERUN": "Carbon re-ran this submission at no charge under a new id; read that id for its result",
 }
 #: The v12 line with the new id (v2 6069, verbatim).
-RERUN_WORDS = "Carbon re-ran this submission at no charge as {}; read that id for its result"
+RERUN_WORDS = (
+    "Carbon re-ran this submission at no charge as {}; read that id for its result"
+)
 #: The failing step, what was observed and which pass (the receiver's closed ``failure``; ``pass`` from v8), in words.
 FAILURE_CHILD_WORDS = {
     "build": "the build of your model",
