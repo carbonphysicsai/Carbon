@@ -121,6 +121,11 @@ _PINNED_NUMPY_PAYLOADS = {
     "carbon/challenge_kit/data/motor-dev-train-1p8-v1.npz": (
         "de1c73cc3fe22bb5945e02626f982ca83a4f0273a82e6c3d0398c28a2e32fbd4"
     ),
+    # Motor 1.9's 241-wide TRAIN (`physical_public_train.MAGNET_TRAIN`: exam-motor's train241 PUBLIC run, release
+    # RECEIPTS 4465; re-derived from 1.8's TRAIN + the pinned magnet table at every load): its Spec's train_sha256.
+    "carbon/challenge_kit/data/motor-dev-train-1p9-v1.npz": (
+        "095a3ef080577afe615cebdc88ab0a52d5d29f5bfc15bd3fd4d55632c5f52a4b"
+    ),
 }
 
 

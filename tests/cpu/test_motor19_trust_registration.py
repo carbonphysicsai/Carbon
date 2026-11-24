@@ -60,8 +60,9 @@ def test_the_derive_equals_the_grader_formulas():
     out = np.asarray(registry.REGISTRATIONS[KEY]["derive"](rows, np.zeros((6, 8))))
     assert out.shape == (6, 5)
     for row, got in zip(rows, out):
-        curve = list(row[0:60])
-        ke = back_emf.derivative(list(row[60:120] - row[120:180]))
+        # the grader's own helpers take plain Python floats (a numpy scalar is refused as derivative_input_invalid)
+        curve = [float(v) for v in row[0:60]]
+        ke = back_emf.derivative([float(v) for v in row[60:120] - row[120:180]])
         rms = math.sqrt(sum(v * v for v in ke) / len(ke))
         want = [sum(curve) / len(curve), max(curve) - min(curve), rms, rms, row[240]]
         assert got[1] == want[1] and got[4] == want[4]
