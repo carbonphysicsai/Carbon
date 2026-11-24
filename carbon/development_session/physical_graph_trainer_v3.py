@@ -294,14 +294,14 @@ def train_member(
     # 1.9: 240 curve columns + magnet_min_b_t, audit row 5): the curve terms read the curve block only, and the time
     # weighting weights the curve block and leaves every tail column at 1.0.
     span = slices * length
-    tail = z.shape[1] - span
-    if layout is not None and tail < 0:
+    scalars = z.shape[1] - span
+    if layout is not None and scalars < 0:
         raise ValueError("the layout's curve block is wider than the targets")
     column_weights = None
     if tw is not None:
         row = jnp.asarray(tw, dtype=z.dtype)
         column_weights = jnp.concatenate(
-            [jnp.tile(row / jnp.mean(row), slices), jnp.ones(tail, dtype=z.dtype)]
+            [jnp.tile(row / jnp.mean(row), slices), jnp.ones(scalars, dtype=z.dtype)]
         )
     region = None if important is None else jnp.asarray(important, dtype=z.dtype)
 

@@ -59,7 +59,7 @@ TRAINER_PIN = (TRAINER_PATH, TRAINER_SHA256)
 #: Spec names it (`Spec.trainer`). A change to it is a new digest, so a new version.
 TRAINER_V3_MODULE = "carbon.development_session.physical_graph_trainer_v3"
 TRAINER_V3_PATH = "carbon/development_session/physical_graph_trainer_v3.py"
-TRAINER_V3_SHA256 = "92eed8c4807a7f1184c3e96c948598511839289b37bc76ec8ed2f5aa28bd730c"
+TRAINER_V3_SHA256 = "460d8678c2df31aba6df9109b49e913fa3ab45e622f313d176729ef94f802875"
 TRAINER_V3_PIN = (TRAINER_V3_PATH, TRAINER_V3_SHA256)
 #: The v4 trainer (`physical_graph_trainer_v4`, SELF_TRUST H3d-2b): the two-phase trust trainer. It wraps the version's own pinned
 #: trainer (v2 or v3) UNCHANGED, so it is named only by a TRUST version's adapter block (`adapter_block()["trust"]`): no other
