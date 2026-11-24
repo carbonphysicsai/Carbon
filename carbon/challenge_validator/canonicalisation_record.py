@@ -16,6 +16,9 @@ import os
 import re
 from pathlib import Path
 
+# Registers the overlay versions, as `copy_delivery` does (R0c F16).
+from carbon.challenge_kit import version_registry  # noqa: F401
+
 from .answer_key import AnswerKeyRefused, key_id, verify_in
 
 SCHEMA = "carbon.challenge-validator.canonicalisation-record.v1"

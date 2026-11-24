@@ -31,6 +31,9 @@ import shutil
 import tempfile
 from pathlib import Path
 
+# Registers the overlay versions (R0c F16): without it a process that only issues or imports a copy reads an overlay
+# version's pool batch as not pool-graded and refuses it.
+from carbon.challenge_kit import version_registry  # noqa: F401
 from carbon.scoring import copy_derivation as cd
 from carbon.scoring import copy_package as cp
 from carbon.scoring import sealed_batch_source as source
