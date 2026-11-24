@@ -278,7 +278,10 @@ class PoolKingView:
         rebuild_noise_of,
         baseline=lambda: None,
         crown_bar_of=None,
+        value=None,
     ):
+        # ``value(model)``: the number this version is ranked by when it is not its total (`crown_official`)
+        self._standing = {} if value is None else {"value": value}
         self._open, self._epoch_of = open_store, epoch_of
         self._crown_bar_of = crown_bar_of
         self.exam_version_label = exam_version_label
@@ -304,8 +307,23 @@ class PoolKingView:
         noise = self.rebuild_noise
         noise = None if noise is None else noise.get("value")
 
-        def shown(model_id):
-            standing = store.incumbent_standing(model_id)
+        # A change decided on the total keeps showing its total when the version is ranked by another number now: only the
+        # newest change of a king whose crown record names that number shows it.
+        events = store.events("incumbent")
+        newest = {}
+        for place, event in enumerate(events):
+            newest[event["body"].get("model_id")] = place
+
+        def shown(model_id, place=None):
+            ranked = (
+                self._standing
+                if self._standing
+                and place is not None
+                and newest.get(model_id) == place
+                and store.crown_decided_by(model_id)
+                else {}
+            )
+            standing = store.incumbent_standing(model_id, **ranked)
             epoch = self._epoch_of(model_id)
             if standing is None or epoch is None:
                 return None
@@ -317,11 +335,11 @@ class PoolKingView:
             return hotkey, total, epoch
 
         changes = []
-        for event in store.events("incumbent"):
+        for place, event in enumerate(events):
             body = event["body"]
             if type(body.get("model_id")) is not str:
                 continue  # the crown was vacated: not a change of king
-            new = shown(body["model_id"])
+            new = shown(body["model_id"], place)
             previous = body.get("previous")
             old = None if previous is None else shown(previous)
             if new is None or (previous is not None and old is None):
@@ -348,7 +366,7 @@ class PoolKingView:
         incumbent = store.incumbent()
         if incumbent is None:
             return None
-        standing = store.incumbent_standing(incumbent["model_id"])
+        standing = store.incumbent_standing(incumbent["model_id"], **self._standing)
         epoch = self._epoch_of(incumbent["model_id"])
         if standing is None or epoch is None:
             return None

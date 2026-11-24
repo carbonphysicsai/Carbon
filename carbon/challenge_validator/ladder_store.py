@@ -238,6 +238,18 @@ def _raw(document, *, latest=False):
     )
 
 
+def ladder_label(challenge_id, version):
+    """The Ladder's evaluation key of a version: its sealed evaluation (`sealed_versions.ladder_key`), and what the number
+    it is ranked by adds (`crown_official.label`): a version that starts to rank by another recorded number starts a fresh
+    Ladder, and the documents of the old one stay as they are."""
+    from carbon.challenge_validator import crown_official
+    from carbon.scoring.sealed_versions import ladder_key
+
+    return ladder_key(challenge_id, version) + crown_official.label(
+        challenge_id, version
+    )
+
+
 class LadderStore:
     """Best and latest Ladder documents in the receiver's attempt ledger."""
 
@@ -261,8 +273,6 @@ class LadderStore:
     def _key(hotkey, challenge, exam_key):
         """(hotkey, Challenge id, evaluation key, exam key, construction
         version): the row's key, then the version it was graded on."""
-        from carbon.scoring.sealed_versions import ladder_key
-
         hotkey = _text(hotkey, "ladder_hotkey")
         challenge_id = _text(
             getattr(challenge, "challenge_id", None), "ladder_challenge"
@@ -272,7 +282,7 @@ class LadderStore:
         return (
             hotkey,
             challenge_id,
-            ladder_key(challenge_id, version),
+            ladder_label(challenge_id, version),
             exam_key,
         ), version
 
@@ -298,6 +308,7 @@ class LadderStore:
                 " ORDER BY updated_ns DESC",
                 (hotkey, challenge_id, exam_key),
             ).fetchall()
+        # rows written before under a construction version hold totals: only a Ladder of totals continues them
         for version, best, latest in earlier:
             if ladder_key(challenge_id, version) == evaluation:
                 return best, latest
@@ -461,7 +472,7 @@ def _identity(challenge):
     from carbon.scoring.sealed_versions import ladder_key
 
     challenge_id = _text(getattr(challenge, "challenge_id", None), "ladder_challenge")
-    evaluation = ladder_key(
+    evaluation = ladder_label(
         challenge_id, _text(getattr(challenge, "version", None), "ladder_challenge")
     )
     return challenge_id, evaluation, ladder_key

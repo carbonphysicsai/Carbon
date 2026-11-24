@@ -1614,14 +1614,18 @@ class PoolStore:
     # The N per-seed totals, their mean and the seeds of one averaged crown decision are PRIVATE: filed here,
     # write-once per (submission, evaluation key), and read back only as the king's mean.
 
-    def record_crown_average(self, submission_id, key, private):
+    def record_crown_average(self, submission_id, key, private, *, label=None):
         """File the private record of an averaged crown decision. Idempotent for the same record; a different one
-        for the same decision refuses."""
+        for the same decision refuses. ``label``: the number an official-score decision ranked by when it is not the
+        total (`crown_official`); its record stands beside one filed on the total, and neither is rewritten.
+        """
         from carbon.challenge_validator.interface import is_digest
 
         if not is_digest(key) or type(private) is not dict:
             raise StateError("crown_average_invalid")
-        op = self._bank_operation("crown_average.v1", submission_id, key)
+        op = self._bank_operation(
+            "crown_average.v1", submission_id, key if label is None else [key, label]
+        )
         body = canonical(
             {
                 "schema": "carbon.challenge-validator.crown-average.v1",
@@ -1641,6 +1645,28 @@ class PoolStore:
                 )
             elif row != ("crown_average.v1", "RECORDED", body):
                 raise StateError("crown_average_changed")
+
+    def crown_decided_by(self, submission_id):
+        """The numbers this submission's official-score crowns were decided by (`bank_promotion._record_official_crown`:
+        a record names one only when it is not the total). Reads only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_average.v1'"
+            ).fetchall()
+        named = set()
+        for (raw,) in rows:
+            try:
+                body = json.loads(raw)
+            except ValueError:
+                continue
+            private = body.get("private")
+            if (
+                body.get("submission_id") == submission_id
+                and type(private) is dict
+                and type(private.get("score")) is str
+            ):
+                named.add(private["score"])
+        return named
 
     def record_crown_trigger(self, submission_id, key):
         """Log that an averaged decision was triggered for ``submission_id`` under ``key``, once, at the store's clock
@@ -3071,9 +3097,10 @@ class PoolStore:
                 return found.get("evaluation_key")
         return None
 
-    def incumbent_standing(self, model_id):
+    def incumbent_standing(self, model_id, *, value=None):
         """The incumbent's latest scored private evaluation, for the public king
         document: ``{"owner", "total"}``, or None when it has none scored. Reads only.
+        ``value(model)`` reads the number its version is ranked by (`crown_official`); absent, the total.
 
         A king rebuilt on the current judge image (route (b)) stands on his newest evaluation, which is then the linked
         derived row's: the rebuilt score is his standing, up or down (Carbon Validator 10:53 (4)).
@@ -3102,7 +3129,7 @@ class PoolStore:
                 continue
             if found.get("submission_id") not in own:
                 continue
-            total = model.get("total_score")
+            total = model.get("total_score") if value is None else value(model)
             if model.get("score_status") != "SCORED_DEVELOPMENT_CANDIDATE" or (
                 type(total) not in (int, float)
             ):

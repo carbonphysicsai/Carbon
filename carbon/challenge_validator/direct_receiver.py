@@ -1156,6 +1156,8 @@ GRADING_PATHS = (
     # the crown rule (owner 14 Nov, the default for every version since 17 Nov): official totals + the version's margin row
     "carbon/challenge_validator/crown_official.py",
     "scripts/validator_host_classes/crown_official_score.json",
+    # the re-rank of a version whose row ranks another recorded number: it decides a crown once from kept grades
+    "carbon/challenge_validator/rerank.py",
     # a vmap-64 version's speed-match tolerance (CV-Motor-B S2, 15 Nov): it decides whether a timed stage matches or is
     # Carbon's FAILED_INFRA
     "carbon/challenge_validator/speed_match.py",
@@ -4143,7 +4145,7 @@ class PermitWatch:
 
 def _king_view(intake, pool_store):
     """The public king view (`koth_public`) over this receiver's pool store."""
-    from carbon.challenge_validator import exam_cap, koth_public
+    from carbon.challenge_validator import crown_official, exam_cap, koth_public
 
     adapter = intake.adapter
     challenge = intake.challenge
@@ -4156,6 +4158,8 @@ def _king_view(intake, pool_store):
 
     snapshot = getattr(adapter.discovery, "evaluation_pack_snapshot", None)
     label = getattr(snapshot, "evaluation_version", None)
+    # the number this version is ranked by when it is not its total (`crown_official`)
+    ranked = crown_official.reader(challenge.challenge_id, challenge.version)
     return koth_public.PoolKingView(
         open_store=lambda: _open_pool_store(pool_store),
         epoch_of=epoch_of,
@@ -4163,10 +4167,14 @@ def _king_view(intake, pool_store):
         rebuild_noise_of=lambda: _page_noise(challenge),
         # The comparator's baseline total, registered when the comparator was built for
         # the exam set (`BankPromotion.consider_private`): never the private score pack.
-        baseline=lambda: _open_pool_store(pool_store).latest_baseline(
-            challenge.challenge_id
+        # A version ranked by another number than its total has no baseline on that number: none is shown.
+        baseline=lambda: (
+            _open_pool_store(pool_store).latest_baseline(challenge.challenge_id)
+            if ranked is None
+            else None
         ),
         crown_bar_of=lambda challenge_id: _crown_bar(pool_store, challenge_id),
+        value=ranked,
     )
 
 

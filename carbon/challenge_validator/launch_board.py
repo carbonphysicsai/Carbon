@@ -647,7 +647,7 @@ def _true_order(kept, exact, king_hotkey, noise):
     return ordered, values
 
 
-def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None):
+def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None, value=None):
     """The OPERATOR-SIDE source of the exact best totals for a v2 board (never published, never persisted): per hotkey,
     the maximum ``total_score`` over the pool store's private evaluations of this Challenge that the Ladder counts as
     scored (its own scored statuses) on the board rows' exam. That exam is ``exam_key``, the sealed evaluation pack
@@ -656,6 +656,7 @@ def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None):
     is the incumbent standing's total (after crown-average, its N-rebuild mean). ``store`` needs
     `private_evaluation_bodies()` and `incumbent_standing`. A host-owned derived row (not a hotkey) is skipped. Pass
     the result to `build(..., exact_totals=)`, which uses an entry only where it floors to its row's published total.
+    ``value(model)`` reads the number the version is ranked by (`crown_official`); absent, the total.
     """
     from .koth_public import KothPublicRefused, _owner_hotkey
 
@@ -669,18 +670,21 @@ def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None):
             or exam_key is None
             or evidence.get("evaluation_pack_digest") != exam_key
             or model.get("score_status") not in gf._SCORED
-            or type(model.get("total_score")) is not float
-            or not math.isfinite(model["total_score"])
         ):
+            continue
+        ranked = model.get("total_score") if value is None else value(model)
+        if type(ranked) is not float or not math.isfinite(ranked):
             continue
         try:
             hotkey = _owner_hotkey(body.get("owner"))
         except KothPublicRefused:
             continue
         if _SS58.fullmatch(hotkey):
-            best[hotkey] = max(best.get(hotkey, 0.0), model["total_score"])
+            best[hotkey] = max(best.get(hotkey, 0.0), ranked)
     if king_model_id is not None:
-        standing = store.incumbent_standing(king_model_id)
+        standing = store.incumbent_standing(
+            king_model_id, **({} if value is None else {"value": value})
+        )
         if standing is not None:
             try:
                 hotkey = _owner_hotkey(standing["owner"])

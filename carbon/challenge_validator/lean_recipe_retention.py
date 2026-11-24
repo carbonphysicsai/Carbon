@@ -4695,6 +4695,12 @@ def _record_ladder(
             {} if epoch is None else {"recipe_digest": recipe_digest, "epoch": epoch}
         )
         challenge_key = adapter.discovery.info.challenge_key
+        from carbon.challenge_validator import crown_official
+
+        # the number this version is ranked by (`crown_official`): its total, or its recorded accuracy half
+        graded = crown_official.ranked_row(
+            graded, challenge_key.challenge_id, challenge_key.version
+        )
         # Per-part feedback (schema v4) is served only on a Challenge whose custody
         # feedback-leak attack passed (part_feedback_attacks.json); otherwise v3.
         serves_parts = (

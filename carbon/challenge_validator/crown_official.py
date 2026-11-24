@@ -17,6 +17,12 @@ official grades with the margin in the comparator's noise slot; this module only
 - the repeat gate (a second grade of every state the decision read): `bank_promotion.consider_private` applies the crown
   change directly in this mode.
 
+WHICH RECORDED NUMBER RANKS a version (owner G-LEAD-83, 24 Nov 2026) is part of its row: ``"score": "A"`` ranks it by its
+accuracy half (`SCORES`), the leg A every private evaluation already keeps beside its total (``model_p.physics_benefit``);
+absent, the total, as every row before it. It changes no grade, no evaluation, no key and no old record: a decision reads
+another recorded number, with the row's own margin on that number, and its private record says which. Every reader of the
+ranked number (the crown decision, the king page, the board, the miner's own Ladder) asks this module; none names a version.
+
 The operator's crown pause, the crown hold and the queue order are unchanged. Only a process that never installs the rule
 (a tool, a test) has `ACTIVE` None and the old repeat-gate decision.
 """
@@ -47,8 +53,17 @@ class CrownOfficialInvalid(ValueError):
 
 
 #: ``{"challenge", "version", "margin", "digest"}`` for the version this receiver serves (``margin`` and ``digest`` None
-#: while the version has no row: `margin_unset`), or None in a process that never installed it.
+#: while the version has no row: `margin_unset`; plus ``score`` when it is not ranked by its total), or None in a process
+#: that never installed it.
 ACTIVE = None
+#: The recorded number a version is ranked by: the total, or its accuracy half (a row's ``"score"``).
+TOTAL, ACCURACY = "total", "A"
+SCORES = (TOTAL, ACCURACY)
+#: Where an evaluation's ``model_p`` keeps each (`private_evaluation_evidence`).
+_FIELD = {TOTAL: "total_score", ACCURACY: "physics_benefit"}
+#: What a version ranked by each number adds to its Ladder key, so a change of the number starts a fresh Ladder and no old
+#: document is rewritten (`ladder_store.ladder_label`).
+_LABEL = {TOTAL: "", ACCURACY: "+accuracy"}
 #: The reason of a crown decision that waits for its version's margin row (filed and swept like a queued crown).
 CROWN_MARGIN_UNSET = "crown_margin_unset"
 #: The noise slot's digest while no margin is registered: the comparison then only screens (margin 0) which contenders
@@ -63,13 +78,13 @@ def _entry_digest(key, entry):
     return "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
 
 
-def registered(challenge_id, version, *, path=REGISTRY):
-    """The registered official-score rule of ``challenge_id version``: ``{"margin", "digest"}``, or None when the version
-    has no entry. A registry that cannot be read, or an entry that is not exactly ``{"margin": a finite number in [0, 1)}``,
-    refuses (`CrownOfficialInvalid`): the receiver does not start on a malformed rule.
+def registered(challenge_id, version, *, path=None):
+    """The registered official-score rule of ``challenge_id version``: ``{"margin", "digest"}`` (plus ``"score"`` when its
+    entry names another number than the total), or None when the version has no entry. A registry that cannot be read, or
+    an entry that is not exactly ``{"margin": a finite number in [0, 1)}`` with or without ``"score": "A"``, refuses (`CrownOfficialInvalid`): the receiver does not start on a malformed rule.
     """
     try:
-        document = json.loads(Path(path).read_bytes())
+        document = json.loads(Path(REGISTRY if path is None else path).read_bytes())
     except FileNotFoundError:
         return None
     except (OSError, ValueError) as exc:
@@ -85,19 +100,76 @@ def registered(challenge_id, version, *, path=REGISTRY):
     if entry is None:
         return None
     margin = entry.get("margin") if type(entry) is dict else None
+    score = entry.get("score", TOTAL) if type(entry) is dict else None
     if (
         type(entry) is not dict
-        or set(entry) != {"margin"}
+        or set(entry) not in ({"margin"}, {"margin", "score"})
+        # the total is the absent key, never spelled
+        or (("score" in entry) and score != ACCURACY)
         or type(margin) not in (int, float)
         or isinstance(margin, bool)
         or not math.isfinite(margin)
         or not 0 <= margin < 1
     ):
         raise CrownOfficialInvalid("crown_official_entry_malformed")
-    return {"margin": float(margin), "digest": _entry_digest(key, entry)}
+    return {
+        "margin": float(margin),
+        "digest": _entry_digest(key, entry),
+        **({} if score == TOTAL else {"score": score}),
+    }
 
 
-def install(challenge_id, version, *, path=REGISTRY, log=None):
+def score_of(challenge_id, version):
+    """The recorded number this version is ranked by (`SCORES`): its row's, else the total. Read from the registry, so a
+    process that installs nothing (the board operator, a tool) reads the same answer; a malformed registry refuses.
+    """
+    rule = registered(challenge_id, version)
+    return TOTAL if rule is None else rule.get("score", TOTAL)
+
+
+def value(model, score):
+    """The ranked number of one evaluation's ``model_p``, or None when it keeps none."""
+    return model.get(_FIELD[score]) if type(model) is dict else None
+
+
+def reader(challenge_id, version):
+    """``value`` of the number this version is ranked by, for the readers that take one; None for the total."""
+    score = score_of(challenge_id, version)
+    return None if score == TOTAL else lambda model: value(model, score)
+
+
+def label(challenge_id, version):
+    """What this version adds to its Ladder key (`_LABEL`)."""
+    return _LABEL[score_of(challenge_id, version)]
+
+
+def ranked_row(graded, challenge_id, version):
+    """The graded score row as the miner's own Ladder reads it: unchanged for a version ranked by its total; else a copy
+    whose ``score`` is the ranked leg. A row with no score keeps none."""
+    score = score_of(challenge_id, version)
+    if score == TOTAL or type(graded) is not dict or graded.get("score") is None:
+        return graded
+    legs = graded.get("legs")
+    return {
+        **graded,
+        "score": legs.get(score) if type(legs) is dict else None,
+    }
+
+
+def decided_by(evidence):
+    """The number a crown decision on this evaluation compares: the installed rule's, for every evaluation of the Challenge
+    this receiver serves (a king carried from an earlier construction version is compared on the same number as the
+    contender he meets, never on another)."""
+    if (
+        ACTIVE is None
+        or type(evidence) is not dict
+        or evidence.get("challenge") != ACTIVE["challenge"]
+    ):
+        return TOTAL
+    return ACTIVE.get("score", TOTAL)
+
+
+def install(challenge_id, version, *, path=None, log=None):
     """At receiver start, for the version it ACTUALLY serves: turn the official-score rule ON (and the crown average OFF),
     for every version: with its registered margin, or, with no row yet, margin None (`margin_unset`: its crowns wait).
     Logs ``crown_official_score=true margin=<value|unset>``.
@@ -116,6 +188,7 @@ def install(challenge_id, version, *, path=REGISTRY, log=None):
     say(
         "crown_official_score=true"
         f" margin={'unset' if ACTIVE['margin'] is None else ACTIVE['margin']}"
+        + (f" score={ACTIVE['score']}" if "score" in ACTIVE else "")
     )
     return ACTIVE
 
@@ -137,19 +210,32 @@ def comparator(registered_comparator):
         noise = {"value": 0.0, "measurement_digest": UNSET_DIGEST}
     else:
         noise = {"value": ACTIVE["margin"], "measurement_digest": ACTIVE["digest"]}
-    return {**registered_comparator, "rebuild_noise": noise}
+    ranked = {**registered_comparator, "rebuild_noise": noise}
+    if ACTIVE.get("score", TOTAL) != TOTAL:
+        # Carbon's baseline is a total: never compared with another number, so a first crown waits (no floor registered)
+        ranked["baseline_total"] = None
+    return ranked
 
 
 __all__ = [
+    "ACCURACY",
     "ACTIVE",
     "CROWN_MARGIN_UNSET",
     "RECORD_RULE",
     "REGISTRY",
     "SCHEMA",
+    "SCORES",
+    "TOTAL",
     "UNSET_DIGEST",
     "CrownOfficialInvalid",
     "comparator",
+    "decided_by",
     "install",
+    "label",
     "margin_unset",
+    "ranked_row",
+    "reader",
     "registered",
+    "score_of",
+    "value",
 ]

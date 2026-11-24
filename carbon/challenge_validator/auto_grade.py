@@ -324,6 +324,8 @@ class AutoGrader:
             return True
         if self._crowns_due():
             return True
+        if self._rerank_due():
+            return True
         return self._upkeep_due()
 
     def _retries_due(self):
@@ -512,6 +514,43 @@ class AutoGrader:
         finally:
             self.activity = None
         self._resume_paused_crowns()
+        self._rerank()
+
+    def _rerank_due(self):
+        """Whether the served version's re-rank (`rerank`: its crown row names another number than the total) is still to
+        be decided now. False for every version ranked by its total."""
+        from . import crown_official
+
+        active = crown_official.ACTIVE
+        if active is None or active.get("score", crown_official.TOTAL) == (
+            crown_official.TOTAL
+        ):
+            return False
+        if getattr(self, "_rerank_done", False):
+            return False
+        return time.monotonic() >= getattr(self, "_rerank_next", 0.0)
+
+    def _rerank(self):
+        """The re-rank step, when due. Never raises: a failure is one journal line and it is tried again."""
+        from . import koth_journal, rerank
+
+        if not self._rerank_due():
+            return
+        try:
+            self._rerank_done = rerank.step(
+                self.intake.adapter,
+                self._pool(),
+                root=self.root,
+                artifacts=self.artifacts,
+                entries=self.entries,
+            )
+        except Exception as error:  # noqa: BLE001
+            koth_journal.note(
+                "rerank_failed",
+                code=str(getattr(error, "code", None) or type(error).__name__),
+            )
+        if not getattr(self, "_rerank_done", False):
+            self._rerank_next = time.monotonic() + rerank.RETRY_SECONDS
 
     def _run_once(self):
         sequencer = getattr(self, "sequencer", None)

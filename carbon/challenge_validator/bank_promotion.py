@@ -593,9 +593,20 @@ class BankPromotion:
             "margin_digest": official["rebuild_noise"]["measurement_digest"],
             "candidate_total": _scored(pair["candidate"])[1],
             "incumbent_total": None if incumbent is None else _scored(incumbent)[1],
+            # which recorded number the two are, when it is not the total
+            **(
+                {}
+                if crown_official.ACTIVE.get("score", crown_official.TOTAL)
+                == crown_official.TOTAL
+                else {"score": crown_official.ACTIVE["score"]}
+            ),
         }
+        # a decision on another number than the total is filed beside an earlier record of the same submission, never over it
+        label = {"label": private["score"]} if "score" in private else {}
         try:
-            self.store.record_crown_average(submission_id, evaluation_key, private)
+            self.store.record_crown_average(
+                submission_id, evaluation_key, private, **label
+            )
         except StateError:
             pass  # a record for this decision already exists: kept
 
@@ -916,7 +927,10 @@ def _scored(body):
     status = model.get("score_status") if type(model) is dict else None
     if type(status) is not str:
         raise StateError("private_evaluation_invalid")
-    total = model.get("total_score")
+    from carbon.challenge_validator import crown_official
+
+    # the number the served version's rule ranks by (`crown_official`): its total, or its recorded accuracy half
+    total = crown_official.value(model, crown_official.decided_by(evidence))
     if status == SCORED and (
         type(total) not in (int, float)
         or not math.isfinite(total)

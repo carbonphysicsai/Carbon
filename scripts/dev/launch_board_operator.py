@@ -269,6 +269,7 @@ class ReadOnlyPoolStore:
     incumbent_evaluation_key = PoolStore.incumbent_evaluation_key
     kept_crown_rebuilds = PoolStore.kept_crown_rebuilds
     crown_decisions = PoolStore.crown_decisions
+    crown_decided_by = PoolStore.crown_decided_by
     submission_hotkey = PoolStore.submission_hotkey
 
 
@@ -308,6 +309,7 @@ def v2_sources(config, item, king_document, exam_key, *, v3=False):
         )
         return None if block is None else exam_cap.epoch_of(block)
 
+    ranked = ranked_by(item)
     view = koth_public.PoolKingView(
         open_store=lambda: store,
         epoch_of=epoch_of,
@@ -315,6 +317,7 @@ def v2_sources(config, item, king_document, exam_key, *, v3=False):
         rebuild_noise_of=lambda: koth_registry.rebuild_noise(
             item["id"], version=item["version"]
         ),
+        value=ranked,
     )
     changes = view.crown_changes(limit=launch_board.MAX_CROWN_CHANGES, v3=v3)
     king_model_id = None
@@ -338,8 +341,20 @@ def v2_sources(config, item, king_document, exam_key, *, v3=False):
         challenge_id=item["id"],
         exam_key=exam_key,
         king_model_id=king_model_id,
+        value=ranked,
     )
     return changes, exact
+
+
+def ranked_by(item):
+    """The reader of the number ``item``'s version is ranked by (`crown_official.reader`), None for its total; a malformed
+    registry refuses (``crown_official_invalid``)."""
+    from carbon.challenge_validator import crown_official
+
+    try:
+        return crown_official.reader(item["id"], item["version"])
+    except crown_official.CrownOfficialInvalid:
+        raise OperatorRefused("crown_official_invalid") from None
 
 
 def king_stability(config, item, king_document):
