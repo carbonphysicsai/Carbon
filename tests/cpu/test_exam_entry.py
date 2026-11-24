@@ -44,8 +44,9 @@ LIVE = {
 @pytest.fixture
 def rows(monkeypatch):
     """One synthetic entry row with a good build row; the test changes what it holds."""
-    held = {"entry": dict(ROW), "build": {"good": True}, "key": KEY}
+    held = {"entry": dict(ROW), "build": {"graph_spec": {"rows": 8}}, "key": KEY}
     monkeypatch.setattr(exam_entry, "REFUSED", {})
+    exam_entry._serving.cache_clear()
     monkeypatch.setattr(
         exam_registry,
         "keys",
@@ -63,7 +64,8 @@ def rows(monkeypatch):
         return held["build"]
 
     monkeypatch.setattr(exam_build, "block", block)
-    return held
+    yield held
+    exam_entry._serving.cache_clear()
 
 
 def _entry():
@@ -138,11 +140,35 @@ def test_a_retired_row_is_listed_and_never_selected_whatever_its_constants_say(
 
 
 def test_a_row_that_gives_no_entry_leaves_the_version_unknown(rows):
-    for build in (None, exam_build.ExamBuildRefused("build_block_fields")):
+    for build in (
+        None,
+        exam_build.ExamBuildRefused("build_block_fields"),
+        {"graph_spec": None},
+    ):
+        exam_entry._serving.cache_clear()
+        exam_entry.REFUSED.clear()
         rows["build"] = build
         assert _entry() is None and KEY in exam_entry.REFUSED
         with pytest.raises(registry.UnknownChallenge):
             registry._find(*KEY)
+
+
+def test_a_version_without_the_graph_route_has_no_entry(rows):
+    """Its profile and description would be the graph route's, which it does not serve."""
+    rows["build"] = {"graph_spec": None}
+    assert _entry() is None
+    assert exam_entry.REFUSED[KEY] == "entry_needs_the_graph_route"
+
+
+def test_a_catalog_call_checks_the_build_rows_once(rows, monkeypatch):
+    asked = []
+    real = exam_build.block
+    monkeypatch.setattr(
+        exam_build, "block", lambda *key: asked.append(key) or real(*key)
+    )
+    for _ in range(3):
+        assert _entry().title == ROW["title"]
+    assert asked.count(KEY) == 1
 
 
 def test_a_version_the_code_serves_keeps_its_own_entry(rows):

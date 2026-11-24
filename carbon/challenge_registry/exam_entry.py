@@ -14,6 +14,7 @@ unknown to the catalog, never a nearby one. Nothing here opens a door: serving, 
 
 from __future__ import annotations
 
+import functools
 import logging
 
 from . import exam_build, exam_registry
@@ -34,20 +35,35 @@ def _refuse(key, reason) -> None:
 
 
 def rows() -> dict:
-    """``{(challenge id, version): entry row}`` of every version a build row serves and an entry row names."""
-    found = {}
-    for key in exam_registry.keys("entry"):
+    """``{(challenge id, version): entry row}`` of every version a build row serves and an entry row names. Read once per
+    set of rows (they are add-only): a catalog call hashes no module file; `describe` checks its module every time.
+    """
+    named = exam_registry.keys("entry")
+    return {
+        key: exam_registry.field(*key, "entry")
+        for key in _serving(tuple((key, exam_registry.digest(*key)) for key in named))
+    }
+
+
+@functools.lru_cache(maxsize=4)
+def _serving(named) -> tuple:
+    found = []
+    for key, _digest in named:
         if exam_build.code_serves(*key):
             _refuse(key, "entry_version_is_code_served")
             continue
         try:
-            if exam_build.block(*key) is None:
+            block = exam_build.block(*key)
+            if block is None:
                 raise exam_build.ExamBuildRefused("entry_has_no_build_row")
+            if block["graph_spec"] is None:
+                # the profile and description below are the graph route's: a version without it has neither
+                raise exam_build.ExamBuildRefused("entry_needs_the_graph_route")
         except exam_build.ExamBuildRefused as refused:
             _refuse(key, str(refused))
             continue
-        found[key] = exam_registry.field(*key, "entry")
-    return found
+        found.append(key)
+    return tuple(found)
 
 
 def describe(challenge_id: str, version: str) -> dict:
