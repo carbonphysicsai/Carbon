@@ -287,7 +287,7 @@ def test_an_unreadable_task_is_a_typed_503_not_a_wrong_state(tmp_path, ledger):
         ({"reply": "v3", "submission_id": A}, "v3"),
         ({"reply": "v4", "submission_id": A}, "v4"),
         ({"reply": "v5", "submission_id": A}, "v5"),
-        ({"reply": "v12", "submission_id": A}, None),  # v11 is known since 21 Nov 2026
+        ({"reply": "v13", "submission_id": A}, None),  # v12 is known since 24 Nov 2026
         ({"reply": "v4"}, None),
         ({"reply": "v4", "submission_id": 7}, None),
         ({"reply": "v4", "submission_id": A, "extra": 1}, None),
