@@ -551,7 +551,11 @@ def grade(
         from carbon.scoring import pool_exam
 
         pool = {
-            "speed_call_seconds": [speed_gate.ceiling_seconds(adapter.CHALLENGE)]
+            "speed_call_seconds": [
+                speed_gate.ceiling_seconds(
+                    adapter.CHALLENGE, getattr(adapter, "VERSION", None)
+                )
+            ]
             * pool_exam.SPEED_SAMPLE
         }
     try:

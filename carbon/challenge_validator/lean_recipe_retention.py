@@ -2555,7 +2555,9 @@ def _speed_ceiling(adapter):
     from carbon.challenge_registry import speed_gate
 
     try:
-        return speed_gate.ceiling_seconds(adapter.challenge_id)
+        return speed_gate.ceiling_seconds(
+            adapter.challenge_id, getattr(adapter, "challenge_version", None)
+        )
     except (KeyError, AttributeError, TypeError, ZeroDivisionError):
         return None
 

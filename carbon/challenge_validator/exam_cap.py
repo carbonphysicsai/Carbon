@@ -307,7 +307,9 @@ def _positive(value) -> bool:
 
 
 def registered_cadence(path=None) -> dict:
-    """The registered capacity and per-Challenge lane-hours (schema v2), or a typed refusal.
+    """The registered capacity and per-Challenge lane-hours (schema v2), or a typed refusal. With no ``path`` (the registry
+    in force), a Challenge the file does not value takes the measured value of its newest exam registry row
+    (`exam_registry`, ``rebuild_gpu_lane_hours``); a Challenge the file values keeps that value.
 
     ``exam_cadence_schema_unsupported`` for the retired v1 (CPU-hours) file; ``exam_cadence_unregistered`` for a file
     that is absent, malformed, carries no values yet (the recalibration writes them) or is not exactly v2.
@@ -361,7 +363,23 @@ def registered_cadence(path=None) -> dict:
     }
     if "daily_allowance" in document:
         cadence["daily_allowance"] = document["daily_allowance"]
+    if path is None:
+        _add_registered_lane_hours(cadence["rebuild_gpu_lane_hours"])
     return cadence
+
+
+def _add_registered_lane_hours(hours):
+    """Add the exam registry's measured lane-hours of every Challenge ``hours`` does not value (its newest row's)."""
+    from carbon.challenge_registry import exam_registry
+
+    name = "rebuild_gpu_lane_hours"
+    # keys come in version order within a Challenge, so the newest row's value is the one kept
+    added = {
+        challenge_id: exam_registry.field(challenge_id, version, name)["value"]
+        for challenge_id, version in exam_registry.keys(name)
+    }
+    for challenge_id, value in added.items():
+        hours.setdefault(challenge_id, value)
 
 
 def grading_deadline_seconds(material):

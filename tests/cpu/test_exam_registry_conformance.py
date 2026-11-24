@@ -1,9 +1,9 @@
 """X1: a synthetic exam registered ONLY through the registry must pass build -> grade -> crown -> weights -> board.
 
 Owner EXAM-AGNOSTIC (Lead 5851, LAUNCH_PLAN X1-X4; design note reports/SCALE/EXAM_REGISTRY_DESIGN_20261124.md). A family
-and version that no code names, ``zz-synthetic 0.1``, is registered only by a host overlay entry written to a temporary
-file (`version_overlay.install(path)`), in a fresh interpreter, before any other module derives a set from the
-registry. Every site a build, grade, crown, weights and board walk asks about that version is then PROBED: one probe
+and version that no code names, ``zz-synthetic 0.1``, is registered only by a host overlay entry and an exam registry
+row, each in a temporary file (`version_overlay.install(path)`, `exam_registry.install(path)`), in a fresh interpreter,
+before any other module derives a set from the registry. Every site a build, grade, crown, weights and board walk asks about that version is then PROBED: one probe
 per site, named with its file and the blind-audit row (reports/SCALE/BLIND_RESTRICTION_AUDIT_20261123.md) it checks.
 
 ``KNOWN_GAPS`` is the punch list: the probes that fail today, each with the registry datum its fix moves into the
@@ -41,6 +41,16 @@ ENTRY = {
     "catalog_entries_from": [],
     "predecessor": None,
     "rebuild_wall_seconds": 648,
+}
+
+#: The exam registry row (`challenge_registry/exam_registry.py`): the version's synthetic facts, one per field a head
+#: has moved into the registry.
+EXAM_ROW = {
+    "rebuild_gpu_lane_hours": {
+        "value": 0.02,
+        "measurement_digest": "sha256:" + "a" * 64,
+    },
+    "solver_seconds_per_design": {"value": 100, "source": "synthetic"},
 }
 
 #: (probe id, stage, audit row, site): the walk in order. The probe bodies are in `_PROBE_PROGRAM`.
@@ -101,7 +111,7 @@ PROBES = (
         "grade.cadence",
         "GRADE",
         "12",
-        "challenge_validator/exam_cadence.json rebuild_gpu_lane_hours",
+        "challenge_validator/exam_cap.py registered_cadence",
     ),
     (
         "grade.speed_gate",
@@ -155,8 +165,6 @@ KNOWN_GAPS = {
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
     "grade.pool_kind": "family pool_kind + register_kind (H1)",
-    "grade.cadence": "cadence row per family (measured t_c)",
-    "grade.speed_gate": "per-version solver seconds row, typed refusal when missing",
     "grade.published": "published block derived from the version's sealed evaluation + pool rows",
     "grade.copy_opacity": "family copy_opacity (through H1, a shared producer file)",
     "grade.verify_set": "version verify_set (path + receipted sha)",
@@ -173,6 +181,8 @@ family, version = sys.argv[2], sys.argv[3]
 
 from carbon.challenge_kit import version_overlay, version_registry
 version_overlay.install(path=overlay_path)
+from carbon.challenge_registry import exam_registry
+exam_registry.install(path=Path(sys.argv[4]))
 
 
 def probe_registry_find():
@@ -234,13 +244,12 @@ def probe_grade_exam_cap():
 
 def probe_grade_cadence():
     from carbon.challenge_validator import exam_cap
-    document = json.loads(exam_cap.REGISTRY.read_bytes())
-    assert family in document["rebuild_gpu_lane_hours"]
+    assert exam_cap.registered_cadence()["rebuild_gpu_lane_hours"][family] == 0.02
 
 
 def probe_grade_speed_gate():
     from carbon.challenge_registry import speed_gate
-    speed_gate.ceiling_seconds(family)
+    assert speed_gate.ceiling_seconds(family, version) == 0.2
 
 
 def probe_grade_published():
@@ -300,8 +309,15 @@ def walk(tmp_path_factory):
         "versions": {f"{FAMILY} {VERSION}": ENTRY},
     }
     path.write_text(json.dumps(document), encoding="utf-8")
+    exams = path.with_name("exam_registry.json")
+    document = {
+        "schema": "carbon.challenge-registry.exam-registry.v1",
+        "source": "synthetic",
+        "exams": {f"{FAMILY} {VERSION}": EXAM_ROW},
+    }
+    exams.write_text(json.dumps(document), encoding="utf-8")
     done = subprocess.run(
-        [sys.executable, "-c", _PROBE_PROGRAM, str(path), FAMILY, VERSION],
+        [sys.executable, "-c", _PROBE_PROGRAM, str(path), FAMILY, VERSION, str(exams)],
         cwd=REPOSITORY,
         capture_output=True,
         text=True,
