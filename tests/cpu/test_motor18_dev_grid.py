@@ -258,6 +258,7 @@ def test_the_1_8_pack_serves_the_1_1_sealed_batch_and_1_7_stays_refused():
     from carbon.challenge_validator import motor_sealed
 
     assert "1.8" in motor_sealed.SERVED_VERSIONS
+    assert "1.9" in motor_sealed.SERVED_VERSIONS  # 1.8's exam, same plain A batch
     assert "1.7" not in motor_sealed.SERVED_VERSIONS
     assert find(motor_sealed.CHALLENGE_ID, "1.8").predecessor == "1.6"
     # 1.8 passes the version check (then the bogus document is refused as such)

@@ -42,7 +42,9 @@ CHALLENGE_VERSION = "1.1"
 #: 1.6 (pool grade, in-pack baseline) is 1.5's exam material under a new scoring.
 #: 1.8 (menu headroom; predecessor 1.6) carries the same 1.1 sealed batch as its plain A batch
 #: (`pool_pack` canonicalises it under 1.8). 1.7 was never registered and stays refused.
-SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5", "1.6", "1.8")
+#: 1.9 (1.8's exam + magnet_min_b_t; predecessor 1.8, owner G11 reuse of 1.8's pack under new keys) carries the same
+#: 1.1 sealed batch as its plain A batch (release g9859: K4 REV 6 refused motor_sealed_version without it).
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5", "1.6", "1.8", "1.9")
 RULE_SCHEMA = "carbon.motor.sealed-batch-rule.v1"
 DOCUMENT_SCHEMA = "carbon.motor.sealed-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.motor.sealed-deployment.v1"
