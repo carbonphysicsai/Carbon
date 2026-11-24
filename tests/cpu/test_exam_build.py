@@ -482,22 +482,47 @@ def test_no_staged_spec_file_lies_in_the_repository():
     assert not (adapter._TREE / adapter.STAGED_SPEC).exists()
 
 
-def test_the_public_train_loader_imports_no_exam_registry_for_a_code_served_version():
+@pytest.mark.parametrize(
+    "key",
+    [
+        ("electric-motor-magnetics", "1.8"),
+        ("chip-cold-plate", "1.8"),
+        ("chip-cold-plate", "1.2"),
+        ("chip-cold-plate", "1.6"),
+    ],
+)
+def test_the_public_train_loader_imports_no_exam_registry_for_a_code_served_version(
+    key,
+):
+    """Main's own closure (3e7a7fcf) plus exactly the three modules that tell which versions the code serves."""
     program = (
-        "import sys; from carbon.challenge_kit import physical_public_train as p;"
-        "[p.load_public_train(*k) for k in (('electric-motor-magnetics', '1.8'),"
-        " ('chip-cold-plate', '1.8'), ('chip-cold-plate', '1.2'))];"
-        "print([m for m in sys.modules if '.exam' in m])"
+        "import json, sys; from carbon.challenge_kit import physical_public_train as p;"
+        "p.load_public_train(*sys.argv[1:3]); print(json.dumps(sorted(sys.modules)))"
     )
     done = subprocess.run(
-        [sys.executable, "-c", program],
+        [sys.executable, "-c", program, *key],
         cwd=FIXTURES.parents[2],
         capture_output=True,
         text=True,
         check=True,
         timeout=300,
     )
-    assert done.stdout.strip() == "[]"
+    loaded = json.loads(done.stdout)
+    registry = {m for m in loaded if m.startswith("carbon.challenge_registry")}
+    assert registry == {
+        "carbon.challenge_registry",
+        "carbon.challenge_registry.code_served",
+        "carbon.challenge_registry.registry",
+    }
+    for part in (
+        "sealed",
+        "pool_",
+        "custody",
+        "challenge_validator",
+        "score_feed",
+        "ledger",
+    ):
+        assert [m for m in loaded if part in m] == []
 
 
 def test_a_registered_spec_reads_back_from_its_row(row):
