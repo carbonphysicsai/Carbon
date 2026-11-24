@@ -2006,9 +2006,9 @@ class AutoGrader:
 
         from . import auto_retry, exam_cap
 
-        adapter = self.intake.adapter
         if not nonfinite_infer.proven(failure):
-            return None
+            return None  # every other failure: nothing of the intake is read here
+        adapter = self.intake.adapter
         challenge = getattr(adapter, "challenge_id", None)
         version = getattr(adapter, "challenge_version", None)
         try:
