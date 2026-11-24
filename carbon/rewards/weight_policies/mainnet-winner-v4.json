@@ -1,0 +1,29 @@
+{
+  "authority": "OWNER-WEIGHTS-AUTHORITY-01",
+  "baselines": {
+    "electric-motor-magnetics": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "MAINNET policy v4 (owner BURN-TO-ZERO, typed in the live-ops seat ~2026-11-24T01:4xZ, verbatim 'Turn burn to 0'; OWNER_LINES.md L678): mainnet-winner-v3's rule (finney 116, OWNER-WEIGHTS-AUTHORITY-01, full_reset, null first-incumbent baselines, the Motor 1.8 sealed-crown qualification on pack ee2348b1) with the Challenge list cut to the Challenges that have a LIVE pool on 116: today Electric-motor magnetics alone, so its eligible king's share is the whole epoch and no share burns for an unlaunched slot. Still burned to UID 0, unchanged from v3: an epoch with no eligible (or no qualified) winner, the 24 h halving decay remainder, and integer remainders. Each Challenge that opens a live pool joins in a NEW policy version (equal shares), never by editing this one. Applies going forward only: ledger records written under other policies are never recomputed. Not the registry's current policy; the standing authorization names its digest when live-ops re-points it under this owner line.",
+  "netuid": 116,
+  "network": "finney",
+  "qualified_sealed": {
+    "electric-motor-magnetics": {
+      "evaluation_pack_digests": [
+        "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c"
+      ],
+      "record_sha256": "sha256:cbd0a566f1f3e90d8c0d7e9cdf78b90359ba265344abdeb5f25433335e259235"
+    }
+  },
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": "full_reset",
+  "version": "mainnet-winner-v4"
+}
