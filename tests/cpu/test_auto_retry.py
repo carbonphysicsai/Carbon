@@ -622,6 +622,8 @@ def test_each_next_step_has_its_one_sentence():
         "slot_returned",
         "resubmit_after_fix",
         "resubmit_program_changed",
+        # owner G-LEAD-75 (24 Nov 2026): the first proven non-finite answer of a day (v2 cleared its sentence, 7020)
+        "nonfinite_first_returned",
     }
     assert all(type(s) is str and s for s in auto_retry.NEXT_STEPS.values())
     assert set(auto_retry.OWN_NEXT_STEPS.values()) <= set(auto_retry.NEXT_STEPS)
