@@ -10,9 +10,12 @@ rewritten:
   the old key stay as they are.
 - CROWN: the kept evaluation with the highest ranked number (the oldest of equals) meets the sitting king through the
   ordinary decision (`lean_recipe_retention.reconsider_paused_pack`: the margin, the queue, the pause, the hold, the
-  records). Nobody below it can win what it cannot. No hotkey and no submission is named in code or configuration.
+  records). Nobody below it can win what it cannot. No hotkey and no submission is named in code or configuration. A
+  hotkey the chain does not show registered now is not contended for (its rows stay ranked); while the chain cannot be
+  read the step waits.
 
-A kept grade that holds no such number is not ranked and gets no value (`ranking` counts it by reason). The crown step
+A kept grade that holds no such number, or does not show that its row check passed (`crown_official.row_check_unknown`),
+is not ranked and gets no value (`ranking` counts it by reason). The crown step
 waits while crowns are paused or an earlier decision is undecided. Done once, a line in
 ``<root>/auto-grade/rerank/rerank.jsonl`` (custody: task id, codes; no score) stops a later start from deciding again.
 
@@ -97,7 +100,12 @@ def ranking(rows, score):
         if model.get("score_status") != SCORED:
             reason = str(model.get("score_status"))
         elif not _number(value):
-            reason = "no_stored_number"
+            reason = (
+                "row_check_unknown"
+                if score != crown_official.TOTAL
+                and crown_official.row_check_unknown(model)
+                else "no_stored_number"
+            )
         else:
             ranked.append({**row, "value": float(value)})
             continue
@@ -229,7 +237,25 @@ def backfill(adapter, rows, score):
     return recorded, refused
 
 
-def step(adapter, pool, *, root, artifacts, entries, reconsider=None, start=backfill):
+def registered_now(window):
+    """``hotkey -> bool`` from the receiver's own finalized chain snapshot, or None when it holds no usable one."""
+    from carbon.battery.intake import grading_snapshot
+
+    snapshot = None if window is None else grading_snapshot(window)
+    return None if snapshot is None else lambda key: snapshot.resolve(key) is not None
+
+
+def step(
+    adapter,
+    pool,
+    *,
+    root,
+    artifacts,
+    entries,
+    registered=None,
+    reconsider=None,
+    start=backfill,
+):
     """The re-rank of the served version, if its rule asks for one and it was not decided: the Ladder start, then the crown.
     Returns True when there is nothing (more) to do, False when the crown step must be tried again.
     """
@@ -240,12 +266,17 @@ def step(adapter, pool, *, root, artifacts, entries, reconsider=None, start=back
     exam = adapter.discovery.evaluation_pack_digest
     if exam is None or done(root, active["digest"], exam):
         return True
+    if registered is None:
+        koth_journal.note("rerank_waits", reason="registration_unknown")
+        return False
     rows = kept(pool, challenge_id=active["challenge"], exam=exam)
     recorded, refused = start(adapter, rows, score)
-    ranked, unranked = ranking(rows, score)
+    everyone, unranked = ranking(rows, score)
+    ranked = [row for row in everyone if registered(row["hotkey"])]
     koth_journal.note(
         "rerank_started",
-        ranked=len(ranked),
+        ranked=len(everyone),
+        unregistered=len(everyone) - len(ranked),
         unranked=sum(unranked.values()),
         ladder_recorded=recorded,
         ladder_refused=refused,
@@ -297,7 +328,8 @@ def step(adapter, pool, *, root, artifacts, entries, reconsider=None, start=back
             "submission_id": first,
             "outcome": outcome["outcome"],
             "reason": outcome.get("reason"),
-            "ranked": len(ranked),
+            "ranked": len(everyone),
+            "unregistered": len(everyone) - len(ranked),
             "unranked": unranked,
         },
     )

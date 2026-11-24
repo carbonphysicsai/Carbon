@@ -61,6 +61,9 @@ TOTAL, ACCURACY = "total", "A"
 SCORES = (TOTAL, ACCURACY)
 #: Where an evaluation's ``model_p`` keeps each (`private_evaluation_evidence`).
 _FIELD = {TOTAL: "total_score", ACCURACY: "physics_benefit"}
+#: The status a scored evaluation reads as where it holds no number it may rank by (`value`): not scored, so it neither wins
+#: nor loses a crown.
+UNRANKED = "INDETERMINATE_EVIDENCE"
 #: What a version ranked by each number adds to its Ladder key, so a change of the number starts a fresh Ladder and no old
 #: document is rewritten (`ladder_store.ladder_label`).
 _LABEL = {TOTAL: "", ACCURACY: "+accuracy"}
@@ -128,8 +131,27 @@ def score_of(challenge_id, version):
 
 
 def value(model, score):
-    """The ranked number of one evaluation's ``model_p``, or None when it keeps none."""
-    return model.get(_FIELD[score]) if type(model) is dict else None
+    """The ranked number of one evaluation's ``model_p``, or None when it keeps none or may not rank by it
+    (`row_check_unknown`)."""
+    if type(model) is not dict or (score == ACCURACY and row_check_unknown(model)):
+        return None
+    return model.get(_FIELD[score])
+
+
+def row_check_unknown(model):
+    """Whether a kept evaluation does not show that its answers are a function of each design alone (registry-a 7236, v2
+    24 Nov 2026). The fresh row check of a menu version is no gate: a model whose answers change with the batch gets a
+    design value of exactly 0.0 (`pool_menu.score`, MODEL_ROW_DEPENDENT) and keeps its accuracy half untouched. So a kept
+    design value above zero is the record that the check passed; exactly zero (or none) does not say which it was, and
+    such a grade is not ranked by its accuracy half: never given a number, never crowned.
+    """
+    design = model.get("design_benefit")
+    return (
+        type(design) not in (int, float)
+        or isinstance(design, bool)
+        or not math.isfinite(design)
+        or design <= 0
+    )
 
 
 def reader(challenge_id, version):
@@ -145,15 +167,20 @@ def label(challenge_id, version):
 
 def ranked_row(graded, challenge_id, version):
     """The graded score row as the miner's own Ladder reads it: unchanged for a version ranked by its total; else a copy
-    whose ``score`` is the ranked leg. A row with no score keeps none."""
+    whose ``score`` is the ranked leg. A row with no score keeps none, and a scored row that may not rank by that leg
+    (`value`) is one that does not count (`UNRANKED`): no number is shown and no improvement recorded.
+    """
     score = score_of(challenge_id, version)
     if score == TOTAL or type(graded) is not dict or graded.get("score") is None:
         return graded
     legs = graded.get("legs")
-    return {
-        **graded,
-        "score": legs.get(score) if type(legs) is dict else None,
-    }
+    legs = legs if type(legs) is dict else {}
+    ranked = value(
+        {"physics_benefit": legs.get("A"), "design_benefit": legs.get("D")}, score
+    )
+    if ranked is None:
+        return {**graded, "status": UNRANKED, "score": None}
+    return {**graded, "score": ranked}
 
 
 def decided_by(evidence):
@@ -226,6 +253,7 @@ __all__ = [
     "SCHEMA",
     "SCORES",
     "TOTAL",
+    "UNRANKED",
     "UNSET_DIGEST",
     "CrownOfficialInvalid",
     "comparator",
@@ -236,6 +264,7 @@ __all__ = [
     "ranked_row",
     "reader",
     "registered",
+    "row_check_unknown",
     "score_of",
     "value",
 ]

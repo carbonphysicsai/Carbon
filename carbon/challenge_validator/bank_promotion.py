@@ -930,7 +930,11 @@ def _scored(body):
     from carbon.challenge_validator import crown_official
 
     # the number the served version's rule ranks by (`crown_official`): its total, or its recorded accuracy half
-    total = crown_official.value(model, crown_official.decided_by(evidence))
+    score = crown_official.decided_by(evidence)
+    total = crown_official.value(model, score)
+    if score != crown_official.TOTAL and status == SCORED and total is None:
+        # it holds no number it may rank by: it does not count, whatever its total
+        return crown_official.UNRANKED, None
     if status == SCORED and (
         type(total) not in (int, float)
         or not math.isfinite(total)

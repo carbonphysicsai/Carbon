@@ -81,7 +81,7 @@ def by_accuracy(tmp_path, monkeypatch):
 def _grade(model, total, accuracy, status=bp.SCORED):
     body = _body(model, total, status)
     body["evidence"]["model_p"]["physics_benefit"] = accuracy
-    body["evidence"]["model_p"]["design_benefit"] = None
+    body["evidence"]["model_p"]["design_benefit"] = 0.5
     return body
 
 
@@ -176,11 +176,70 @@ def test_an_old_record_stays_beside_the_new_one(tmp_path, monkeypatch, by_accura
     assert rows[0] == old and len(rows) == 2 and rows[1]["score"] == "A"
 
 
-def test_a_grade_with_no_stored_accuracy_is_refused_never_read_as_its_total(
+def test_a_grade_with_no_stored_accuracy_does_not_count_and_is_never_read_as_its_total(
     by_accuracy,
 ):
+    assert bp._scored(_grade("a", 0.9, None)) == (crown_official.UNRANKED, None)
     with pytest.raises(bp.StateError):
-        bp._scored(_grade("a", 0.9, None))
+        bp._scored(_grade("a", 0.9, 1.5))
+    king = _grade("k", 0.9, 0.6)
+    out = bp.compare_private_pair(
+        _pair(_grade("a", 0.9, None), king), crown_official.comparator(_comparator())
+    )
+    assert (out["outcome"], out["reason"]) == (
+        bp.INCUMBENT_KEEPS,
+        "candidate_not_scored",
+    )
+
+
+@pytest.mark.parametrize("design", [0.0, 0, None, float("nan"), True, "0.5", -0.1])
+def test_a_grade_that_does_not_show_its_row_check_passed_never_ranks(
+    by_accuracy, design
+):
+    """MODEL_ROW_DEPENDENT is a design value of exactly 0.0 with the accuracy half untouched (`pool_menu.score`)."""
+    contender = _grade("a", 0.9, 0.99)
+    contender["evidence"]["model_p"]["design_benefit"] = design
+    assert bp._scored(contender) == (crown_official.UNRANKED, None)
+    out = bp.compare_private_pair(
+        _pair(contender, _grade("k", 0.9, 0.6)),
+        crown_official.comparator(_comparator()),
+    )
+    assert out["outcome"] == bp.INCUMBENT_KEEPS
+    row = {"status": bp.SCORED, "score": 0.9, "legs": {"A": 0.99, "D": design}}
+    shown = crown_official.ranked_row(row, CHALLENGE, VERSION)
+    assert (shown["status"], shown["score"]) == (crown_official.UNRANKED, None)
+    kept = _kept("a", 0.9, 0.99)
+    kept["evidence"]["model_p"]["design_benefit"] = design
+    ranked, unranked = rerank.ranking(
+        rerank.kept(_Kept([kept]), challenge_id=CHALLENGE, exam=EXAM), "A"
+    )
+    assert ranked == [] and unranked == {"row_check_unknown": 1}
+    exact = launch_board.exact_best_totals(
+        _Kept([kept]),
+        challenge_id=CHALLENGE,
+        exam_key=EXAM,
+        value=crown_official.reader(CHALLENGE, VERSION),
+    )
+    assert exact == {}
+
+
+def test_the_row_checks_own_finding_is_a_design_value_of_exactly_zero():
+    import inspect
+
+    from carbon.scoring import pool_menu
+
+    text = inspect.getsource(pool_menu.score)
+    branch = text[
+        text.index("if row_dependent:") : text.index("for task in tasks:\n        rows")
+    ]
+    assert '"D": 0.0' in branch and '"state": MODEL_ROW_DEPENDENT' in branch
+
+
+def test_a_total_version_never_reads_the_row_check(tmp_path, monkeypatch):
+    _install(tmp_path, monkeypatch, {"margin": MARGIN})
+    body = _grade("a", 0.5, 0.9)
+    body["evidence"]["model_p"]["design_benefit"] = 0.0
+    assert bp._scored(body) == (bp.SCORED, 0.5)
 
 
 def test_a_first_crown_never_meets_a_baseline_of_another_number(by_accuracy):
@@ -387,7 +446,7 @@ def _adapter():
     return SimpleNamespace(discovery=SimpleNamespace(evaluation_pack_digest=EXAM))
 
 
-def _step(tmp_path, store, outcomes, calls):
+def _step(tmp_path, store, outcomes, calls, registered=lambda hotkey: True):
     def reconsider(record):
         calls.append(record)
         return outcomes.pop(0)
@@ -398,6 +457,7 @@ def _step(tmp_path, store, outcomes, calls):
         root=tmp_path,
         artifacts=None,
         entries=None,
+        registered=registered,
         reconsider=reconsider,
         start=lambda adapter, rows, score: (0, 0),
     )
@@ -428,6 +488,31 @@ def test_a_paused_or_undecided_crown_is_tried_again(tmp_path, by_accuracy):
     assert not rerank._log_path(tmp_path).exists()
     keeps = {"outcome": bp.INCUMBENT_KEEPS, "reason": "tie", "evaluation_key": KEY}
     assert _step(tmp_path, store, [keeps], calls) is True and len(calls) == 4
+
+
+def test_a_hotkey_not_registered_now_is_not_contended_for(tmp_path, by_accuracy):
+    store = _Kept(
+        [_kept("k", 0.9, 0.5), _kept("a", 0.1, 0.8), _kept("b", 0.1, 0.7)],
+        king=TASKS["k"],
+    )
+    calls = []
+    # the chain cannot be read: it waits, and nothing is started or written
+    assert _step(tmp_path, store, [], calls, registered=None) is False and calls == []
+    won = {"outcome": bp.CHALLENGER, "reason": "r", "evaluation_key": KEY}
+    here = {HOTKEYS["b"], HOTKEYS["k"]}
+    assert _step(tmp_path, store, [won], calls, registered=here.__contains__) is True
+    assert [c["submission_id"] for c in calls] == [TASKS["b"]]
+    line = json.loads(rerank._log_path(tmp_path).read_text(encoding="utf-8"))
+    assert (line["ranked"], line["unregistered"]) == (3, 1)
+
+
+def test_registration_is_the_receivers_own_snapshot():
+    snapshot = SimpleNamespace(resolve={HOTKEYS["a"]: "member"}.get)
+    window = SimpleNamespace(latest=lambda: snapshot)
+    registered = rerank.registered_now(window)
+    assert registered(HOTKEYS["a"]) is True and registered(HOTKEYS["b"]) is False
+    assert rerank.registered_now(None) is None
+    assert rerank.registered_now(SimpleNamespace(latest=lambda: None)) is None
 
 
 def test_the_sitting_king_first_changes_nothing(tmp_path, by_accuracy):

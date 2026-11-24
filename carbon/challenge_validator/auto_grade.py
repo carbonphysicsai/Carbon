@@ -543,6 +543,7 @@ class AutoGrader:
                 root=self.root,
                 artifacts=self.artifacts,
                 entries=self.entries,
+                registered=rerank.registered_now(getattr(self.intake, "window", None)),
             )
         except Exception as error:  # noqa: BLE001
             koth_journal.note(
