@@ -19,6 +19,7 @@ file its exam registry row names (`exam_registry`, ``published``; see
 from __future__ import annotations
 
 import copy
+import functools
 import hashlib
 import json
 import logging
@@ -652,6 +653,72 @@ def _menu_headroom_score(score, own):
     return score
 
 
+#: The crown rows (`challenge_validator.crown_official`): a version whose row says ``"score": "A"`` is ranked by its accuracy
+#: alone, and its published text says so. Read here as data, so the miner door carries no validator code.
+_CROWN_ROWS = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "validator_host_classes"
+    / "crown_official_score.json"
+)
+
+
+@functools.lru_cache(maxsize=4)
+def _accuracy_ranked(path):
+    """The ``"<id> <version>"`` names ranked by accuracy. Read once: a row lands with a restart, as the crown rule itself."""
+    try:
+        rows = json.loads(Path(path).read_bytes())["versions"]
+        return frozenset(name for name, row in rows.items() if row.get("score") == "A")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return frozenset()
+
+
+def ranked_by_accuracy(challenge_id, version):
+    """Whether the version's crown row names its accuracy as the number that ranks it."""
+    return f"{challenge_id} {version}" in _accuracy_ranked(_CROWN_ROWS)
+
+
+_RANKED_TOTAL = "The score is A alone: design value is not counted."
+
+
+def _ranked_score(score, own):
+    """A menu-headroom version's score section while its crown row ranks it by accuracy."""
+    return {
+        "formula": "TOTAL = A",
+        "weights": {"A": 1.0},
+        "rule": {"A": _a_text(own), "gate": _gate_text(own), "total": _RANKED_TOTAL},
+        "legs": [dict(leg) for leg in score["legs"] if leg["id"] == "A_headroom"],
+        "source": "carbon/scoring/; scripts/validator_host_classes/pool_constants.json, crown_official_score.json",
+    }
+
+
+def _ranked_lines(own):
+    """Its how-tested lines in place of the shared ones (None: the line is not its)."""
+    return {
+        "score": (
+            "The grade",
+            "Your grade is A, accuracy and physics, from 0 to 1, higher is better. "
+            + _RANKED_TOTAL,
+        ),
+        "inverse_design": None,
+        "optimizer": (
+            "Accuracy beyond the training data",
+            _a_text(own) + " " + _gate_text(own),
+        ),
+        "variants": None,
+        "out_of_range": (
+            "Outside the training range",
+            "Some exam questions lie just outside the range your training data covers. They count: accuracy there, and the "
+            "physics gates there. How far that range extends, and where its questions are, is not published.",
+        ),
+        "practice": (
+            "Practice",
+            _PRACTICE_POOL
+            + " The practice total still holds a design value part, which the exam does not count.",
+        ),
+    }
+
+
 #: The how-tested lines a menu-D + headroom version states in place of the pick-D ones (none of its tasks has a
 #: variant limit: no variant rule is registered).
 def _menu_headroom_lines(own):
@@ -671,9 +738,10 @@ def how_you_are_tested(challenge_id, version=None):
     Challenge's ceiling per design."""
     ceiling = speed_gate.ceiling_seconds(challenge_id, version)
     registered = registered_pool(challenge_id, version)
-    menu_lines = (
-        _menu_headroom_lines(registered) if _is_menu_headroom(registered) else {}
-    )
+    menu_lines, ranked = {}, False
+    if _is_menu_headroom(registered):
+        ranked = ranked_by_accuracy(challenge_id, version)
+        menu_lines = (_ranked_lines if ranked else _menu_headroom_lines)(registered)
     lines = []
     for line_id, title, text in HOW_TESTED_LINES:
         if line_id in menu_lines:
@@ -701,7 +769,11 @@ def how_you_are_tested(challenge_id, version=None):
             {
                 "id": "registered_values",
                 "title": "This version's registered values",
-                "text": _registered_text(registered),
+                "text": (
+                    _a_text(registered) + " " + _gate_text(registered)
+                    if ranked
+                    else _registered_text(registered)
+                ),
             }
         )
     return lines
@@ -1477,6 +1549,10 @@ def for_version(challenge_id, version):
         if _is_menu_headroom(registered):
             block["design_search"] = _menu_headroom_design_search(registered)
             block["score"] = _menu_headroom_score(block["score"], registered)
+            if ranked_by_accuracy(challenge_id, version):
+                del block["design_search"]  # nothing of it ranks
+                block["score"] = _ranked_score(block["score"], registered)
+                block["practice_vs_exam"] = _ranked_lines(registered)["practice"][1]
         elif registered is not None:
             block["design_search"] = _with_registered_design_search(
                 _DESIGN_SEARCH, registered
