@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,6 +16,7 @@ import carbon
 from carbon.challenge_kit import (
     physical_material,
     physical_pack,
+    physical_public_train,
     version_overlay,
     version_registry,
 )
@@ -68,6 +70,16 @@ def row(monkeypatch):
     monkeypatch.setattr(
         exam_registry, "keys", lambda name: (KEY,) if "block" in held else ()
     )
+    real_require = exam_registry.require
+    monkeypatch.setattr(
+        exam_registry,
+        "require",
+        lambda cid, version, name: (
+            copy.deepcopy(held.get("block"))
+            if (cid, version) == KEY
+            else real_require(cid, version, name)
+        ),
+    )
     real_overlay, real_entry = version_overlay.is_overlay, version_registry.entry
     monkeypatch.setattr(
         version_overlay, "is_overlay", lambda *key: key == KEY or real_overlay(*key)
@@ -101,7 +113,18 @@ def test_every_version_the_code_serves_is_code_served():
 
 
 def test_the_code_served_overlay_list_is_closed():
-    """It names the versions the code's tables serve on the host overlay; a later version is a registry row."""
+    """Every overlay version a code table serves (a Spec, or a TRAIN the code loads) is named; a later version is a row."""
+    served = {
+        key for key in version_registry.VERSIONS if version_overlay.is_overlay(*key)
+    }
+    assert served <= exam_build.CODE_SERVED_OVERLAY
+    trains = {
+        *physical_public_train.EXTENDED,
+        *physical_public_train.FRESH_LAMBDA,
+        *physical_public_train.MAGNET_TRAIN,
+    }
+    for key in served:
+        assert key in adapter.SPECS or version_registry.entry(*key).train in trains
     assert len(exam_build.CODE_SERVED_OVERLAY) == 5
 
 
@@ -146,16 +169,124 @@ def _spec(**changes):
 )
 def test_a_bad_block_refuses_itself(row, block):
     row["block"] = block
-    assert exam_build.block(*KEY) is None
-    assert exam_build.module(*KEY) is None
+    with pytest.raises(exam_build.ExamBuildRefused):
+        exam_build.block(*KEY)
+    with pytest.raises(exam_build.ExamBuildRefused):
+        exam_build.module(*KEY)
     assert exam_build.keys() == ()
     assert KEY in exam_build.refused()
+    assert not issubclass(exam_build.ExamBuildRefused, ValueError)
+
+
+#: A NEW version of a built-in family: an overlay entry no code names, whose row is refused.
+_NEXT_PROGRAM = r"""
+import json, sys
+from pathlib import Path
+import carbon
+from carbon.challenge_kit import version_overlay
+folder = Path(sys.argv[1])
+version_overlay.install(path=folder / "overlay.json")
+from carbon.challenge_registry import exam_build, exam_registry
+exam_registry.install(path=folder / "exams.json")
+from carbon.challenge_kit import physical_material, physical_pack, physical_public_train
+from carbon.development_session import bundle_construction_worker, construction_recipe
+KEY = tuple(sys.argv[2:4])
+binding = {"id": KEY[0], "version": KEY[1]}
+SITES = {
+    "kit": lambda: physical_material.construction_kit(*KEY),
+    "limits": lambda: physical_material.construction_limits_document(*KEY),
+    "bundle": lambda: physical_material.bundle_material(*KEY),
+    "physics": lambda: physical_pack.physics_contract(*KEY),
+    "roles": lambda: physical_pack.public_roles(*KEY),
+    "bank": lambda: physical_pack.development_bank(*KEY),
+    "train": lambda: physical_public_train.load_public_train(*KEY),
+    "policy": lambda: bundle_construction_worker.verify_direct_resource_policy(binding, {}),
+}
+out = {}
+for name, ask in SITES.items():
+    try:
+        ask()
+        out[name] = "SERVED"
+    except exam_build.ExamBuildRefused:
+        out[name] = "refused"
+    except BaseException as error:
+        out[name] = type(error).__name__
+out["live"] = physical_material.construction_kit(sys.argv[2], sys.argv[4])["version"]
+print(json.dumps(out))
+"""
+
+
+@pytest.mark.parametrize(
+    "challenge_id, live", [("f08-ribbed-bracket", "1.7"), ("chip-cold-plate", "1.8")]
+)
+@pytest.mark.parametrize(
+    "row",
+    [
+        {"build": {"module": MODULE}},
+        {"build": _block(sha256="0" * 64)},
+        {"build": _block(), "solver_seconds_per_design": {"value": -1}},
+    ],
+)
+def test_a_refused_row_of_a_built_in_family_is_never_served_by_the_family(
+    tmp_path, challenge_id, live, row
+):
+    version = "9.1"
+    base = version_registry.entry(challenge_id, live)
+    entry = {
+        "challenge_id": challenge_id,
+        "version": version,
+        "train": base.train,
+        "allowlist": "v8",
+        "step_caps": False,
+        "pack_version": "zz-development-1",
+        "development_evaluation": None,
+        "sealed_evaluation": "zz-sealed-v1",
+        "campaign": "catalog",
+        "catalog": True,
+        "graph_adapter": "v2",
+        "catalog_entries_from": [],
+        "predecessor": live,
+        "rebuild_wall_seconds": 648,
+    }
+    name = f"{challenge_id} {version}"
+    (tmp_path / "overlay.json").write_text(
+        json.dumps({"schema": version_overlay.SCHEMA, "versions": {name: entry}})
+    )
+    (tmp_path / "exams.json").write_text(
+        json.dumps(
+            {
+                "schema": exam_registry.SCHEMA,
+                "source": "synthetic",
+                "exams": {name: row},
+            }
+        )
+    )
+    done = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _NEXT_PROGRAM,
+            str(tmp_path),
+            challenge_id,
+            version,
+            live,
+        ],
+        cwd=FIXTURES.parents[2],
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=True,
+    )
+    result = json.loads(done.stdout.strip().splitlines()[-1])
+    assert result.pop("live") == live
+    assert set(result.values()) == {"refused"}, result
 
 
 def test_a_version_without_graph_route_v2_names_no_spec(row):
     row["adapter"] = None
     row["block"] = _block()
-    assert exam_build.block(*KEY) is None
+    with pytest.raises(exam_build.ExamBuildRefused):
+        exam_build.block(*KEY)
     row["block"] = _block(graph_spec=None, inference_program=None)
     assert exam_build.keys() == (KEY,)
     assert exam_build.graph_specs() == {}

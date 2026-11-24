@@ -830,12 +830,8 @@ def verify_direct_resource_policy(
     else:
         from carbon.challenge_registry import exam_build
 
-        try:
-            built = exam_build.module(challenge_id, version)
-        except ValueError:
-            raise RecipeRefused(
-                "construction_resource_policy_binding_invalid"
-            ) from None
+        # A refused registry row raises `ExamBuildRefused` (Carbon's registration fault): never a recipe refusal.
+        built = exam_build.module(challenge_id, version)
         if built is not None:
             public_material = built
         elif challenge_id == "f08-ribbed-bracket":

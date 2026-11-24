@@ -9,8 +9,10 @@ A row of ``exam_registry.json`` may carry ``build``:
 
 Every build site asks here FIRST and, for a version with no build row, runs the code it always ran. A version the code
 serves itself (`code_serves`) is never read from a row, so no row can move a live version; only a NEW version of any
-family, registered in ``version_overlay.json``, can be served by one. A malformed build block refuses ITSELF
-(`refused`): the version is then unregistered to every build site, never served as a nearby one.
+family, registered in ``version_overlay.json``, can be served by one. A malformed row refuses ITSELF: every build site
+that asks about THAT version raises `ExamBuildRefused` (never the family's code, never a nearby version), and every other
+version is served as before. `ExamBuildRefused` is Carbon's fault, not a recipe refusal, and no ValueError, so nothing
+that catches a bad recipe or a bad document can read it as the miner's.
 
 Host side only: the worker image and the build and inference containers have neither this module nor the file.
 """
@@ -63,8 +65,8 @@ _LOG = logging.getLogger(__name__)
 _REFUSED: dict = {}
 
 
-class ExamBuildRefused(ValueError):
-    """A build block is malformed, or its module serves less than `FUNCTIONS`."""
+class ExamBuildRefused(RuntimeError):
+    """A version's registry row or build block is refused, or its module serves less than `FUNCTIONS` (Carbon's fault)."""
 
 
 def code_serves(challenge_id: str, version: str) -> bool:
@@ -98,8 +100,6 @@ def _check_spec(spec) -> None:
 def _check(key, block) -> None:
     from carbon.challenge_kit import version_registry
 
-    if code_serves(*key):
-        raise ExamBuildRefused("build_version_is_code_served")
     if type(block) is not dict or set(block) != _BLOCK:
         raise ExamBuildRefused("build_block_fields")
     spec, program = block["graph_spec"], block["inference_program"]
@@ -122,19 +122,30 @@ def _check(key, block) -> None:
 
 
 def block(challenge_id: str, version: str) -> dict | None:
-    """The version's checked build block (a fresh copy), or None: no row, or a refused one."""
-    found = exam_registry.field(challenge_id, version, "build")
-    if found is None:
-        return None
+    """The version's checked build block (a fresh copy), or None: it has no build row, or the code serves it. A refused
+    row raises `ExamBuildRefused`."""
     key = (challenge_id, version)
-    try:
-        _check(key, found)
-    except ExamBuildRefused as error:
-        if _REFUSED.get(key) != str(error):
-            _REFUSED[key] = str(error)
-            _LOG.warning("exam registry build row %r refused: %s", key, error)
+    if code_serves(*key):
+        if exam_registry.field(*key, "build") is not None:
+            _note(key, "build_version_is_code_served")
         return None
+    try:
+        found = exam_registry.require(*key, "build")
+        if found is not None:
+            _check(key, found)
+    except exam_registry.ExamRowRefused as error:
+        _note(key, str(error))
+        raise ExamBuildRefused(str(error)) from error
+    except ExamBuildRefused as error:
+        _note(key, str(error))
+        raise
     return found
+
+
+def _note(key, reason) -> None:
+    if _REFUSED.get(key) != reason:
+        _REFUSED[key] = reason
+        _LOG.warning("exam registry build row %r refused: %s", key, reason)
 
 
 def refused() -> dict:
@@ -143,8 +154,15 @@ def refused() -> dict:
 
 
 def keys() -> tuple:
-    """Every (challenge id, version) a build row serves."""
-    return tuple(key for key in exam_registry.keys("build") if block(*key) is not None)
+    """Every (challenge id, version) a build row serves (a refused row serves none, and stops no other)."""
+
+    def serves(key):
+        try:
+            return block(*key) is not None
+        except ExamBuildRefused:
+            return False
+
+    return tuple(key for key in exam_registry.keys("build") if serves(key))
 
 
 def module(challenge_id: str, version: str):
@@ -152,7 +170,12 @@ def module(challenge_id: str, version: str):
     found = block(challenge_id, version)
     if found is None:
         return None
-    loaded = pinned_module.load({name: found[name] for name in ("module", "sha256")})
+    try:
+        loaded = pinned_module.load(
+            {name: found[name] for name in ("module", "sha256")}
+        )
+    except pinned_module.PinnedModuleRefused as error:
+        raise ExamBuildRefused(str(error)) from error
     missing = [name for name in FUNCTIONS if not callable(getattr(loaded, name, None))]
     if missing or type(getattr(loaded, "SCOPE", None)) is not str:
         raise ExamBuildRefused(f"build_module_incomplete: {missing or ['SCOPE']}")
