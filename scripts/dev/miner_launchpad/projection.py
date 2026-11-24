@@ -513,6 +513,10 @@ FAILURE_OBSERVATION_WORDS = {
     "NONZERO_EXIT": "exited with an error",
     "OWN_ALLOWANCE_ELAPSED": "used up your own time allowance",
 }
+#: What a closed failure code means, in words (the code itself is printed beside it).
+FAILURE_CODE_WORDS = {
+    "nonfinite_output": "the model returned a non-finite value",
+}
 FAILURE_PASS_WORDS = {
     "graded_pass": "in the graded pass",
     "inference_pair": "in the official inference pair (twice)",
@@ -559,6 +563,7 @@ def _why(submission, task):
         _failure_v4,
         _failure_v8,
         _grade_worker_v8,
+        _refusal_detail_v13,
         _rerun_v12,
     )
 
@@ -590,6 +595,8 @@ def _why(submission, task):
         if failure["limit"] is not None:
             details.append("(" + _limit_words(failure["limit"]) + ")")
         if failure["code"] is not None:
+            if failure["code"] in FAILURE_CODE_WORDS:
+                details.append("(" + FAILURE_CODE_WORDS[failure["code"]] + ")")
             details.append("code " + failure["code"])
         if details:
             words += "; " + " ".join(details)
@@ -613,6 +620,11 @@ def _why(submission, task):
         shown["failure_class"] = dict(row)
         sentences = (row["what_happened"], row["next_step"])
         shown["words"] += "".join(". " + text.rstrip(".") for text in sentences)
+    detail = submission.get("refusal_detail")
+    if detail is not None and _refusal_detail_v13(state, detail):
+        # v13: the closed public code of the signer's own refused graph build, as sent
+        shown["refusal_detail"] = detail
+        shown["words"] += ". Refusal code " + detail
     worker = submission.get("grade_worker")
     if worker is not None and _grade_worker_v8(worker):
         shown["grade_worker"] = dict(worker)

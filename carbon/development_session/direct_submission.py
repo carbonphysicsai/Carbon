@@ -722,6 +722,15 @@ FEEDBACK_V12_FACTS = {
     "fields": ["reply", "submission_id"],
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V12,
 }
+#: v13: v12 plus ``submission.refusal_detail``: for the signer's own refused graph build (RECONSTRUCTION_FAILED), the closed
+#: public detail code of that refusal (for example ``graph_route_nonfinite_state``), else None (`direct_intake`
+#: FEEDBACK_REPLY_SCHEMA_V13, owner G-LEAD-78). Asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V13 = "carbon.private-exam.ladder-feedback-reply.v13"
+FEEDBACK_V13_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V13,
+}
 RERUN_STATE = "RERUN"
 #: The closed keys of a failure-class row (`infra_diagnosis.PUBLIC_ROW_KEYS`; a test holds them equal).
 FAILURE_CLASS_KEYS = (
@@ -742,6 +751,8 @@ GRADE_STATES_V9 = (*GRADE_STATES_V5, WITHDRAWN_STATE)
 GRADE_STATES_V12 = (*GRADE_STATES_V9, RERUN_STATE)
 #: A task id a v12 reply may name as the re-run (the door's own ids; a resource bound on anything else).
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,128}")
+#: A refused build's closed detail code (a resource bound on its shape; the door checks it against its own closed table).
+_DETAIL_CODE = re.compile(r"[a-z0-9_]{1,64}")
 #: A bound on the held count a reply may name (a resource bound, not a policy value).
 MAX_HELD = 100000
 FAILURE_CHILDREN = ("build", "inference")
@@ -888,6 +899,88 @@ def _rerun_v12(grade_state, rerun_task_id, submission_id):
     )
 
 
+def _refusal_detail_v13(grade_state, code):
+    """A v13 reply's ``refusal_detail``: None, or a closed code on RECONSTRUCTION_FAILED only."""
+    if code is None:
+        return True
+    return (
+        grade_state == "RECONSTRUCTION_FAILED"
+        and type(code) is str
+        and _DETAIL_CODE.fullmatch(code) is not None
+    )
+
+
+#: Each feedback reply after v1, newest first: its number, what a door that offers it advertises, and its schema. A kit asks
+#: for the newest one advertised; a door that offers vN offers every older field too.
+FEEDBACK_REPLIES = (
+    (13, FEEDBACK_V13_FACTS, FEEDBACK_REPLY_SCHEMA_V13),
+    (12, FEEDBACK_V12_FACTS, FEEDBACK_REPLY_SCHEMA_V12),
+    (11, FEEDBACK_V11_FACTS, FEEDBACK_REPLY_SCHEMA_V11),
+    (10, FEEDBACK_V10_FACTS, FEEDBACK_REPLY_SCHEMA_V10),
+    (9, FEEDBACK_V9_FACTS, FEEDBACK_REPLY_SCHEMA_V9),
+    (8, FEEDBACK_V8_FACTS, FEEDBACK_REPLY_SCHEMA_V8),
+    (7, FEEDBACK_V7_FACTS, FEEDBACK_REPLY_SCHEMA_V7),
+    (6, FEEDBACK_V6_FACTS, FEEDBACK_REPLY_SCHEMA_V6),
+    (5, FEEDBACK_V5_FACTS, FEEDBACK_REPLY_SCHEMA_V5),
+    (4, FEEDBACK_V4_FACTS, FEEDBACK_REPLY_SCHEMA_V4),
+    (3, FEEDBACK_V3_FACTS, FEEDBACK_REPLY_SCHEMA_V3),
+    (2, FEEDBACK_V2_FACTS, FEEDBACK_REPLY_SCHEMA_V2),
+)
+#: The grade states a reply may name, by the number it starts at, newest first.
+_STATES_FROM = (
+    (12, GRADE_STATES_V12),
+    (9, GRADE_STATES_V9),
+    (5, GRADE_STATES_V5),
+    (4, GRADE_STATES_V4),
+    (3, GRADE_STATES_V3),
+    (0, GRADE_STATES),
+)
+
+
+def _submission_valid(number, submission, submission_id, states):
+    """Whether a v``number`` reply's ``submission`` is exactly the closed shape that reply may carry for ``submission_id``."""
+    keys = {"submission_id", "grade_state"}
+    for start, name in (
+        (4, "failure"),
+        (5, "held_position"),
+        (6, "gate_failures"),
+        (8, "grade_worker"),
+        (10, "failure_class"),
+        (12, "rerun_task_id"),
+        (13, "refusal_detail"),
+    ):
+        if number >= start:
+            keys.add(name)
+    if type(submission) is not dict or set(submission) != keys:
+        return False
+    if submission["submission_id"] != submission_id:
+        return False
+    state = submission["grade_state"]
+    if state is None:
+        return number < 4
+    if state not in states:
+        return False
+    if number >= 4:
+        failure = _failure_v8 if number >= 8 else _failure_v4
+        if not failure(submission["failure"]):
+            return False
+    if number >= 5 and not _held_position_v5(state, submission["held_position"]):
+        return False
+    if number >= 6 and not _gate_failures_v6(submission["gate_failures"]):
+        return False
+    if number >= 8 and not _grade_worker_v8(submission["grade_worker"]):
+        return False
+    if number >= 10 and not _failure_class_v10(
+        state, submission["failure_class"], v11=number >= 11
+    ):
+        return False
+    if number >= 12 and not _rerun_v12(
+        state, submission["rerun_task_id"], submission_id
+    ):
+        return False
+    return number < 13 or _refusal_detail_v13(state, submission["refusal_detail"])
+
+
 def read_exam_feedback(
     url,
     signer,
@@ -918,47 +1011,16 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v12 = (
-        submission_id is not None
-        and facts.get("exam_feedback_v12") == FEEDBACK_V12_FACTS
-    )
-    v11 = v12 or (
-        submission_id is not None
-        and facts.get("exam_feedback_v11") == FEEDBACK_V11_FACTS
-    )
-    v10 = v11 or (
-        submission_id is not None
-        and facts.get("exam_feedback_v10") == FEEDBACK_V10_FACTS
-    )
-    v9 = v10 or (
-        submission_id is not None and facts.get("exam_feedback_v9") == FEEDBACK_V9_FACTS
-    )
-    v8 = v9 or (
-        submission_id is not None and facts.get("exam_feedback_v8") == FEEDBACK_V8_FACTS
-    )
-    v7 = v8 or (
-        submission_id is not None and facts.get("exam_feedback_v7") == FEEDBACK_V7_FACTS
-    )
-    v6 = v7 or (
-        submission_id is not None and facts.get("exam_feedback_v6") == FEEDBACK_V6_FACTS
-    )
-    v5 = v6 or (
-        submission_id is not None and facts.get("exam_feedback_v5") == FEEDBACK_V5_FACTS
-    )
-    v4 = v5 or (
-        submission_id is not None and facts.get("exam_feedback_v4") == FEEDBACK_V4_FACTS
-    )
-    v3 = not v4 and (
-        submission_id is not None and facts.get("exam_feedback_v3") == FEEDBACK_V3_FACTS
-    )
-    v2 = (
-        v4
-        or v3
-        or (
-            submission_id is not None
-            and facts.get("exam_feedback_v2") == FEEDBACK_V2_FACTS
-        )
-    )
+    number, schema = 1, FEEDBACK_REPLY_SCHEMA
+    if submission_id is not None:
+        for offered, advertised, reply_schema in FEEDBACK_REPLIES:
+            if facts.get(f"exam_feedback_v{offered}") == advertised:
+                number, schema = offered, reply_schema
+                break
+    fields = {} if number < 2 else {"submission_id": submission_id}
+    if number >= 3:
+        fields["reply"] = f"v{number}"
+    states = next(known for start, known in _STATES_FROM if number >= start)
     body = _body(
         facts,
         recipe=recipe,
@@ -966,42 +1028,7 @@ def read_exam_feedback(
         receiver=receiver,
         context=context,
         tool=FEEDBACK_TOOL,
-        fields=(
-            {
-                "reply": (
-                    "v12"
-                    if v12
-                    else (
-                        "v11"
-                        if v11
-                        else (
-                            "v10"
-                            if v10
-                            else (
-                                "v9"
-                                if v9
-                                else (
-                                    "v8"
-                                    if v8
-                                    else (
-                                        "v7"
-                                        if v7
-                                        else (
-                                            "v6"
-                                            if v6
-                                            else "v5" if v5 else "v4" if v4 else "v3"
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                ),
-                "submission_id": submission_id,
-            }
-            if v4 or v3
-            else ({"submission_id": submission_id} if v2 else {})
-        ),
+        fields=fields,
         request=f"exam-feedback-{time.time_ns()}",
     )
     headers = BittensorMessageSigner(signer).sign(
@@ -1011,126 +1038,23 @@ def read_exam_feedback(
     if status != 200 or type(answer) is not dict:
         raise DirectIntakeRefusal(_refusal_code(answer, "exam_feedback_unavailable"))
     challenge = recipe.to_dict()["challenge"]
-    keys = {"schema", "challenge", "best", "latest"} | ({"submission"} if v2 else set())
+    keys = {"schema", "challenge", "best", "latest"}
+    if number >= 2:
+        keys.add("submission")
     if (
         set(answer) != keys
-        or answer["schema"]
-        != (
-            FEEDBACK_REPLY_SCHEMA_V12
-            if v12
-            else (
-                (
-                    FEEDBACK_REPLY_SCHEMA_V11
-                    if v11
-                    else FEEDBACK_REPLY_SCHEMA_V10 if v10 else FEEDBACK_REPLY_SCHEMA_V9
-                )
-                if v9
-                else (
-                    FEEDBACK_REPLY_SCHEMA_V8
-                    if v8
-                    else (
-                        FEEDBACK_REPLY_SCHEMA_V7
-                        if v7
-                        else (
-                            FEEDBACK_REPLY_SCHEMA_V6
-                            if v6
-                            else (
-                                FEEDBACK_REPLY_SCHEMA_V5
-                                if v5
-                                else (
-                                    FEEDBACK_REPLY_SCHEMA_V4
-                                    if v4
-                                    else (
-                                        FEEDBACK_REPLY_SCHEMA_V3
-                                        if v3
-                                        else (
-                                            FEEDBACK_REPLY_SCHEMA_V2
-                                            if v2
-                                            else FEEDBACK_REPLY_SCHEMA
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
+        or answer["schema"] != schema
         or answer["challenge"]
         != {"id": challenge["id"], "version": challenge["version"]}
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
-    if v2 and (
-        type(answer["submission"]) is not dict
-        or set(answer["submission"])
-        != (
-            {"submission_id", "grade_state"}
-            | ({"failure"} if v4 else set())
-            | ({"held_position"} if v5 else set())
-            | ({"gate_failures"} if v6 else set())
-            | ({"grade_worker"} if v8 else set())
-            | ({"failure_class"} if v10 else set())
-            | ({"rerun_task_id"} if v12 else set())
-        )
-        or answer["submission"]["submission_id"] != submission_id
-        or (
-            answer["submission"]["grade_state"] is not None
-            and answer["submission"]["grade_state"]
-            not in (
-                GRADE_STATES_V12
-                if v12
-                else (
-                    GRADE_STATES_V9
-                    if v9
-                    else (
-                        GRADE_STATES_V5
-                        if v5
-                        else (
-                            GRADE_STATES_V4
-                            if v4
-                            else GRADE_STATES_V3 if v3 else GRADE_STATES
-                        )
-                    )
-                )
-            )
-        )
-        or (v4 and answer["submission"]["grade_state"] is None)
-        or (
-            v4
-            and not (_failure_v8 if v8 else _failure_v4)(
-                answer["submission"]["failure"]
-            )
-        )
-        or (v8 and not _grade_worker_v8(answer["submission"]["grade_worker"]))
-        or (
-            v5
-            and not _held_position_v5(
-                answer["submission"]["grade_state"],
-                answer["submission"]["held_position"],
-            )
-        )
-        or (v6 and not _gate_failures_v6(answer["submission"]["gate_failures"]))
-        or (
-            v10
-            and not _failure_class_v10(
-                answer["submission"]["grade_state"],
-                answer["submission"]["failure_class"],
-                v11=v11,
-            )
-        )
-        or (
-            v12
-            and not _rerun_v12(
-                answer["submission"]["grade_state"],
-                answer["submission"]["rerun_task_id"],
-                submission_id,
-            )
-        )
+    if number >= 2 and not _submission_valid(
+        number, answer["submission"], submission_id, states
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     try:
         return {
-            **({"submission": dict(answer["submission"])} if v2 else {}),
+            **({"submission": dict(answer["submission"])} if number >= 2 else {}),
             "best": None if answer["best"] is None else checked(answer["best"]),
             "latest": (
                 None
