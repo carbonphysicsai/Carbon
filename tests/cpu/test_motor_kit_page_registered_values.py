@@ -56,8 +56,10 @@ def test_page_shows_the_registered_in_range_gate_read_from_the_pool_row():
 def test_page_does_not_call_the_registered_in_range_threshold_human_input():
     text = _page()
     gate_at = text.index("In-range accuracy is a gate")
-    nearby = text[gate_at : gate_at + 1400]
-    assert "HUMAN_INPUT" not in nearby
+    # the gate's whole section, to the next heading (a fixed length reached the next section once the page got shorter)
+    section = text[gate_at : text.index("**One answer per design", gate_at)]
+    assert "The threshold, as registered: " in section
+    assert "HUMAN_INPUT" not in section
 
 
 def test_page_states_the_number_that_ranks_and_no_design_menu():
