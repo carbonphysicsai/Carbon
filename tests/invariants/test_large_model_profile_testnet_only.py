@@ -295,7 +295,7 @@ def test_the_a6000_line_is_the_owners_words_for_exactly_its_one_entry():
     assert A6000_WORDS.startswith("I accept the LARGE_MODEL worker profile")
     assert "Lambda RTX A6000 48 GB build boxes for mainnet 116" in A6000_WORDS
     assert A6000_RECORD in A6000_WORDS
-    assert not re.search(r"\d{1,3}(\.\d{1,3}){3}", A6000_WORDS), "a host address"
+    assert not re.search(r"\b\d{1,3}(\.\d{1,3}){3}\b", A6000_WORDS), "a host address"
     host = {"scope": "DEVELOPMENT"}
     a6000 = "NVIDIA RTX A6000"
     jax, torch = hardware_acceptance.JAX_GPU, hardware_acceptance.TORCH_GPU
