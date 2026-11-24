@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.machinery
 import sys
+import types
 
 import pytest
 
@@ -46,6 +48,44 @@ def test_a_changed_file_is_never_imported(source):
     with pytest.raises(pinned_module.PinnedModuleRefused, match="sha256 differs"):
         pinned_module.load(_block())
     assert MODULE not in sys.modules
+
+
+@pytest.mark.parametrize("raw", [SOURCE, b"OTHER = 1\n"])
+def test_a_parent_package_never_runs_before_the_hash(tmp_path, monkeypatch, raw):
+    """A parent whose ``__init__`` raises: checking never runs it, and a mismatch refuses typed without running it."""
+    package = tmp_path / "carbon" / "zz_pinned_parent"
+    package.mkdir(parents=True)
+    ran = tmp_path / "ran"
+    (package / "__init__.py").write_text(
+        f"open({str(ran)!r}, 'w').close()\nraise RuntimeError('parent ran')\n"
+    )
+    (package / "child.py").write_bytes(SOURCE)
+    monkeypatch.setattr(
+        carbon, "__path__", [*carbon.__path__, str(tmp_path / "carbon")]
+    )
+    block = {
+        "module": "carbon.zz_pinned_parent.child",
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+    if raw == SOURCE:
+        pinned_module.check(block)
+        assert not ran.exists()
+        with pytest.raises(pinned_module.PinnedModuleRefused, match="does not import"):
+            pinned_module.load(block)
+    else:
+        with pytest.raises(pinned_module.PinnedModuleRefused, match="sha256 differs"):
+            pinned_module.load(block)
+        assert not ran.exists()
+
+
+def test_a_module_already_loaded_from_another_file_is_refused(source, monkeypatch):
+    other = types.ModuleType(MODULE)
+    other.__spec__ = importlib.machinery.ModuleSpec(
+        MODULE, None, origin=str(source.with_name("other.py"))
+    )
+    monkeypatch.setitem(sys.modules, MODULE, other)
+    with pytest.raises(pinned_module.PinnedModuleRefused, match="another file"):
+        pinned_module.load(_block())
 
 
 @pytest.mark.parametrize(
