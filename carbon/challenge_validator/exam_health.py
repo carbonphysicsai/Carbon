@@ -21,9 +21,9 @@ import sys
 from pathlib import Path
 
 from carbon.challenge_validator.exam_cap import (
-    _LEAN_CHALLENGES,
     DAY_BLOCKS,
     MAX_EXAM_AGE_BLOCKS,
+    lean_challenges,
 )
 
 WARN_DAYS = 75
@@ -73,7 +73,7 @@ def report(ledger, *, block, backlog=None):
         "SELECT challenge_id, challenge_version, block, outcome, reason, at_ns "
         "FROM fresh_draw_log ORDER BY id",
     )
-    challenges = list(_LEAN_CHALLENGES)
+    challenges = list(lean_challenges())
     challenges += sorted({k["challenge_id"] for k in keys} - set(challenges))
     out = []
     for challenge in challenges:

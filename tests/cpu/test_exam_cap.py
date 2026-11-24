@@ -149,7 +149,7 @@ def test_the_committed_registry_loads_and_lists_only_registered_challenges():
     """
     cadence = exam_cap.registered_cadence()
     listed = set(cadence["rebuild_gpu_lane_hours"])
-    assert listed and listed <= set(exam_cap._LEAN_CHALLENGES)
+    assert listed and listed <= set(exam_cap.lean_challenges())
 
 
 def test_a_challenge_absent_from_a_registry_is_refused_not_defaulted(tmp_path, clock):
@@ -206,7 +206,7 @@ def test_a_complete_v2_registry_is_read(tmp_path):
         "measurement_digest": DIGEST_A,
         "class_record_digest": DIGEST_B,
     }
-    assert set(LANE_HOURS) == set(exam_cap.registered_challenges())
+    assert set(LANE_HOURS) <= set(exam_cap.registered_challenges())
 
 
 def test_the_retired_cpu_hours_schema_is_refused_with_its_own_code(tmp_path):

@@ -155,14 +155,12 @@ KNOWN_GAPS = {
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
     "grade.pool_kind": "family pool_kind + register_kind (H1)",
-    "grade.exam_cap": "exam_cap family list from the registry",
     "grade.cadence": "cadence row per family (measured t_c)",
     "grade.speed_gate": "per-version solver seconds row, typed refusal when missing",
     "grade.published": "published block derived from the version's sealed evaluation + pool rows",
     "grade.copy_opacity": "family copy_opacity (through H1, a shared producer file)",
     "grade.verify_set": "version verify_set (path + receipted sha)",
     "grade.terms": "version terms (version string + digest; G-LEAD-50: no terms, no submission)",
-    "crown.koth_key": "koth rows keyed by the registry (door-code #15)",
     "weights.pay_share": "paying families from the registry (owner economics line, not code)",
 }
 

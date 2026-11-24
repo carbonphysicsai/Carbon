@@ -270,9 +270,22 @@ class ExamCapRefused(ValueError):
 
 
 def registered_challenges() -> tuple:
+    """Every Challenge the cap knows: the launch four and Battery, then every other family the version registry names
+    (its host overlay included), by id. A new family is registered there, never here."""
+    from carbon.battery import challenge as battery
+    from carbon.challenge_kit import version_registry
+
+    built_in = (*_LEAN_CHALLENGES, battery.CHALLENGE.challenge_id)
+    families = {challenge_id for challenge_id, _ in version_registry.VERSIONS}
+    return (*built_in, *sorted(families.difference(built_in)))
+
+
+def lean_challenges() -> tuple:
+    """`registered_challenges` without Battery, which has its own exam path."""
     from carbon.battery import challenge as battery
 
-    return (*_LEAN_CHALLENGES, battery.CHALLENGE.challenge_id)
+    own_path = battery.CHALLENGE.challenge_id
+    return tuple(name for name in registered_challenges() if name != own_path)
 
 
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
