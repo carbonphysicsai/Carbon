@@ -4,7 +4,9 @@ answer any miner question"; V2's ruling: reports/MINER_LOOKUP_DISCLOSURE_2026112
 One self-contained file (`python3 -I -B miner_lookup.py ssh` behind a forced-command key): it imports nothing from the
 repository. It reads four things and nothing else: the attempts ledger (opened `mode=ro` + `query_only`), the auto-grade
 marker's `state` and `code`, the door's own public queue feed, and two files others write (the public launch board and
-V2's `owed_tasks.tsv`). Every printed value is built field by field from `ALLOWED_FIELDS`: a number, a UTC second, an id
+V2's `owed_tasks.tsv`), and since V2 6111 (3) a fifth: the door's task store (`direct-tasks.sqlite3`, config
+`direct_tasks`, opened `mode=ro` + `query_only`, one row by the asked id, of which ONLY the closed task state and the
+terminal receipt's public refusal code are kept; `view_tokens`). Every printed value is built field by field from `ALLOWED_FIELDS`: a number, a UTC second, an id
 that matches a pattern, or a sentence from the closed word tables below (copied from the Launchpad's own tables; a test
 holds the copy equal). `finish()` re-checks the finished document against the allow-list and a secret-shaped-text scan
 and refuses the whole answer on any difference; it never sends part of one.
@@ -68,6 +70,7 @@ ALLOWED_FIELDS = {
         "slot_given_back",
         "withdrawn",
         "owed",
+        "rerun_task_id",
     },
     "owed": {"owed_id", "state", "rerun_task_id"},
     "queue": {
@@ -110,6 +113,27 @@ OWED_STATES = ("queued", "re-running", "done")
 ASKED = re.compile(r"[A-Za-z0-9_.…-]{1,70}")
 LONG_HEX = re.compile(r"[0-9a-fA-F]{32,}")
 LONG_TOKEN = re.compile(r"[A-Za-z0-9+/_=-]{40,}")
+#: The door's task store (V2 6111 (3): the 5th source): `carbon.research.refs.RESEARCH_DOCUMENT_HEADER` of its canonical
+#: view, the closed task states (`DirectTaskStateV3`) and the public refusal-code shape. A test holds them equal.
+VIEW_HEADER = b"carbon.research-service.canonical.v2\x00"
+TASK_STORE_STATES = (
+    "QUEUED",
+    "RUNNING",
+    "CANCEL_REQUESTED",
+    "SUCCEEDED",
+    "REFUSED",
+    "UNRESOLVED",
+    "FAILED_INFRA",
+    "CANCELLED",
+)
+REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+#: A REFUSED build is the candidate's own (door-code 6058: REFUSED is reached only for candidate-class codes): the
+#: Launchpad's sentence for it, when the refusal code itself has none.
+CANDIDATE_BUILD_REFUSED = "candidate_build_refused"
+#: Resource bounds of the view read (not policy values).
+MAX_VIEW_BYTES = 1 << 20
+MAX_VIEW_DEPTH = 32
+MAX_VIEW_ITEMS = 4096
 #: The door's marker codes the tool can state in the miner's words (a marker code is internal text, so only these map).
 MARKER_TO_CODE = {"cancelled_by_carbon_stop": "direct_task_cancelled"}
 #: Two tool-authored sentences (closed constants, like the word tables: no ledger text reaches them), for the two cases where the
@@ -535,15 +559,157 @@ def _vocab_code(*candidates):
     return None
 
 
+class _ViewUnreadable(Exception):
+    pass
+
+
+def _view_node(data, at, depth, budget):
+    """One node of the door's canonical view (`carbon.research.canonical`'s self-describing tags) at ``at``: ``(value, end)``.
+    A record is ``{"": name, field: value, ...}``, a union ``("union", tag, value)``; nothing is kept past the caller's
+    two tokens. Any deviation raises `_ViewUnreadable` (the read then says nothing)."""
+    if depth > MAX_VIEW_DEPTH or at >= len(data):
+        raise _ViewUnreadable
+    budget[0] -= 1
+    if budget[0] < 0:
+        raise _ViewUnreadable
+    tag, at = data[at], at + 1
+
+    def length(position):
+        if position + 4 > len(data):
+            raise _ViewUnreadable
+        return int.from_bytes(data[position : position + 4], "big"), position + 4
+
+    def text(position):
+        if position >= len(data) or data[position] != 0x06:
+            raise _ViewUnreadable
+        size, position = length(position + 1)
+        if position + size > len(data):
+            raise _ViewUnreadable
+        try:
+            return data[position : position + size].decode("utf-8"), position + size
+        except UnicodeDecodeError:
+            raise _ViewUnreadable from None
+
+    def record(position):
+        name, position = text(position)
+        count, position = length(position)
+        if count > MAX_VIEW_ITEMS:
+            raise _ViewUnreadable
+        fields = {"": name}
+        for _ in range(count):
+            field, position = text(position)
+            fields[field], position = _view_node(data, position, depth + 1, budget)
+        return fields, position
+
+    if tag in (0x01, 0x02):  # false / true
+        return tag == 0x02, at
+    if tag in (0x03, 0x04, 0x05):  # int64 / uint64 / float64: skipped, never kept
+        if at + 8 > len(data):
+            raise _ViewUnreadable
+        return None, at + 8
+    if tag == 0x06:
+        return text(at - 1)
+    if tag == 0x07:  # bytes: skipped, never kept
+        size, at = length(at)
+        if at + size > len(data):
+            raise _ViewUnreadable
+        return None, at + size
+    if tag == 0x08:
+        count, at = length(at)
+        if count > MAX_VIEW_ITEMS:
+            raise _ViewUnreadable
+        items = []
+        for _ in range(count):
+            item, at = _view_node(data, at, depth + 1, budget)
+            items.append(item)
+        return tuple(items), at
+    if tag == 0x09:
+        return record(at)
+    if tag == 0x0A:
+        name, at = text(at)
+        value, at = _view_node(data, at, depth + 1, budget)
+        return ("union", name, value), at
+    if tag == 0x0B:  # a named reference: its name, then the record node
+        _name, at = text(at)
+        if at >= len(data) or data[at] != 0x09:
+            raise _ViewUnreadable
+        return record(at + 1)
+    raise _ViewUnreadable
+
+
+def view_tokens(raw, task):
+    """``(state, refusal_code)`` of ``task``'s stored view, or ``(None, None)``: ONLY the closed task-state name and the
+    terminal receipt's public refusal code (V2 6111 (3)); nothing else of the view is kept or printed."""
+    if (
+        type(raw) is not bytes
+        or len(raw) > MAX_VIEW_BYTES
+        or not raw.startswith(VIEW_HEADER)
+    ):
+        return None, None
+    try:
+        view, end = _view_node(raw, len(VIEW_HEADER), 0, [MAX_VIEW_ITEMS * 4])
+    except (_ViewUnreadable, RecursionError):
+        return None, None
+    if end != len(raw) or type(view) is not dict:
+        return None, None
+    named = view.get("task_id")
+    state = view.get("state")
+    if (
+        type(named) is not dict
+        or named.get("value") != task
+        or state not in TASK_STORE_STATES
+    ):
+        return None, None
+    code = None
+    receipt = view.get("terminal_receipt")
+    if type(receipt) is tuple and len(receipt) == 3 and receipt[1] == "SOME":
+        refusal = receipt[2].get("refusal_code") if type(receipt[2]) is dict else None
+        if (
+            type(refusal) is tuple
+            and len(refusal) == 3
+            and refusal[1] == "SOME"
+            and type(refusal[2]) is str
+            and REFUSAL_CODE.fullmatch(refusal[2])
+        ):
+            code = refusal[2]
+    return state, code
+
+
 class Root:
     """The places read. A missing source is said (None / empty), never guessed."""
 
-    def __init__(self, ledger, markers=None, owed=None, queue_url=None, board=None):
+    def __init__(
+        self, ledger, markers=None, owed=None, queue_url=None, board=None, tasks=None
+    ):
         self.ledger = Path(ledger)
         self.markers = None if markers is None else Path(markers)
         self.owed = None if owed is None else Path(owed)
         self.queue_url = queue_url
         self.board = None if board is None else Path(board)
+        #: the door's task store (direct-tasks.sqlite3), or None: not read (V2 6111 (3))
+        self.tasks = None if tasks is None else Path(tasks)
+
+    def task_store(self, task):
+        """``(state, refusal_code)`` of the asked task from the door's task store (`view_tokens`), or ``(None, None)``: one row by
+        id, opened read-only and query-only; an absent store, row or unreadable view says nothing."""
+        if self.tasks is None or not TASK_ID.fullmatch(task):
+            return None, None
+        try:
+            db = sqlite3.connect(
+                self.tasks.resolve().as_uri() + "?mode=ro",
+                uri=True,
+                timeout=SQL_TIMEOUT_S,
+            )
+            try:
+                db.execute("PRAGMA query_only=ON")
+                row = db.execute(
+                    "SELECT view FROM direct_tasks WHERE id=?", (task,)
+                ).fetchone()
+            finally:
+                db.close()
+        except sqlite3.Error:
+            return None, None
+        return (None, None) if row is None else view_tokens(row[0], task)
 
     def db(self):
         try:
@@ -729,7 +895,43 @@ def _slot(db, task):
     return (row[0], row[1]) if row else (None, None)
 
 
-def _grade_state(marker, slot, latest):
+def _rerun(db, task, hotkey):
+    """The task id the DOOR re-ran ``task`` as, for the same hotkey, else None: the door's own rule
+    (`AttemptLedger.requeued_as`, door-code a7d99b85): the place grant from ``task`` whose new task's FIRST outcome row is the
+    door's requeue (`BUILD_REQUEUED`) under the same hotkey. A miner's own resubmission is never named. A ledger without
+    the grants table says nothing."""
+    try:
+        grant = db.execute(
+            "SELECT new_task, contract_digest FROM queue_place_grants WHERE from_task=?",
+            (task,),
+        ).fetchone()
+        if grant is None or not TASK_ID.fullmatch(str(grant[0])):
+            return None
+        first = db.execute(
+            "SELECT hotkey, code FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=? "
+            "ORDER BY seq LIMIT 1",
+            (grant[1], grant[0]),
+        ).fetchone()
+    except sqlite3.Error:
+        return None
+    if first is None or first[1] != BUILD_REQUEUED or first[0] != hotkey:
+        return None
+    return grant[0]
+
+
+def _store_state(store):
+    """The door's own projection of a task-store state with no grade marker (`lean_recipe._project`):
+    `(state, code, charged, slot_given_back)` or None (the store says nothing that changes the ledger's answer)."""
+    state, refusal = store
+    if state == "REFUSED":
+        code = refusal if refusal is not None and _words(refusal) else CANDIDATE_BUILD_REFUSED
+        return "RECONSTRUCTION_FAILED", code, "not stated", "not stated"
+    if state in ("FAILED_INFRA", "UNRESOLVED", "CANCELLED"):
+        return "FAILED_INFRA", "FAILED_INFRA", "no", "yes"
+    return None
+
+
+def _grade_state(marker, slot, latest, store=(None, None)):
     """`(state, code, charged, slot_given_back)`: the validator's own grade state of one task, the way the receiver derives it
     (`direct_intake._grade_state_v4`): from the auto-grade marker's state and the task's exam slot row. A task that was only
     admitted is QUEUED; it is never "succeeded" because the ledger holds an admission.
@@ -741,6 +943,11 @@ def _grade_state(marker, slot, latest):
             return "FAILED_INFRA", "FAILED_INFRA", "no", "yes"
         if latest == "REFUSED":
             return "REFUSED", None, "not stated", "not stated"
+        # V2 6111 (3): a build that ended in the door's task store with no ledger row after its admission (a REFUSED graph,
+        # a Carbon-side end) reads as the door's own reply says, never QUEUED
+        projected = _store_state(store)
+        if projected is not None:
+            return projected
         return "QUEUED", "QUEUED", "not stated", "not stated"
     if mstate == "CANDIDATE_FAILED":
         return "CANDIDATE_FAILED", "CANDIDATE_FAILED", "yes", "not stated"
@@ -784,7 +991,9 @@ def _task(root, db, task, owed, *, detail):
         withdrawn = withdrawn or marker.get("state") == "WITHDRAWN_BY_MINER"
     else:
         slot = _slot(db, task)
-        state, code, charged, given_back = _grade_state(marker, slot, latest)
+        # the task store is read only where no grade marker decides (V2 6111 (3))
+        store = (None, None) if marker.get("state") else root.task_store(task)
+        state, code, charged, given_back = _grade_state(marker, slot, latest, store)
         if (
             state == "QUEUED"
             and BUILD_REQUEUED in (rows[-1][2], rows[-1][3])
@@ -797,6 +1006,10 @@ def _task(root, db, task, owed, *, detail):
                 "not stated",
                 "not stated",
             )
+        rerun_task_id = _rerun(db, task, rows[0][4])
+        if rerun_task_id is not None:
+            # the door re-ran this submission as a new task (the v12 reply's RERUN): name it, never QUEUED / FAILED_INFRA
+            state, code, charged, given_back = "RERUN", "RERUN", "no", "not stated"
         if code is None:
             code = _vocab_code(rows[-1][2], rows[-1][3])
     shown = {
@@ -810,6 +1023,8 @@ def _task(root, db, task, owed, *, detail):
         "withdrawn": withdrawn,
         "owed": owed.get(task, []),
     }
+    if state == "RERUN":
+        shown["rerun_task_id"] = rerun_task_id
     if detail:
         if shown["owed"]:
             shown["reason"] = OWED_REASON
@@ -1045,7 +1260,7 @@ def _config(path):
         body = json.loads(Path(path).read_bytes())
     except (OSError, ValueError) as error:
         raise Refused("config_unreadable") from error
-    allowed = {"ledger", "markers", "owed_tasks", "queue_url", "board", "audit"}
+    allowed = {"ledger", "markers", "owed_tasks", "queue_url", "board", "audit", "direct_tasks"}
     if (
         type(body) is not dict
         or set(body) - allowed
@@ -1086,6 +1301,7 @@ def main(argv=None, env=None):
             config.get("owed_tasks"),
             config.get("queue_url"),
             config.get("board"),
+            config.get("direct_tasks"),
         )
         text = finish(lookup(root, name, argument))
         code = "ok"
