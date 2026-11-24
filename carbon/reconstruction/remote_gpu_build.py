@@ -1841,7 +1841,7 @@ def wrapper(lane):
     return _ensure_box_files(lane)
 
 
-#: Extra seconds every docker call to a BOX gets on top of its own bound (`cli`): each call opens its own ssh connection
+#: Extra seconds every bounded docker call to a BOX (never a stream) gets on top of its own bound (`cli`): each call opens its own ssh connection
 #: through the box's wrapper (idle ~1.5 s, infra 15:43:44Z), and under concurrent builds on a native-snapshotter box a
 #: 10 s controls read (``docker exec ... cat /sys/fs/cgroup/pids.max``) timed out (S6c, 21 Nov 2026: every N >= 2 build
 #: failed as Carbon's infra while the builds themselves ran). Operational margin for the link only: the bound still ends a
@@ -1858,21 +1858,17 @@ def cli(binding=None):
     from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
     class BoxDockerCLI(DockerCLI):
-        """DockerCLI for a box: every bound gets `BOX_LINK_SECONDS` more for the box's ssh link (a hung call still
-        ends at its bound plus that; DockerCLI's own bytes, a worker image input, are not touched).
+        """DockerCLI for a box: every bounded CALL gets `BOX_LINK_SECONDS` more for the box's ssh link (a hung call
+        still ends at its bound plus that; DockerCLI's own bytes, a worker image input, are not touched). A program or
+        export STREAM keeps its bound exactly: that bound is the op's wall, set 15 s before the watchdog's deadline
+        (`research_carrier`: ``seconds - 45`` against ``seconds - 30``). With 20 s more it ended after it, so the
+        watchdog removed the container first and the op's own wall stop was lost (live-ops 7142, 22 to 24 Nov 2026:
+        carbon_cleanup_uncertain in place of a wall stop).
         """
 
         def run(self, arguments, *, timeout=30, accepted=(0,)):
             return super().run(
                 arguments, timeout=timeout + BOX_LINK_SECONDS, accepted=accepted
-            )
-
-        def stream_to_file(self, arguments, destination, *, maximum, timeout):
-            return super().stream_to_file(
-                arguments,
-                destination,
-                maximum=maximum,
-                timeout=timeout + BOX_LINK_SECONDS,
             )
 
     remote = BoxDockerCLI()

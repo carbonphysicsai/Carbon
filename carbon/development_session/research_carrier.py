@@ -1441,6 +1441,33 @@ def _cancel_active_intent(ledger, *, owner, identity):
             )
 
 
+def _remove_own_container(cli, name, launch):
+    """`remove_exact_container` of the running op, where its own watchdog may be removing the same container now: on a
+    GPU build BOX the watchdog finishes the slot's allocation record too, and the loser of that race finds no record and
+    is refused as an uncertain cleanup, which then replaces the op's own failure (a raise in a ``finally``). Nothing is
+    uncertain when the record is gone AND a successful daemon query says the container is: this op still holds the
+    slot's lock, so no other launch can have made or cleared that record. Anything else is refused as before, and a
+    launch on this host is never read this way (its strict whole-device release is another claim).
+    """
+    try:
+        remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
+    except WorkerFailure as failure:
+        if failure.code is not WorkerCode.CLEANUP or not _already_finished(cli, name):
+            raise
+
+
+def _already_finished(cli, name):
+    """Whether the running box op's slot record is gone and its box says the container is (`_remove_own_container`)."""
+    binding = remote_gpu_build.remote_box()
+    if binding is None or (binding.slot_dir / "active-allocation.json").exists():
+        return False
+    try:
+        listed = cli.run(["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10)
+    except WorkerFailure:
+        return False
+    return not listed.stdout.strip()
+
+
 def _clear_gone_box(remote_build, name, label):
     """A recorded op on a box whose file is gone (`remote_gpu_build.recorded` ``gone``): remove its container through the
     box COPY's pinned wrapper, best effort, and clear its local slot record only once that worked, so a slot whose
@@ -3837,9 +3864,7 @@ def _run_locked(
                     # C-03 checks the exact launch label, removes the entire
                     # container, and confirms absence before any output becomes an
                     # associated result.
-                    remove_exact_container(
-                        cli=cli, container_name=name, launch_digest=launch
-                    )
+                    _remove_own_container(cli, name, launch)
                     # Require a successful daemon query too: an inspect transport
                     # error alone is not evidence that the container and descendants
                     # are gone.
