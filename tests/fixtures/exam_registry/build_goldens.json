@@ -1,0 +1,658 @@
+{
+ "chip-cold-plate 1.0": {
+  "bank": "02237e628fe89d7259a1f358bd8e784a008ad4fb1957230ea4d614ea09a50ca1",
+  "kit": {
+   "construction_limits_digest": "sha256:04ae6257c44346d276b8496e436a2e99ab76b64f6f8b6c0df93a3d9992a28aff",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
+   "train_digest": "sha256:b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf",
+   "version": "1.0"
+  },
+  "limits": "04ae6257c44346d276b8496e436a2e99ab76b64f6f8b6c0df93a3d9992a28aff",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "roles": {
+   "construction_kit": "0f775bbbc1ab19107e74dd6c9f43a8259f635d01246b47786e940f1d19e04f26",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf"
+  }
+ },
+ "chip-cold-plate 1.1": {
+  "bank": "02237e628fe89d7259a1f358bd8e784a008ad4fb1957230ea4d614ea09a50ca1",
+  "kit": {
+   "construction_limits_digest": "sha256:a314b52829093a795b77f02e5fdf843907f210e08ff3df7736c5c895bef1ee38",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
+   "train_digest": "sha256:b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf",
+   "version": "1.1"
+  },
+  "limits": "a314b52829093a795b77f02e5fdf843907f210e08ff3df7736c5c895bef1ee38",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "roles": {
+   "construction_kit": "5e40f5e1f6619f145a742c39cd42b641d90bfd2dec745bc2d07ea9f4e0c300e9",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf"
+  }
+ },
+ "chip-cold-plate 1.2": {
+  "bank": "02237e628fe89d7259a1f358bd8e784a008ad4fb1957230ea4d614ea09a50ca1",
+  "kit": {
+   "construction_limits_digest": "sha256:f6bf90a17128e687a05c66be9baec2b0cfffbb8a794c433d6cf8f90c45d626f6",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
+   "train_digest": "sha256:b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf",
+   "version": "1.2"
+  },
+  "limits": "f6bf90a17128e687a05c66be9baec2b0cfffbb8a794c433d6cf8f90c45d626f6",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "roles": {
+   "construction_kit": "def2dd5a3c7de2e34e4b7efdbb763f4d4a494d3127bb3cc7cadeca698ae67d65",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf"
+  }
+ },
+ "chip-cold-plate 1.3": {
+  "bank": "02237e628fe89d7259a1f358bd8e784a008ad4fb1957230ea4d614ea09a50ca1",
+  "kit": {
+   "construction_limits_digest": "sha256:ba4842de66f3745b6ad32545608d8bc86f78cb794fd4e2095b20b2101a8a9148",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+   "version": "1.3"
+  },
+  "limits": "ba4842de66f3745b6ad32545608d8bc86f78cb794fd4e2095b20b2101a8a9148",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "roles": {
+   "construction_kit": "a557b08a3de612c44158aa611abbdae32a65abd2f8f0ddc07a5fe6847cb64e23",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
+  }
+ },
+ "chip-cold-plate 1.4": {
+  "adapter_block": "e059f58014e2e61a405960af230edb70e07642396ebb998f8407c3c654765d36",
+  "bank": "4fbb3dce5861e6ffb6ed8ad6a7271a2e52e5c6b6585b2428ca9a1326c36d5bee",
+  "kit": {
+   "construction_limits_digest": "sha256:afd16c41239081cef4a4447b6fc725d3506c72fb489ad79b13ffe0c7a7c930a0",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+   "version": "1.4"
+  },
+  "limits": "afd16c41239081cef4a4447b6fc725d3506c72fb489ad79b13ffe0c7a7c930a0",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "2002dc2d0e23ce924c84dbbed9ca825acccba55a54c46d69e968125300303e72",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
+  }
+ },
+ "chip-cold-plate 1.5": {
+  "adapter_block": "6d2c86c1344200d1c684137dd9336209ff1fbf6a68f8e57c3b0756bbf7a99b27",
+  "bank": "4fbb3dce5861e6ffb6ed8ad6a7271a2e52e5c6b6585b2428ca9a1326c36d5bee",
+  "kit": {
+   "construction_limits_digest": "sha256:7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+   "version": "1.5"
+  },
+  "limits": "7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "f51c8499b617820856d094016f4d08e57c63e0e7655a1ec8ed1022a288207dc6",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
+  }
+ },
+ "chip-cold-plate 1.6": {
+  "adapter_block": "e5e27aedcc23448b5aeedaba0c94286d64b020fdd2a25c4e3d7e3458ef4b4771",
+  "bank": "4fbb3dce5861e6ffb6ed8ad6a7271a2e52e5c6b6585b2428ca9a1326c36d5bee",
+  "kit": {
+   "construction_limits_digest": "sha256:39a7b6fe1c19274382097a0d41bc0b20ca18a4b0b2be9ba411b0986d29017215",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+   "version": "1.6"
+  },
+  "limits": "39a7b6fe1c19274382097a0d41bc0b20ca18a4b0b2be9ba411b0986d29017215",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "68729b2b58159276f524abb21e5ab7091dbcd05b1803b36f3ed2d003a5380233",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
+  }
+ },
+ "chip-cold-plate 1.7": {
+  "adapter_block": "c16aba6b925927fa6b7b42040e3c420b820518d0b090e78ca29d32f8a1445bd8",
+  "bank": "4fbb3dce5861e6ffb6ed8ad6a7271a2e52e5c6b6585b2428ca9a1326c36d5bee",
+  "kit": {
+   "construction_limits_digest": "sha256:ebd6f58b56ee95d40e6b199737ce487cef97bf4f704867fc92d285cf2363c592",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+   "version": "1.7"
+  },
+  "limits": "ebd6f58b56ee95d40e6b199737ce487cef97bf4f704867fc92d285cf2363c592",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "a9b781ed37b5438adf2188d3d5961a0e7b7b0dd8042f50a50f4fdb76b084a6e9",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
+  }
+ },
+ "chip-cold-plate 1.8": {
+  "adapter_block": "7605e1e91c47b0924f6147fb0deb3f0427d4187fc1a720b2c989dcfabb896728",
+  "bank": "4fbb3dce5861e6ffb6ed8ad6a7271a2e52e5c6b6585b2428ca9a1326c36d5bee",
+  "kit": {
+   "construction_limits_digest": "sha256:aec52a19b2b13e241cfd3e921d735e4c6dc29b7ed6953fd480b3c307d4e50841",
+   "id": "chip-cold-plate",
+   "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "train_digest": "sha256:5c1e2bed7d381a5ee915fc5c4bb26e43d7c692c9d7dd34d4dfa84a1c327cf223",
+   "version": "1.8"
+  },
+  "limits": "aec52a19b2b13e241cfd3e921d735e4c6dc29b7ed6953fd480b3c307d4e50841",
+  "physics": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "60efb78f803b0b1bd947e45cdabd8cf044948a870477452fa3aadbd3f6ff5032",
+   "design_objective": "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+   "important_limit_definition": "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+   "interface": "cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+   "physics_contract": "0dedffc5d7c31fb5f69f090a424d8ff3e08bf3596a63ca2ab561620d15f4699e",
+   "train": "5c1e2bed7d381a5ee915fc5c4bb26e43d7c692c9d7dd34d4dfa84a1c327cf223"
+  }
+ },
+ "electric-motor-magnetics 1.0": {
+  "bank": "2882acb3fdc672a382266fc52b37d27ef9aa341871f9041f6d5f990419e3a7b4",
+  "kit": {
+   "construction_limits_digest": "sha256:bde507459e8665e0f213689675728dbebf33c38eed721492442f4757fdcbbe1d",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.0"
+  },
+  "limits": "bde507459e8665e0f213689675728dbebf33c38eed721492442f4757fdcbbe1d",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "e82a9ce10434efd59f85d7bfa330a328cb563c94d918ad07aa56bf3078f18e2f",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.1": {
+  "bank": "2882acb3fdc672a382266fc52b37d27ef9aa341871f9041f6d5f990419e3a7b4",
+  "kit": {
+   "construction_limits_digest": "sha256:5a8a872f2cf5ffd40cd0e07e7057c87cfcb9c98abb6529f2d4361c63b4f2a9b1",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.1"
+  },
+  "limits": "5a8a872f2cf5ffd40cd0e07e7057c87cfcb9c98abb6529f2d4361c63b4f2a9b1",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "cf10ac4cdcbdee7d69dd30c6515cf7cdc1ef1156c1169f9fa94de1258f0a0b39",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.2": {
+  "bank": "2882acb3fdc672a382266fc52b37d27ef9aa341871f9041f6d5f990419e3a7b4",
+  "kit": {
+   "construction_limits_digest": "sha256:4f92627d50ab071d29828e7172c63f00a2d25bd312587745b7f2dfdadd228653",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.2"
+  },
+  "limits": "4f92627d50ab071d29828e7172c63f00a2d25bd312587745b7f2dfdadd228653",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "fc488cff1816d8d07e0b3f0d2ac23b793dfca6152ebc5ab5f4dc965d11ed1364",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.3": {
+  "bank": "2882acb3fdc672a382266fc52b37d27ef9aa341871f9041f6d5f990419e3a7b4",
+  "kit": {
+   "construction_limits_digest": "sha256:912b1bc71b830ddbfdb5368e7b8ddcc0de4bba0c6a8054f492b8efddaa349863",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.3"
+  },
+  "limits": "912b1bc71b830ddbfdb5368e7b8ddcc0de4bba0c6a8054f492b8efddaa349863",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "4bf6bac24915ba6b766e384016696b23e795591d59596c9d23d821ff87cef682",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.4": {
+  "adapter_block": "43e6220b285577fa86704e9fe64dbafc04b3aa588710dadbc8ea8ee7e64894a1",
+  "bank": "e3a5db068568c9afc28bbf6e326d559b9eb976f46dc731cb8ee77e9fa48f65a8",
+  "kit": {
+   "construction_limits_digest": "sha256:a6c1c9f13bed863ae427caaf6898c311dbda59f4f654184fea87c2ce8f37a40d",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.4"
+  },
+  "limits": "a6c1c9f13bed863ae427caaf6898c311dbda59f4f654184fea87c2ce8f37a40d",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "b3a4b0341166f52e0bc0622b23c0ef13c102e6eaa6f878312382eb4e016392b2",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.5": {
+  "adapter_block": "5a01432d489f03041f9ff6c8b488da014cd64a7b6bfcf1d6c243c4a12544786c",
+  "bank": "e3a5db068568c9afc28bbf6e326d559b9eb976f46dc731cb8ee77e9fa48f65a8",
+  "kit": {
+   "construction_limits_digest": "sha256:391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.5"
+  },
+  "limits": "391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "0dabb027c4bfebe77e0a98181e61495d4dd41f04e6623c26702bc845a49c8554",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.6": {
+  "adapter_block": "08ed6f3e4dda2ee5410625c8b73138777d59b49a1d22bf1090bef89e5ddd8838",
+  "bank": "e3a5db068568c9afc28bbf6e326d559b9eb976f46dc731cb8ee77e9fa48f65a8",
+  "kit": {
+   "construction_limits_digest": "sha256:be5e79fc6c74cf10b07f43db807e4f4439b0964fc2182bd23a026471712ebec4",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+   "version": "1.6"
+  },
+  "limits": "be5e79fc6c74cf10b07f43db807e4f4439b0964fc2182bd23a026471712ebec4",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "2f73847699ffbb8558ddc8a84b551c2f99cc559a2dd510efcae585363d809276",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+  }
+ },
+ "electric-motor-magnetics 1.8": {
+  "adapter_block": "67ac641cd6d97d19bc9f43e45303ad365427e3799a09e87e0ada3f4958e73a4e",
+  "bank": "d9c547bb970403901bfd20a7156bef8805f9380f78e4e61f580ad2ead5c3b804",
+  "kit": {
+   "construction_limits_digest": "sha256:c16ee6563fa28e4c1571ac5575892437de106f3c3c9efdd5e3d836ba08a2c12d",
+   "id": "electric-motor-magnetics",
+   "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "train_digest": "sha256:de1c73cc3fe22bb5945e02626f982ca83a4f0273a82e6c3d0398c28a2e32fbd4",
+   "version": "1.8"
+  },
+  "limits": "c16ee6563fa28e4c1571ac5575892437de106f3c3c9efdd5e3d836ba08a2c12d",
+  "physics": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+  "program": "b1a5499c0e612d152d69f5117d03796b64c6d725d2c2487e198462596881c08e",
+  "roles": {
+   "accuracy_definition": "8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782",
+   "construction_kit": "ffb8ba51489869b4cec5b1ba82972d9ecd770c9b3f380cbeaf2a619c5e07df22",
+   "design_objective": "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
+   "important_limit_definition": "3b532c6ef1b5c0ab02b692f16d2b565840fd77d75c71e92b44c0f11d32e0ef44",
+   "interface": "e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+   "physics_contract": "28fbd1760eef135aa24f947e91a0a08c7c67a0077d92481e6e9f1aa784ec826d",
+   "train": "de1c73cc3fe22bb5945e02626f982ca83a4f0273a82e6c3d0398c28a2e32fbd4"
+  }
+ },
+ "f02 2.0": {
+  "bank": "9c43606b76d654afe7885f86e528a9ec7b02c3c13a27e8c6591d201abfe785df",
+  "kit": {
+   "construction_limits_digest": "sha256:df88cb39b0213803cf7c6ad0a7cdc60f9ee55a3418f054d17776e433391dae99",
+   "id": "f02",
+   "interface_digest": "sha256:2b859d3d37d500cffd813517de9cf1401a7484df4dac4220d2110a51f14e905f",
+   "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+   "version": "2.0"
+  },
+  "limits": "df88cb39b0213803cf7c6ad0a7cdc60f9ee55a3418f054d17776e433391dae99",
+  "physics": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+  "roles": {
+   "construction_kit": "399847ebcabfab6d8cd61103b86522f35d7b9ad006cee6577859dce4297e42f0",
+   "design_objective": "0b5c4c6a573426efa8382a70e86ee8de1b228d7708d0b3f3c9165f3decf0e87a",
+   "important_limit_definition": "cd594841fd61811d1ec6bacc4c0a51db6796068fb890de6fd66ca52b3d16b3b6",
+   "interface": "2b859d3d37d500cffd813517de9cf1401a7484df4dac4220d2110a51f14e905f",
+   "physics_contract": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+   "train": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+  }
+ },
+ "f02 2.1": {
+  "bank": "9c43606b76d654afe7885f86e528a9ec7b02c3c13a27e8c6591d201abfe785df",
+  "kit": {
+   "construction_limits_digest": "sha256:00f7675fa6600a4c172b8e037b415bea9bcdb5ce5d77cc113d1fe6910b506eb3",
+   "id": "f02",
+   "interface_digest": "sha256:596e3e11f67a34345baaaea3eafeed415bab0665c6030504ea435e25d3d8d663",
+   "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+   "version": "2.1"
+  },
+  "limits": "00f7675fa6600a4c172b8e037b415bea9bcdb5ce5d77cc113d1fe6910b506eb3",
+  "physics": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+  "roles": {
+   "construction_kit": "242fc7343fd58db9e5b71a27db76dae73c199d9a2bdaa554d3c2bc9c2a0f9e33",
+   "design_objective": "8bf17959868f6f1e0e13efb1d89cdc98cc5563e245c7d0cd8f6be2e9981107bf",
+   "important_limit_definition": "550296c97807840e7b5537c4ab7e32da9581a0550c8fb5ef6200adc6e4f56c7e",
+   "interface": "596e3e11f67a34345baaaea3eafeed415bab0665c6030504ea435e25d3d8d663",
+   "physics_contract": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+   "train": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+  }
+ },
+ "f02 2.2": {
+  "bank": "9c43606b76d654afe7885f86e528a9ec7b02c3c13a27e8c6591d201abfe785df",
+  "kit": {
+   "construction_limits_digest": "sha256:1d6894f7880550b0d06c1ebd9cb1e093fc5ec4af21925cd88cd2ca95106a9b91",
+   "id": "f02",
+   "interface_digest": "sha256:edf82c38a5959c89c08c77c73c2c53b604613440e03b0bd12881a904a5464d72",
+   "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+   "version": "2.2"
+  },
+  "limits": "1d6894f7880550b0d06c1ebd9cb1e093fc5ec4af21925cd88cd2ca95106a9b91",
+  "physics": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+  "roles": {
+   "construction_kit": "db9160295a2cfaf49014150f601cc74be48be19ce6e24a8e091cb6a4b617ce75",
+   "design_objective": "1487b6b6bf9471eb45986d74317117aee2ba68e9d623692aec8eb2851def4191",
+   "important_limit_definition": "f8eeb73f172b21d3f8dff8ee4206ba967763476bff10a1f95c616caba16953df",
+   "interface": "edf82c38a5959c89c08c77c73c2c53b604613440e03b0bd12881a904a5464d72",
+   "physics_contract": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+   "train": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+  }
+ },
+ "f02 2.3": {
+  "bank": "9c43606b76d654afe7885f86e528a9ec7b02c3c13a27e8c6591d201abfe785df",
+  "kit": {
+   "construction_limits_digest": "sha256:8f7c043dc8a69eff83e181868b3b60c3603da8f8c5b9ec3b9568dfb5c4cf8ebf",
+   "id": "f02",
+   "interface_digest": "sha256:5335ed2ed88848c871e737d598ffd4eab9802b69fc6f1f584592f8f23483b446",
+   "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+   "version": "2.3"
+  },
+  "limits": "8f7c043dc8a69eff83e181868b3b60c3603da8f8c5b9ec3b9568dfb5c4cf8ebf",
+  "physics": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+  "roles": {
+   "construction_kit": "ebbf0a4c7436934f0de63006fed7484d86e7013571a989f76f4ba7e9d357aa31",
+   "design_objective": "e5812643ae26a23cfa9d39c6e6b48de90da9c77e7be2ec215b74d20158e84f39",
+   "important_limit_definition": "0771e2ff6ee863ca9cd86350762d162a4d198affbe2820d59d90975237e5a4a6",
+   "interface": "5335ed2ed88848c871e737d598ffd4eab9802b69fc6f1f584592f8f23483b446",
+   "physics_contract": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+   "train": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+  }
+ },
+ "f02 2.4": {
+  "adapter_block": "f4630dc0a240487072bd9414f2e1acce4c0704d467f743a712f0db25d44dd305",
+  "bank": "b30ef7e0390f21223a7c043edf3dcd98eca2fa04f204f87c367ba8150b132da7",
+  "kit": {
+   "construction_limits_digest": "sha256:eec25b85d0cd31b5b35db0eb6441cb8428b2c2f874de7c9c6512c16807071dfa",
+   "id": "f02",
+   "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
+   "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+   "version": "2.4"
+  },
+  "limits": "eec25b85d0cd31b5b35db0eb6441cb8428b2c2f874de7c9c6512c16807071dfa",
+  "physics": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "9a6ce2dd3af44892e2e8d2f5e96453841d1958a9d29073caca98a4b53cd73aae",
+   "design_objective": "d6335c91bed933a3d97bec116d68da46b0fe9343c891269cba4499cce8d75853",
+   "important_limit_definition": "b82f9bdad6a98e941a3da801964ab964867f593fbfbc34dce7b6090bb2f9b1b2",
+   "interface": "3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
+   "physics_contract": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+   "train": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+  }
+ },
+ "f02 2.5": {
+  "adapter_block": "fb2b7a090930570eb681b08fa7e15493dab647728d281ad976bc5eaf4c93edcc",
+  "bank": "b30ef7e0390f21223a7c043edf3dcd98eca2fa04f204f87c367ba8150b132da7",
+  "kit": {
+   "construction_limits_digest": "sha256:567f31adcab3cb3ab0b7385eb2c1a89f63016a61fa130489c6ea3b5eb87e04e1",
+   "id": "f02",
+   "interface_digest": "sha256:928e4eedd9ed6b31ef75268726c5130e916c74a1b0c7afc989e7d1ff6f22da5d",
+   "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+   "version": "2.5"
+  },
+  "limits": "567f31adcab3cb3ab0b7385eb2c1a89f63016a61fa130489c6ea3b5eb87e04e1",
+  "physics": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "798eb6616c0f5a88b6c1c4495ca42807e68a2a60adc9408c8c832deed7927861",
+   "design_objective": "72b796bbd110302b2020d4addc2a96698f0020e02e0c514c98c039ed677a95c9",
+   "important_limit_definition": "b190d81691287498d0e5154ab73acf5e5c9da08510dd2fbbcb6a48e217e8d43a",
+   "interface": "928e4eedd9ed6b31ef75268726c5130e916c74a1b0c7afc989e7d1ff6f22da5d",
+   "physics_contract": "5107e59a28658d0291f543e810d968ab82890c612c36788f3656708811022134",
+   "train": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+  }
+ },
+ "f08-ribbed-bracket 1.0": {
+  "bank": "4c9529c44c999ccb6f3e68cce12ce0254c0de09c4626e615370c71e604e96c5c",
+  "kit": {
+   "construction_limits_digest": "sha256:88f56b8af03054a6002e92590784257df52580782b59c7a6bc019c17197725c3",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:7af2d3cc0c0c1759da859b8c37938802f0cf4ac8cae5193a7afef62cd94013bd",
+   "train_digest": "sha256:65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947",
+   "version": "1.0"
+  },
+  "limits": "88f56b8af03054a6002e92590784257df52580782b59c7a6bc019c17197725c3",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "roles": {
+   "construction_kit": "f0f84da01fc8a2d0aaf95a499778e40874d87d593240aa13879d079c317d74b6",
+   "design_objective": "4ca6c38f9e830a9992bfe51b04e13b2434f9f00b658173c39d8f03a0b3f37a71",
+   "important_limit_definition": "a81d1d940870a8444c090f3cb7f5692f4af297368f282d481562d5909c58f3cb",
+   "interface": "7af2d3cc0c0c1759da859b8c37938802f0cf4ac8cae5193a7afef62cd94013bd",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
+  }
+ },
+ "f08-ribbed-bracket 1.1": {
+  "bank": "e0d59ab19c956d6ce55801368de48e6be5da621aaeb9a6f1f44c87e66edcd290",
+  "kit": {
+   "construction_limits_digest": "sha256:28a77a5beaf259a73acfa5b807fb5fd683353ee2c7de20ddb5ee155c94c7fb78",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:b929dc0ba18277be684570439c76bd5c71c6819673cedd48c70bb8cc7fc3b55c",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.1"
+  },
+  "limits": "28a77a5beaf259a73acfa5b807fb5fd683353ee2c7de20ddb5ee155c94c7fb78",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "roles": {
+   "construction_kit": "b0db6f9a463e3bd547da83d140aa040729edf9009019a6216f81c1fc56e6cd1c",
+   "design_objective": "4c9cc86a3f6f647f3509b318cc3ea562c74151a280d5142f757b92977c1bed58",
+   "important_limit_definition": "d8c6f73296e2947ad6f739261d0da82aa131c43ba2809b81393c2ece59663503",
+   "interface": "b929dc0ba18277be684570439c76bd5c71c6819673cedd48c70bb8cc7fc3b55c",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ },
+ "f08-ribbed-bracket 1.2": {
+  "bank": "e0d59ab19c956d6ce55801368de48e6be5da621aaeb9a6f1f44c87e66edcd290",
+  "kit": {
+   "construction_limits_digest": "sha256:039ec28de20975f0391707bf4cdf5153dacbed65f0bd247f07ab76321879c2ca",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:3f6bfb4775058be5b2294af8f82021d4f450f9ed6377e827d172cf153d6e119e",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.2"
+  },
+  "limits": "039ec28de20975f0391707bf4cdf5153dacbed65f0bd247f07ab76321879c2ca",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "roles": {
+   "construction_kit": "abcd4742d6ccee836d2364f0f1cdfe6a0438660d4d27dbca6453447c9bac326f",
+   "design_objective": "a4be2a914612d82f08e9def037514ebcabc333358078914aad420b631c898500",
+   "important_limit_definition": "8af8fa9404ef10c03e834e4ee8b97b8821bde450c9c73230ab2caaf144a1a951",
+   "interface": "3f6bfb4775058be5b2294af8f82021d4f450f9ed6377e827d172cf153d6e119e",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ },
+ "f08-ribbed-bracket 1.3": {
+  "bank": "e0d59ab19c956d6ce55801368de48e6be5da621aaeb9a6f1f44c87e66edcd290",
+  "kit": {
+   "construction_limits_digest": "sha256:58a1fceb1941bb249e6d32aa516de9e3890565830265e94c52b9e160e6b7dac7",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:c75e726e3a7f8c7fa7ec799fb6b316f202d426d8cf246db3a4ea2c69f0fa808b",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.3"
+  },
+  "limits": "58a1fceb1941bb249e6d32aa516de9e3890565830265e94c52b9e160e6b7dac7",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "roles": {
+   "construction_kit": "7c54aff2f9e39340ea42562b3d745b5381c83be612e7e553c2470db8ec12f6b6",
+   "design_objective": "ea764217104d0eb0618c882fa9ca1e1d84578b9e88f303dbfa9860988cadb236",
+   "important_limit_definition": "5a36ac6b360548b587159da8d391be413ba2777feb6bef7f048fbc1e352bba44",
+   "interface": "c75e726e3a7f8c7fa7ec799fb6b316f202d426d8cf246db3a4ea2c69f0fa808b",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ },
+ "f08-ribbed-bracket 1.4": {
+  "bank": "e0d59ab19c956d6ce55801368de48e6be5da621aaeb9a6f1f44c87e66edcd290",
+  "kit": {
+   "construction_limits_digest": "sha256:746a0666ee74c51d2fbfdb9667a090ca90bf8f3a86b16e8a5d823d146c91730f",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:96d0f10bcedb1b4df050e39377df4476af61dc524fcf01754e9d303e67b4c9e8",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.4"
+  },
+  "limits": "746a0666ee74c51d2fbfdb9667a090ca90bf8f3a86b16e8a5d823d146c91730f",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "roles": {
+   "construction_kit": "792218f3a635df12545b759820a1a67870a51ee6e8edb2fb75c1ba0a0afd85b7",
+   "design_objective": "54df6d4624a9f2e8610141df558d42d5ce695e01c139a69018d90c6d07782338",
+   "important_limit_definition": "3a9683d416be6e59dfd7f69212357b4d5dc139fc207e8ea86120591d782b8ebf",
+   "interface": "96d0f10bcedb1b4df050e39377df4476af61dc524fcf01754e9d303e67b4c9e8",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ },
+ "f08-ribbed-bracket 1.5": {
+  "adapter_block": "75385f966f6f0f83983bda61f501d8ebfdb00a8ca326598711787900ee1329e6",
+  "bank": "678181b1ae36a2b729887134238ac7c345a076aa035289071205caec1f508cb1",
+  "kit": {
+   "construction_limits_digest": "sha256:c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.5"
+  },
+  "limits": "c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "a7d912a2e0069759358e54c0fa1da92e071c070013deecf6520b6a9e188fee65",
+   "design_objective": "3b04e69672b56f6a51803001c326e1a09f0a27fa3a197977bccb14f4961e6188",
+   "important_limit_definition": "60fdd52f594abd1b977ebbd56153a381ba8295d0cbe01390125f7dd32a413e01",
+   "interface": "42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ },
+ "f08-ribbed-bracket 1.6": {
+  "adapter_block": "a1ee7fc0bc79904ca6e95c9c40998016b246a8cf862309cf84ffccf4636ab9d3",
+  "bank": "678181b1ae36a2b729887134238ac7c345a076aa035289071205caec1f508cb1",
+  "kit": {
+   "construction_limits_digest": "sha256:44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:203e2e79b46f26bcc98b2c5807039159038f356c95eaa783be6e8c3c376e1cdb",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.6"
+  },
+  "limits": "44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "0ae2ae8982291815dab70f7d66244c1df391e134821cd595f5080b14b0c7e2fd",
+   "design_objective": "593cc30159864f79ca84d65e95400ea4d2cb10d0aad2c8c63471cc66b5b1611b",
+   "important_limit_definition": "39307f869b921e6d9556957d5bb60d294722b037fc34e583631e71c8876d205d",
+   "interface": "203e2e79b46f26bcc98b2c5807039159038f356c95eaa783be6e8c3c376e1cdb",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ },
+ "f08-ribbed-bracket 1.7": {
+  "adapter_block": "f00ce6d9294437827b516281b470c14edc217480f61e360a70bbcdcbf74e079b",
+  "bank": "678181b1ae36a2b729887134238ac7c345a076aa035289071205caec1f508cb1",
+  "kit": {
+   "construction_limits_digest": "sha256:b7834da20f87ba2d55288a370d6f1ca407d00cef19699a3cb7ff5bfe593e751b",
+   "id": "f08-ribbed-bracket",
+   "interface_digest": "sha256:dea5898827dce62da6db640eaaaae1f485809dfea6fbac0b6ef9dfcc50df7d71",
+   "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+   "version": "1.7"
+  },
+  "limits": "b7834da20f87ba2d55288a370d6f1ca407d00cef19699a3cb7ff5bfe593e751b",
+  "physics": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+  "program": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+  "roles": {
+   "construction_kit": "f1406551dacc4317201d110380ccab6cfa36ae26280f5da11754938517b178f3",
+   "design_objective": "24278d4253c4ea6a8040938cbcc5ab0f076fbe16433a13de8ef8696a791b1295",
+   "important_limit_definition": "c03a1a3669711e935ba3607acd7eb71f8a15f874c8dd81b99c4fa8f4bb3c2289",
+   "interface": "dea5898827dce62da6db640eaaaae1f485809dfea6fbac0b6ef9dfcc50df7d71",
+   "physics_contract": "1d771c6bba65955f2f550dac1aa048c02810e54fca8001436309aaf7882491ee",
+   "train": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+  }
+ }
+}

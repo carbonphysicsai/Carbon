@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
+from carbon.challenge_registry import exam_build
 from carbon.cold_plate import challenge as cooling
 from carbon.cold_plate import domain as cooling_domain
 from carbon.motor import challenge as motor
@@ -777,6 +778,8 @@ def _train_name(challenge_id: str, version: str | None):
     entry = version_registry.find(challenge_id, version)
     if entry is None:
         return None
+    if exam_build.block(challenge_id, version) is not None:
+        return entry.train  # its build module serves it (`load_public_train`)
     served = {
         _NATIVE_TRAIN_NAMES.get(challenge_id),
         *EXTENDED,
@@ -1041,7 +1044,11 @@ def load_public_train(challenge_id: str, version: str | None = None) -> dict:
     otherwise the native TRAIN, as for every version before. Each version
     declares its TRAIN in the version registry, so Cooling 1.4 names 1.3's
     encoded TRAIN itself; a registered version naming a TRAIN this loader does
-    not serve refuses."""
+    not serve refuses. A version a build row serves has that module's TRAIN."""
+    if version is not None:
+        built = exam_build.module(challenge_id, version)
+        if built is not None:
+            return built.load_public_train(challenge_id, version)
     name = _train_name(challenge_id, version)
     if name in FRESH_LAMBDA:
         return _load_fresh(name, challenge_id)

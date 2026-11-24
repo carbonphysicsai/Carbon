@@ -828,7 +828,17 @@ def verify_direct_resource_policy(
         trusted_limits = synthetic_linear_field_2d.construction_limits_document()
         expected_schema = "carbon.synthetic-linear-field-2d.construction-limits.v2"
     else:
-        if challenge_id == "f08-ribbed-bracket":
+        from carbon.challenge_registry import exam_build
+
+        try:
+            built = exam_build.module(challenge_id, version)
+        except ValueError:
+            raise RecipeRefused(
+                "construction_resource_policy_binding_invalid"
+            ) from None
+        if built is not None:
+            public_material = built
+        elif challenge_id == "f08-ribbed-bracket":
             from carbon.challenge_kit import f08_public as public_material
         elif challenge_id == "f02":
             from carbon.challenge_kit import f02_public as public_material

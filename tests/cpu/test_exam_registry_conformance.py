@@ -15,6 +15,8 @@ signs nothing.
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import json
 import subprocess
 import sys
@@ -24,6 +26,9 @@ import pytest
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 FAMILY, VERSION = "zz-synthetic", "0.1"
+#: The synthetic exam's build module, searched as ``carbon.zz_synthetic_build`` only inside the walk.
+FIXTURES = REPOSITORY / "tests" / "fixtures" / "exam_registry"
+BUILD_MODULE = "carbon.zz_synthetic_build"
 
 #: The overlay entry: every field a registered version carries, every value synthetic (no code names any of them).
 ENTRY = {
@@ -76,6 +81,24 @@ PROBES = (
         "BUILD",
         "2 / 11",
         "challenge_kit/physical_material.py construction_kit",
+    ),
+    (
+        "build.bundle",
+        "BUILD",
+        "11",
+        "challenge_kit/physical_material.py bundle_material",
+    ),
+    (
+        "build.pack_roles",
+        "BUILD",
+        "2",
+        "challenge_kit/physical_pack.py public_roles / development_bank / physics_contract",
+    ),
+    (
+        "build.trusted_limits",
+        "BUILD",
+        "2",
+        "development_session/bundle_construction_worker.py verify_direct_resource_policy",
     ),
     (
         "build.train",
@@ -159,9 +182,6 @@ PROBES = (
 #: deleted by the head that makes its probe pass.
 KNOWN_GAPS = {
     "registry.family": "family_registry.json + reader (door-code #1, H1)",
-    "build.material": "physical_material.REGISTERED derived from the registry's physical families",
-    "build.kit": "family / version public_module",
-    "build.train": "family train_loader (TRAIN name served by the registry)",
     "build.spec": "graph Spec derived from the version entry",
     "build.program": "version inference_program (eager / compiled / per-case)",
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
@@ -175,6 +195,9 @@ KNOWN_GAPS = {
 _PROBE_PROGRAM = r"""
 import inspect, json, sys
 from pathlib import Path
+
+import carbon
+carbon.__path__.append(sys.argv[5])
 
 overlay_path = Path(sys.argv[1])
 family, version = sys.argv[2], sys.argv[3]
@@ -205,12 +228,45 @@ def probe_build_material():
 
 def probe_build_kit():
     from carbon.challenge_kit import physical_material
-    physical_material.construction_kit(family, version)
+    kit = physical_material.construction_kit(family, version)
+    assert (kit["id"], kit["version"]) == (family, version)
+
+
+def probe_build_bundle():
+    from carbon.challenge_kit import physical_material
+    material = physical_material.bundle_material(family, version)
+    assert material["construction_kit"] == physical_material.construction_kit(family, version)
+    assert material["expected_output_shape"] == (8, 1)
+
+
+def probe_build_pack_roles():
+    from carbon.challenge_kit import physical_material, physical_pack
+    material = physical_material.bundle_material(family, version)
+    roles = physical_pack.public_roles(family, version)
+    assert roles["train"] == material["train"]
+    assert json.loads(roles["construction_kit"]) == material["construction_kit"]
+    assert json.loads(roles["interface"]) == material["interface_document"]
+    assert physical_pack.physics_contract(family, version) == material["physics_contract"]
+    bank = physical_pack.development_bank(family, version)
+    assert (bank["inputs"] == material["practice_inputs"]).all()
+
+
+def probe_build_trusted_limits():
+    from carbon.challenge_kit import physical_material
+    from carbon.development_session import bundle_construction_worker
+    kit = physical_material.construction_kit(family, version)
+    limits = physical_material.construction_limits_document(family, version)
+    assert (
+        bundle_construction_worker.verify_direct_resource_policy(kit, limits)
+        == kit["construction_limits_digest"]
+    )
 
 
 def probe_build_train():
     from carbon.challenge_kit import physical_public_train
-    assert physical_public_train._train_name(family, version) is not None
+    assert physical_public_train._train_name(family, version) == "zz-synthetic-train-v1"
+    loaded = physical_public_train.load_public_train(family, version)
+    assert loaded["inputs"].shape == (8, 2) and loaded["targets"].shape == (8, 1)
 
 
 def probe_build_spec():
@@ -301,6 +357,21 @@ print(json.dumps(results, sort_keys=True))
 """
 
 
+def _build_block():
+    """The version's ``build`` field (`challenge_registry/exam_build.py`): its module, by the sha256 of its file."""
+    source = FIXTURES / "zz_synthetic_build.py"
+    spec = importlib.util.spec_from_file_location("zz_synthetic_build", source)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    raw = source.read_bytes().replace(b"\r\n", b"\n")
+    return {
+        "module": BUILD_MODULE,
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "graph_spec": module.graph_spec(),
+        "inference_program": "compiled",
+    }
+
+
 @pytest.fixture(scope="module")
 def walk(tmp_path_factory):
     path = tmp_path_factory.mktemp("registry") / "version_overlay.json"
@@ -313,11 +384,20 @@ def walk(tmp_path_factory):
     document = {
         "schema": "carbon.challenge-registry.exam-registry.v1",
         "source": "synthetic",
-        "exams": {f"{FAMILY} {VERSION}": EXAM_ROW},
+        "exams": {f"{FAMILY} {VERSION}": {**EXAM_ROW, "build": _build_block()}},
     }
     exams.write_text(json.dumps(document), encoding="utf-8")
     done = subprocess.run(
-        [sys.executable, "-c", _PROBE_PROGRAM, str(path), FAMILY, VERSION, str(exams)],
+        [
+            sys.executable,
+            "-c",
+            _PROBE_PROGRAM,
+            str(path),
+            FAMILY,
+            VERSION,
+            str(exams),
+            str(FIXTURES),
+        ],
         cwd=REPOSITORY,
         capture_output=True,
         text=True,

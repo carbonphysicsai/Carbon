@@ -28,6 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
+from carbon.challenge_registry import exam_build
 from carbon.cold_plate import challenge as cooling
 from carbon.motor import challenge as motor
 
@@ -346,6 +347,9 @@ _PHYSICS_VERSIONS = {
 def physics_contract(challenge_id: str, version: str) -> dict | None:
     """The Challenge's versioned physics contract for the construction material
     and the pack to carry, or None while it is not bound."""
+    built = exam_build.module(challenge_id, version)
+    if built is not None:
+        return built.physics_contract(challenge_id, version)
     if challenge_id == f02_train.CHALLENGE_ID:
         _files(challenge_id, version)
         # F02 adopts no law; its summary basis is the scoring producer's.
@@ -386,6 +390,9 @@ def physics_contract(challenge_id: str, version: str) -> dict | None:
 def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
     """Every bound public role's exact bytes; an unbound role is absent here
     and HUMAN_INPUT in the manifest. Nothing is defaulted or inferred."""
+    built = exam_build.module(challenge_id, version)
+    if built is not None:
+        return built.public_roles(challenge_id, version)
     if challenge_id == battery_pack.CHALLENGE_ID:
         return battery_pack.public_roles(version)
     if challenge_id == f02_train.CHALLENGE_ID:
@@ -471,7 +478,10 @@ def _bank_file(challenge_id: str, name: str) -> bytes:
 def development_bank(challenge_id: str, version: str) -> dict:
     """The exposed DEVELOPMENT bank of a served version. A dev-grid version (dev-pack v2,
     `scoring.dev_grid`) has the practice grid with public probes; every other version has
-    ``legacy_development_bank``."""
+    ``legacy_development_bank``. A version a build row serves has that module's."""
+    built = exam_build.module(challenge_id, version)
+    if built is not None:
+        return built.development_bank(challenge_id, version)
     from carbon.scoring import dev_grid
 
     if dev_grid.kind(challenge_id, version) is not None:

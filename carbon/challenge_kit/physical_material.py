@@ -14,6 +14,7 @@ reference, a qualification or LIVE authority.
 from __future__ import annotations
 
 from carbon.battery import catalog_version as battery_catalog
+from carbon.challenge_registry import exam_build
 from carbon.cold_plate import challenge as cooling
 from carbon.development_session.profile import canonical, digest
 from carbon.motor import challenge as motor
@@ -33,18 +34,22 @@ from . import (
 SCOPE = physical_public.SCOPE
 #: Registered public physical Challenges, by (id, version): every Motor,
 #: Cooling, F08 and F02 version the version registry declares
-#: (`version_registry`), each with its own explicit entry.
+#: (`version_registry`), each with its own explicit entry, and every version the
+#: exam registry's build rows serve (`exam_build`).
 REGISTERED = tuple(
     sorted(
-        key
-        for key in version_registry.VERSIONS
-        if key[0]
-        in (
-            motor.CHALLENGE.challenge_id,
-            cooling.CHALLENGE.challenge_id,
-            f08_train.CHALLENGE_ID,
-            f02_train.CHALLENGE_ID,
-        )
+        {
+            key
+            for key in version_registry.VERSIONS
+            if key[0]
+            in (
+                motor.CHALLENGE.challenge_id,
+                cooling.CHALLENGE.challenge_id,
+                f08_train.CHALLENGE_ID,
+                f02_train.CHALLENGE_ID,
+            )
+        }
+        | set(exam_build.keys())
     )
 )
 # Battery 2.2 is not registered: Battery is out of launch
@@ -56,7 +61,11 @@ def is_registered(challenge_id: str, version: str) -> bool:
     return (challenge_id, version) in REGISTERED
 
 
-def _public(challenge_id: str):
+def _public(challenge_id: str, version: str | None = None):
+    # A version a build row serves has its own module; every other one, its family's below.
+    built = None if version is None else exam_build.module(challenge_id, version)
+    if built is not None:
+        return built
     # F08 (v1: 255 rows, v2: 287) and F02 (40 rows) keep their own public module and float32
     # TRAIN; the rest shares one.
     if challenge_id == f08_train.CHALLENGE_ID:
@@ -74,7 +83,9 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
     """
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
-    return _public(challenge_id).construction_limits_document(challenge_id, version)
+    return _public(challenge_id, version).construction_limits_document(
+        challenge_id, version
+    )
 
 
 def construction_kit(challenge_id: str, version: str) -> dict:
@@ -82,7 +93,7 @@ def construction_kit(challenge_id: str, version: str) -> dict:
     `bundle_material` reads it from, without building the practice bank."""
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
-    return _public(challenge_id).construction_kit(challenge_id, version)
+    return _public(challenge_id, version).construction_kit(challenge_id, version)
 
 
 def bundle_material(
@@ -101,15 +112,18 @@ def bundle_material(
         return versioned_material(version)
     f08 = challenge_id == f08_train.CHALLENGE_ID
     f02 = challenge_id == f02_train.CHALLENGE_ID
-    public = _public(challenge_id)
-    if f08:
+    built = exam_build.module(challenge_id, version)
+    public = _public(challenge_id, version)
+    if built is not None:
+        source = built.load_public_train(challenge_id, version)
+    elif f08:
         source = f08_train.load_public_train(version)
     elif f02:
         source = f02_train.load_public_train(version)
     else:
         source = physical_public_train.load_public_train(challenge_id, version)
     train_case_ids = tuple(source["case_ids"])
-    if f02:
+    if f02 and built is None:
         # F02's provenance ids carry the stratum and decimals ("c30-i40-s0.5-...-v2s1"), which
         # the receiver's canonical identifier does not allow. The receiver names TRAIN rows by
         # position; the provenance ids stay bound in the kit through the limits document.
