@@ -1533,7 +1533,13 @@ def test_each_instance_type_has_its_own_owner_ceiling(tmp_path):
 
 
 def _vm(ident, name, status="active", price=PRICE):
-    return {"id": ident, "name": name, "status": status, "ip": "x", "price_usd_h": price}
+    return {
+        "id": ident,
+        "name": name,
+        "status": status,
+        "ip": "x",
+        "price_usd_h": price,
+    }
 
 
 def test_prefix_scope_counts_only_this_pools_boxes(tmp_path):

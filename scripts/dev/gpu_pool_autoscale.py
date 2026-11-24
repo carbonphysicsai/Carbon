@@ -410,12 +410,11 @@ def _close_cost(state, record, now):
 
 def may_rent(instances, price_usd_h, config) -> bool:
     """Within the owner's line after one more: at most ``max_boxes`` instances and ``max_usd_per_hour`` in total,
-    counted over the whole account, or over this pool's ``name_prefix`` instances only (``count_scope`` "prefix")."""
+    counted over the whole account, or over this pool's ``name_prefix`` instances only (``count_scope`` "prefix").
+    """
     live = [i for i in instances if i["status"] not in ("terminated", "terminating")]
     if config.count_scope == "prefix":
-        live = [
-            i for i in live if (i.get("name") or "").startswith(config.name_prefix)
-        ]
+        live = [i for i in live if (i.get("name") or "").startswith(config.name_prefix)]
     if len(live) + 1 > config.max_boxes:
         return False
     total = sum(i["price_usd_h"] for i in live) + price_usd_h
