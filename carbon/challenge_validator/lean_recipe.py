@@ -334,6 +334,29 @@ def _implementation_identity() -> str:
     )
 
 
+def _task_in_progress(provider, challenge_key, task_value):
+    """Whether ``task_value`` has not ended yet (QUEUED, RUNNING or CANCEL_REQUESTED) as its provider reads it: a rebuild
+    request for it waits for the end (`_apply_rebuild_requests_locked`). Unreadable: False (applied as before).
+    """
+    try:
+        from carbon.research import (
+            DirectGetTaskRequestV3,
+            DirectTaskStateV3,
+            ResearchTaskId,
+        )
+
+        task = provider.get_research_result(
+            DirectGetTaskRequestV3(challenge_key, ResearchTaskId(task_value))
+        ).task
+        return task.state in (
+            DirectTaskStateV3.QUEUED,
+            DirectTaskStateV3.RUNNING,
+            DirectTaskStateV3.CANCEL_REQUESTED,
+        )
+    except Exception:  # noqa: BLE001 - unreadable: the request is applied as before
+        return False
+
+
 def _withdrawn_cancellation(provider, task_value):
     """Whether the provider's durable cancellation id of ``task_value`` is its owner's withdrawal (`WITHDRAW_PREFIX`)."""
     cancellation = getattr(provider, "_cancellations", {}).get(task_value)
@@ -1664,10 +1687,21 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     or type(ruling) is not str
                 ):
                     continue
-                done.add((task, ruling))
                 new_task, code = None, None
                 try:
                     owner = self._active_owner(task)
+                    # A request whose task is STILL IN PROGRESS is not applied yet and not marked done: it is asked
+                    # again next round, once the task has ended (v2 6012, rtsk_676006b3: a build the 02:55Z apply
+                    # left running was ADOPTED after the restart, so its stop-cancel request met a running task,
+                    # logged not_rebuilt and was consumed; the adopted resume then ended FAILED_INFRA with no code
+                    # and was never re-run).
+                    if owner is not None and _task_in_progress(
+                        self._provider(owner),
+                        self.discovery.info.challenge_key,
+                        task,
+                    ):
+                        continue
+                    done.add((task, ruling))
                     if owner is None:
                         code = "owner_unavailable"
                     else:

@@ -211,6 +211,36 @@ def test_a_build_our_stop_cancelled_re_runs_at_the_next_start(door_ledger):
     assert len(provider.started) == 1
 
 
+def test_a_stop_cancel_request_waits_for_an_adopted_build_to_end_then_re_runs(
+    door_ledger,
+):
+    # v2 6012 (rtsk_676006b3): the stop recorded the build, but the next start ADOPTED it (still running); the request
+    # must not be consumed then, and re-runs once the adopted resume ends FAILED_INFRA with no failure code
+    _queue(door_ledger)
+    door = _door(door_ledger)
+    provider = _Provider({A: DirectTaskStateV3.RUNNING}, diagnosis=None)
+    door._active_owner = lambda sid: HOTKEYS[0]
+    door._provider = lambda owner: provider
+    directory = _stop_cancelled(door_ledger, A)
+    door._apply_rebuild_requests()
+    assert provider.started == []
+    assert not (directory / lean_recipe.REBUILD_APPLIED).exists()  # not consumed
+    provider.states[A] = DirectTaskStateV3.FAILED_INFRA
+    door._apply_rebuild_requests()
+    assert provider.started == [(("req", HOTKEYS[0], 1), False)]
+    (applied,) = [
+        json.loads(line)
+        for line in (directory / lean_recipe.REBUILD_APPLIED).read_text().splitlines()
+    ]
+    assert (applied["task"], applied["new_task"], applied["ruling"]) == (
+        A,
+        N,
+        lean_recipe.STOP_CANCEL_RULING,
+    )
+    door._apply_rebuild_requests()  # once
+    assert len(provider.started) == 1
+
+
 def test_a_miners_own_withdrawal_or_an_unrecorded_cancel_never_re_runs(door_ledger):
     _queue(door_ledger)
     door, provider = _door(door_ledger), _Provider({A: DirectTaskStateV3.CANCELLED})
