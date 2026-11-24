@@ -66,6 +66,17 @@ ADA_ENTRIES = frozenset(
         ("NVIDIA RTX 6000 Ada Generation", hardware_acceptance.TORCH_GPU),
     }
 )
+#: The fourth: finney 116 on the Lambda RTX A6000 48 GB build boxes (OWNER-LARGE-MODEL-PROFILE-APPLIED-A6000-MAINNET-01,
+#: typed in the exam-motor seat ~2026-11-24T01:25Z, OWNER_LINES.md L675), for exactly the ONE entry its build class has
+#: (OWNER-A6000-48GB-BUILD-CLASS-01 measured JAX only; v2 5817). The public-repo stop keeps the record off .agent/decisions:
+#: the owner's words live in OWNER_LINES.md and in this constant.
+A6000_RECORD = "OWNER-LARGE-MODEL-PROFILE-APPLIED-A6000-MAINNET-01"
+A6000_WORDS = (
+    "I accept the LARGE_MODEL worker profile (the same 2/4/16 GiB container limits and containment settings as "
+    "testnet) on the Lambda RTX A6000 48 GB build boxes for mainnet 116 "
+    "(OWNER-LARGE-MODEL-PROFILE-APPLIED-A6000-MAINNET-01)."
+)
+A6000_ENTRIES = frozenset({("NVIDIA RTX A6000", hardware_acceptance.JAX_GPU)})
 MAINNET_ENTRIES = (
     frozenset(
         {
@@ -75,6 +86,7 @@ MAINNET_ENTRIES = (
     )
     | A100_ENTRIES
     | ADA_ENTRIES
+    | A6000_ENTRIES
 )
 #: The launch rehearsals (owner G-LEAD-58, "rehearsals build on the launch build class"; the record
 #: G-LEAD-58-LAUNCH-REHEARSALS in `hardware_acceptance`): the disposable LOCALNET chain, never mainnet, for exactly the
@@ -263,10 +275,38 @@ def test_the_ada_acceptance_widens_nothing_else():
 
     assert _mainnet_profiles(host, {ada: {jax: entry("finney")}}) == []
     for classes, expected in (
-        ({"NVIDIA RTX A6000": {jax: entry("finney")}}, ("NVIDIA RTX A6000", jax)),
+        # the A6000's own line (A6000_RECORD) opens its JAX entry only; its PyTorch profile is still a mainnet profile
+        (
+            {"NVIDIA RTX A6000": {hardware_acceptance.TORCH_GPU: entry("finney")}},
+            ("NVIDIA RTX A6000", hardware_acceptance.TORCH_GPU),
+        ),
         ({ada: {"other_profile": entry("finney")}}, (ada, "other_profile")),
     ):
         assert _mainnet_profiles(host, classes) == [(*expected, "finney")]
     assert _mainnet_profiles(host, {ada: {jax: entry("finney", "mainnet")}}) == [
         (ada, jax, "mainnet")
+    ]
+
+
+def test_the_a6000_line_is_the_owners_words_for_exactly_its_one_entry():
+    """OWNER-LARGE-MODEL-PROFILE-APPLIED-A6000-MAINNET-01: the owner's words, and finney opened for the A6000 JAX entry
+    only (its build class measured JAX only); another A6000 profile or network is still a mainnet profile.
+    """
+    assert A6000_WORDS.startswith("I accept the LARGE_MODEL worker profile")
+    assert "Lambda RTX A6000 48 GB build boxes for mainnet 116" in A6000_WORDS
+    assert A6000_RECORD in A6000_WORDS
+    assert not re.search(r"\d{1,3}(\.\d{1,3}){3}", A6000_WORDS), "a host address"
+    host = {"scope": "DEVELOPMENT"}
+    a6000 = "NVIDIA RTX A6000"
+    jax, torch = hardware_acceptance.JAX_GPU, hardware_acceptance.TORCH_GPU
+
+    def entry(*networks):
+        return {"record": "X", "networks": networks, "evidence": "X"}
+
+    assert _mainnet_profiles(host, {a6000: {jax: entry("finney")}}) == []
+    assert _mainnet_profiles(host, {a6000: {torch: entry("finney")}}) == [
+        (a6000, torch, "finney")
+    ]
+    assert _mainnet_profiles(host, {a6000: {jax: entry("mainnet")}}) == [
+        (a6000, jax, "mainnet")
     ]

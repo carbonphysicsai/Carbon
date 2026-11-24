@@ -422,8 +422,7 @@ def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
             # G-LEAD-58: the launch build classes also on the disposable localnet, for rehearsal doors
             "NVIDIA A100-SXM4-40GB": ("finney", "localnet"),
             "NVIDIA RTX 6000 Ada Generation": ("finney",),
-            # finney waits the owner's LARGE_MODEL line for the A6000 (v2 5793)
-            "NVIDIA RTX A6000": ("localnet",),
+            "NVIDIA RTX A6000": ("finney", "localnet"),
         }.get(kind, ("testnet",))
         assert all(e["networks"] == expected for e in profiles.values()), kind
         for entry in profiles.values():
