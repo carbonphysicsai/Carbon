@@ -60,7 +60,13 @@ def test_only_motor_1_8_gets_the_per_case_processes_program():
     assert not worker.CASE_PROCS_INFERENCE_VERSIONS & worker.VMAP64_INFERENCE_VERSIONS
     for key in physical_graph_adapter_v2.SPECS:
         program = worker.v2_infer_query(*key)["program"]
-        expected = _procs() if key == MOTOR_18 else worker.PHYSICAL_V2_INFER_PROGRAM
+        if key == MOTOR_18:
+            expected = _procs()
+        elif key in worker.JIT_INFERENCE_VERSIONS:
+            # Motor 1.9 (audit #16): compiled, one process (its trust query needs a program with a trust variant)
+            expected = worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+        else:
+            expected = worker.PHYSICAL_V2_INFER_PROGRAM
         assert program == expected, key
     with pytest.raises(RuntimeError, match="not a per-case processes version"):
         worker.case_procs_infer_program("electric-motor-magnetics", "1.6")
