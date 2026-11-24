@@ -1334,8 +1334,10 @@ def _published_file(key, named):
     _need(hashlib.sha256(raw).hexdigest() == named["sha256"], "file_digest")
     try:
         own = json.loads(raw)
-    except ValueError:
+    except (ValueError, RecursionError):
         raise _FileRefused("file_not_json") from None
+    # no NaN or infinity reaches the served JSON
+    _need(exam_registry.plain(own), "file_values")
     _need(
         type(own) is dict
         and set(own) == {"schema", "version", "kind", "a_acc", "gates", "sections"}

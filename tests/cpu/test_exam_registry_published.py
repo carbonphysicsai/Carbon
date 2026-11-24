@@ -244,6 +244,8 @@ def test_a_file_that_does_not_hold_up_is_refused_and_its_version_has_no_block(
         {"sections": {"minimums": {"rule": "x"}, "score": {}}},
         {"sections": {"minimums": {"rule": "x"}, "koth": {}}},
         {"extra": 1},
+        {"sections": {"minimums": {"rule": float("nan")}}},
+        {"sections": {"minimums": {"rule": float("inf")}}},
     ],
 )
 def test_a_files_shape_is_closed(tmp_path, monkeypatch, change):

@@ -62,7 +62,7 @@ def _positive(value):
 MAX_DEPTH = 32
 
 
-def _plain(value):
+def plain(value):
     """Whether a row's value nests at most `MAX_DEPTH` deep and holds only finite numbers (1e999 reads as infinity)."""
     level = [value]
     for _ in range(MAX_DEPTH):
@@ -192,7 +192,7 @@ def _row_refusal(row):
     if unknown:
         return f"unknown_field: {unknown[0]}"
     for name in sorted(row):
-        if not _plain(row[name]) or not FIELDS[name](row[name]):
+        if not plain(row[name]) or not FIELDS[name](row[name]):
             return f"malformed_field: {name}"
     return None
 
@@ -315,6 +315,7 @@ __all__ = [
     "install",
     "keys",
     "newest",
+    "plain",
     "refusal",
     "refused",
     "refused_keys",
