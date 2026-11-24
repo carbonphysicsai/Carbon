@@ -51,6 +51,8 @@ EXAM_ROW = {
         "measurement_digest": "sha256:" + "a" * 64,
     },
     "solver_seconds_per_design": {"value": 100, "source": "synthetic"},
+    "terms": {"version": "zz-terms-v0", "sha256": "b" * 64},
+    "verify_set": {"path": "kits/zz/verify_set.json", "sha256": "c" * 64},
 }
 
 #: (probe id, stage, audit row, site): the walk in order. The probe bodies are in `_PROBE_PROGRAM`.
@@ -131,7 +133,7 @@ PROBES = (
         "8",
         "scoring/copy_derivation.py OPAQUE_BY_CHALLENGE",
     ),
-    ("grade.verify_set", "GRADE", "19", "challenge_kit/verify_practice.py REGISTRY"),
+    ("grade.verify_set", "GRADE", "19", "challenge_kit/verify_practice.py registered"),
     (
         "grade.terms",
         "GRADE",
@@ -167,8 +169,6 @@ KNOWN_GAPS = {
     "grade.pool_kind": "family pool_kind + register_kind (H1)",
     "grade.published": "published block derived from the version's sealed evaluation + pool rows",
     "grade.copy_opacity": "family copy_opacity (through H1, a shared producer file)",
-    "grade.verify_set": "version verify_set (path + receipted sha)",
-    "grade.terms": "version terms (version string + digest; G-LEAD-50: no terms, no submission)",
     "weights.pay_share": "paying families from the registry (owner economics line, not code)",
 }
 
@@ -264,12 +264,12 @@ def probe_grade_copy_opacity():
 
 def probe_grade_verify_set():
     from carbon.challenge_kit import verify_practice
-    assert (family, version) in verify_practice.REGISTRY
+    assert verify_practice.registered(family, version)
 
 
 def probe_grade_terms():
     from carbon.challenge_validator import submission_terms
-    assert submission_terms.required_version(family, version) is not None
+    assert submission_terms.required_version(family, version) == "zz-terms-v0"
 
 
 def probe_crown_koth_key():

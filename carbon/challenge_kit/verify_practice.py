@@ -11,9 +11,9 @@ solved truths, pinned by its receipted sha256. One path, labelled practice, neve
 - design value, picks and the sealed minimums need Carbon's hidden pools: never computed here, always reported
   "not evaluated locally".
 
-A version uses this only when it is listed in `REGISTRY` with its kit's verify set path and receipted sha256. The
-registry is empty until each verify set lands (the version owner builds it; the Validator receipts its digest).
-Until then every practice keeps its current path unchanged.
+A version uses this only when it is listed in `REGISTRY`, or its exam registry row carries a ``verify_set``
+(`carbon.challenge_registry.exam_registry`), with its kit's verify set path and receipted sha256. Until its verify set
+lands (the version owner builds it; the Validator receipts its digest) a version's practice keeps its current path.
 
 It opens no evaluation pack, seed, sealed or private material. DEVELOPMENT practice feedback only.
 """
@@ -30,8 +30,8 @@ NOT_EVALUATED = "not evaluated locally"
 MOTOR = "electric-motor-magnetics"
 COOLING = "chip-cold-plate"
 
-#: (challenge id, version) -> (the verify set's path from the checkout root, its receipted sha256). Switching a
-#: version on = one row here, with the kit's file and the Validator-receipted digest. Empty until a set lands.
+#: (challenge id, version) -> (the verify set's path from the checkout root, its receipted sha256). Switching another
+#: version on = a ``verify_set`` in its exam registry row, with the kit's file and the Validator-receipted digest.
 REGISTRY: dict[tuple[str, str], tuple[str, str]] = {
     # Motor 1.8: the kit's verify set, digest receipted by the Validator (7 Nov, board 07:55).
     (MOTOR, "1.8"): (
@@ -75,16 +75,34 @@ class VerifySource:
         return [d["case_id"] for d in self.designs]
 
 
+def entry_of(challenge_id: str, version: str):
+    """(path, sha256) of the version's verify set: its row above, else its exam registry row's; None when it has none."""
+    own = REGISTRY.get((challenge_id, version))
+    if own is not None:
+        return own
+    from carbon.challenge_registry import exam_registry
+
+    try:
+        row = exam_registry.require(challenge_id, version, "verify_set")
+    except exam_registry.ExamRowRefused as refused:
+        raise VerifyPracticeRefused(
+            "verify_set_unregistered: " + str(refused)
+        ) from None
+    return None if row is None else (row["path"], row["sha256"])
+
+
 def registered(challenge_id: str, version: str) -> bool:
-    return (challenge_id, version) in REGISTRY
+    return entry_of(challenge_id, version) is not None
 
 
 def source(challenge_id: str, version: str, *, root=None, registry=None):
     """This version's verify-set practice source, or None when it keeps its current practice."""
     from carbon.challenge_kit import local_scorer
 
-    table = REGISTRY if registry is None else registry
-    entry = table.get((challenge_id, version))
+    if registry is None:
+        entry = entry_of(challenge_id, version)
+    else:
+        entry = registry.get((challenge_id, version))
     if entry is None:
         return None
     relative, sha256 = entry
@@ -93,6 +111,9 @@ def source(challenge_id: str, version: str, *, root=None, registry=None):
         raw = path.read_bytes()
     except OSError:
         raise VerifyPracticeRefused("verify_set_missing") from None
+    if challenge_id not in (MOTOR, COOLING):
+        document = _load_registered(raw, sha256)
+        return VerifySource(challenge_id, version, document, sha256)
     names = _input_names(challenge_id)
     if challenge_id == COOLING:
         document = _load_cooling(raw, sha256, names)
@@ -102,6 +123,60 @@ def source(challenge_id: str, version: str, *, root=None, registry=None):
     except local_scorer.ScorerRefused as refused:
         raise VerifyPracticeRefused("verify_set_invalid: " + str(refused)) from None
     return VerifySource(challenge_id, version, document, sha256)
+
+
+def _finite(value):
+    """Whether every number inside ``value`` (numbers, text, lists, objects) is finite."""
+    import math
+
+    if type(value) is dict:
+        return all(_finite(v) for v in value.values())
+    if type(value) is list:
+        return all(_finite(v) for v in value)
+    if type(value) is float:
+        return math.isfinite(value)
+    return value is None or type(value) in (int, str, bool)
+
+
+def _load_registered(raw, sha256):
+    """A registry version's verify set, only at its receipted digest: named designs that all carry the same finite inputs,
+    each with a finite truth. Its own practice measurement reads the truths; nothing here knows the Challenge.
+    """
+    import hashlib
+    import json
+
+    if hashlib.sha256(raw).hexdigest() != sha256:
+        raise VerifyPracticeRefused(
+            "verify_set_invalid: the bytes differ from the receipted sha256"
+        )
+    try:
+        document = json.loads(raw)
+    except ValueError:
+        raise VerifyPracticeRefused("verify_set_invalid: not JSON") from None
+    designs = document.get("designs") if type(document) is dict else None
+    if type(designs) is not list or not designs:
+        raise VerifyPracticeRefused("verify_set_invalid: no designs")
+    seen, names = set(), None
+    for design in designs:
+        case_id = design.get("case_id") if type(design) is dict else None
+        if type(case_id) is not str or not case_id or case_id in seen:
+            raise VerifyPracticeRefused(
+                "verify_set_invalid: each design needs its own case_id"
+            )
+        seen.add(case_id)
+        inputs, truth = design.get("inputs"), design.get("truth")
+        names = set(inputs) if names is None and type(inputs) is dict else names
+        if (
+            type(inputs) is not dict
+            or not inputs
+            or set(inputs) != names
+            or not all(type(v) in (int, float) and _finite(v) for v in inputs.values())
+            or type(truth) is not dict
+            or not truth
+            or not _finite(truth)
+        ):
+            raise VerifyPracticeRefused(f"verify_set_invalid: {case_id} is malformed")
+    return document
 
 
 def _input_names(challenge_id):

@@ -31,8 +31,8 @@ from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 
-#: Challenge version -> the terms version its submissions must accept (owner G-LEAD-50: Motor 1.9, RB 2.0, joint). The
-#: joint exam's entry lands with its registration head (H6), once its Challenge id exists.
+#: Challenge version -> the terms version its submissions must accept (owner G-LEAD-50: Motor 1.9, RB 2.0, joint). A
+#: version registered later names its terms in its exam registry row (``terms``: the version and its published sha256).
 TERMS_BY_VERSION = {
     ("electric-motor-magnetics", "1.9"): "carbon-submission-terms-v0",
     ("f08-ribbed-bracket", "2.0"): "carbon-submission-terms-v0",
@@ -56,6 +56,8 @@ RECORD_NAME = "submission_terms.sqlite3"
 NOT_ACCEPTED = "terms_not_accepted"
 MISMATCH = "terms_mismatch"
 UNAVAILABLE = "terms_unavailable"
+#: The terms version of a door whose registered terms cannot be read (never a published one).
+UNREADABLE = "terms-unreadable"
 
 _VERSION = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}")
 _SHA = re.compile(r"[0-9a-f]{64}")
@@ -70,7 +72,28 @@ class TermsUnavailable(Exception):
 
 def required_version(challenge_id, version):
     """The terms version a Challenge version's submissions must accept, or None (no terms: the door is unchanged)."""
-    return TERMS_BY_VERSION.get((challenge_id, version))
+    found = _registered(challenge_id, version)
+    return None if found is None else found[0]
+
+
+def _registered(challenge_id, version):
+    """(terms version, pinned sha256) of a Challenge version: the tables above, else its exam registry row; None when it
+    names none. A malformed row, or one that pins another text for a terms version pinned above, is `TermsUnavailable`:
+    never read as "no terms"."""
+    own = TERMS_BY_VERSION.get((challenge_id, version))
+    if own is not None:
+        return own, PINNED_SHA256[own]
+    from carbon.challenge_registry import exam_registry
+
+    try:
+        row = exam_registry.require(challenge_id, version, "terms")
+    except exam_registry.ExamRowRefused as refused:
+        raise TermsUnavailable() from refused
+    if row is None:
+        return None
+    if PINNED_SHA256.get(row["version"], row["sha256"]) != row["sha256"]:
+        raise TermsUnavailable()
+    return row["version"], row["sha256"]
 
 
 def path_of(terms_version):
@@ -133,11 +156,15 @@ def read_text(path, sha256):
 
 
 def for_door(challenge_id, version, text_path):
-    """This door's `Terms`, or None when its Challenge version requires none."""
-    terms_version = required_version(challenge_id, version)
-    if terms_version is None:
+    """This door's `Terms`, or None when its Challenge version requires none. Terms that cannot be read from the registry
+    give a door that is not ready: it starts, and refuses every submission."""
+    try:
+        found = _registered(challenge_id, version)
+    except TermsUnavailable:
+        return Terms(UNREADABLE, None, None)
+    if found is None:
         return None
-    sha = PINNED_SHA256[terms_version]
+    terms_version, sha = found
     return Terms(terms_version, sha, read_text(text_path, sha))
 
 
@@ -270,6 +297,7 @@ __all__ = [
     "RECORD_NAME",
     "TERMS_BY_VERSION",
     "UNAVAILABLE",
+    "UNREADABLE",
     "AcceptanceStore",
     "Terms",
     "TermsUnavailable",
