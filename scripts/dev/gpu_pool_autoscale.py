@@ -16,7 +16,7 @@ One ``tick`` per run (a host timer runs it every 5 minutes; nothing here loops o
    in every sample of that window at most `GRADE_SHORT` tasks wait to grade (builds, not grading, are the bottleneck:
    owner, 19 Nov 2026; otherwise the tick logs ``grade_bound`` and rents nothing), no
    box up has all its slots free (then the door, not the box count, holds the queue), nothing is being brought up,
-   no bring-up failed in the last `FAIL_BACKOFF_S`, the account holds fewer than ``max_boxes`` instances, one more
+   no bring-up failed in the last `FAIL_BACKOFF_S`, fewer than ``max_boxes`` counted instances (``count_scope``), one more
    keeps the hourly total within ``max_usd_per_hour`` and today's spend leaves room under ``max_usd_per_day``: launch
    ONE instance, then bring it up (`bring_up`, detached): pin its host key, ``gpu_box_up.py admin`` here with the
    admin key, ``gpu_box_up.py door`` on the door with the lane key (whose door_link step proves the door's own build
@@ -40,7 +40,9 @@ Pages are ALERT lines in the door's pager outbox (``page_outbox``; the pager ded
 bring-up, a failed release, the daily cap reached while builds wait. They name boxes, counts and USD only.
 
 Every launch, failure and release is a line in ``<state_dir>/log.jsonl`` with its price, hours and cost. Instances
-this tool did not launch (``name_prefix``) count toward the box and dollar caps but are never touched, unless ADOPTED
+this tool did not launch (``name_prefix``) count toward the box and dollar caps (``count_scope`` "account", the default)
+or are left out of them (``count_scope`` "prefix": only this pool's own boxes count, so a second build class's pool and
+the owner's one-off VMs do not take this pool's slots), and are never touched, unless ADOPTED
 (``adopt <box> --ip <ip>``: a box already up on the door, e.g. carbon-a100, put under the same idle release; owner
 17 Nov 2026, "I don't think we need an always on one"). ``tick --dry-run`` reads everything and changes nothing
 (no rent, drain, release, state or log line): it prints what a tick would do. It decides nothing scientific and reads
@@ -184,6 +186,9 @@ class Config:
     name_prefix: str = "carbon-pool-"
     max_boxes: int = 3
     max_usd_per_hour: float = 6.0
+    #: which instances count toward ``max_boxes`` / ``max_usd_per_hour``: "account" = every instance on the provider
+    #: account (the original rule); "prefix" = only this pool's ``name_prefix`` instances (one pool per build class)
+    count_scope: str = "account"
     #: the burst gaps above: p50 16.6 min is bridged, the long gaps (p90 81 min) are not paid for
     idle_release_s: int = 1800
     regions: tuple = ()
@@ -211,6 +216,17 @@ class Config:
         return f"{self.door_host_root}/remote-gpu-build-boxes.d"
 
 
+#: The owner's ceiling per instance type: (max boxes, max USD/h, the owner line). A config may only lower it; an
+#: instance type with no owner line here refuses to start (fail closed). Values come ONLY from owner lines.
+OWNER_POOL_CEILINGS = {
+    # Compute Ops 16 Nov 2026 (C2 / C8): "up to 3 boxes and USD 6/h total"
+    "gpu_1x_a100_sxm4": (3, 6.0, "C2/C8 (16 Nov 2026)"),
+    # G-LEAD-60 (23 Nov 2026): A6000 builds "on demand, same pool rules as the A100" = the A100's ceiling per pool
+    "gpu_1x_a6000": (3, 6.0, "G-LEAD-60 (23 Nov 2026), same pool rules as the A100"),
+}
+COUNT_SCOPES = ("account", "prefix")
+
+
 def load_config(path) -> Config:
     raw = json.loads(Path(path).read_text())
     raw.pop("_comment", None)
@@ -225,9 +241,19 @@ def load_config(path) -> Config:
     if "prewarm_utc" in raw:
         raw["prewarm_utc"] = tuple(tuple(w) for w in raw["prewarm_utc"])
     config = Config(**raw)
-    if not (0 < config.max_boxes <= 3) or not (0 < config.max_usd_per_hour <= 6.0):
+    ceiling = OWNER_POOL_CEILINGS.get(config.instance_type)
+    if ceiling is None:
+        raise SystemExit(f"no owner line for instance type {config.instance_type!r}")
+    boxes, usd_h, line = ceiling
+    if not (0 < config.max_boxes <= boxes) or not (
+        0 < config.max_usd_per_hour <= usd_h
+    ):
         # the owner's line is the ceiling; a config may only lower it
-        raise SystemExit("config exceeds the owner's line (<= 3 boxes, <= USD 6/h)")
+        raise SystemExit(
+            f"config exceeds the owner's line {line} (<= {boxes} boxes, <= USD {usd_h}/h)"
+        )
+    if config.count_scope not in COUNT_SCOPES:
+        raise SystemExit(f"count_scope: one of {COUNT_SCOPES}")
     if config.max_usd_per_day is None or not (
         0 < config.max_usd_per_day <= 24 * config.max_usd_per_hour
     ):
@@ -383,8 +409,13 @@ def _close_cost(state, record, now):
 
 
 def may_rent(instances, price_usd_h, config) -> bool:
-    """Within the owner's line after one more: at most ``max_boxes`` instances and ``max_usd_per_hour`` in total."""
+    """Within the owner's line after one more: at most ``max_boxes`` instances and ``max_usd_per_hour`` in total,
+    counted over the whole account, or over this pool's ``name_prefix`` instances only (``count_scope`` "prefix")."""
     live = [i for i in instances if i["status"] not in ("terminated", "terminating")]
+    if config.count_scope == "prefix":
+        live = [
+            i for i in live if (i.get("name") or "").startswith(config.name_prefix)
+        ]
     if len(live) + 1 > config.max_boxes:
         return False
     total = sum(i["price_usd_h"] for i in live) + price_usd_h

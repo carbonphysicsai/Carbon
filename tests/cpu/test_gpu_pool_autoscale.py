@@ -1498,3 +1498,59 @@ def test_config_checks_the_door_operator_check_args(tmp_path):
         path.write_text(json.dumps({**values, "door_operator_check_args": bad}))
         with pytest.raises(SystemExit, match="door_operator_check_args"):
             scale.load_config(path)
+
+
+def _write_config(tmp_path, config, **overrides):
+    path = tmp_path / "pool.json"
+    raw = {k: list(v) if type(v) is tuple else v for k, v in config.__dict__.items()}
+    path.write_text(json.dumps({**raw, **overrides}))
+    return path
+
+
+def test_each_instance_type_has_its_own_owner_ceiling(tmp_path):
+    """A6000 pool (G-LEAD-60: same pool rules as the A100) loads within 3 boxes and
+    USD 6/h; an instance type without an owner line refuses to start; no config may
+    exceed its type's ceiling."""
+    config = _config(tmp_path)
+    a6k = scale.load_config(
+        _write_config(
+            tmp_path,
+            config,
+            instance_type="gpu_1x_a6000",
+            name_prefix="carbon-a6k-",
+            max_boxes=3,
+        )
+    )
+    assert a6k.instance_type == "gpu_1x_a6000" and a6k.max_boxes == 3
+    for bad in (
+        {"instance_type": "gpu_1x_a10"},
+        {"instance_type": "gpu_1x_a6000", "max_boxes": 4},
+        {"instance_type": "gpu_1x_a6000", "max_usd_per_hour": 6.5},
+        {"count_scope": "everything"},
+    ):
+        with pytest.raises(SystemExit):
+            scale.load_config(_write_config(tmp_path, config, **bad))
+
+
+def _vm(ident, name, status="active", price=PRICE):
+    return {"id": ident, "name": name, "status": status, "ip": "x", "price_usd_h": price}
+
+
+def test_prefix_scope_counts_only_this_pools_boxes(tmp_path):
+    """count_scope "account" (default) counts every instance on the account;
+    "prefix" counts only this pool's boxes."""
+    others = [
+        _vm("a100", "carbon-pool-0101"),
+        _vm("vm1", "rb20-r1", price=1.29),
+        _vm("vm2", "rb20-hrb1-b2", price=1.29),
+        _vm("old", "carbon-a6k-0", status="terminated", price=1.09),
+    ]
+    a6k = {"instance_type": "gpu_1x_a6000", "name_prefix": "carbon-a6k-"}
+    account = _config(tmp_path, **a6k)
+    assert account.count_scope == "account"
+    assert not scale.may_rent(others, 1.09, account)  # 3 live on the account: at cap
+    pool = _config(tmp_path, count_scope="prefix", **a6k)
+    assert scale.may_rent(others, 1.09, pool)  # none of its own: room
+    mine = [_vm(f"m{k}", f"carbon-a6k-{k}", price=1.09) for k in range(3)]
+    assert not scale.may_rent(others + mine, 1.09, pool)  # 3 of its own: at its cap
+    assert scale.may_rent(others + mine[:2], 1.09, pool)
