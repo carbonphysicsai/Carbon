@@ -26,6 +26,7 @@ import re
 from types import MappingProxyType
 
 from . import exam_registry, pinned_module
+from .code_served import code_serves
 
 #: What a build module serves, each as ``function(challenge_id, version)`` (the shapes are `physical_public`'s,
 #: `physical_public_train.load_public_train`'s and `physical_pack`'s for the same names); and its ``SCOPE``.
@@ -52,17 +53,6 @@ SPEC_FIELDS = (
 )
 _BLOCK = {"module", "sha256", "graph_spec", "inference_program"}
 _OPTIONAL = {"total_wall_seconds"}
-#: The host-overlay versions the code's own tables serve (Motor 1.9's reserved one included). Closed: a later version is
-#: a row, never a new name here. Every version of the worker image's registry is code-served too (`code_serves`).
-CODE_SERVED_OVERLAY = frozenset(
-    {
-        ("chip-cold-plate", "1.7"),
-        ("chip-cold-plate", "1.8"),
-        ("electric-motor-magnetics", "1.6"),
-        ("electric-motor-magnetics", "1.8"),
-        ("electric-motor-magnetics", "1.9"),
-    }
-)
 _SHA = re.compile(r"[0-9a-f]{64}")
 _LOG = logging.getLogger(__name__)
 _REFUSED: dict = {}
@@ -70,14 +60,6 @@ _REFUSED: dict = {}
 
 class ExamBuildRefused(RuntimeError):
     """A version's registry row or build block is refused, or its module serves less than `FUNCTIONS` (Carbon's fault)."""
-
-
-def code_serves(challenge_id: str, version: str) -> bool:
-    """Whether the code's own tables serve the version (a build row for it is refused)."""
-    from carbon.challenge_kit import version_overlay
-
-    key = (challenge_id, version)
-    return key in CODE_SERVED_OVERLAY or not version_overlay.is_overlay(*key)
 
 
 def _count(value, low=1):

@@ -23,7 +23,7 @@ from carbon.challenge_kit import (
     version_registry,
 )
 from carbon.challenge_kit.task_wall_overrides import total_wall_seconds
-from carbon.challenge_registry import exam_build, exam_registry
+from carbon.challenge_registry import code_served, exam_build, exam_registry
 from carbon.development_session import direct_graph_construction_worker as worker
 from carbon.development_session import physical_graph_adapter_v2 as adapter
 from carbon.development_session.research_service import _practice_dtype
@@ -127,7 +127,7 @@ def test_the_code_served_overlay_list_is_closed():
     served = {
         key for key in version_registry.VERSIONS if version_overlay.is_overlay(*key)
     }
-    assert served <= exam_build.CODE_SERVED_OVERLAY
+    assert served <= code_served.CODE_SERVED_OVERLAY
     trains = {
         *physical_public_train.EXTENDED,
         *physical_public_train.FRESH_LAMBDA,
@@ -135,7 +135,7 @@ def test_the_code_served_overlay_list_is_closed():
     }
     for key in served:
         assert key in adapter.SPECS or version_registry.entry(*key).train in trains
-    assert len(exam_build.CODE_SERVED_OVERLAY) == 5
+    assert len(code_served.CODE_SERVED_OVERLAY) == 5
 
 
 def test_a_good_block_serves_its_module(row):
@@ -435,28 +435,69 @@ def test_each_build_module_imports_first_in_a_fresh_process(module):
     )
 
 
-def test_only_a_missing_host_package_means_a_container(monkeypatch):
-    """A broken host import raises; it is never read as 'no registered Specs'."""
-    for name, container in (
-        ("carbon.challenge_registry", True),
-        ("carbon.challenge_kit", True),
-        ("carbon.reconstruction.missing", False),
-        ("numpy", False),
-    ):
-        real = builtins.__import__
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "carbon.challenge_registry",
+        "carbon.challenge_kit",
+        "carbon.reconstruction.missing",
+        "numpy",
+    ],
+)
+def test_a_broken_host_import_raises_and_never_reads_as_a_container(
+    monkeypatch, missing
+):
+    """A host is the tree that holds the registry package: an import that fails there is a failure, never 'no Specs'."""
+    real = builtins.__import__
 
-        def broken(asked, *rest, _name=name, _real=real, **more):
-            if asked.startswith(("carbon.challenge_kit", "carbon.challenge_registry")):
-                raise ModuleNotFoundError(name=_name)
-            return _real(asked, *rest, **more)
+    def broken(asked, *rest, **more):
+        if asked.startswith(("carbon.challenge_kit", "carbon.challenge_registry")):
+            raise ModuleNotFoundError(name=missing)
+        return real(asked, *rest, **more)
 
-        with monkeypatch.context() as patch:
-            patch.setattr(builtins, "__import__", broken)
-            if container:
-                assert adapter._registered_specs() == {}
-            else:
-                with pytest.raises(ModuleNotFoundError):
-                    adapter._registered_specs()
+    assert adapter._ON_HOST
+    with monkeypatch.context() as patch:
+        patch.setattr(builtins, "__import__", broken)
+        with pytest.raises(ModuleNotFoundError):
+            adapter._registered_specs()
+
+
+def test_a_tree_without_the_registry_package_is_a_container(tmp_path, monkeypatch):
+    """Whatever else the process can import (an editable install of the repository included)."""
+    monkeypatch.setattr(adapter, "_ON_HOST", False)
+    monkeypatch.setattr(adapter, "_TREE", tmp_path)
+    assert adapter._registered_specs() == {}
+    spec = adapter.Spec(
+        *KEY, "zz-adapter", "zz-train", "0" * 64, 8, 2, 1, "float64", None
+    )
+    (tmp_path / adapter.STAGED_SPEC).write_bytes(adapter.staged_spec(spec))
+    assert adapter._registered_specs() == {KEY: spec}
+    (tmp_path / adapter.STAGED_SPEC).write_bytes(b"{}")
+    with pytest.raises(ValueError, match="staged graph spec differs"):
+        adapter._registered_specs()
+
+
+def test_no_staged_spec_file_lies_in_the_repository():
+    assert adapter._TREE == FIXTURES.parents[2]
+    assert not (adapter._TREE / adapter.STAGED_SPEC).exists()
+
+
+def test_the_public_train_loader_imports_no_exam_registry_for_a_code_served_version():
+    program = (
+        "import sys; from carbon.challenge_kit import physical_public_train as p;"
+        "[p.load_public_train(*k) for k in (('electric-motor-magnetics', '1.8'),"
+        " ('chip-cold-plate', '1.8'), ('chip-cold-plate', '1.2'))];"
+        "print([m for m in sys.modules if '.exam' in m])"
+    )
+    done = subprocess.run(
+        [sys.executable, "-c", program],
+        cwd=FIXTURES.parents[2],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=300,
+    )
+    assert done.stdout.strip() == "[]"
 
 
 def test_a_registered_spec_reads_back_from_its_row(row):

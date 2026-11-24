@@ -391,8 +391,10 @@ SPECS = {
 }
 #: The Specs the code declares; every other one comes from the exam registry (`_registered_specs`).
 CODE_SPECS = frozenset(SPECS)
-#: The host packages a build container does not have: only their absence means "in a container" (`_registered_specs`).
-_HOST_PACKAGES = ("carbon.challenge_kit", "carbon.challenge_registry")
+#: This module's own tree. A host's has the registry package in it; a build container's has only the staged modules, so
+#: which one this is is read from the tree, never from what else a process can import.
+_TREE = Path(__file__).resolve().parents[2]
+_ON_HOST = (_TREE / "carbon" / "challenge_registry").is_dir()
 #: The one file a build container of a registry version is staged with: its Spec (`staged_spec`).
 STAGED_SPEC = "graph-spec.json"
 _SPEC_FIELDS = (
@@ -426,19 +428,17 @@ def _registered_specs() -> dict:
     """The Specs of the versions the exam registry's build rows serve (`exam_build`): on the host, from the rows and the
     version registry; in a build container, which has neither, from the one staged Spec, if any.
     """
-    try:
-        from carbon.challenge_kit import version_registry
-        from carbon.challenge_registry import exam_build
-    except ModuleNotFoundError as missing:
-        if missing.name not in _HOST_PACKAGES:
-            raise
-        staged = Path(__file__).resolve().parents[2] / STAGED_SPEC
+    if not _ON_HOST:
+        staged = _TREE / STAGED_SPEC
         if not staged.is_file():
             return {}
         fields = json.loads(staged.read_bytes())
         if set(fields) != set(_SPEC_FIELDS):
-            raise ValueError("staged graph spec differs") from None
+            raise ValueError("staged graph spec differs")
         return {(fields["challenge_id"], fields["version"]): Spec(**fields)}
+    from carbon.challenge_kit import version_registry
+    from carbon.challenge_registry import exam_build
+
     found = {}
     for key, row in exam_build.graph_specs().items():
         entry = version_registry.entry(*key)
@@ -488,12 +488,9 @@ def spec_for(challenge_id: str, version: str) -> Spec:
     """
     spec = SPECS.get((challenge_id, version))
     if spec is None:
-        try:
+        if _ON_HOST:
             from carbon.challenge_registry import exam_build
-        except ModuleNotFoundError as missing:
-            if missing.name not in _HOST_PACKAGES:
-                raise
-        else:
+
             exam_build.block(challenge_id, version)
         raise RecipeRefused(CODE + "challenge_version_unregistered")
     return spec
