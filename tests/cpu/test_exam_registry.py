@@ -26,6 +26,11 @@ GOOD = {
     "verify_set": {"path": "kits/zz/verify_set.json", "sha256": SHA},
     "published": {"path": "kits/zz/published.json", "sha256": SHA},
     "build": {"anything": 1},
+    "entry": {
+        "title": "Synthetic exam",
+        "portfolio": "launch",
+        "status": "open",
+    },
 }
 NESTED = 0
 for _ in range(exam_registry.MAX_DEPTH + 1):
@@ -137,6 +142,7 @@ def test_a_row_of_an_unregistered_version_answers_nothing(tmp_path):
         {"verify_set": {"path": "a//b", "sha256": SHA}},
         {"published": {"path": "a\\b", "sha256": SHA}},
         {"build": {}},
+        {"entry": {"title": "x", "portfolio": "launch", "status": "live"}},
         # an integer too large for a float, an infinite number, a value nested deeper than the bound
         {"solver_seconds_per_design": {"value": 10**400, "source": "s"}},
         {"rebuild_gpu_lane_hours": {"value": 10**400, "measurement_digest": DIGEST}},

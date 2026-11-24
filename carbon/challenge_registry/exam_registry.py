@@ -36,6 +36,7 @@ _KEY = re.compile(r"[a-z0-9][a-z0-9-]{0,63} [0-9]+(?:\.[0-9]+)*")
 _SHA = re.compile(r"[0-9a-f]{64}")
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _NAME = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}")
+_TITLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,.()&+/-]{0,119}")
 _PATH = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_][A-Za-z0-9_.-]*)*")
 
 
@@ -122,6 +123,15 @@ def _object(value):
     return type(value) is dict and bool(value)
 
 
+def _entry(value):
+    return (
+        _is(value, ("title", "portfolio", "status"))
+        and _matches(_TITLE, value["title"])
+        and value["portfolio"] in ("launch", "launch_pending_readiness")
+        and value["status"] in ("open", "retired")
+    )
+
+
 #: Every field a row may carry -> the check of its shape.
 FIELDS = {
     # the measured mean GPU-lane-hours of one graded submission (`exam_cap`)
@@ -136,6 +146,8 @@ FIELDS = {
     "published": _file,
     # the build side: the build reader owns its inner shape
     "build": _object,
+    # what a miner can list and select: the catalog entry (`exam_entry`)
+    "entry": _entry,
 }
 
 #: ``{(challenge id, version): (row, digest)}`` of every installed row, and ``{name: reason}`` of every refused one.

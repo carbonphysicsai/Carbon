@@ -391,7 +391,52 @@ def _pool_status(challenge_id, version):
     return IMPLEMENTED if registered else RESERVED
 
 
+def _registered_entries():
+    """The versions registered by data (`exam_entry`), as the code's own entries are."""
+    from . import exam_entry
+
+    found = []
+    for (challenge_id, version), row in exam_entry.rows().items():
+        retired = row["status"] == "retired"
+        found.append(
+            Entry(
+                challenge_id,
+                version,
+                row["title"],
+                RETIRED if retired else _pool_status(challenge_id, version),
+                row["portfolio"],
+                None,
+                (
+                    ExecutionProfile(
+                        CPU_RESEARCH,
+                        exam_entry.PROFILE_SUMMARY,
+                        "jax-cpu/isolated-carrier",
+                        ("docker_cli", "trusted_worker_image", "jax", "optax"),
+                    ),
+                ),
+                _registered_describe(challenge_id, version),
+                None,
+            )
+        )
+    return tuple(found)
+
+
+def _registered_describe(challenge_id, version):
+    def describe():
+        from . import exam_entry
+
+        return _with_graph_route(
+            exam_entry.describe(challenge_id, version), challenge_id, version
+        )
+
+    return describe
+
+
 def _entries():
+    return (*_code_entries(), *_registered_entries())
+
+
+def _code_entries():
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
         BATTERY_CONTRACT,

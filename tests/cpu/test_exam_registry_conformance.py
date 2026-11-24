@@ -59,6 +59,11 @@ EXAM_ROW = {
     },
     "solver_seconds_per_design": {"value": 100, "source": "synthetic"},
     "terms": {"version": "zz-terms-v0", "sha256": "b" * 64},
+    "entry": {
+        "title": "Synthetic exam",
+        "portfolio": "launch_pending_readiness",
+        "status": "open",
+    },
     "verify_set": {"path": "kits/zz/verify_set.json", "sha256": "c" * 64},
     "published": {
         "path": PUBLISHED,
@@ -238,7 +243,6 @@ KNOWN_GAPS = {
     "registry.family": "family_registry.json + reader (door-code #1, H1)",
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
     "build.trust": "a version's trust registration (derive module + sha, floor, epochs, learning rate) as build data",
-    "build.entry": "the miner-facing Entry of a registered version (title, status, portfolio, description) as data",
     "build.campaign": "the research campaign of a version its family's code names no builder for",
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
@@ -349,7 +353,19 @@ def probe_build_trust():
 
 def probe_build_entry():
     from carbon.challenge_registry import registry
-    assert registry._find(family, version).version == version
+    entry, = [e for e in registry.entries() if (e.challenge_id, e.version) == (family, version)]
+    assert (entry.title, entry.portfolio) == ("Synthetic exam", "launch_pending_readiness")
+    # known and offered as every pool version is: reserved until its own constants are registered and published
+    assert entry.status == registry.RESERVED
+    try:
+        registry._find(family, version)
+    except registry.ChallengeNotImplemented:
+        pass
+    else:
+        raise AssertionError("a version with no registered constants was selectable")
+    described = entry.describe()
+    assert described["construction_kit"]["version"] == version
+    assert described["graph_route"]["example"]["recipe"]["challenge"]["id"] == family
 
 
 def probe_build_campaign():
