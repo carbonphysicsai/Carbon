@@ -82,6 +82,23 @@ from .research_workspace import (
     request_capability,
 )
 
+#: The record kept for a refused graph build's closed detail code (owner G-LEAD-78): the code, bound to its task and receipt.
+GRAPH_REFUSAL_SCHEMA = "carbon.direct-graph-refusal.v1"
+
+
+def closed_refusal_detail(code):
+    """``code`` when it is a registered candidate refusal of the closed build table (`build_refusal_v2`), else None: a worker's
+    own text, an unregistered code or one of Carbon's gaps is never kept and never shown.
+    """
+    from . import build_refusal_v2
+
+    return (
+        code
+        if type(code) is str
+        and build_refusal_v2.CODES.get(code) == build_refusal_v2.REFUSED
+        else None
+    )
+
 
 class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
     def __init__(self, **kwargs):
@@ -2096,6 +2113,7 @@ class DirectDevelopmentTasksV3:
         cancellation=None,
         export_gap=None,
         build_refusal=None,
+        refusal_detail=None,
         infra=None,
     ):
         from dataclasses import replace
@@ -2151,6 +2169,19 @@ class DirectDevelopmentTasksV3:
                 "reason_code": build_refusal.code,
                 "operation": build_refusal.at,
                 "official_eligible": False,
+            }
+        if refusal_detail is not None:
+            if (
+                state is not DirectTaskStateV3.REFUSED
+                or receipt is None
+                or failure_evidence is not None
+            ):
+                raise ValueError("refusal detail requires a terminal refusal receipt")
+            failure_evidence = {
+                "schema": GRAPH_REFUSAL_SCHEMA,
+                "task_id": view.task_id.value,
+                "receipt_digest": digest(canonical_bytes(receipt)),
+                "detail_code": refusal_detail,
             }
         self._save(
             self._requests[view.task_id.value],
@@ -3135,6 +3166,12 @@ class DirectDevelopmentTasksV3:
                         and state is DirectTaskStateV3.REFUSED
                         else None
                     ),
+                    refusal_detail=(
+                        closed_refusal_detail(graph_decision.detail_code)
+                        if graph_decision is not None
+                        and state is DirectTaskStateV3.REFUSED
+                        else None
+                    ),
                 )
 
     def private_infra_diagnosis(self, task_id):
@@ -3184,6 +3221,8 @@ class DirectDevelopmentTasksV3:
         if row is None or len(row[0]) > 4096:
             return None
         record = json.loads(row[0])
+        if type(record) is dict and record.get("schema") == GRAPH_REFUSAL_SCHEMA:
+            return None  # a refused graph build's detail code (`refusal_detail`), never a classified bundle refusal
         if (
             type(record) is not dict
             or record.get("schema") != "carbon.direct-build-refusal.v1"
@@ -3193,6 +3232,35 @@ class DirectDevelopmentTasksV3:
         ):
             raise ValueError("retained build refusal custody differs")
         return record
+
+    def refusal_detail(self, task_id):
+        """The closed public detail code kept for a REFUSED graph build (owner G-LEAD-78, 24 Nov 2026), or None: a refusal
+        recorded before it, or one whose worker named no registered code."""
+        view = self._views.get(task_id.value)
+        if (
+            view is None
+            or view.state is not DirectTaskStateV3.REFUSED
+            or view.terminal_receipt is None
+        ):
+            return None
+        with self._db() as db:
+            row = db.execute(
+                "SELECT body FROM direct_evidence WHERE id=?", (task_id.value,)
+            ).fetchone()
+        if row is None or len(row[0]) > 4096:
+            return None
+        record = json.loads(row[0])
+        if type(record) is not dict or record.get("schema") != GRAPH_REFUSAL_SCHEMA:
+            return None  # another refusal's record (`private_refusal`)
+        if (
+            set(record) != {"schema", "task_id", "receipt_digest", "detail_code"}
+            or record["task_id"] != task_id.value
+            or record["receipt_digest"]
+            != digest(canonical_bytes(view.terminal_receipt))
+            or closed_refusal_detail(record["detail_code"]) is None
+        ):
+            raise ValueError("retained graph refusal custody differs")
+        return record["detail_code"]
 
     def private_attempt(self, task_id):
         """Trusted inspection only; public service never returns this record."""

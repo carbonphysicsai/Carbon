@@ -142,6 +142,11 @@ FEEDBACK_REPLY_SCHEMA_V11 = "carbon.private-exam.ladder-feedback-reply.v11"
 #: the caller reads that id for the result; else None and the state as v11. Never another hotkey's id. Opt-in (a kit pins
 #: v11's closed states); advertised as ``exam_feedback_v12``.
 FEEDBACK_REPLY_SCHEMA_V12 = "carbon.private-exam.ladder-feedback-reply.v12"
+#: v13 (owner G-LEAD-78, 24 Nov 2026) = v12 plus ``submission.refusal_detail``: for the caller's OWN submission whose graph
+#: build was refused (RECONSTRUCTION_FAILED), the closed public detail code of that refusal (`build_refusal_v2.CODES`, for
+#: example ``graph_route_nonfinite_state``), else None: a build refused before the code was kept, or one that named none.
+#: Never a worker's text, a number or anything of another hotkey's. Opt-in; advertised as ``exam_feedback_v13``.
+FEEDBACK_REPLY_SCHEMA_V13 = "carbon.private-exam.ladder-feedback-reply.v13"
 #: The grade state only a v12 reply names: Carbon re-ran this submission, uncharged, as ``rerun_task_id``.
 RERUN_STATE = "RERUN"
 #: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
@@ -229,6 +234,7 @@ def feedback_reply(fields):
         "v10",
         "v11",
         "v12",
+        "v13",
     ):
         return fields["reply"]
     return None
@@ -564,6 +570,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "tool": FEEDBACK_TOOL,
                             "fields": ["reply", "submission_id"],
                             "reply_schema": FEEDBACK_REPLY_SCHEMA_V12,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
+                        "exam_feedback_v13": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V13,
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
@@ -927,15 +940,17 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12"),
-                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12"),
-                v6=reply in ("v6", "v7", "v8", "v9", "v10", "v11", "v12"),
-                v7=reply in ("v7", "v8", "v9", "v10", "v11", "v12"),
-                v8=reply in ("v8", "v9", "v10", "v11", "v12"),
-                v9=reply in ("v9", "v10", "v11", "v12"),
-                v10=reply in ("v10", "v11", "v12"),
-                v11=reply in ("v11", "v12"),
-                v12=reply == "v12",
+                v4=reply
+                in ("v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"),
+                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"),
+                v6=reply in ("v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"),
+                v7=reply in ("v7", "v8", "v9", "v10", "v11", "v12", "v13"),
+                v8=reply in ("v8", "v9", "v10", "v11", "v12", "v13"),
+                v9=reply in ("v9", "v10", "v11", "v12", "v13"),
+                v10=reply in ("v10", "v11", "v12", "v13"),
+                v11=reply in ("v11", "v12", "v13"),
+                v12=reply in ("v12", "v13"),
+                v13=reply == "v13",
             )
         if received.call.tool == WITHDRAW_TOOL:
             return self._withdraw(received.receipt.hotkey, fields)
@@ -1121,6 +1136,7 @@ class DirectRecipeIntake(BatteryIntake):
         v10=False,
         v11=False,
         v12=False,
+        v13=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -1178,6 +1194,9 @@ class DirectRecipeIntake(BatteryIntake):
                 return _refused(503, "grade_state_unavailable")
             if rerun_task_id is not None:
                 grade_state, failure, held_position = RERUN_STATE, None, None
+        refusal_detail = None
+        if v13 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED":
+            refusal_detail = self._refusal_detail(submission_id)
         failure_class = None
         if v10 and submission_id is not None and grade_state == "FAILED_INFRA":
             failure_class = self._failure_class_row(submission_id)
@@ -1239,6 +1258,7 @@ class DirectRecipeIntake(BatteryIntake):
                         "schema": next(
                             schema
                             for flag, schema in (
+                                (v13, FEEDBACK_REPLY_SCHEMA_V13),
                                 (v12, FEEDBACK_REPLY_SCHEMA_V12),
                                 (v11, FEEDBACK_REPLY_SCHEMA_V11),
                                 (v10, FEEDBACK_REPLY_SCHEMA_V10),
@@ -1262,6 +1282,7 @@ class DirectRecipeIntake(BatteryIntake):
                             **({"grade_worker": self.grade_worker()} if v8 else {}),
                             **({"failure_class": failure_class} if v10 else {}),
                             **({"rerun_task_id": rerun_task_id} if v12 else {}),
+                            **({"refusal_detail": refusal_detail} if v13 else {}),
                         },
                     }
                 ),
@@ -1375,6 +1396,20 @@ class DirectRecipeIntake(BatteryIntake):
         if row is None or tuple(row) != infra_diagnosis.PUBLIC_ROW_KEYS:
             return None
         return row
+
+    def _refusal_detail(self, submission_id):
+        """The closed public detail code of the caller's own refused graph build (G-LEAD-78), or None (none kept,
+        unreadable). Checked against the closed table again: nothing else is ever served.
+        """
+        from carbon.development_session.research_tasks import closed_refusal_detail
+
+        reader = getattr(self.adapter, "refusal_detail", None)
+        try:
+            return closed_refusal_detail(
+                None if reader is None else reader(submission_id)
+            )
+        except Exception:  # noqa: BLE001
+            return None  # unreadable: no code, the state alone as before
 
     def _recipe_spot_row(self, submission_id):
         """G-LEAD-10 row 1: the closed recipe-side row (`infra_diagnosis.RECIPE_SPOT_ROW`: side yours, charged, spot

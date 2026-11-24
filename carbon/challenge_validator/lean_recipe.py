@@ -1171,6 +1171,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     ]
         return outcome
 
+    def refusal_detail(self, submission_id):
+        """The closed public detail code of this submission's own refused graph build (`research_tasks.refusal_detail`), or
+        None."""
+        from carbon.research import ResearchTaskId
+
+        owner = self.owner(submission_id)
+        if owner is None:
+            return None
+        reader = getattr(self._provider(owner), "refusal_detail", None)
+        return None if reader is None else reader(ResearchTaskId(submission_id))
+
     def failure_class(self, submission_id):
         """The closed failure class (`infra_diagnosis.classify`) of ``submission_id``'s FAILED_INFRA / UNRESOLVED task
         from its retained diagnosis, or None (no diagnosis, another state, unreadable).
