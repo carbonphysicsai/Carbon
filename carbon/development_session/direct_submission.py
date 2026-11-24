@@ -697,11 +697,51 @@ FEEDBACK_V9_FACTS = {
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V9,
 }
 WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
-FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
+#: v10: v9 plus ``submission.failure_class``: for the signer's own FAILED_INFRA build, the closed public row of its failure
+#: class (`FAILURE_CLASS_KEYS`; side ``carbon``), else None (`direct_intake` FEEDBACK_REPLY_SCHEMA_V10, owner P0 20 Nov).
+FEEDBACK_REPLY_SCHEMA_V10 = "carbon.private-exam.ladder-feedback-reply.v10"
+FEEDBACK_V10_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V10,
+}
+#: v11: v10 plus the recipe-side row (side ``yours``) in ``failure_class`` for the signer's own RECONSTRUCTION_FAILED build whose
+#: daily spot was used (`direct_intake` FEEDBACK_REPLY_SCHEMA_V11, G-LEAD-10 row 1).
+FEEDBACK_REPLY_SCHEMA_V11 = "carbon.private-exam.ladder-feedback-reply.v11"
+FEEDBACK_V11_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V11,
+}
+#: v12: v11 plus ``submission.rerun_task_id``: when the DOOR re-ran the signer's own submission as a new task, grade state
+#: ``RERUN`` and the new id (read that id for the result), else None (`direct_intake` FEEDBACK_REPLY_SCHEMA_V12, miner-ux 6054,
+#: v2 6039 (3) / FINAL 885). Asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V12 = "carbon.private-exam.ladder-feedback-reply.v12"
+FEEDBACK_V12_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V12,
+}
+RERUN_STATE = "RERUN"
+#: The closed keys of a failure-class row (`infra_diagnosis.PUBLIC_ROW_KEYS`; a test holds them equal).
+FAILURE_CLASS_KEYS = (
+    "code",
+    "what_happened",
+    "side",
+    "charged",
+    "next_step",
+    "retried_or_owed",
+)
+#: A bound on one sentence of a failure-class row (a resource bound, not a policy value).
+MAX_FAILURE_CLASS_TEXT = 400
+FAILURE_PASSES =("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 GRADE_WORKER_KEYS = ("cpu_model", "cpu_count", "memory_bytes", "gpu")
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
 GRADE_STATES_V9 = (*GRADE_STATES_V5, WITHDRAWN_STATE)
+GRADE_STATES_V12 = (*GRADE_STATES_V9, RERUN_STATE)
+#: A task id a v12 reply may name as the re-run (the door's own ids; a resource bound on anything else).
+_TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,128}")
 #: A bound on the held count a reply may name (a resource bound, not a policy value).
 MAX_HELD = 100000
 FAILURE_CHILDREN = ("build", "inference")
@@ -811,6 +851,43 @@ def _held_position_v5(grade_state, held):
     )
 
 
+def _failure_class_v10(grade_state, row, *, v11):
+    """A v10 / v11 reply's ``failure_class``: None, or exactly the closed public row (`FAILURE_CLASS_KEYS`, plain bounded
+    sentences) on the one state that carries it: FAILED_INFRA (Carbon's side), or from v11 RECONSTRUCTION_FAILED (the
+    recipe's side). Anything else is refused, never trimmed."""
+    if row is None:
+        return True
+    if type(row) is not dict or set(row) != set(FAILURE_CLASS_KEYS):
+        return False
+    sentences = (row["what_happened"], row["next_step"], row["retried_or_owed"])
+    if not (
+        type(row["code"]) is str
+        and re.fullmatch(r"[a-z0-9_]{1,64}", row["code"]) is not None
+        and type(row["charged"]) is bool
+        and all(
+            type(text) is str
+            and 0 < len(text) <= MAX_FAILURE_CLASS_TEXT
+            and text.isprintable()
+            for text in sentences
+        )
+    ):
+        return False
+    if grade_state == "FAILED_INFRA":
+        return row["side"] == "carbon"
+    return v11 and grade_state == "RECONSTRUCTION_FAILED" and row["side"] == "yours"
+
+
+def _rerun_v12(grade_state, rerun_task_id, submission_id):
+    """A v12 reply's ``rerun_task_id``: a task id other than the asked one exactly when the state is RERUN, else None."""
+    if grade_state != RERUN_STATE:
+        return rerun_task_id is None
+    return (
+        type(rerun_task_id) is str
+        and _TASK_ID.fullmatch(rerun_task_id) is not None
+        and rerun_task_id != submission_id
+    )
+
+
 def read_exam_feedback(
     url,
     signer,
@@ -841,7 +918,19 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v9 = (
+    v12 = (
+        submission_id is not None
+        and facts.get("exam_feedback_v12") == FEEDBACK_V12_FACTS
+    )
+    v11 = v12 or (
+        submission_id is not None
+        and facts.get("exam_feedback_v11") == FEEDBACK_V11_FACTS
+    )
+    v10 = v11 or (
+        submission_id is not None
+        and facts.get("exam_feedback_v10") == FEEDBACK_V10_FACTS
+    )
+    v9 = v10 or (
         submission_id is not None and facts.get("exam_feedback_v9") == FEEDBACK_V9_FACTS
     )
     v8 = v9 or (
@@ -880,7 +969,9 @@ def read_exam_feedback(
         fields=(
             {
                 "reply": (
-                    "v9"
+                    "v12"
+                    if v12
+                    else "v11" if v11 else "v10" if v10 else "v9"
                     if v9
                     else (
                         "v8"
@@ -911,7 +1002,13 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V9
+            FEEDBACK_REPLY_SCHEMA_V12
+            if v12
+            else (
+                FEEDBACK_REPLY_SCHEMA_V11
+                if v11
+                else FEEDBACK_REPLY_SCHEMA_V10 if v10 else FEEDBACK_REPLY_SCHEMA_V9
+            )
             if v9
             else (
                 FEEDBACK_REPLY_SCHEMA_V8
@@ -956,13 +1053,17 @@ def read_exam_feedback(
             | ({"held_position"} if v5 else set())
             | ({"gate_failures"} if v6 else set())
             | ({"grade_worker"} if v8 else set())
+            | ({"failure_class"} if v10 else set())
+            | ({"rerun_task_id"} if v12 else set())
         )
         or answer["submission"]["submission_id"] != submission_id
         or (
             answer["submission"]["grade_state"] is not None
             and answer["submission"]["grade_state"]
             not in (
-                GRADE_STATES_V9
+                GRADE_STATES_V12
+                if v12
+                else GRADE_STATES_V9
                 if v9
                 else (
                     GRADE_STATES_V5
@@ -991,6 +1092,22 @@ def read_exam_feedback(
             )
         )
         or (v6 and not _gate_failures_v6(answer["submission"]["gate_failures"]))
+        or (
+            v10
+            and not _failure_class_v10(
+                answer["submission"]["grade_state"],
+                answer["submission"]["failure_class"],
+                v11=v11,
+            )
+        )
+        or (
+            v12
+            and not _rerun_v12(
+                answer["submission"]["grade_state"],
+                answer["submission"]["rerun_task_id"],
+                submission_id,
+            )
+        )
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     try:

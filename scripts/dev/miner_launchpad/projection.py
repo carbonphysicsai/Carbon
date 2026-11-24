@@ -494,7 +494,11 @@ GRADE_STATE_WORDS = {
     "ROUND_LIMIT_REACHED": "not graded: your key's graded exams for this round or this day were already used",
     "CROWN_HELD_FOR_REVIEW": "counted as your try: its crown change is held for review",
     "WITHDRAWN_BY_MINER": "withdrawn by you while it was still queued: not built, not graded, and it used no try",
+    # v12 (miner-ux 6054, v2 FINAL 885): the words name the new id when the reply carries it (`_why`)
+    "RERUN": "Carbon re-ran this submission at no charge under a new id; read that id for its result",
 }
+#: The v12 line with the new id (v2 6069, verbatim).
+RERUN_WORDS = "Carbon re-ran this submission at no charge as {}; read that id for its result"
 #: The failing step, what was observed and which pass (the receiver's closed ``failure``; ``pass`` from v8), in words.
 FAILURE_CHILD_WORDS = {
     "build": "the build of your model",
@@ -549,9 +553,11 @@ def _why(submission, task):
     for another task (a stale read after a resubmit), or anything this kit cannot name. Read only, never computed, and
     nothing measured (the receiver sends no seconds or memory of a hidden-input run)."""
     from carbon.development_session.direct_submission import (
+        _failure_class_v10,
         _failure_v4,
         _failure_v8,
         _grade_worker_v8,
+        _rerun_v12,
     )
 
     if (
@@ -590,6 +596,21 @@ def _why(submission, task):
         "failure": None if failure is None else dict(failure),
         "words": words,
     }
+    rerun = submission.get("rerun_task_id")
+    if (
+        state == "RERUN"
+        and rerun is not None
+        and _rerun_v12(state, rerun, submission["submission_id"])
+    ):
+        # v12: the door re-ran this submission as a new task: name it, so the miner reads that id (never QUEUED here)
+        shown["rerun_task_id"] = rerun
+        shown["words"] = RERUN_WORDS.format(rerun)
+    row = submission.get("failure_class")
+    if row is not None and _failure_class_v10(state, row, v11=True):
+        # v10 / v11: the closed public row of this failure (what happened, whose side, the next step), as sent
+        shown["failure_class"] = dict(row)
+        sentences = (row["what_happened"], row["next_step"])
+        shown["words"] += "".join(". " + text.rstrip(".") for text in sentences)
     worker = submission.get("grade_worker")
     if worker is not None and _grade_worker_v8(worker):
         shown["grade_worker"] = dict(worker)
