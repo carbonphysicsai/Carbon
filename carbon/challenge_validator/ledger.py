@@ -576,6 +576,34 @@ class AttemptLedger:
     #: The code of the accepted-submission row a build requeue copies (`requeue_failed_build`): the door's, not a miner's.
     BUILD_REQUEUED = "build_requeued"
 
+    def requeued_as(self, contract_digest, from_task, hotkey):
+        """The task id the DOOR re-ran ``from_task`` as, for ``hotkey``'s own task, else None (miner-ux 6054, v2 6039 (3)):
+        the place grant from ``from_task`` whose new task's first OUTCOME row is the door's requeue (`BUILD_REQUEUED`)
+        under the same hotkey. A miner's own resubmission (a grant without the requeue code) is never named here, and no
+        other hotkey's id ever is. Read only."""
+        values = (contract_digest, from_task, hotkey)
+        if not all(type(value) is str and value for value in values):
+            return None
+        with self._db() as db:
+            grant = db.execute(
+                "SELECT new_task FROM queue_place_grants WHERE contract_digest=? AND from_task=?",
+                (contract_digest, from_task),
+            ).fetchone()
+            if grant is None:
+                return None
+            first = db.execute(
+                "SELECT hotkey, code FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=? "
+                "ORDER BY seq LIMIT 1",
+                (contract_digest, grant[0]),
+            ).fetchone()
+        if (
+            first is None
+            or first[1] != self.BUILD_REQUEUED
+            or first[0] != _kept(hotkey)
+        ):
+            return None
+        return grant[0]
+
     def requeue_failed_build(
         self,
         contract_digest,

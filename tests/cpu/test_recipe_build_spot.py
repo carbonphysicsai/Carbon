@@ -349,4 +349,4 @@ def test_only_a_v11_reply_carries_the_recipe_row():
         'v11 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED"'
         in text
     )
-    assert 'v10=reply in ("v10", "v11")' in text
+    assert 'v10=reply in ("v10", "v11", "v12")' in text

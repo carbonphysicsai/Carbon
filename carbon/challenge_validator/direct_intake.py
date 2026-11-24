@@ -135,6 +135,14 @@ FEEDBACK_REPLY_SCHEMA_V10 = "carbon.private-exam.ladder-feedback-reply.v10"
 #: recipe-side row in ``submission.failure_class`` (`infra_diagnosis.RECIPE_SPOT_ROW`: side yours, charged). v10 keeps None
 #: there. Opt-in (a kit pins v10's closed rows); advertised as ``exam_feedback_v11``.
 FEEDBACK_REPLY_SCHEMA_V11 = "carbon.private-exam.ladder-feedback-reply.v11"
+#: v12 (miner-ux 6054, v2 6039 (3); live 24 Nov: three of Martin Guthrie's ids read QUEUED after Carbon re-ran them under new
+#: ids) = v11 plus ``submission.rerun_task_id``: for the caller's OWN submission that the DOOR re-ran as a new task
+#: (`AttemptLedger.requeued_as`: its requeue, never a miner's own resubmission), grade_state ``RERUN`` and the new id, so
+#: the caller reads that id for the result; else None and the state as v11. Never another hotkey's id. Opt-in (a kit pins
+#: v11's closed states); advertised as ``exam_feedback_v12``.
+FEEDBACK_REPLY_SCHEMA_V12 = "carbon.private-exam.ladder-feedback-reply.v12"
+#: The grade state only a v12 reply names: Carbon re-ran this submission, uncharged, as ``rerun_task_id``.
+RERUN_STATE = "RERUN"
 #: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
 WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
 #: A miner withdraws its OWN queued, not-yet-building submission (owner GO 15 Nov 2026 via the Lead): signed by the same hotkey,
@@ -219,6 +227,7 @@ def feedback_reply(fields):
         "v9",
         "v10",
         "v11",
+        "v12",
     ):
         return fields["reply"]
     return None
@@ -540,6 +549,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "tool": FEEDBACK_TOOL,
                             "fields": ["reply", "submission_id"],
                             "reply_schema": FEEDBACK_REPLY_SCHEMA_V11,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
+                        "exam_feedback_v12": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V12,
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
@@ -874,14 +890,15 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"),
-                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10", "v11"),
-                v6=reply in ("v6", "v7", "v8", "v9", "v10", "v11"),
-                v7=reply in ("v7", "v8", "v9", "v10", "v11"),
-                v8=reply in ("v8", "v9", "v10", "v11"),
-                v9=reply in ("v9", "v10", "v11"),
-                v10=reply in ("v10", "v11"),
-                v11=reply == "v11",
+                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12"),
+                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12"),
+                v6=reply in ("v6", "v7", "v8", "v9", "v10", "v11", "v12"),
+                v7=reply in ("v7", "v8", "v9", "v10", "v11", "v12"),
+                v8=reply in ("v8", "v9", "v10", "v11", "v12"),
+                v9=reply in ("v9", "v10", "v11", "v12"),
+                v10=reply in ("v10", "v11", "v12"),
+                v11=reply in ("v11", "v12"),
+                v12=reply == "v12",
             )
         if received.call.tool == WITHDRAW_TOOL:
             return self._withdraw(received.receipt.hotkey, fields)
@@ -1066,6 +1083,7 @@ class DirectRecipeIntake(BatteryIntake):
         v9=False,
         v10=False,
         v11=False,
+        v12=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -1111,6 +1129,18 @@ class DirectRecipeIntake(BatteryIntake):
                 grade_state = (
                     None  # CANDIDATE_FAILED is v3's; a v2 reply keeps its closed set
                 )
+        rerun_task_id = None
+        if v12 and submission_id is not None:
+            # the DOOR re-ran the caller's own submission as a new task (never a miner's own resubmission): say so and
+            # name the new id, instead of the old id's QUEUED / FAILED_INFRA (v2 6039 (3))
+            try:
+                rerun_task_id = self.adapter.ledger.requeued_as(
+                    self.adapter.contract_digest, submission_id, hotkey
+                )
+            except (LookupError, ValueError, OSError, AttributeError):
+                return _refused(503, "grade_state_unavailable")
+            if rerun_task_id is not None:
+                grade_state, failure, held_position = RERUN_STATE, None, None
         failure_class = None
         if v10 and submission_id is not None and grade_state == "FAILED_INFRA":
             failure_class = self._failure_class_row(submission_id)
@@ -1172,6 +1202,7 @@ class DirectRecipeIntake(BatteryIntake):
                         "schema": next(
                             schema
                             for flag, schema in (
+                                (v12, FEEDBACK_REPLY_SCHEMA_V12),
                                 (v11, FEEDBACK_REPLY_SCHEMA_V11),
                                 (v10, FEEDBACK_REPLY_SCHEMA_V10),
                                 (v9, FEEDBACK_REPLY_SCHEMA_V9),
@@ -1193,6 +1224,7 @@ class DirectRecipeIntake(BatteryIntake):
                             **({"gate_failures": gate_failures} if v6 else {}),
                             **({"grade_worker": self.grade_worker()} if v8 else {}),
                             **({"failure_class": failure_class} if v10 else {}),
+                            **({"rerun_task_id": rerun_task_id} if v12 else {}),
                         },
                     }
                 ),
