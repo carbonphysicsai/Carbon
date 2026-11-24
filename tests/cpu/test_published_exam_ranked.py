@@ -1,5 +1,5 @@
 """The published text follows the crown row: a menu-headroom version whose row says ``"score": "A"`` states accuracy alone; with
-no such row every published block is the one it was (the committed rows name none, so this changes nothing today).
+no such row every published block is the one it was. Motor 1.8's committed row names accuracy.
 """
 
 from __future__ import annotations
@@ -109,10 +109,29 @@ def test_a_row_the_crown_rule_refuses_states_nothing_new(tmp_path, monkeypatch, 
     assert _digest(pe.for_version(*KEY)) == BLOCK_18
 
 
+def _before_and_after(tmp_path, monkeypatch, wanted):
+    """Every wanted block with Motor 1.8's row naming the total, then naming accuracy (whatever the committed row says)."""
+    found = []
+    for name, entry in (
+        ("total", {"margin": 0.5}),
+        ("accuracy", {"margin": 0.5, "score": "A"}),
+    ):
+        folder = tmp_path / name
+        folder.mkdir()
+        _rows(folder, monkeypatch, entry)
+        keys = [key for key in pe.served() if wanted(key)]
+        found.append({key: pe.for_version(*key) for key in keys})
+    return found
+
+
+def test_the_committed_row_names_accuracy():
+    assert pe.ranked_by_accuracy(*KEY)
+    assert pe.for_version(*KEY)["score"]["formula"] == "TOTAL = A"
+
+
 def test_everything_else_the_block_states_is_the_same(tmp_path, monkeypatch):
-    before = pe.for_version(*KEY)
-    _rows(tmp_path, monkeypatch, {"margin": 0.5, "score": "A"})
-    after = pe.for_version(*KEY)
+    before, after = _before_and_after(tmp_path, monkeypatch, lambda key: key == KEY)
+    before, after = before[KEY], after[KEY]
     changed = {"score", "how_you_are_tested", "practice_vs_exam", "design_search"}
     assert set(before) - set(after) == {"design_search"}
     for name in set(after) - changed:
@@ -120,9 +139,7 @@ def test_everything_else_the_block_states_is_the_same(tmp_path, monkeypatch):
 
 
 def test_no_other_version_moves(tmp_path, monkeypatch):
-    before = {key: _digest(pe.for_version(*key)) for key in pe.served()}
-    _rows(tmp_path, monkeypatch, {"margin": 0.5, "score": "A"})
-    after = {key: _digest(pe.for_version(*key)) for key in pe.served()}
+    before, after = _before_and_after(tmp_path, monkeypatch, lambda key: True)
     assert {key for key in before if before[key] != after[key]} == {KEY}
 
 

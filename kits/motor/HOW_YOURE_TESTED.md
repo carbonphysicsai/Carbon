@@ -36,8 +36,9 @@ recipe on this TRAIN only, never on your kit data.
 
 ## 2. How you're scored
 
-`TOTAL = 0.5 x physics + 0.5 x design value`, 0 to 1, higher is better.
-Gates come first: a failed gate means no score, however good the rest.
+`TOTAL = A`, the physics part below, 0 to 1, higher is better. Design value is
+not counted. Gates come first: a failed gate means no score, however good the
+rest.
 
 **The physics part: how much of the room above classical methods you fill.**
 
@@ -80,25 +81,12 @@ Gates come first: a failed gate means no score, however good the rest.
   for mean torque, 11.44 U for torque ripple (peak to peak) and 73.01 U for
   open-circuit back-EMF, on Carbon's hidden in-range cases.
 
-**Design value: picking the best designs from a menu.**
+**One answer per design.**
 
-- For each design task Carbon solves a large set of candidate designs in
-  advance, kept sealed.
-- Your model predicts every candidate design, each on its own: a prediction
-  must not depend on which other designs are in the batch. Carbon re-checks
-  this; if your predictions change with the batch, design value is 0 for that
-  grade.
-- Only a sample of the candidates counts, drawn after your predictions, so
-  you cannot know which designs count. The sample changes on a registered
-  schedule (every 7 days), and every grade in that period uses
-  the same sample, so a king and a challenger are scored on the same designs.
-- The designs are ranked by your predictions, with each design limit backed
-  off by U, and your top five picks are looked up in the solved truths. A
-  pick that truly breaks a limit scores 0. The five picks are weighted 0.4,
-  0.25, 0.15, 0.12 and 0.08.
-- The zero is the best of Carbon's classical picks on the same sample (and
-  a random pick); the 1 is the best five picks possible from that sample. A design task's score is clipped to 0 to 1.
-- Carbon draws 3 design tasks per epoch.
+- Your model predicts every design on its own: a prediction must not depend on
+  which other designs are in the batch. Carbon re-checks this in a fresh run.
+- A grade is ranked only when its result shows that your model answers each
+  design the same way whatever else is in the batch.
 
 **Hard gates on every answer.**
 
@@ -124,8 +112,8 @@ Gates come first: a failed gate means no score, however good the rest.
 - Speed limit for Motor 1.8: **HUMAN_INPUT** (Motor 1.5: each design
   answered in at most 3.3 s on the validator's machine).
 
-**What you see:** your total and your status. Per-case and per-class results
-are not shown, and the hidden sample rotates.
+**What you see:** your score and your status. Per-case and per-class results
+are not shown.
 
 ## 3. What we test
 
@@ -144,9 +132,8 @@ are not shown, and the hidden sample rotates.
 - **Outside the training range:** hidden classes include cases outside the
   training range. The kinds Motor 1.8 tests include saturation (current
   densities past where the iron starts to saturate) and cogging at zero
-  current. These cases count for the physics part, for the design menus and
-  for the gates. Their extents are never published. Cross-saturation is not
-  scored in Motor 1.8.
+  current. These cases count for the physics part and for the gates. Their
+  extents are never published. Cross-saturation is not scored in Motor 1.8.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
 
@@ -163,22 +150,21 @@ are not shown, and the hidden sample rotates.
 
 ## 5. The crown
 
-- Every graded total is shown rounded down to the Ladder step, so totals
-  within one step show the same number.
+- Every score is shown rounded down to the Ladder step, so scores within one
+  step show the same number.
 - Crowns come straight from your official graded score; there are no crown
   rebuilds. A grade that passes every gate and minimum takes the crown when
-  its official total beats the sitting king's official total by more than the
+  its official score beats the sitting king's official score by more than the
   registered margin, 0.0129; a tie, or anything within the margin, keeps the
   king. Contenders
   are decided in queue order, each against the king of that moment. An
   infrastructure failure is retried and never counts against you.
 - The king's public page shows the score to beat: an official score above it,
-  passing every gate and minimum, takes the crown. Public totals are rounded
+  passing every gate and minimum, takes the crown. Public scores are rounded
   down to the Ladder step, so the page also shows the range the exact bar (the
-  king's official total plus the margin) lies in.
-- When there is no king, a grade takes the crown only if its official total
-  is above the floor, currently 0.05 (provisional, set by the owner), by more
-  than the same margin.
+  king's official score plus the margin) lies in.
+- When there is no king, the first crown waits until a floor on this score is
+  registered.
 
 ## 6. Rules for your graph
 

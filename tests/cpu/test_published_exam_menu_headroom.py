@@ -50,8 +50,10 @@ def _words(value, sources=True):
 
 @pytest.fixture
 def registered(monkeypatch):
-    """Motor 1.8 as it will be once its row is complete (the flip is the final registration commit)."""
+    """Motor 1.8 as its registration states it while its crown row names the total (`test_published_exam_ranked` has the
+    text of a row that names accuracy)."""
     monkeypatch.setitem(pe._REGISTERED_POOL, MOTOR_18, pe.MOTOR_18_REGISTRATION)
+    monkeypatch.setattr(pe, "ranked_by_accuracy", lambda *_key: False)
     return pe.for_version(*MOTOR_18)
 
 

@@ -97,7 +97,9 @@ def test_only_the_pool_versions_are_pool_graded():
         block = pe.for_version(*key)
         if key in pe._POOL_VERSIONS:
             assert block["schema"] == pe.SCHEMA_POOL
-            if key in pe._REGISTERED_POOL:
+            if pe.ranked_by_accuracy(*key):
+                assert "design_search" not in block
+            elif key in pe._REGISTERED_POOL:
                 assert block["design_search"] != pe._DESIGN_SEARCH
             else:
                 assert block["design_search"] is pe._DESIGN_SEARCH
@@ -349,7 +351,10 @@ def test_motor_1_8_publishes_its_own_registered_block():
     own = pe.registered_pool(*MOTOR_18)
     assert own is not None and own == pe.MOTOR_18_REGISTRATION
     block = pe.for_version(*MOTOR_18)
-    assert block["design_search"] is not pe._DESIGN_SEARCH
+    if pe.ranked_by_accuracy(*MOTOR_18):
+        assert "design_search" not in block
+    else:
+        assert block["design_search"] is not pe._DESIGN_SEARCH
     assert set(block) <= pe.ALLOWED_FIELDS
     words = " ".join(_walk(block)).lower()
     for word in WITHHELD:

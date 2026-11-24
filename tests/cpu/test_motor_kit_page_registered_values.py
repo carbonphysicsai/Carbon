@@ -43,7 +43,9 @@ def test_page_shows_the_registered_in_range_gate_read_from_the_pool_row():
     assert statistic == "p90"
     assert set(limits) == set(GATE_OUTPUT_WORDS)
     text = _page()
-    gate = re.search(r"The threshold, as registered: (.*?) Design value", text)
+    gate = re.search(
+        r"The threshold, as registered: (.*?) \*\*One answer per design", text
+    )
     assert gate is not None, "the in-range gate bullet is missing"
     paragraph = gate.group(1)
     assert f"({statistic})" in paragraph
@@ -58,14 +60,27 @@ def test_page_does_not_call_the_registered_in_range_threshold_human_input():
     assert "HUMAN_INPUT" not in nearby
 
 
-def test_page_shows_the_registered_menu_rotation_and_tasks_and_no_query_budget():
-    menu = _row()["menu"]
-    for leaf in (menu["rotation_days"], menu["tasks_per_epoch"]):
-        assert type(leaf) is int, "a leaf this test reads is still HUMAN_INPUT"
+def test_page_states_the_number_that_ranks_and_no_design_menu():
+    """The crown row ranks Motor 1.8 by its accuracy result, so the page states no design value rule: no menu, draw, task
+    count or schedule. The row check still counts, and its pass name is still described.
+    """
+    assert _registry("crown_official_score.json")["versions"][ROW]["score"] == "A"
     text = _page()
-    assert f"(every {menu['rotation_days']} days)" in text
-    assert f"Carbon draws {menu['tasks_per_epoch']} design tasks per epoch." in text
-    # Motor 1.8 is menu D with no search: the row's optimizer budget is a pick-D leftover and is not published
+    assert "`TOTAL = A`, the physics part below, 0 to 1, higher is better." in text
+    assert "Design value is not counted." in text
+    for gone in (
+        "0.5 x physics",
+        "design tasks per epoch",
+        "top five picks",
+        "from a menu",
+        "design menus",
+        "the hidden sample rotates",
+        "(every 7 days)",
+    ):
+        assert gone not in text, gone
+    assert "A grade is ranked only when its result shows" in text
+    assert "`menu_rowcheck`: " in text
+    # the row's optimizer budget is a pick-D leftover and is not published
     assert "model-call budget" not in text
 
 
@@ -82,20 +97,17 @@ def _section(heading):
     return " ".join(text[start : len(text) if end < 0 else end].split())
 
 
-def test_page_crown_section_shows_the_registered_official_score_rule_and_floor():
+def test_page_crown_section_shows_the_registered_official_score_rule():
     margin = _registry("crown_official_score.json")["versions"][ROW]["margin"]
-    floor = next(
-        row["value"]
-        for row in _registry("crown_floor.json")["floors"]
-        if (row["challenge"], row["version"]) == ("electric-motor-magnetics", "1.8")
-    )
     crown = _section("## 5. The crown")
     assert f"registered margin, {margin:g};" in crown
     assert "a tie, or anything within the margin, keeps the king" in crown
+    # the registered floor is a floor on the total: on the number that ranks now none is registered, and a first crown waits
     assert (
-        f"When there is no king, a grade takes the crown only if its official total is above the floor, "
-        f"currently {floor:g} (provisional, set by the owner), by more than the same margin."
-    ) in crown
+        "When there is no king, the first crown waits until a floor on this score is registered."
+        in crown
+    )
+    assert "official total" not in crown
     assert "there are no crown rebuilds" in crown
     # the retired rebuild-average rule and the review hold are not described
     assert "10-rebuild" not in crown and "rebuilds that model" not in crown

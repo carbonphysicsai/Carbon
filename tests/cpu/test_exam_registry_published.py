@@ -57,8 +57,9 @@ BLOCKS = {
         "d20e27149881f84debd19d61485e8cc015955d9153a9ac6fbf0efbbd0fc26925",
         False,
     ),
+    # Motor 1.8 while its crown row names accuracy; its text under the total is pinned in test_published_exam_ranked
     (MOTOR, "1.8"): (
-        "c68499439d0634288e700c4b59e7c032dc29caecc7e707a452e08f7e6f544080",
+        "5dce8b8a8450b2bdc5351d107fe21c80c7e839bc2e03f6ace5a91c64cb0e8c34",
         True,
     ),
     ("f02", "2.4"): (
