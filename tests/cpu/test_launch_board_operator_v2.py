@@ -567,7 +567,7 @@ def test_before_any_pool_store_the_v2_board_is_the_empty_one(tmp_path, door, fro
 @pytest.mark.parametrize(
     "change",
     [
-        lambda c: c.update(board="v7"),  # v3, v4, v5 and v6 are real boards now
+        lambda c: c.update(board="v8"),  # v3, v4, v5, v6 and v7 are real boards now
         lambda c: c["challenges"][0].pop("pool_store"),
         lambda c: c["challenges"][0].pop("contract_digest"),
         lambda c: c["challenges"][0].update(pool_store="relative/pool.sqlite3"),
