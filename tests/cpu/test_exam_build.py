@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 import carbon
@@ -20,8 +21,10 @@ from carbon.challenge_kit import (
     version_overlay,
     version_registry,
 )
+from carbon.challenge_kit.task_wall_overrides import total_wall_seconds
 from carbon.challenge_registry import exam_build, exam_registry
 from carbon.development_session import physical_graph_adapter_v2 as adapter
+from carbon.development_session.research_service import _practice_dtype
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "exam_registry"
 #: Every registered version's build documents on main d2c356f5, read BEFORE the build sites asked the registry
@@ -88,7 +91,9 @@ def row(monkeypatch):
         version_registry,
         "entry",
         lambda *key: (
-            SimpleNamespace(graph_adapter=held.get("adapter", "v2"))
+            SimpleNamespace(
+                graph_adapter=held.get("adapter", "v2"), rebuild_wall_seconds=648
+            )
             if key == KEY
             else real_entry(*key)
         ),
@@ -164,6 +169,9 @@ def _spec(**changes):
         _block(graph_spec=_spec(trust_outputs=-1)),
         _block(graph_spec=_spec(train_sha256="00")),
         _block(graph_spec={"rows": 8}),
+        _block(total_wall_seconds=version_registry.task_wall_seconds(648) - 1),
+        _block(total_wall_seconds=2000.0),
+        _block(total_wall_seconds=None),
         _block(graph_spec=_spec(trust_outputs=1), inference_program="per_case"),
     ],
 )
@@ -280,6 +288,28 @@ def test_a_refused_row_of_a_built_in_family_is_never_served_by_the_family(
     result = json.loads(done.stdout.strip().splitlines()[-1])
     assert result.pop("live") == live
     assert set(result.values()) == {"refused"}, result
+
+
+def test_the_row_names_its_own_whole_task_wall_and_no_other_moves(row):
+    walls = {
+        key: total_wall_seconds(*key, 648) for key in sorted(version_registry.VERSIONS)
+    }
+    floor = version_registry.task_wall_seconds(648)
+    assert total_wall_seconds(*KEY, 648) == floor
+    row["block"] = _block(total_wall_seconds=floor + 100)
+    assert total_wall_seconds(*KEY, 648) == floor + 100
+    assert walls == {key: total_wall_seconds(*key, 648) for key in walls}
+    assert walls[("electric-motor-magnetics", "1.8")] == 1590
+
+
+def test_the_practice_dtype_of_every_code_served_family_is_unchanged():
+    for challenge_id, version in version_registry.VERSIONS:
+        key = SimpleNamespace(challenge_id=challenge_id, version=version)
+        small = challenge_id in ("f08-ribbed-bracket", "f02")
+        assert _practice_dtype(key, float64_family=True) == (
+            np.float32 if small else np.float64
+        )
+        assert _practice_dtype(key, float64_family=False) == np.float32
 
 
 def test_a_version_without_graph_route_v2_names_no_spec(row):

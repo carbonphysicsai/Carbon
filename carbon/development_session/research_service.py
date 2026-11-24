@@ -24,6 +24,25 @@ from .research_resources import resources
 from .research_tasks import PublicDevelopmentResearchTasks, PublicResearchExecutor
 
 
+def _practice_dtype(key, *, float64_family: bool):
+    """The dtype of a version's practice arrays: the interface's of a version a registry build row serves
+    (`exam_build`), else the code-served families' own."""
+    import numpy as np
+
+    from carbon.challenge_kit.interface_dtype import output_dtype
+    from carbon.challenge_registry import exam_build
+
+    built = exam_build.module(key.challenge_id, key.version)
+    if built is not None:
+        return np.dtype(
+            output_dtype(built.interface_document(key.challenge_id, key.version))
+        )
+    # F08 and F02 are float32 numeric interfaces; Motor, Cooling and Battery are float64.
+    if key.challenge_id in ("f08-ribbed-bracket", "f02"):
+        return np.float32
+    return np.float64 if float64_family else np.float32
+
+
 class Compiler(research.B02BCompilationProvider):
     def _compile(self, request):
         # Also check actual installed Model/TrainConfig and architecture-specific
@@ -466,11 +485,8 @@ class DirectFixtureDiscovery:
         from carbon.scoring import dev_grid, probe_design
 
         physical = physical_material.is_registered(key.challenge_id, key.version)
-        # F08 and F02 are float32 numeric interfaces; Motor, Cooling and Battery are float64.
-        expected_dtype = (
-            np.float32
-            if key.challenge_id in ("f08-ribbed-bracket", "f02")
-            else (np.float64 if battery or battery_v2 or physical else np.float32)
+        expected_dtype = _practice_dtype(
+            key, float64_family=battery or battery_v2 or physical
         )
         if type(practice) is not np.ndarray or type(reference) is not np.ndarray:
             practice_shape_invalid = True

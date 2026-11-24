@@ -35,8 +35,16 @@ OVERRIDES = {
 
 
 def total_wall_seconds(challenge_id, version, rebuild_wall_seconds):
-    """The version's whole-task wall: its own override, else `version_registry.task_wall_seconds`."""
+    """The version's whole-task wall: its own override, else its registry build row's (`exam_build`, raise-only), else
+    `version_registry.task_wall_seconds`."""
+    from carbon.challenge_registry import exam_build
+
     from .version_registry import task_wall_seconds
 
     own = OVERRIDES.get((challenge_id, version))
-    return own if own is not None else task_wall_seconds(rebuild_wall_seconds)
+    if own is not None:
+        return own
+    registered = exam_build.total_wall_seconds(challenge_id, version)
+    if registered is not None:
+        return registered
+    return task_wall_seconds(rebuild_wall_seconds)

@@ -5,7 +5,9 @@ A row of ``exam_registry.json`` may carry ``build``:
 - ``module``, ``sha256``: the ``carbon.*`` module that serves the version's public construction material
   (`FUNCTIONS`), hashed before it is imported (`pinned_module`);
 - ``graph_spec``: the graph route v2 facts of the version (`SPEC_FIELDS`), or null when it takes no graph recipes;
-- ``inference_program``: ``eager``, ``compiled`` or ``per_case`` (null exactly when ``graph_spec`` is).
+- ``inference_program``: ``eager``, ``compiled`` or ``per_case`` (null exactly when ``graph_spec`` is);
+- ``total_wall_seconds`` (may be left out): the version's whole-task wall, an owner value at or above the one every
+  version with its rebuild wall has (`version_registry.task_wall_seconds`); raise-only.
 
 Every build site asks here FIRST and, for a version with no build row, runs the code it always ran. A version the code
 serves itself (`code_serves`) is never read from a row, so no row can move a live version; only a NEW version of any
@@ -49,6 +51,7 @@ SPEC_FIELDS = (
     "trust_outputs",
 )
 _BLOCK = {"module", "sha256", "graph_spec", "inference_program"}
+_OPTIONAL = {"total_wall_seconds"}
 #: The host-overlay versions the code's own tables serve (Motor 1.9's reserved one included). Closed: a later version is
 #: a row, never a new name here. Every version of the worker image's registry is code-served too (`code_serves`).
 CODE_SERVED_OVERLAY = frozenset(
@@ -100,10 +103,16 @@ def _check_spec(spec) -> None:
 def _check(key, block) -> None:
     from carbon.challenge_kit import version_registry
 
-    if type(block) is not dict or set(block) != _BLOCK:
+    if type(block) is not dict or set(block) - _OPTIONAL != _BLOCK:
         raise ExamBuildRefused("build_block_fields")
+    entry = version_registry.entry(*key)
+    if "total_wall_seconds" in block and not _count(
+        block["total_wall_seconds"],
+        version_registry.task_wall_seconds(entry.rebuild_wall_seconds),
+    ):
+        raise ExamBuildRefused("build_total_wall_seconds")
     spec, program = block["graph_spec"], block["inference_program"]
-    if (spec is not None) != (version_registry.entry(*key).graph_adapter == "v2"):
+    if (spec is not None) != (entry.graph_adapter == "v2"):
         raise ExamBuildRefused("build_graph_spec_differs_from_the_version")
     if spec is None:
         if program is not None:
@@ -180,6 +189,12 @@ def module(challenge_id: str, version: str):
     if missing or type(getattr(loaded, "SCOPE", None)) is not str:
         raise ExamBuildRefused(f"build_module_incomplete: {missing or ['SCOPE']}")
     return loaded
+
+
+def total_wall_seconds(challenge_id: str, version: str) -> int | None:
+    """The whole-task wall the version's build row names, or None."""
+    found = block(challenge_id, version)
+    return None if found is None else found.get("total_wall_seconds")
 
 
 def graph_specs():

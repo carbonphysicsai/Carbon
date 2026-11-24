@@ -19,7 +19,7 @@ ROWS, INPUTS, OUTPUTS = 8, 2, 1
 
 
 def _arrays():
-    inputs = np.arange(ROWS * INPUTS, dtype="<f8").reshape(ROWS, INPUTS)
+    inputs = np.arange(ROWS * INPUTS, dtype="<f4").reshape(ROWS, INPUTS)
     return inputs, inputs.sum(axis=1, keepdims=True)
 
 
@@ -36,7 +36,7 @@ def graph_spec() -> dict:
         "rows": ROWS,
         "inputs": INPUTS,
         "outputs": OUTPUTS,
-        "dtype": "float64",
+        "dtype": "float32",
         "trainer": "v2",
         "layout": None,
         "trust_outputs": 0,
@@ -58,7 +58,7 @@ def interface_document(challenge_id: str, version: str) -> dict:
     return {
         "schema": "carbon.zz-synthetic.construction-interface.v1",
         "challenge": {"id": challenge_id, "version": version},
-        "train_dtype": "<f8",
+        "train_dtype": "<f4",
         "input": {"names": ["x0", "x1"], "units": ["1", "1"], "shape": [INPUTS]},
         "output": {"names": ["y"], "units": ["1"], "shape": [OUTPUTS]},
     }
@@ -84,7 +84,7 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         "scope": SCOPE,
         "challenge": {"id": challenge_id, "version": version},
         "train_cases": ROWS,
-        "train_dtype": "<f8",
+        "train_dtype": "<f4",
         "reconstruction_resource_policy": {
             "schema": RESOURCE_SCHEMA,
             "cpu_count_max": profile["cpu"]["count"],

@@ -101,6 +101,48 @@ PROBES = (
         "development_session/bundle_construction_worker.py verify_direct_resource_policy",
     ),
     (
+        "build.served",
+        "BUILD",
+        "11",
+        "challenge_validator/direct_receiver.py served_challenges",
+    ),
+    (
+        "build.task_wall",
+        "BUILD",
+        "39",
+        "challenge_kit/task_wall_overrides.py total_wall_seconds",
+    ),
+    (
+        "build.practice_dtype",
+        "BUILD",
+        "51",
+        "development_session/research_service.py _practice_dtype",
+    ),
+    (
+        "build.rebuild_wall",
+        "BUILD",
+        "24",
+        "development_session/bundle_construction_worker.py rebuild_wall_kwargs",
+    ),
+    (
+        "build.trust",
+        "BUILD",
+        "-",
+        "development_session/physical_graph_trust_registry.py REGISTRATIONS",
+    ),
+    (
+        "build.entry",
+        "BUILD",
+        "-",
+        "challenge_registry/registry.py _entries (what a miner can list, describe and select)",
+    ),
+    (
+        "build.campaign",
+        "BUILD",
+        "-",
+        "challenge_registry/campaigns.py _versioned_campaigns",
+    ),
+    (
         "build.train",
         "BUILD",
         "18",
@@ -184,6 +226,10 @@ KNOWN_GAPS = {
     "registry.family": "family_registry.json + reader (door-code #1, H1)",
     "build.spec": "graph Spec derived from the version entry",
     "build.program": "version inference_program (eager / compiled / per-case)",
+    "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
+    "build.trust": "a version's trust registration (derive module + sha, floor, epochs, learning rate) as build data",
+    "build.entry": "the miner-facing Entry of a registered version (title, status, portfolio, description) as data",
+    "build.campaign": "the research campaign of a version its family's code names no builder for",
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
     "grade.pool_kind": "family pool_kind + register_kind (H1)",
@@ -260,6 +306,46 @@ def probe_build_trusted_limits():
         bundle_construction_worker.verify_direct_resource_policy(kit, limits)
         == kit["construction_limits_digest"]
     )
+
+
+def probe_build_served():
+    from carbon.challenge_validator import direct_receiver
+    assert {"id": family, "version": version} in direct_receiver.served_challenges()
+
+
+def probe_build_task_wall():
+    from carbon.challenge_kit import physical_material, task_wall_overrides
+    assert task_wall_overrides.total_wall_seconds(family, version, 648) == 1234
+    policy = physical_material.construction_limits_document(family, version)["reconstruction_resource_policy"]
+    assert policy["total_reconstruction_wall_seconds_max"] == 1234
+
+
+def probe_build_practice_dtype():
+    from types import SimpleNamespace
+    from carbon.development_session import research_service
+    key = SimpleNamespace(challenge_id=family, version=version)
+    assert research_service._practice_dtype(key, float64_family=True) == "float32"
+
+
+def probe_build_rebuild_wall():
+    from carbon.development_session import bundle_construction_worker
+    limits = {"reconstruction_resource_policy": {"build_wall_seconds_max": 880}}
+    assert bundle_construction_worker.rebuild_wall_kwargs(limits) == {"rebuild_wall_seconds": 880}
+
+
+def probe_build_trust():
+    from carbon.development_session import physical_graph_trust_registry
+    assert (family, version) in physical_graph_trust_registry.REGISTRATIONS
+
+
+def probe_build_entry():
+    from carbon.challenge_registry import registry
+    assert registry._find(family, version).version == version
+
+
+def probe_build_campaign():
+    from carbon.challenge_registry import campaigns
+    assert (family, version) in campaigns._versioned_campaigns()
 
 
 def probe_build_train():
@@ -369,6 +455,7 @@ def _build_block():
         "sha256": hashlib.sha256(raw).hexdigest(),
         "graph_spec": module.graph_spec(),
         "inference_program": "compiled",
+        "total_wall_seconds": 1234,
     }
 
 
