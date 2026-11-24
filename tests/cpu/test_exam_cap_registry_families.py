@@ -47,7 +47,7 @@ print(json.dumps(out))
 
 
 def test_the_live_families_keep_their_order_and_come_first():
-    assert exam_cap._LEAN_CHALLENGES == LAUNCH
+    assert exam_cap.LAUNCH_CHALLENGES == LAUNCH
     known = exam_cap.registered_challenges()
     assert known[:5] == (*LAUNCH, BATTERY)
     assert exam_cap.lean_challenges()[:4] == LAUNCH

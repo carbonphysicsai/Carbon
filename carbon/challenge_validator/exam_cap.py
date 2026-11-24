@@ -92,7 +92,8 @@ REGISTRY = Path(__file__).with_name("exam_cadence.json")
 REGISTRY_SCHEMA = "carbon.exam.cadence-registry.v2"
 #: The retired CPU-hours schema: refused, never read.
 REGISTRY_SCHEMA_V1 = "carbon.exam.cadence-registry.v1"
-_LEAN_CHALLENGES = (
+#: The four launch Challenges, in order (a set of its own: later families come from the version registry).
+LAUNCH_CHALLENGES = (
     "electric-motor-magnetics",
     "chip-cold-plate",
     "f08-ribbed-bracket",
@@ -275,7 +276,7 @@ def registered_challenges() -> tuple:
     from carbon.battery import challenge as battery
     from carbon.challenge_kit import version_registry
 
-    built_in = (*_LEAN_CHALLENGES, battery.CHALLENGE.challenge_id)
+    built_in = (*LAUNCH_CHALLENGES, battery.CHALLENGE.challenge_id)
     families = {challenge_id for challenge_id, _ in version_registry.VERSIONS}
     return (*built_in, *sorted(families.difference(built_in)))
 

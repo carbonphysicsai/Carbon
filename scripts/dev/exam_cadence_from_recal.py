@@ -57,7 +57,7 @@ MIN_REBUILDS = 10
 #: The fewest rebuilds a PROVISIONAL file may rest on (OWNER-GUARD-REVIEW-SOFTENS-01 line 6).
 PROVISIONAL_FLOOR = 3
 #: The launch Challenges every cadence must value (Battery is registered in exam_cap but is not a launch exam).
-REQUIRED = exam_cap._LEAN_CHALLENGES
+REQUIRED = exam_cap.LAUNCH_CHALLENGES
 UTILISATION = 0.7
 
 

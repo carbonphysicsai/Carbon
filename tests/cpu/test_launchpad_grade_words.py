@@ -38,7 +38,7 @@ def test_every_ladder_status_has_words():
     )
 
 
-@pytest.mark.parametrize("challenge", exam_cap._LEAN_CHALLENGES)
+@pytest.mark.parametrize("challenge", exam_cap.LAUNCH_CHALLENGES)
 @pytest.mark.parametrize("verdict", _scorer_verdicts())
 def test_every_scorer_verdict_reads_as_graded_in_words(challenge, verdict):
     graded = {"status": verdict, "score": 0.5, "gates": {}}
