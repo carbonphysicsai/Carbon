@@ -25,6 +25,15 @@ Cited ids are scanned in tracked files under `carbon/`, `scripts/` and
 Ids that were already unresolved on 2026-10-21 are listed in `UNRECORDED`.
 The Validator triages them. The list only shrinks: a new unresolved id fails,
 and a listed id that now resolves or is no longer cited must be removed.
+
+PUBLIC INDEX (v2 5878 (2), owner 'plans / decisions off public main'): an id
+also resolves when `decision_index.json` beside this file lists it, with the
+sha256 of the bytes of the record, history or ticket file that declared it when
+the index was built (`scripts/dev/build_decision_index.py`); the index also
+keeps the record-family prefixes the pattern is derived from. So the records
+can leave public main and this invariant stays meaningful; the private copy of
+the records keeps every sha verifiable, and while a record is still on disk its
+sha is checked here. Ids and shas only: no record content.
 """
 
 from __future__ import annotations
@@ -86,8 +95,25 @@ UNRECORDED = frozenset(
 )
 
 
+INDEX_SCHEMA = "carbon.decision-index.v1"
+
+
 def _records():
+    if not DECISIONS.is_dir():
+        return []
     return sorted(p for p in DECISIONS.iterdir() if p.is_file())
+
+
+def _index():
+    """The public decision index (ids + shas + prefixes), read from ROOT; empty where there is none."""
+    path = ROOT / "tests" / "invariants" / "decision_index.json"
+    if not path.is_file():
+        return {"schema": INDEX_SCHEMA, "prefixes": [], "ids": {}}
+    import json
+
+    document = json.loads(path.read_bytes())
+    assert document.get("schema") == INDEX_SCHEMA, "decision index schema"
+    return document
 
 
 def _stem(path):
@@ -96,6 +122,7 @@ def _stem(path):
 
 def _pattern():
     prefixes = {re.split(r"[-_]", _stem(p))[0] for p in _records()} - {""}
+    prefixes |= set(_index()["prefixes"])
     alternation = "|".join(
         re.escape(p) for p in sorted(prefixes, key=len, reverse=True)
     )
@@ -126,6 +153,7 @@ def _resolved(pattern):
         declared.update(_ids(pattern, _text(HISTORY)))
     if TICKETS.is_dir():
         declared.update(re.split(r"[_.]", p.name)[0] for p in TICKETS.iterdir())
+    declared.update(_index()["ids"])
     return declared
 
 
@@ -160,6 +188,25 @@ def test_the_scan_sees_the_record_families_and_their_citations(scan):
     # A broken derivation or an empty checkout would pass vacuously.
     assert {"OWNER", "VALIDATOR", "LAUNCHPAD"} <= prefixes
     assert len(prefixes) >= 100 and len(declared) >= 500 and len(cited) >= 300
+
+
+def test_the_index_holds_ids_and_shas_only_and_matches_every_record_still_on_disk():
+    import hashlib
+
+    index = _index()
+    assert set(index) == {"schema", "prefixes", "ids"}
+    assert len(index["ids"]) >= 400 and len(index["prefixes"]) >= 100
+    for found, entry in index["ids"].items():
+        assert set(entry) == {"file", "sha256"}, found
+        assert re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]), found
+        assert entry["file"].startswith(".agent/"), found
+        path = ROOT / entry["file"]
+        if (
+            path.is_file()
+        ):  # once the record leaves public main, its private copy carries the sha
+            assert (
+                hashlib.sha256(path.read_bytes()).hexdigest() == entry["sha256"]
+            ), found
 
 
 def test_every_cited_id_resolves_or_is_listed(scan):
