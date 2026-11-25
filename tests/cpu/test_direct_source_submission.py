@@ -653,3 +653,37 @@ def test_a_persistent_reset_ends_as_a_closed_reset_refusal_and_other_errors_pass
 
     with pytest.raises(PermissionError):
         stage(denied, client._UploadPacer(), time.monotonic() + 30)
+
+
+@pytest.mark.parametrize("material", [False, True])
+def test_a_stale_chunk_is_rebuilt_and_sent_again_then_the_refusal_is_the_miners(
+    monkeypatch, material
+):
+    """The door refuses TRANSPORT_STALE before it stores anything: one stale chunk must not end an upload of many."""
+    import time
+
+    from carbon.development_session import direct_submission
+
+    monkeypatch.setattr(direct_submission, "_busy_wait", lambda: 0.05)
+    body, accepted, stage = _stage_fixture(monkeypatch, material)
+    calls = []
+
+    def once(url, wire, headers):
+        calls.append(wire)
+        if len(calls) == 1:
+            return 400, {"refused": "TRANSPORT_STALE"}
+        return accepted(wire)
+
+    result = stage(once, client._UploadPacer(), time.monotonic() + 30)
+    assert result == "sha256:" + hashlib.sha256(body).hexdigest()
+    assert len(calls) == 2 and calls[0] != calls[1]  # a new request, never a replay
+
+    calls.clear()
+
+    def always(url, wire, headers):
+        calls.append(wire)
+        return 400, {"refused": "TRANSPORT_STALE"}
+
+    with pytest.raises(DirectIntakeRefusal, match="TRANSPORT_STALE"):
+        stage(always, client._UploadPacer(), time.monotonic() + 30)
+    assert len(calls) == 1 + direct_submission.BUSY_RETRIES

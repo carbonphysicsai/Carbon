@@ -1239,10 +1239,13 @@ def submit_and_wait(
         admission_deadline = clock() + min(WAIT_S, max(30.0, wait_s))
 
         admission_attempts = 0
+        stale = False
 
         def admit():
-            nonlocal admission_attempts
+            nonlocal admission_attempts, stale
             admission_attempts += 1
+            paced = admission_attempts > 1 and not stale
+            stale = False
             facts = (
                 read(url, timeout=min(10.0, admission_deadline - clock()))
                 if read is read_intake
@@ -1250,7 +1253,8 @@ def submit_and_wait(
             )
             _preflight_catalog(recipe, facts)
             terms_fields = _terms_fields(facts)
-            if admission_attempts > 1:
+            # A rate refusal: wait for the POST's own token. A stale one: send at once, the snapshot just read is ageing.
+            if paced:
                 if admission_deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()
                 sleep(1.05)
@@ -1306,6 +1310,7 @@ def submit_and_wait(
             ):
                 code = _refusal_code(answer, "construction_intake_unavailable")
                 if code == TRANSPORT_STALE:
+                    stale = True
                     raise DirectIntakeBusy()
                 if code == "TRANSPORT_CONFLICT":
                     # The next submit uses a new request id (H16).
@@ -1343,16 +1348,19 @@ def submit_and_wait(
     deadline = clock() + wait_s
     while True:
         observation_attempts = 0
+        stale = False
 
         def observe():
-            nonlocal observation_attempts
+            nonlocal observation_attempts, stale
             observation_attempts += 1
+            paced = observation_attempts > 1 and not stale
+            stale = False
             facts = (
                 read(url, timeout=min(10.0, deadline - clock()))
                 if read is read_intake
                 else read(url)
             )
-            if observation_attempts > 1:
+            if paced:
                 if deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()
                 sleep(1.05)
@@ -1389,6 +1397,7 @@ def submit_and_wait(
             ):
                 code = _refusal_code(answer, "construction_status_unavailable")
                 if code == TRANSPORT_STALE:
+                    stale = True
                     raise DirectIntakeBusy()
                 raise DirectIntakeRefusal(code)
             outcome, _ = _outcome(

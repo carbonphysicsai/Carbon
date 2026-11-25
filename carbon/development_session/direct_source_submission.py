@@ -27,6 +27,8 @@ from .direct_submission import (
     DOOR_BUSY_CODES,
     SOURCE_TOOL,
     SUBMIT_PATH,
+    TRANSPORT_STALE,
+    DirectIntakeBusy,
     DirectIntakeDoorBusy,
     DirectIntakeRateLimit,
     DirectIntakeRefusal,
@@ -88,6 +90,14 @@ def _retry_chunk(attempt, deadline, pacer):
         if pacer.last_fault == "reset":
             raise DirectIntakeRefusal("construction_staging_connection_reset") from None
         raise
+
+
+def _chunk_refusal(answer, fallback):
+    """The refusal of one chunk's answer. TRANSPORT_STALE is refused before anything is stored, so it is the door's busy
+    answer here too: the same chunk is rebuilt over a fresh snapshot, signed and sent again (`BUSY_RETRIES`).
+    """
+    code = _refusal_code(answer, fallback)
+    return DirectIntakeBusy() if code == TRANSPORT_STALE else DirectIntakeRefusal(code)
 
 
 class _UploadPacer:
@@ -218,9 +228,7 @@ def _stage_one(
                     answer.get("retry_after_s"), answer["refused"]
                 )
             if status != 200 or type(answer) is not dict:
-                raise DirectIntakeRefusal(
-                    _refusal_code(answer, "construction_source_staging_unavailable")
-                )
+                raise _chunk_refusal(answer, "construction_source_staging_unavailable")
             if (
                 answer.get("schema") != STAGE_REPLY_SCHEMA
                 or type(answer.get("protocol_reply_base64")) is not str
@@ -442,8 +450,8 @@ def _stage_material_one(
                     answer.get("retry_after_s"), answer["refused"]
                 )
             if status != 200 or type(answer) is not dict:
-                raise DirectIntakeRefusal(
-                    _refusal_code(answer, "construction_material_staging_unavailable")
+                raise _chunk_refusal(
+                    answer, "construction_material_staging_unavailable"
                 )
             if (
                 answer.get("schema") != STAGE_REPLY_SCHEMA

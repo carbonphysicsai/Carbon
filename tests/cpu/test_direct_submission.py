@@ -1527,3 +1527,60 @@ def test_a_503_capacity_refusal_is_retried_like_intake_busy_then_names_itself(
     assert refused.value.code == "capacity"
     assert sent.count(client.SUBMIT_TOOL) == client.DOOR_BUSY_TRIES
     assert sum(sleeps) <= 75
+
+
+@pytest.mark.parametrize("phase", ["submit", "status"])
+def test_a_resend_after_a_stale_refusal_sends_at_once_over_the_facts_it_just_read(
+    tmp_path, monkeypatch, phase
+):
+    """The facts' snapshot ages from the moment they are read: the pacing wait is a rate refusal's, never a stale one's."""
+    events, stale = [], [False]
+
+    def send(url, body, headers):
+        is_submit = json.loads(body)["tool"] == client.SUBMIT_TOOL
+        events.append("send")
+        if (phase == "submit") == is_submit and not stale[0]:
+            stale[0] = True
+            return 400, {"refused": "TRANSPORT_STALE"}
+        return (202 if is_submit else 200), _answer(
+            "ADMITTED" if is_submit else "RECONSTRUCTED"
+        )
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    monkeypatch.setattr(client, "_busy_wait", lambda: 0.5)
+    clock = [0.0]
+
+    def sleep(seconds):
+        events.append(seconds)
+        clock[0] += seconds
+
+    def read(url):
+        events.append("read")
+        return _facts()
+
+    result = client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=read,
+        send=send,
+        clock=lambda: clock[0],
+        sleep=sleep,
+        wait_s=10,
+    )
+    assert result["state"] == "RECONSTRUCTED"
+    assert events.count("send") == 3 and 1.05 not in events
+    sends = [i for i, event in enumerate(events) if event == "send"]
+    assert all(events[i - 1] == "read" for i in sends), events
