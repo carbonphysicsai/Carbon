@@ -491,6 +491,12 @@ _SKIPPED_OWNER_CODES = frozenset(
 )
 
 
+def _created_s(task):
+    """When a task was created, in unix seconds, or None when it does not say."""
+    created = getattr(task, "created_at_micros", None)
+    return None if type(created) is not int else created / 1e6
+
+
 def _group_mates(adapter, hotkey, group):
     """The hotkeys of ``hotkey``'s allowance group ``group`` (``hotkey`` itself always among them), sorted, or None when
     the installed grouping has no snapshot window (then the caller reads every hotkey's group, as before).
@@ -1841,6 +1847,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 # withdrawal) re-runs too, on an operator request or the stop's own record (`STOP_CANCELLED`)
                 # 17 Nov (Lead; owner: "miners re-run automatically"): a build refused ONLY because its build-pipeline
                 # inference hit the worker wall on the door's CPU worker is re-run like a FAILED_INFRA one
+                return None
+            former = getattr(self.provider_for, "former_registration", None)
+            if former is not None and former(owner, _created_s(task)):
+                # the hotkey left and came back (v2 7631): nothing its old registration submitted is ever built again
+                refused("former_registration")
                 return None
             if not hasattr(self.ledger, "requeue_failed_build"):
                 return None

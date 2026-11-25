@@ -2180,6 +2180,9 @@ class OwnerProviders:
         self._providers = {}
         self._controls = {}
         self._admissions = {}
+        #: A hotkey that came back (`_take_renewal`) -> the unix seconds its newer registration began, by the snapshot's own
+        #: blocks. Memory only: found again from the snapshot at each start.
+        self._renewed_at = {}
         #: Owners restored while their registration was UNKNOWN (no usable snapshot): their queues were kept; the first
         #: fresh snapshot decides each (`_settle_unobserved`).
         self._unobserved = set()
@@ -2274,6 +2277,106 @@ class OwnerProviders:
                 "registered_at_block",
             )
         )
+
+    @staticmethod
+    def _renewed(frozen, current):
+        """Whether ``current`` is a LATER registration of the same hotkey on the same subnet (it left and came back: a new
+        block, usually a new UID). An earlier or equal block, another hotkey or no registration is not.
+        """
+        if current is None or any(
+            frozen.get(field) != current.get(field)
+            for field in ("admission", "network", "netuid", "hotkey")
+        ):
+            return False
+        before, now = frozen.get("registered_at_block"), current.get(
+            "registered_at_block"
+        )
+        return type(before) is int and type(now) is int and now > before
+
+    def _fresh_observed(self):
+        """`_observed` bounded by the request window itself (`SNAPSHOT_MAX_AGE_S`), never the epoch: a returning hotkey is
+        accepted on a FRESH finalized snapshot only."""
+        observed = self.window.latest() if self.window is not None else self.snapshot
+        if (
+            observed is None
+            or self.snapshot is None
+            or observed.context != self.snapshot.context
+        ):
+            return None
+        return observed
+
+    def _fresh_renewal(self, hotkey, frozen):
+        """The fresh snapshot that shows a later registration of ``hotkey`` than ``frozen``, or None."""
+        observed = self._fresh_observed()
+        if observed is None or not self._renewed(
+            frozen, self._record_in(observed, hotkey)
+        ):
+            return None
+        return observed
+
+    #: The chain's block time. Blocks are never faster, so a registration's time counted back from a snapshot's own block is
+    #: never earlier than the true one: a task of the old registration is never taken for one of the new.
+    BLOCK_SECONDS = 12.0
+
+    def _take_renewal(self, hotkey, provider, observed):
+        """Accept ``hotkey``'s later registration for NEW requests (v2 7631; under the lock). Every queued task that could
+        have been created before it is cancelled by the path a restore uses for a lapsed owner (uncharged, never built; one
+        whose time is unknown too), so nothing admitted under the old registration is built by the new one. The frozen
+        manifest, graded history and every count keyed by the hotkey are untouched. A failed cancellation raises: the owner
+        is still refused and decided again.
+        """
+        current = self._record_in(observed, hotkey)
+        blocks = observed.finalized_block - current["registered_at_block"]
+        began = observed.timestamp_ms / 1000 - blocks * self.BLOCK_SECONDS
+        views = getattr(provider, "_views", {})
+        cancelled = 0
+        for task_id in provider.queued_tasks():
+            created = getattr(
+                views.get(getattr(task_id, "value", None)), "created_at_micros", None
+            )
+            if created is None or created / 1e6 < began:
+                provider.cancel_observed_task(
+                    task_id, self.discovery.info.challenge_key
+                )
+                cancelled += 1
+        self._renewed_at[hotkey] = began
+        self._admissions[hotkey] = current
+        print(
+            json.dumps(
+                {
+                    "event": "owner_registration_renewed",
+                    "owner_sha256": hashlib.sha256(hotkey.encode()).hexdigest(),
+                    "cancelled": cancelled,
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+
+    def former_registration(self, hotkey, created):
+        """Whether a task of ``hotkey`` created at ``created`` (unix seconds, None unknown) belongs to a registration before
+        its current one: it is never built or re-run. False for a hotkey that never came back.
+        """
+        began = self._renewed_at.get(hotkey)
+        return began is not None and (created is None or created < began)
+
+    def _live(self, hotkey):
+        """Whether ``hotkey``'s open provider may serve its request now (under the lock): the registration it was opened
+        under, or a later one of the same hotkey in a fresh snapshot, taken here."""
+        frozen = self._admissions[hotkey]
+        if self._same_registration(frozen, self._admission(hotkey)):
+            return True
+        observed = self._fresh_renewal(hotkey, frozen)
+        if observed is None:
+            return False
+        try:
+            self._take_renewal(hotkey, self._providers[hotkey], observed)
+        except (
+            Exception
+        ):  # noqa: BLE001 - refused now, decided again on the next request
+            return False
+        return True
 
     def _manifest(self, hotkey, ledger, *, restoring, host=False):
         """Freeze the signed owner's one DEVELOPMENT receiver campaign.
@@ -2442,7 +2545,11 @@ class OwnerProviders:
         frozen_admission, live = self._manifest(
             hotkey, ledger, restoring=restoring, host=host
         )
-        if not restoring and not live:
+        if (
+            not restoring
+            and not live
+            and self._fresh_renewal(hotkey, frozen_admission) is None
+        ):
             raise Unavailable("direct_provider_registration_unavailable")
         write_once(directory / "owner.json", canonical({"hotkey": hotkey}))
         provider = DirectDevelopmentTasksV3(
@@ -2533,13 +2640,7 @@ class OwnerProviders:
                     live,
                     restoring=restoring,
                 )
-            if (
-                not restoring
-                and not host
-                and not self._same_registration(
-                    self._admissions[hotkey], self._admission(hotkey)
-                )
-            ):
+            if not restoring and not host and not self._live(hotkey):
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
 
@@ -2751,27 +2852,35 @@ class OwnerProviders:
         self._providers[hotkey] = provider
         self._controls[hotkey] = control
         self._admissions[hotkey] = frozen_admission
-        observed = self._observed() if restoring and not live else None
-        if restoring and not live and observed is None:
+        if not restoring or live:
+            return
+        observed = self._observed()
+        # Only a FRESH snapshot that positively shows a different (or no) registration decides: with NO usable
+        # snapshot the registration is unknown, not revoked (the start snapshot ages past 60 s during start-up,
+        # before the intake's refresher runs: 14 Nov, 112 live queued tasks of 80 owners cancelled), so the queue
+        # stays QUEUED, the owner cannot launch from old authority (the registration re-check in `_open` refuses while
+        # there is no snapshot) and the first fresh snapshot decides.
+        if observed is None or not self._decide_restored(hotkey, provider, observed):
             self._unobserved.add(hotkey)
-        elif (
-            restoring
-            and not live
-            and not self._same_registration(
-                frozen_admission, self._record_in(observed, hotkey)
-            )
-        ):
-            # A revoked/recycled miner retains cleanup custody, never
-            # the right to launch a queued child from old authority.
-            # Only when a FRESH snapshot positively shows a different (or no) registration: with NO usable
-            # snapshot the registration is unknown, not revoked (the start snapshot ages past 60 s during start-up,
-            # before the intake's refresher runs: 14 Nov, 112 live queued tasks of 80 owners cancelled), so the queue
-            # stays QUEUED, the owner cannot launch from old authority (the registration re-check below refuses while
-            # there is no snapshot) and the first fresh snapshot decides.
-            for task_id in provider.queued_tasks():
-                provider.cancel_observed_task(
-                    task_id, self.discovery.info.challenge_key
-                )
+
+    def _decide_restored(self, hotkey, provider, observed):
+        """Decide a restored owner's kept queue by ``observed``; False when only a fresher snapshot can. A revoked or
+        recycled miner retains cleanup custody, never the right to launch a queued child from old authority: its queue is
+        cancelled. One that came back (`_renewed`) loses only what its old registration queued (`_take_renewal`).
+        """
+        frozen = self._admissions[hotkey]
+        current = self._record_in(observed, hotkey)
+        if self._same_registration(frozen, current):
+            return True
+        if self._renewed(frozen, current):
+            fresh = self._fresh_renewal(hotkey, frozen)
+            if fresh is None:
+                return False
+            self._take_renewal(hotkey, provider, fresh)
+            return True
+        for task_id in provider.queued_tasks():
+            provider.cancel_observed_task(task_id, self.discovery.info.challenge_key)
+        return True
 
     def _settle_unobserved(self):
         """The FIRST fresh snapshot decides every owner restored while its registration was unknown: the same registration
@@ -2790,19 +2899,12 @@ class OwnerProviders:
             if provider is None:
                 self._unobserved.discard(hotkey)
                 continue
-            if self._same_registration(
-                self._admissions[hotkey], self._record_in(observed, hotkey)
-            ):
-                self._unobserved.discard(hotkey)
-                continue
             try:
-                for task_id in provider.queued_tasks():
-                    provider.cancel_observed_task(
-                        task_id, self.discovery.info.challenge_key
-                    )
+                decided = self._decide_restored(hotkey, provider, observed)
             except Exception:  # noqa: BLE001, S112 - decided again on the next call
                 continue
-            self._unobserved.discard(hotkey)
+            if decided:
+                self._unobserved.discard(hotkey)
 
     def __call__(self, hotkey):
         from carbon.challenge_validator import crown_common

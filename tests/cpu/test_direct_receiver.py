@@ -1122,11 +1122,14 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     assert racing._unobserved == set()
     racing.close()
 
+    # The hotkey left and came back (a later registration, after the queued task): its old queue is cancelled, never built
+    # (v2 7631; tests/cpu/test_returning_hotkey.py).
     recycled = replace(
         advanced,
+        timestamp_ms=int(time.time() * 1000) + 3_600_000,
         participants=(
             advanced.participants[0],
-            Participant(1, OWNER, "cold", 3),
+            Participant(1, OWNER, "cold", advanced.finalized_block),
             advanced.participants[2],
         ),
     )
@@ -1148,8 +1151,11 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
         .task
     )
     assert retained.state is research.DirectTaskStateV3.CANCELLED
-    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
-        cleanup(OWNER)
+    # it may submit again under the newer registration; the frozen admission on disk is not edited
+    assert cleanup(OWNER) is cleanup._providers[OWNER]
+    with cleanup(OWNER).ledger.db() as db:
+        retained = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
+    assert retained == frozen
     # Revocation of one retained owner does not stop a second registered
     # miner from opening a fresh campaign through the same receiver.
     assert cleanup(OTHER).owner == OTHER
