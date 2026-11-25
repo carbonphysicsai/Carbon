@@ -196,6 +196,14 @@ def _guarded_job_context(
             "schema": adapter.RECORD,
             "reference_identity": adapter.observer(job["reference_role"]),
         }
+    if admission == "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1":
+        from scripts.dev.score_lab import guarded419_t15_mesh160 as adapter
+
+        adapter.validate_job(job)
+        return {
+            "schema": adapter.RECORD,
+            "reference_identity": adapter.observer(),
+        }
     if admission is not None:
         raise tasks.TaskError("unknown guarded worker stage")
     from scripts.dev.battery import guarded_reference
@@ -241,16 +249,27 @@ def _simulation(job, *, stage_binding=None, expected_stage_binding_digest=None):
     # rung 0: one step below the standard rung on the same ladder (mesh / 2,
     # tolerances x 10), a control-variate companion, never a reference value
     rung0 = job.get("rung") == 0
+    t15_mesh160 = (
+        job.get("reference_admission")
+        == "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1"
+    )
     if rung3:
         npts = 80
     if rung0:
         npts = 10
+    if t15_mesh160:
+        # Exact separately admitted diagnostic, never inferred from rung=4.
+        npts = 160
     var_pts = {"x_n": npts, "x_s": npts, "x_p": npts, "r_n": npts, "r_p": npts}
     s = spec["refined_solver"] if job["refined"] else spec["solver"]
     if rung3:
         s = {"rtol": 1e-7, "atol": 1e-9}
     if rung0:
         s = {"rtol": 1e-4, "atol": 1e-6}
+    if t15_mesh160:
+        from scripts.dev.score_lab import guarded419_t15_mesh160 as adapter
+
+        s = adapter.SOLVER_TOLERANCES
     solver = pybamm.IDAKLUSolver(
         rtol=s["rtol"], atol=s["atol"], output_variables=VARIABLES
     )
@@ -272,13 +291,26 @@ def _simulation(job, *, stage_binding=None, expected_stage_binding_digest=None):
         solver=solver,
         **({"experiment_model_mode": "legacy"} if guarded else {}),
     )
-    return sim, {
+    cooling = {
         "h0_w_m2k": float(h0),
         "h_w_m2k": float(h0 * job["h_multiplier"]),
         "area_m2": float(params[AREA_NAME]),
         "nominal_capacity_ah": float(params[CAPACITY_NAME]),
         "t_amb_k": t_k,
     }
+    if t15_mesh160:
+        cooling["numerical_configuration"] = {
+            "spatial_points_each": dict(var_pts),
+            "solver": "pybamm.IDAKLUSolver",
+            "rtol": s["rtol"],
+            "atol": s["atol"],
+            "solver_output_variables": list(VARIABLES),
+            "experiment_model_mode": "legacy",
+            "temporal_step_policy": "ADAPTIVE_IDAKLU_NO_FIXED_STEP_OVERRIDE",
+            "observer_sampling": "FINITE_RETURNED_ENTRIES_NOT_CONTINUOUS_MINIMUM",
+            "numerical_adequacy": "UNVALIDATED_NONVERDICT_DIAGNOSTIC",
+        }
+    return sim, cooling
 
 
 def _time_observations(times):
@@ -761,7 +793,7 @@ def _experiment_descriptor(sim, index):
         return None
 
 
-def _step_summary(step, cooling):
+def _step_summary(step, cooling, *, plating_diagnostic=False):
     import numpy as np
 
     t = step["Time [s]"].entries
@@ -770,9 +802,11 @@ def _step_summary(step, cooling):
     removal = cooling["h_w_m2k"] * cooling["area_m2"] * (temp - cooling["t_amb_k"])
     heating = step["Total heating [W]"].entries
     q = step["Discharge capacity [A.h]"].entries
-    eta = step["Negative electrode lithium plating reaction overpotential [V]"].entries
+    eta = np.asarray(
+        step["Negative electrode lithium plating reaction overpotential [V]"].entries
+    )
     i_max, i_min = int(np.argmax(temp)), int(np.argmin(temp))
-    return {
+    result = {
         "t_start_s": float(t[0]),
         "t_end_s": float(t[-1]),
         "t_max_c": float(temp[i_max] - 273.15),
@@ -788,6 +822,25 @@ def _step_summary(step, cooling):
         "heating_energy_j": float(np.trapezoid(heating, t)),
         "time_observations": _time_observations(t),
     }
+    if plating_diagnostic:
+        if not np.all(np.isfinite(eta)) or eta.size == 0 or not np.all(np.isfinite(t)):
+            raise ValueError("nonfinite or empty diagnostic plating/time entries")
+        axes = [axis for axis, length in enumerate(eta.shape) if length == len(t)]
+        if len(axes) != 1:
+            raise ValueError("diagnostic plating time axis is ambiguous")
+        index = tuple(
+            int(value) for value in np.unravel_index(np.argmin(eta), eta.shape)
+        )
+        result["plating_observation"] = {
+            "status": "FINITE_RETURNED_ENTRIES",
+            "shape": list(eta.shape),
+            "entry_count": int(eta.size),
+            "time_axis": axes[0],
+            "min_index": list(index),
+            "min_at_s": float(t[index[axes[0]]]),
+            "min_v": result["plating_min_v"],
+        }
+    return result
 
 
 def _soc_clock(cycle1, soc0, capacity):
@@ -852,6 +905,7 @@ def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
         "carbon.scorelab.guarded419.cal15-admission.v1": "carbon.battery.guarded419-cal15-feasibility-record.v1",
         "carbon.scorelab.guarded419.t128-admission.v1": "carbon.battery.guarded419-t128-feasibility-record.v1",
         "carbon.scorelab.guarded419.eval-admission.v1": "carbon.battery.guarded419-eval-feasibility-record.v1",
+        "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1": "carbon.battery.guarded419-t15-mesh160-diagnostic-record.v1",
     }
     record = {
         **job,
@@ -869,6 +923,13 @@ def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
 
         # Requested context identifies failures, never successful execution.
         record["reference_identity"] = guarded419_t9.observer()
+    if (
+        job.get("reference_admission")
+        == "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1"
+    ):
+        from scripts.dev.score_lab import guarded419_t15_mesh160 as adapter
+
+        record["reference_identity"] = adapter.observer()
     started = time.perf_counter()
     try:
         context = _guarded_job_context(
@@ -886,6 +947,11 @@ def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
                 stage_binding=stage_binding,
                 expected_stage_binding_digest=expected_stage_binding_digest,
             )
+        if (
+            job.get("reference_admission")
+            == "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1"
+        ):
+            record["numerical_configuration"] = cooling.pop("numerical_configuration")
         sol = sim.solve(initial_soc=job["soc0"], calc_esoh=False)
     except Exception as exc:  # noqa: BLE001 -- typed reference outcome
         return {**record, "status": "REFERENCE_SOLVER_FAILED", "error": repr(exc)[:300],
@@ -908,7 +974,18 @@ def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
                 steps = steps[1:]  # the initial rest is reported separately
             if len(steps) != len(PHASES):
                 raise ValueError(f"cycle {k} has {len(steps)} steps")
-            phases = {name: _step_summary(s, cooling) for name, s in zip(PHASES, steps)}
+            phases = {
+                name: _step_summary(
+                    s,
+                    cooling,
+                    plating_diagnostic=(
+                        job.get("reference_admission")
+                        == "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1"
+                        and name in ("cc1", "cc2", "cv")
+                    ),
+                )
+                for name, s in zip(PHASES, steps)
+            }
             for offset, (name, step) in enumerate(zip(PHASES, steps)):
                 phases[name]["voltage_contact_observation"] = (
                     _voltage_contact_observation(
