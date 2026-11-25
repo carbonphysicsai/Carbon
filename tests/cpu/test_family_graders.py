@@ -18,6 +18,11 @@ from pathlib import Path
 import pytest
 
 import carbon
+
+# An armed overlay version's module imports its sealed grader, whose import then loads that module (`version_overlay`
+# `_extend`): the sealed graders come first, so neither is ever half loaded (release 7788).
+import carbon.scoring.cooling_encoded_dual_pack
+import carbon.scoring.motor_sealed_dual_pack
 from carbon.challenge_kit import family_registry, version_overlay
 from carbon.scoring import (
     battery_sealed_dual_pack,
