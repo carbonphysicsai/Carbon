@@ -1848,7 +1848,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 # 17 Nov (Lead; owner: "miners re-run automatically"): a build refused ONLY because its build-pipeline
                 # inference hit the worker wall on the door's CPU worker is re-run like a FAILED_INFRA one
                 return None
-            former = getattr(self.provider_for, "former_registration", None)
+            former = getattr(
+                getattr(self, "provider_for", None), "former_registration", None
+            )
             if former is not None and former(owner, _created_s(task)):
                 # the hotkey left and came back (v2 7631): nothing its old registration submitted is ever built again
                 refused("former_registration")
