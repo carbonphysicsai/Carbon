@@ -278,3 +278,20 @@ def test_no_code_that_pays_reads_the_launch_rows():
     for path in sorted((wd.POLICY_DIR.parent).glob("*.py")):
         text = path.read_text(encoding="utf-8")
         assert "exam_registry" not in text and "build_weight_policy" not in text, path
+
+
+def test_a_printed_file_is_no_policy_without_its_registry_line(tmp_path):
+    """Put in place by hand it still loads as nothing, and the current policy stays what it was."""
+    directory = tmp_path / "weight_policies"
+    shutil.copytree(wd.POLICY_DIR, directory)
+    made = dry({(MOTOR, "1.8"): MOTOR18, (JOINT, "0.1"): row()})["document"]
+    (directory / "synthetic-v1.json").write_bytes(builder.render(made))
+    with pytest.raises(wd.RewardFailure) as refused:
+        wd.load_policy("synthetic-v1", directory)
+    assert "WEIGHT_POLICY_UNREADABLE" in str(refused.value)
+    assert wd.load_policy(None, directory) == wd.load_policy()
+    # nor under a registered name: its digest is another
+    (directory / f"{BASE}.json").write_bytes(builder.render(made))
+    with pytest.raises(wd.RewardFailure) as refused:
+        wd.load_policy(BASE, directory)
+    assert "WEIGHT_POLICY_ALTERED" in str(refused.value)
