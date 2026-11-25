@@ -66,8 +66,10 @@ def test_the_record_is_identical_with_the_collector_and_it_holds_every_case():
     ]
     first = sink.cases[1]
     assert first.source == case_errors.SOURCE_TARGET and not first.bad
-    error, u, truth = first.outputs["f"]
+    # S2 (case-errors v2): the answer is kept beside the error, so the file can carry its sign
+    error, u, truth, answer = first.outputs["f"]
     assert (error, u, truth) == (pytest.approx(0.2), 0.5, 0.0)
+    assert abs(answer - truth) == pytest.approx(error)
     # the record's i0 median |err|/U is the median of these cases' ratios
     by_case = [c.outputs["f"][0] / c.outputs["f"][1] for c in sink.cases[:5]]
     row = next(

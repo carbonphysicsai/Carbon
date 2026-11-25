@@ -79,6 +79,45 @@ UNSET_DIGEST = (
 )
 
 
+#: CROWN-CONFIRMATION-SET (owner, filed 2026-11-25T20:10:34Z, verbatim: "approved: new crowns on Motor 1.9, RB 2.0 and
+#: joint must also hold on a small confirmation set, fingerprinted at open and published at close; shown scores stay on
+#: the open set."). A version under it carries a ``confirmation`` block in its registry row (per pair, so no other door's
+#: grading changes, `grading_scope`), ``{"number": "A", "first_crown": "open_rule_only"}`` when ruled; each value is
+#: model-eval's ruling (door-code 8314 points (a) and (b)), and an absent one makes the crowns it decides wait (fail
+#: closed, never the open rule alone): an empty block ``{}`` is the owner's line with nothing ruled yet. The joint exam's
+#: row carries one when its Challenge id and version are registered. ``number`` "A": the confirmation number is the version's physics family value on the confirmation rows
+#: (`pool_exam` ``capture["confirmation"]``), the only number those rows give. ``first_crown`` "open_rule_only": a first
+#: crown (no king, so no king confirmation number) is decided on the open rule alone, the contender's own confirmation
+#: record still required; absent, every first crown waits.
+CONFIRMATION_NUMBERS = ("A",)
+CONFIRMATION_FIRST_CROWN = ("open_rule_only",)
+#: The reasons a crown decision waits on its confirmation (filed and swept like a queued crown, `crown_pause_sweep`).
+CROWN_CONFIRMATION_UNSET = "crown_confirmation_unset"
+CROWN_CONFIRMATION_UNAVAILABLE = "crown_confirmation_unavailable"
+#: The reason a contender that beat the open rule is not crowned: its confirmation number is below the king's, or its
+#: confirmation answers were invalid. Decided, never refiled; the king stays. No number is attached to it anywhere.
+CROWN_NOT_CONFIRMED = "crown_not_confirmed"
+#: A grade's filed confirmation record (`confirmation_record`, `PoolStore.record_confirmation`).
+CONFIRMATION_SCHEMA = "carbon.crown-confirmation.v1"
+CONFIRMATION_STATUSES = ("MEASURED", "INVALID", "UNAVAILABLE")
+
+
+def _confirmation_block(block):
+    """The registered confirmation block, or `CrownOfficialInvalid`: ``number`` and ``first_crown`` each optional and
+    each one of its registered values. An absent key is an unruled value: the crowns it decides wait."""
+    if (
+        type(block) is not dict
+        or not set(block) <= {"number", "first_crown"}
+        or ("number" in block and block["number"] not in CONFIRMATION_NUMBERS)
+        or (
+            "first_crown" in block
+            and block["first_crown"] not in CONFIRMATION_FIRST_CROWN
+        )
+    ):
+        raise CrownOfficialInvalid("crown_official_confirmation_malformed")
+    return dict(block)
+
+
 def _entry_digest(key, entry):
     raw = json.dumps([SCHEMA, key, entry], sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
@@ -107,9 +146,14 @@ def registered(challenge_id, version, *, path=None):
         return None
     margin = entry.get("margin") if type(entry) is dict else None
     score = entry.get("score", TOTAL) if type(entry) is dict else None
+    confirmation = (
+        _confirmation_block(entry["confirmation"])
+        if type(entry) is dict and "confirmation" in entry
+        else None
+    )
     if (
         type(entry) is not dict
-        or set(entry) not in ({"margin"}, {"margin", "score"})
+        or set(entry) - {"confirmation"} not in ({"margin"}, {"margin", "score"})
         # the total is the absent key, never spelled
         or (("score" in entry) and score != ACCURACY)
         or type(margin) not in (int, float)
@@ -122,6 +166,8 @@ def registered(challenge_id, version, *, path=None):
         "margin": float(margin),
         "digest": _entry_digest(key, entry),
         **({} if score == TOTAL else {"score": score}),
+        # a version under the owner's confirmation line carries its block (empty while unruled: every crown waits)
+        **({} if confirmation is None else {"confirmation": confirmation}),
     }
 
 
@@ -224,8 +270,109 @@ def install(challenge_id, version, *, path=None, log=None):
         "crown_official_score=true"
         f" margin={'unset' if ACTIVE['margin'] is None else ACTIVE['margin']}"
         + (f" score={ACTIVE['score']}" if "score" in ACTIVE else "")
+        + (
+            f" confirmation={'on' if ACTIVE['confirmation'] else 'unset'}"
+            if "confirmation" in ACTIVE
+            else ""
+        )
     )
     return ACTIVE
+
+
+def confirmation_rule():
+    """The served version's confirmation block (`_confirmation_block`), or None when its crowns need none."""
+    return None if ACTIVE is None else ACTIVE.get("confirmation")
+
+
+def confirm(first, candidate, incumbent):
+    """The confirmation verdict of an official-score crown change, or None when the served version needs none.
+
+    ``first`` is true for a crown with no king number to hold against (a first crown, or a challenger to a king that
+    failed a mandatory gate), false for a challenger to a scored king; a plain dethrone never reads it. ``candidate`` /
+    ``incumbent`` are each grade's filed confirmation record (`confirmation_record`, already checked by `bound_to`) or
+    None. Returns ``(verdict, reason)``: ``("CONFIRMED", None)``; ``("WAIT", reason)`` for Carbon's gap
+    (an unruled value, a record missing or unavailable: never the candidate's); ``("NOT_CONFIRMED",
+    CROWN_NOT_CONFIRMED)`` when the contender's confirmation answers were invalid or its number is below the king's. A
+    tie confirms: the contender already beat the open rule by the margin, and the confirmation asks only that it holds.
+    """
+    rule = confirmation_rule()
+    if rule is None:
+        return None
+    if rule.get("number") not in CONFIRMATION_NUMBERS:
+        return "WAIT", CROWN_CONFIRMATION_UNSET
+    if first and rule.get("first_crown") not in CONFIRMATION_FIRST_CROWN:
+        return "WAIT", CROWN_CONFIRMATION_UNSET
+    mine = _confirmation_status(candidate)
+    if mine == "INVALID":
+        return "NOT_CONFIRMED", CROWN_NOT_CONFIRMED
+    if mine != "MEASURED":
+        return "WAIT", CROWN_CONFIRMATION_UNAVAILABLE
+    if first:
+        return "CONFIRMED", None
+    if _confirmation_status(incumbent) != "MEASURED":
+        # the king's own record is missing or holds no number (his regrade on this pack files it): Carbon's, so it waits
+        return "WAIT", CROWN_CONFIRMATION_UNAVAILABLE
+    if candidate["value"] >= incumbent["value"]:
+        return "CONFIRMED", None
+    return "NOT_CONFIRMED", CROWN_NOT_CONFIRMED
+
+
+def confirmation_record(captured, exam_key, dual_measurement_sha256):
+    """One grade's private confirmation record from its measure's capture (`pool_exam` ``capture["confirmation"]``),
+    bound to the grade's exam key and dual measurement; None when the measure kept none (no confirmation set). A capture
+    that is not one of the measure's shapes is UNAVAILABLE, so the crown waits (Carbon's, never the candidate's)."""
+    found = captured.get("confirmation") if type(captured) is dict else None
+    if found is None:
+        return None
+    found = found if type(found) is dict else {}
+    status, value = found.get("status"), found.get("value")
+    if status not in CONFIRMATION_STATUSES or (
+        status == "MEASURED" and not _finite(value)
+    ):
+        status = "UNAVAILABLE"
+    reason = found.get("reason")
+    return {
+        "schema": CONFIRMATION_SCHEMA,
+        "exam_key": exam_key,
+        "dual_measurement_sha256": dual_measurement_sha256,
+        "status": status,
+        "value": float(value) if status == "MEASURED" else None,
+        "sets_sha256": found.get("sets_sha256"),
+        **({} if reason is None else {"reason": str(reason)}),
+    }
+
+
+def bound_to(record, evidence):
+    """``record`` when it is the confirmation record of exactly the grade ``evidence`` binds (its dual measurement and
+    its pack), else None: a record of another grade never stands in."""
+    if (
+        type(record) is not dict
+        or type(evidence) is not dict
+        or record.get("schema") != CONFIRMATION_SCHEMA
+        or record.get("dual_measurement_sha256") is None
+        or record.get("dual_measurement_sha256")
+        != evidence.get("dual_measurement_receipt_sha256")
+        or record.get("exam_key") != evidence.get("evaluation_pack_digest")
+    ):
+        return None
+    return record
+
+
+def _finite(value):
+    return (
+        type(value) in (int, float)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _confirmation_status(record):
+    if type(record) is not dict:
+        return None
+    status = record.get("status")
+    if status == "MEASURED" and not _finite(record.get("value")):
+        return None
+    return status
 
 
 def margin_unset():
@@ -255,7 +402,13 @@ def comparator(registered_comparator):
 __all__ = [
     "ACCURACY",
     "ACTIVE",
+    "CONFIRMATION_FIRST_CROWN",
+    "CONFIRMATION_NUMBERS",
+    "CONFIRMATION_SCHEMA",
+    "CROWN_CONFIRMATION_UNAVAILABLE",
+    "CROWN_CONFIRMATION_UNSET",
     "CROWN_MARGIN_UNSET",
+    "CROWN_NOT_CONFIRMED",
     "RECORD_RULE",
     "REGISTRY",
     "SCHEMA",
@@ -264,7 +417,11 @@ __all__ = [
     "UNRANKED",
     "UNSET_DIGEST",
     "CrownOfficialInvalid",
+    "bound_to",
     "comparator",
+    "confirm",
+    "confirmation_record",
+    "confirmation_rule",
     "decided_by",
     "install",
     "label",

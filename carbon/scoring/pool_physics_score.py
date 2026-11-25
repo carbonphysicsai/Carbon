@@ -958,7 +958,7 @@ def _ratios(specs, predict, ranges, rule, sink=None):
                 else:
                     raw.setdefault((name, output), []).append(error)
                 if case is not None:
-                    case.output(output, error, u, truth)
+                    case.output(output, error, u, truth, prediction[output])
     return ratios, raw, invalid
 
 
@@ -990,7 +990,7 @@ def _case_ratios(extra, case_predict, ratios, invalid, outputs, rule=None, sink=
             error = pool_grader.difference(output, answer[output], truth)
             ratios.setdefault((name, output), []).append(error / u[output])
             if case is not None:
-                case.output(output, error, u[output], truth)
+                case.output(output, error, u[output], truth, answer[output])
 
 
 def _case_answer_valid(answer, truths):

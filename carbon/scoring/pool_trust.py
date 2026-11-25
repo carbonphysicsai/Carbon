@@ -166,10 +166,15 @@ def record(content, sigma, admitted, trust, band_level):
             "cells": None,
             "n_cells": 0,
         }
+    from carbon.scoring import case_errors
+
     cells = {}
+    sources = content.get("source")
     for i, row in enumerate(content["row_index"]):
         if content["invalid"][i]:
             continue  # an invalid physics answer is already the grade's; T reads valid answers only
+        if sources is not None and sources[i] == case_errors.SOURCE_CONFIRMATION:
+            continue  # the confirmation rows are the crown's alone (CROWN-CONFIRMATION-SET): never in T
         _require(
             type(row) is int and 0 <= row < len(sigma), "pool_trust_row_not_in_sigma"
         )

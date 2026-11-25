@@ -1610,6 +1610,65 @@ class PoolStore:
             elif row != ("repeat_verified.v1", "REPEAT_VERIFIED", body):
                 raise StateError("repeat_mark_changed")
 
+    # --- the confirmation set (owner CROWN-CONFIRMATION-SET, 25 Nov 2026) -----------------------------------------
+    # One grade's private confirmation record (`crown_official.confirmation_record`): its number on the hidden
+    # confirmation rows, bound to the grade's dual measurement. Write-once per (submission, evaluation key); read only by
+    # the crown decision (`bank_promotion.consider_private`). Never served: no number of it reaches any public surface.
+
+    def record_confirmation(self, submission_id, key, record):
+        """File ``record`` for the grade of ``submission_id`` under ``key``. Idempotent for the same record; a different
+        one for the same grade refuses (`confirmation_changed`): a grade has one confirmation number."""
+        from carbon.challenge_validator import crown_official
+        from carbon.challenge_validator.interface import is_digest
+
+        if (
+            not is_digest(key)
+            or type(record) is not dict
+            or record.get("schema") != crown_official.CONFIRMATION_SCHEMA
+        ):
+            raise StateError("confirmation_invalid")
+        op = self._bank_operation("confirmation.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.confirmation.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "record": record,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "confirmation.v1", "RECORDED", body),
+                )
+            elif row != ("confirmation.v1", "RECORDED", body):
+                raise StateError("confirmation_changed")
+
+    def confirmation(self, submission_id, key):
+        """The filed confirmation record of one grade (`record_confirmation`), or None. Reads only."""
+        op = self._bank_operation("confirmation.v1", submission_id, key)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+        if row is None or row[:2] != ("confirmation.v1", "RECORDED"):
+            return None
+        try:
+            body = json.loads(row[2])
+        except ValueError:
+            return None
+        if (
+            type(body) is not dict
+            or body.get("submission_id") != submission_id
+            or body.get("evaluation_key") != key
+        ):
+            return None
+        return body.get("record")
+
     # --- the crown's multi-rebuild average (the crown multi-rebuild average ruling (lead-records a322dea4)) --------------
     # The N per-seed totals, their mean and the seeds of one averaged crown decision are PRIVATE: filed here,
     # write-once per (submission, evaluation key), and read back only as the king's mean.

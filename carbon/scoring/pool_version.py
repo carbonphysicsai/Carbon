@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 from carbon.scoring import physical_dual_pack as physical
@@ -62,7 +63,13 @@ MENU = "menu"
 #: (``extended`` bounds per input) whose canonical sha256 it registers; the official derive grades inside it
 #: (`cooling_region`, B5). Custody: hidden bounds.
 REGION = "region"
+#: Optional material field, NEW versions whose constants register a ``confirmation`` only (owner CROWN-CONFIRMATION-SET):
+#: the sealed confirmation sets, shaped exactly as ``sets`` (groups of `pool_grader` pool documents), whose canonical
+#: sha256 (`confirmation_sets_sha256`) the constants register. Their designs are plain pool rows of the bank (nothing
+#: marks them), answered in the same inference; their number is private, for the crown only. Custody: hidden truths.
+CONFIRMATION_SETS = "confirmation_sets"
 _OPTIONAL_MATERIAL_KEYS = {
+    CONFIRMATION_SETS,
     MENU,
     REGION,
     RESPONSE_REFERENCE,
@@ -456,6 +463,30 @@ def _pool_only(value):
     return True
 
 
+def _confirmation(value):
+    """A NEW version's confirmation set (owner CROWN-CONFIRMATION-SET, 25 Nov 2026): ``{"sets_sha256": <64 hex>}``, the
+    fingerprint at open of its sealed confirmation sets (`confirmation_sets_sha256`); absent = None (every registered
+    version, unchanged). HUMAN_INPUT refuses; so does any other shape."""
+    if value is _ABSENT:
+        return None
+    value = _picked(value)
+    digest = value.get("sets_sha256") if type(value) is dict else None
+    if (
+        set(value) != {"sets_sha256"}
+        or type(digest) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", _picked(digest)) is None
+    ):
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return {"sets_sha256": digest}
+
+
+def confirmation_sets_sha256(groups):
+    """The fingerprint of a version's sealed confirmation sets: the sha256 of their canonical JSON (the list of groups of
+    pool documents exactly as the sealed material holds them). Registered at open (`_confirmation`); the full sets are
+    published at close with the open set's publication."""
+    return hashlib.sha256(_canonical(groups).encode()).hexdigest()
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -514,7 +545,12 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
             menu=_menu(entry.get("menu", _ABSENT)),
             # optional, NEW versions only: absent is a version with a sealed grid (a base measure), unchanged
             pool_only=_pool_only(entry.get("pool_only", _ABSENT)),
+            # optional, NEW versions only: absent is no confirmation set, unchanged
+            confirmation=_confirmation(entry.get("confirmation", _ABSENT)),
         )
+        if policies.confirmation is not None and policies.physics is None:
+            # the confirmation number is the physics family value on its rows: a version without one has none
+            raise PoolConstantsNotRegistered("pool_constants_malformed")
         if (
             policies.menu is not None
             and policies.physics is not None
@@ -673,6 +709,10 @@ class PoolVariant(physical.Variant):
             a_multiplier=registered_a_multiplier(self._challenge_id, self.VERSION),
             speed_outputs_match=speed_outputs_match,
             capture=capture,
+            # a NEW version's sealed confirmation sets (None, and the call unchanged, for every other version)
+            confirmation_sets=confirmation_sets(
+                material, getattr(policies, "confirmation", None)
+            ),
             **plan_material,
             **menu_arguments,
         )
@@ -737,9 +777,39 @@ def check_material(material):
         or type(material["sets"]) is not list
         or not material["sets"]
         or any(type(group) is not list or not group for group in material["sets"])
+        or (
+            CONFIRMATION_SETS in material
+            and (
+                type(material[CONFIRMATION_SETS]) is not list
+                or not material[CONFIRMATION_SETS]
+                or any(
+                    type(group) is not list or not group
+                    for group in material[CONFIRMATION_SETS]
+                )
+            )
+        )
     ):
         raise pool_exam.ExamRefused("pool_material_malformed")
     return material
+
+
+def confirmation_sets(material, rule):
+    """The sealed confirmation sets (`pool_grader.load_pool` per document) of a version whose registered confirmation is
+    ``rule``, or None when it has none. Material without a registration, a registration without material, or material
+    whose fingerprint is not the registered one, refuses (Carbon's material, never a candidate's)."""
+    if rule is None:
+        if CONFIRMATION_SETS in material:
+            raise pool_exam.ExamRefused("confirmation_sets_without_a_registration")
+        return None
+    if CONFIRMATION_SETS not in material:
+        raise pool_exam.ExamRefused("confirmation_sets_missing_from_the_sealed_pack")
+    groups = material[CONFIRMATION_SETS]
+    if confirmation_sets_sha256(groups) != rule["sets_sha256"]:
+        raise pool_exam.ExamRefused("confirmation_sets_sha256_mismatch")
+    return tuple(
+        tuple(pool_grader.load_pool(document) for document in group)
+        for group in groups
+    )
 
 
 def menu_tasks(material, rule):
@@ -819,7 +889,8 @@ def rows_from_material(material, *, dtype, challenge):
     names, design_names = material["input_names"], material["design_names"]
     kind = np.dtype(dtype)
     seen = {}
-    for group in material["sets"]:
+    # the confirmation sets' designs are plain pool rows too (nothing marks them), in the same canonical content order
+    for group in (*material["sets"], *material.get(CONFIRMATION_SETS, ())):
         for document in group:
             spec = pool_grader.load_pool(
                 document

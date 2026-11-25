@@ -580,6 +580,21 @@ class BankPromotion:
             raise TypeError("a BankResult is required")
         raise StateError("evaluation_binding_unavailable")
 
+    def _confirmation_of(self, row, evaluation_key):
+        """The confirmation record filed for the grade ``row`` is (under its own evaluation key: a carried king's grade is
+        filed under his), bound to exactly that grade (`crown_official.bound_to`), or None."""
+        if type(row) is not dict:
+            return None
+        reader = getattr(self.store, "confirmation", None)
+        if reader is None:
+            return None
+        record = reader(
+            row["submission_id"], row.get("evaluation_key", evaluation_key)
+        )
+        from carbon.challenge_validator import crown_official
+
+        return crown_official.bound_to(record, row.get("evidence"))
+
     def _record_official_crown(self, submission_id, evaluation_key, pair, official):
         """File the official-score crown's private verification record (`crown_official.RECORD_RULE`): the margin it
         used and the two official totals. An earlier record for the same decision stays as it is (never replaced).
@@ -762,6 +777,48 @@ class BankPromotion:
                     "candidate": submission_id,
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
+            if official is not None and outcome["outcome"] in (
+                FIRST_INCUMBENT,
+                CHALLENGER,
+            ):
+                # CROWN-CONFIRMATION-SET (owner 25 Nov 2026): a version under it crowns only when the contender's number on
+                # the hidden confirmation rows holds (`crown_official.confirm`). Carbon's gap (a value not ruled, a
+                # record missing) waits, filed like a queued crown; a contender whose confirmation does not hold is
+                # decided: the king stays, nothing is refiled, and no number is attached. Off: None, nothing differs.
+                # A king that failed a mandatory gate has no number to hold against: his challenger is confirmed as a
+                # first crown is, and one whose confirmation does not hold still dethrones him (nobody is crowned).
+                king_failed = outcome.get("reason") == "incumbent_failed_mandatory_gate"
+                first = outcome["outcome"] == FIRST_INCUMBENT or king_failed
+                verdict = crown_official.confirm(
+                    first,
+                    self._confirmation_of(pair["candidate"], evaluation_key),
+                    (
+                        None
+                        if first
+                        else self._confirmation_of(pair["incumbent"], evaluation_key)
+                    ),
+                )
+                if verdict is not None and verdict[0] == "WAIT":
+                    return {
+                        "outcome": UNAVAILABLE,
+                        "reason": verdict[1],
+                        "evaluation_key": evaluation_key,
+                        "candidate": submission_id,
+                        "incumbent": (self.store.incumbent() or {}).get("model_id"),
+                    }
+                if verdict is not None and verdict[0] == "NOT_CONFIRMED":
+                    if king_failed:
+                        outcome = {**outcome, "outcome": DETHRONED}
+                    else:
+                        return {
+                            **outcome,
+                            "outcome": (
+                                NO_WINNER
+                                if pair["incumbent"] is None
+                                else INCUMBENT_KEEPS
+                            ),
+                            "reason": verdict[1],
+                        }
             if official is not None:
                 # OFFICIAL SCORE: the decision IS the official grades' comparison (oldest-first, after the pause, the hold
                 # and the queue checks above): applied now, with no repeat grade and no rebuild of either model.

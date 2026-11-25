@@ -204,6 +204,7 @@ def measure_pool(
     menu_key=None,
     menu_rowcheck=None,
     menu_rowcheck_key=None,
+    confirmation_sets=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -236,11 +237,34 @@ def measure_pool(
 
     With no ``capture`` given, a receiver's `staged_capture` block (still empty: only the first measure) is filled instead,
     its scored SE basis deferred to ``se_basis_of`` (see `staged_capture`).
+
+    ``confirmation_sets`` (owner CROWN-CONFIRMATION-SET, 25 Nov 2026) are a NEW version's sealed confirmation sets
+    (`pool_version.confirmation_sets`), required exactly when its policies register a ``confirmation``; None for every
+    other version, whose grade is unchanged. Their designs are bank pool rows like any other (answered in the same single
+    inference, nothing marks them), but they enter NO part of the grade: not A, D, the total, a gate, the record or the
+    returned dict. Their number (the version's physics family value on those rows, mean over the confirmation sets) is
+    kept in ``capture["confirmation"]`` only, for the crown (`crown_official.confirm`); a gate-failed grade keeps none.
     """
     staged = capture is None and _STAGED_CAPTURE.get() == {}
     if staged:
         capture = _STAGED_CAPTURE.get()
+    confirming = getattr(policies, "confirmation", None)
+    _require(
+        (confirming is None) == (confirmation_sets is None),
+        "confirmation_sets_do_not_match_the_registration",
+    )
+    registered_physics = policies.physics
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
+    if confirmation_sets is not None:
+        # the confirmation sets' structure is the EXAM's, checked once like the open sets' (a fault is Carbon's)
+        _check_confirmation_sets(
+            policies,
+            registered_physics,
+            sets,
+            confirmation_sets,
+            scoring_cells,
+            in_range_cases,
+        )
     policies = attach_physics(
         policies, scoring_cells, sets, a_multiplier, in_range_cases
     )
@@ -347,6 +371,13 @@ def measure_pool(
         tuple(quantize(r["inputs"])[n] for n in binding.input_names)
         for r in pool_row_dicts
     }
+    confirmation_specs = [spec for group in confirmation_sets or () for spec in group]
+    if confirmation_specs:
+        # the confirmation rows are bank pool rows the model answered with every other row (`rows_from_material`)
+        answered = answered | {
+            tuple(quantize(r["inputs"])[n] for n in binding.input_names)
+            for r in pool_gates.pool_rows(submitted, confirmation_specs)
+        }
     held = {tuple(bank_rows[i]["inputs"][n] for n in binding.input_names) for i in pool}
     if menu is not None:
         from carbon.scoring import pool_menu
@@ -458,6 +489,21 @@ def measure_pool(
                 sink,
             )
             if sink is not None:
+                if confirmation_specs:
+                    # S2 (bank 8319, model-eval 8325): the confirmation cases join the same per-case file as source 2, read
+                    # through their own recorder and merged only whole, so a failure never misaligns the open cases
+                    _confirmation_cases(
+                        confirmation_specs,
+                        submitted,
+                        serve,
+                        lambda row: tuple(
+                            quantize(row)[n] for n in binding.input_names
+                        ),
+                        policies,
+                        sink,
+                        served,
+                        capture,
+                    )
                 try:
                     bank_keys = [
                         tuple(quantize(r["inputs"])[n] for n in binding.input_names)
@@ -484,7 +530,21 @@ def measure_pool(
         gates[ACCURACY_GATE] = bool((accuracy.get("gate") or {}).get("passed"))
         if capture is not None:
             capture["accuracy"] = accuracy
-    if (not pool_only and base.get("A") is None) or not all(gates.values()):
+    gated = (not pool_only and base.get("A") is None) or not all(gates.values())
+    if confirmation_sets is not None and capture is not None:
+        # the crown's private number on the confirmation rows (a gate-failed grade has no score, so none to confirm)
+        capture["confirmation"] = (
+            {
+                "status": "UNAVAILABLE",
+                "reason": "gated",
+                "sets_sha256": confirming["sets_sha256"],
+            }
+            if gated
+            else confirmation_value(
+                confirmation_sets, submitted, serve, policies, confirming
+            )
+        )
+    if gated:
         # A failed mandatory gate gives no score; the dual pack reads only the gate verdicts.
         if capture is not None:
             capture["se_basis"] = {"gated": True}
@@ -716,6 +776,103 @@ def measure_pool(
             **({"total_rule": "a_only"} if a_only else {}),
         },
     }
+
+
+def _check_confirmation_sets(
+    policies, registered_physics, sets, groups, scoring_cells, in_range_cases
+):
+    """A NEW version's confirmation sets are a sound exam part, or `ExamRefused` (Carbon's, before any grade): the
+    version has a physics rule and a coverage plan; every confirmation set holds every registered class, exactly as an
+    open set must (so its family value is defined the same way); the scoring cells check out on them as on the open sets;
+    and no confirmation target is an open target (its number would then not be on rows the open grade never shows)."""
+    _require(registered_physics is not None, "confirmation_sets_need_a_physics_rule")
+    plan = policies.optimizer.coverage_plan
+    _require(plan is not None, "confirmation_sets_need_a_registered_coverage_plan")
+    _require(
+        type(groups) is tuple and groups and all(groups), "confirmation_sets_empty"
+    )
+    open_ids = {spec.target_id for group in sets for spec in group}
+    for group in groups:
+        try:
+            classes = {pool_grader.region_class(spec, plan) for spec in group}
+        except pool_grader.PoolRefused:
+            raise ExamRefused("confirmation_target_not_in_the_coverage_plan") from None
+        _require(
+            classes == set(plan.classes), "confirmation_set_missing_a_registered_class"
+        )
+        _require(
+            not any(spec.target_id in open_ids for spec in group),
+            "confirmation_target_is_an_open_target",
+        )
+    try:
+        pool_physics_score.attach_cells(
+            registered_physics, scoring_cells, plan, groups, in_range_cases
+        )
+    except pool_grader.PoolRefused as refused:
+        raise ExamRefused(f"confirmation_structure_refused:{refused}") from None
+
+
+def confirmation_value(groups, submitted, serve, policies, rule):
+    """The private confirmation record of one scored grade: ``{"status", "value", "sets", "sets_sha256"}``.
+
+    MEASURED: ``value`` is the version's physics family value per confirmation set (`pool_proof_suite._physics_a_gen`,
+    the same call that gives the open sets' A), mean over the sets: the version's ranked number on rows no public
+    surface shows. INVALID: a confirmation answer the Challenge's validity check refuses (the candidate's: the crown is
+    not confirmed). UNAVAILABLE with ``reason``: anything else that stops the number (Carbon's: the crown waits). Never
+    raises and never touches the grade."""
+    base = {"sets": len(groups), "sets_sha256": rule["sets_sha256"]}
+    try:
+        predictor = pool_plugin.pool_predictor(submitted, serve)
+        specs = [spec for group in groups for spec in group]
+        if not pool_grader.agen_predictions_valid(
+            specs, predictor, pool_physics_score.answer_check(policies.physics)
+        ):
+            return {**base, "status": "INVALID", "value": None}
+        values = [suite._physics_a_gen(group, predictor, policies) for group in groups]
+        value = statistics.fmean(values)
+        if not (type(value) is float and math.isfinite(value)):
+            return {
+                **base,
+                "status": "UNAVAILABLE",
+                "value": None,
+                "reason": "not_finite",
+            }
+        return {**base, "status": "MEASURED", "value": value}
+    except Exception as failure:  # noqa: BLE001 - the crown waits, never the grade
+        return {
+            **base,
+            "status": "UNAVAILABLE",
+            "value": None,
+            "reason": getattr(failure, "code", None) or type(failure).__name__,
+        }
+
+
+def _confirmation_cases(
+    specs, submitted, serve, key_of, policies, sink, served, capture
+):
+    """The confirmation cases' per-case errors (`case_errors` source 2) into ``sink``, their served keys into ``served``:
+    collected in their own recorder first and merged only when whole, so the open cases stay aligned whatever happens.
+    A failure is noted in ``capture["confirmation_case_errors_unavailable"]``; never the grade."""
+    try:
+        own = case_errors.Sink()
+        keys = case_errors.ServedKeys(serve, key_of)
+        plan = policies.optimizer.coverage_plan
+        pool_physics_score._ratios(
+            [(spec, plan.class_of(spec.target_id)) for spec in specs],
+            pool_plugin.pool_predictor(submitted, keys),
+            pool_physics_score.class_ranges(specs, plan),
+            policies.physics,
+            case_errors.Relabelled(own, case_errors.SOURCE_CONFIRMATION),
+        )
+        if len(keys.keys) != len(own.cases):
+            raise ExamRefused("case_errors_served_rows_misaligned")
+    except Exception as failure:  # noqa: BLE001 - custody evidence, never the grade
+        capture["confirmation_case_errors_unavailable"] = getattr(
+            failure, "code", type(failure).__name__
+        )
+        return
+    sink.cases.extend(own.cases)
+    served.keys.extend(keys.keys)
 
 
 def _offer_kept(speed, call_seconds, accuracy, a_values=None, d_values=None, sets=None):

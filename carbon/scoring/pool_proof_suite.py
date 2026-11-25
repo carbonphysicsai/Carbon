@@ -75,6 +75,11 @@ class Policies:
     #: set's own physics A (C = the version's physics A: the design fidelity of the same model on the same hidden
     #: designs). Needs a physics rule and a menu. False for every registered version: every path is then unchanged.
     pool_only: bool = False
+    #: A NEW version's confirmation set (owner CROWN-CONFIRMATION-SET, 25 Nov 2026): ``{"sets_sha256": ...}``, the
+    #: registered fingerprint of its sealed confirmation sets (`pool_version._confirmation`). Its rows are answered in the
+    #: same single inference as every exam row and its number is private, for the crown only (`pool_exam.measure_pool`).
+    #: None for every registered version: every path is then unchanged.
+    confirmation: object = None
 
 
 @dataclass(frozen=True)

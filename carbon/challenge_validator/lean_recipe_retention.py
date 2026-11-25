@@ -3115,8 +3115,21 @@ def _retain_selected_pack_evaluation(
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
         write_once(directory / INSTALLED_COMMIT_SIDECAR, _json(_installed_commit()))
+        # CROWN-CONFIRMATION-SET: this grade's number on the hidden confirmation rows (None for a version with none),
+        # bound to this grade's dual measurement; filed beside its evaluation, read only by the crown decision
+        from carbon.challenge_validator import crown_official
+
+        confirmation = crown_official.confirmation_record(
+            captured, snapshot.manifest_digest, pin["dual_measurement_sha256"]
+        )
         if uncounted and regrade.promotion is not None:
-            _record_regraded_evidence(regrade, bind_inputs, source_pin)
+            regraded = _record_regraded_evidence(regrade, bind_inputs, source_pin)
+            _file_confirmation(
+                regrade.promotion,
+                regrade.file_as or regrade.origin_task_id,
+                regraded,
+                confirmation,
+            )
         accuracy_record = None
         if captured:
             # A pool-graded version (Motor 1.8 on 116 among them, whose development adapter `_pool_graded` reads is not
@@ -3172,6 +3185,7 @@ def _retain_selected_pack_evaluation(
                     bind_inputs,
                     source_pin,
                     regrade.repeat if regrade is not None else repeat,
+                    confirmation=confirmation,
                 )
     except (
         ImportError,
@@ -3733,8 +3747,34 @@ def _pool_admit(store, adapter, submission_id, entry, artifacts):
     store.mark(submission_id, "RECONSTRUCTED")
 
 
+def _file_confirmation(target, submission_id, filed, record):
+    """CROWN-CONFIRMATION-SET: file one grade's confirmation record (`crown_official.confirmation_record`) under the
+    evaluation key its evaluation was just filed with (``filed``), in ``target``'s store (a BankPromotion or a PoolStore).
+    None files nothing. Never raises: a record that cannot be filed leaves the crown it would decide waiting
+    (`crown_official.CROWN_CONFIRMATION_UNAVAILABLE`, Carbon's), and is one journal line."""
+    if record is None:
+        return
+    try:
+        store = getattr(target, "store", target)
+        store.record_confirmation(submission_id, filed["evaluation_key"], record)
+    except Exception as failure:  # noqa: BLE001 - the crown waits, never the grade
+        _journal(
+            "grade_confirmation_unfiled",
+            task=submission_id,
+            error=getattr(failure, "code", type(failure).__name__),
+        )
+
+
 def _contend(
-    adapter, pool_store, submission_id, artifacts, bind_inputs, pin, repeat=None
+    adapter,
+    pool_store,
+    submission_id,
+    artifacts,
+    bind_inputs,
+    pin,
+    repeat=None,
+    *,
+    confirmation=None,
 ):
     """File the bound evaluation in the pool store and let it meet the incumbent
     (DEVELOPMENT king of the hill). Its own failure never unbinds the evaluation: the
@@ -3753,6 +3793,8 @@ def _contend(
             promotion.store, adapter, submission_id, bind_inputs["entry"], artifacts
         )
         filed = promotion.retain_private(submission_id, **bind_inputs)
+        # before the decision below reads it (CROWN-CONFIRMATION-SET); None for every version without a confirmation set
+        _file_confirmation(promotion, submission_id, filed, confirmation)
         discovery = adapter.discovery
         accuracy = discovery.evaluation_pack_snapshot.read_json_role(
             discovery.evaluation_pack_public_root,
@@ -4169,13 +4211,20 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
             store, kind, submission_id, outcome, filed=entry_id is not None
         )
         return
-    from carbon.challenge_validator.crown_official import CROWN_MARGIN_UNSET
+    from carbon.challenge_validator.crown_official import (
+        CROWN_CONFIRMATION_UNAVAILABLE,
+        CROWN_CONFIRMATION_UNSET,
+        CROWN_MARGIN_UNSET,
+    )
 
     paused = outcome.get("reason") in (
         bp.CROWNS_PAUSED,
         bp.CROWN_QUEUED,
         bp.CROWN_HELD,
         CROWN_MARGIN_UNSET,
+        # CROWN-CONFIRMATION-SET: a value model-eval has not ruled, or a confirmation record not filed yet
+        CROWN_CONFIRMATION_UNSET,
+        CROWN_CONFIRMATION_UNAVAILABLE,
     )
     # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
     # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.

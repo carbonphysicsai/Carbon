@@ -14,7 +14,8 @@ What it is and is not:
   version (`subset_repeat_produce.bootstrap_total_se`) does not hand it on: that file is in Motor 1.8's producer
   digest (`motor18_dual_pack._SUBSET_FILES`), so such a grade journals ``grade_case_errors_unavailable`` instead.
 - One entry per ANSWERED case in the order the grader asked them (one served row each): the target cases of
-  `pool_physics_score._ratios` (source 0), then the registered in-range case set (source 1).
+  `pool_physics_score._ratios` (source 0), then the registered in-range case set (source 1), then (v2, a version with a
+  confirmation set) the confirmation cases (source 2, `pool_exam._confirmation_cases`).
 - ``row_index`` joins a case to the grade's retained positional predictions: the index in the exam's ``bank_rows`` of
   the row the model's table answered it from (the same quantised exact-input key the table looks up; door-code 5141).
   A key that two bank rows share maps to its FIRST row, as the table's dict does; ``n_duplicate_keys`` counts them.
@@ -24,6 +25,7 @@ What it is and is not:
 Members (``.npz``, no pickles; every float is float64, NaN where a value is absent; `DTYPES`):
 ``row_index``, ``source``, ``spec_index`` (-1 for an in-range set case), ``case_index``, ``class_index`` (into
 ``class_names``), ``invalid`` (the candidate's invalid answer: no error is measured), ``output_names``, ``abs_error``,
+``signed_error`` (v2),
 ``u``, ``ratio`` (|err| / U, NaN where U is 0), ``pct`` (100 |err| / |truth| for a finite non-zero scalar truth),
 ``typed_names``, ``typed_ratio`` (S7 |err| / value_u where truth and answer both carry a value), ``n_duplicate_keys``,
 ``schema``, ``exam_key``.
@@ -35,8 +37,16 @@ import io
 import math
 
 SIDECAR = "case-errors.npz"
-SCHEMA = "carbon.exam.case-errors.v1"
-SOURCE_TARGET, SOURCE_IN_RANGE = 0, 1
+#: v2 (bank S2, model-eval 8325, K1 owner YES 7123), PROSPECTIVE: every grade from this code on writes v2; a v1 file stays
+#: as written and is read as v1 (`READABLE_SCHEMAS`), never rewritten. v2 adds ``signed_error`` (answer minus truth, for a
+#: scalar output whose answer and truth are both finite numbers; NaN for a waveform output, whose registered error has
+#: no sign, and wherever either is absent) and source 2 (`SOURCE_CONFIRMATION`). Every v1 member is unchanged.
+SCHEMA = "carbon.exam.case-errors.v2"
+SCHEMA_V1 = "carbon.exam.case-errors.v1"
+READABLE_SCHEMAS = (SCHEMA_V1, SCHEMA)
+#: A case's source: a target case, a registered in-range set case, or a confirmation case (owner CROWN-CONFIRMATION-SET:
+#: the hidden confirmation rows answered in the same inference; v2 only).
+SOURCE_TARGET, SOURCE_IN_RANGE, SOURCE_CONFIRMATION = 0, 1, 2
 
 
 class CaseErrorsRefused(ValueError):
@@ -84,8 +94,9 @@ class _Case:
     def invalid(self):
         self.bad = True
 
-    def output(self, output, error, u, truth):
-        self.outputs[output] = (error, u, truth)
+    def output(self, output, error, u, truth, answer=None):
+        # ``answer``: the model's answer for this output (S2: the signed error is answer - truth for two finite scalars)
+        self.outputs[output] = (error, u, truth, answer)
 
     def typed(self, output, ratio):
         self.typed_values[output] = ratio
@@ -101,6 +112,17 @@ class Sink:
         case = _Case(source, spec_index, case_index, name)
         self.cases.append(case)
         return case
+
+
+class Relabelled:
+    """A `Sink` front that files every case under ``source`` (the confirmation cases: `SOURCE_CONFIRMATION`), whatever
+    source the measuring code names; append-only like the sink it fronts."""
+
+    def __init__(self, sink, source):
+        self._sink, self._source = sink, source
+
+    def case(self, _source, spec_index, case_index, name):
+        return self._sink.case(self._source, spec_index, case_index, name)
 
 
 class ServedKeys:
@@ -126,6 +148,7 @@ DTYPES = {
     "invalid": "bool",
     "output_names": "str",
     "abs_error": "float64",
+    "signed_error": "float64",
     "u": "float64",
     "ratio": "float64",
     "pct": "float64",
@@ -133,7 +156,7 @@ DTYPES = {
     "typed_ratio": "float64",
     "n_duplicate_keys": "int64",
 }
-_BY_OUTPUT = ("abs_error", "u", "ratio", "pct")
+_BY_OUTPUT = ("abs_error", "signed_error", "u", "ratio", "pct")
 
 
 def assemble(sink, served_keys, bank_keys):
@@ -160,9 +183,12 @@ def assemble(sink, served_keys, bank_keys):
         for j, name in enumerate(output_names):
             if name not in case.outputs:
                 continue
-            error, u, truth = (_number(v) for v in case.outputs[name])
+            error, u, truth, answer = (_number(v) for v in case.outputs[name])
             size = None if error is None else abs(error)
             line["abs_error"][j], line["u"][j] = size, u
+            if size is not None and answer is not None and truth is not None:
+                # a waveform's answer and truth are sequences (`_number` None): its error has no sign, NaN here
+                line["signed_error"][j] = answer - truth
             if size is not None and u is not None and u > 0:
                 line["ratio"][j] = size / u
             if size is not None and truth:

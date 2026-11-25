@@ -56,7 +56,19 @@ from .bank_promotion import (
     UNAVAILABLE,
 )
 from .crown_common import REBUILD_IN_PROGRESS
-from .crown_official import CROWN_MARGIN_UNSET
+from .crown_official import (
+    CROWN_CONFIRMATION_UNAVAILABLE,
+    CROWN_CONFIRMATION_UNSET,
+    CROWN_MARGIN_UNSET,
+)
+
+#: The reasons a crown change waits in its place for a registered value or a filed record, nothing spent (`sweep`).
+WAITING_REASONS = (
+    CROWN_QUEUED,
+    CROWN_MARGIN_UNSET,
+    CROWN_CONFIRMATION_UNSET,
+    CROWN_CONFIRMATION_UNAVAILABLE,
+)
 
 ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
@@ -270,8 +282,9 @@ def sweep(store, reconsider, *, kind, current_exam):
                 continue  # a refusal ({"error": ...}) is not a decision: unresolved, in its place
             if outcome.get("reason") == CROWNS_PAUSED:
                 break  # paused again: nothing more this tick
-            if outcome.get("reason") in (CROWN_QUEUED, CROWN_MARGIN_UNSET):
-                # a crown change behind an unresolved earlier record, or with no margin row yet: it waits in its place,
+            if outcome.get("reason") in WAITING_REASONS:
+                # a crown change behind an unresolved earlier record, or with no margin row or confirmation value or record
+                # yet: it waits in its place,
                 # nothing spent, and is not asked again until the records ahead of it or the king change, or for
                 # `RETRY_SECONDS` (`queued_spaced`)
                 _QUEUED[_queued_key(store, record)] = (store.clock(), ahead)
