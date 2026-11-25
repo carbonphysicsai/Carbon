@@ -62,11 +62,10 @@ def rows(monkeypatch):
     held = SimpleNamespace(module=module, digest="sha256:" + "1" * 64)
     monkeypatch.setattr(registered, "REFUSED", {})
     registered._serving.cache_clear()
-    monkeypatch.setattr(exam_entry, "rows", lambda: {KEY: {"title": "Synthetic exam"}})
+    held.row = {"title": "Synthetic exam", "status": "open"}
+    monkeypatch.setattr(exam_entry, "rows", lambda: {KEY: held.row})
     monkeypatch.setattr(exam_registry, "digest", lambda *key: held.digest)
-    monkeypatch.setattr(
-        exam_registry, "field", lambda *asked: {"title": "Synthetic exam"}
-    )
+    monkeypatch.setattr(exam_registry, "field", lambda *asked: held.row)
     monkeypatch.setattr(exam_build, "module", lambda *key: held.module)
     monkeypatch.setattr(
         exam_build, "block", lambda *key: {"graph_spec": module.graph_spec()}
@@ -145,6 +144,15 @@ def test_a_version_with_its_measurement_has_a_campaign(rows):
     assert KEY in campaigns._versioned_campaigns()
     assert registered.PRACTICE_PROVENANCE in campaigns.practice_provenances()
     assert set(registered.BACKENDS) <= campaigns.implemented_backends()
+
+
+def test_a_retired_row_has_no_campaign(rows):
+    rows.row = {**rows.row, "status": "retired"}
+    assert registered.keys() == () and registered.REFUSED == {}
+    assert KEY not in campaigns._versioned_campaigns()
+    assert registered.PRACTICE_PROVENANCE not in campaigns.practice_provenances()
+    with pytest.raises(ValueError, match="registered direct campaign version"):
+        registered.spec_for(*KEY)
 
 
 def test_another_row_is_another_spec(rows):
@@ -255,7 +263,20 @@ def test_practice_reports_the_modules_aggregate(rows):
     value = practice.summary(
         spec, "0.1", material["interface_document"], np.full((4, 1), 0.25), material
     )
-    assert value["score"] == 0.25
+    # the whole served summary: no key of the module's own choosing
+    assert value == {
+        "cases": 4,
+        "outputs": ["y"],
+        "dtype": "<f4",
+        "n_cases": 4,
+        "n_scored": 4,
+        "score": 0.25,
+        "score_meaning": registered.SCORE_MEANING,
+        "aggregate_error": 0.25,
+        "components": {"mean": 0.25, "worst": 0.25},
+        "error_scale": practice.error_scale(spec, "0.1"),
+        "status": "aggregate_on_registered_scale",
+    }
     assert list(value["components"]) == ["mean", "worst"]
     assert practice.error_scale(spec, "0.1")["record"] == "synthetic"
     assert practice.components(spec) == (
@@ -267,13 +288,24 @@ def test_practice_reports_the_modules_aggregate(rows):
 @pytest.mark.parametrize(
     "change",
     [
-        {"score": float("nan")},
+        {"per_case": [0.0, 0.0, 0.0, 0.0]},
+        {"outputs": ["y"]},
+        {"error_scale": {"record": "the module's copy"}},
+        {"score": 0.0},
+        {"aggregate_error": float("nan")},
         {"aggregate_error": None},
+        {"aggregate_error": [0.0, 0.0]},
+        {"cases": 4.0},
+        {"cases": True},
+        {"cases": 3},
+        {"cases": [0.0]},
+        {"n_scored": 0},
+        {"n_scored": 5},
+        {"n_scored": 4.0},
         {"components": {"mean": 0.0}},
         {"components": {"mean": 0.0, "worst": float("inf")}},
         {"components": {"worst": 0.0, "mean": 0.0}},
         {"components": {"mean": 0.0, "worst": [0.0]}},
-        {"outputs": ["z"]},
     ],
 )
 def test_a_summary_of_another_shape_never_reaches_a_miner(rows, change):

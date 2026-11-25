@@ -4,8 +4,9 @@ A version with a build row (`challenge_registry.exam_build`) and an entry row (`
 build module also states its PRACTICE MEASUREMENT, which no code here chooses:
 
 - ``error_scale(challenge_id, version)``: the registered practice error scale, as `practice.error_scale` serves one;
-- ``practice_summary(challenge_id, version, rows, material)``: the aggregate practice result on that scale (no per-case
-  value), with exactly the ``PRACTICE_COMPONENTS``;
+- ``practice_summary(challenge_id, version, rows, material)``: exactly ``{cases, n_scored, aggregate_error, components}``,
+  the aggregate practice result on that scale, with exactly the ``PRACTICE_COMPONENTS``. A miner is served those four
+  (counts and finite numbers) and what the spec states; any other key, per-case or not, refuses the whole summary;
 - ``PRACTICE_COMPONENTS``: ``((name, label), ...)``, the aggregate's components in order;
 - ``train_facts(challenge_id, version)``: public TRAIN's registered facts, as `contracts.train_facts` serves them;
 - optional ``UNIT_LABELS`` (units `contracts.UNIT_LABELS` does not name) and ``FACTS`` / ``LABELS`` (the owner-approved
@@ -39,15 +40,12 @@ PRACTICE_PROVENANCE = "REGISTERED_PUBLIC_PRACTICE"
 BACKENDS = ("torch_cpu", "jax")
 #: What a campaign's build module must define beside `exam_build.FUNCTIONS`.
 FUNCTIONS = ("error_scale", "practice_summary", "train_facts")
-_SUMMARY = {
-    "cases",
-    "outputs",
-    "score",
-    "aggregate_error",
-    "components",
-    "error_scale",
-    "status",
-}
+#: All a module's practice summary may hold.
+_SUMMARY = {"cases", "n_scored", "aggregate_error", "components"}
+SCORE_MEANING = (
+    "Practice error on the Challenge's registered scale: lower is better and 0 means the model matches the reference on "
+    "every scored case. It is an error, not a grade, and not an exam score."
+)
 _TRAIN_FACTS = {
     "train_cases",
     "train_dtype",
@@ -102,15 +100,16 @@ class RegisteredSpec(Spec):
         names = tuple(name for name, _label in self.components())
         if (
             type(value) is not dict
-            or not _SUMMARY <= set(value)
+            or set(value) != _SUMMARY
+            or type(value["cases"]) is not int
+            or value["cases"] != len(rows)
+            or type(value["n_scored"]) is not int
+            or not 0 < value["n_scored"] <= value["cases"]
             or type(value["components"]) is not dict
             or tuple(value["components"]) != names
-            or value["outputs"]
-            != list(material["interface_document"]["output"]["names"])
             or not all(
                 type(number) is float and math.isfinite(number)
                 for number in (
-                    value["score"],
                     value["aggregate_error"],
                     *value["components"].values(),
                 )
@@ -118,7 +117,19 @@ class RegisteredSpec(Spec):
         ):
             # a nonfinite, per-case or unnamed value never reaches a miner's feedback
             raise ValueError("registered_practice_summary_invalid")
-        return value
+        return {
+            "cases": value["cases"],
+            "outputs": list(material["interface_document"]["output"]["names"]),
+            "dtype": self.output_dtype(),
+            "n_cases": value["cases"],
+            "n_scored": value["n_scored"],
+            "score": value["aggregate_error"],
+            "score_meaning": SCORE_MEANING,
+            "aggregate_error": value["aggregate_error"],
+            "components": dict(value["components"]),
+            "error_scale": self.error_scale(version),
+            "status": "aggregate_on_registered_scale",
+        }
 
     def dual_feedback(self, version):
         from carbon.scoring import practice_dual
@@ -195,9 +206,13 @@ def _refuse(key, reason) -> None:
 
 
 def keys() -> tuple:
-    """Every registered version that has a campaign. Read once per set of rows (they are add-only)."""
+    """Every registered version that has a campaign; a retired one has none. Read once per set of rows (add-only)."""
     return _serving(
-        tuple((key, exam_registry.digest(*key)) for key in sorted(exam_entry.rows()))
+        tuple(
+            (key, exam_registry.digest(*key))
+            for key, row in sorted(exam_entry.rows().items())
+            if row["status"] != "retired"
+        )
     )
 
 

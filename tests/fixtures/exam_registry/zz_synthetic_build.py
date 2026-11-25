@@ -189,10 +189,7 @@ def practice_summary(challenge_id: str, version: str, rows, material: dict) -> d
     components = {"mean": float(errors.mean()), "worst": float(errors.max())}
     return {
         "cases": len(rows),
-        "outputs": ["y"],
-        "score": components["worst"],
+        "n_scored": len(rows),
         "aggregate_error": components["worst"],
         "components": components,
-        "error_scale": error_scale(challenge_id, version),
-        "status": "aggregate_on_registered_scale",
     }
