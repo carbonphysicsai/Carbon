@@ -12,7 +12,7 @@ Fast physics models approximate expensive simulations. An engineer might use one
 
 Carbon brings competitive model discovery and independent evaluation into one system. This repository contains the implementation, scientific contracts, development studies, and commercial plan.
 
-**Mining? [Connect your agent](carbon/miner_mcp/README.md#connect-your-agent).** · [Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Website](https://carbonphysics.ai)
+**Mining? [Connect your agent](carbon/miner_mcp/README.md#connect-your-agent).** · [Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Brand guide](brand/README.md) · [Website](https://carbonphysics.ai)
 
 ## How Carbon works
 
@@ -82,6 +82,7 @@ The company's commercial plan is to use the subnet as a research team and pay fo
 |---|---|
 | [Project status](docs/publications/PROJECT_STATUS.md) | Implemented capabilities, research evidence, open work, and launch milestones |
 | [Business overview](Business/README.md) | Customers, products, company economics, and market position |
+| [Brand and identity](brand/README.md) | Brand & Identity Guide v3, logo assets, typography, colour palette, voice, and disclosure rules |
 | [Protocol specification](SPEC.md) | Architecture and links to the domain specifications |
 | [Challenge readiness](docs/development/CHALLENGE_READINESS.md) | Per-challenge reference, cost, and review records |
 | [Development Hub](docs/development/carbon_hub/orientation/START_HERE.md) | Implementation map and engineering workstreams |
@@ -109,4 +110,4 @@ For commercial enquiries and project updates, visit [carbonphysics.ai](https://c
 
 ## License
 
-Carbon's subnet software, including everything a miner or validator needs to run, is licensed under the [MIT License](LICENSE). `Business/`, `website/` and `presentations/` are proprietary to Carbon Physics, Inc. and are not covered by it. The license does not extend to models or methods submitted to the subnet, or to its outputs. See [LICENSE](LICENSE) for the details.
+Carbon's subnet software, including everything a miner or validator needs to run, is licensed under the [MIT License](LICENSE). `brand/`, `Business/`, `website/` and `presentations/` are proprietary to Carbon Physics, Inc. and are not covered by it. The license does not extend to models or methods submitted to the subnet, or to its outputs. See [LICENSE](LICENSE) for the details.
