@@ -16,27 +16,6 @@ from carbon import learned_baseline
 
 #: Registered (length, ridge) per Challenge kind; the others pick theirs on PRACTICE.
 REGISTERED = {"f08": (2.0, 1e-4), "motor": (4.0, 1e-4)}
-#: The kinds whose input box the code declares (`declared_bounds`); any other is a family registered by data.
-CODE_KINDS = frozenset({"motor", "cooling", "f08", "f02"})
-
-
-def _registered_baseline(kind):
-    """The baseline block of the family registered by data under ``kind``, or None."""
-    from carbon.challenge_kit import family_registry
-
-    for challenge_id in family_registry.families():
-        row = family_registry.family(challenge_id)
-        if row["kind"] == kind:
-            return row["baseline"]
-    return None
-
-
-def _length_ridge(kind):
-    """The registered (length, ridge) of a kind, or None where it is picked on PRACTICE."""
-    if kind in CODE_KINDS:
-        return REGISTERED.get(kind)
-    found = (_registered_baseline(kind) or {}).get("length_ridge")
-    return None if found is None else tuple(found)
 
 
 class PoolBaselineRefused(ValueError):
@@ -46,13 +25,7 @@ class PoolBaselineRefused(ValueError):
 
 
 def declared_bounds(kind, version):
-    """The Challenge's declared input box, as {input name: (low, high)}, from the module that declares it, or from the
-    family's registry row (its names in the row's own order)."""
-    if kind not in CODE_KINDS:
-        block = _registered_baseline(kind)
-        if block is None:
-            raise PoolBaselineRefused("baseline_kind_unregistered")
-        return {name: tuple(pair) for name, pair in block["bounds"].items()}
+    """The Challenge's declared input box, as {input name: (low, high)}, from the module that declares it."""
     from carbon.scoring import practice_grid
 
     names = practice_grid.input_names(kind, version)
@@ -106,17 +79,12 @@ def fit(kind, version):
     reported choice {length, ridge, source, at_edge}."""
     from carbon.scoring import practice_dual, practice_grid
 
+    names = practice_grid.input_names(kind, version)
     bounds = declared_bounds(kind, version)
-    names = (
-        practice_grid.input_names(kind, version)
-        if kind in CODE_KINDS
-        else tuple(bounds)
-    )
     inputs, targets = _train(kind, version)
     x = _scaled(inputs.tolist(), names, bounds)
-    registered = _length_ridge(kind)
-    if registered is not None:
-        length, ridge = registered
+    if kind in REGISTERED:
+        length, ridge = REGISTERED[kind]
         model = learned_baseline.KernelRidge(x, targets, length, ridge)
         choice = {
             "length": length,

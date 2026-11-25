@@ -302,8 +302,12 @@ FORBIDDEN = (
 #: What a run may read besides code: committed public material under these repository directories.
 PUBLIC_DIRS = ("carbon", "docs/development/evidence")
 #: ...and these exact committed public files: the version registry reads the validator host-class version overlay
-#: (from the image move on main), a tracked repository file with no sealed content.
-PUBLIC_FILES = ("scripts/validator_host_classes/version_overlay.json",)
+#: (from the image move on main), and the pool version table reads the family registry beside it: tracked repository
+#: files with no sealed content.
+PUBLIC_FILES = (
+    "scripts/validator_host_classes/version_overlay.json",
+    "scripts/validator_host_classes/family_registry.json",
+)
 _RUN = """
 import json, sys
 sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[2])

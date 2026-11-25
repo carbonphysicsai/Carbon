@@ -20,8 +20,20 @@ import pytest
 import carbon
 from carbon.challenge_kit import family_registry, version_overlay
 from carbon.scoring import (
+    battery_sealed_dual_pack,
+    cooling_dual_pack,
+    cooling_pool_baseline_dual_pack,
     copy_derivation,
+    f02_dual_pack,
+    f02_sealed_dual_pack,
+    f08_20_dual_pack,
+    f08_dual_pack,
+    f08_sealed_dual_pack,
     family_graders,
+    motor18_dual_pack,
+    motor19_dual_pack,
+    motor_pool_baseline_dual_pack,
+    motor_sealed_dual_pack,
     physical_adapters,
     physical_dual_pack,
     pool_version,
@@ -34,19 +46,19 @@ FAMILY, VERSION = "zz-synthetic", "0.1"
 NAMES = ("_kit", "_pool_graded", "_adapter")
 BUILTIN = sorted(family_registry.BUILTIN)
 PRODUCERS = (
-    "battery_sealed_dual_pack",
-    "cooling_dual_pack",
-    "cooling_pool_baseline_dual_pack",
-    "f02_dual_pack",
-    "f02_sealed_dual_pack",
-    "f08_20_dual_pack",
-    "f08_dual_pack",
-    "f08_sealed_dual_pack",
-    "motor18_dual_pack",
-    "motor19_dual_pack",
+    battery_sealed_dual_pack,
+    cooling_dual_pack,
+    cooling_pool_baseline_dual_pack,
+    f02_dual_pack,
+    f02_sealed_dual_pack,
+    f08_20_dual_pack,
+    f08_dual_pack,
+    f08_sealed_dual_pack,
+    motor18_dual_pack,
+    motor19_dual_pack,
     # (before the version its overlay dispatch adds to it)
-    "motor_sealed_dual_pack",
-    "motor_pool_baseline_dual_pack",
+    motor_sealed_dual_pack,
+    motor_pool_baseline_dual_pack,
 )
 
 
@@ -174,12 +186,11 @@ def test_its_producer_digest_moves_with_its_own_file(modules, tmp_path):
 
 
 def test_the_live_producer_digests_do_not_move(modules, tmp_path):
-    adapters = [importlib.import_module(f"carbon.scoring.{n}") for n in PRODUCERS]
-    before = [physical_dual_pack.producer_digest(a) for a in adapters]
+    before = [physical_dual_pack.producer_digest(a) for a in PRODUCERS]
     block = modules.write("zz_three")
     assert _install(tmp_path, {FAMILY: _row(block, block)}) == (FAMILY,)
-    assert [physical_dual_pack.producer_digest(a) for a in adapters] == before
-    for adapter in adapters:
+    assert [physical_dual_pack.producer_digest(a) for a in PRODUCERS] == before
+    for adapter in PRODUCERS:
         names = {*physical_dual_pack._SHARED_FILES, *adapter.FILES}
         assert not names & {"family_graders.py", "family_registry.py"}, adapter
 

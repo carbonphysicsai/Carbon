@@ -6,7 +6,8 @@ as ``version_overlay.json``). A row holds what a family's shared code asks about
 
 - ``kind``: the name the pool and practice tables dispatch on;
 - ``opacity``: which per-row ids its copies rename (a subset of ``copy_derivation.OPAQUE``; may be empty);
-- ``baseline``: the declared input bounds its learned baseline scales by and its registered (length, ridge), or null;
+- ``baseline``: the declared input bounds its learned baseline scales by and its registered (length, ridge), or null
+  (checked and held for the family's own modules: the in-pack baseline of the code's kinds does not read it);
 - ``modules``: by role, the ``carbon.*`` module that serves it, each with its file's sha256.
 
 ``install()`` (idempotent) reads the file and keeps every valid row:

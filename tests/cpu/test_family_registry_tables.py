@@ -19,7 +19,6 @@ from carbon.challenge_registry import pinned_module
 from carbon.scoring import (
     copy_derivation,
     physical_dual_pack,
-    pool_baseline,
     pool_version,
 )
 
@@ -93,12 +92,6 @@ def test_the_committed_file_registers_no_family_and_every_table_is_the_code_s(ta
         assert getattr(module, name) == live, name
 
 
-def test_every_live_kind_keeps_its_registered_fit():
-    live = {"f08": (2.0, 1e-4), "motor": (4.0, 1e-4), "cooling": None, "f02": None}
-    assert {k: pool_baseline._length_ridge(k) for k in live} == live
-    assert frozenset(live) == pool_baseline.CODE_KINDS
-
-
 def test_the_registry_alone_loads_neither_table_s_module():
     program = (
         "import sys; from carbon.challenge_kit import family_registry; "
@@ -125,11 +118,9 @@ def test_a_registered_family_is_in_each_table(tables, tmp_path):
         kept = {k: v for k, v in getattr(module, name).items() if k != FAMILY}
         assert kept == live, name
     # its declared baseline is its row's, in the row's own order
-    assert pool_baseline.declared_bounds("zzsynthetic", "0.1") == {
-        "b": (0.0, 1.0),
-        "a": (-2.0, 2.0),
-    }
-    assert pool_baseline._length_ridge("zzsynthetic") == (3.0, 0.01)
+    held = family_registry.family(FAMILY)["baseline"]
+    assert list(held["bounds"].items()) == [("b", [0.0, 1.0]), ("a", [-2.0, 2.0])]
+    assert held["length_ridge"] == [3.0, 0.01]
     # idempotent
     assert set(_install(tmp_path, {FAMILY: _row()})) == {FAMILY}
 
@@ -174,13 +165,12 @@ def test_an_unregistered_family_is_refused_typed(tables):
         copy_derivation.opaque_for("no-such-family")
     assert refused.value.code == "copy_challenge_unregistered"
     assert "no-such-family" not in pool_version.KINDS
-    with pytest.raises(pool_baseline.PoolBaselineRefused):
-        pool_baseline.declared_bounds("nosuchkind", "0.1")
 
 
 def test_no_producer_or_image_file_is_the_registry_s():
-    """The files a pack's producer digest is made of never name the registry, so registering a family moves none."""
-    for name in physical_dual_pack._SHARED_FILES:
+    """The files a pack's producer digest is made of never name the registry, nor does the in-pack baseline (its bytes are
+    pinned by the learning-necessity grids), so registering a family moves none."""
+    for name in (*physical_dual_pack._SHARED_FILES, "pool_baseline.py"):
         text = (ROOT / "carbon" / "scoring" / name).read_text(encoding="utf-8")
         assert "family_registry" not in text, name
     inputs = (ROOT / "carbon/reconstruction/worker/build_inputs.txt").read_text(
