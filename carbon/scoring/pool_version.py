@@ -93,6 +93,9 @@ KINDS = {
     "chip-cold-plate": "cooling",
 }
 
+# A family registered by data joins `KINDS` here (add-only; `family_registry._extend`): none is registered today.
+from carbon.challenge_kit import family_registry  # noqa: F401
+
 
 class PoolConstantsNotRegistered(pool_exam.ExamRefused):
     """A constant the owner has not picked: the version refuses to grade (Carbon's gap, never a candidate's)."""

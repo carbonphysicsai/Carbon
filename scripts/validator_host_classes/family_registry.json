@@ -1,0 +1,5 @@
+{
+  "schema": "carbon.challenge-kit.family-registry.v1",
+  "source": "Host-side registration of NEW Challenge families (add-only; door-code design #1, v2 ruling row 4033). A family the code serves itself is refused; each module is named with its file sha256, checked before import.",
+  "families": {}
+}

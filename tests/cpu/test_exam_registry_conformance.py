@@ -242,12 +242,8 @@ PROBES = (
 #: The punch list (design note section 2): probe -> the registry datum its fix moves into the registry. Each line is
 #: deleted by the head that makes its probe pass.
 KNOWN_GAPS = {
-    "registry.family": "family_registry.json + reader (door-code #1, H1)",
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
-    "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
-    "grade.pool_kind": "family pool_kind + register_kind (H1)",
-    "grade.copy_opacity": "family copy_opacity (through H1, a shared producer file)",
     "weights.pay_share": "paying families from the registry (owner economics line, not code)",
 }
 
@@ -265,6 +261,8 @@ from carbon.challenge_kit import version_overlay, version_registry
 version_overlay.install(path=overlay_path)
 from carbon.challenge_registry import exam_registry
 exam_registry.install(path=Path(sys.argv[4]))
+from carbon.challenge_kit import family_registry
+family_registry.install(path=Path(sys.argv[7]))
 
 
 def probe_registry_find():
@@ -277,7 +275,7 @@ def probe_registry_overlay():
 
 def probe_registry_family():
     from carbon.challenge_kit import family_registry
-    assert family_registry.family(family) is not None
+    assert family_registry.family(family)["kind"] == "zzsynthetic"
 
 
 def probe_build_material():
@@ -560,6 +558,25 @@ def _build_block():
     }
 
 
+def _family_row():
+    """The family registry row (`challenge_kit/family_registry.py`): synthetic; its modules are real `carbon.*` files."""
+    from carbon.challenge_registry import pinned_module
+
+    modules = {
+        "sealed_kit": "carbon.challenge_kit.f02_sealed_pack",
+        "sealed_grader": "carbon.scoring.f02_sealed_dual_pack",
+    }
+    return {
+        "kind": "zzsynthetic",
+        "opacity": ["case_id"],
+        "baseline": {"bounds": {"x": [0.0, 1.0]}, "length_ridge": [2.0, 0.001]},
+        "modules": {
+            role: {"module": name, "sha256": pinned_module.file_sha256(name)}
+            for role, name in modules.items()
+        },
+    }
+
+
 @pytest.fixture(scope="module")
 def walk(tmp_path_factory):
     path = tmp_path_factory.mktemp("registry") / "version_overlay.json"
@@ -581,6 +598,13 @@ def walk(tmp_path_factory):
         },
     }
     exams.write_text(json.dumps(document), encoding="utf-8")
+    families = path.with_name("family_registry.json")
+    document = {
+        "schema": "carbon.challenge-kit.family-registry.v1",
+        "source": "synthetic",
+        "families": {FAMILY: _family_row()},
+    }
+    families.write_text(json.dumps(document), encoding="utf-8")
     done = subprocess.run(
         [
             sys.executable,
@@ -592,6 +616,7 @@ def walk(tmp_path_factory):
             str(exams),
             str(FIXTURES),
             TRUST_VERSION,
+            str(families),
         ],
         cwd=REPOSITORY,
         capture_output=True,

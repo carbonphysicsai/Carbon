@@ -1179,6 +1179,9 @@ GRADING_PATHS = (
     "carbon/challenge_kit/version_registry.py",
     "carbon/challenge_kit/served_versions.py",
     "carbon/challenge_kit/version_overlay.py",
+    # a family registered by data (H1): its reader and its rows decide what a grade asks about that family
+    "carbon/challenge_kit/family_registry.py",
+    "scripts/validator_host_classes/family_registry.json",
     # a version's own whole-task wall (Motor 1.8: owner wall rule 12 Nov), read by the published limits and the rebuild
     "carbon/challenge_kit/task_wall_overrides.py",
     # pack
