@@ -177,3 +177,56 @@ def test_a_pick_d_version_is_published_exactly_as_before():
     block = pe.for_version("electric-motor-magnetics", "1.5")
     assert block["design_search"]["search"]["query_budget"] == own["query_budget"]
     assert "variants" in {line["id"] for line in block["how_you_are_tested"]}
+
+
+def _every_task_row():
+    row = _row()
+    del row["menu"]["tasks_per_epoch"]
+    return row
+
+
+def test_an_absent_tasks_per_epoch_is_every_task_for_the_reader_as_for_the_grader():
+    from carbon.scoring import pool_version
+
+    row = _every_task_row()
+    assert pool_version._menu(row["menu"]).tasks_per_epoch is None
+    own = pe.registration(pe.MENU_HEADROOM, row)
+    with_three = pe.registration(pe.MENU_HEADROOM, _row())
+    assert own["d"]["tasks_per_epoch"] is None
+    # nothing else of the registration moves
+    assert {**own, "d": {**own["d"], "tasks_per_epoch": 3}} == with_three
+
+
+def test_a_version_that_scores_every_task_says_so_and_names_no_number(monkeypatch):
+    own = pe.registration(pe.MENU_HEADROOM, _every_task_row())
+    monkeypatch.setitem(pe._REGISTERED_POOL, MOTOR_18, own)
+    monkeypatch.setattr(pe, "ranked_by_accuracy", lambda *_key: False)
+    block = pe.for_version(*MOTOR_18)
+    search = block["design_search"]
+    assert set(search["menu"]) == {"aggregate", "pick_weights"}
+    lines = {line["id"]: line["text"] for line in block["how_you_are_tested"]}
+    for text in (
+        search["what"],
+        lines["inverse_design"],
+        lines["registered_values"],
+    ):
+        assert "Every one of Carbon's registered design tasks is scored; each" in text
+        assert "draws, in secret" not in text and "None" not in text
+
+
+@pytest.mark.parametrize("bad", [None, True, "3", 3.0])
+def test_a_tasks_per_epoch_that_is_no_number_refuses_and_is_never_every_task(bad):
+    from carbon.scoring import pool_version
+
+    row = _row()
+    row["menu"]["tasks_per_epoch"] = bad
+    with pytest.raises(ValueError, match="^menu_tasks_per_epoch$"):
+        pe.registration(pe.MENU_HEADROOM, row)
+    with pytest.raises(pool_version.PoolConstantsNotRegistered):
+        pool_version._menu(row["menu"])
+
+
+def test_an_unset_tasks_per_epoch_registers_nothing():
+    row = _row()
+    row["menu"]["tasks_per_epoch"] = "HUMAN_INPUT"
+    assert pe.registration(pe.MENU_HEADROOM, row) is None

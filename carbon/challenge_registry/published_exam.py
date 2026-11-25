@@ -599,9 +599,14 @@ def _a_text(own):
 def _d_text(own):
     d = own["d"]
     weights = ", ".join(f"{w:g}" for w in MENU_PICK_WEIGHTS)
+    tasks = (
+        "Every one of Carbon's registered design tasks is scored"
+        if d["tasks_per_epoch"] is None
+        else f"Carbon draws, in secret, {d['tasks_per_epoch']} of its registered design tasks"
+    )
     return (
-        f"D is design value on a menu of solved designs. Carbon draws, in secret, {d['tasks_per_epoch']} of "
-        "its registered design tasks; each task is a large set of designs whose true outputs Carbon has solved. Your "
+        f"D is design value on a menu of solved designs. {tasks}; "
+        "each task is a large set of designs whose true outputs Carbon has solved. Your "
         "model predicts every design once, never knowing which ones count, and must answer each the same way "
         "whatever else is in the batch (otherwise D = 0). The designs are ranked by your predictions against the "
         "task's limits, and your top five picks are looked up in the truths: a pick that is truly infeasible scores "
@@ -612,13 +617,16 @@ def _d_text(own):
 
 
 def _menu_headroom_design_search(own):
+    menu = {
+        "tasks_per_epoch": own["d"]["tasks_per_epoch"],
+        "aggregate": own["d"]["aggregate"],
+        "pick_weights": list(MENU_PICK_WEIGHTS),
+    }
+    if menu["tasks_per_epoch"] is None:
+        del menu["tasks_per_epoch"]  # every task, as the grader's own record states it
     return {
         "what": _d_text(own),
-        "menu": {
-            "tasks_per_epoch": own["d"]["tasks_per_epoch"],
-            "aggregate": own["d"]["aggregate"],
-            "pick_weights": list(MENU_PICK_WEIGHTS),
-        },
+        "menu": menu,
         "deterministic": "The same model gives the same score within an epoch, so the paired repeat check holds.",
         "disclosure": "You see the rounded total and a closed reason code. The tasks, their limits and optima, the "
         "drawn menu, your picks and the solved designs stay private.",
@@ -1454,11 +1462,14 @@ def registration(kind, row):
         return None
     if kind == MENU_HEADROOM:
         menu, physics = row["menu"], row["physics"]
+        # absent is every task, as the grader reads it (`pool_version._menu`); a null is the grader's refusal, never absent
+        if "tasks_per_epoch" in menu:
+            _need(type(menu["tasks_per_epoch"]) is int, "menu_tasks_per_epoch")
         return {
             "kind": MENU_HEADROOM,
             "d": {
                 "rule": "menu",
-                "tasks_per_epoch": menu["tasks_per_epoch"],
+                "tasks_per_epoch": menu.get("tasks_per_epoch"),
                 "aggregate": menu["aggregate"],
                 "rotation_days": menu["rotation_days"],
             },
