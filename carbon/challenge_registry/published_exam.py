@@ -596,6 +596,21 @@ def _a_text(own):
     )
 
 
+#: The menu keys `_d_text` is true for. A key outside them (``ranking``, ``d_form``, ``k``, ``limit_band``) changes how D is
+#: scored, so its row is refused until the same change writes its sentence.
+_DESCRIBED_MENU = frozenset(
+    {
+        "records_sha256",
+        "epoch",
+        "aggregate",
+        "rotation_days",
+        "rowcheck",
+        "min_tasks_exception",
+        "tasks_per_epoch",
+    }
+)
+
+
 def _d_text(own):
     d = own["d"]
     weights = ", ".join(f"{w:g}" for w in MENU_PICK_WEIGHTS)
@@ -1462,6 +1477,7 @@ def registration(kind, row):
         return None
     if kind == MENU_HEADROOM:
         menu, physics = row["menu"], row["physics"]
+        _need(set(menu) <= _DESCRIBED_MENU, "menu_not_described")
         # absent is every task, as the grader reads it (`pool_version._menu`); a null is the grader's refusal, never absent
         if "tasks_per_epoch" in menu:
             _need(type(menu["tasks_per_epoch"]) is int, "menu_tasks_per_epoch")

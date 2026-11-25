@@ -230,3 +230,36 @@ def test_an_unset_tasks_per_epoch_registers_nothing():
     row = _row()
     row["menu"]["tasks_per_epoch"] = "HUMAN_INPUT"
     assert pe.registration(pe.MENU_HEADROOM, row) is None
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"ranking": "original_limits"},
+        {"ranking": "original_limits", "d_form": "regret_u", "k": 1.0},
+        {"limit_band": "borderline_1u"},
+        # the default by name too: a row leaves it out
+        {"ranking": "backoff_u"},
+        {"a_key_of_a_later_rule": 1},
+    ],
+)
+def test_a_menu_rule_the_text_does_not_describe_is_refused(extra):
+    row = _row()
+    row["menu"].update(extra)
+    with pytest.raises(ValueError, match="^menu_not_described$"):
+        pe.registration(pe.MENU_HEADROOM, row)
+
+
+def test_the_owners_exception_for_few_tasks_changes_no_text():
+    row = _row()
+    row["menu"]["min_tasks_exception"] = "OWNER-SYNTHETIC-01"
+    own = pe.registration(pe.MENU_HEADROOM, row)
+    assert own == pe.registration(pe.MENU_HEADROOM, _row())
+
+
+def test_every_committed_menu_row_is_described():
+    document = json.loads(
+        (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
+    )
+    menus = [row["menu"] for row in document["versions"].values() if "menu" in row]
+    assert menus and all(set(menu) <= pe._DESCRIBED_MENU for menu in menus)
