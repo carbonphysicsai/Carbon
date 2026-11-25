@@ -24,8 +24,10 @@ except ImportError:  # pragma: no cover
 
 
 def bank_of(challenge, version, private_root):
+    from carbon.scoring import family_graders
     from carbon.scoring import sealed_batch_source as source
 
+    family_graders.install()  # a family registered by data (nothing without a row)
     kit = source._kit(challenge)
     if kit is None:
         raise SystemExit("not a sealed-pack Challenge")

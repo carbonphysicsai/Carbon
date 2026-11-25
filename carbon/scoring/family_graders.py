@@ -9,6 +9,8 @@ family NO code names, and registers that family's grader in `physical_adapters` 
 - its PRODUCER identity binds those files: every module its row names must be in the grader's ``FILES`` (names relative to
   ``carbon/scoring``, as `physical_dual_pack.producer_digest` reads them), so a changed grader or kit always moves the
   family's own digest, the one its pack pins. A grader that leaves one out is refused;
+- those modules import nothing else of Carbon: the standard library, numpy, jax, the shared producer files and the files in
+  the grader's ``FILES`` only, so no file outside the digest can change a grade (read from their text, nothing computed);
 - a family the code serves is never extended or replaced: its calls reach the original function unchanged;
 - modules are loaded HERE, when `lean_recipe_retention` or `copy_delivery` is imported. The three functions only read a
   table afterwards: no call a request makes can import, register or change anything.
@@ -24,12 +26,14 @@ no grader), plus what `physical_dual_pack` asks of an adapter. A pool-graded fam
 
 from __future__ import annotations
 
+import ast
 import logging
+import sys
 from pathlib import Path
 
 from carbon.challenge_kit import family_registry
 from carbon.challenge_registry import pinned_module
-from carbon.scoring import sealed_batch_source
+from carbon.scoring import physical_dual_pack, sealed_batch_source
 
 ROLES = ("sealed_kit", "sealed_grader")
 _HERE = Path(__file__).resolve().parent
@@ -54,6 +58,57 @@ def _bound(adapter, sources) -> bool:
     return sources <= {(_HERE / name).resolve() for name in files}
 
 
+#: Outside Carbon, what a family's module may import beside the standard library.
+_LIBRARIES = frozenset({"jax", "numpy"})
+#: Calls that import or run code by a computed name: none is allowed.
+_COMPUTED = frozenset(
+    {
+        "__import__",
+        "eval",
+        "exec",
+        "exec_module",
+        "import_module",
+        "load_module",
+        "run_module",
+        "run_path",
+        "spec_from_file_location",
+    }
+)
+
+
+def _import_allowed(name, files) -> bool:
+    """Whether the dotted ``name`` a module imports is an allowed library or one of ``files``."""
+    top = name.partition(".")[0]
+    if top != "carbon":
+        return top in _LIBRARIES or top in sys.stdlib_module_names
+    try:
+        return pinned_module.source_file(name) in files
+    except pinned_module.PinnedModuleRefused:
+        return False
+
+
+def _outside(source, files):
+    """The first thing a module file imports, or could import, outside ``files`` and the allowed libraries, or None."""
+    for node in ast.walk(ast.parse(source.read_bytes())):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if not _import_allowed(alias.name, files):
+                    return alias.name
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                return "a relative import"
+            # ``from package import module`` names each module; ``from module import name`` names the module itself
+            if not _import_allowed(node.module, files):
+                for alias in node.names:
+                    if not _import_allowed(f"{node.module}.{alias.name}", files):
+                        return f"{node.module}.{alias.name}"
+        elif isinstance(node, ast.Call):
+            called = getattr(node.func, "attr", None) or getattr(node.func, "id", None)
+            if called in _COMPUTED:
+                return f"a call of {called}"
+    return None
+
+
 def _load(challenge, blocks):
     """``(kit, grader, sources)`` of a family, every check passed, or `FamilyGraderRefused`."""
     if (
@@ -68,6 +123,14 @@ def _load(challenge, blocks):
         raise FamilyGraderRefused("the grader serves another Challenge")
     if not _bound(grader, sources):
         raise FamilyGraderRefused("the grader's FILES do not bind every module")
+    files = {
+        (_HERE / name).resolve()
+        for name in (*physical_dual_pack._SHARED_FILES, *grader.FILES)
+    }
+    for source in sorted(sources):
+        outside = _outside(source, files)
+        if outside is not None:
+            raise FamilyGraderRefused(f"{source.name} reaches {outside}")
     if not all(
         callable(getattr(kit, n, None)) for n in ("sealed_bank", "private_roles")
     ):

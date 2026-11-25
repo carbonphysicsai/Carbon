@@ -168,9 +168,10 @@ def build(
     ``pool_exam.measure_pool`` like a miner, see ``cooling_pool_baseline_dual_pack``).
     """
     from carbon.challenge_kit.version_registry import find
-    from carbon.scoring import copy_package, pool_exam, pool_version
+    from carbon.scoring import copy_package, family_graders, pool_exam, pool_version
     from carbon.scoring import sealed_batch_source as source
 
+    family_graders.install()  # a family registered by data (nothing without a row)
     module = _writer(challenge)
     if version not in module.POOL_VERSIONS:
         raise SystemExit(f"{challenge} {version} is not a pool-graded version")

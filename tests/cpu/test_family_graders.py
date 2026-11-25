@@ -354,3 +354,79 @@ def test_a_call_imports_nothing(modules, tmp_path, monkeypatch):
         sealed_batch_source._adapter(FAMILY, {"population": "zz"}, VERSION, None)
         is sys.modules["carbon.zz_eleven"]
     )
+
+
+@pytest.mark.parametrize(
+    ("text", "reason"),
+    [
+        ("from carbon.scoring import pool_exam", "carbon.scoring.pool_exam"),
+        ("import carbon.scoring.pool_exam", "carbon.scoring.pool_exam"),
+        ("from carbon.scoring.pool_exam import exam", "pool_exam.exam"),
+        ("import scipy", "scipy"),
+        ("from . import other", "a relative import"),
+        ("import importlib\n\nimportlib.import_module('json')", "import_module"),
+        ("exec('1')", "a call of exec"),
+        ("__import__('json')", "a call of __import__"),
+    ],
+)
+@pytest.mark.parametrize("lazy", [False, True])
+def test_a_module_that_reaches_code_outside_its_digest_is_refused(
+    modules, tmp_path, text, reason, lazy
+):
+    if lazy:
+        text = "def _later():\n" + "\n".join(
+            "    " + line for line in text.splitlines()
+        )
+    block = modules.write("zz_reach", ("import json\n", f"import json\n\n{text}\n\n"))
+    if not lazy:
+        # (the text is read, so what it would do is never run: the module itself need not import)
+        path = modules.folder / "zz_reach.py"
+        assert family_graders._outside(path, {path.resolve()}) is not None
+    assert _install(tmp_path, {FAMILY: _row(block, block)}) == ()
+    if lazy:
+        assert reason in family_graders.refused()[FAMILY]
+    assert sealed_batch_source._kit(FAMILY) is None
+
+
+def test_a_shared_producer_file_numpy_and_jax_may_be_imported(modules, tmp_path):
+    text = (
+        "import json\n\nimport numpy as np\nfrom carbon.scoring import copy_derivation\n"
+        "from carbon.scoring.copy_derivation import opaque_for\n\n"
+        "def _later():\n    import jax.numpy\n"
+    )
+    block = modules.write("zz_allowed", ("import json\n", text))
+    assert _install(tmp_path, {FAMILY: _row(block, block)}) == (FAMILY,)
+
+
+def test_no_other_code_registers_an_adapter_at_run_time():
+    """A new lazy ``register()`` must name a Challenge in ``BUILTIN`` (so no row can shadow it) and be added here."""
+    import ast
+
+    found = set()
+    for path in sorted((ROOT / "carbon").rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        if ".register(" not in text:
+            continue
+        for node in ast.walk(ast.parse(text)):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "register"
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in ("physical_adapters", "sealed_batch_source")
+            ):
+                found.add(
+                    (path.relative_to(ROOT).as_posix(), ast.unparse(node.args[0]))
+                )
+    assert found == {
+        (
+            "carbon/challenge_validator/lean_recipe_retention.py",
+            "battery_dual_pack",
+        ),
+        (
+            "carbon/challenge_validator/lean_recipe_retention.py",
+            "battery_sealed_dual_pack",
+        ),
+        ("carbon/scoring/family_graders.py", "served[1]"),
+    }
+    assert sealed_batch_source.BATTERY in family_registry.BUILTIN
