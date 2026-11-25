@@ -156,3 +156,44 @@ def test_signed_posts_never_reach_the_shared_answers(monkeypatch):
     answer = di.DirectRecipeIntake.route(intake, "POST", di.FEED_PATH + "x", {}, b"")
     assert answer.status in (404, 405)
     assert "_public_state" not in intake.__dict__
+
+
+def _snapshot(n):
+    return SimpleNamespace(
+        snapshot_id=f"sha256:{n}", finalized_block=n, timestamp_ms=n * 12_000
+    )
+
+
+def test_the_info_document_names_the_snapshot_of_the_moment_never_the_shared_answers():
+    """Live 116, Nov 2026 (two hotkeys refused TRANSPORT_STALE on every try): a client signs over the info document's
+    snapshot, so its automatic resends must not read the one they were just refused on out of the shared answer.
+    """
+    intake, built = _door()
+    held = {"now": _snapshot(1)}
+    intake.window = SimpleNamespace(latest=lambda: held["now"])
+
+    def public():
+        built["n"] += 1
+        return Answer(200, {"doc": "info", "snapshot": {"id": held["now"].snapshot_id}})
+
+    intake.public = public
+    assert _get(intake, di.INFO_PATH).body["snapshot"]["id"] == "sha256:1"
+    for n in (2, 3):
+        held["now"] = _snapshot(n)
+        answer = _get(intake, di.INFO_PATH)
+        assert answer.body == {
+            "doc": "info",
+            "snapshot": {
+                "id": f"sha256:{n}",
+                "finalized_block": n,
+                "timestamp_ms": n * 12_000,
+            },
+        }
+    assert built["n"] == 1  # the document itself is still the one shared answer
+    stored = intake._public_state[di.INFO_PATH]["answer"].body["snapshot"]
+    assert stored == {"id": "sha256:1"}  # and is never written to
+    held["now"] = None
+    refused = _get(intake, di.INFO_PATH)
+    assert (refused.status, refused.body["refused"]) == (503, "snapshot_unavailable")
+    # every other document is served as it was built
+    assert "snapshot" not in _get(intake, KEYS[1]).body

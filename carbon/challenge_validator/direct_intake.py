@@ -601,9 +601,12 @@ class DirectRecipeIntake(BatteryIntake):
             # (called as this class's own functions: a test double of the intake routes through them too)
             key = DirectRecipeIntake._public_key(self, path)
             if key is not None:
-                return DirectRecipeIntake._public_get(
+                answer = DirectRecipeIntake._public_get(
                     self, key, lambda: DirectRecipeIntake._public_answer(self, key)
                 )
+                if key != INFO_PATH:
+                    return answer
+                return DirectRecipeIntake._current_snapshot(self, answer)
         if method == "GET" and path == INFO_PATH:
             return self.public()
         if method == "GET" and path.startswith(koth_public.PATH):
@@ -617,6 +620,29 @@ class DirectRecipeIntake(BatteryIntake):
         if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
+
+    def _current_snapshot(self, answer):
+        """The info document's answer with the snapshot this door holds NOW, never the shared answer's own (up to
+        `PUBLIC_GET_STALE_MAX_S` old): a client signs its request over this snapshot and has what is left of
+        `SNAPSHOT_MAX_AGE_S` to be admitted, so an automatic resend must never read the one it was just refused on. Reading
+        the window takes no request lock. No fresh snapshot: the same 503 `public` gives. ``answer`` is the caller's copy.
+        """
+        if answer.status != 200 or "snapshot" not in answer.body:
+            return answer
+        snapshot = self.window.latest()
+        if snapshot is None:
+            return _refused(503, "snapshot_unavailable")
+        return Answer(
+            answer.status,
+            {
+                **answer.body,
+                "snapshot": {
+                    "id": snapshot.snapshot_id,
+                    "finalized_block": snapshot.finalized_block,
+                    "timestamp_ms": snapshot.timestamp_ms,
+                },
+            },
+        )
 
     def _public_key(self, path):
         """The canonical path of one of this door's public GET documents, or None (any other path is answered live, as
