@@ -609,6 +609,27 @@ _DESCRIBED_MENU = frozenset(
         "tasks_per_epoch",
     }
 )
+#: The physics keys `_a_text`, `_gate_text` and the score section are true for, the same way: a row with typed outputs or
+#: report-only outputs or cells is refused until the same change writes its sentence.
+_DESCRIBED_PHYSICS = frozenset(
+    {
+        "cells_sha256",
+        "gate_statistic",
+        "gate_threshold",
+        "gate_cases",
+        "enters",
+        "ad_split",
+        "total_rule",
+        "scoring",
+        "skill_form",
+        "h_min",
+        "h_lo",
+        "n_min",
+        "target_kind",
+        "in_range_cases_sha256",
+        "region_sha256",
+    }
+)
 
 
 def _d_text(own):
@@ -1478,6 +1499,14 @@ def registration(kind, row):
     if kind == MENU_HEADROOM:
         menu, physics = row["menu"], row["physics"]
         _need(set(menu) <= _DESCRIBED_MENU, "menu_not_described")
+        _need(
+            set(physics) <= _DESCRIBED_PHYSICS
+            and physics["total_rule"] == "half_a_half_d"
+            and physics["skill_form"] == "log"
+            # the gate's sentence names a limit per output
+            and type(physics["gate_threshold"]) is dict,
+            "physics_not_described",
+        )
         # absent is every task, as the grader reads it (`pool_version._menu`); a null is the grader's refusal, never absent
         if "tasks_per_epoch" in menu:
             _need(type(menu["tasks_per_epoch"]) is int, "menu_tasks_per_epoch")

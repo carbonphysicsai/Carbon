@@ -257,9 +257,34 @@ def test_the_owners_exception_for_few_tasks_changes_no_text():
     assert own == pe.registration(pe.MENU_HEADROOM, _row())
 
 
-def test_every_committed_menu_row_is_described():
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"typed_outputs": [{}]},
+        {"report_only_outputs": ["y"]},
+        {"report_only_cells": [["class", "y"]]},
+        {"total_rule": "a_only"},
+        {"skill_form": "linear"},
+        # one number for every output, which the grader takes: the sentence names them one by one
+        {"gate_threshold": 3.0},
+        {"a_key_of_a_later_rule": 1},
+    ],
+)
+def test_a_physics_rule_the_text_does_not_describe_is_refused(extra):
+    row = _row()
+    row["physics"].update(extra)
+    with pytest.raises(ValueError, match="^physics_not_described$"):
+        pe.registration(pe.MENU_HEADROOM, row)
+
+
+def test_a_committed_row_of_this_kind_is_described():
+    """The rows published under this kind only: another kind's menu or physics has its own sentence (review-b 7735)."""
     document = json.loads(
         (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
     )
-    menus = [row["menu"] for row in document["versions"].values() if "menu" in row]
-    assert menus and all(set(menu) <= pe._DESCRIBED_MENU for menu in menus)
+    keys = [k for k, own in pe._REGISTERED_POOL.items() if pe._is_menu_headroom(own)]
+    assert MOTOR_18 in keys
+    for key in keys:
+        row = document["versions"][" ".join(key)]
+        assert set(row["menu"]) <= pe._DESCRIBED_MENU
+        assert set(row["physics"]) <= pe._DESCRIBED_PHYSICS
