@@ -7,11 +7,15 @@
       "score": "A"
     },
     "electric-motor-magnetics 1.9": {
-      "confirmation": {},
+      "confirmation": {
+        "tie": "not_confirmed"
+      },
       "margin": 0.0086
     },
     "f08-ribbed-bracket 2.0": {
-      "confirmation": {},
+      "confirmation": {
+        "tie": "not_confirmed"
+      },
       "margin": 0.0086
     }
   }

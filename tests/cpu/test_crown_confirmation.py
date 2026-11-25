@@ -132,7 +132,9 @@ def test_the_repository_rows_under_the_owner_line_carry_a_block_and_no_other_doe
     assert rows["electric-motor-magnetics 1.8"] == {"margin": 0.0129, "score": "A"}
     for name in carrying:
         challenge, version = name.rsplit(" ", 1)
-        assert crown_official.registered(challenge, version)["confirmation"] == {}
+        assert crown_official.registered(challenge, version)["confirmation"] == {
+            "tie": "not_confirmed"
+        }
 
 
 def test_install_logs_whether_the_confirmation_is_ruled(tmp_path):
