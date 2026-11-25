@@ -195,8 +195,6 @@ With Graphite you set your limits up front: how many model calls, how many dolla
 
 ## 6. Practise, freeze, submit
 
-**Until the switch time Carbon posts, Motor 1.8 is still scored half on accuracy and half on design value; what this page says of Motor 1.8's score applies from that time.**
-
 **What the practice number is.** The number a practice shows (it may be labelled `score` in a result file) is a **practice total from 0 to 1, higher is better**: `0.5 * A + 0.5 * D`, the same formula as the exam (see *What the exam tests*), computed on public practice cases. On Motor 1.8 the exam's score is accuracy alone, so there the practice total is not the exam's score. Beside it you see the error details: for each output, its error divided by its spread in the public TRAIN data, where 0 means the model matches the reference exactly and 1 means an error as large as that spread. A first example recipe can score low or show an error above 1; improve it. A practice total is never an exam score or grade: the exam is graded on hidden cases and shows nothing of them.
 
 - **Practise.** Pick a tested model type under **Backbone** and, if you like, **Training steps** and **Learning rate** (leave them empty for its tested default); the whole recipe is under **Advanced: the recipe as JSON** if you want to edit it by hand. Each practice trains a model from your recipe and scores it on public practice cases: one graded total from 0 to 1, higher is better, with its error details beside it. A practice that breaks a physics rule is marked **not eligible**, however good its error. Practice applies the exam's published score-part minimums and names a part below its minimum; until a version's minimums are set it says "minimums not yet set". A practice result is never an exam grade. Practice costs no exam and has no limit on how often you run it. It runs on your own compute, and if an AI agent researches for you, its model calls are billed to your model key.
@@ -211,8 +209,6 @@ Your **grade** runs from 0 to 1, and **higher is better**. On Motor 1.8 it is ac
 ## What the exam tests
 
 The exam is not a surprise: you can read what it measures and what passes. What stays private is the hidden material it is graded on. The same text is served as structured fields by the describe tool (`published_exam`); each value below is Carbon's registered value for that version at the time of writing, and where a value is not registered yet this page says **not yet registered**. The four launch versions are Motor 1.5, Cooling 1.6, Ribbed Bracket 1.7 and Burst Thermal 2.5.
-
-**Until the switch time Carbon posts, Motor 1.8 is still scored half on accuracy and half on design value; the line below applies to it from that time.**
 
 **The score** is `TOTAL = 0.5 * A + 0.5 * D`. (Motor 1.8 is different: its score is accuracy alone, and its rules are in `kits/motor/HOW_YOURE_TESTED.md`.)
 
@@ -290,7 +286,7 @@ Crowns are not open for this version: no crown rule is registered for it, so no 
 
 ## How you're tested
 
-Motor 1.8's own lines are in `kits/motor/HOW_YOURE_TESTED.md`: its score is accuracy alone from the switch time Carbon posts, and half accuracy, half design value until then. This is how a version graded by the new exam is tested; `describe` serves the same lines as `published_exam.how_you_are_tested`, and the Launchpad page shows them under the Challenge's **How you're tested**. Nothing hidden is listed here: not the targets, where the extended range ends, how far the limits move, or the optimizer's starting points.
+Motor 1.8's own lines are in `kits/motor/HOW_YOURE_TESTED.md`: its score is accuracy alone. This is how a version graded by the new exam is tested; `describe` serves the same lines as `published_exam.how_you_are_tested`, and the Launchpad page shows them under the Challenge's **How you're tested**. Nothing hidden is listed here: not the targets, where the extended range ends, how far the limits move, or the optimizer's starting points.
 
 - **The grade.** Your grade is 0.5 x A + 0.5 x D, from 0 to 1, higher is better. A is accuracy and physics. D is design value.
 - **Inverse design.** Design value is inverse design. Carbon's own fixed optimizer (CMA-ES) uses your model to search for designs that meet each hidden target's limits, within a fixed number of model queries, and picks one design from a set Carbon has already solved. A pick that does not meet the limits scores 0 for that target; otherwise it scores how close it is to the best known design, times how honest your model's prediction was at that pick. You cannot change the search. The query budget is not yet registered.

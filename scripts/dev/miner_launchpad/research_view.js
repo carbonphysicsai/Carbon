@@ -1202,7 +1202,7 @@
       }
     }
     const queried = rows.map(r => r.dual?.n_cases).find(n => Number.isInteger(n));
-    if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade. From the switch time Carbon posts, the Motor 1.8 exam scores accuracy alone, so from then this total is not its score.", "hint");
+    if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade. On Motor 1.8 the exam scores accuracy alone, so this total is not the exam's score.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
     for (const id of ["trend_score", "trend_components", "components"]) if (byId[id]) chart(box, byId[id]);
   }
