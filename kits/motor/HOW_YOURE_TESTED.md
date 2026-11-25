@@ -36,6 +36,10 @@ recipe on this TRAIN only, never on your kit data.
 
 ## 2. How you're scored
 
+**Until the switch time Carbon posts, Motor 1.8 is still scored half on
+accuracy and half on design value; the score, ranking and crown lines below
+apply from that time.**
+
 `TOTAL = A`, the physics part below, 0 to 1, higher is better. Design value is
 not counted. Gates come first: a failed gate means no score, however good the
 rest.

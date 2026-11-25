@@ -74,12 +74,12 @@
   }
  ],
  "every_version": [
-  "Score: on Motor 1.8, accuracy only; on the other versions, half physics, half design value. Gates come first: a failed gate means no score.",
+  "Score: half physics, half design value; on Motor 1.8, accuracy only from the switch time Carbon posts. Gates come first: a failed gate means no score.",
   "Physics: your model is scored on hidden cases, many of them outside the training data, grouped into classes. On the new versions a class scores zero at the accuracy of Carbon's own quick, coarse reference solve and one at reference accuracy, so credit goes only to a model that beats a cheap solver. Each family of classes counts equally.",
   "Every output that Carbon can solve for reference and that passes its pre-registered checks is graded.",
   "Accuracy inside the training range is a gate: pass or fail, never points. Your model must clear it to be scored at all, but a smaller error there earns nothing extra.",
   "Design value (only where the score line counts it): for each design task Carbon solves many candidate designs in advance and keeps them sealed. Your model predicts each one on its own; a sample of them then counts. Your top five picks in it are checked against the solved answers. Zero means no better than Carbon's classical picks on that sample.",
-  "If your model's predictions change with the batch it is shown, design value is zero for that grade; on Motor 1.8 that grade is not ranked.",
+  "If your model's predictions change with the batch it is shown, design value is zero for that grade; on Motor 1.8, from the switch time Carbon posts, that grade is not ranked.",
   "The crown is decided on the official grade: a submission takes it when its official score beats the king's by the published margin and it passes every gate. Submissions are decided in queue order, and a tie keeps the king. There is no repeated rebuild before a crown changes hands.",
   "On mainnet, Carbon builds your model on its own data-center GPU and grades it on its own machines. Timings close to a limit can differ from your own machine, so leave some headroom.",
   "You see your total and status. Results per case or per part are not shown.",
