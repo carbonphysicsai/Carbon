@@ -284,8 +284,10 @@ def test_nothing_the_old_registration_submitted_is_re_run(tmp_path):
     from carbon.research import DirectTaskStateV3
 
     provider = _Provider()
-    pool = _pool(tmp_path, _Window(_snapshot(uid=7)), provider)
+    window = _Window(_snapshot(uid=1, registered=2))
+    pool = _pool(tmp_path, window, provider)
     assert not pool.former_registration(OWNER, None)  # it never came back yet
+    window.fresh = window.good = _snapshot(uid=7)
     pool(OWNER)
     assert pool.former_registration(OWNER, BEGAN - 1)
     assert pool.former_registration(OWNER, None)
@@ -436,3 +438,23 @@ def test_coming_back_does_not_renew_the_daily_allowance(tmp_path, limits, coldke
     assert pool(OWNER) is provider
     codes = _asked(cap, "rtsk_after", BLOCK + 2 * exam_cap.EPOCH_BLOCKS)
     assert codes == ("exam_daily_allowance_reached",) * 2
+
+
+def test_a_return_no_request_has_taken_yet_already_stops_a_re_run(tmp_path):
+    """A build in flight while its hotkey left and came back ends before any touch of its owner (review-b 7674)."""
+    window = _Window(_snapshot(uid=1, registered=2))
+    pool = _pool(tmp_path, window, _Provider(), frozen=_frozen(1, 2))
+    assert not pool.former_registration(OWNER, BEGAN - 60)
+    window.fresh = window.good = _snapshot(uid=7)
+    assert pool._renewed_at == {}  # nothing took it
+    assert pool.former_registration(OWNER, BEGAN - 60)
+    assert pool.former_registration(OWNER, None)
+    assert not pool.former_registration(OWNER, BEGAN + 60)
+    # asking changes nothing: the next request still takes the return, and the answers stay
+    assert pool._renewed_at == {} and pool._admissions[OWNER] == _frozen(1, 2)
+    pool(OWNER)
+    assert pool.former_registration(OWNER, BEGAN - 60)
+    assert not pool.former_registration(OWNER, BEGAN + 60)
+    # an unfresh or absent registration says nothing new about an owner that never came back
+    other = _pool(tmp_path / "other", _Window(None), _Provider(), frozen=_frozen(1, 2))
+    assert not other.former_registration(OWNER, None)

@@ -2318,6 +2318,11 @@ class OwnerProviders:
     #: never earlier than the true one: a task of the old registration is never taken for one of the new.
     BLOCK_SECONDS = 12.0
 
+    def _began(self, observed, current):
+        """The unix seconds ``current``'s registration began, counted back from ``observed``'s own block."""
+        blocks = observed.finalized_block - current["registered_at_block"]
+        return observed.timestamp_ms / 1000 - blocks * self.BLOCK_SECONDS
+
     def _take_renewal(self, hotkey, provider, observed):
         """Accept ``hotkey``'s later registration for NEW requests (v2 7631; under the lock). Every queued task that could
         have been created before it is cancelled by the path a restore uses for a lapsed owner (uncharged, never built; one
@@ -2326,8 +2331,7 @@ class OwnerProviders:
         is still refused and decided again.
         """
         current = self._record_in(observed, hotkey)
-        blocks = observed.finalized_block - current["registered_at_block"]
-        began = observed.timestamp_ms / 1000 - blocks * self.BLOCK_SECONDS
+        began = self._began(observed, current)
         views = getattr(provider, "_views", {})
         cancelled = 0
         for task_id in provider.queued_tasks():
@@ -2356,9 +2360,16 @@ class OwnerProviders:
 
     def former_registration(self, hotkey, created):
         """Whether a task of ``hotkey`` created at ``created`` (unix seconds, None unknown) belongs to a registration before
-        its current one: it is never built or re-run. False for a hotkey that never came back.
+        its current one: it is never built or re-run. False for a hotkey that never came back. A return no request has
+        taken yet (a build in flight while its hotkey left and came back, ending before any touch of its owner) counts too:
+        its re-run would be dated now and kept as the new registration's (review-b 7674).
         """
         began = self._renewed_at.get(hotkey)
+        frozen = self._admissions.get(hotkey)
+        if frozen is not None:
+            observed = self._fresh_renewal(hotkey, frozen)
+            if observed is not None:
+                began = self._began(observed, self._record_in(observed, hotkey))
         return began is not None and (created is None or created < began)
 
     def _live(self, hotkey):
