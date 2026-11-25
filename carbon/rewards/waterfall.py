@@ -30,7 +30,6 @@ from pathlib import Path
 from carbon.chain.models import MetagraphSnapshot, Participant, identifier, uint
 
 from .core import Q12, RewardFailure, units
-from .winner_decay import Winner, WinnerPolicy, winner_fraction
 
 U16_MAX = 65535
 #: Smallest Q12 weight guaranteed to round to >= 1 in `round(Fraction(q12 * 65535, top))`
@@ -93,6 +92,41 @@ class WaterfallConfig:
             identifier(ck)
         if type(self.enforce_king_u16_floor) is not bool:
             raise RewardFailure("INVALID_KING_FLOOR_FLAG")
+
+
+@dataclass(frozen=True)
+class WaterfallEpochObservation:
+    """Per-epoch chain and emission observations for the 4-rung waterfall."""
+
+    epoch_miner_emission_rao: int | None = None
+    treasury_current_stake_rao: int | None = None
+    staked_by_coldkey: dict[str, int] | None = None
+    crown_credits_by_coldkey: dict[str, tuple[int, str]] | None = None
+    owner_coldkey: str | None = None
+    owner_hotkeys: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.epoch_miner_emission_rao is not None and (
+            type(self.epoch_miner_emission_rao) is not int or self.epoch_miner_emission_rao < 0
+        ):
+            raise RewardFailure("INVALID_EMISSION_RAO")
+        if self.treasury_current_stake_rao is not None and (
+            type(self.treasury_current_stake_rao) is not int or self.treasury_current_stake_rao < 0
+        ):
+            raise RewardFailure("INVALID_TREASURY_STAKE_RAO")
+        if self.staked_by_coldkey is not None and type(self.staked_by_coldkey) is not dict:
+            raise RewardFailure("INVALID_STAKE_OBSERVATION")
+        if self.crown_credits_by_coldkey is not None and type(self.crown_credits_by_coldkey) is not dict:
+            raise RewardFailure("INVALID_CREDIT_OBSERVATION")
+        if self.owner_coldkey is not None:
+            identifier(self.owner_coldkey)
+        if type(self.owner_hotkeys) is not tuple:
+            raise RewardFailure("INVALID_OWNER_HOTKEYS")
+        for hk in self.owner_hotkeys:
+            identifier(hk)
+
+
+from .winner_decay import Winner, WinnerPolicy, winner_fraction  # noqa: E402
 
 
 def epoch_bonus_rate(
@@ -246,6 +280,52 @@ class HoldBonusLedger:
         ).fetchall()
         return [(r[0], int(r[1]), r[2]) for r in rows if int(r[1]) > 0]
 
+    def tracked_coldkeys_preview(
+        self,
+        current_epoch: int,
+        crown_credits_by_coldkey: dict[str, tuple[int, str]] | None = None,
+    ) -> list[tuple[str, int, str]]:
+        """Read-only preview of `(coldkey, cumulative_earned_rao, preferred_hotkey)` at `current_epoch`,
+        overlaying `crown_credits_by_coldkey` without mutating SQLite tables."""
+        if type(current_epoch) is not int or current_epoch < 0:
+            raise RewardFailure("INVALID_EPOCH")
+        totals: dict[str, tuple[int, str]] = {}
+        rows = self._conn.execute(
+            "SELECT coldkey, cumulative_earned_rao, preferred_hotkey, updated_epoch FROM hold_coldkey_totals_v1"
+        ).fetchall()
+        for coldkey, earned_s, pref_hk, updated_epoch in rows:
+            earned = int(earned_s)
+            if int(updated_epoch) > current_epoch:
+                later = self._conn.execute(
+                    "SELECT earned_delta_rao FROM hold_epoch_credits_v1 WHERE coldkey=? AND epoch>?",
+                    (coldkey, current_epoch),
+                ).fetchall()
+                earned -= sum(int(r[0]) for r in later)
+            totals[coldkey] = (earned, pref_hk)
+        if crown_credits_by_coldkey:
+            for coldkey, (delta_rao, hotkey) in sorted(crown_credits_by_coldkey.items()):
+                identifier(coldkey)
+                identifier(hotkey)
+                if type(delta_rao) is not int or delta_rao < 0:
+                    raise RewardFailure("INVALID_EARNED_RAO")
+                if delta_rao == 0:
+                    continue
+                existing = self._conn.execute(
+                    "SELECT earned_delta_rao, hotkey FROM hold_epoch_credits_v1 WHERE epoch=? AND coldkey=?",
+                    (current_epoch, coldkey),
+                ).fetchone()
+                if existing is not None:
+                    if int(existing[0]) != delta_rao or existing[1] != hotkey:
+                        raise RewardFailure("CONFLICTING_EPOCH_CREDIT")
+                    continue
+                prev_earned = totals[coldkey][0] if coldkey in totals else 0
+                totals[coldkey] = (prev_earned + delta_rao, hotkey)
+        return [
+            (ck, earned, hk)
+            for ck, (earned, hk) in sorted(totals.items())
+            if earned > 0
+        ]
+
     def window_status(
         self,
         coldkey: str,
@@ -274,6 +354,86 @@ class HoldBonusLedger:
                     worst = ratio
         cur_staked = int(rows[-1][1])
         cur_earned = int(rows[-1][2])
+        eligible_held_now = min(cur_staked, cur_earned)
+        return eligible_held_now, worst
+
+    def window_status_preview(
+        self,
+        coldkey: str,
+        current_epoch: int,
+        window_epochs: int,
+        *,
+        pending_credit_rao: int = 0,
+        pending_credit_hotkey: str | None = None,
+        pending_stake_rao: int | None = None,
+    ) -> tuple[int, Fraction] | None:
+        """Read-only preview of `(eligible_held_now_rao, worst_sold_ratio)` at `current_epoch`,
+        overlaying any pending current-epoch credit and stake sample in memory without mutating SQLite."""
+        if type(current_epoch) is not int or current_epoch < 0:
+            raise RewardFailure("INVALID_EPOCH")
+        if type(pending_credit_rao) is not int or pending_credit_rao < 0:
+            raise RewardFailure("INVALID_EARNED_RAO")
+        if pending_credit_hotkey is not None:
+            identifier(pending_credit_hotkey)
+        cur_row = self._conn.execute(
+            "SELECT cumulative_earned_rao, updated_epoch FROM hold_coldkey_totals_v1 WHERE coldkey=?",
+            (coldkey,),
+        ).fetchone()
+        cur_earned_total = int(cur_row[0]) if cur_row is not None else 0
+        if cur_row is not None and int(cur_row[1]) > current_epoch:
+            later = self._conn.execute(
+                "SELECT earned_delta_rao FROM hold_epoch_credits_v1 WHERE coldkey=? AND epoch>?",
+                (coldkey, current_epoch),
+            ).fetchall()
+            cur_earned_total -= sum(int(r[0]) for r in later)
+        if pending_credit_rao > 0:
+            existing = self._conn.execute(
+                "SELECT earned_delta_rao, hotkey FROM hold_epoch_credits_v1 WHERE epoch=? AND coldkey=?",
+                (current_epoch, coldkey),
+            ).fetchone()
+            if existing is not None:
+                if int(existing[0]) != pending_credit_rao or (
+                    pending_credit_hotkey is not None and existing[1] != pending_credit_hotkey
+                ):
+                    raise RewardFailure("CONFLICTING_EPOCH_CREDIT")
+            else:
+                cur_earned_total += pending_credit_rao
+        start_epoch = max(0, current_epoch - window_epochs + 1)
+        rows = self._conn.execute(
+            """SELECT epoch, staked_rao, cumulative_earned_rao, sold_rao
+               FROM hold_epoch_samples_v1
+               WHERE coldkey=? AND epoch BETWEEN ? AND ?
+               ORDER BY epoch ASC""",
+            (coldkey, start_epoch, current_epoch),
+        ).fetchall()
+        if pending_stake_rao is not None:
+            if type(pending_stake_rao) is not int or pending_stake_rao < 0:
+                raise RewardFailure("INVALID_STAKE_RAO")
+            if cur_earned_total <= 0:
+                return None
+            held_now = min(pending_stake_rao, cur_earned_total)
+            sold_now = cur_earned_total - held_now
+            cur_sample = (
+                current_epoch,
+                str(pending_stake_rao),
+                str(cur_earned_total),
+                str(sold_now),
+            )
+            effective_rows = [r for r in rows if r[0] < current_epoch] + [cur_sample]
+        else:
+            effective_rows = rows
+        if not effective_rows or effective_rows[-1][0] != current_epoch:
+            return None
+        worst = Fraction(0)
+        for _ep, _staked_s, earned_s, sold_s in effective_rows:
+            earned = int(earned_s)
+            sold = int(sold_s)
+            if earned > 0:
+                ratio = Fraction(sold, earned)
+                if ratio > worst:
+                    worst = ratio
+        cur_staked = int(effective_rows[-1][1])
+        cur_earned = int(effective_rows[-1][2])
         eligible_held_now = min(cur_staked, cur_earned)
         return eligible_held_now, worst
 
@@ -323,6 +483,8 @@ def compute_waterfall_targets(
     hold_ledger: HoldBonusLedger | None = None,
     epoch_miner_emission_rao: int | None = None,
     treasury_current_stake_rao: int | None = None,
+    staked_by_coldkey: dict[str, int] | None = None,
+    crown_credits_by_coldkey: dict[str, tuple[int, str]] | None = None,
     owner_coldkey: str | None = None,
     owner_hotkeys: tuple[str, ...] = (),
     publisher_hotkey: str | None = None,
@@ -354,6 +516,22 @@ def compute_waterfall_targets(
     excluded_coldkeys = set(waterfall.excluded_coldkeys) | sink_coldkeys
     if owner_coldkey is not None:
         excluded_coldkeys.add(owner_coldkey)
+
+    use_overlay = crown_credits_by_coldkey is not None or staked_by_coldkey is not None
+    tracked_overlay: list[tuple[str, int, str]] | None = None
+    if hold_ledger is not None and use_overlay:
+        tracked_overlay = hold_ledger.tracked_coldkeys_preview(
+            epoch, crown_credits_by_coldkey
+        )
+        if staked_by_coldkey is not None:
+            for coldkey, cum_earned, _pref_hk in tracked_overlay:
+                if cum_earned <= 0:
+                    continue
+                if coldkey not in staked_by_coldkey:
+                    raise RewardFailure("MISSING_COLDKEY_STAKE_OBSERVATION")
+                staked_rao = staked_by_coldkey[coldkey]
+                if type(staked_rao) is not int or staked_rao < 0:
+                    raise RewardFailure("INVALID_STAKE_RAO")
 
     # ---------------- Rung 1: Active Challenge Kings ----------------
     raw_rows = []
@@ -407,10 +585,30 @@ def compute_waterfall_targets(
         and epoch_miner_emission_rao > 0
     ):
         desired_by_key: dict[tuple[str, str, int], int] = {}
-        for coldkey, _cum_earned, pref_hk in hold_ledger.tracked_coldkeys():
+        tracked = (
+            tracked_overlay
+            if tracked_overlay is not None
+            else hold_ledger.tracked_coldkeys()
+        )
+        for coldkey, _cum_earned, pref_hk in tracked:
             if coldkey in excluded_coldkeys:
                 continue
-            status = hold_ledger.window_status(coldkey, epoch, waterfall.hold_window_epochs)
+            if use_overlay:
+                credit_entry = (crown_credits_by_coldkey or {}).get(coldkey)
+                status = hold_ledger.window_status_preview(
+                    coldkey,
+                    epoch,
+                    waterfall.hold_window_epochs,
+                    pending_credit_rao=credit_entry[0] if credit_entry is not None else 0,
+                    pending_credit_hotkey=credit_entry[1] if credit_entry is not None else None,
+                    pending_stake_rao=(
+                        staked_by_coldkey[coldkey]
+                        if staked_by_coldkey is not None
+                        else None
+                    ),
+                )
+            else:
+                status = hold_ledger.window_status(coldkey, epoch, waterfall.hold_window_epochs)
             if status is None:
                 continue
             eligible_held_rao, worst_sold = status

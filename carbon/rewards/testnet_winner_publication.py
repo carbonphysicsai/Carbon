@@ -64,8 +64,14 @@ from carbon.chain.publisher import VerifiedWeightPublisher
 from carbon.development_testnet.model import DevelopmentTestnetProfile
 from carbon.transport.models import digest
 
-from .core import Q12
+from .core import Q12, RewardFailure
 from .ledger import encode
+from .waterfall import (
+    WATERFALL_ROUTE,
+    HoldBonusLedger,
+    WaterfallEpochObservation,
+    compute_waterfall_targets,
+)
 from .winner_decay import (
     WinnerPolicy,
     epoch_targets,
@@ -206,6 +212,8 @@ class TestnetWinnerIntentIssuer:
         sources,
         replays=None,
         handovers=None,
+        hold_ledger=None,
+        waterfall_observer=None,
     ):
         from carbon.transport.store import ReceiptJournal
 
@@ -231,6 +239,10 @@ class TestnetWinnerIntentIssuer:
             _refuse("WINNER_LEDGER_REQUIRED")
         if set(sources) - set(policy.challenges):
             _refuse("SOURCE_OUTSIDE_POLICY")
+        if hold_ledger is not None and type(hold_ledger) is not HoldBonusLedger:
+            _refuse("HOLD_LEDGER_INVALID")
+        if waterfall_observer is not None and not callable(waterfall_observer):
+            _refuse("WATERFALL_OBSERVER_INVALID")
         self.receipts, self.authorization = receipts, authorization
         self.policy, self.ledger, self.sources = policy, ledger, dict(sources)
         self.replays = dict(replays or {})
@@ -239,6 +251,8 @@ class TestnetWinnerIntentIssuer:
         self.handovers = dict(handovers or {})
         if set(self.handovers) - set(self.replays):
             _refuse("HANDOVER_SOURCE_REQUIRED")
+        self.hold_ledger = hold_ledger
+        self.waterfall_observer = waterfall_observer
         #: The journal whose stored intents say which epochs the loop published (`_published`): this issuer's own
         #: receipts, or, for a preview on a scratch journal, the loop's real journal read only.
         self.intent_journal = None
@@ -583,7 +597,7 @@ class TestnetWinnerIntentIssuer:
             _refuse(str(failure))
         return found
 
-    def _targets(self, snapshot, records):
+    def _targets(self, snapshot, records, *, observe_waterfall=False):
         from carbon.challenge_validator.canary import is_canary
 
         registered = {p.hotkey: p for p in snapshot.participants}
@@ -594,6 +608,45 @@ class TestnetWinnerIntentIssuer:
             # burns, as a Challenge with no payable winner does.
             if winner is not None and not is_canary(winner.hotkey):
                 winners[challenge] = winner
+        if self.policy.waterfall is not None:
+            epoch = self.epoch(snapshot)
+            if self.waterfall_observer is not None:
+                try:
+                    obs = self.waterfall_observer(snapshot, epoch)
+                except (WinnerPublicationRefused, PublicationFailure, RewardFailure):
+                    raise
+                except Exception:  # noqa: BLE001 - closed observer failure
+                    _refuse("WATERFALL_OBSERVER_UNAVAILABLE")
+                if type(obs) is not WaterfallEpochObservation:
+                    _refuse("WATERFALL_OBSERVATION_INVALID")
+            else:
+                obs = WaterfallEpochObservation()
+            if observe_waterfall and self.hold_ledger is not None:
+                if obs.crown_credits_by_coldkey:
+                    self.hold_ledger.record_crown_earnings(
+                        epoch, obs.crown_credits_by_coldkey
+                    )
+                if obs.staked_by_coldkey is not None:
+                    self.hold_ledger.sample_epoch_stakes(epoch, obs.staked_by_coldkey)
+            canary_hotkeys = frozenset(
+                p.hotkey for p in snapshot.participants if is_canary(p.hotkey)
+            )
+            return compute_waterfall_targets(
+                self.policy,
+                self.policy.waterfall,
+                snapshot,
+                winners,
+                epoch=epoch,
+                hold_ledger=self.hold_ledger,
+                epoch_miner_emission_rao=obs.epoch_miner_emission_rao,
+                treasury_current_stake_rao=obs.treasury_current_stake_rao,
+                staked_by_coldkey=obs.staked_by_coldkey,
+                crown_credits_by_coldkey=obs.crown_credits_by_coldkey,
+                owner_coldkey=obs.owner_coldkey,
+                owner_hotkeys=obs.owner_hotkeys,
+                publisher_hotkey=self.authorization.publisher_hotkey,
+                canary_hotkeys=canary_hotkeys,
+            )
         paid = epoch_targets(self.policy, winners, snapshot.timestamp_ms)
         rows = []
         for challenge in self.policy.challenges:
@@ -637,6 +690,15 @@ class TestnetWinnerIntentIssuer:
         return {"challenges": rows, "winners": winners_list, "burn": paid["burn"]}
 
     def _body(self, snapshot, records, targets):
+        waterfall_mode = self.policy.waterfall is not None
+        route = WATERFALL_ROUTE if waterfall_mode else "DIRECT_WINNER_PLUS_BURN"
+        no_winner = (
+            not targets["winners"]
+            and not targets.get("hold_bonus")
+            and not targets.get("treasury")
+            if waterfall_mode
+            else not targets["winners"]
+        )
         return encode(
             {
                 "schema": INTENT_SCHEMA,
@@ -654,8 +716,8 @@ class TestnetWinnerIntentIssuer:
                     c: None if r is None else digest(encode(r).encode())
                     for c, r in sorted(records.items())
                 },
-                "route": "DIRECT_WINNER_PLUS_BURN",
-                "no_winner": not targets["winners"],
+                "route": route,
+                "no_winner": no_winner,
                 "targets": targets,
             }
         )
@@ -672,7 +734,9 @@ class TestnetWinnerIntentIssuer:
         if row is not None:
             return TestnetWinnerWeightRef(identity, row[0])
         records = self._records(snapshot, observe=True)
-        body = self._body(snapshot, records, self._targets(snapshot, records))
+        body = self._body(
+            snapshot, records, self._targets(snapshot, records, observe_waterfall=True)
+        )
         key = digest(body.encode())
         with self.receipts.transaction() as db:
             db.execute(
@@ -696,14 +760,22 @@ class TestnetWinnerIntentIssuer:
         if row is None or row[0] != ref.digest or digest(row[1].encode()) != ref.digest:
             _refuse("UNKNOWN_OR_ALTERED_WINNER_INTENT")
         body = json.loads(row[1])
+        expected_route = (
+            WATERFALL_ROUTE
+            if self.policy.waterfall is not None
+            else "DIRECT_WINNER_PLUS_BURN"
+        )
         if (
             body["context"] != asdict(snapshot.context)
             or body["policy_digest"] != self.authorization.policy_digest
             or body["epoch"] != self.epoch(snapshot)
+            or body.get("route", "DIRECT_WINNER_PLUS_BURN") != expected_route
         ):
             _refuse("INTENT_NOT_FOR_THIS_EPOCH")
         records = self._records(snapshot, observe=False)
-        if self._targets(snapshot, records) != body["targets"] or any(
+        if self._targets(snapshot, records, observe_waterfall=False) != body[
+            "targets"
+        ] or any(
             (None if r is None else digest(encode(r).encode())) != body["ledger"][c]
             for c, r in records.items()
         ):
@@ -711,7 +783,7 @@ class TestnetWinnerIntentIssuer:
         projection = {
             "schema": "carbon.rewards.testnet-winner-projection.v1",
             "maturity": body["maturity"],
-            "route": "DIRECT_WINNER_PLUS_BURN",
+            "route": body["route"],
             "context": body["context"],
             "targets": body["targets"],
         }
@@ -810,7 +882,7 @@ def preview(issuer, snapshot):
             )
             for challenge, record in sorted(records.items())
         },
-        "targets": issuer._targets(snapshot, records),
+        "targets": issuer._targets(snapshot, records, observe_waterfall=False),
         "signed": False,
     }
 
