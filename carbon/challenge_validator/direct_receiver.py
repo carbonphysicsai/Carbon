@@ -1118,6 +1118,8 @@ GRADING_PATHS = (
     "carbon/development_session/physical_graph_trust_registry.py",
     # Motor 1.9's trust derive, the jax map that registration names (owner MOTOR19-TRUST-REGISTRATION)
     "carbon/development_session/motor19_trust_derive.py",
+    # the fixed name a data-registered version's trust derive is staged under (its own bytes are its pinned module's)
+    "carbon/development_session/registered_trust_derive.py",
     "carbon/challenge_validator/strict_json.py",
     # which changed grading paths a door's served version never reads (v2 RE-RULING #5): it decides that a change
     # needs no declared record on this door, so its own edits are grading changes

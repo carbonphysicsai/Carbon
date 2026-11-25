@@ -9,7 +9,10 @@ A row of ``exam_registry.json`` may carry ``build``:
 - ``total_wall_seconds`` (may be left out): the version's whole-task wall, an owner value at or above the one every
   version with its rebuild wall has (`version_registry.task_wall_seconds`); raise-only;
 - ``nonfinite_rule`` (may be left out): the version's rule for a proven non-finite answer (`NONFINITE_RULES`, owner
-  G-LEAD-75; `carbon.development_session.nonfinite_infer`); a version without it keeps today's.
+  G-LEAD-75; `carbon.development_session.nonfinite_infer`); a version without it keeps today's;
+- ``trust`` (exactly when ``graph_spec.trust_outputs`` is above zero): the version's self-trust training registration, the
+  pinned ``derive`` module and the owner's ``sigma_floor`` (one per trust output), ``epochs`` and ``learning_rate``. The
+  derive is staged alone into the build container, so it may import only `TRUST_IMPORTS`.
 
 Every build site asks here FIRST and, for a version with no build row, runs the code it always ran. A version the code
 serves itself (`code_serves`) is never read from a row, so no row can move a live version; only a NEW version of any
@@ -23,7 +26,10 @@ Host side only: the worker image and the build and inference containers have nei
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import logging
+import math
 import re
 from types import MappingProxyType
 
@@ -54,9 +60,12 @@ SPEC_FIELDS = (
     "trust_outputs",
 )
 _BLOCK = {"module", "sha256", "graph_spec", "inference_program"}
-_OPTIONAL = {"total_wall_seconds", "nonfinite_rule"}
+_OPTIONAL = {"total_wall_seconds", "nonfinite_rule", "trust"}
 #: The registered non-finite rules (`nonfinite_infer.RULE`; a test holds them equal).
 NONFINITE_RULES = ("first_free_per_day.v1",)
+_TRUST = {"derive", "sigma_floor", "epochs", "learning_rate"}
+#: What a registered derive module may import: the build container stages no other Carbon module for it.
+TRUST_IMPORTS = ("__future__", "jax", "math", "numpy")
 _SHA = re.compile(r"[0-9a-f]{64}")
 _LOG = logging.getLogger(__name__)
 _REFUSED: dict = {}
@@ -84,6 +93,55 @@ def _check_spec(spec) -> None:
         or not _count(spec["trust_outputs"], 0)
     ):
         raise ExamBuildRefused("build_graph_spec_value")
+
+
+def _number(value) -> bool:
+    return (
+        type(value) is int or (type(value) is float and math.isfinite(value))
+    ) and abs(value) <= 1e308
+
+
+def _check_trust(trust, outputs) -> None:
+    if type(trust) is not dict or set(trust) != _TRUST:
+        raise ExamBuildRefused("build_trust_fields")
+    floor = trust["sigma_floor"]
+    if (
+        type(floor) is not list
+        or len(floor) != outputs
+        or not all(_number(value) and value >= 0 for value in floor)
+        or not _count(trust["epochs"])
+        or not _number(trust["learning_rate"])
+        or trust["learning_rate"] <= 0
+    ):
+        raise ExamBuildRefused("build_trust_value")
+    try:
+        pinned_module.check(trust["derive"])
+        source = pinned_module.source_file(trust["derive"]["module"]).read_bytes()
+    except (pinned_module.PinnedModuleRefused, OSError) as error:
+        raise ExamBuildRefused(str(error)) from error
+    _check_derive(source)
+
+
+def _check_derive(source: bytes) -> None:
+    """A derive module defines ``derive`` and imports nothing its container does not have."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError) as error:
+        raise ExamBuildRefused("build_trust_derive_unparseable") from error
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            names = ["." if node.level else node.module]
+        else:
+            continue
+        if any(name.split(".")[0] not in TRUST_IMPORTS for name in names):
+            raise ExamBuildRefused("build_trust_derive_import")
+    if not any(
+        isinstance(node, ast.FunctionDef) and node.name == "derive"
+        for node in tree.body
+    ):
+        raise ExamBuildRefused("build_trust_derive_missing")
 
 
 def _check(key, block) -> None:
@@ -114,6 +172,11 @@ def _check(key, block) -> None:
         if program == "per_case" and spec["trust_outputs"]:
             # the per-case program has no trust variant (`v2_trust_infer_query`)
             raise ExamBuildRefused("build_inference_program_trust")
+    trust_outputs = 0 if spec is None else spec["trust_outputs"]
+    if ("trust" in block) != (trust_outputs > 0):
+        raise ExamBuildRefused("build_trust_differs_from_the_spec")
+    if trust_outputs:
+        _check_trust(block["trust"], trust_outputs)
     try:
         pinned_module.check({name: block[name] for name in ("module", "sha256")})
     except pinned_module.PinnedModuleRefused as error:
@@ -191,6 +254,41 @@ def nonfinite_rule(challenge_id: str, version: str) -> str | None:
     """The non-finite rule the version's build row names, or None."""
     found = block(challenge_id, version)
     return None if found is None else found.get("nonfinite_rule")
+
+
+def trust(challenge_id: str, version: str) -> dict | None:
+    """The version's registered trust values and derive block (a fresh copy), or None: it offers no trust interface."""
+    found = block(challenge_id, version)
+    return None if found is None else found.get("trust")
+
+
+def trust_derive_source(challenge_id: str, version: str) -> bytes:
+    """The exact bytes of the version's derive module that its build container is staged with: read once and hashed as
+    read (CRLF as LF), so the staged bytes are the registered ones."""
+    found = trust(challenge_id, version)
+    if found is None:
+        raise ExamBuildRefused("build_trust_not_registered")
+    named = found["derive"]
+    try:
+        raw = pinned_module.source_file(named["module"]).read_bytes()
+    except (pinned_module.PinnedModuleRefused, OSError) as error:
+        raise ExamBuildRefused(str(error)) from error
+    raw = raw.replace(b"\r\n", b"\n")
+    if hashlib.sha256(raw).hexdigest() != named["sha256"]:
+        raise ExamBuildRefused("build_trust_derive_differs")
+    _check_derive(raw)
+    return raw
+
+
+def trust_derive(challenge_id: str, version: str):
+    """The version's derive function on the host, from its pinned module, or None: it registers none."""
+    found = trust(challenge_id, version)
+    if found is None:
+        return None
+    try:
+        return pinned_module.load(found["derive"]).derive
+    except (pinned_module.PinnedModuleRefused, AttributeError) as error:
+        raise ExamBuildRefused(str(error)) from error
 
 
 def graph_specs():

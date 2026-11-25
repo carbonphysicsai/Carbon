@@ -288,6 +288,7 @@ _SOURCE_PATHS = (
     "carbon/development_session/physical_graph_state_v2.py",
     "carbon/development_session/physical_graph_trainer_v2.py",
     "carbon/development_session/physical_graph_trainer_v3.py",
+    "carbon/development_session/registered_trust_derive.py",
     "carbon/development_session/build_refusal_v2.py",
     "carbon/development_session/bundle_graph_state.py",
     "carbon/reconstruction/served_recipe_contract.py",

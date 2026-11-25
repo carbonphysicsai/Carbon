@@ -553,6 +553,23 @@ def _v2_trust_build_program() -> str:
 
 
 PHYSICAL_V2_TRUST_BUILD_PROGRAM = _v2_trust_build_program()
+#: The fixed name a registry version's trust derive is staged under, in its own trust build container only.
+REGISTERED_TRUST_DERIVE = "carbon.development_session.registered_trust_derive"
+
+
+def _v2_registered_trust_build_program() -> str:
+    """`PHYSICAL_V2_TRUST_BUILD_PROGRAM` for a version registered by data: its staged-module list gains the one fixed
+    derive name, nothing else moves; a code-registered version keeps that program byte for byte.
+    """
+    old = repr(PHYSICAL_V2_TRUST_STAGED_MODULES)
+    if PHYSICAL_V2_TRUST_BUILD_PROGRAM.count(old) != 1:
+        raise RuntimeError("graph route v2 trust build program anchor moved")
+    return PHYSICAL_V2_TRUST_BUILD_PROGRAM.replace(
+        old, repr((*PHYSICAL_V2_TRUST_STAGED_MODULES, REGISTERED_TRUST_DERIVE))
+    )
+
+
+PHYSICAL_V2_REGISTERED_TRUST_BUILD_PROGRAM = _v2_registered_trust_build_program()
 PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 
 #: Graph route v2 versions whose inference compiles each member's forward (`jax.jit`) instead of interpreting it op by
@@ -1095,6 +1112,17 @@ def _v2_stage(
     if (spec.challenge_id, spec.version) not in adapter.CODE_SPECS:
         # A registry version's Spec is data: its container gets it as the one extra file.
         files[adapter.STAGED_SPEC] = adapter.staged_spec(spec)
+        if trust:
+            # its trust registration is data too: the derive module's registered bytes, and the owner's values
+            from . import physical_graph_trust_registry as trust_registry
+
+            key = (spec.challenge_id, spec.version)
+            files[REGISTERED_TRUST_DERIVE + ".py"] = exam_build.trust_derive_source(
+                *key
+            )
+            files[trust_registry.STAGED_TRUST] = trust_registry.staged_trust(
+                *key, exam_build.trust(*key)
+            )
     return spec, Allowlist(allowlist_bytes), files
 
 
@@ -1217,9 +1245,16 @@ def reconstruct_public_graph(
             raise RecipeRefused("direct_graph_adapter_identity_invalid")
         files = _stage_modules()
         files.update(physical_files)
-        program = (
-            PHYSICAL_V2_TRUST_BUILD_PROGRAM if trust else PHYSICAL_V2_BUILD_PROGRAM
-        )
+        program = PHYSICAL_V2_BUILD_PROGRAM
+        if trust:
+            from . import physical_graph_adapter_v2
+
+            program = (
+                PHYSICAL_V2_TRUST_BUILD_PROGRAM
+                if (spec.challenge_id, spec.version)
+                in physical_graph_adapter_v2.CODE_SPECS
+                else PHYSICAL_V2_REGISTERED_TRUST_BUILD_PROGRAM
+            )
         # JAX's 64-bit mode is on when the interface is float64, and also whenever the
         # miner's graph holds a 64-bit value (OWNER-GRAPH-OPS-OPEN-01, Validator row 7):
         # TRAIN, the decoder and the outputs keep the interface dtype either way.

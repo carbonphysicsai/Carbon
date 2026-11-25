@@ -26,6 +26,8 @@ import pytest
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 FAMILY, VERSION = "zz-synthetic", "0.1"
+#: A second version of the family, whose one difference is a trust interface (`build.trust`); 0.1 offers none.
+TRUST_VERSION = "0.3"
 #: The synthetic exam's build module, searched as ``carbon.zz_synthetic_build`` only inside the walk.
 FIXTURES = REPOSITORY / "tests" / "fixtures" / "exam_registry"
 BUILD_MODULE = "carbon.zz_synthetic_build"
@@ -242,7 +244,6 @@ PROBES = (
 KNOWN_GAPS = {
     "registry.family": "family_registry.json + reader (door-code #1, H1)",
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
-    "build.trust": "a version's trust registration (derive module + sha, floor, epochs, learning rate) as build data",
     "build.campaign": "the research campaign of a version its family's code names no builder for",
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
@@ -347,8 +348,32 @@ def probe_build_rebuild_wall():
 
 
 def probe_build_trust():
-    from carbon.development_session import physical_graph_trust_registry
-    assert (family, version) in physical_graph_trust_registry.REGISTRATIONS
+    from carbon.challenge_kit import physical_material
+    from carbon.development_session import (
+        direct_graph_construction_worker,
+        physical_graph_adapter_v2,
+        physical_graph_trust_registry,
+    )
+    # a version with no trust outputs needs no trust registration
+    assert physical_graph_trust_registry.registered(family, version) is None
+    trust_version = sys.argv[6]
+    entry = physical_graph_trust_registry.registered(family, trust_version)
+    assert (entry["sigma_floor"], entry["epochs"], entry["learning_rate"]) == ((0.0,), 3, 0.002)
+    assert physical_graph_adapter_v2.spec_for(family, trust_version).trust_outputs == 1
+    kit = physical_material.construction_kit(family, trust_version)
+    binding = {
+        "challenge_id": family,
+        "challenge_version": trust_version,
+        "train_digest": kit["train_digest"],
+    }
+    _, _, files = direct_graph_construction_worker._v2_stage(
+        binding,
+        physical_material.construction_limits_document(family, trust_version),
+        physical_graph_adapter_v2.served_allowlist_bytes(family, trust_version),
+        trust=True,
+    )
+    assert json.loads(files["graph-trust.json"])["version"] == trust_version
+    assert b"def derive(" in files[direct_graph_construction_worker.REGISTERED_TRUST_DERIVE + ".py"]
 
 
 def probe_build_entry():
@@ -493,6 +518,26 @@ print(json.dumps(results, sort_keys=True))
 """
 
 
+def _pinned(name):
+    raw = (FIXTURES / f"{name}.py").read_bytes().replace(b"\r\n", b"\n")
+    return {"module": f"carbon.{name}", "sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def _trust_block():
+    """The trust version's ``build`` field: 0.1's with one trust output and its registration."""
+    block = _build_block()
+    return {
+        **block,
+        "graph_spec": {**block["graph_spec"], "trust_outputs": 1},
+        "trust": {
+            "derive": _pinned("zz_synthetic_trust"),
+            "sigma_floor": [0.0],
+            "epochs": 3,
+            "learning_rate": 0.002,
+        },
+    }
+
+
 def _build_block():
     """The version's ``build`` field (`challenge_registry/exam_build.py`): its module, by the sha256 of its file."""
     source = FIXTURES / "zz_synthetic_build.py"
@@ -514,14 +559,20 @@ def walk(tmp_path_factory):
     path = tmp_path_factory.mktemp("registry") / "version_overlay.json"
     document = {
         "schema": "carbon.challenge-kit.version-overlay.v1",
-        "versions": {f"{FAMILY} {VERSION}": ENTRY},
+        "versions": {
+            f"{FAMILY} {version}": {**ENTRY, "version": version}
+            for version in (VERSION, TRUST_VERSION)
+        },
     }
     path.write_text(json.dumps(document), encoding="utf-8")
     exams = path.with_name("exam_registry.json")
     document = {
         "schema": "carbon.challenge-registry.exam-registry.v1",
         "source": "synthetic",
-        "exams": {f"{FAMILY} {VERSION}": {**EXAM_ROW, "build": _build_block()}},
+        "exams": {
+            f"{FAMILY} {VERSION}": {**EXAM_ROW, "build": _build_block()},
+            f"{FAMILY} {TRUST_VERSION}": {"build": _trust_block()},
+        },
     }
     exams.write_text(json.dumps(document), encoding="utf-8")
     done = subprocess.run(
@@ -534,6 +585,7 @@ def walk(tmp_path_factory):
             VERSION,
             str(exams),
             str(FIXTURES),
+            TRUST_VERSION,
         ],
         cwd=REPOSITORY,
         capture_output=True,
