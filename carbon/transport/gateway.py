@@ -32,6 +32,14 @@ class ReceivedCall:
     requester: RequesterIdentity
 
 
+def _require_fresh(snapshot, now):
+    if (
+        type(now) is not int
+        or not -2000 <= now // 1000000 - snapshot.timestamp_ms <= 60000
+    ):
+        raise TransportFailure(TransportCode.STALE)
+
+
 class AuthenticatedGateway:
     """Trusted composition injects the adapter, verifier, clock and dispatcher."""
 
@@ -117,25 +125,19 @@ class AuthenticatedGateway:
         snapshot = await self.adapter.observe(
             minimum_finalized_block=self.journal.minimum_block()
         )
-        now = self.clock_ns()
         if (
             snapshot.context != self.context
             or snapshot.snapshot_id != envelope["snapshot"]
         ):
             raise TransportFailure(TransportCode.CONTEXT)
-        if (
-            type(now) is not int
-            or not -2000 <= now // 1000000 - snapshot.timestamp_ms <= 60000
-        ):
-            raise TransportFailure(TransportCode.STALE)
+        _require_fresh(snapshot, self.clock_ns())
         if snapshot.resolve(self.receiver) is None:
             raise TransportFailure(TransportCode.IDENTITY)
-        receipt = self.journal.admit(
-            body,
-            envelope,
-            snapshot,
-            now,
-            lambda nonces: self.verifier.verify(
+
+        def authenticate(nonces, now):
+            # again at the journal's own moment: waiting for its lock never makes an old snapshot or signature fresh
+            _require_fresh(snapshot, now)
+            return self.verifier.verify(
                 headers,
                 body,
                 method=method,
@@ -143,7 +145,10 @@ class AuthenticatedGateway:
                 receiver=self.receiver,
                 now_ns=now,
                 nonce_store=nonces,
-            ),
+            )
+
+        receipt = self.journal.admit(
+            body, envelope, snapshot, self.clock_ns, authenticate
         )
         requester = requester_for_receipt(self.context, receipt)
         call = McpCall(

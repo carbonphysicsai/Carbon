@@ -479,3 +479,45 @@ def test_the_prune_keeps_the_highest_row_and_everything_above_a_watermark(
         )
     }
     assert set(range(41, 102)) <= left and not left & set(range(1, 41))
+
+
+def test_a_request_that_waited_for_the_lock_is_not_refused_for_having_waited(tmp_path):
+    """Another request reads its clock later and commits first: the waiter is judged at the moment it holds the lock."""
+    first = gateway(tmp_path)
+    ticks = []
+
+    def clock():
+        ticks.append(1)
+        if len(ticks) == 1:
+            # between the first request's arrival and its lock, a second one is admitted at a later time
+            second = gateway(tmp_path, now=NOW + 5_000_000)
+            with ThreadPoolExecutor(1) as pool:
+                pool.submit(receive, second, wire(request="second"), NOW + 5).result()
+            return NOW
+        return NOW + 6_000_000
+
+    first.clock_ns = clock
+    receipt = receive(first, nonce=NOW).receipt
+    assert receipt.received_ns == NOW + 6_000_000 and receipt.ref.sequence == 2
+    # a clock that really went back is still refused, and a wait never makes an old snapshot or signature fresh
+    with pytest.raises(TransportFailure, match="STALE"):
+        receive(gateway(tmp_path, now=NOW), wire(request="back"), nonce=NOW + 1)
+
+
+@pytest.mark.parametrize(
+    ("late", "failure", "match"),
+    [
+        (61_000_000_000, TransportFailure, "STALE"),
+        (11_000_000_000, AuthFailure, "STALE"),
+        ("not a clock", TransportFailure, "STALE"),
+    ],
+)
+def test_freshness_is_judged_again_inside_the_lock(tmp_path, late, failure, match):
+    gate = gateway(tmp_path)
+    ticks = iter([NOW, late if type(late) is str else NOW + late])
+    gate.clock_ns = lambda: next(ticks)
+    with pytest.raises(failure, match=match):
+        receive(gate)
+    assert gate.journal.highest_receipt() == 0
+    # nothing was recorded: the same request is admitted on a good clock
+    assert receive(gateway(tmp_path)).receipt.ref.sequence == 1

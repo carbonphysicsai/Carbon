@@ -191,16 +191,22 @@ class ReceiptJournal:
             connection.commit()
 
     def admit(
-        self, body, envelope, snapshot: MetagraphSnapshot, now_ns: int, authenticate
+        self, body, envelope, snapshot: MetagraphSnapshot, clock_ns, authenticate
     ):
-        """Signature, nonce and receipt insertion form one durable transaction."""
-        if type(now_ns) is not int or not 0 <= now_ns < 2**63:
-            raise TransportFailure(TransportCode.STALE)
+        """Signature, nonce and receipt insertion form one durable transaction.
+
+        ``clock_ns`` is read INSIDE it, once the write lock is held, and ``authenticate(nonce_store, now_ns)`` judges the
+        signature and the snapshot's age at that same moment. A clock read before the lock would be behind a request that
+        waited less and committed first, so the order check below refused an honest request for having waited.
+        """
         if snapshot.context != self.context:
             raise TransportFailure(TransportCode.CONTEXT)
         result = None
         with self._connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            now_ns = clock_ns()
+            if type(now_ns) is not int or not 0 <= now_ns < 2**63:
+                raise TransportFailure(TransportCode.STALE)
             timestamp, block, previous_snapshot, chain_time = connection.execute(
                 "SELECT time_ns, block, snapshot, chain_time FROM transport_meta WHERE id=1"
             ).fetchone()
@@ -222,7 +228,7 @@ class ReceiptJournal:
                 "DELETE FROM nonce WHERE nonce_ns < ?", (now_ns - 10_000_000_000,)
             )
             nonce_store = _NonceTransaction(connection)
-            caller = authenticate(nonce_store)
+            caller = authenticate(nonce_store, now_ns)
             if type(caller) is not AuthenticatedHotkey or nonce_store.captured != (
                 caller.hotkey,
                 caller.nonce_ns,
