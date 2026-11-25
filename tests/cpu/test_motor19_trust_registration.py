@@ -54,10 +54,10 @@ def test_make_derive_has_no_default():
 
 def test_the_derive_equals_the_grader_formulas():
     jax = pytest.importorskip("jax")
-    jax.config.update("jax_enable_x64", True)
     rng = np.random.default_rng(19)
     rows = rng.normal(size=(6, 241))
-    out = np.asarray(registry.REGISTRATIONS[KEY]["derive"](rows, np.zeros((6, 8))))
+    with jax.enable_x64(True):
+        out = np.asarray(registry.REGISTRATIONS[KEY]["derive"](rows, np.zeros((6, 8))))
     assert out.shape == (6, 5)
     for row, got in zip(rows, out):
         # the grader's own helpers take plain Python floats (a numpy scalar is refused as derivative_input_invalid)

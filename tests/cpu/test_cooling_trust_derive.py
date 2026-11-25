@@ -11,7 +11,12 @@ jax = pytest.importorskip("jax")
 
 from carbon.cold_plate import domain, exam, output_encoding, trust_derive
 
-jax.config.update("jax_enable_x64", True)
+
+@pytest.fixture(autouse=True)
+def _x64():
+    """Double precision for this file's tests only: a process-wide switch at import changed every later test's dtypes."""
+    with jax.enable_x64(True):
+        yield
 
 
 def reference(case, row):
