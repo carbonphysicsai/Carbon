@@ -2372,9 +2372,8 @@ class OwnerProviders:
             return False
         try:
             self._take_renewal(hotkey, self._providers[hotkey], observed)
-        except (
-            Exception
-        ):  # noqa: BLE001 - refused now, decided again on the next request
+        # refused now, decided again on the next request
+        except Exception:  # noqa: BLE001
             return False
         return True
 
