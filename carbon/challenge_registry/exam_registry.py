@@ -132,6 +132,26 @@ def _entry(value):
     )
 
 
+def _launch(value):
+    """``{state, qualified_sealed: {record_sha256, evaluation_pack_digests}}`` (the owner's record and the exam's packs)."""
+    if (
+        not _is(value, ("state", "qualified_sealed"))
+        or value["state"] not in ("launched", "retired")
+        or not _is(
+            value["qualified_sealed"], ("record_sha256", "evaluation_pack_digests")
+        )
+    ):
+        return False
+    packs = value["qualified_sealed"]["evaluation_pack_digests"]
+    return (
+        _matches(_DIGEST, value["qualified_sealed"]["record_sha256"])
+        and type(packs) is list
+        and bool(packs)
+        and all(_matches(_DIGEST, pack) for pack in packs)
+        and len(set(packs)) == len(packs)
+    )
+
+
 #: Every field a row may carry -> the check of its shape.
 FIELDS = {
     # the measured mean GPU-lane-hours of one graded submission (`exam_cap`)
@@ -148,6 +168,9 @@ FIELDS = {
     "build": _object,
     # what a miner can list and select: the catalog entry (`exam_entry`)
     "entry": _entry,
+    # whether the version is launched or retired, and its sealed-crown qualification (`scripts/dev/build_weight_policy.py`
+    # proposes a weight policy from it; nothing reads it to pay anyone)
+    "launch": _launch,
 }
 
 #: ``{(challenge id, version): (row, digest)}`` of every installed row, and ``{name: reason}`` of every refused one.

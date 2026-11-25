@@ -139,3 +139,142 @@ def test_a_spec_that_would_pay_wrong_is_refused(change, code):
     with pytest.raises(builder.PolicyRefused) as refused:
         build(document)
     assert refused.value.code == code
+
+
+# -- from the exam registry's launch rows (owner G-LEAD-100) -------------------------------------------------------------
+
+LIVE_RECORD = "sha256:cbd0a566f1f3e90d8c0d7e9cdf78b90359ba265344abdeb5f25433335e259235"
+
+
+def row(state="launched", *packs, record=RECORD):
+    return {
+        "state": state,
+        "qualified_sealed": {
+            "record_sha256": record,
+            "evaluation_pack_digests": list(packs or (OTHER_PACK,)),
+        },
+    }
+
+
+MOTOR18 = row("launched", LIVE_PACK, record=LIVE_RECORD)
+
+
+def dry(rows, version="synthetic-v1"):
+    return builder.dry_run(BASE, version, rows=rows, registered=REGISTERED)
+
+
+def test_the_exam_paid_today_alone_gives_the_policy_of_today():
+    base = json.loads((wd.POLICY_DIR / f"{BASE}.json").read_bytes())
+    out = dry({(MOTOR, "1.8"): MOTOR18})
+    made = out["document"]
+    assert {k for k in base if made[k] != base[k]} == {"version", "membership_note"}
+    assert out["joins"] == [] and out["share_q12"] == out["share_q12_before"] == Q12
+    assert (
+        out["digest"] == builder.digest(made)
+        and builder.RULE in made["membership_note"]
+    )
+
+
+def test_an_exam_joins_at_its_launch_for_an_equal_share(tmp_path):
+    rows = {
+        (JOINT, "0.1"): row(),
+        (MOTOR, "1.8"): MOTOR18,
+        (BRACKET, "2.0"): row("launched", NEW_PACK),
+    }
+    out = dry(rows)
+    policy = load(tmp_path, out["document"])
+    assert policy.challenges == (MOTOR, BRACKET, JOINT)
+    assert out["joins"] == [BRACKET, JOINT]
+    assert policy.share == out["share_q12"] == Q12 // 3
+    assert out["burned_dust_q12"] == Q12 - 3 * (Q12 // 3)
+    assert policy.qualified_packs(BRACKET) == frozenset({NEW_PACK})
+    # the order of the rows is not an input
+    assert dry(dict(reversed(rows.items()))) == out
+
+
+def test_two_launched_versions_of_one_exam_are_one_share_and_both_packs(tmp_path):
+    rows = {
+        (MOTOR, "1.8"): MOTOR18,
+        (MOTOR, "1.9"): row("launched", NEW_PACK, record=LIVE_RECORD),
+    }
+    policy = load(tmp_path, dry(rows)["document"])
+    assert policy.challenges == (MOTOR,) and policy.share == Q12
+    assert policy.qualified_packs(MOTOR) == frozenset({LIVE_PACK, NEW_PACK})
+
+
+@pytest.mark.parametrize(
+    ("rows", "code"),
+    [
+        ({}, f"base_challenge_has_no_launch_row:{MOTOR}"),
+        ({(JOINT, "0.1"): row()}, f"base_challenge_has_no_launch_row:{MOTOR}"),
+        # what a retired exam's king is paid meanwhile is the owner's word, not given
+        (
+            {
+                (MOTOR, "1.8"): row("retired", LIVE_PACK, record=LIVE_RECORD),
+                (JOINT, "0.1"): row(),
+            },
+            f"retired_king_undecided:{MOTOR}",
+        ),
+        # one version retired while another is launched: its king's pack is never dropped silently
+        (
+            {
+                (MOTOR, "1.8"): row("retired", LIVE_PACK, record=LIVE_RECORD),
+                (MOTOR, "1.9"): row("launched", NEW_PACK, record=LIVE_RECORD),
+            },
+            "live_pack_dropped",
+        ),
+        (
+            {(MOTOR, "1.8"): MOTOR18, (MOTOR, "1.9"): row("launched", NEW_PACK)},
+            f"launched_records_differ:{MOTOR}",
+        ),
+        (
+            {(MOTOR, "1.8"): MOTOR18, ("no-such", "1.0"): row()},
+            "open_challenge_unregistered",
+        ),
+    ],
+)
+def test_rows_that_would_pay_wrong_are_refused(rows, code):
+    with pytest.raises(builder.PolicyRefused) as refused:
+        dry(rows)
+    assert refused.value.code == code
+
+
+def test_a_retired_exam_the_base_does_not_pay_stays_out(tmp_path):
+    rows = {(MOTOR, "1.8"): MOTOR18, (BRACKET, "1.7"): row("retired")}
+    assert load(tmp_path, dry(rows)["document"]).challenges == (MOTOR,)
+
+
+def test_the_dry_run_writes_nothing_and_no_row_is_committed(capsys, monkeypatch):
+    before = {p.name: p.read_bytes() for p in wd.POLICY_DIR.iterdir() if p.is_file()}
+    assert builder.launch_rows() == {}  # the committed registry launches nothing
+    monkeypatch.setattr(
+        builder, "launch_rows", lambda registry=None: {(MOTOR, "1.8"): MOTOR18}
+    )
+    builder.main(["--from-registry", BASE, "synthetic-v1"])
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["document"]["challenges"] == [MOTOR]
+    assert printed["dry_run"].startswith("nothing is written")
+    after = {p.name: p.read_bytes() for p in wd.POLICY_DIR.iterdir() if p.is_file()}
+    assert after == before
+
+
+def test_a_refused_or_unregistered_row_stops_the_dry_run(monkeypatch):
+    from carbon.challenge_registry import exam_registry
+
+    monkeypatch.setattr(exam_registry, "_REFUSED", {"zz-joint 0.1": "unknown_field: x"})
+    with pytest.raises(builder.PolicyRefused) as refused:
+        builder.launch_rows()
+    assert refused.value.code == "exam_row_refused:zz-joint 0.1"
+    monkeypatch.setattr(exam_registry, "_REFUSED", {})
+    monkeypatch.setattr(
+        exam_registry, "_ROWS", {("zz-joint", "0.1"): ({"launch": row()}, "d")}
+    )
+    with pytest.raises(builder.PolicyRefused) as refused:
+        builder.launch_rows()
+    assert refused.value.code == "launched_version_unregistered:zz-joint 0.1"
+
+
+def test_no_code_that_pays_reads_the_launch_rows():
+    for path in sorted((wd.POLICY_DIR.parent).glob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        assert "exam_registry" not in text and "build_weight_policy" not in text, path

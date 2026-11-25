@@ -31,6 +31,13 @@ GOOD = {
         "portfolio": "launch",
         "status": "open",
     },
+    "launch": {
+        "state": "launched",
+        "qualified_sealed": {
+            "record_sha256": DIGEST,
+            "evaluation_pack_digests": [DIGEST],
+        },
+    },
 }
 NESTED = 0
 for _ in range(exam_registry.MAX_DEPTH + 1):
@@ -129,6 +136,37 @@ def test_a_row_of_an_unregistered_version_answers_nothing(tmp_path):
     "change",
     [
         {"unknown": 1},
+        {"launch": {**GOOD["launch"], "state": "open"}},
+        {"launch": {"state": "launched"}},
+        {"launch": {**GOOD["launch"], "extra": 1}},
+        {"launch": {**GOOD["launch"], "qualified_sealed": None}},
+        {
+            "launch": {
+                "state": "launched",
+                "qualified_sealed": {
+                    "record_sha256": SHA,
+                    "evaluation_pack_digests": [DIGEST],
+                },
+            }
+        },
+        {
+            "launch": {
+                "state": "launched",
+                "qualified_sealed": {
+                    "record_sha256": DIGEST,
+                    "evaluation_pack_digests": [],
+                },
+            }
+        },
+        {
+            "launch": {
+                "state": "launched",
+                "qualified_sealed": {
+                    "record_sha256": DIGEST,
+                    "evaluation_pack_digests": [DIGEST, DIGEST],
+                },
+            }
+        },
         {"rebuild_gpu_lane_hours": {"value": 0, "measurement_digest": DIGEST}},
         {"rebuild_gpu_lane_hours": {"value": True, "measurement_digest": DIGEST}},
         {"rebuild_gpu_lane_hours": {"value": 1, "measurement_digest": SHA}},

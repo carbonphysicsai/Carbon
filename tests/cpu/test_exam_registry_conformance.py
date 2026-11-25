@@ -57,6 +57,13 @@ ENTRY = {
 #: The exam registry row (`challenge_registry/exam_registry.py`): the version's synthetic facts, one per field a head
 #: has moved into the registry.
 EXAM_ROW = {
+    "launch": {
+        "state": "launched",
+        "qualified_sealed": {
+            "record_sha256": "sha256:" + "d" * 64,
+            "evaluation_pack_digests": ["sha256:" + "e" * 64],
+        },
+    },
     "rebuild_gpu_lane_hours": {
         "value": 0.02,
         "measurement_digest": "sha256:" + "a" * 64,
@@ -236,7 +243,7 @@ PROBES = (
         "weights.pay_share",
         "WEIGHTS",
         "21",
-        "rewards/winner_decay.py load_policy().challenges",
+        "scripts/dev/build_weight_policy.py spec_from_rows (a policy built from the launch rows)",
     ),
     ("board.version_key", "BOARD", "3", "dashboard/feed.py board_slug"),
 )
@@ -245,7 +252,6 @@ PROBES = (
 #: deleted by the head that makes its probe pass.
 KNOWN_GAPS = {
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
-    "weights.pay_share": "paying families from the registry (owner economics line, not code)",
 }
 
 _PROBE_PROGRAM = r"""
@@ -504,8 +510,24 @@ def probe_crown_koth_key():
 
 
 def probe_weights_pay_share():
+    # a policy built from the launch rows loads and pays the family its equal share (owner G-LEAD-100; none is registered)
+    import shutil, tempfile
     from carbon.rewards import winner_decay
-    assert family in winner_decay.load_policy().challenges
+    from carbon.rewards.core import Q12
+    from scripts.dev import build_weight_policy as builder
+    made = builder.dry_run("mainnet-winner-v4", "zz-policy-v1", rows=builder.launch_rows())["document"]
+    with tempfile.TemporaryDirectory() as folder:
+        directory = Path(folder) / "policies"
+        shutil.copytree(winner_decay.POLICY_DIR, directory)
+        (directory / "zz-policy-v1.json").write_bytes(builder.render(made))
+        registry = json.loads((directory / "registry.json").read_bytes())
+        registry["versions"]["zz-policy-v1"] = builder.digest(made)
+        (directory / "registry.json").write_text(json.dumps(registry))
+        policy = winner_decay.load_policy("zz-policy-v1", directory)
+    assert set(policy.challenges) == {family, "electric-motor-magnetics"}
+    targets = winner_decay.epoch_targets(policy, {family: winner_decay.Winner("king", 10**12)}, 10**12)
+    assert targets["winners"] == {"king": Q12 // 2}
+    assert policy.qualified_packs(family) == frozenset({"sha256:" + "e" * 64})
 
 
 def probe_board_version_key():
@@ -575,6 +597,15 @@ def _family_row():
     }
 
 
+def _paid_today():
+    """The launch row of the exam the base policy pays, from that policy's own qualification."""
+    from carbon.rewards import winner_decay
+
+    raw = (winner_decay.POLICY_DIR / "mainnet-winner-v4.json").read_bytes()
+    found = json.loads(raw)["qualified_sealed"]["electric-motor-magnetics"]
+    return {"state": "launched", "qualified_sealed": found}
+
+
 @pytest.fixture(scope="module")
 def walk(tmp_path_factory):
     path = tmp_path_factory.mktemp("registry") / "version_overlay.json"
@@ -593,6 +624,7 @@ def walk(tmp_path_factory):
         "exams": {
             f"{FAMILY} {VERSION}": {**EXAM_ROW, "build": _build_block()},
             f"{FAMILY} {TRUST_VERSION}": {"build": _trust_block()},
+            "electric-motor-magnetics 1.8": {"launch": _paid_today()},
         },
     }
     exams.write_text(json.dumps(document), encoding="utf-8")
