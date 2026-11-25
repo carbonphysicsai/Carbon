@@ -12,11 +12,15 @@ import contextlib
 import inspect
 import io
 import json
+import sys
 import time
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from carbon.chain.models import (
     CARBON_NETUID,
@@ -335,3 +339,100 @@ def test_no_count_or_limit_reads_a_registration(tmp_path):
     for module in (exam_cap, allowance_groups, ledger):
         text = inspect.getsource(module)
         assert "registered_at" not in text and ".uid" not in text, module.__name__
+
+
+@pytest.fixture
+def limits(tmp_path, monkeypatch):
+    """The real exam cap over a real ledger, grouped by coldkey as the door's is, on the pool's own window."""
+    from test_exam_cap import Clock, cadence, make_cap
+
+    from carbon.challenge_validator import allowance_groups
+    from carbon.challenge_validator.funder_map import FunderMap
+
+    def build(window, capacity):
+        grouping = allowance_groups.Grouping(
+            {
+                "unmapped_coldkey": "per_coldkey",
+                "unresolved_hotkey": "per_hotkey",
+                "max_map_age_blocks": 7200,
+            },
+            window,
+            FunderMap.empty,
+        )
+        monkeypatch.setattr(exam_cap, "GROUPING", grouping)
+        return make_cap(tmp_path, Clock(), cadence=cadence(capacity))
+
+    return build
+
+
+def _take(cap, name, block, hotkey=OWNER):
+    slot = cap.reserve(
+        hotkey=hotkey,
+        challenge_id="electric-motor-magnetics",
+        challenge_version="1.0",
+        exam_key="sha256:" + "1" * 64,
+        submission_id=name,
+        block=block,
+    )
+    cap.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE")
+
+
+def _asked(cap, name, block, hotkey=OWNER):
+    """(what admission says, what the reservation itself says) to one more submission of ``hotkey``."""
+    said = cap.admission_refusal(
+        hotkey=hotkey,
+        challenge_id="electric-motor-magnetics",
+        challenge_version="1.0",
+        exam_key="sha256:" + "1" * 64,
+        submission_id=name,
+        block=block,
+    )
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        _take(cap, name, block, hotkey)
+    return said["code"], refused.value.code
+
+
+@pytest.mark.parametrize("coldkey", ["cold", "another"])
+def test_coming_back_in_the_same_round_is_still_limited_by_what_the_hotkey_submitted(
+    tmp_path, limits, coldkey
+):
+    """v2 7649: submit, leave, return in the same epoch, under the same coldkey or another: still one per round."""
+    first = _snapshot(uid=1, registered=2)
+    window = _Window(first)
+    provider = _Provider()
+    pool = _pool(tmp_path / "owners", window, provider, frozen=_frozen(1, 2))
+    cap = limits(window, 134.4)
+    assert pool(OWNER) is provider
+    _take(cap, "rtsk_before", BLOCK)
+
+    window.fresh = window.good = _snapshot(hotkey=None)  # it leaves
+    with pytest.raises(Unavailable, match=UNAVAILABLE):
+        pool(OWNER)
+
+    window.fresh = window.good = _snapshot(uid=7, coldkey=coldkey)  # and comes back
+    assert pool(OWNER) is provider
+    assert _asked(cap, "rtsk_after", BLOCK) == (
+        "epoch_limit_reached",
+        "epoch_limit_reached",
+    )
+    # the next round is the next round, as for every hotkey; a miner that was never here has its own
+    _take(cap, "rtsk_next_round", BLOCK + exam_cap.EPOCH_BLOCKS)
+    _take(cap, "rtsk_other", BLOCK, hotkey=RECEIVER)
+
+
+@pytest.mark.parametrize("coldkey", ["cold", "another"])
+def test_coming_back_does_not_renew_the_daily_allowance(tmp_path, limits, coldkey):
+    window = _Window(_snapshot(uid=1, registered=2))
+    provider = _Provider()
+    pool = _pool(tmp_path / "owners", window, provider, frozen=_frozen(1, 2))
+    cap = limits(window, 9.4)  # one active miner: two graded a day
+    assert pool(OWNER) is provider
+    for n in range(2):
+        _take(cap, f"rtsk_{n}", BLOCK + n * exam_cap.EPOCH_BLOCKS)
+    window.fresh = window.good = _snapshot(hotkey=None)
+    with pytest.raises(Unavailable, match=UNAVAILABLE):
+        pool(OWNER)
+    window.fresh = window.good = _snapshot(uid=7, coldkey=coldkey)
+    assert pool(OWNER) is provider
+    codes = _asked(cap, "rtsk_after", BLOCK + 2 * exam_cap.EPOCH_BLOCKS)
+    assert codes == ("exam_daily_allowance_reached",) * 2
