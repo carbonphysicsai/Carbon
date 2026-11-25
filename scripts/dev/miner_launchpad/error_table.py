@@ -55,6 +55,13 @@ ROWS = (
     ),
     ("next", "allowance_group_unmapped", OURS, "No graded-exam slot was used"),
     ("next", "allowance_group_unresolved", OURS, "No graded-exam slot was used"),
+    ("next", "snapshot_unavailable", OURS, NOT_STATED),
+    (
+        "next",
+        "direct_provider_registration_unavailable",
+        "Either: your registration or the validator's chain read",
+        NOT_STATED,
+    ),
     # --- the validator stopped or closed before it ran your submission: ours ---
     ("next", "direct_task_cancelled", OURS, "No: nothing was graded or charged"),
     ("next", "version_closed", OURS, "No: nothing was charged"),

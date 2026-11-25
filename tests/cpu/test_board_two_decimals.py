@@ -55,3 +55,48 @@ def test_the_page_follows_the_boards_unit():
         check=True,
     )
     assert json.loads(done.stdout) == [[c[2], c[3]] for c in cases]
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_one_page_with_both_kinds_shows_each_at_its_own_decimals():
+    """The home page draws every board: a 3-decimal board after (and before) a 2-decimal one keeps its 3 decimals."""
+
+    def entry(name):
+        return {
+            "slug": name,
+            "state": "ACCEPTED",
+            "code": None,
+            "challenge": {"id": name, "version": "1.0"},
+            "device_class": None,
+        }
+
+    def board(name, unit, value):
+        return {
+            "slug": name,
+            "labels": [],
+            "phase": "LIVE",
+            "launch": None,
+            "king": {"hotkey": "5" + "A" * 47, "value": value},
+            "ranking_section": {"unit": unit, "label": "total"},
+        }
+
+    boards = {
+        "aa": board("aa", THREE, 0.81),
+        "bb": board("bb", TWO, 0.97),
+        "cc": board("cc", THREE, 0.62),
+    }
+    index = {"fixture": False, "boards": [entry(n) for n in boards]}
+    script = (
+        "const D = require(process.argv[1]);"
+        "const [index, boards] = JSON.parse(process.argv[2]);"
+        "console.log(D.textOf(D.homePage(index, boards, {now: 0})));"
+    )
+    done = subprocess.run(
+        [NODE, "-e", script, str(PAGE), json.dumps([index, boards])],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=True,
+    )
+    assert "0.810" in done.stdout and "0.620" in done.stdout
+    assert "0.97" in done.stdout and "0.970" not in done.stdout

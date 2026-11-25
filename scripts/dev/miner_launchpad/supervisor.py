@@ -654,6 +654,11 @@ NEXT_ACTIONS = {
         "take or grade this submission yet. No graded-exam slot was used for it. Try again later; if it keeps "
         "happening, send us the UTC time and the last 4 characters of your hotkey. Your frozen candidate is kept."
     ),
+    "direct_provider_registration_unavailable": (
+        "The validator could not confirm your hotkey's registration on this subnet from a fresh chain read. Check that "
+        "your hotkey is registered (carbon_onboarding_status), then submit again in a few minutes. If it keeps "
+        "happening, send us the UTC time and the last 4 characters of your hotkey. Your frozen candidate is kept."
+    ),
     # HTTP 410 on a result read (`version_close`): the submission was still queued when its Challenge version closed. No
     # instruction to submit again: whether such a submission is owed a re-run is V2's and the owner's to rule.
     "version_closed": (
