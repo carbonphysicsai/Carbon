@@ -804,6 +804,11 @@ async function projectLaunch(document, pinned) {
   for (const k of ["margin", "to_beat", "baseline_total"]) if (king[k] !== null) totals.push(king[k].value);
   if (v2) for (const c of document.crown_changes) totals.push(c.total.value);
   const digits = launchDigits(totals);
+  // 2 decimals (launch.py two_places): every ladder score, the king's score and the score to beat is a whole hundredth.
+  const shown = ladder.filter(e => e.total !== null).map(e => e.total.value);
+  if (king.king !== null) shown.push(king.king.total.value);
+  if (king.to_beat !== null) shown.push(king.to_beat.value);
+  const twoPlaces = shown.length > 0 && shown.every(v => Number(v.toFixed(2)) === v);
   const challenge = document.challenge;
   const kingKey = king.king === null ? null : king.king.hotkey;
   const standing = ladder.filter(e => e.total !== null).map(e => ({
@@ -827,7 +832,7 @@ async function projectLaunch(document, pinned) {
     released_through_block: null,
     generated_at: document.generated_at,
     values: {precision: 10 ** -digits, digits, display_threshold: null, registered: "launch board: the Ladder's own rounding"},
-    section_meta: {total: {display: "Total score", unit: v6 ? "0 to 1, to 3 decimals" : "0 to 1, rounded down to the Ladder step", sense: "higher_is_better"}},
+    section_meta: {total: {display: "Total score", unit: v6 ? (twoPlaces ? "0 to 1, rounded down to 2 decimals" : "0 to 1, to 3 decimals") : "0 to 1, rounded down to the Ladder step", sense: "higher_is_better"}},
     release: null,
     as_of_block: null,
     king: null,

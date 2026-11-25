@@ -153,15 +153,14 @@
     if (!isNum(v)) return "—";
     return v.toFixed(digits === undefined ? places([v]) : digits);
   }
-  // The score to beat is shown ROUNDED UP to 3 decimals, never below the real bar (the epsilon keeps 0.728 at 0.728).
-  function toBeat(v) { return isNum(v) ? (Math.ceil(v * 1000 - 1e-9) / 1000).toFixed(3) : "—"; }
-  // A public total is TRUNCATED to 3 decimals (0.519901 reads 0.519); the tiny nudge keeps float noise from dropping a digit.
-  const TOTAL_PLACES = 3;
-  function total(v) {
-    if (!isNum(v)) return "—";
-    const scale = 10 ** TOTAL_PLACES;
-    return (Math.floor(v * scale + 1e-9) / scale).toFixed(TOTAL_PLACES);
-  }
+  // Totals show 3 decimals, or 2 where the board's unit says so (set per page).
+  let PLACES = 3;
+  const unitOf = board => board && board.ranking_section && board.ranking_section.unit || "";
+  function setPlaces(board) { PLACES = / 2 dec/.test(unitOf(board)) ? 2 : 3; }
+  const atPlaces = (round, v) => isNum(v) ? (round(v * 10 ** PLACES) / 10 ** PLACES).toFixed(PLACES) : "—";
+  // ROUNDED UP, never below the real bar; a total is TRUNCATED. 1e-9 absorbs float noise.
+  function toBeat(v) { return atPlaces(x => Math.ceil(x - 1e-9), v); }
+  function total(v) { return atPlaces(x => Math.floor(x + 1e-9), v); }
   // The device-class chip shows only when the feed carries more than one class.
   function classChipShown(classes) {
     return new Set((classes || []).filter(Boolean)).size > 1;
@@ -740,8 +739,7 @@
   // One page per Challenge: the leader first, then the ladder, then the showcase.
   const LAUNCH_COUNTS = [["graded", "Hotkeys"], ["scored", "Scored"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
   const GATE_WORDS = "A failed gate is named, never scored.";
-  // A v6 board shows the exact official total to 3 decimals (half up); older boards show it rounded down to the Ladder step.
-  const totalsRounding = board => board && board.source_schema === "carbon.validator.launch-board.v6" ? "to 3 decimals" : "rounded down to the Ladder step";
+  const totalsRounding = board => unitOf(board).replace("0 to 1, ", "");
   function launchHero(board) {
     const l = board.launch;
     return h("section", {class: "hero launch-hero", "aria-labelledby": "hero-title"},
@@ -904,6 +902,7 @@
   }
 
   function boardPage(board, ctx) {
+    setPlaces(board);
     const c = ctx || {now: Math.floor(Date.now() / 1000)};
     if (board.launch) {
       const pre = board.phase === "PRE_FIRST_RELEASE";
@@ -951,6 +950,7 @@
   }
 
   function minerPage(board, key, ctx) {
+    setPlaces(board);
     const lb = board.eligible_leaderboard;
     const entry = lb.entries.find(r => r.hotkey === key) || null;
     const coldkey = Array.isArray(lb.coldkeys) ? lb.coldkeys.find(r => r.hotkeys.includes(key)) || null : null;
@@ -1047,6 +1047,7 @@
       rowsBlock(panel.rows_panel));
   }
   function homeCard(entry, board, showClass, panel) {
+    setPlaces(board);
     if (!entry.slug) return h("div", {class: "card board-card"}, eyebrow("Feed refused"), h("p", {class: "fail"}, words(entry.code)));
     const phase = board ? PHASES[board.phase] || [words(board.phase), ""] : null;
     const king = board && board.king;
@@ -1213,7 +1214,7 @@
 
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
-    h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, aliasEntry, uniqueDesigns, labelsOf,
+    h, walk, textOf, mount, places, fmt, toBeat, total, setPlaces, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, aliasEntry, uniqueDesigns, labelsOf,
     queueBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, finds, rowShown, pagerText, QUEUE_PAGE, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
