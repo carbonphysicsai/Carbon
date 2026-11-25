@@ -247,6 +247,12 @@ def family(challenge_id: str) -> dict | None:
     }
 
 
+def modules(challenge_id: str) -> dict:
+    """A copy of a registered family's ``{role: {module, sha256}}`` (empty for an unregistered one)."""
+    row = _INSTALLED.get(challenge_id)
+    return {} if row is None else copy.deepcopy(row["modules"])
+
+
 def module(challenge_id: str, role: str):
     """A registered family's module for ``role``, hashed before it is imported (`FamilyRefused` without one)."""
     if role not in ROLES:

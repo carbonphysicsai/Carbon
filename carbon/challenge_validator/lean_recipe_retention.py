@@ -24,10 +24,13 @@ from carbon.challenge_kit.interface_dtype import output_dtype
 from carbon.challenge_validator import crown_average as crown_average_step
 from carbon.challenge_validator import pair_read_gate as _pair_read_gate
 from carbon.development_session.graph_gpu_lane import OPS_NOTE as _OPS_NOTE
+from carbon.scoring import family_graders
 
 # Owner LO-3: grades that read the repeat pair under the same ceiling read together; `pair_read_bound.py` (a Motor 1.8
 # producer file) keeps its bytes, the gate replaces its lock at runtime (`pair_read_gate`).
 _pair_read_gate.install()
+# A family registered by data (no code names it) is graded by its own pinned modules; with no row nothing is done.
+family_graders.install()
 
 
 class RetentionUnavailable(ValueError):

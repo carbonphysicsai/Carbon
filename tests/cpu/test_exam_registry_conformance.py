@@ -31,6 +31,8 @@ TRUST_VERSION = "0.3"
 #: The synthetic exam's build module, searched as ``carbon.zz_synthetic_build`` only inside the walk.
 FIXTURES = REPOSITORY / "tests" / "fixtures" / "exam_registry"
 BUILD_MODULE = "carbon.zz_synthetic_build"
+#: Its sealed kit and grader (one fixture module for both roles).
+SEALED_MODULE = "carbon.zz_synthetic_sealed"
 #: The synthetic published-exam file the registry row names.
 PUBLISHED = "tests/fixtures/exam_registry/zz_published_exam.json"
 
@@ -243,7 +245,6 @@ PROBES = (
 #: deleted by the head that makes its probe pass.
 KNOWN_GAPS = {
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
-    "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
     "weights.pay_share": "paying families from the registry (owner economics line, not code)",
 }
 
@@ -263,6 +264,8 @@ from carbon.challenge_registry import exam_registry
 exam_registry.install(path=Path(sys.argv[4]))
 from carbon.challenge_kit import family_registry
 family_registry.install(path=Path(sys.argv[7]))
+from carbon.scoring import family_graders
+family_graders.install()
 
 
 def probe_registry_find():
@@ -443,17 +446,19 @@ def probe_build_stage():
 
 
 def probe_build_sealed_target():
-    assert family in version_overlay.SEALED_TARGET
+    assert version_overlay.SEALED_TARGET[family] == "carbon.zz_synthetic_sealed"
 
 
 def probe_grade_sealed_kit():
     from carbon.scoring import sealed_batch_source
-    assert sealed_batch_source._kit(family) is not None
+    assert sealed_batch_source._kit(family).__name__ == "carbon.zz_synthetic_sealed"
+    assert sealed_batch_source._pool_graded(family, version) is True
+    assert sealed_batch_source._adapter(family, {"population": "zz"}, version, None).CHALLENGE == family
 
 
 def probe_grade_pool_kind():
     from carbon.scoring import pool_version
-    assert family in pool_version.KINDS
+    assert pool_version.KINDS[family] == "zzsynthetic"
 
 
 def probe_grade_exam_cap():
@@ -480,7 +485,7 @@ def probe_grade_published():
 
 def probe_grade_copy_opacity():
     from carbon.scoring import copy_derivation
-    assert family in copy_derivation.OPAQUE_BY_CHALLENGE
+    assert copy_derivation.opaque_for(family) == ("case_id",)
 
 
 def probe_grade_verify_set():
@@ -559,21 +564,14 @@ def _build_block():
 
 
 def _family_row():
-    """The family registry row (`challenge_kit/family_registry.py`): synthetic; its modules are real `carbon.*` files."""
-    from carbon.challenge_registry import pinned_module
-
-    modules = {
-        "sealed_kit": "carbon.challenge_kit.f02_sealed_pack",
-        "sealed_grader": "carbon.scoring.f02_sealed_dual_pack",
-    }
+    """The family registry row (`challenge_kit/family_registry.py`): synthetic, its two modules the synthetic fixture's."""
+    raw = (FIXTURES / "zz_synthetic_sealed.py").read_bytes().replace(b"\r\n", b"\n")
+    block = {"module": SEALED_MODULE, "sha256": hashlib.sha256(raw).hexdigest()}
     return {
         "kind": "zzsynthetic",
         "opacity": ["case_id"],
         "baseline": {"bounds": {"x": [0.0, 1.0]}, "length_ridge": [2.0, 0.001]},
-        "modules": {
-            role: {"module": name, "sha256": pinned_module.file_sha256(name)}
-            for role, name in modules.items()
-        },
+        "modules": {"sealed_kit": dict(block), "sealed_grader": dict(block)},
     }
 
 

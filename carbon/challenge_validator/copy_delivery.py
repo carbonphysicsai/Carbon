@@ -40,12 +40,16 @@ from carbon.challenge_kit import (
 )
 from carbon.scoring import copy_derivation as cd
 from carbon.scoring import copy_package as cp
+from carbon.scoring import family_graders
 from carbon.scoring import sealed_batch_source as source
 
 from . import copy_route
 from . import sealed_pack_import as spi
 from .answer_key import AnswerKeyRefused
 from .evaluation_pack import EvaluationPackUnavailable, parse_pack
+
+# A family registered by data: its sealed kit and grader answer for its copies (nothing is done without a row).
+family_graders.install()
 
 #: The private roles whose bytes depend on the copy (row order and ids).
 COPY_ROLES = ("case_bank", "reference_rows", "solver_evidence")
