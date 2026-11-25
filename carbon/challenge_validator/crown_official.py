@@ -82,15 +82,21 @@ UNSET_DIGEST = (
 #: CROWN-CONFIRMATION-SET (owner, filed 2026-11-25T20:10:34Z, verbatim: "approved: new crowns on Motor 1.9, RB 2.0 and
 #: joint must also hold on a small confirmation set, fingerprinted at open and published at close; shown scores stay on
 #: the open set."). A version under it carries a ``confirmation`` block in its registry row (per pair, so no other door's
-#: grading changes, `grading_scope`), ``{"number": "A", "first_crown": "open_rule_only"}`` when ruled; each value is
-#: model-eval's ruling (door-code 8314 points (a) and (b)), and an absent one makes the crowns it decides wait (fail
-#: closed, never the open rule alone): an empty block ``{}`` is the owner's line with nothing ruled yet. The joint exam's
-#: row carries one when its Challenge id and version are registered. ``number`` "A": the confirmation number is the version's physics family value on the confirmation rows
-#: (`pool_exam` ``capture["confirmation"]``), the only number those rows give. ``first_crown`` "open_rule_only": a first
+#: grading changes, `grading_scope`), ``{"number": "A", "first_crown": "open_rule_only", "tie": ...}`` when ruled; each
+#: value is model-eval's ruling (door-code 8314 points (a) and (b), bank 8442), and an absent one makes the crowns it
+#: decides wait (fail closed, never the open rule alone): an empty block ``{}`` is the owner's line with nothing ruled
+#: yet. The joint exam's row carries one when its Challenge id and version are registered. ``number`` "A": the
+#: confirmation number is the version's physics family value on the confirmation rows (`pool_exam`
+#: ``capture["confirmation"]``), the only number those rows give. ``first_crown`` "open_rule_only": a first
 #: crown (no king, so no king confirmation number) is decided on the open rule alone, the contender's own confirmation
 #: record still required; absent, every first crown waits.
 CONFIRMATION_NUMBERS = ("A",)
 CONFIRMATION_FIRST_CROWN = ("open_rule_only",)
+#: ``tie``: whether a contender whose confirmation number EQUALS the king's holds (``"confirms"``) or not
+#: (``"not_confirmed"``: strictly greater needed). Model-eval's ruling (bank 8442: a table that changes only open-set
+#: answers keeps the king's confirmation number exactly, so a tie that confirms can crown it with no real gain); absent,
+#: every challenger crown waits.
+CONFIRMATION_TIE = ("confirms", "not_confirmed")
 #: The reasons a crown decision waits on its confirmation (filed and swept like a queued crown, `crown_pause_sweep`).
 CROWN_CONFIRMATION_UNSET = "crown_confirmation_unset"
 CROWN_CONFIRMATION_UNAVAILABLE = "crown_confirmation_unavailable"
@@ -107,12 +113,13 @@ def _confirmation_block(block):
     each one of its registered values. An absent key is an unruled value: the crowns it decides wait."""
     if (
         type(block) is not dict
-        or not set(block) <= {"number", "first_crown"}
+        or not set(block) <= {"number", "first_crown", "tie"}
         or ("number" in block and block["number"] not in CONFIRMATION_NUMBERS)
         or (
             "first_crown" in block
             and block["first_crown"] not in CONFIRMATION_FIRST_CROWN
         )
+        or ("tie" in block and block["tie"] not in CONFIRMATION_TIE)
     ):
         raise CrownOfficialInvalid("crown_official_confirmation_malformed")
     return dict(block)
@@ -292,8 +299,8 @@ def confirm(first, candidate, incumbent):
     ``incumbent`` are each grade's filed confirmation record (`confirmation_record`, already checked by `bound_to`) or
     None. Returns ``(verdict, reason)``: ``("CONFIRMED", None)``; ``("WAIT", reason)`` for Carbon's gap
     (an unruled value, a record missing or unavailable: never the candidate's); ``("NOT_CONFIRMED",
-    CROWN_NOT_CONFIRMED)`` when the contender's confirmation answers were invalid or its number is below the king's. A
-    tie confirms: the contender already beat the open rule by the margin, and the confirmation asks only that it holds.
+    CROWN_NOT_CONFIRMED)`` when the contender's confirmation answers were invalid or its number is below the king's (or
+    equal to it, unless the registered ``tie`` is ``"confirms"``).
     """
     rule = confirmation_rule()
     if rule is None:
@@ -301,6 +308,8 @@ def confirm(first, candidate, incumbent):
     if rule.get("number") not in CONFIRMATION_NUMBERS:
         return "WAIT", CROWN_CONFIRMATION_UNSET
     if first and rule.get("first_crown") not in CONFIRMATION_FIRST_CROWN:
+        return "WAIT", CROWN_CONFIRMATION_UNSET
+    if not first and rule.get("tie") not in CONFIRMATION_TIE:
         return "WAIT", CROWN_CONFIRMATION_UNSET
     mine = _confirmation_status(candidate)
     if mine == "INVALID":
@@ -312,7 +321,8 @@ def confirm(first, candidate, incumbent):
     if _confirmation_status(incumbent) != "MEASURED":
         # the king's own record is missing or holds no number (his regrade on this pack files it): Carbon's, so it waits
         return "WAIT", CROWN_CONFIRMATION_UNAVAILABLE
-    if candidate["value"] >= incumbent["value"]:
+    own, king = candidate["value"], incumbent["value"]
+    if own > king or (own == king and rule["tie"] == "confirms"):
         return "CONFIRMED", None
     return "NOT_CONFIRMED", CROWN_NOT_CONFIRMED
 
@@ -405,6 +415,7 @@ __all__ = [
     "CONFIRMATION_FIRST_CROWN",
     "CONFIRMATION_NUMBERS",
     "CONFIRMATION_SCHEMA",
+    "CONFIRMATION_TIE",
     "CROWN_CONFIRMATION_UNAVAILABLE",
     "CROWN_CONFIRMATION_UNSET",
     "CROWN_MARGIN_UNSET",

@@ -6,8 +6,9 @@ Claims:
 1. REGISTRATION: a crown row may carry a ``confirmation`` block; an empty block is the owner's line with nothing ruled
    (every crown it decides waits); a block with an unknown key or value refuses. The repository's Motor 1.9 and RB 2.0
    rows carry one, every other row none (1.8 unchanged).
-2. DECISION: a crown change on such a version is applied only when the contender's confirmation number holds (at least
-   the king's); a lower number or an invalid confirmation answer keeps the king (no winner with no king; a gate-failed
+2. DECISION: a crown change on such a version is applied only when the contender's confirmation number holds (above
+   the king's; an equal one only under a registered tie rule "confirms", bank 8442); a lower number or an invalid
+   confirmation answer keeps the king (no winner with no king; a gate-failed
    king is still dethroned); an unruled value or a missing record waits, filed like a queued crown, never crowned on the
    open rule alone. A version without a block decides exactly as before.
 3. BINDING: a confirmation record stands only for the grade whose dual measurement and pack it names.
@@ -51,7 +52,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EXAM = "sha256:" + "e" * 64
 DUAL = "sha256:" + "d" * 64
 KEY = "sha256:" + "1" * 64
-RULED = {"number": "A", "first_crown": "open_rule_only"}
+RULED = {"number": "A", "first_crown": "open_rule_only", "tie": "not_confirmed"}
 
 
 @pytest.fixture(autouse=True)
@@ -112,6 +113,7 @@ def test_a_row_may_carry_a_confirmation_block_and_an_empty_one_is_the_unruled_li
         [],
         {"number": "total"},
         {"first_crown": "speed_matched_zero"},
+        {"tie": "maybe"},
         {"number": "A", "extra": 1},
     ],
 )
@@ -154,17 +156,51 @@ def test_no_block_means_no_confirmation_verdict(tmp_path):
         # nothing ruled: every crown waits, whatever the numbers
         ({}, False, 0.9, 0.1, ("WAIT", crown_official.CROWN_CONFIRMATION_UNSET)),
         ({}, True, 0.9, None, ("WAIT", crown_official.CROWN_CONFIRMATION_UNSET)),
-        # the number ruled, the first crown not: a challenger is decided, a first crown waits
-        ({"number": "A"}, False, 0.6, 0.5, ("CONFIRMED", None)),
+        # the number and tie ruled, the first crown not: a challenger is decided, a first crown waits
         (
-            {"number": "A"},
+            {"number": "A", "tie": "not_confirmed"},
+            False,
+            0.6,
+            0.5,
+            ("CONFIRMED", None),
+        ),
+        (
+            {"number": "A", "tie": "not_confirmed"},
             True,
             0.6,
             None,
             ("WAIT", crown_official.CROWN_CONFIRMATION_UNSET),
         ),
+        # the number and first crown ruled, the tie not (bank 8442): a first crown is decided, a challenger waits
+        (
+            {"number": "A", "first_crown": "open_rule_only"},
+            True,
+            0.6,
+            None,
+            ("CONFIRMED", None),
+        ),
+        (
+            {"number": "A", "first_crown": "open_rule_only"},
+            False,
+            0.6,
+            0.5,
+            ("WAIT", crown_official.CROWN_CONFIRMATION_UNSET),
+        ),
         (RULED, True, 0.6, None, ("CONFIRMED", None)),
-        (RULED, False, 0.5, 0.5, ("CONFIRMED", None)),  # a tie holds
+        (
+            RULED,
+            False,
+            0.5,
+            0.5,
+            ("NOT_CONFIRMED", crown_official.CROWN_NOT_CONFIRMED),
+        ),
+        (
+            {**RULED, "tie": "confirms"},
+            False,
+            0.5,
+            0.5,
+            ("CONFIRMED", None),
+        ),
         (
             RULED,
             False,
