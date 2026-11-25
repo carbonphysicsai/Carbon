@@ -512,9 +512,30 @@ def _battery_catalog_direct(version):
     return _direct(catalog_campaign, catalog_campaign, catalog_campaign, version)
 
 
+def _registered(challenge_id, version):
+    """A version registered by data (`direct_campaign.registered`): the shared direct campaign on its own pinned module."""
+    from carbon.direct_campaign import registered
+
+    parts = registered.campaign(challenge_id, version)
+    return _direct(parts, parts, parts, version)
+
+
+def _registered_keys():
+    from carbon.direct_campaign import registered
+
+    return registered.keys()
+
+
 def _versioned_campaigns():
     """Campaigns registered for a Challenge version beyond its first, by
     (Challenge id, version)."""
+    return {
+        **{key: functools.partial(_registered, *key) for key in _registered_keys()},
+        **_code_campaigns(),
+    }
+
+
+def _code_campaigns():
     from carbon.challenge_kit import version_registry
     from carbon.reconstruction.capability_registry import (
         COLD_PLATE_CHALLENGE,
@@ -594,7 +615,7 @@ def _provenance_sources():
         *_campaigns().values(),
         *(
             build
-            for (challenge_id, _), build in _versioned_campaigns().items()
+            for (challenge_id, _), build in _code_campaigns().items()
             if challenge_id not in with_id
         ),
     ]
@@ -607,6 +628,11 @@ def practice_provenances():
         provenance = build().practice_provenance
         if provenance is not None:
             values.append(provenance)
+    if _registered_keys():
+        # one provenance for every version registered by data, whatever its family's own campaigns declare
+        from carbon.direct_campaign.registered import PRACTICE_PROVENANCE
+
+        values.append(PRACTICE_PROVENANCE)
     return frozenset(values)
 
 
@@ -615,6 +641,10 @@ def implemented_backends():
     values = []
     for build in _provenance_sources():
         values.extend(build().backends)
+    if _registered_keys():
+        from carbon.direct_campaign.registered import BACKENDS
+
+        values.extend(BACKENDS)
     return frozenset(values)
 
 

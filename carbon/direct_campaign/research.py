@@ -134,12 +134,16 @@ def capabilities(spec):
             # Battery's catalog version binds no graph adapter: its graph
             # recipes stay on its base version's own graph worker.
             "graph": limits.get("graph_training_adapter", "not served on this version"),
-            "catalog": {
-                **limits["backbone_catalog"],
-                "entries": sorted(
-                    served.document(key.challenge_id, key.version)["entries"]
-                ),
-            },
+            "catalog": (
+                {
+                    **limits["backbone_catalog"],
+                    "entries": sorted(
+                        served.document(key.challenge_id, key.version)["entries"]
+                    ),
+                }
+                if "backbone_catalog" in limits
+                else "not served on this version"
+            ),
             "bundle": "closed: miner source bundles are not served",
         },
     }
@@ -374,8 +378,14 @@ def measurement_contract(spec):
         definition(kind.DISCRETIZATION, "one_row_per_case"),
         definition(kind.SAMPLING_QUADRATURE, "human_input_sampling_quadrature"),
         # The registered scale and its record's aggregation (practice.py).
-        definition(kind.NORMALIZATION, _NORMALIZATION[spec.prefix]),
-        definition(kind.AGGREGATION, _AGGREGATION[spec.prefix]),
+        definition(
+            kind.NORMALIZATION,
+            _NORMALIZATION.get(spec.prefix, "registered_module_error_scale"),
+        ),
+        definition(
+            kind.AGGREGATION,
+            _AGGREGATION.get(spec.prefix, "registered_module_aggregation"),
+        ),
         definition(
             kind.PRECISION,
             PRECISION[interface_document(spec)["train_dtype"]][1].replace(

@@ -157,3 +157,42 @@ def public_roles(challenge_id: str, version: str) -> dict:
         "train": train_bytes(),
         "physics_contract": canonical(physics_contract(challenge_id, version)),
     }
+
+
+# -- the practice measurement (`direct_campaign.registered`): what its research campaign reports. Synthetic scale 1.
+
+PRACTICE_COMPONENTS = (("mean", "Mean error"), ("worst", "Worst error"))
+
+
+def train_facts(challenge_id: str, version: str) -> dict:
+    return {
+        "train_cases": ROWS,
+        "train_dtype": "<f4",
+        "train_provenance_sha256": "sha256:" + graph_spec()["train_sha256"],
+        "file": "train.npz",
+        "format": "npz: inputs and targets, float32",
+    }
+
+
+def error_scale(challenge_id: str, version: str) -> dict:
+    return {
+        "record": "synthetic",
+        "scales": {"y": {"value": 1.0, "unit": "1"}},
+        "error": "abs(prediction - reference) / scale",
+        "aggregation": "max(mean, worst) over the bank",
+        "direction": "lower_is_better",
+    }
+
+
+def practice_summary(challenge_id: str, version: str, rows, material: dict) -> dict:
+    errors = np.abs(np.asarray(rows) - material["practice_reference"])
+    components = {"mean": float(errors.mean()), "worst": float(errors.max())}
+    return {
+        "cases": len(rows),
+        "outputs": ["y"],
+        "score": components["worst"],
+        "aggregate_error": components["worst"],
+        "components": components,
+        "error_scale": error_scale(challenge_id, version),
+        "status": "aggregate_on_registered_scale",
+    }

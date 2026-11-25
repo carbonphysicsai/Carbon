@@ -101,9 +101,19 @@ def _f02_scale(version):
 SCORE_MEANING = "Practice error on the Challenge's registered scale: lower is better; 0 means the model matches the reference exactly on every scored case, and 1 means an error as large as that scale (a spread taken from the public TRAIN data). It is an error, not a grade, and not an exam score."
 
 
+def components(spec):
+    """``((name, label or None), ...)``: the summary components the Challenge reports, in order."""
+    if hasattr(spec, "components"):
+        return spec.components()
+    return tuple((name, None) for name in COMPONENTS[spec.prefix])
+
+
 def error_scale(spec, version):
     """The registered practice error scale this Challenge reports on, and the
     record's error and aggregation (no value is chosen here)."""
+    if hasattr(spec, "error_scale"):
+        # a version registered by data: its pinned module's own (`registered`)
+        return spec.error_scale(version)
     if spec.prefix == "f02":
         return {
             "record": F02_SCALE_RECORD,
@@ -174,6 +184,8 @@ def summary(spec, version, interface, rows, material):
     """What a practice reports under the Validator's rulings: the rows'
     structural facts and the aggregate errors on the registered scale. No
     per-case value, Ladder or new normalisation."""
+    if hasattr(spec, "practice_summary"):
+        return spec.practice_summary(version, rows, material)
     if spec.prefix == "battery_catalog":
         from carbon.battery import catalog_version
 
@@ -375,7 +387,11 @@ class DirectPractice:
         # sealed v2 grader; otherwise the exposed bank as before.
         material, cell_rows = self._practice_query(material)
         interface = material["interface_document"]
-        dtype = OUTPUT_DTYPES[self.spec.prefix]
+        dtype = (
+            self.spec.output_dtype()
+            if hasattr(self.spec, "output_dtype")
+            else OUTPUT_DTYPES[self.spec.prefix]
+        )
         if output_dtype(interface) != dtype:
             raise ValueError(self.spec.prefix + "_practice_dtype_unregistered")
         recipe = self._bound(strategy, material)
@@ -629,6 +645,8 @@ def _dual_feedback(spec, version, rows, speed=None):
     """The shared practice dual block for the rows of the exposed bank."""
     from carbon.scoring import practice_dual, practice_grid
 
+    if hasattr(spec, "dual_feedback"):
+        return spec.dual_feedback(version)
     # The exam's own v2 grader on the full public bank, with public probes, when
     # this version has one (practice must match the exam).
     if (

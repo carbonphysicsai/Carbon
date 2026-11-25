@@ -77,6 +77,7 @@ IMPLEMENTATION_SOURCES = (
     "carbon/direct_campaign/contracts.py",
     "carbon/direct_campaign/facts.py",
     "carbon/direct_campaign/practice.py",
+    "carbon/direct_campaign/registered.py",
     "carbon/direct_campaign/research.py",
     "carbon/direct_campaign/spec.py",
     "carbon/development_session/physical_graph_adapter.py",
@@ -169,11 +170,14 @@ def direct_sources(spec):
     Construction identities may not carry a component-graph token, so the
     adapter is named by its role."""
     limits = limits_document(spec)
-    catalog = limits["backbone_catalog"]
+    catalog = limits.get("backbone_catalog")
     adapter = ()
     if "graph_training_adapter" in limits:
         block = digest(canonical(limits["graph_training_adapter"]))
         adapter = (("direct_adapter", "carbon_training_adapter", "1", block),)
+    if catalog is None:
+        # a version registered by data whose limits bind no catalog
+        return adapter
     return (
         *adapter,
         ("direct_catalog", "carbon_backbone_catalog", "1", catalog["digest"]),
@@ -313,13 +317,20 @@ def na(spec, label):
     return A.not_applicable(semantic(spec, "applicability_reason", label))
 
 
+def _unit_label(spec, unit):
+    """The unit's clause label; a version registered by data may name its own units (`registered`)."""
+    if unit not in UNIT_LABELS and hasattr(spec, "unit_labels"):
+        return spec.unit_labels()[unit]
+    return UNIT_LABELS[unit]
+
+
 def _field(spec, name, unit, dtype, axes=()):
     clause = functools.partial(semantic, spec)
     return p.ValueFieldContract(
         field_id=name,
         semantic_role_ref=clause("semantic_clause", name),
         representation_ref=clause("representation", "dense_physical_array"),
-        unit_ref=clause("unit", UNIT_LABELS[unit]),
+        unit_ref=clause("unit", _unit_label(spec, unit)),
         # A scalar per row, or the output's registered axes (Battery's
         # trajectories and capacity checkpoints).
         shape_contract=tuple(

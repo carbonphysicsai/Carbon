@@ -300,6 +300,9 @@ def value(spec, version, name):
     """The approved value of `name` at exactly `version`, or HUMAN_INPUT. A
     version uses the facts key it declares in the version registry (graph
     route v2: its predecessor's approved facts, named explicitly)."""
+    if hasattr(spec, "fact"):
+        # a version registered by data: its pinned module's own (`registered`)
+        return spec.fact(name)
     from carbon.challenge_kit.version_registry import entry
 
     return FACTS[(spec.challenge_id, entry(spec.challenge_id, version).facts)][name]
@@ -308,6 +311,8 @@ def value(spec, version, name):
 def label(spec, version, name):
     """The approved clause label for `name`, or None while it is unset (a
     graph route v2 version: its predecessor's)."""
+    if hasattr(spec, "fact_label"):
+        return spec.fact_label(name)
     from carbon.challenge_kit.version_registry import entry
 
     return LABELS[(spec.challenge_id, entry(spec.challenge_id, version).facts)].get(

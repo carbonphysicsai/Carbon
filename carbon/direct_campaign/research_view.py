@@ -17,7 +17,7 @@ from carbon.challenge_registry.research_view import (
     per_case_policy,
 )
 
-from .practice import COMPONENTS
+from .practice import components
 from .spec import HUMAN_INPUT, research_key
 
 #: Each summary component's label.
@@ -60,7 +60,10 @@ def research_view(spec):
     return ResearchView(
         challenge_id=spec.challenge_id,
         outputs=outputs,
-        components=tuple((key, LABELS[key]) for key in COMPONENTS[spec.prefix]),
+        components=tuple(
+            (name, LABELS[name] if label is None else label)
+            for name, label in components(spec)
+        ),
         direction="lower_is_better",
         per_case=per_case_policy(population.disclosure_contract),
         learning_curve={"recorded": False, "basis": HUMAN_INPUT},

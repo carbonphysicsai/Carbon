@@ -244,7 +244,6 @@ PROBES = (
 KNOWN_GAPS = {
     "registry.family": "family_registry.json + reader (door-code #1, H1)",
     "build.rebuild_wall": "a registered raise-only wall range (case-procs 8369a825, rides H2)",
-    "build.campaign": "the research campaign of a version its family's code names no builder for",
     "build.sealed_target": "family sealed_target in version_overlay.json (image move, H2)",
     "grade.sealed_kit": "family kit / sealed grader / bank modules (H1 wrap)",
     "grade.pool_kind": "family pool_kind + register_kind (H1)",
@@ -395,7 +394,14 @@ def probe_build_entry():
 
 def probe_build_campaign():
     from carbon.challenge_registry import campaigns
-    assert (family, version) in campaigns._versioned_campaigns()
+    built = campaigns._versioned_campaigns()[(family, version)]()
+    assert (built.key.challenge_id, built.key.version) == (family, version)
+    assert built.construction_kit()["version"] == version
+    assert built.construction_bundle_material()["challenge_key"] == built.key
+    view = built.research_view()
+    assert [output.name for output in view.outputs] == ["y"]
+    assert view.components == (("mean", "Mean error"), ("worst", "Worst error"))
+    assert built.practice_provenance in campaigns.practice_provenances()
 
 
 def probe_build_train():
