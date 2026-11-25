@@ -665,7 +665,10 @@ class PoolVariant(physical.Variant):
                 "names": names,
             },
             speed_call_seconds=speed_call_seconds,
-            ceiling_seconds=speed_gate.ceiling_seconds(self._challenge_id),
+            # the version's own registered value, else its Challenge's (every code-served version's, unchanged)
+            ceiling_seconds=speed_gate.ceiling_seconds(
+                self._challenge_id, self.VERSION
+            ),
             input_dtype=check_material(material)["input_dtype"],
             a_multiplier=registered_a_multiplier(self._challenge_id, self.VERSION),
             speed_outputs_match=speed_outputs_match,

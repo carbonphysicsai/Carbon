@@ -14,8 +14,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from carbon.challenge_kit import version_registry
 from carbon.challenge_registry import exam_registry, speed_gate
 from carbon.challenge_validator import exam_cap, lean_recipe_retention
+from carbon.scoring import practice_speed
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 MOTOR = "electric-motor-magnetics"
@@ -221,11 +223,98 @@ def test_a_refused_newest_row_leaves_its_challenge_unvalued(tmp_path, bad, value
 
 
 def test_no_committed_row_gives_a_valued_challenge_a_second_ceiling():
-    """Until every reader asks by version (pool_version, pool_gates, practice_speed), a version of a Challenge valued in
-    code may not carry its own seconds: one grade would be judged by two ceilings. The head that moves the last reader
-    deletes this test (review-b 6404)."""
+    """Until every reader asks by version (pool_gates is left, a design-time reader), a version of a Challenge valued in
+    code may not carry its own seconds: two readers would name two ceilings. The head that moves the last reader deletes
+    this test (review-b 6404)."""
     families = {c for c, _ in exam_registry.keys("solver_seconds_per_design")}
     assert not families & set(speed_gate.SOLVER_SECONDS_PER_DESIGN)
+
+
+def test_every_version_the_code_serves_has_one_ceiling_asked_either_way():
+    """The grade (`PoolVariant.measure`) and practice ask by version: no served version's number moves."""
+    asked = [
+        key
+        for key in sorted(version_registry.keys())
+        if key[0] in speed_gate.SOLVER_SECONDS_PER_DESIGN
+    ]
+    assert {c for c, _ in asked} == set(speed_gate.SOLVER_SECONDS_PER_DESIGN)
+    assert (MOTOR, "1.8") in asked
+    differ = [
+        key
+        for key in asked
+        if speed_gate.ceiling_seconds(*key) != speed_gate.ceiling_seconds(key[0])
+    ]
+    assert differ == []
+
+
+@pytest.mark.parametrize(
+    ("challenge", "version"), [(MOTOR, "1.8"), ("zz-synthetic", "0.1")]
+)
+def test_the_grade_asks_the_ceiling_by_its_own_version(monkeypatch, challenge, version):
+    """`PoolVariant.measure` itself, with `measure_pool` a stand-in (no score is computed)."""
+    from carbon.scoring import pool_exam, pool_version
+
+    asked, seen = [], {}
+    monkeypatch.setattr(
+        speed_gate, "ceiling_seconds", lambda *a: asked.append(a) or 0.5
+    )
+    monkeypatch.setattr(pool_exam, "measure_pool", lambda **a: seen.update(a) or {})
+    for name, value in (
+        ("registered_policies", SimpleNamespace()),
+        ("menu_tasks", None),
+        ("sealed_region", None),
+        ("official_binding", None),
+        ("check_material", {"input_dtype": "float64"}),
+        ("registered_a_multiplier", 1.0),
+    ):
+        monkeypatch.setattr(pool_version, name, lambda *_a, _v=value, **_k: _v)
+    adapter = object.__new__(pool_version.PoolVariant)
+    adapter._module = SimpleNamespace(measure=None)
+    adapter._kind, adapter._challenge_id, adapter.VERSION = "kind", challenge, version
+    adapter.measure(
+        bank_rows=[],
+        outputs=[],
+        repeats=[],
+        definition={pool_version.POOL_KEY: {"sets": []}},
+        limits={},
+        objective={},
+        train_raw=b"",
+        names=(),
+        speed_call_seconds=[0.1],
+    )
+    assert asked == [(challenge, version)]
+    assert seen["ceiling_seconds"] == 0.5
+
+
+def test_practice_reads_the_version_s_own_seconds(monkeypatch):
+    plain = practice_speed.speed_block("motor", seconds=2.0, designs=1)
+    for version in ("1.7", "1.8"):
+        assert plain == practice_speed.speed_block(
+            "motor", seconds=2.0, designs=1, version=version
+        )
+    asked = []
+
+    def own(challenge, version, field):
+        asked.append((challenge, version, field))
+        return {"value": 500}
+
+    monkeypatch.setattr(exam_registry, "require", own)
+    block = practice_speed.speed_block("motor", seconds=2.0, designs=1, version="9.9")
+    assert block["ceiling_seconds_per_design"] == 1.0
+    assert block["solver_seconds_per_design"] == 500
+    assert block["within_ceiling"] is False
+    figures = practice_speed.per_call_figures("motor", [0.5], version="9.9")
+    assert figures["per_call_within_ceiling"] is True
+    assert set(asked) == {(MOTOR, "9.9", "solver_seconds_per_design")}
+
+
+def test_an_unreadable_row_never_fails_a_practice(monkeypatch):
+    def refuse(*_a):
+        raise exam_registry.ExamRowRefused("row")
+
+    monkeypatch.setattr(exam_registry, "require", refuse)
+    block = practice_speed.speed_block("motor", seconds=2.0, designs=1, version="9.9")
+    assert block is None
 
 
 def test_an_unregistered_challenge_is_a_typed_refusal_that_old_readers_still_catch():

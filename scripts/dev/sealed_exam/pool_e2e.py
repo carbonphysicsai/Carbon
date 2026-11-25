@@ -163,7 +163,7 @@ def verify(
             seconds, match = single_call_timing.read_side_file(
                 present["single-call.json"].read_bytes()
             )
-            ceiling = speed_gate.ceiling_seconds(challenge_id)
+            ceiling = speed_gate.ceiling_seconds(challenge_id, version)
             record["speed"] = {
                 "calls": len(seconds),
                 "median_seconds": statistics.median(seconds),

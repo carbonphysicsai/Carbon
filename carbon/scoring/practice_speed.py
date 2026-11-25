@@ -40,18 +40,23 @@ def _positive(value):
     return type(value) in (int, float) and math.isfinite(value) and value > 0
 
 
-def speed_block(kind, *, seconds, designs):
+def speed_block(kind, *, seconds, designs, version=None):
     """The speed result for ``designs`` practice designs answered in ``seconds``
     of wall time, or None when either is not a positive finite number or the
-    kind has no registered gate."""
+    kind has no registered gate. ``version``: the version's own registered solver
+    seconds are read first, as the exam reads them."""
     gate_id = GATE_IDS.get(kind)
     if gate_id is None or not _positive(seconds) or type(designs) is not int:
         return None
     if designs <= 0:
         return None
     per_design = seconds / designs
-    ceiling = speed_gate.ceiling_seconds(gate_id)
-    solver = speed_gate.SOLVER_SECONDS_PER_DESIGN[gate_id]
+    try:
+        ceiling = speed_gate.ceiling_seconds(gate_id, version)
+        solver = speed_gate.solver_seconds(gate_id, version)
+    except (speed_gate.SpeedGateRefused, speed_gate.SpeedGateUnregistered):
+        # best effort: an unreadable registry row never fails a practice
+        return None
     return {
         "schema": SCHEMA,
         "seconds_per_design": per_design,
@@ -92,7 +97,7 @@ def not_measured(kind):
     }
 
 
-def per_call_figures(kind, per_call):
+def per_call_figures(kind, per_call, *, version=None):
     """The median and the largest single-design call over the timed practice
     rows, beside the batched average, and whether the median meets the speed
     gate's ceiling (the exam's gate compares a median of single-design calls).
@@ -111,7 +116,9 @@ def per_call_figures(kind, per_call):
         else (ordered[middle - 1] + ordered[middle]) / 2
     )
     gate_id = GATE_IDS.get(kind)
-    ceiling = speed_gate.ceiling_seconds(gate_id) if gate_id is not None else None
+    ceiling = (
+        speed_gate.ceiling_seconds(gate_id, version) if gate_id is not None else None
+    )
     return {
         "per_call_median_seconds": median,
         "per_call_max_seconds": ordered[-1],
@@ -120,14 +127,14 @@ def per_call_figures(kind, per_call):
     }
 
 
-def from_result(kind, result, *, designs, requested=False):
+def from_result(kind, result, *, designs, requested=False, version=None):
     """The speed result from a reconstruction result that carried a timed query
     (`result.timed`). None when the run was not timed; when timing was `requested`
     but the result carries none (the timing run failed or timed out), the named
     `not_measured` block instead."""
     timed = getattr(result, "timed", None)
     block = (
-        from_receipt(kind, timed.receipt, designs=designs)
+        from_receipt(kind, timed.receipt, designs=designs, version=version)
         if timed is not None
         else None
     )
@@ -136,7 +143,7 @@ def from_result(kind, result, *, designs, requested=False):
     return block
 
 
-def from_receipt(kind, receipt, *, designs):
+def from_receipt(kind, receipt, *, designs, version=None):
     """The speed result from a bundle-inference measurement receipt, or None
     when the receipt carries no measurement."""
     measured = receipt.get("measurement") if type(receipt) is dict else None
@@ -157,9 +164,13 @@ def from_receipt(kind, receipt, *, designs):
         and 0 < shape[0] <= designs
         else designs
     )
-    block = speed_block(kind, seconds=sum(parts), designs=timed_designs)
+    block = speed_block(
+        kind, seconds=sum(parts), designs=timed_designs, version=version
+    )
     if block is not None:
-        block.update(per_call_figures(kind, measured.get("per_call_s")))
+        block.update(
+            per_call_figures(kind, measured.get("per_call_s"), version=version)
+        )
     if block is not None and timed_designs < designs:
         block["designs_total"] = designs
         block["scope"] = (

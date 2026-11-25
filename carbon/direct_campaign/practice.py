@@ -463,6 +463,7 @@ class DirectPractice:
                     result,
                     designs=len(rows),
                     requested=practice_speed.measure(self.runner),
+                    version=self.version,
                 ),
             ),
         }

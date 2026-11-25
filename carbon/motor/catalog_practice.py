@@ -422,6 +422,7 @@ class MotorCatalogPractice:
                         result,
                         designs=len(all_rows),
                         requested=practice_speed.measure(self.runner),
+                        version=self.version,
                     ),
                 )
                 if v2
