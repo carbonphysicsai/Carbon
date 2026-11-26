@@ -59,6 +59,7 @@ def scene(tmp_path, monkeypatch):
     monkeypatch.setattr(overlay, "_APPLIED", set())
     monkeypatch.setattr(overlay, "_ARMED", {})
     monkeypatch.setattr(overlay, "_DISPATCH", {})
+    monkeypatch.setattr(overlay, "_WAITING", {})
     sha = hashlib.sha256(DISPATCH_SOURCE.encode()).hexdigest()
     target = types.ModuleType("fake_sealed")
     target.POOL_VERSIONS = {"1.5": ("fake-pool-sealed-v1", "fake-set")}
@@ -165,10 +166,37 @@ def test_a_malformed_dispatch_block_is_refused(scene, mutate):
         overlay._check_dispatch(KEY, mutate(block))
 
 
-def test_a_challenge_with_no_sealed_module_is_refused(scene):
+def test_a_challenge_with_no_sealed_module_waits_and_never_arms(scene):
+    """miner-ux 8683 J1: a dispatch for a family registered by row must not refuse the overlay in a process that never
+    imported the family registry; it waits, unarmed, so its version has no sealed tables.
+    """
     _target, block, _sha, _module = scene
-    with pytest.raises(overlay.OverlayRefused, match="no sealed grader module"):
-        overlay._check_dispatch(("unknown-challenge", "1.0"), block)
+    key = ("unknown-challenge", "1.0")
+    overlay._arm(key, overlay._check_dispatch(key, block))
+    assert overlay.waiting() == (key,)
+    assert key not in overlay._ARMED and key not in overlay._APPLIED
+    overlay.arm_family("unknown-challenge")  # no sealed target yet: still waiting
+    assert overlay.waiting() == (key,)
+
+
+def test_a_waiting_dispatch_arms_when_its_family_registers(scene, monkeypatch):
+    target, block, _sha, _module = scene
+    monkeypatch.delitem(overlay.SEALED_TARGET, KEY[0])
+    _arm(block)
+    assert overlay.waiting() == (KEY,) and "1.6" not in target.POOL_VERSIONS
+    monkeypatch.setitem(overlay.SEALED_TARGET, KEY[0], "fake_sealed")
+    overlay.arm_family(KEY[0])
+    assert overlay.waiting() == ()
+    assert target.POOL_VERSIONS["1.6"] == ("fake-pool-sealed-v2", "fake-set")
+    assert target.adapter("1.6") == ("mine", "1.6", {"k": 1})
+
+
+def test_a_waiting_dispatch_still_checks_its_module_sha(scene):
+    _target, block, _sha, _module = scene
+    with pytest.raises(overlay.OverlayRefused, match="sha256 does not match"):
+        overlay._check_dispatch(
+            ("unknown-challenge", "1.0"), {**block, "sha256": "0" * 64}
+        )
 
 
 def test_the_dispatch_module_must_register_the_entrys_own_version(scene):

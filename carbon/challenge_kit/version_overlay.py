@@ -30,6 +30,12 @@ registered through the sealed module's EXISTING tables: its ``POOL_VERSIONS`` en
 every other version. It is add-only: a version the sealed module already registers is refused. The sealed module's bytes
 (so every producer digest) never change, and with no ``dispatch`` entry nothing here runs. Generic: keyed by (Challenge,
 version), usable by any new sealed adapter.
+
+A FAMILY REGISTERED BY ROW (`family_registry`) adds its sealed grader to `SEALED_TARGET` when that module is imported,
+which the miner path never does. A dispatch for a Challenge with no sealed target yet therefore WAITS (`waiting`) instead
+of refusing the whole overlay at import, which took every process down with it (miner-ux 8683 J1). It is armed when the
+family registers (`arm_family`, called by `family_registry`); a family that never registers leaves it unarmed, so that
+version has no sealed tables and every grade of it refuses: fail closed for that version only, never a nearby one.
 """
 
 from __future__ import annotations
@@ -79,6 +85,8 @@ _DISPATCH: dict = {}
 #: Dispatches armed (waiting for their sealed module) or applied, by (Challenge, version).
 _ARMED: dict = {}
 _APPLIED: set = set()
+#: Checked dispatches whose Challenge has no sealed target yet (a family registered by row), by (Challenge, version).
+_WAITING: dict = {}
 
 
 def _registry():
@@ -188,10 +196,6 @@ def _check_dispatch(key, block) -> dict:
         or not isinstance(block.get("config", {}), dict)
     ):
         raise OverlayRefused(f"{key!r}: malformed dispatch block")
-    if key[0] not in SEALED_TARGET:
-        raise OverlayRefused(
-            f"{key!r}: no sealed grader module is registered for this Challenge"
-        )
     if _file_sha256(_dispatch_file(block["module"])) != block["sha256"]:
         raise OverlayRefused(
             f"{key!r}: the dispatch module's sha256 does not match the entry"
@@ -237,12 +241,30 @@ def _arm(key, block) -> None:
         if _ARMED[key] != block:
             raise OverlayRefused(f"{key!r} was armed with a different dispatch")
         return
+    if key[0] not in SEALED_TARGET:
+        _WAITING[key] = block
+        return
+    _WAITING.pop(key, None)
     _ARMED[key] = block
     target = SEALED_TARGET[key[0]]
     if target in sys.modules:
         _apply_pending(target, sys.modules[target])
     elif _FINDER not in sys.meta_path:
         sys.meta_path.insert(0, _FINDER)
+
+
+def arm_family(challenge_id: str) -> None:
+    """Arm every waiting dispatch of a family `family_registry` has just added to `SEALED_TARGET`."""
+    if challenge_id not in SEALED_TARGET:
+        return
+    for key, block in list(_WAITING.items()):
+        if key[0] == challenge_id:
+            _arm(key, block)
+
+
+def waiting() -> tuple:
+    """The (Challenge, version) of every dispatch still waiting for its family's sealed target, sorted."""
+    return tuple(sorted(_WAITING))
 
 
 def _apply_pending(target_name, module) -> None:

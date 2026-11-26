@@ -224,6 +224,8 @@ def _extend(challenge_id, row) -> None:
             raise FamilyRefused(f"{challenge_id!r} is in a shared table already")
     for table, value in tables:
         table[challenge_id] = value
+    if grader is not None:  # its overlay dispatches waited for this target
+        version_overlay.arm_family(challenge_id)
 
 
 def families() -> tuple:
