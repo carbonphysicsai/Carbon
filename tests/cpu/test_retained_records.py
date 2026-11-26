@@ -247,18 +247,22 @@ def test_the_coldkey_reader_reads_the_grading_snapshot(monkeypatch):
 
 
 class _FilingStore(_Store):
-    def __init__(self, king, records):
+    def __init__(self, king, records, fail=None):
         super().__init__(king, records)
-        self.decisions = {}
+        self.decisions, self.fail = {}, fail
 
     def record_confirmation_decision(self, submission_id, key, record):
+        if self.fail is not None:
+            raise self.fail
         if submission_id in self.decisions and self.decisions[submission_id] != record:
             raise StateError("confirmation_decision_changed")
         self.decisions[submission_id] = record
 
 
-def _consider(tmp_path, monkeypatch, outcome, *, king="king", records=(), block=RULED):
-    store = _FilingStore(king, dict(records))
+def _consider(
+    tmp_path, monkeypatch, outcome, *, king="king", records=(), block=RULED, fail=None
+):
+    store = _FilingStore(king, dict(records), fail)
     monkeypatch.setattr(bp, "_scored", _open_number)
     monkeypatch.setattr(test_crown_confirmation, "_Store", lambda k, r: store)
     decided, _ = _consider_plain(
@@ -306,6 +310,40 @@ def test_a_challenger_not_confirmed_files_its_decision_and_the_king_stays(
         "NOT_CONFIRMED",
         crown_official.CROWN_NOT_CONFIRMED,
     )
+
+
+def test_a_gate_failed_king_dethroned_files_the_not_confirmed_decision(
+    tmp_path, monkeypatch
+):
+    failed = {"outcome": bp.CHALLENGER, "reason": "incumbent_failed_mandatory_gate"}
+    decided, store = _consider(
+        tmp_path, monkeypatch, failed, records=[_mine(None, status="INVALID")]
+    )
+    assert decided["outcome"] == bp.DETHRONED and store.vacated == "king"
+    record = store.decisions["cand"]
+    assert (record["verdict"], record["first"]) == ("NOT_CONFIRMED", True)
+    assert record["incumbent_confirmation"] is None
+
+
+@pytest.mark.parametrize(
+    "records,outcome",
+    [
+        ([_mine(0.6), _mine(0.5, "king")], bp.CHALLENGER),
+        ([_mine(0.4), _mine(0.5, "king")], bp.INCUMBENT_KEEPS),
+    ],
+)
+def test_a_record_that_cannot_be_filed_never_changes_the_decision(
+    tmp_path, monkeypatch, capsys, records, outcome
+):
+    decided, store = _consider(
+        tmp_path, monkeypatch, CHALLENGE, records=records, fail=OSError("disk full")
+    )
+    assert decided["outcome"] == outcome
+    assert store.set_to == ("cand" if outcome == bp.CHALLENGER else None)
+    assert store.decisions == {}
+    line = capsys.readouterr().err
+    assert "crown_confirmation_decision_unfiled" in line and "OSError" in line
+    assert "disk full" not in line
 
 
 def test_a_wait_files_no_decision(tmp_path, monkeypatch):

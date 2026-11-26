@@ -630,27 +630,44 @@ class BankPromotion:
     ):
         """File the private record of a decided confirmation (S3 of bank 8319, owner retained-records line 25 Nov 2026):
         the two open numbers compared, both confirmation numbers and the answer. Write-once; an earlier record for the same
-        decision stays as it is. A store without the record (a tool, a test double) files nothing."""
-        from carbon.challenge_validator import crown_official
+        decision stays as it is. A store without the record (a tool, a test double) files nothing.
 
-        filer = getattr(self.store, "record_confirmation_decision", None)
-        if filer is None:
-            return
-        incumbent = pair["incumbent"]
-        record = crown_official.decision_record(
-            first,
-            verdict,
-            mine,
-            king,
-            (
-                _scored(pair["candidate"])[1],
-                None if incumbent is None else _scored(incumbent)[1],
-            ),
-        )
+        Custody evidence, never the decision (review-b 8582, v2 8617): it runs after a crown change has applied, so any
+        failure here is one journal line and the decision stands. The crown and its record are two transactions: a crash
+        between them leaves an applied crown with no record, which its readers take as UNAVAILABLE, never as no decision.
+        """
         try:
-            filer(submission_id, evaluation_key, record)
-        except StateError:
-            pass  # a record for this decision already exists: kept
+            from carbon.challenge_validator import crown_official
+
+            filer = getattr(self.store, "record_confirmation_decision", None)
+            if filer is None:
+                return
+            incumbent = pair["incumbent"]
+            record = crown_official.decision_record(
+                first,
+                verdict,
+                mine,
+                king,
+                (
+                    _scored(pair["candidate"])[1],
+                    None if incumbent is None else _scored(incumbent)[1],
+                ),
+            )
+            try:
+                filer(submission_id, evaluation_key, record)
+            except StateError:
+                pass  # a record for this decision already exists: kept
+        except Exception as failure:  # noqa: BLE001 - custody evidence, never the decision
+            try:
+                from carbon.battery.intake import log
+
+                log(
+                    "crown_confirmation_decision_unfiled",
+                    verdict=verdict[0],
+                    error=type(failure).__name__,
+                )
+            except Exception:  # noqa: BLE001 - a log line never stops a decision
+                pass
 
     def _undecided_before(self, submission_id, evaluation_key):
         """The unresolved crown-pause records filed BEFORE this contender's own (all of them when it has none yet), oldest
