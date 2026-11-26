@@ -4,8 +4,8 @@ stay on the open set."; door-code 8314, Lead GO 8421).
 
 Claims:
 1. REGISTRATION: a crown row may carry a ``confirmation`` block; an empty block is the owner's line with nothing ruled
-   (every crown it decides waits); a block with an unknown key or value refuses. The repository's Motor 1.9 and RB 2.0
-   rows carry one, every other row none (1.8 unchanged).
+   (every crown it decides waits); a block with an unknown key or value refuses. No public repository row carries one
+   (1.8 unchanged).
 2. DECISION: a crown change on such a version is applied only when the contender's confirmation number holds (above
    the king's; an equal one only under a registered tie rule "confirms", bank 8442); a lower number or an invalid
    confirmation answer keeps the king (no winner with no king; a gate-failed
@@ -124,17 +124,12 @@ def test_a_malformed_confirmation_block_refuses(tmp_path, block):
     assert refused.value.code == "crown_official_confirmation_malformed"
 
 
-def test_the_repository_rows_under_the_owner_line_carry_a_block_and_no_other_does():
+def test_no_public_repository_row_carries_a_block_and_the_live_row_is_unchanged():
+    """The versions whose rows carry a confirmation block live on carbon-internal until they open (owner G-LEAD-122)."""
     rows = json.loads(Path(crown_official.REGISTRY).read_bytes())["versions"]
-    carrying = {name for name, row in rows.items() if "confirmation" in row}
-    assert carrying == {"electric-motor-magnetics 1.9", "f08-ribbed-bracket 2.0"}
+    assert {name for name, row in rows.items() if "confirmation" in row} == set()
     # the live 1.8 row is exactly as before
     assert rows["electric-motor-magnetics 1.8"] == {"margin": 0.0129, "score": "A"}
-    for name in carrying:
-        challenge, version = name.rsplit(" ", 1)
-        assert crown_official.registered(challenge, version)["confirmation"] == {
-            "tie": "not_confirmed"
-        }
 
 
 def test_install_logs_whether_the_confirmation_is_ruled(tmp_path):

@@ -3,8 +3,8 @@ keeps ALL solver outputs of every solve, scored or unscored, in its retained rec
 8330 S3 and S4 specify; build S3 and S4 now with the confirmation head.").
 
 Claims:
-1. REGISTRATION: a crown row may carry ``"records": "all"``; any other value refuses. The repository's Motor 1.9 and RB 2.0
-   rows carry it, the live 1.8 row does not. `records_all` is true only for the served version under it.
+1. REGISTRATION: a crown row may carry ``"records": "all"``; any other value refuses. No public repository row carries
+   it, the live 1.8 row included. `records_all` is true only for the served version under it.
 2. S3 LEDGER: a version under it files the coldkey (read from the receiver's own snapshot) and the signed receipt block on
    every GRADED row it reserves; a regrade, or any other version, files neither; a coldkey the snapshot cannot give is
    NULL and the reservation is exactly as before; an older ledger gains both columns, NULL on its rows.
@@ -100,14 +100,11 @@ def test_without_the_key_or_without_an_installed_rule_nothing_more_is_kept(tmp_p
     assert not crown_official.records_all()
 
 
-def test_the_repository_rows_under_the_owner_line_keep_every_record():
+def test_no_public_repository_row_keeps_every_record_and_the_live_row_is_unchanged():
+    """The versions whose rows keep every record live on carbon-internal until they open (owner G-LEAD-122)."""
     rows = json.loads(Path(crown_official.REGISTRY).read_bytes())["versions"]
-    keeping = {name for name, row in rows.items() if row.get("records") == "all"}
-    assert keeping == {"electric-motor-magnetics 1.9", "f08-ribbed-bracket 2.0"}
+    assert {name for name, row in rows.items() if row.get("records") == "all"} == set()
     assert rows["electric-motor-magnetics 1.8"] == {"margin": 0.0129, "score": "A"}
-    for name in keeping:
-        challenge, version = name.rsplit(" ", 1)
-        assert crown_official.registered(challenge, version)["records"] == "all"
 
 
 # ---------------------------------------------------------------- 2. S3 ledger
