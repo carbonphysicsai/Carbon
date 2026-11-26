@@ -665,6 +665,20 @@ NEXT_ACTIONS = {
         "This submission was still queued when its version of the Challenge closed, so it was closed, not graded, and "
         "nothing was charged. This is not a result about your model."
     ),
+    # `lean_recipe` Unavailable: the version is registered but its pool-only exam is not (a new family's version before
+    # its rows are complete). Carbon's registration, never the recipe's; no charge sentence (the grade path decides).
+    "official_version_without_pool": (
+        "The validator knows this version, but its graded exam is not set up yet, so it could not grade this submission. "
+        "This is on Carbon's side and is not a result about your model. Submit again once the version is announced as "
+        "open. Your frozen candidate is kept."
+    ),
+    # `lean_recipe_retention` RetentionUnavailable: the version's regrade case bank does not match its declared practice
+    # form (dtype or shape). Carbon's material, never the recipe's; no charge sentence (the grade path decides).
+    "regrade_case_bank_contract_changed": (
+        "The validator's grading material for this version does not match the form the version declares, so the grade "
+        "could not run. This is on Carbon's side and is not a result about your model. If it persists, send us the UTC "
+        "time and the last 4 characters of your hotkey. Your frozen candidate is kept."
+    ),
     # HTTP 503 `status: updating` (`battery.intake.updating_answer`), before anything is read or admitted.
     "door_updating": (
         "Carbon is upgrading the validator; please retry shortly. Nothing was built or graded for this request and "
