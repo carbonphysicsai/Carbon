@@ -47,6 +47,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Callable, NamedTuple
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "carbon.kit-local-score.v1"
@@ -96,6 +97,9 @@ CODE_MODULES = (
     "carbon/motor/exam.py",
     "carbon/motor/row18.py",
     "carbon/motor/row19.py",
+    "carbon/scoring/pool_adapters.py",
+    "carbon/scoring/pool_plugin.py",
+    "carbon/scoring/pool_version.py",
 )
 
 
@@ -130,8 +134,12 @@ def _finite(value) -> bool:
     )
 
 
-def load_verify_set(raw: bytes, expected_sha256: str, input_names) -> dict:
-    """The verify set, only at the digest the caller pins."""
+def load_verify_set(
+    raw: bytes, expected_sha256: str, input_names, *, truth_error=None
+) -> dict:
+    """The verify set, only at the digest the caller pins. ``truth_error(design)``
+    names what is wrong with a design's truth, or None; None (the default) is the
+    Motor check (a finite ``truth.torque_nm`` curve), as before."""
     if type(raw) is not bytes or type(expected_sha256) is not str:
         raise ScorerRefused("a verify set and its sha256 are required")
     if hashlib.sha256(raw).hexdigest() != _hex(expected_sha256):
@@ -149,7 +157,6 @@ def load_verify_set(raw: bytes, expected_sha256: str, input_names) -> dict:
             raise ScorerRefused("a verify design must be an object")
         case_id = design.get("case_id")
         inputs = design.get("inputs")
-        curve = (design.get("truth") or {}).get("torque_nm")
         if type(case_id) is not str or not case_id or case_id in seen:
             raise ScorerRefused("each verify design needs its own case_id")
         seen.add(case_id)
@@ -159,9 +166,17 @@ def load_verify_set(raw: bytes, expected_sha256: str, input_names) -> dict:
             or not all(_finite(inputs[name]) for name in input_names)
         ):
             raise ScorerRefused(f"{case_id}: the inputs are not the interface's")
-        if type(curve) is not list or not all(_finite(v) for v in curve):
-            raise ScorerRefused(f"{case_id}: the truth curve is malformed")
+        wrong = (truth_error or _motor_truth_error)(design)
+        if wrong is not None:
+            raise ScorerRefused(f"{case_id}: {wrong}")
     return document
+
+
+def _motor_truth_error(design):
+    curve = (design.get("truth") or {}).get("torque_nm")
+    if type(curve) is not list or not all(_finite(v) for v in curve):
+        return "the truth curve is malformed"
+    return None
 
 
 def _u(document):
@@ -302,9 +317,158 @@ def _motor_aggregate(rows, u):
     return out
 
 
-#: The Challenges with a local verify check: (per-design, aggregate). A new
-#: Challenge adds a row here, calling its own exam module.
+#: Challenges with a check written in code: (per-design, aggregate). Every other
+#: Challenge is checked from its registered pool binding (`local_check`), so a new
+#: family needs no row here (miner-ux 8683).
 LOCAL_CHECKS = {MOTOR: (_motor_design, _motor_aggregate)}
+
+#: A verify design of a binding-checked Challenge carries its truth as the raw
+#: output row in the model's output space: ``{"truth": {"raw": [numbers]}}``.
+RAW_TRUTH = "raw"
+PASS, FAIL = "PASS", "FAIL"
+SCORABLE, GATE_FAILED = "SCORABLE", "GATE_FAILED"
+
+
+class LocalCheck(NamedTuple):
+    """One Challenge version's local verify check."""
+
+    truth_error: Callable  # (design) -> str | None
+    u: Callable  # (verify document) -> {quantity: U} | None
+    per_design: Callable  # (design, prediction, u) -> row
+    aggregate: Callable  # (rows, u) -> summary
+
+
+def _raw_truth_error(design):
+    raw = (design.get("truth") or {}).get(RAW_TRUTH)
+    if type(raw) is not list or not raw or not all(_finite(v) for v in raw):
+        return "the truth is not a finite raw output row"
+    return None
+
+
+def _named_u(document):
+    """The verify set's U per derived output it names, or None while unregistered."""
+    u = document.get("u")
+    if type(u) is not dict or not u:
+        return None
+    if not all(type(k) is str and _finite(v) and v >= 0 for k, v in u.items()):
+        return None
+    return {k: float(u[k]) for k in sorted(u)}
+
+
+def _registered_binding(challenge_id, version):
+    """The OFFICIAL pool binding the grade reads for this version: its own
+    registered one, or the static adapter's for a version no overlay serves. An
+    overlay version whose dispatch has not registered its binding in this process
+    refuses: the static adapter would be another version's (miner-ux 8683 R1)."""
+    from carbon.challenge_kit import version_overlay
+    from carbon.scoring import pool_adapters, pool_exam, pool_version
+
+    kind = pool_version.KINDS.get(challenge_id)
+    if kind is None:
+        raise ScorerRefused("no local verify check is registered for this Challenge")
+    registered = (kind, version) in pool_version._BINDINGS
+    if not registered and version_overlay.is_overlay(challenge_id, version):
+        raise ScorerRefused(
+            "this version's pool binding is not registered in this process"
+        )
+    try:
+        binding = pool_version.official_binding(kind, version)
+    except (pool_adapters.PoolAdapterRefused, pool_exam.ExamRefused):
+        raise ScorerRefused("no pool binding is registered for this version") from None
+    if binding.physics_gates is None:
+        raise ScorerRefused("the version's pool binding registers no gates")
+    return binding
+
+
+def _derived(binding, inputs, raw):
+    try:
+        values = binding.derive(inputs, raw)
+    except Exception:  # a candidate's row the derive cannot read: no value, not a pass
+        return {}
+    return values if type(values) is dict else {}
+
+
+def _binding_check(binding):
+    names = tuple(binding.physics_gates.gate_names)
+
+    def per_design(design, prediction, u):
+        try:
+            inputs = {n: float(design["inputs"][n]) for n in binding.input_names}
+        except KeyError:
+            raise ScorerRefused(
+                "the registered binding's inputs are not the interface's"
+            ) from None
+        raw = [float(v) for v in prediction]
+        failed = set(binding.physics_gates.failed(inputs, raw))
+        row = {
+            "case_id": design["case_id"],
+            "state": GATE_FAILED if failed else SCORABLE,
+            "gates": {
+                g: FAIL if g in failed else PASS for g in sorted({*names, *failed})
+            },
+        }
+        if u is None:
+            row["accuracy_vs_u"] = {
+                "status": NOT_EVALUATED,
+                "reason": "the verify set carries no registered U",
+            }
+            return row
+        got = _derived(binding, inputs, raw)
+        want = _derived(binding, inputs, design["truth"][RAW_TRUTH])
+        check = {}
+        for name in u:
+            model, truth = got.get(name), want.get(name)
+            delta = (
+                abs(float(model) - float(truth))
+                if _finite(model) and _finite(truth)
+                else None
+            )
+            check[name] = {
+                "model": model,
+                "truth": truth,
+                "delta": delta,
+                "u": u[name],
+                "within_u": delta is not None and delta <= u[name],
+            }
+        check["within_u"] = all(check[name]["within_u"] for name in u)
+        row["accuracy_vs_u"] = check
+        return row
+
+    def aggregate(rows, u):
+        fails = {}
+        for row in rows:
+            for gate, verdict in row["gates"].items():
+                if verdict == FAIL:
+                    fails[gate] = fails.get(gate, 0) + 1
+        out = {
+            "n_designs": len(rows),
+            "n_scorable": sum(r["state"] == SCORABLE for r in rows),
+            "n_gate_failed": sum(r["state"] == GATE_FAILED for r in rows),
+            "gate_failures": fails,
+        }
+        if u is None:
+            out["accuracy_vs_u"] = {"status": NOT_EVALUATED}
+        else:
+            out["accuracy_vs_u"] = {
+                **{
+                    name: sum(r["accuracy_vs_u"][name]["within_u"] for r in rows)
+                    for name in u
+                },
+                "n_within_u": sum(r["accuracy_vs_u"]["within_u"] for r in rows),
+            }
+        return out
+
+    return LocalCheck(_raw_truth_error, _named_u, per_design, aggregate)
+
+
+def local_check(challenge_id: str, version: str) -> LocalCheck:
+    """The local verify check of one Challenge version: its code row in
+    `LOCAL_CHECKS`, else the gates and derive of its registered pool binding (the
+    ones the official grade reads), else `ScorerRefused`."""
+    if challenge_id in LOCAL_CHECKS:
+        per_design, aggregate = LOCAL_CHECKS[challenge_id]
+        return LocalCheck(_motor_truth_error, _u, per_design, aggregate)
+    return _binding_check(_registered_binding(challenge_id, version))
 
 
 # --- the official functions, in the official order ------------------------------------
@@ -316,8 +480,7 @@ def _adapter(challenge_id: str, version: str):
     module = graph_adapters.module_for(challenge_id, version)
     if module is not physical_graph_adapter_v2:
         raise ScorerRefused("the local scorer serves graph route v2 versions only")
-    if challenge_id not in LOCAL_CHECKS:
-        raise ScorerRefused("no local verify check is registered for this Challenge")
+    local_check(challenge_id, version)
     return module
 
 
@@ -521,15 +684,22 @@ def local_timing(model, query, *, wide: bool, calls: int) -> dict:
     }
 
 
-def _input_names(recipe_bytes):
+def _recipe_challenge(recipe_bytes):
+    """The Challenge a recipe names, {"id", "version"}; None for a refused recipe."""
     from carbon.development_session.construction_recipe import (
         ConstructionRecipe,
         RecipeRefused,
     )
 
     try:
-        named = ConstructionRecipe.from_bytes(recipe_bytes).to_dict()["challenge"]
+        return ConstructionRecipe.from_bytes(recipe_bytes).to_dict()["challenge"]
     except RecipeRefused:
+        return None
+
+
+def _input_names(recipe_bytes):
+    named = _recipe_challenge(recipe_bytes)
+    if named is None:
         return None
     _adapter(named["id"], named["version"])
     return public_train(named["id"], named["version"])["input_names"]
@@ -563,7 +733,11 @@ def score(
         built = build_and_predict(recipe_bytes, raw_manifest, files, [])
         report.update(admission=built["admission"])
         return report
-    document = load_verify_set(verify_bytes, verify_sha256, names)
+    named = _recipe_challenge(recipe_bytes)
+    check = local_check(named["id"], named["version"])
+    document = load_verify_set(
+        verify_bytes, verify_sha256, names, truth_error=check.truth_error
+    )
     designs = document["designs"]
     rows = [[float(d["inputs"][n]) for n in names] for d in designs]
     built = build_and_predict(
@@ -573,10 +747,9 @@ def score(
     if built["admission"]["state"] != "ADMITTED":
         return report
     spec, predictions = built["spec"], built["predictions"]
-    per_design, aggregate = LOCAL_CHECKS[spec.challenge_id]
-    u = _u(document)
+    u = check.u(document)
     results = [
-        per_design(design, predictions[index], u)
+        check.per_design(design, predictions[index], u)
         for index, design in enumerate(designs)
     ]
     query = np.ascontiguousarray(np.asarray(rows, dtype=spec.dtype))
@@ -595,7 +768,7 @@ def score(
             np.ascontiguousarray(predictions, dtype=spec.dtype).tobytes()
         ).hexdigest(),
         designs=results,
-        aggregate=aggregate(results, u),
+        aggregate=check.aggregate(results, u),
         local_timing=local_timing(
             built["model"], query, wide=built["wide"], calls=timing_calls
         ),
