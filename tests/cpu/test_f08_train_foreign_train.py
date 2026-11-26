@@ -1,7 +1,7 @@
 """A registered F08 version whose TRAIN another module serves never breaks `f08_train`'s import (blind-audit row 1).
 
 Before: `f08_train.TRAIN_FOR_VERSION` was built at import by indexing a two-name table with every registered F08
-version's TRAIN name, so registering RB 2.0 (TRAIN `f08-dev-train-2p0-v2`, served by `f08_v2_train`) raised a KeyError
+version's TRAIN name, so registering a later F08 version whose TRAIN another module serves raised a KeyError
 at import. `physical_material` imports `f08_train`, and the receiver imports `physical_material`, so one overlay row
 would have stopped every door on that host, the live ones included. Now the table holds only the versions whose TRAIN
 this loader serves, and `load_public_train` refuses any other version typed.

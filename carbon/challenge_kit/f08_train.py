@@ -39,7 +39,7 @@ _SERVED_TRAINS = {
     version_registry.F08_TRAIN_V2: "v2",
 }
 #: Each version whose TRAIN this loader serves, by name. A registered F08 version whose TRAIN another module serves
-#: (RB 2.0: `f08_v2_train`) is not in it, so `load_public_train` refuses it typed; never a KeyError at IMPORT, which
+#: (a later version's own module) is not in it, so `load_public_train` refuses it typed; never a KeyError at IMPORT, which
 #: would stop every module that imports this one, the live doors' included (blind-audit row 1, 23 Nov 2026).
 TRAIN_FOR_VERSION = {
     version: _SERVED_TRAINS[version_registry.entry(CHALLENGE_ID, version).train]

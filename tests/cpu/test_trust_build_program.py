@@ -21,14 +21,12 @@ TRUST_MODULES = (
     "carbon.development_session.physical_graph_state_v3",
     "carbon.development_session.physical_graph_trainer_v4",
     "carbon.development_session.physical_graph_trust_registry",
-    # Motor 1.9's trust derive, named by its registration (owner MOTOR19-TRUST-REGISTRATION)
-    "carbon.development_session.motor19_trust_derive",
     "carbon.level4.trust_head",
 )
 KEY = next(iter(adapter.SPECS))
 
 
-def test_the_v2_staged_set_has_no_trust_module_and_the_trust_set_is_it_plus_exactly_five():
+def test_the_v2_staged_set_has_no_trust_module_and_the_trust_set_is_it_plus_the_trust_modules():
     assert not any(name in worker.PHYSICAL_V2_STAGED_MODULES for name in TRUST_MODULES)
     assert worker.PHYSICAL_V2_TRUST_STAGED_MODULES == (
         *worker.PHYSICAL_V2_STAGED_MODULES,
