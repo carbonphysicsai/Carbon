@@ -9,7 +9,7 @@
     {
      "version": "1.9",
      "changes": [
-      "Motor 1.8 is live on mainnet. Motor 1.9 is the next version; its opening is announced when it is set.",
+      "Motor 1.8 is closed to new submissions; its board stands as it was and it retires when the first Motor 1.9 king is crowned. Motor 1.9 is the next version; its opening is announced when it is set.",
       "More of the motor is graded: every output that Carbon can solve for reference and that passes its pre-registered checks. Planned: torque and torque ripple, the open-circuit and loaded back-EMF, the mean torque in the cogging conditions, and the lowest flux density in the magnets (the demagnetization margin).",
       "The zero point moves up: a class scores zero at the accuracy of Carbon's own quick, coarse reference solve, and one at reference accuracy. Credit goes only to models that beat a cheap solver.",
       "Carbon publishes the coarse-solve results for every training design next to the reference results, so a model can learn the correction from coarse to fine.",
@@ -90,7 +90,7 @@
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
-  "Motor is graded on mainnet (subnet 116) at version 1.8, and the test network's Motor door is closed. Cooling, Burst Thermal and Ribbed Bracket on the test network are rehearsal only; each joins mainnet at its new version. Miner files are not carried across a version or a network change: please re-upload (the app uploads your graph files from your project when you submit).",
+  "Motor 1.8 on mainnet (subnet 116) is closed to new submissions, and the test network's Motor door is closed. Cooling, Burst Thermal and Ribbed Bracket on the test network are rehearsal only; each joins mainnet at its new version. Miner files are not carried across a version or a network change: please re-upload (the app uploads your graph files from your project when you submit).",
   "An older install shows a submission waiting for the validator as Refused: evaluation queued. Nothing was refused: it is queued, so don't submit again. Update your install and it reads Submitted, waiting for the validator's verdict.",
   "Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait. An updated install also shows your own place in line, the validator's state (up, paused, updating) and the typical wait in the Launchpad (Your place in line).",
   "A build that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
