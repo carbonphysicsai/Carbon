@@ -3,7 +3,7 @@
 only through its own registration (`SelfTrustRule`). Design note: codex-queue/reports/SELF_TRUST_20261121/DESIGN.md.
 
 Owner (20-21 Nov): every exam takes "a model that knows when not to trust itself"; "if it is done in time, it does go into
-these exams" (G-LEAD-26: BT 3.2, Motor 1.9, RB 2.0, Cooling 1.8, each by its registration cutoff, else its next version).
+these exams" (G-LEAD-26: the exam versions it names, each by its registration cutoff, else its next version).
 This module is inert until a version's registration imports it: nothing in the grade path imports it today, and with no
 rule (``None``) every helper here is the identity, so no registered output contract, encoding, producer digest or pack moves.
 

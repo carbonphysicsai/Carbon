@@ -1126,8 +1126,6 @@ GRADING_PATHS = (
     "carbon/development_session/nonfinite_infer.py",
     # the per-version trust training registration (SELF_TRUST H3d-2c): the derive and the owner's values the trust trainer reads
     "carbon/development_session/physical_graph_trust_registry.py",
-    # Motor 1.9's trust derive, the jax map that registration names (owner MOTOR19-TRUST-REGISTRATION)
-    "carbon/development_session/motor19_trust_derive.py",
     # the fixed name a data-registered version's trust derive is staged under (its own bytes are its pinned module's)
     "carbon/development_session/registered_trust_derive.py",
     "carbon/challenge_validator/strict_json.py",

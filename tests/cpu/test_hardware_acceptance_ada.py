@@ -1,5 +1,5 @@
 """OWNER-RTX6000ADA-BUILD-CLASS-01 (21 Nov 2026, under INFRA-17): the Lium RTX 6000 Ada is a GPU build class for JAX
-and PyTorch on finney (Motor 1.9 and later), and on nothing else; the A100's acceptance is unchanged.
+and PyTorch on finney (later Motor versions), and on nothing else; the A100's acceptance is unchanged.
 """
 
 from __future__ import annotations

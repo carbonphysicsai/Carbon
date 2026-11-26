@@ -1,4 +1,4 @@
-"""Report-only outputs of a pool-graded version (`PhysicsRule.report_only_outputs`; Motor 1.9 ADJ-C ask, 21 Nov 2026).
+"""Report-only outputs of a pool-graded version (`PhysicsRule.report_only_outputs`; ADJ-C ask, 21 Nov 2026).
 
 A registered report-only output is RECORDED for every class like any output, but never gated (no threshold needed, its
 in-range verdict is None, it cannot fail the gate) and never scored (a scoring cell naming it refuses at attach). Absent,

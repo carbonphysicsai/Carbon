@@ -418,114 +418,6 @@ def _fresh(name: str, challenge_id: str) -> dict:
     return spec
 
 
-#: Motor 1.9's TRAIN (owner MAGNET CELLS MOTOR, 21 Nov 2026; model-eval: NOT grown): Motor 1.8's fresh lambda TRAIN,
-#: every row and input unchanged, plus ONE target column, ``magnet_min_b_t`` (tesla) at column 240: the `scalar` (the
-#: minimum over the 60 rotor steps) of row i of the public LOADED TRAIN solve's magnet table (box3,
-#: MOTOR_19_PUBLIC_TRAIN_SOLVES_20261119 out-loaded.tar member RUN/loaded/table/magnet_min_b.json). No npz is
-#: committed: the loader derives the TRAIN from the two pinned sources and writes it with this module's canonical
-#: writer (`_npz`), whose bytes are pinned here; they equal exam-motor's train241 PUBLIC run byte for byte (release,
-#: RECEIPTS 4465, 095a3ef0).
-MAGNET_TRAIN = {
-    "motor-dev-train-1p9-v1": {
-        "challenge": motor.CHALLENGE.challenge_id,
-        "base": "motor-dev-train-1p8-v1",
-        "rows": 194,
-        "magnet_sha256": "6df7394c800d736676a6cb3128ddd08c5a27a0fe5a72cf3b07e59264fe6bdad4",
-        "train_sha256": "095a3ef080577afe615cebdc88ab0a52d5d29f5bfc15bd3fd4d55632c5f52a4b",
-    },
-}
-_MAGNET_COLUMN = "magnet_min_b_t"
-_MAGNET_TRANSFORM = "fresh-lambda-train-plus-magnet-scalar-column-v1"
-
-
-def motor19_interface_document() -> dict:
-    """Motor 1.9's numeric layout (`carbon.motor.row19`): Motor 1.8's 240 columns, then ``magnet_min_b_t`` (tesla)."""
-    base = motor18_interface_document()
-    width = len(_LAMBDA_PHASES) * motor_domain.ANGLE_STEPS + motor_domain.ANGLE_STEPS
-    return {
-        **base,
-        "schema": "carbon.physical-public-train.numeric-interface.v3-motor-magnet",
-        "target_slices": {**base["target_slices"], _MAGNET_COLUMN: [width, width + 1]},
-        "target_units": {**base["target_units"], _MAGNET_COLUMN: "tesla"},
-        "transform": base["transform"]
-        + "; then magnet_min_b_t (the minimum over the 60 rotor steps of the magnet's flux density)",
-    }
-
-
-def _magnet(name: str, challenge_id: str) -> dict:
-    spec = MAGNET_TRAIN.get(name)
-    if spec is None or spec["challenge"] != challenge_id:
-        raise ValueError(
-            f"public TRAIN {name!r} is not a magnet-column TRAIN of {challenge_id}"
-        )
-    if any(spec[key] is None for key in ("rows", "magnet_sha256", "train_sha256")):
-        raise ValueError(f"public TRAIN {name!r} is not frozen yet (HUMAN_INPUT)")
-    return spec
-
-
-def derive_motor19_public_train(name: str, magnet_raw: bytes) -> tuple[dict, dict]:
-    """Motor 1.9's TRAIN arrays from Motor 1.8's (loaded and checked as served) and the magnet table: ``{"inputs",
-    "targets"}`` (targets 1.8's 240 columns, then the row's magnet scalar) and the provenance. Refuses a table that is
-    not exactly one finite float scalar for each TRAIN row index."""
-    spec = _magnet(name, motor.CHALLENGE.challenge_id)
-    if type(magnet_raw) is not bytes or _sha(magnet_raw) != spec["magnet_sha256"]:
-        raise ValueError("Motor 1.9 magnet table identity differs")
-    base = _load_fresh(spec["base"], spec["challenge"])
-    rows = spec["rows"]
-    table = json.loads(magnet_raw, object_pairs_hook=_pairs, parse_constant=_nonfinite)
-    if (
-        type(table) is not dict
-        or set(table) != {str(i) for i in range(rows)}
-        or len(base["case_ids"]) != rows
-    ):
-        raise ValueError("Motor 1.9 magnet table rows differ")
-    column = []
-    for i in range(rows):
-        record = table[str(i)]
-        value = record.get("scalar") if type(record) is dict else None
-        if type(value) is not float or not math.isfinite(value):
-            raise ValueError("Motor 1.9 magnet table rows differ")
-        column.append(value)
-    targets = np.column_stack([base["targets"], np.asarray(column, dtype="<f8")])
-    layout = motor19_interface_document()
-    provenance = {
-        "schema": _SCHEMA,
-        "scope": _SCOPE,
-        "challenge": {"id": spec["challenge"], "version": "1.9"},
-        "train_name": name,
-        "base_train_name": spec["base"],
-        "base_train_sha256": "sha256:" + _sha(base["train"]),
-        "magnet_source_sha256": "sha256:" + spec["magnet_sha256"],
-        "train_sha256": "sha256:" + spec["train_sha256"],
-        "transformation_version": _MAGNET_TRANSFORM,
-        "case_ids": list(base["case_ids"]),
-        "numeric_interface": layout,
-    }
-    return {"inputs": base["inputs"], "targets": targets}, provenance
-
-
-def _load_magnet(name: str, challenge_id: str) -> dict:
-    spec = _magnet(name, challenge_id)
-    magnet_raw = (
-        _EXTENDED_DATA / f"{name.removesuffix('-v1')}-magnet-v1.json"
-    ).read_bytes()
-    want, provenance = derive_motor19_public_train(name, magnet_raw)
-    x = np.ascontiguousarray(want["inputs"], dtype="<f8")
-    y = np.ascontiguousarray(want["targets"], dtype="<f8")
-    train_raw = _npz(x, y)
-    if _sha(train_raw) != spec["train_sha256"]:
-        raise ValueError("magnet-column public TRAIN differs from its sources")
-    x.setflags(write=False)
-    y.setflags(write=False)
-    return {
-        "train": train_raw,
-        "inputs": x,
-        "targets": y,
-        "case_ids": tuple(provenance["case_ids"]),
-        "provenance": provenance,
-    }
-
-
 #: Carbon Validator-B, 8 Nov 00:44 CST, ruling (1) "M2 TORQUE TWINS": 3 of the 150
 #: re-solved TRAIN rows differ from TRAIN 150 by host-order double rounding,
 #: max |delta| 4.0e-13 N.m (2 s.f.; measured 4.001e-13), ACCEPTED AS-IS (the row takes torque AND lambda
@@ -795,7 +687,6 @@ def _train_name(challenge_id: str, version: str | None):
         _NATIVE_TRAIN_NAMES.get(challenge_id),
         *EXTENDED,
         *FRESH_LAMBDA,
-        *MAGNET_TRAIN,
     }
     if challenge_id == cooling.CHALLENGE.challenge_id:
         served.add(version_registry.COOLING_TRAIN_ENCODED)
@@ -1043,8 +934,6 @@ def load_extended_train(name: str, challenge_id: str) -> dict:
     """One extended TRAIN by name (a native one for a sealed adapter's measurement); refuses until it is frozen."""
     if name in FRESH_LAMBDA:
         return _load_fresh(name, challenge_id)
-    if name in MAGNET_TRAIN:
-        return _load_magnet(name, challenge_id)
     return _load_extended(name, challenge_id)
 
 
@@ -1063,8 +952,6 @@ def load_public_train(challenge_id: str, version: str | None = None) -> dict:
     name = _train_name(challenge_id, version)
     if name in FRESH_LAMBDA:
         return _load_fresh(name, challenge_id)
-    if name in MAGNET_TRAIN:
-        return _load_magnet(name, challenge_id)
     if name in EXTENDED:
         return _load_extended(name, challenge_id)
     if (challenge_id, version) in ENCODED_VERSIONS:

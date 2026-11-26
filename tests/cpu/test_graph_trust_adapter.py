@@ -98,8 +98,8 @@ def test_no_served_version_names_the_trust_trainer_or_state():
 
 
 def test_only_registered_versions_are_in_the_registry_and_an_unregistered_version_refuses_typed():
-    # Motor 1.9 is the one registered version (owner MOTOR19-TRUST-REGISTRATION + MOTOR19-TRUST-FLOOR-0)
-    assert set(registry.REGISTRATIONS) == {("electric-motor-magnetics", "1.9")}
+    # no version registers trust values in code on this tree (a registry version's are its build row's)
+    assert set(registry.REGISTRATIONS) == set()
     with pytest.raises(v4.TrustRefused) as refused:
         registry.trust_spec("x", "1", width=3, outputs=1, trust_parameters=(0,))
     assert refused.value.code == "trust_version_not_registered"

@@ -69,7 +69,7 @@ POOL = {
 #: Versions whose construction is their predecessor's unchanged (only the scoring and the minimums differ).
 SCORING_ONLY = frozenset({(MOTOR, "1.6")})
 #: The versions registered through the host overlay (`version_overlay`), not pinned here one by one: each is checked by
-#: the property below, so a new overlay version (F02 3.0, F08 2.0, Motor 1.6) needs no edit to this file.
+#: the property below, so a new overlay version (F02 3.0, Motor 1.6) needs no edit to this file.
 OVERLAY = frozenset(version_overlay.install())
 for _key in sorted(OVERLAY):
     # an overlay version graded by the pool grader names its sealed evaluation ("...-pool-sealed-vN")

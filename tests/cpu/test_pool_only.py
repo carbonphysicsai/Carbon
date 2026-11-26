@@ -1,4 +1,4 @@
-"""P1: a REGISTERED pool-only version (RB 2.0; model-eval ruling 22 Nov 2026 04:41:52Z).
+"""P1: a REGISTERED pool-only version (model-eval ruling 22 Nov 2026 04:41:52Z).
 
 Claims:
 - a pool-only version runs NO base measure (no sealed grid): its gates are the pool's (physics, speed, in-range accuracy);

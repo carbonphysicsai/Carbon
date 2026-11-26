@@ -29,7 +29,15 @@ from carbon.development_session import direct_graph_construction_worker as worke
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 MOTOR = "electric-motor-magnetics"
+#: A stand-in version under the rule: the public tree serves none in code (owner G-LEAD-122), so each test puts it there.
 KEY = (MOTOR, "1.9")
+
+
+@pytest.fixture(autouse=True)
+def _under_the_rule(monkeypatch):
+    monkeypatch.setattr(nonfinite_infer, "CODE_SERVED", frozenset({KEY}))
+
+
 HOTKEY, OTHER = "5" + "1" * 47, "5" + "2" * 47
 EXAM = "sha256:" + "e" * 64
 DAY = exam_cap.DAY_EPOCHS

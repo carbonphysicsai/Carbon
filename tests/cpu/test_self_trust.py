@@ -486,7 +486,7 @@ def test_public_projection_is_the_allow_list_only():
 
 def test_nothing_in_carbon_imports_self_trust_yet():
     """Adoption is a version's explicit act: until a next version registers the rule, no carbon module imports it
-    (so Motor 1.9, Cooling 1.8, BT 3.2 and RB 2.0 grade paths, contracts, encodings and digests cannot move).
+    (so no registered version's grade paths, contracts, encodings and digests cannot move).
     """
     importers = []
     for path in sorted((ROOT / "carbon").rglob("*.py")):

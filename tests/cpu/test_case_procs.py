@@ -64,7 +64,7 @@ def test_only_motor_1_8_gets_the_per_case_processes_program():
         if key == MOTOR_18:
             expected = _procs()
         elif key in worker.JIT_INFERENCE_VERSIONS:
-            # Motor 1.9 (audit #16): compiled, one process (its trust query needs a program with a trust variant)
+            # a compiled version that is not per-case: one process
             # (its output check split for a version under owner G-LEAD-75's rule)
             expected = nonfinite_infer.for_version(
                 *key, worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM

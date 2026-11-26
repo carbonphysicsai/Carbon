@@ -374,7 +374,7 @@ def _menu(value):
     menu_top5_v1, the default; ``original_limits`` = menu_top5_v2, back-off 0) and an optional ``"d_form"``
     (``share``, the default; ``regret_u`` = menu_top5_v3 with ``original_limits``, which needs the owner's ``"k"``) and
     an optional ``"limit_band"`` (``none``, the default; ``borderline_1u`` = menu_top5_v4 with ``original_limits`` and
-    ``regret_u``: owner MOTOR19-MENUS-TO-LIMIT, menus go to the limit); a null or HUMAN_INPUT refuses.
+    ``regret_u``: owner G-LEAD-47, menus go to the limit); a null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
@@ -796,7 +796,8 @@ def check_material(material):
 def confirmation_sets(material, rule):
     """The sealed confirmation sets (`pool_grader.load_pool` per document) of a version whose registered confirmation is
     ``rule``, or None when it has none. Material without a registration, a registration without material, or material
-    whose fingerprint is not the registered one, refuses (Carbon's material, never a candidate's)."""
+    whose fingerprint is not the registered one, refuses (Carbon's material, never a candidate's).
+    """
     if rule is None:
         if CONFIRMATION_SETS in material:
             raise pool_exam.ExamRefused("confirmation_sets_without_a_registration")
@@ -807,8 +808,7 @@ def confirmation_sets(material, rule):
     if confirmation_sets_sha256(groups) != rule["sets_sha256"]:
         raise pool_exam.ExamRefused("confirmation_sets_sha256_mismatch")
     return tuple(
-        tuple(pool_grader.load_pool(document) for document in group)
-        for group in groups
+        tuple(pool_grader.load_pool(document) for document in group) for group in groups
     )
 
 

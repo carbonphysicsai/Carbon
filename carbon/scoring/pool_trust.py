@@ -1,6 +1,6 @@
 """R3: self-trust on the POOL route (owner TRUST-AMPLIFIER, 23 Nov 2026; model-eval 5685).
 
-A pool-graded version (RB 2.0, Motor 1.9) grades a candidate by asking its model the exam's pool rows. A candidate that
+A pool-graded version grades a candidate by asking its model the exam's pool rows. A candidate that
 DECLARED self-trust is built with a trust head (graph route H3d: Carbon's trust trainer fits it, a fixed loss) and its graded
 inference splits the k trust columns off into ``sigma.json`` (`trust_infer`, retained with the evidence by R2), so the
 physics answers the pool exam reads are byte-identical with or without the head. This module reads that ``sigma.json``

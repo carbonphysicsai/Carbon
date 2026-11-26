@@ -65,7 +65,7 @@ RANKINGS = {
 
 #: The registered d forms (a version registers ONE; the default is today's, bit-identical): ``share`` = a pick's
 #: (s - s_zero) / (s_ref - s_zero), whose denominator is thousands of U on Motor's menus, so a wrong pick costs ~nothing;
-#: ``regret_u`` (menu_top5_v3; owner MOTOR19-D-SAT-PICK (B), 22 Nov 2026; form: exam-motor 03:09:23Z) = clip(1 - regret /
+#: ``regret_u`` (menu_top5_v3; owner line of 22 Nov 2026) = clip(1 - regret /
 #: (k x U_obj), 0, 1), regret = s_ref - s_pick in the objective's own units, U_obj = the task's U of the objective at the
 #: pick's TRUE value (`u_value`), k = the version's registered menu value (owner). A truly infeasible pick is 0 in both.
 #: The zero, the oracle and the no-room check use the same d. Registered with the ``original_limits`` ranking only.
@@ -77,7 +77,7 @@ METRIC_REGRET_U = "menu_top5_v3"
 #: The registered limit band (a version registers ONE; the default is today's, bit-identical): ``none`` = every
 #: pool truth clears each limit by U on one side or the other (the record refuses a truth within U of a limit), the
 #: optimum clears every limit by +U, and a pick with a true margin < 0 scores 0. ``borderline_1u`` (menu_top5_v4; owner
-#: MOTOR19-MENUS-TO-LIMIT / G-LEAD-47, 22 Nov 2026; spec model-eval 23:02:03Z, scope v2 23:02:53Z) = menus go TO the
+#: G-LEAD-47, 22 Nov 2026; spec model-eval 23:02:03Z, scope v2 23:02:53Z) = menus go TO the
 #: limit: per limit, with U = that output's registered U at the truth's own value, a true margin m > +U is feasible,
 #: -U <= m <= +U is BORDERLINE (allowed in the record, no violation, d from regret) and m < -U is a CLEAR BREACH (a
 #: violation, d = 0); the optimum (s_ref) is the best NON-violating design. The RANKING moves with the truth boundary:

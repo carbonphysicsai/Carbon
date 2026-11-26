@@ -1,4 +1,4 @@
-"""Menu limit band ``borderline_1u`` (menu_top5_v4; owner MOTOR19-MENUS-TO-LIMIT / G-LEAD-47, 22 Nov 2026; spec
+"""Menu limit band ``borderline_1u`` (menu_top5_v4; owner G-LEAD-47, 22 Nov 2026; spec
 model-eval 23:02:03Z, scope v2 23:02:53Z): menus go TO the limit. Per limit, with U = that output's registered U at the
 truth's own value, a true margin m > +U is feasible, -U <= m <= +U is BORDERLINE (allowed in the record, no violation, d
 from regret) and m < -U is a CLEAR BREACH (a violation, d = 0); s_ref is the best non-violating design; the model's

@@ -2,7 +2,7 @@
 
 `physical_graph_adapter_v2.fit` adds ``curve`` (`physical_graph_trainer_v3.curve_block`) to the fit receipt of a v3-trainer
 graph. ScoreLab custody (`public_unbound_custody._graph_fit_ok`) required the exact pre-D2 key set, so the first served
-v3-trainer version (Motor 1.9) would have had every graded retention refused (`graph_build_receipt`). Every value here is
+v3-trainer version would have had every graded retention refused (`graph_build_receipt`). Every value here is
 a SYNTHETIC fixture: no model, no training, no grade.
 """
 

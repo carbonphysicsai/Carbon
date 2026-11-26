@@ -1547,8 +1547,8 @@ def test_prefix_scope_counts_only_this_pools_boxes(tmp_path):
     "prefix" counts only this pool's boxes."""
     others = [
         _vm("a100", "carbon-pool-0101"),
-        _vm("vm1", "rb20-r1", price=1.29),
-        _vm("vm2", "rb20-hrb1-b2", price=1.29),
+        _vm("vm1", "vm-r1", price=1.29),
+        _vm("vm2", "vm-hrb1-b2", price=1.29),
         _vm("old", "carbon-a6k-0", status="terminated", price=1.09),
     ]
     a6k = {"instance_type": "gpu_1x_a6000", "name_prefix": "carbon-a6k-"}

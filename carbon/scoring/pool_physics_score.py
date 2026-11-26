@@ -194,8 +194,8 @@ class PhysicsRule:
     #: as every interface output's (`_valid`). Which outputs, if any, is the owner's per version.
     report_only_outputs: tuple = ()
     #: The version's registered REPORT-ONLY CELLS: (class, output) pairs recorded like any but never gated and never
-    #: scored in THAT class only (owner MAGNET CELLS MOTOR, 21 Nov 2026: magnet_min_b_t reported, not gated, in the
-    #: TRAIN classes T1 / T2), or () (every other version: every path bit for bit). Every in-range class keeps at
+    #: scored in THAT class only (a registered owner line names
+    #: them), or () (every other version: every path bit for bit). Every in-range class keeps at
     #: least one gated output (V2 FINAL 741).
     report_only_cells: tuple = ()
 

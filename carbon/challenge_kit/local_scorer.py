@@ -46,8 +46,9 @@ import math
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "carbon.kit-local-score.v1"
@@ -96,7 +97,6 @@ CODE_MODULES = (
     "carbon/level4/validate.py",
     "carbon/motor/exam.py",
     "carbon/motor/row18.py",
-    "carbon/motor/row19.py",
     "carbon/scoring/pool_adapters.py",
     "carbon/scoring/pool_plugin.py",
     "carbon/scoring/pool_version.py",
@@ -240,12 +240,12 @@ def _motor_quantities(curve):
 
 
 def motor_torque(row):
-    """The torque curve a Motor check reads from a model's row: the torque slice of a whole 240-wide Motor 1.8 row or a
-    whole 241-wide Motor 1.9 row (their public splits, `carbon.motor.row18.split` / `row19.split`, which the grades also
-    use), any other row as it is, which the native gates then judge."""
-    from carbon.motor import row18, row19
+    """The torque curve a Motor check reads from a model's row: the torque slice of a whole 240-wide Motor 1.8 row (its
+    public split, `carbon.motor.row18.split`, which the grade also uses), any other row as it is, which the native gates
+    then judge."""
+    from carbon.motor import row18
 
-    parts = row18.split(row) or row19.split(row)
+    parts = row18.split(row)
     return list(row) if parts is None else parts["torque_nm"]
 
 
@@ -386,7 +386,7 @@ def _truth_derived(binding, inputs, raw, names):
     review-b 8846)."""
     try:
         values = binding.derive(inputs, [float(v) for v in raw])
-    except Exception:  # the truth row, not the candidate: refuse
+    except Exception:  # noqa: BLE001 - the truth row, not the candidate: refuse
         raise ScorerRefused("the verify truth does not derive") from None
     if type(values) is not dict or not all(_finite(values.get(n)) for n in names):
         raise ScorerRefused("the verify truth does not derive every U output")
@@ -396,7 +396,7 @@ def _truth_derived(binding, inputs, raw, names):
 def _derived(binding, inputs, raw):
     try:
         values = binding.derive(inputs, raw)
-    except Exception:  # a candidate's row the derive cannot read: no value, not a pass
+    except Exception:  # noqa: BLE001 - a candidate row the derive cannot read: no value
         return {}
     return values if type(values) is dict else {}
 

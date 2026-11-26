@@ -1,4 +1,4 @@
-"""Trainer v3 on a layout with SCALAR tail columns (Lead audit row 5, Motor 1.9: 240 curve columns + magnet_min_b_t).
+"""Trainer v3 on a layout with SCALAR tail columns (Lead audit row 5: curve columns, then scalar columns).
 
 The curve terms read the first slices x steps columns; `time_weighting` weights that block and leaves every tail column
 at 1.0. Before this, a 241-column target with the 240-column Motor layout failed on a reshape / broadcast.

@@ -1,7 +1,7 @@
 """The speed gate and the cadence read a new version's values from its exam registry row, and no live value moves.
 
-The literals were read from main before the change (Motor 1.8, Cooling 1.8, the Motor 1.9 stack, RB 2.0, F08 1.7, F02
-2.5). Every registry case runs in a fresh interpreter with synthetic rows.
+The literals were read from main before the change (Motor 1.8, Cooling 1.8, F08 1.7, F02 2.5 and the
+versions then in flight). Every registry case runs in a fresh interpreter with synthetic rows.
 """
 
 from __future__ import annotations
