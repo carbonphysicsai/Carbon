@@ -537,7 +537,7 @@ def _versioned_campaigns():
 
 def _code_campaigns():
     """The campaigns the code's own tables declare, for the versions the code serves only (`code_served`): a version
-    registered by rows (an overlay version outside `CODE_SERVED_OVERLAY`, RB 2.0 among them) is never claimed by a code
+    registered by rows (an overlay version outside `CODE_SERVED_OVERLAY`) is never claimed by a code
     table, even when its overlay entry names a campaign kind, so its registered campaign is the one used (miner-ux 8683
     R1). A version the code serves keeps its code campaign: code owns every version it serves.
     """

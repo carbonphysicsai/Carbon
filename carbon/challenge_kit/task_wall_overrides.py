@@ -21,16 +21,10 @@ import math
 #: - the 947 s whole-task wall FAILS (quiet full repeat pair ~1,058 s, 112 %).
 #: So only the total rises: ceil(1.5 x 1058 / 10) x 10 = 1590 s. Build and inference stay capped at 648 s each.
 MOTOR_18_QUIET_FULL_PAIR_SECONDS = 1058
-#: Motor 1.9 (owner line MOTOR19-BUILD-WALL, typed in model-eval 21 Nov 2026 23:52Z): "Motor 1.9 opens at build wall
-#: 648 s / rebuild total 1,590 s on the RTX 6000 Ada class; raised to 880 s / 1,822 s with the D1 worker image rebuild or
-#: sooner ...; never lowered". Its build and inference walls are the 648 s every graph route v2 version serves; the total
-#: is 1.8's, so a full 1.9 repeat pair has the same room.
-MOTOR_19_REBUILD_TOTAL_SECONDS = 1590
 OVERRIDES = {
     ("electric-motor-magnetics", "1.8"): int(
         math.ceil(1.5 * MOTOR_18_QUIET_FULL_PAIR_SECONDS / 10) * 10
     ),
-    ("electric-motor-magnetics", "1.9"): MOTOR_19_REBUILD_TOTAL_SECONDS,
 }
 
 
