@@ -4,10 +4,8 @@
         [--parallel 8] [--timeout-s 7200] [--keep all|failed|none]
 
 PLAN.json is {"batch": NAME, "cases": [{"case_id", "kind", "inputs",
-"options"?}]}; `inputs` are the eight Challenge inputs (`carbon.motor.domain`),
-plus, for Motor 1.9 cases only, both magnet material inputs `br_t` and `mur_m`
-(`MATERIAL_INPUTS`); a case without them solves with `domain.FIXED`, as before.
-`options` may set `n_gap` (a multiple of 1,440 keeps the angles) for a
+"options"?}]}; `inputs` are the eight Challenge inputs (`carbon.motor.domain`)
+and `options` may set `n_gap` (a multiple of 1,440 keeps the angles) for a
 refinement.
 
 Each case meshes once and solves `ANGLE_STEPS + 1` rotor positions over one
@@ -56,35 +54,9 @@ RECORD_SCHEMA = "carbon.motor.reference-record.v1"
 #: floor of 1e-3 N m for near-zero torque curves.
 REFERENCE_CHECKS = {"periodicity_rel": 1e-3, "periodicity_floor_nm": 1e-3}
 DOCKER_START_FAILURES = {125, 126, 127}
-#: Motor 1.9 magnet material inputs -> the solve parameter each sets (exam-motor
-#: 8545 step 2, names 8872): the host writes them into params.json and
-#: machine.pro, the container is unchanged. A case sets both or neither; their
-#: boxes are the exam's (its own input check), this runner only refuses a value
-#: no solve can take.
-MATERIAL_INPUTS = {"br_t": "br", "mur_m": "mur_m"}
 
 
-def split_material(inputs):
-    """(the eight Challenge inputs, the material parameters it sets or {})."""
-    present = [name for name in MATERIAL_INPUTS if name in inputs]
-    if not present:
-        return inputs, {}
-    if len(present) != len(MATERIAL_INPUTS):
-        raise ValueError("a case sets both br_t and mur_m or neither")
-    material = {}
-    for name, param in MATERIAL_INPUTS.items():
-        value = inputs[name]
-        if (
-            type(value) not in (int, float)
-            or not math.isfinite(value)
-            or value <= 0
-        ):
-            raise ValueError(f"{name} must be a finite positive number")
-        material[param] = float(value)
-    return {k: v for k, v in inputs.items() if k not in MATERIAL_INPUTS}, material
-
-
-def case_params(inputs, options, material=None):
+def case_params(inputs, options):
     g = domain.geometry(inputs)
     n_gap = options.get("n_gap", domain.N_GAP)
     angle_steps = options.get("angle_steps", domain.ANGLE_STEPS)
@@ -104,8 +76,8 @@ def case_params(inputs, options, material=None):
         "n_gap": n_gap,
         "h_max": options.get("h_max", g["h_max"]),
         "length": f["length"],
-        "br": (material or {}).get("br", f["br"]),
-        "mur_m": (material or {}).get("mur_m", f["mur_m"]),
+        "br": f["br"],
+        "mur_m": f["mur_m"],
         "turns": f["turns"],
         "current_a": domain.current_amplitude_a(inputs),
         "gamma_deg": inputs["current_angle_deg"],
@@ -284,14 +256,13 @@ def run_case(
         "image": IMAGE,
     }
     try:
-        inputs, material = split_material(entry["inputs"])
-        if domain.validity(inputs):
-            raise ValueError("; ".join(domain.validity(inputs)))
-        p = case_params(inputs, entry.get("options", {}), material)
+        if domain.validity(entry["inputs"]):
+            raise ValueError("; ".join(domain.validity(entry["inputs"])))
+        p = case_params(entry["inputs"], entry.get("options", {}))
         (case_dir / "res").mkdir(parents=True)
         shutil.copy(MESH, case_dir / "mesh.py")
         (case_dir / "params.json").write_text(json.dumps(p, indent=1))
-        p_pro = {**p, "coil_area_mm2": domain.coil_area_mm2(inputs)}
+        p_pro = {**p, "coil_area_mm2": domain.coil_area_mm2(entry["inputs"])}
         (case_dir / "machine.pro").write_text(
             getdp.pro_text(p_pro, nonlinear=getdp.BRAUER)
         )
