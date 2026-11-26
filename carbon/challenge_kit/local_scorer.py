@@ -386,7 +386,7 @@ def _truth_derived(binding, inputs, raw, names):
     review-b 8846)."""
     try:
         values = binding.derive(inputs, [float(v) for v in raw])
-    except Exception:  # the truth row, not the candidate: refuse
+    except Exception:  # noqa: BLE001 - the truth row, not the candidate: refuse
         raise ScorerRefused("the verify truth does not derive") from None
     if type(values) is not dict or not all(_finite(values.get(n)) for n in names):
         raise ScorerRefused("the verify truth does not derive every U output")
@@ -396,7 +396,7 @@ def _truth_derived(binding, inputs, raw, names):
 def _derived(binding, inputs, raw):
     try:
         values = binding.derive(inputs, raw)
-    except Exception:  # a candidate's row the derive cannot read: no value, not a pass
+    except Exception:  # noqa: BLE001 - a candidate row the derive cannot read: no value
         return {}
     return values if type(values) is dict else {}
 
