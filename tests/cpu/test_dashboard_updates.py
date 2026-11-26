@@ -86,8 +86,11 @@ def test_the_updates_name_exactly_the_launch_challenges_in_order():
     names = json.loads(NAMES.read_text(encoding="utf-8"))
     ids = [c["id"] for c in _updates()["challenges"]]
     assert ids == sorted(names, key=lambda i: names[i]["order"])
+    # Cooling has no next version announced since Cooling 1.8 retired (v2 9467);
+    # every other Challenge names one.
     for challenge in _updates()["challenges"]:
-        assert challenge["next"], challenge["id"]
+        no_next = challenge["id"] == "chip-cold-plate"
+        assert bool(challenge["next"]) != no_next, challenge["id"]
 
 
 def test_the_build_writes_the_updates_and_refuses_anything_else(tmp_path):

@@ -9,27 +9,14 @@
     {
      "version": "1.9",
      "changes": [
-      "Motor 1.8 is retired and closed to new submissions; its board stands as it was. Motor 1.9 is the next version; its opening is announced when it is set, and what it grades and how it is scored are published on its How you're tested page then, not before."
+      "Motor 1.8 is retired and closed to new submissions; its board stands as it was. Motor 1.9 is the next version; its opening is announced when it is set, and its rules are published on its How you're tested page then."
      ]
     }
    ]
   },
   {
    "id": "chip-cold-plate",
-   "next": [
-    {
-     "version": "1.8",
-     "changes": [
-      "The version planned for the Cooling mainnet launch; its opening is announced when it is set.",
-      "The first Cooling version with exam cases outside the training range. How far they reach is not published.",
-      "More of the cold plate is graded: the peak temperature and where it sits, the temperature profile along the channel, the outlet temperature and the pressure drop. The mean temperature is scored from your predicted profile.",
-      "The zero point is Carbon's own quick, coarse reference solve: a class scores zero at its accuracy and one at reference accuracy. Coarse-solve results are published for every training design.",
-      "Graph route only, and builds can use the GPU. The official build trains your recipe on the published training set only; the data kit is for practice and for checking your own solves against Carbon's reference cases.",
-      "Why it's valuable: cold plates for high-power chips are sized with slow conjugate heat-transfer solves, and the hottest spot on the die sets the limit. A fast model of the peak, the profile and the pressure drop lets engineers try many channel and fin layouts in minutes.",
-      "How it reaches for the state of the art: quick cooling estimates handle average temperatures well but miss narrow hot spots. This version grades where the peak sits and how hot it gets, including outside the training range, against a cheap solver rather than a curve fit."
-     ]
-    }
-   ]
+   "next": []
   },
   {
    "id": "f08-ribbed-bracket",
@@ -37,7 +24,7 @@
     {
      "version": "2.0",
      "changes": [
-      "Ribbed Bracket joins mainnet at this version once it passes its checks; its opening is announced when it is set, and what it grades and how it is scored are published on its How you're tested page then, not before. The testnet Ribbed Bracket is rehearsal only."
+      "Ribbed Bracket joins mainnet at this version once it passes its checks; its opening is announced when it is set, and its rules are published on its How you're tested page then. The testnet Ribbed Bracket is rehearsal only."
      ]
     }
    ]
