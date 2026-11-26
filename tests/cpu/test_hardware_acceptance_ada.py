@@ -44,11 +44,13 @@ def test_the_a100_acceptance_is_unchanged():
     assert entry["record"] == "OWNER-A100-40GB-BUILD-CLASS-01"
 
 
-def test_the_record_names_the_owners_words():
+def test_the_entry_carries_the_owners_words_and_the_record_id_resolves():
+    """The record left public main (owner G-LEAD-128); its id resolves by the public decision index (the private copy
+    keeps its sha); the owner's words stay in the acceptance entry read here."""
+    import json
+
     root = Path(__file__).resolve().parents[2]
-    record = (
-        root / ".agent/decisions/2026-11-21-OWNER-RTX6000ADA-BUILD-CLASS-01.md"
-    ).read_text(encoding="utf-8")
-    assert record.startswith("# " + RECORD + ":")
-    assert "the RTX 6000 Ada build class (S6 record 52dd54ca, S6c curve" in record
-    assert "slots 4 at the first admission" in record and "finney" in record
+    index = json.loads((root / "tests/invariants/decision_index.json").read_bytes())
+    assert RECORD in index["ids"]
+    evidence = acceptance._OWNER_RTX6000ADA_FINNEY["evidence"]
+    assert "slots 4 at the first admission" in evidence and "finney" in evidence
