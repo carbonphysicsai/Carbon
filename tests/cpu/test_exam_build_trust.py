@@ -22,10 +22,9 @@ from carbon.development_session import registered_trust_derive
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "exam_registry"
 KEY = ("zz-synthetic", "0.3")
-#: The sha256 of the trust build program. REPIN PENDING (owner G-LEAD-122 removal): the program changed when a
-#: version's own trust derive left the staged modules; release reads the new digest from the gate and it is pinned here.
+#: The sha256 of the trust build program, measured by release on the G-LEAD-122 removal tip 5c0c9aa3.
 TRUST_PROGRAM_SHA256 = (
-    "f9fac9ddf80d8a429e9fe3317f3bb5323fbd939b3176c143b21e2d81eff5b1e0"
+    "585308c00a2986c69620f9757999b1bfea60458d4a0da111cd5733727c89d89d"
 )
 
 
