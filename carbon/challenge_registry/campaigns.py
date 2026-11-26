@@ -536,6 +536,17 @@ def _versioned_campaigns():
 
 
 def _code_campaigns():
+    """The campaigns the code's own tables declare, for the versions the code serves only (`code_served`): a version
+    registered by rows (an overlay version outside `CODE_SERVED_OVERLAY`, RB 2.0 among them) is never claimed by a code
+    table, even when its overlay entry names a campaign kind, so its registered campaign is the one used (miner-ux 8683
+    R1). A version the code serves keeps its code campaign: code owns every version it serves.
+    """
+    from carbon.challenge_registry.code_served import code_serves
+
+    return {key: build for key, build in _code_tables().items() if code_serves(*key)}
+
+
+def _code_tables():
     from carbon.challenge_kit import version_registry
     from carbon.reconstruction.capability_registry import (
         COLD_PLATE_CHALLENGE,

@@ -337,3 +337,36 @@ def test_limits_without_a_catalog_bind_the_graph_route_only(rows, monkeypatch):
         "direct_adapter",
         "direct_catalog",
     ]
+
+
+def test_a_version_registered_by_rows_is_never_claimed_by_a_code_campaign(
+    rows, monkeypatch
+):
+    """miner-ux 8683 R1: an overlay version outside CODE_SERVED_OVERLAY whose entry names the direct campaign kind (RB 2.0
+    would) gets its registered campaign, not the F08 1.x practice; a version the code serves keeps its code campaign.
+    """
+    from carbon.challenge_kit import version_registry
+    from carbon.challenge_registry import code_served
+
+    rows_key = ("f08-ribbed-bracket", "9.9")
+    real_versions = version_registry.versions
+
+    def versions(challenge_id, **kw):
+        found = tuple(real_versions(challenge_id, **kw))
+        if challenge_id == rows_key[0] and kw.get("campaign") == "direct":
+            found += (rows_key[1],)
+        return found
+
+    real_serves = code_served.code_serves
+    monkeypatch.setattr(version_registry, "versions", versions)
+    monkeypatch.setattr(
+        code_served,
+        "code_serves",
+        lambda cid, v: (cid, v) != rows_key and real_serves(cid, v),
+    )
+    assert rows_key in campaigns._code_tables()
+    assert rows_key not in campaigns._code_campaigns()
+    monkeypatch.setattr(registered, "keys", lambda: (rows_key,))
+    assert campaigns._versioned_campaigns()[rows_key].func is campaigns._registered
+    live = ("f02", "2.5")
+    assert campaigns._code_campaigns()[live].func is campaigns._f02_direct
