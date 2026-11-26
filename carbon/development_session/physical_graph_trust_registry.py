@@ -20,8 +20,6 @@ from . import physical_graph_trainer_v4 as v4
 REGISTRATIONS: dict = {}
 
 
-
-
 #: The one file that carries a registry version's trust values into its build container, beside its derive module.
 STAGED_TRUST = "graph-trust.json"
 _STAGED_FIELDS = {

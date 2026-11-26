@@ -523,6 +523,7 @@ def test_the_confirmation_rows_enter_no_part_of_the_grade(monkeypatch):
 @pytest.mark.usefixtures("geometric_v1_stand_in")
 def test_a_model_worse_only_on_the_confirmation_rows_keeps_its_open_grade():
     open_sets, confirming, _plain, policies, material = _confirming_policies()
+
     def keys(the_sets):
         return {tuple(sorted(r["inputs"].items())) for r in exam_rows(the_sets)}
 
@@ -531,9 +532,11 @@ def test_a_model_worse_only_on_the_confirmation_rows_keeps_its_open_grade():
     def worse_there(rows):
         out = good_serve(rows)
         return [
-            [v + 5.0 for v in answer]
-            if tuple(sorted(row.items())) in hidden
-            else answer
+            (
+                [v + 5.0 for v in answer]
+                if tuple(sorted(row.items())) in hidden
+                else answer
+            )
             for row, answer in zip(rows, out)
         ]
 
@@ -672,9 +675,7 @@ def test_the_relabelled_sink_files_every_case_under_its_source():
 
 
 def test_pool_physics_score_hands_the_answer_to_the_sink():
-    source = (ROOT / "carbon/scoring/pool_physics_score.py").read_text(
-        encoding="utf-8"
-    )
+    source = (ROOT / "carbon/scoring/pool_physics_score.py").read_text(encoding="utf-8")
     assert "case.output(output, error, u, truth, prediction[output])" in source
     assert "case.output(output, error, u[output], truth, answer[output])" in source
     assert pps  # the module the claims read

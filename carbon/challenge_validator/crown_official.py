@@ -119,7 +119,8 @@ RECORDS = ("all",)
 
 def _confirmation_block(block):
     """The registered confirmation block, or `CrownOfficialInvalid`: ``number`` and ``first_crown`` each optional and
-    each one of its registered values. An absent key is an unruled value: the crowns it decides wait."""
+    each one of its registered values. An absent key is an unruled value: the crowns it decides wait.
+    """
     if (
         type(block) is not dict
         or not set(block) <= {"number", "first_crown", "tie"}
@@ -354,7 +355,8 @@ def confirm(first, candidate, incumbent):
 def confirmation_record(captured, exam_key, dual_measurement_sha256):
     """One grade's private confirmation record from its measure's capture (`pool_exam` ``capture["confirmation"]``),
     bound to the grade's exam key and dual measurement; None when the measure kept none (no confirmation set). A capture
-    that is not one of the measure's shapes is UNAVAILABLE, so the crown waits (Carbon's, never the candidate's)."""
+    that is not one of the measure's shapes is UNAVAILABLE, so the crown waits (Carbon's, never the candidate's).
+    """
     found = captured.get("confirmation") if type(captured) is dict else None
     if found is None:
         return None

@@ -36,6 +36,8 @@ KEY = (MOTOR, "1.9")
 @pytest.fixture(autouse=True)
 def _under_the_rule(monkeypatch):
     monkeypatch.setattr(nonfinite_infer, "CODE_SERVED", frozenset({KEY}))
+
+
 HOTKEY, OTHER = "5" + "1" * 47, "5" + "2" * 47
 EXAM = "sha256:" + "e" * 64
 DAY = exam_cap.DAY_EPOCHS

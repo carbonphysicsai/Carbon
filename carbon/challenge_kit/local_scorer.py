@@ -46,8 +46,9 @@ import math
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "carbon.kit-local-score.v1"

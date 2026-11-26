@@ -796,7 +796,8 @@ def check_material(material):
 def confirmation_sets(material, rule):
     """The sealed confirmation sets (`pool_grader.load_pool` per document) of a version whose registered confirmation is
     ``rule``, or None when it has none. Material without a registration, a registration without material, or material
-    whose fingerprint is not the registered one, refuses (Carbon's material, never a candidate's)."""
+    whose fingerprint is not the registered one, refuses (Carbon's material, never a candidate's).
+    """
     if rule is None:
         if CONFIRMATION_SETS in material:
             raise pool_exam.ExamRefused("confirmation_sets_without_a_registration")
@@ -807,8 +808,7 @@ def confirmation_sets(material, rule):
     if confirmation_sets_sha256(groups) != rule["sets_sha256"]:
         raise pool_exam.ExamRefused("confirmation_sets_sha256_mismatch")
     return tuple(
-        tuple(pool_grader.load_pool(document) for document in group)
-        for group in groups
+        tuple(pool_grader.load_pool(document) for document in group) for group in groups
     )
 
 

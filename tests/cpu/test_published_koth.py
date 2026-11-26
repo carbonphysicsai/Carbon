@@ -58,4 +58,3 @@ def test_a_row_the_receiver_would_refuse_states_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(pe, "_CROWN_ROWS", path)
     for version in ("2.0", "2.1", "2.2"):
         assert pe.koth("zz-family", version) is pe._KOTH
-

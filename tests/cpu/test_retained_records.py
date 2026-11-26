@@ -27,8 +27,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import test_crown_confirmation  # noqa: E402
-from test_crown_confirmation import (  # noqa: E402
+import test_crown_confirmation
+from test_crown_confirmation import (
     CHALLENGE,
     KEY,
     RULED,
@@ -39,19 +39,22 @@ from test_crown_confirmation import (  # noqa: E402
     _registry,
     _Store,
 )
-from test_crown_confirmation import _consider as _consider_plain  # noqa: E402
-from test_exam_cap import cadence  # noqa: E402
-from test_pool_multiclass_regions import (  # noqa: E402,F401  (a fixture)
+from test_crown_confirmation import _consider as _consider_plain
+from test_exam_cap import cadence
+from test_pool_multiclass_regions import (  # noqa: F401  (a fixture)
     geometric_v1_stand_in,
 )
 
-from carbon.battery.pool_store import StateError  # noqa: E402
-from carbon.challenge_validator import bank_promotion as bp  # noqa: E402
-from carbon.challenge_validator import crown_official, exam_cap  # noqa: E402
-from carbon.challenge_validator import exam_rotation  # noqa: E402
-from carbon.challenge_validator import lean_recipe_retention as retention  # noqa: E402
-from carbon.challenge_validator.ledger import AttemptLedger  # noqa: E402
-from carbon.scoring import pool_exam  # noqa: E402
+from carbon.battery.pool_store import StateError
+from carbon.challenge_validator import bank_promotion as bp
+from carbon.challenge_validator import (
+    crown_official,
+    exam_cap,
+    exam_rotation,
+)
+from carbon.challenge_validator import lean_recipe_retention as retention
+from carbon.challenge_validator.ledger import AttemptLedger
+from carbon.scoring import pool_exam
 
 ROOT = Path(__file__).resolve().parents[2]
 HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
