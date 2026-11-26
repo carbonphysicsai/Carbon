@@ -35,14 +35,7 @@
     {
      "version": "3.2",
      "changes": [
-      "Burst Thermal launches on mainnet with 3.2 once it passes its checks; its opening is announced when it is set. Burst Thermal 3.0 and 3.1 will not open.",
-      "New in 3.2: the die is cooled by boiling. The heat transfer at the cooled face jumps when the liquid starts to boil and changes steeply with the local wall temperature, so part of the face can be boiling while the rest is not.",
-      "Bursts can come as two pulses, in the training set and in the exam, so the heat left from the first pulse matters for the second.",
-      "Carried over: materials whose properties change with temperature, and leakage power that rises with temperature, so a hot design can heat itself further.",
-      "The pulse shape is an input, and every design is checked against the peak temperature limit.",
-      "The zero point is Carbon's own quick, coarse reference solve, and coarse-solve results are published for the training designs.",
-      "Why it's valuable: chips run in bursts, and the peak temperature during a burst decides throttling and lifetime. Two-phase cold plates are used for the hottest chips because boiling removes heat far better, but only while it lasts.",
-      "How it reaches for the state of the art: simple thermal models assume one fixed cooling coefficient. This version asks for models that learn where and when the face boils, together with self-heating, which a single lumped coefficient cannot capture."
+      "Burst Thermal joins mainnet at this version once it passes its checks; its opening is announced when it is set, and its rules are published on its How you're tested page then."
      ]
     }
    ]
