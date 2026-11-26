@@ -182,6 +182,10 @@ def test_a_challenge_with_no_sealed_module_waits_and_never_arms(scene):
 def test_a_waiting_dispatch_arms_when_its_family_registers(scene, monkeypatch):
     target, block, _sha, _module = scene
     monkeypatch.delitem(overlay.SEALED_TARGET, KEY[0])
+    # stands for a family registered by row: the image registry does not declare it
+    monkeypatch.setattr(
+        overlay, "_registry", lambda: types.SimpleNamespace(VERSIONS={})
+    )
     _arm(block)
     assert overlay.waiting() == (KEY,) and "1.6" not in target.POOL_VERSIONS
     monkeypatch.setitem(overlay.SEALED_TARGET, KEY[0], "fake_sealed")
@@ -189,6 +193,20 @@ def test_a_waiting_dispatch_arms_when_its_family_registers(scene, monkeypatch):
     assert overlay.waiting() == ()
     assert target.POOL_VERSIONS["1.6"] == ("fake-pool-sealed-v2", "fake-set")
     assert target.adapter("1.6") == ("mine", "1.6", {"k": 1})
+
+
+def test_a_family_the_image_declares_with_no_sealed_module_is_still_refused(
+    scene, monkeypatch
+):
+    """review-b 8879 G1 a: only a family registered by row can be late; an image family's typo fails loudly."""
+    _target, block, _sha, _module = scene
+    image = types.SimpleNamespace(VERSIONS={("image-family", "1.0"): object()})
+    monkeypatch.setattr(overlay, "_registry", lambda: image)
+    with pytest.raises(overlay.OverlayRefused, match="no sealed grader module"):
+        overlay._check_dispatch(("image-family", "2.0"), block)
+    assert overlay._check_dispatch(("row-family", "1.0"), block)["module"] == (
+        "carbon.fake_dispatch"
+    )
 
 
 def test_a_waiting_dispatch_still_checks_its_module_sha(scene):

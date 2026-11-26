@@ -36,6 +36,8 @@ which the miner path never does. A dispatch for a Challenge with no sealed targe
 of refusing the whole overlay at import, which took every process down with it (miner-ux 8683 J1). It is armed when the
 family registers (`arm_family`, called by `family_registry`); a family that never registers leaves it unarmed, so that
 version has no sealed tables and every grade of it refuses: fail closed for that version only, never a nearby one.
+Only a family registered by row can be late: a dispatch for a Challenge the worker image's registry declares, with no
+sealed target, is still refused at import (review-b 8879 G1 a), so a mistyped id there fails loudly.
 """
 
 from __future__ import annotations
@@ -196,11 +198,22 @@ def _check_dispatch(key, block) -> dict:
         or not isinstance(block.get("config", {}), dict)
     ):
         raise OverlayRefused(f"{key!r}: malformed dispatch block")
+    if key[0] not in SEALED_TARGET and _image_family(key[0]):
+        raise OverlayRefused(
+            f"{key!r}: no sealed grader module is registered for this Challenge"
+        )
     if _file_sha256(_dispatch_file(block["module"])) != block["sha256"]:
         raise OverlayRefused(
             f"{key!r}: the dispatch module's sha256 does not match the entry"
         )
     return {"module": block["module"], "config": block.get("config", {})}
+
+
+def _image_family(challenge_id: str) -> bool:
+    """Whether the worker image's registry declares the Challenge (its sealed target is code, never late)."""
+    return any(
+        key[0] == challenge_id and key not in _INSTALLED for key in _registry().VERSIONS
+    )
 
 
 class _After(importlib.abc.MetaPathFinder):
