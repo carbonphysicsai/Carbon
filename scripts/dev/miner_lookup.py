@@ -521,6 +521,8 @@ WORDS_NEXT = {
     "usage_exceeds_reservation": "The provider reported token usage beyond what the call reserved, and nothing Carbon recorded shows its charge fits the reservation, which is all the ledger can book; reconcile it against the provider's own usage record before this campaign makes another call.",
     "used_feedback_boolean_required": "Send used_feedback as true or false.",
     "version_closed": "This submission was still queued when its version of the Challenge closed, so it was closed, not graded, and nothing was charged. This is not a result about your model.",
+    "official_version_without_pool": "The validator knows this version, but its graded exam is not set up yet, so it could not grade this submission. This is on Carbon's side and is not a result about your model. Submit again once the version is announced as open. Your frozen candidate is kept.",
+    "regrade_case_bank_contract_changed": "The validator's grading material for this version does not match the form the version declares, so the grade could not run. This is on Carbon's side and is not a result about your model. If it persists, send us the UTC time and the last 4 characters of your hotkey. Your frozen candidate is kept.",
     "withdrawn_by_miner": "You withdrew this submission while it was still queued: it was not built or graded and used no try. Your frozen candidate is kept: submit again when ready. Each withdrawal of the same model counts toward the validator's limit of retries for that model on this exam.",
     "withdrawn_when_supervisor_closed": "The Control Center closed before this request started, so it was withdrawn and nothing ran. Send it again.",
 }

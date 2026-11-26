@@ -62,9 +62,12 @@ ROWS = (
         "Either: your registration or the validator's chain read",
         NOT_STATED,
     ),
+    ("next", "terms_facts_invalid", OURS, "No: nothing was sent, graded or charged"),
     # --- the validator stopped or closed before it ran your submission: ours ---
     ("next", "direct_task_cancelled", OURS, "No: nothing was graded or charged"),
     ("next", "version_closed", OURS, "No: nothing was charged"),
+    ("next", "official_version_without_pool", OURS, NOT_STATED),
+    ("next", "regrade_case_bank_contract_changed", OURS, NOT_STATED),
     ("grade", "FAILED_INFRA", OURS, "No: a counted slot is given back"),
     (
         "grade",
