@@ -123,7 +123,7 @@ def test_g3_must_tie_the_scored_rows():
     [
         ("gate_id", "Answer-Smooth", "gate_id"),
         ("family", "G4", "family"),
-        ("arity", 1, "arity"),
+        ("arity", 0, "arity"),
         ("base", "public", "base"),
         ("tol", 0.0, "tol"),
         ("tol", float("nan"), "tol"),

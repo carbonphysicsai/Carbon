@@ -113,7 +113,7 @@ class RelationGate:
         gid = self.gate_id
         if self.family not in FAMILIES:
             raise GateRefused("family", gid)
-        if type(self.arity) is not int or self.arity < 2:
+        if type(self.arity) is not int or self.arity < 1:
             raise GateRefused("arity", gid)
         if self.base not in BASES:
             raise GateRefused("base", gid)
@@ -258,6 +258,75 @@ def smoothness(gate_id, steps, u, tol, rule_text):
         family="G3",
         arity=1 + len(steps),
         base="scored",
+        partners=partners,
+        check=check,
+        margin=margin,
+        tol=tol,
+        rule_text=rule_text,
+    )
+
+
+def need(value, name, gate_id):
+    """``value``, or `GateRefused` ``unset:<name>`` when no row has set it (None): a fact is never guessed."""
+    if value is None:
+        raise GateRefused("unset:" + name, gate_id)
+    return value
+
+
+def column(input_names, name, gate_id):
+    """The index of input ``name`` in the version's input order, or `GateRefused` ``no_input:<name>``."""
+    names = tuple(need(input_names, "input_names", gate_id))
+    if name not in names:
+        raise GateRefused("no_input:" + name, gate_id)
+    return names.index(name)
+
+
+def copies(*edits):
+    """Partners: the base, then one edited copy per edit (each ``edit(base copy) -> rows``), in order."""
+
+    def partners(rng, base, box):
+        return np.stack([base] + [edit(base.copy()) for edit in edits], axis=1)
+
+    return partners
+
+
+def setting(index_of, value_of):
+    """An edit that sets one input: ``index_of()`` and ``value_of()`` are read when the rows are built, so an unset
+    fact refuses there."""
+
+    def edit(rows):
+        rows[:, index_of()] = value_of()
+        return rows
+
+    return edit
+
+
+def law(
+    gate_id, family, base, partners, residual, tol, rule_text, arity, applicable=None
+):
+    """A gate from a residual in tol units: PASS when ``residual(inputs, outputs) <= tol`` per base, NOT_APPLICABLE
+    where ``applicable(inputs, outputs)`` is False (default: everywhere applicable). The margin is residual / tol, and
+    0 where not applicable."""
+
+    def _applies(inputs, outputs):
+        if applicable is None:
+            return np.ones(inputs.shape[0], dtype=bool)
+        return np.asarray(applicable(inputs, outputs), dtype=bool)
+
+    def check(inputs, outputs, tol_value):
+        res = np.asarray(residual(inputs, outputs), dtype=float)
+        verdict = np.where(res <= tol_value, PASS, FAIL)
+        return np.where(_applies(inputs, outputs), verdict, NOT_APPLICABLE)
+
+    def margin(inputs, outputs, tol_value):
+        res = np.asarray(residual(inputs, outputs), dtype=float)
+        return np.where(_applies(inputs, outputs), res / tol_value, 0.0)
+
+    return RelationGate(
+        gate_id=gate_id,
+        family=family,
+        arity=arity,
+        base=base,
         partners=partners,
         check=check,
         margin=margin,
