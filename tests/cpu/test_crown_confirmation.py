@@ -317,9 +317,10 @@ def _row(submission_id):
 def _consider(tmp_path, monkeypatch, outcome, *, king="king", records=(), block=RULED):
     _install(tmp_path, {"margin": 0.01, "confirmation": block})
     store = _Store(king, dict(records))
-    promotion = bp.BankPromotion(
-        store, registered_source_receipt_sha256="sha256:" + "5" * 64
-    )
+    # The constructor wants a real PoolStore; the stand-in keeps the question to the decision (test_crown_grade_repeat).
+    promotion = bp.BankPromotion.__new__(bp.BankPromotion)
+    promotion.store = store
+    promotion.registered_source_receipt_sha256 = "sha256:" + "5" * 64
     pair = {
         "evaluation_key": KEY,
         "expected_incumbent": king,
