@@ -107,6 +107,11 @@ _OPTIONAL_FIELDS = {
     # Owner decision #9 (8 Nov): absolute paths of `version_close.close_queued` files of this Challenge's EARLIER
     # versions; the owner asking about one of its closed submissions is answered ``version_closed``. Absent: as before.
     "version_closed_files",
+    # MOTOR18-CLOSE-NOT-REFRESH (owner, 25 Nov 2026; v2 8306: a door STATE, not a new version): ``true`` closes this door
+    # to NEW submissions (`DirectRecipeIntake.closed_to_new_submissions`): a submit and a source stage answer 410
+    # ``version_closed``; status, feedback, withdraw and every public read answer as before; rounds already queued are
+    # graded out. Only ``true`` is accepted. Absent: as before.
+    "closed_to_new_submissions",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -388,6 +393,11 @@ def load_config(path: Path) -> dict:
             raise ValueError("registered direct Challenge selection required")
     if "version_closed_files" in value:
         _version_closed(value)
+    if (
+        "closed_to_new_submissions" in value
+        and value["closed_to_new_submissions"] is not True
+    ):
+        raise ValueError("closed_to_new_submissions is true or absent")
     if "auto_grade" in value and (
         type(value["auto_grade"]) is not dict
         or set(value["auto_grade"]) - {"pool_store"}
@@ -3878,6 +3888,14 @@ def serve(
             )
             # Owner decision #9: the earlier versions' closed submissions this door answers ``version_closed`` for.
             intake.version_closed = _version_closed(cfg)
+            # MOTOR18-CLOSE-NOT-REFRESH: closed to new submissions (every read stays open); absent = open, as before
+            intake.closed_to_new_submissions = (
+                cfg.get("closed_to_new_submissions") is True
+            )
+            if intake.closed_to_new_submissions:
+                from carbon.battery.intake import log
+
+                log("receiver_closed_to_new_submissions", closed=True)
             # Owner G-LEAD-50: a Challenge version that requires submission terms keeps every acceptance beside the
             # door's ledger and refuses every submission until its pinned, published text is served (refuse-without).
             from carbon.battery.intake import log

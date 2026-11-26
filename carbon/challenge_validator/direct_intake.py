@@ -64,6 +64,14 @@ from .request_buckets import claimed_hotkey
 _OWNER_LOCKS_GUARD = threading.Lock()
 
 INFO_PATH = "/carbon/v1/construction/intake"
+#: MOTOR18-CLOSE-NOT-REFRESH (owner, 25 Nov 2026): the code and words a door closed to new submissions answers a submit or a
+#: source stage with (`closed_to_new_submissions`). DRAFT words for miner-ux and the owner (v2 8306 (4): no miner, no number,
+#: no reason beyond the owner words); the head is not FINAL until the owner approves them.
+CLOSED_CODE = "version_closed"
+CLOSED_NOTICE = (
+    "This Challenge version is closed to new submissions. Your earlier submissions, their status and your feedback "
+    "stay readable."
+)
 #: The signed launch board: `GET FEED_PATH + <challenge id>` (the battery door's feed path).
 FEED_PATH = "/carbon/v1/feed/"
 #: How long the published readiness is reused: reading it verifies the whole official receipt log.
@@ -605,6 +613,11 @@ class DirectRecipeIntake(BatteryIntake):
                     if getattr(self, "submission_terms", None) is None
                     else {"terms": self.submission_terms.facts()}
                 ),
+                **(
+                    {"closed_to_new_submissions": True}
+                    if getattr(self, "closed_to_new_submissions", False)
+                    else {}
+                ),
                 "score_pack": None,
                 "qualification": False,
                 "reward": False,
@@ -859,6 +872,12 @@ class DirectRecipeIntake(BatteryIntake):
         if not self._verified_charge(received):
             return _refused(429, "rate")
         charged_at = time.monotonic()
+        if getattr(self, "closed_to_new_submissions", False) and (
+            received.call.tool in (RESEARCH_NAMESPACE, SUBMIT_TOOL)
+        ):
+            # MOTOR18-CLOSE-NOT-REFRESH: nothing new enters (no stage, no admission, so no build or grade round); the
+            # caller's own status, feedback and withdraw below, and every public read, answer as before
+            return Answer(410, {"refused": CLOSED_CODE, "message": CLOSED_NOTICE})
         if received.call.tool == RESEARCH_NAMESPACE:
             # Live 116, 19 Nov 2026 (no construction-submit for an hour: 10 requests queued behind ONE source chunk's
             # storage scan and rewrite under the door-wide `_write`): a source stage writes only its OWN owner's
