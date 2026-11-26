@@ -25,17 +25,10 @@ from carbon.challenge_kit import physical_public, task_wall_overrides, version_r
 
 ROOT = Path(__file__).resolve().parents[2]
 MOTOR_18 = ("electric-motor-magnetics", "1.8")
-MOTOR_19 = ("electric-motor-magnetics", "1.9")
 
 
 def test_the_override_is_motor_1_8_s_alone_and_is_the_rules_arithmetic():
-    # + Motor 1.9 (owner line MOTOR19-BUILD-WALL: 1.8's total, 1,590 s, at open)
-    assert set(task_wall_overrides.OVERRIDES) == {MOTOR_18, MOTOR_19}
-    assert (
-        task_wall_overrides.OVERRIDES[MOTOR_19]
-        == task_wall_overrides.MOTOR_19_REBUILD_TOTAL_SECONDS
-        == 1590
-    )
+    assert set(task_wall_overrides.OVERRIDES) == {MOTOR_18}
     quiet = task_wall_overrides.MOTOR_18_QUIET_FULL_PAIR_SECONDS
     assert quiet == 1058
     assert (

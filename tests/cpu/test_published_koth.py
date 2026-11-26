@@ -59,8 +59,3 @@ def test_a_row_the_receiver_would_refuse_states_nothing(tmp_path, monkeypatch):
     for version in ("2.0", "2.1", "2.2"):
         assert pe.koth("zz-family", version) is pe._KOTH
 
-
-def test_the_committed_rows_give_motor_1_9_and_rb_2_0_their_margin():
-    for key in (("electric-motor-magnetics", "1.9"), ("f08-ribbed-bracket", "2.0")):
-        assert pe.koth(*key)["margin"] == 0.0086
-    assert pe.koth("electric-motor-magnetics", "1.8") is pe._KOTH

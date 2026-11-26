@@ -135,7 +135,7 @@ def test_the_code_served_overlay_list_is_closed():
     }
     for key in served:
         assert key in adapter.SPECS or version_registry.entry(*key).train in trains
-    assert len(code_served.CODE_SERVED_OVERLAY) == 5
+    assert len(code_served.CODE_SERVED_OVERLAY) == 4
 
 
 def test_a_good_block_serves_its_module(row):

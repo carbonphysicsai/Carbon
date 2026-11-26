@@ -342,8 +342,8 @@ def test_limits_without_a_catalog_bind_the_graph_route_only(rows, monkeypatch):
 def test_a_version_registered_by_rows_is_never_claimed_by_a_code_campaign(
     rows, monkeypatch
 ):
-    """miner-ux 8683 R1: an overlay version outside CODE_SERVED_OVERLAY whose entry names the direct campaign kind (RB 2.0
-    would) gets its registered campaign, not the F08 1.x practice; a version the code serves keeps its code campaign.
+    """miner-ux 8683 R1: an overlay version outside CODE_SERVED_OVERLAY whose entry names the direct campaign kind gets
+    its registered campaign, not the F08 1.x practice; a version the code serves keeps its code campaign.
     """
     from carbon.challenge_kit import version_registry
     from carbon.challenge_registry import code_served

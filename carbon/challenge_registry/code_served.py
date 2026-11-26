@@ -6,8 +6,8 @@ without importing the exam registry.
 
 from __future__ import annotations
 
-#: The host-overlay versions the code's own tables serve (Motor 1.9's reserved one included). Closed: a later version is
-#: a registry row, never a new name here. Every version of the worker image's registry is code-served too
+#: The host-overlay versions the code's own tables serve. Closed: a later version is a registry row, never a new name
+#: here. Every version of the worker image's registry is code-served too
 #: (`code_serves`).
 CODE_SERVED_OVERLAY = frozenset(
     {
@@ -15,7 +15,6 @@ CODE_SERVED_OVERLAY = frozenset(
         ("chip-cold-plate", "1.8"),
         ("electric-motor-magnetics", "1.6"),
         ("electric-motor-magnetics", "1.8"),
-        ("electric-motor-magnetics", "1.9"),
     }
 )
 
