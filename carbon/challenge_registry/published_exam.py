@@ -673,9 +673,9 @@ def _menu_headroom_design_search(own):
 def _menu_headroom_score(score, own):
     score = copy.deepcopy(score)
     total = own["total"]
-    score["formula"] = (
-        f"TOTAL = {total['ad_split']:g} * A + {1 - total['ad_split']:g} * D"
-    )
+    score[
+        "formula"
+    ] = f"TOTAL = {total['ad_split']:g} * A + {1 - total['ad_split']:g} * D"
     score["weights"] = {"A": total["ad_split"], "D": 1 - total["ad_split"]}
     score["rule"] = {
         "A": _a_text(own),
@@ -723,6 +723,48 @@ def _accuracy_ranked(path):
         )
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return frozenset()
+
+
+@functools.lru_cache(maxsize=4)
+def _confirmed_rows(path):
+    """``{"<id> <version>": margin}`` of the crown rows under the owner's confirmation line (CROWN-CONFIRMATION-SET): a
+    row the receiver itself would refuse states nothing here. Read once, as `_accuracy_ranked`.
+    """
+    try:
+        rows = json.loads(Path(path).read_bytes())["versions"]
+        return {
+            name: float(row["margin"])
+            for name, row in rows.items()
+            if "confirmation" in row
+            and set(row) - {"confirmation", "records"}
+            in ({"margin"}, {"margin", "score"})
+            and type(row["margin"]) in (int, float)
+            and not isinstance(row["margin"], bool)
+            and 0 <= row["margin"] < 1
+        }
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}
+
+
+_KOTH_CONFIRMED_NOTE = (
+    "A challenger takes the crown on its official grade only if it beats the king by this margin; the crown then holds "
+    "only once Carbon's hidden confirmation set confirms it, and a tie there does not confirm."
+)
+
+
+def koth(challenge_id, version):
+    """The version's king-of-the-hill section: its registered crown margin and the confirmation rule when its crown row
+    is under the owner's confirmation line (miner-ux 8683 X3), else the shared text, byte for byte.
+    """
+    margin = _confirmed_rows(_CROWN_ROWS).get(f"{challenge_id} {version}")
+    if margin is None:
+        return _KOTH
+    return {
+        **_KOTH,
+        "margin": margin,
+        "note": _KOTH_CONFIRMED_NOTE,
+        "source": _KOTH["source"] + ", crown_official.py, crown_official_score.json",
+    }
 
 
 def ranked_by_accuracy(challenge_id, version):
@@ -1603,7 +1645,7 @@ def for_version(challenge_id, version):
         "schema": SCHEMA_POOL if pool else SCHEMA,
         **own,
         "population": _POPULATION,
-        "koth": _KOTH,
+        "koth": koth(challenge_id, version),
         "grade_statuses": _GRADE,
         "practice_vs_exam": _PRACTICE_POOL if pool else _PRACTICE,
         "rotation": _ROTATION,
