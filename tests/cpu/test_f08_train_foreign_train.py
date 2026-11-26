@@ -22,7 +22,7 @@ VERSION = "9.9"
 ENTRY = {
     "challenge_id": "f08-ribbed-bracket",
     "version": VERSION,
-    "train": "f08-dev-train-2p0-v2",
+    "train": "f08-dev-train-9p9-v9",
     "allowlist": "v8",
     "step_caps": False,
     "pack_version": "f08-normal-construction-development-synthetic-9",

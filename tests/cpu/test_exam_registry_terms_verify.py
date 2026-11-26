@@ -34,10 +34,8 @@ SETS = {
 }
 LIVE = [
     (MOTOR, "1.8", None),
-    (MOTOR, "1.9", TERMS),
     ("chip-cold-plate", "1.8", None),
     ("f08-ribbed-bracket", "1.7", None),
-    ("f08-ribbed-bracket", "2.0", TERMS),
     ("f02", "2.5", None),
 ]
 TEXT = b"Synthetic terms.\n"
@@ -140,10 +138,7 @@ DESIGN = {"case_id": "v-0", "inputs": {"a": 1, "b": 2.5}, "truth": {"y": [1.0, 2
 
 def test_every_live_version_answers_as_main_did():
     assert verify_practice.REGISTRY == SETS
-    assert st.TERMS_BY_VERSION == {
-        (MOTOR, "1.9"): TERMS,
-        ("f08-ribbed-bracket", "2.0"): TERMS,
-    }
+    assert st.TERMS_BY_VERSION == {}
     assert st.PINNED_SHA256 == {TERMS: TERMS_SHA}
     for challenge, version, terms in LIVE:
         assert st.required_version(challenge, version) == terms

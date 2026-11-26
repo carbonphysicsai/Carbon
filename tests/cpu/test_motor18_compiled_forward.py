@@ -35,7 +35,6 @@ from carbon.development_session import (
 
 worker = direct_graph_construction_worker
 MOTOR_18 = ("electric-motor-magnetics", "1.8")
-MOTOR_19 = ("electric-motor-magnetics", "1.9")
 posix = pytest.mark.skipif(os.name != "posix", reason="fixed program subprocesses")
 #: The owner's same-version bound (~11:1x): a test assertion only.
 SAME_VERSION_BOUND = 1e-12
@@ -59,7 +58,7 @@ def _vmap64():
 
 
 def test_only_motor_1_8_gets_the_vmap64_program_and_every_other_program_keeps_its_bytes():
-    assert worker.JIT_INFERENCE_VERSIONS == frozenset({MOTOR_18, MOTOR_19})
+    assert worker.JIT_INFERENCE_VERSIONS == frozenset({MOTOR_18})
     assert worker.VMAP64_INFERENCE_VERSIONS == frozenset({MOTOR_18})
     for name, sha in PROGRAM_SHA256.items():
         assert hashlib.sha256(getattr(worker, name).encode()).hexdigest() == sha, name

@@ -266,33 +266,6 @@ def test_the_shortcuts_are_keyed_by_challenge_and_version():
         dv_curve.shortcut_s_low(F08, other, {}, 4, 100.0, 10.0, random.Random(1))
 
 
-def test_rb20_screens_every_solved_output_at_h3_and_the_mass_exactly():
-    rb = ("f08-ribbed-bracket", "2.0")
-    stress = "static_fillet_stress_mpa_per_n"
-    limits = (
-        pool_grader.Limit(WORST, "<=", 0.15),
-        pool_grader.Limit(stress, "<=", 2.0),
-    )
-    truths = [{WORST: 0.10, MASS: 0.4, stress: 1.0}, {WORST: 0.12, MASS: 0.4, stress: 1.5},
-              {WORST: 0.14, MASS: 0.4, stress: 1.2}]  # fmt: skip
-    spec = _limited_spec("r", truths, WORST, limits)
-    # the coarse rung says design 0 breaks the stress limit (every solved output is screened), so the screen verifies design 1
-    coarse = {
-        0: {WORST: 0.10, stress: 2.5},
-        1: {WORST: 0.12, stress: 1.4},
-        2: {WORST: 0.14, stress: 1.1},
-    }
-    result = dv_curve.shortcut_s_low(rb, spec, coarse, 4, 100.0, 10.0, random.Random(1))
-    assert result["s_low"] == -0.12 and result["verify_n"] == 1
-    # under F08 1.7's screens the stress is not screened: design 0 is verified
-    assert (
-        dv_curve.shortcut_s_low(F08, spec, coarse, 4, 100.0, 10.0, random.Random(1))[
-            "s_low"
-        ]
-        == -0.10
-    )
-
-
 def test_bt30_screens_the_peak_only_and_a_target_it_cannot_screen_refuses_alone():
     bt = ("f02", "3.0")
     peak, energy = "peak_top_c", "extra_energy_j"

@@ -22,7 +22,8 @@ from carbon.development_session import registered_trust_derive
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "exam_registry"
 KEY = ("zz-synthetic", "0.3")
-#: main fe148ac4: the sha256 of the trust build program, read before this change.
+#: The sha256 of the trust build program. REPIN PENDING (owner G-LEAD-122 removal): the program changed when a
+#: version's own trust derive left the staged modules; release reads the new digest from the gate and it is pinned here.
 TRUST_PROGRAM_SHA256 = (
     "f9fac9ddf80d8a429e9fe3317f3bb5323fbd939b3176c143b21e2d81eff5b1e0"
 )
@@ -193,8 +194,9 @@ def test_the_host_module_holds_no_derive():
     assert worker.REGISTERED_TRUST_DERIVE == registered_trust_derive.__name__
 
 
-def test_a_code_registered_version_keeps_its_program_and_its_registration():
-    assert set(registry.REGISTRATIONS) == {("electric-motor-magnetics", "1.9")}
+def test_the_trust_program_is_pinned_and_a_registry_version_adds_only_its_derive():
+    # no version registers trust values in code on this tree (owner G-LEAD-122: they live on carbon-internal)
+    assert set(registry.REGISTRATIONS) == set()
     digest = hashlib.sha256(worker.PHYSICAL_V2_TRUST_BUILD_PROGRAM.encode()).hexdigest()
     assert digest == TRUST_PROGRAM_SHA256
     restored = worker.PHYSICAL_V2_REGISTERED_TRUST_BUILD_PROGRAM.replace(

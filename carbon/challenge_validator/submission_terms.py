@@ -1,6 +1,6 @@
-"""Submission terms at the door (owner G-LEAD-50, 23 Nov 2026, OWNER_LINES block 47): from the next opens (Motor 1.9,
-RB 2.0, the joint exam) every submission records the terms version, the sha256 of the terms text as published, and the
-miner's acceptance; a submission without them is refused.
+"""Submission terms at the door (owner G-LEAD-50, 23 Nov 2026, OWNER_LINES block 47): from the next opens every
+submission records the terms version, the sha256 of the terms text as published, and the miner's acceptance; a
+submission without them is refused.
 
 Per Challenge VERSION, never per door (v2 scope read, row 4781): `TERMS_BY_VERSION` names the versions that require
 terms. The live Motor 1.8 door and every other version are untouched: their discovery carries no ``terms`` and their
@@ -31,12 +31,10 @@ from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 
-#: Challenge version -> the terms version its submissions must accept (owner G-LEAD-50: Motor 1.9, RB 2.0, joint). A
-#: version registered later names its terms in its exam registry row (``terms``: the version and its published sha256).
-TERMS_BY_VERSION = {
-    ("electric-motor-magnetics", "1.9"): "carbon-submission-terms-v0",
-    ("f08-ribbed-bracket", "2.0"): "carbon-submission-terms-v0",
-}
+#: Challenge version -> the terms version its submissions must accept (owner G-LEAD-50). None is named on this public
+#: tree (owner G-LEAD-122); a version registered later names its terms in its exam registry row (``terms``: the version
+#: and its published sha256).
+TERMS_BY_VERSION = {}
 #: Terms version -> sha256 (64 hex) of its text AS PUBLISHED, or None until published and checked by v2.
 PINNED_SHA256 = {
     # docs/terms/carbon-submission-terms-v0.md as published (miner-ux 4825: section (a) minus section 9 and the counsel

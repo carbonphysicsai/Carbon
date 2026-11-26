@@ -1,6 +1,5 @@
-"""Retained records of the new exams (owner, 25 Nov 2026, verbatim: "approved: every new exam (Motor 1.9, RB 2.0, joint)
-keeps ALL solver outputs of every solve, scored or unscored, in its retained records, as bank 8319 to 8321 and door-code
-8330 S3 and S4 specify; build S3 and S4 now with the confirmation head.").
+"""Retained records of the new exams (owner, 25 Nov 2026: every new exam version it names keeps ALL solver outputs of
+every solve, scored or unscored, in its retained records, as bank 8319 to 8321 and door-code 8330 S3 and S4 specify).
 
 Claims:
 1. REGISTRATION: a crown row may carry ``"records": "all"``; any other value refuses. No public repository row carries

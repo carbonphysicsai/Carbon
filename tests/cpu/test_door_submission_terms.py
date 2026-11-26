@@ -1,6 +1,7 @@
 """Submission terms at the door (owner G-LEAD-50, OWNER_LINES block 47; v2 scope read row 4781; wire row 4815).
 
-Claims: only the Challenge versions the owner named (Motor 1.9, RB 2.0) require terms, and the live Motor 1.8 door is
+Claims: only the Challenge versions named in the terms table require terms (stand-in versions here; owner G-LEAD-122
+keeps the real ones off the public tree), and the live Motor 1.8 door is
 unchanged (no ``terms`` in discovery, the strict two submit fields); a terms door advertises {version, sha256, path} and
 serves the text only when it is the pinned published one; a ``construction_submit`` there must carry the door's current
 ``terms_version`` + ``terms_sha256`` inside the hotkey-signed body, else it is refused (``terms_not_accepted`` /
@@ -40,14 +41,22 @@ VERSION = "carbon-submission-terms-v0"
 #: The published text's sha (miner-ux 4825), verified by v2 (row 4828) against the owner-approved wording.
 PUBLISHED_SHA = "946244f64b9c8580010595822ad997eb22e7184dd4074dfca808868c30232faa"
 ROOT = Path(__file__).resolve().parents[2]
+#: Two stand-in versions that require the terms (the public table names none, owner G-LEAD-122).
+TERMS_A = ("zz-terms-family", "1.0")
+TERMS_B = ("zz-terms-family", "2.0")
+
+
+@pytest.fixture(autouse=True)
+def _terms_table(monkeypatch):
+    monkeypatch.setattr(st, "TERMS_BY_VERSION", {TERMS_A: VERSION, TERMS_B: VERSION})
 
 
 # --- the per-version table (v2 4781 (1): per version, never the live 1.8 door) ---
 
 
 def test_only_the_named_next_opens_require_terms():
-    assert st.required_version("electric-motor-magnetics", "1.9") == VERSION
-    assert st.required_version("f08-ribbed-bracket", "2.0") == VERSION
+    assert st.required_version(*TERMS_A) == VERSION
+    assert st.required_version(*TERMS_B) == VERSION
     for live in (
         ("electric-motor-magnetics", "1.8"),
         ("f08-ribbed-bracket", "1.7"),
@@ -58,7 +67,7 @@ def test_only_the_named_next_opens_require_terms():
         assert st.for_door(*live, "/nowhere/terms.md") is None
     # the PUBLISHED text's sha, pinned after v2's byte check; a door whose text file is missing refuses everything
     assert st.PINNED_SHA256[VERSION] == PUBLISHED_SHA
-    terms = st.for_door("electric-motor-magnetics", "1.9", "/nowhere/terms.md")
+    terms = st.for_door(*TERMS_A, "/nowhere/terms.md")
     assert terms.version == VERSION and not terms.ready
 
 
@@ -69,7 +78,7 @@ def test_the_pin_is_the_checkouts_published_file_once_it_is_there():
             "docs/terms lands with the client + publication head (miner-ux 4825)"
         )
     assert hashlib.sha256(published.read_bytes()).hexdigest() == PUBLISHED_SHA
-    terms = st.for_door("electric-motor-magnetics", "1.9", str(published))
+    terms = st.for_door(*TERMS_A, str(published))
     assert terms.ready and terms.text == published.read_bytes()
 
 
@@ -87,7 +96,7 @@ def test_the_text_is_served_only_when_it_is_the_pinned_one(tmp_path, monkeypatch
     latin.write_bytes(b"\xe9t\xe9")
     assert st.read_text(latin, hashlib.sha256(b"\xe9t\xe9").hexdigest()) is None
     monkeypatch.setitem(st.PINNED_SHA256, VERSION, SHA)
-    terms = st.for_door("f08-ribbed-bracket", "2.0", str(path))
+    terms = st.for_door(*TERMS_B, str(path))
     assert terms.ready and terms.text == path.read_bytes()
     assert terms.facts() == {
         "version": VERSION,
@@ -122,7 +131,7 @@ def test_the_submit_fields_of_a_terms_door_and_of_a_door_without_terms():
 
 
 class _Challenge:
-    challenge_id, version = "electric-motor-magnetics", "1.9"
+    challenge_id, version = TERMS_A
 
 
 def test_the_acceptance_record_is_append_only_and_keeps_the_signed_request(tmp_path):

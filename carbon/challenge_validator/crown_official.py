@@ -79,13 +79,12 @@ UNSET_DIGEST = (
 )
 
 
-#: CROWN-CONFIRMATION-SET (owner, filed 2026-11-25T20:10:34Z, verbatim: "approved: new crowns on Motor 1.9, RB 2.0 and
-#: joint must also hold on a small confirmation set, fingerprinted at open and published at close; shown scores stay on
-#: the open set."). A version under it carries a ``confirmation`` block in its registry row (per pair, so no other door's
+#: CROWN-CONFIRMATION-SET (owner, filed 2026-11-25T20:10:34Z): new crowns on the versions it names must also hold on a
+#: small confirmation set, fingerprinted at open and published at close; shown scores stay on the open set. A version under it carries a ``confirmation`` block in its registry row (per pair, so no other door's
 #: grading changes, `grading_scope`), ``{"number": "A", "first_crown": "open_rule_only", "tie": ...}`` when ruled; each
 #: value is model-eval's ruling (door-code 8314 points (a) and (b), bank 8442), and an absent one makes the crowns it
 #: decides wait (fail closed, never the open rule alone): an empty block ``{}`` is the owner's line with nothing ruled
-#: yet. The joint exam's row carries one when its Challenge id and version are registered. ``number`` "A": the
+#: yet. ``number`` "A": the
 #: confirmation number is the version's physics family value on the confirmation rows (`pool_exam`
 #: ``capture["confirmation"]``), the only number those rows give. ``first_crown`` "open_rule_only": a first
 #: crown (no king, so no king confirmation number) is decided on the open rule alone, the contender's own confirmation
@@ -110,9 +109,8 @@ CONFIRMATION_STATUSES = ("MEASURED", "INVALID", "UNAVAILABLE")
 #: `PoolStore.record_confirmation_decision`): S3 of bank 8319.
 DECISION_SCHEMA = "carbon.crown-confirmation-decision.v1"
 
-#: RETAINED RECORDS (owner, 25 Nov 2026, verbatim: "approved: every new exam (Motor 1.9, RB 2.0, joint) keeps ALL solver
-#: outputs of every solve, scored or unscored, in its retained records, as bank 8319 to 8321 and door-code 8330 S3 and S4
-#: specify; build S3 and S4 now with the confirmation head."). A version under it carries ``"records": "all"`` in its row
+#: RETAINED RECORDS (owner, 25 Nov 2026): every new exam version it names keeps ALL solver outputs of every solve, scored
+#: or unscored, in its retained records (bank 8319 to 8321, door-code 8330 S3 and S4). A version under it carries ``"records": "all"`` in its row
 #: (per pair, so no other door's grading changes, `grading_scope`); its door then keeps, beside every grade, S3 the
 #: coldkey and the signed receipt block on each graded ledger row (`exam_cap`) and S4 every gate verdict with the gate-set
 #: version (`exam_rotation.GATE_VERDICTS_SIDECAR`). Custody only, never served, never a grade input. Absent: as before.

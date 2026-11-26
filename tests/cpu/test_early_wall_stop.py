@@ -68,7 +68,6 @@ def test_the_committed_registry_keeps_motor_1_8s_values_but_the_early_stop_is_of
     for challenge, version in (
         ("electric-motor-magnetics", "1.8"),
         ("electric-motor-magnetics", "1.7"),
-        ("electric-motor-magnetics", "1.9"),
         ("f08-ribbed-bracket", "1.8"),
         ("chip-cold-plate", "1.8"),
     ):

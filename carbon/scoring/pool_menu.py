@@ -102,7 +102,7 @@ class MenuRule:
     d_form: str = menu_score.D_SHARE
     k: float | None = None
     #: the registered limit band (`menu_score.LIMIT_BANDS`): ``none`` (default, every version so far) or
-    #: ``borderline_1u`` (menu_top5_v4, owner MOTOR19-MENUS-TO-LIMIT; original_limits + regret_u only)
+    #: ``borderline_1u`` (menu_top5_v4, owner G-LEAD-47; original_limits + regret_u only)
     limit_band: str = menu_score.LIMIT_BAND_NONE
 
 

@@ -17,8 +17,7 @@ shortcut finds the optimum; dropped from the D means, never set to 0; counted pe
 
 What the cheap method screens on is the registered one, per Challenge AND version (`SHORTCUT_SCREENS`; the cheap methods of the
 owner's record 5328e97c, registered by the Validator 11-01): F08 1.7 = the coarse h = 3 mm worst dynamic compliance against the dynamic
-limit, and the EXACT CAD mass against the mass limit (geometry, no solve); RB 2.0 = the h = 3 rung of the 2.0 registered ladder at the
-base fillet mesh, every solved target output coarse, the CAD mass exact (its single-rung parity is checked first, outside this module);
+limit, and the EXACT CAD mass against the mass limit (geometry, no solve);
 BT 3.0 = the modal-sum (adversary 1 of f02_closed_form_gate.py, its own defaults, fit on public TRAIN) predicting the peak only, against
 the target's own limits: a target whose objective it does not predict REFUSES (counted per class, no anchor claimed, dropped from the
 D means); Cooling 1.8 = COOL-ADV-01 (the choice fixed, Validator 17:51 / 04:09: rev 3, SUMS 7e30282a) predicting die_peak_c,
@@ -34,7 +33,7 @@ import statistics
 
 #: The audit's coarse-screen draw count (king_audit_analyze.SOLVER_ORDERS // 10).
 DRAWS = 2000 // 10
-#: ``coarse`` = every output the target's truths carry except the exact ones (RB 2.0: "every solved target output").
+#: ``coarse`` = every output the target's truths carry except the exact ones (a registered "every solved target output").
 EVERY_SOLVED = "every_solved_target_output"
 #: Per (Challenge, version): the outputs the registered cheap method screens on, and which of them it measures (``coarse``) or takes
 #: exactly from the pool's own truth (``exact``, geometry); ``per_target_refusal``: a target whose objective it does not screen refuses
@@ -44,7 +43,6 @@ SHORTCUT_SCREENS = {
         "coarse": ("worst_dynamic_mm_per_n",),
         "exact": ("cad_mass_kg",),
     },
-    ("f08-ribbed-bracket", "2.0"): {"coarse": EVERY_SOLVED, "exact": ("cad_mass_kg",)},
     ("f02", "3.0"): {
         "coarse": ("peak_top_c",),
         "exact": (),

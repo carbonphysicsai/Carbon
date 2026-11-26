@@ -1,6 +1,6 @@
-"""The crown confirmation set (owner CROWN-CONFIRMATION-SET, 25 Nov 2026, verbatim: "approved: new crowns on Motor 1.9,
-RB 2.0 and joint must also hold on a small confirmation set, fingerprinted at open and published at close; shown scores
-stay on the open set."; door-code 8314, Lead GO 8421).
+"""The crown confirmation set (owner CROWN-CONFIRMATION-SET, 25 Nov 2026: new crowns on the versions it names must also
+hold on a small confirmation set, fingerprinted at open and published at close; shown scores stay on the open set;
+door-code 8314, Lead GO 8421).
 
 Claims:
 1. REGISTRATION: a crown row may carry a ``confirmation`` block; an empty block is the owner's line with nothing ruled

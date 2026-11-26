@@ -1,7 +1,7 @@
-"""A graded answer that is not finite, proven by the worker program itself (owner G-LEAD-75, 24 Nov 2026: "for Motor 1.9,
-RB 2.0 and the joint exam only, the first proven non-finite answer in a day is given back free and every further one counts as
-a try, counted per funding group, not per hotkey. Only a proven non-finite output counts, not a shape or type error. Until that
-grouping is installed, the code says so. 1.8 keeps its current rule.").
+"""A graded answer that is not finite, proven by the worker program itself (owner G-LEAD-75, 24 Nov 2026: for the new
+exam versions only, the first proven non-finite answer in a day is given back free and every further one counts as a try,
+counted per funding group, not per hotkey; only a proven non-finite output counts, not a shape or type error; 1.8 keeps
+its current rule).
 
 Today every inference program refuses its own output with ONE sentence for a wrong shape, a wrong dtype or a non-finite value
 (`auto_retry.OUTPUT_CONTRACT_DIFFERS`: cause unknown). A version under the rule runs the same program with that one check split
@@ -20,7 +20,7 @@ from __future__ import annotations
 #: The one registered form of the rule (the value of a build row's ``nonfinite_rule``).
 RULE = "first_free_per_day.v1"
 #: The code-served versions under the rule; a version registered by data names it in its build row.
-CODE_SERVED = frozenset({("electric-motor-magnetics", "1.9")})
+CODE_SERVED = frozenset()
 
 #: Today's sentence, and the second one (its prefix is today's).
 CONTRACT = "bundle inference output contract differs"

@@ -123,7 +123,7 @@ def test_a_missing_owner_value_refuses_as_human_input(field):
 
 
 def test_a_zero_floor_is_in_domain():
-    # owner MOTOR19-TRUST-FLOOR-0 (23 Nov 2026): 0 = no floor; sigma = exp(log_sigma) stays > 0
+    # an owner trust-floor line (23 Nov 2026): 0 = no floor; sigma = exp(log_sigma) stays > 0
     assert trust.check(spec(sigma_floor=(0.0,))) is None
     assert trust.check(spec(sigma_floor=(0,))) is None
 

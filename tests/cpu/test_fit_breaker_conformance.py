@@ -1,7 +1,7 @@
 """CONFORMANCE: every NEW exam version turns on all four fit-breaker rules on the pool path, or names an owner waiver.
 
 OWNER-FIT-BREAKER-RULES-LOCK-01 (owner, 4 Nov, Lead session): "lock those 4 rules back in". The four rules are required
-in every new version (Motor 1.7, BT 3.0, Cooling 1.8, RB 2.0 and every later one) on the path it actually grades with,
+in every new version (Motor 1.7, BT 3.0, Cooling 1.8 and every later one) on the path it actually grades with,
 so they cannot drop silently again. A version passes when, for each rule, its registered pool constants
 (`scripts/validator_host_classes/pool_constants.json`) turn it on, or its ``fit_breaker.waivers`` names an owner record
 id that resolves to a tracked owner decision (``.agent/decisions/*-<ID>.md``, "DECIDED by the owner"):

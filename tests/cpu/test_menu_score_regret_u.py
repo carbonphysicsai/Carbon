@@ -1,4 +1,4 @@
-"""Menu D form ``regret_u`` (menu_top5_v3; owner MOTOR19-D-SAT-PICK (B), 22 Nov 2026; form: exam-motor 03:09:23Z).
+"""Menu D form ``regret_u`` (menu_top5_v3; owner line of 22 Nov 2026).
 
 Per slot d = 0 for a truly infeasible pick, else clip(1 - regret / (k x U_obj), 0, 1), regret = s_ref - s_pick in the
 objective's units, U_obj = the task's U of the objective at the pick's true value, k = the version's registered value.

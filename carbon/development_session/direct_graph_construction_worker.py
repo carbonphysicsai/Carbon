@@ -582,13 +582,9 @@ PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 #: `physical_graph_adapter_v2.JIT_BUILD_VERSIONS` (the shared `carbon.level4.train.JIT_FORWARD_VERSIONS` stays empty):
 #: they never meet the judge's outputs. For a graph whose branches or loop counts turn on a value (comparisons, rounding,
 #: a tolerance loop), compiled and eager answers can differ by more than rounding; every judged call is compiled alike.
-#: Motor 1.9 (blind-audit row 16, 23 Nov 2026): compiled from its first grade, so no 1.9 answer was ever eager. It is NOT
-#: in `CASE_PROCS_INFERENCE_VERSIONS`: 1.9 offers trust outputs and the per-case-processes program has no trust variant
-#: (`v2_trust_infer_query` refuses it), so 1.9 grades in ONE process; whether that fits its registered inference wall is
-#: measured on the rehearsal grade (R1a), not assumed here.
 #: A version registered by data names its program in its build row (`exam_build`); these are the code-served ones.
 JIT_INFERENCE_VERSIONS = frozenset(
-    {("electric-motor-magnetics", "1.8"), ("electric-motor-magnetics", "1.9")}
+    {("electric-motor-magnetics", "1.8")}
 ) | exam_build.versions_running("compiled", "per_case")
 _EAGER_MEMBER = "member_forward = rebuild(doc, allowed)\n"
 _COMPILED_MEMBER = (

@@ -1,5 +1,5 @@
 """OWNER-A6000-48GB-BUILD-CLASS-01 (owner G-LEAD-60, 23 Nov 2026): the Lambda RTX A6000 48 GB VM is a GPU build class
-for Motor 1.9 and RB 2.0 on finney only, JAX only (its class record, a6000-class-check.json 54446e4a, measured JAX).
+for the new exam versions on finney only, JAX only (its class record, a6000-class-check.json 54446e4a, measured JAX).
 """
 
 from __future__ import annotations

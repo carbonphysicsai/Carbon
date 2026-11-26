@@ -374,7 +374,7 @@ def _menu(value):
     menu_top5_v1, the default; ``original_limits`` = menu_top5_v2, back-off 0) and an optional ``"d_form"``
     (``share``, the default; ``regret_u`` = menu_top5_v3 with ``original_limits``, which needs the owner's ``"k"``) and
     an optional ``"limit_band"`` (``none``, the default; ``borderline_1u`` = menu_top5_v4 with ``original_limits`` and
-    ``regret_u``: owner MOTOR19-MENUS-TO-LIMIT, menus go to the limit); a null or HUMAN_INPUT refuses.
+    ``regret_u``: owner G-LEAD-47, menus go to the limit); a null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
