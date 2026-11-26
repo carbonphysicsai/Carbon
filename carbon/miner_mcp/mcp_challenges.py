@@ -47,6 +47,17 @@ def _names(field):
     return None
 
 
+def _interface_names(interface, side):
+    """The ``side`` ("input" or "output") names of a described interface: the catalog shape (``inputs``: a list,
+    ``outputs``: a mapping) or a construction interface document (``input``: ``{names, ...}``), which a version registered
+    by rows describes with (`exam_entry.describe`; miner-ux 8683 R3)."""
+    names = _names(interface.get(side + "s"))
+    if names is not None:
+        return names
+    block = interface.get(side)
+    return _names(block.get("names")) if isinstance(block, dict) else None
+
+
 def _template(kind, document):
     """An unfilled graph recipe template: its source names no graph yet, so
     it is not ready to send (graph route v2's `graph_route.example`)."""
@@ -218,8 +229,8 @@ def compact_description(described):
         "title": described.get("title"),
         "status": described.get("status"),
         "interface": {
-            "inputs": _names(interface.get("inputs")),
-            "outputs": _names(interface.get("outputs")),
+            "inputs": _interface_names(interface, "input"),
+            "outputs": _interface_names(interface, "output"),
         },
         "backbones": backbones or None,
         "catalog_ids": catalog_ids,

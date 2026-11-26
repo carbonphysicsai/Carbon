@@ -263,3 +263,25 @@ def test_cooling_1_6_ready_recipe_starts_on_the_measured_entry_not_the_refused_b
     assert mcp_challenges._baseline_start(other, "recipe", ready)["source"][
         "catalog_id"
     ].endswith(".prior_krr")
+
+
+@pytest.mark.parametrize(
+    "interface",
+    [
+        {"inputs": ["x0", "x1"], "outputs": {"y": []}},
+        {
+            "schema": "carbon.zz-synthetic.construction-interface.v1",
+            "input": {"names": ["x0", "x1"], "units": ["1", "1"]},
+            "output": {"names": ["y"], "units": ["1"]},
+        },
+    ],
+)
+def test_interface_names_read_both_described_shapes(interface):
+    """miner-ux 8683 R3: a version registered by rows describes its construction interface document (input.names)."""
+    assert mcp_challenges._interface_names(interface, "input") == ["x0", "x1"]
+    assert mcp_challenges._interface_names(interface, "output") == ["y"]
+
+
+def test_interface_names_are_null_when_neither_shape_is_there():
+    assert mcp_challenges._interface_names({"input": "x"}, "input") is None
+    assert mcp_challenges._interface_names({}, "output") is None
