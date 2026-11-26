@@ -608,3 +608,102 @@ def test_waterfall_without_observer_or_active_winners_burns_100_percent_to_uid0(
     assert result["state"] == "ROW_VERIFIED"
     assert result["document"]["plan"]["q12"] == [[0, Q12]]
     assert result["document"]["plan"]["integers"] == [[0, U16]]
+
+
+def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(tmp_path):
+    """End-to-end verification through `preview` -> `issue` -> `publish` that:
+    1) Invalid `bonus_credits_by_coldkey` fails closed with `INVALID_BONUS_CREDIT_OBSERVATION`.
+    2) Epoch 3: Miner with `C = 1,000 α` and pending `H = 500 α` holding `B = 1,500 α` receives
+       exact non-compounding +50% window rate on `1,000 α` (preview matches issue without mutating SQLite).
+    3) Epoch 4: Miner dumps the `500 α` bonus (`B = 1,000 α` while `C + H = 1,500 α`) ->
+       `worst_sold == 1/3`, slashing both rate (to 1/3) and eligible principal (to 2/3 of 1,000 α)."""
+    with pytest.raises(RewardFailure, match="INVALID_BONUS_CREDIT_OBSERVATION"):
+        WaterfallEpochObservation(bonus_credits_by_coldkey=["not-a-dict"])  # type: ignore[arg-type]
+
+    ctx = _testnet_ctx()
+    state_e3 = _waterfall_snapshot(ctx, block=1080, timestamp_ms=10 * DAY_MS)
+    hold_ledger = HoldBonusLedger(tmp_path / "hold.sqlite3")
+    try:
+        hold_ledger.record_crown_earnings(2, {"ck_loyal": (1_000 * RAO, "hk_loyal")})
+        hold_ledger.sample_epoch_stakes(2, {"ck_loyal": 1_000 * RAO})
+
+        current_stake = {"ck_loyal": 1_500 * RAO}
+        current_bonus_credits: dict[str, tuple[int, str]] | None = {
+            "ck_loyal": (500 * RAO, "hk_loyal")
+        }
+
+        def observer(_snap: MetagraphSnapshot, epoch: int) -> WaterfallEpochObservation:
+            return WaterfallEpochObservation(
+                epoch_miner_emission_rao=10 * RAO,
+                treasury_current_stake_rao=10_000 * RAO,
+                staked_by_coldkey=dict(current_stake),
+                bonus_credits_by_coldkey=(
+                    dict(current_bonus_credits) if current_bonus_credits is not None else None
+                ),
+                owner_coldkey="ck_owner",
+                owner_hotkeys=("hk_burn_owner",),
+            )
+
+        _policy, issuer, backend, publisher = _compose_waterfall_publisher(
+            tmp_path,
+            state=state_e3,
+            hold_ledger=hold_ledger,
+            observer=observer,
+            source=lambda: {
+                "model_id": "m-king-1",
+                "hotkey": "hk_king",
+                "previous": None,
+                "kind": we.FIRST,
+            },
+            wf_overrides={
+                "hold_window_epochs": 600,
+                "hold_cap_q12": 400_000_000_000,
+                "window_bonus_rate_bps": 5000,
+                "zero_bonus_sold_bps": 5000,
+            },
+        )
+
+        # Epoch 3 preview: writes nothing to `hold_epoch_bonus_credits_v1` or `hold_epoch_samples_v1`
+        preview_e3 = twp.preview(issuer, state_e3)
+        assert hold_ledger._conn.execute(
+            "SELECT COUNT(*) FROM hold_epoch_bonus_credits_v1"
+        ).fetchone() == (0,)
+        # Exact non-compounding +50% rate on C = 1,000 α: ((1000 * 5000 / 6_000_000) / 10) * Q12 = 83_333_333_333
+        assert preview_e3["targets"]["hold_bonus"] == [
+            [{"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4}, 83_333_333_333]
+        ]
+
+        ref_e3 = issuer.issue(state_e3)
+        assert hold_ledger.window_status("ck_loyal", 3, 600) == (1_000 * RAO, Fraction(0))
+        assert twp.preview(issuer, state_e3)["targets"] == preview_e3["targets"]
+        res_e3 = asyncio.run(publisher.publish(ref_e3))
+        assert res_e3["state"] == "ROW_VERIFIED"
+
+        # Epoch 4 (block 1440): miner dumps all 500 α Hold Bonus (`B = 1,000 α` < `C + H = 1,500 α`)
+        current_bonus_credits = None
+        current_stake["ck_loyal"] = 1_000 * RAO
+        state_e4 = _waterfall_snapshot(ctx, block=1440, timestamp_ms=10 * DAY_MS + 360 * 12_000)
+        backend.state = state_e4
+        backend.tx_hash = "0x" + "c" * 64
+
+        preview_e4 = twp.preview(issuer, state_e4)
+        # Rate slashed to 1/3 and eligible_held = 666_666_666_666 rao:
+        # target_alpha_rao = 666_666_666_666 * (5000 / 6_000_000) * (1/3)
+        expected_dumped_q12 = int(
+            (Fraction(666_666_666_666) * Fraction(5000, 10_000 * 600) * Fraction(1, 3) * Q12)
+            // (10 * RAO)
+        )
+        assert expected_dumped_q12 == 18_518_518_518  # 2/9 of 83_333_333_333!
+        assert preview_e4["targets"]["hold_bonus"] == [
+            [{"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4}, expected_dumped_q12]
+        ]
+
+        ref_e4 = issuer.issue(state_e4)
+        assert hold_ledger.window_status("ck_loyal", 4, 600) == (
+            666_666_666_666,
+            Fraction(1, 3),
+        )
+        res_e4 = asyncio.run(publisher.publish(ref_e4))
+        assert res_e4["state"] == "ROW_VERIFIED"
+    finally:
+        hold_ledger.close()

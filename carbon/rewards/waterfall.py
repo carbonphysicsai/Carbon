@@ -5,11 +5,14 @@ Routes each 360-block epoch's Q12 (10^12) miner weight across four ordered rungs
      with an optional u16 >= 1 floor (`MIN_POSITIVE_U16_Q12`) so a decaying king
      is never quantized to 0 integer weight while positive.
   2. Miner Hold Bonus — first claim on decayed weight up to `min(hold_cap_q12, decayed_q12)`.
-     Uses point-in-time sold ratio `S_c = max_{t in W} (E(c,t) - min(B(c,t), E(c,t))) / E(c,t)`
-     so newly earned crown Alpha never penalizes loyal holders, while dump-and-rebuy
-     within the window `W` stays penalized for the full window. Converts target Alpha
-     bonus to weight via `epoch_miner_emission_rao`. Strictly excludes `vaultColdkey`
-     and owner/publisher coldkeys.
+     Tracks both cumulative Challenge Crown Alpha `C(c,t)` and cumulative Hold Bonus Alpha
+     `H(c,t)` (`I(c,t) = C(c,t) + H(c,t)` total protocol-issued Alpha). Uses point-in-time
+     sold ratio `S_c = max_{t in W} (I(c,t) - min(B(c,t), I(c,t))) / I(c,t)` and non-compounding
+     eligible principal `(C(c,t) * min(B(c,t), I(c,t))) // I(c,t)` so newly earned Alpha never
+     penalizes loyal holders, bonus yield never compounds on itself, and dumping either Crown or
+     Hold Bonus Alpha is penalized across the full window `W`. Converts target Alpha bonus to
+     weight via `epoch_miner_emission_rao`. Strictly excludes `vaultColdkey` and owner/publisher
+     coldkeys.
   3. Community Treasury Sink(s) — receives unused decayed weight across identity-pinned
      `(hotkey, coldkey, registered_at)` vault sink UIDs ONLY while observed treasury
      stake is strictly below `treasury_stake_cap_rao` (fail-closed if None or >= cap).
@@ -102,6 +105,7 @@ class WaterfallEpochObservation:
     treasury_current_stake_rao: int | None = None
     staked_by_coldkey: dict[str, int] | None = None
     crown_credits_by_coldkey: dict[str, tuple[int, str]] | None = None
+    bonus_credits_by_coldkey: dict[str, tuple[int, str]] | None = None
     owner_coldkey: str | None = None
     owner_hotkeys: tuple[str, ...] = ()
 
@@ -118,6 +122,8 @@ class WaterfallEpochObservation:
             raise RewardFailure("INVALID_STAKE_OBSERVATION")
         if self.crown_credits_by_coldkey is not None and type(self.crown_credits_by_coldkey) is not dict:
             raise RewardFailure("INVALID_CREDIT_OBSERVATION")
+        if self.bonus_credits_by_coldkey is not None and type(self.bonus_credits_by_coldkey) is not dict:
+            raise RewardFailure("INVALID_BONUS_CREDIT_OBSERVATION")
         if self.owner_coldkey is not None:
             identifier(self.owner_coldkey)
         if type(self.owner_hotkeys) is not tuple:
@@ -149,8 +155,9 @@ def epoch_bonus_rate(
 
 
 class HoldBonusLedger:
-    """SQLite-backed per-epoch ledger of cumulative Challenge crown earnings `E(C, e)`
-    and live Subnet-116 staked balances `B(C, e)` for point-in-time sold ratio evaluation."""
+    """SQLite-backed per-epoch ledger of cumulative Challenge crown earnings `C(c, e)`,
+    cumulative Hold Bonus earnings `H(c, e)`, and live Subnet-116 staked balances `B(c, e)`
+    for point-in-time sold ratio and non-compounding principal evaluation."""
 
     def __init__(self, path: Path | str):
         self.path = Path(path)
@@ -162,10 +169,21 @@ class HoldBonusLedger:
                 """CREATE TABLE IF NOT EXISTS hold_coldkey_totals_v1 (
                     coldkey TEXT PRIMARY KEY,
                     cumulative_earned_rao TEXT NOT NULL,
+                    cumulative_bonus_rao TEXT NOT NULL DEFAULT '0',
                     preferred_hotkey TEXT NOT NULL,
                     updated_epoch INTEGER NOT NULL
                 )"""
             )
+            totals_cols = {
+                r[1]
+                for r in self._conn.execute(
+                    "PRAGMA table_info(hold_coldkey_totals_v1)"
+                ).fetchall()
+            }
+            if "cumulative_bonus_rao" not in totals_cols:
+                self._conn.execute(
+                    "ALTER TABLE hold_coldkey_totals_v1 ADD COLUMN cumulative_bonus_rao TEXT NOT NULL DEFAULT '0'"
+                )
             self._conn.execute(
                 """CREATE TABLE IF NOT EXISTS hold_epoch_credits_v1 (
                     epoch INTEGER NOT NULL,
@@ -176,15 +194,35 @@ class HoldBonusLedger:
                 )"""
             )
             self._conn.execute(
+                """CREATE TABLE IF NOT EXISTS hold_epoch_bonus_credits_v1 (
+                    epoch INTEGER NOT NULL,
+                    coldkey TEXT NOT NULL,
+                    bonus_delta_rao TEXT NOT NULL,
+                    hotkey TEXT NOT NULL,
+                    PRIMARY KEY(epoch, coldkey)
+                )"""
+            )
+            self._conn.execute(
                 """CREATE TABLE IF NOT EXISTS hold_epoch_samples_v1 (
                     epoch INTEGER NOT NULL,
                     coldkey TEXT NOT NULL,
                     staked_rao TEXT NOT NULL,
                     cumulative_earned_rao TEXT NOT NULL,
+                    cumulative_bonus_rao TEXT NOT NULL DEFAULT '0',
                     sold_rao TEXT NOT NULL,
                     PRIMARY KEY(epoch, coldkey)
                 )"""
             )
+            samples_cols = {
+                r[1]
+                for r in self._conn.execute(
+                    "PRAGMA table_info(hold_epoch_samples_v1)"
+                ).fetchall()
+            }
+            if "cumulative_bonus_rao" not in samples_cols:
+                self._conn.execute(
+                    "ALTER TABLE hold_epoch_samples_v1 ADD COLUMN cumulative_bonus_rao TEXT NOT NULL DEFAULT '0'"
+                )
 
     def close(self) -> None:
         self._conn.close()
@@ -230,8 +268,54 @@ class HoldBonusLedger:
                        ON CONFLICT(coldkey) DO UPDATE SET
                          cumulative_earned_rao=excluded.cumulative_earned_rao,
                          preferred_hotkey=excluded.preferred_hotkey,
-                         updated_epoch=excluded.updated_epoch""",
+                         updated_epoch=MAX(hold_coldkey_totals_v1.updated_epoch, excluded.updated_epoch)""",
                     (coldkey, str(new_total), hotkey, epoch),
+                )
+
+    def record_bonus_earnings(
+        self,
+        epoch: int,
+        credits: dict[str, tuple[int, str]],
+    ) -> None:
+        """Idempotently record Miner Hold Bonus Alpha earned in `epoch`.
+        `credits` maps `coldkey -> (bonus_delta_rao, recipient_hotkey)`."""
+        if type(epoch) is not int or epoch < 0:
+            raise RewardFailure("INVALID_EPOCH")
+        with self._conn:
+            for coldkey, (delta_rao, hotkey) in sorted(credits.items()):
+                identifier(coldkey)
+                identifier(hotkey)
+                if type(delta_rao) is not int or delta_rao < 0:
+                    raise RewardFailure("INVALID_EARNED_RAO")
+                if delta_rao == 0:
+                    continue
+                existing = self._conn.execute(
+                    "SELECT bonus_delta_rao, hotkey FROM hold_epoch_bonus_credits_v1 WHERE epoch=? AND coldkey=?",
+                    (epoch, coldkey),
+                ).fetchone()
+                if existing is not None:
+                    if int(existing[0]) != delta_rao or existing[1] != hotkey:
+                        raise RewardFailure("CONFLICTING_EPOCH_BONUS_CREDIT")
+                    continue
+                cur = self._conn.execute(
+                    "SELECT cumulative_bonus_rao FROM hold_coldkey_totals_v1 WHERE coldkey=?",
+                    (coldkey,),
+                ).fetchone()
+                prev_bonus = int(cur[0]) if cur is not None else 0
+                new_bonus = prev_bonus + delta_rao
+                self._conn.execute(
+                    "INSERT INTO hold_epoch_bonus_credits_v1(epoch, coldkey, bonus_delta_rao, hotkey) VALUES (?,?,?,?)",
+                    (epoch, coldkey, str(delta_rao), hotkey),
+                )
+                self._conn.execute(
+                    """INSERT INTO hold_coldkey_totals_v1
+                       (coldkey, cumulative_earned_rao, cumulative_bonus_rao, preferred_hotkey, updated_epoch)
+                       VALUES (?, '0', ?, ?, ?)
+                       ON CONFLICT(coldkey) DO UPDATE SET
+                         cumulative_bonus_rao=excluded.cumulative_bonus_rao,
+                         preferred_hotkey=excluded.preferred_hotkey,
+                         updated_epoch=MAX(hold_coldkey_totals_v1.updated_epoch, excluded.updated_epoch)""",
+                    (coldkey, str(new_bonus), hotkey, epoch),
                 )
 
     def sample_epoch_stakes(
@@ -239,38 +323,52 @@ class HoldBonusLedger:
         epoch: int,
         staked_by_coldkey: dict[str, int],
     ) -> None:
-        """Sample live Subnet-116 stake `B(C, epoch)` once per 360-block epoch for all coldkeys
-        with `E(C, epoch) > 0`, storing exact point-in-time `sold_rao = E - min(B, E)`."""
+        """Sample live Subnet-116 stake `B(c, epoch)` once per 360-block epoch for all coldkeys
+        with `C(c, epoch) > 0`, storing exact point-in-time `sold_rao = (C + H) - min(B, C + H)`."""
         if type(epoch) is not int or epoch < 0:
             raise RewardFailure("INVALID_EPOCH")
         with self._conn:
             rows = self._conn.execute(
-                "SELECT coldkey, cumulative_earned_rao FROM hold_coldkey_totals_v1 ORDER BY coldkey"
+                "SELECT coldkey, cumulative_earned_rao, cumulative_bonus_rao FROM hold_coldkey_totals_v1 ORDER BY coldkey"
             ).fetchall()
-            for coldkey, earned_str in rows:
+            for coldkey, earned_str, bonus_str in rows:
                 earned_rao = int(earned_str)
                 if earned_rao <= 0:
                     continue
+                bonus_rao = int(bonus_str)
                 if coldkey not in staked_by_coldkey:
                     raise RewardFailure("MISSING_COLDKEY_STAKE_OBSERVATION")
                 staked_rao = staked_by_coldkey[coldkey]
                 if type(staked_rao) is not int or staked_rao < 0:
                     raise RewardFailure("INVALID_STAKE_RAO")
-                held_eligible = min(staked_rao, earned_rao)
-                sold_rao = earned_rao - held_eligible
+                total_issued_rao = earned_rao + bonus_rao
+                held_total = min(staked_rao, total_issued_rao)
+                sold_rao = total_issued_rao - held_total
                 prev = self._conn.execute(
-                    "SELECT staked_rao, cumulative_earned_rao FROM hold_epoch_samples_v1 WHERE epoch=? AND coldkey=?",
+                    """SELECT staked_rao, cumulative_earned_rao, cumulative_bonus_rao
+                       FROM hold_epoch_samples_v1 WHERE epoch=? AND coldkey=?""",
                     (epoch, coldkey),
                 ).fetchone()
                 if prev is not None:
-                    if int(prev[0]) != staked_rao or int(prev[1]) != earned_rao:
+                    if (
+                        int(prev[0]) != staked_rao
+                        or int(prev[1]) != earned_rao
+                        or int(prev[2]) != bonus_rao
+                    ):
                         raise RewardFailure("CONFLICTING_EPOCH_STAKE_SAMPLE")
                     continue
                 self._conn.execute(
                     """INSERT INTO hold_epoch_samples_v1
-                       (epoch, coldkey, staked_rao, cumulative_earned_rao, sold_rao)
-                       VALUES (?,?,?,?,?)""",
-                    (epoch, coldkey, str(staked_rao), str(earned_rao), str(sold_rao)),
+                       (epoch, coldkey, staked_rao, cumulative_earned_rao, cumulative_bonus_rao, sold_rao)
+                       VALUES (?,?,?,?,?,?)""",
+                    (
+                        epoch,
+                        coldkey,
+                        str(staked_rao),
+                        str(earned_rao),
+                        str(bonus_rao),
+                        str(sold_rao),
+                    ),
                 )
 
     def tracked_coldkeys(self) -> list[tuple[str, int, str]]:
@@ -284,9 +382,10 @@ class HoldBonusLedger:
         self,
         current_epoch: int,
         crown_credits_by_coldkey: dict[str, tuple[int, str]] | None = None,
+        bonus_credits_by_coldkey: dict[str, tuple[int, str]] | None = None,
     ) -> list[tuple[str, int, str]]:
         """Read-only preview of `(coldkey, cumulative_earned_rao, preferred_hotkey)` at `current_epoch`,
-        overlaying `crown_credits_by_coldkey` without mutating SQLite tables."""
+        overlaying `crown_credits_by_coldkey` and `bonus_credits_by_coldkey` without mutating SQLite tables."""
         if type(current_epoch) is not int or current_epoch < 0:
             raise RewardFailure("INVALID_EPOCH")
         totals: dict[str, tuple[int, str]] = {}
@@ -320,6 +419,24 @@ class HoldBonusLedger:
                     continue
                 prev_earned = totals[coldkey][0] if coldkey in totals else 0
                 totals[coldkey] = (prev_earned + delta_rao, hotkey)
+        if bonus_credits_by_coldkey:
+            for coldkey, (delta_rao, hotkey) in sorted(bonus_credits_by_coldkey.items()):
+                identifier(coldkey)
+                identifier(hotkey)
+                if type(delta_rao) is not int or delta_rao < 0:
+                    raise RewardFailure("INVALID_EARNED_RAO")
+                if delta_rao == 0:
+                    continue
+                existing_bonus = self._conn.execute(
+                    "SELECT bonus_delta_rao, hotkey FROM hold_epoch_bonus_credits_v1 WHERE epoch=? AND coldkey=?",
+                    (current_epoch, coldkey),
+                ).fetchone()
+                if existing_bonus is not None:
+                    if int(existing_bonus[0]) != delta_rao or existing_bonus[1] != hotkey:
+                        raise RewardFailure("CONFLICTING_EPOCH_BONUS_CREDIT")
+                    continue
+                prev_earned = totals[coldkey][0] if coldkey in totals else 0
+                totals[coldkey] = (prev_earned, hotkey)
         return [
             (ck, earned, hk)
             for ck, (earned, hk) in sorted(totals.items())
@@ -336,7 +453,7 @@ class HoldBonusLedger:
         Requires a current-epoch sample (`epoch == current_epoch`); returns None if not sampled."""
         start_epoch = max(0, current_epoch - window_epochs + 1)
         rows = self._conn.execute(
-            """SELECT epoch, staked_rao, cumulative_earned_rao, sold_rao
+            """SELECT epoch, staked_rao, cumulative_earned_rao, cumulative_bonus_rao, sold_rao
                FROM hold_epoch_samples_v1
                WHERE coldkey=? AND epoch BETWEEN ? AND ?
                ORDER BY epoch ASC""",
@@ -345,16 +462,22 @@ class HoldBonusLedger:
         if not rows or rows[-1][0] != current_epoch:
             return None
         worst = Fraction(0)
-        for _ep, _staked_s, earned_s, sold_s in rows:
-            earned = int(earned_s)
+        for _ep, _staked_s, earned_s, bonus_s, sold_s in rows:
+            total_issued = int(earned_s) + int(bonus_s)
             sold = int(sold_s)
-            if earned > 0:
-                ratio = Fraction(sold, earned)
+            if total_issued > 0:
+                ratio = Fraction(sold, total_issued)
                 if ratio > worst:
                     worst = ratio
         cur_staked = int(rows[-1][1])
-        cur_earned = int(rows[-1][2])
-        eligible_held_now = min(cur_staked, cur_earned)
+        cur_crown = int(rows[-1][2])
+        cur_bonus = int(rows[-1][3])
+        cur_total_issued = cur_crown + cur_bonus
+        eligible_held_now = (
+            (cur_crown * min(cur_staked, cur_total_issued)) // cur_total_issued
+            if cur_total_issued > 0
+            else 0
+        )
         return eligible_held_now, worst
 
     def window_status_preview(
@@ -365,27 +488,39 @@ class HoldBonusLedger:
         *,
         pending_credit_rao: int = 0,
         pending_credit_hotkey: str | None = None,
+        pending_bonus_rao: int = 0,
+        pending_bonus_hotkey: str | None = None,
         pending_stake_rao: int | None = None,
     ) -> tuple[int, Fraction] | None:
         """Read-only preview of `(eligible_held_now_rao, worst_sold_ratio)` at `current_epoch`,
-        overlaying any pending current-epoch credit and stake sample in memory without mutating SQLite."""
+        overlaying any pending current-epoch crown/bonus credits and stake sample in memory without mutating SQLite."""
         if type(current_epoch) is not int or current_epoch < 0:
             raise RewardFailure("INVALID_EPOCH")
         if type(pending_credit_rao) is not int or pending_credit_rao < 0:
             raise RewardFailure("INVALID_EARNED_RAO")
         if pending_credit_hotkey is not None:
             identifier(pending_credit_hotkey)
+        if type(pending_bonus_rao) is not int or pending_bonus_rao < 0:
+            raise RewardFailure("INVALID_EARNED_RAO")
+        if pending_bonus_hotkey is not None:
+            identifier(pending_bonus_hotkey)
         cur_row = self._conn.execute(
-            "SELECT cumulative_earned_rao, updated_epoch FROM hold_coldkey_totals_v1 WHERE coldkey=?",
+            "SELECT cumulative_earned_rao, cumulative_bonus_rao, updated_epoch FROM hold_coldkey_totals_v1 WHERE coldkey=?",
             (coldkey,),
         ).fetchone()
         cur_earned_total = int(cur_row[0]) if cur_row is not None else 0
-        if cur_row is not None and int(cur_row[1]) > current_epoch:
+        cur_bonus_total = int(cur_row[1]) if cur_row is not None else 0
+        if cur_row is not None and int(cur_row[2]) > current_epoch:
             later = self._conn.execute(
                 "SELECT earned_delta_rao FROM hold_epoch_credits_v1 WHERE coldkey=? AND epoch>?",
                 (coldkey, current_epoch),
             ).fetchall()
             cur_earned_total -= sum(int(r[0]) for r in later)
+            later_bonus = self._conn.execute(
+                "SELECT bonus_delta_rao FROM hold_epoch_bonus_credits_v1 WHERE coldkey=? AND epoch>?",
+                (coldkey, current_epoch),
+            ).fetchall()
+            cur_bonus_total -= sum(int(r[0]) for r in later_bonus)
         if pending_credit_rao > 0:
             existing = self._conn.execute(
                 "SELECT earned_delta_rao, hotkey FROM hold_epoch_credits_v1 WHERE epoch=? AND coldkey=?",
@@ -398,25 +533,47 @@ class HoldBonusLedger:
                     raise RewardFailure("CONFLICTING_EPOCH_CREDIT")
             else:
                 cur_earned_total += pending_credit_rao
+        if pending_bonus_rao > 0:
+            existing_bonus = self._conn.execute(
+                "SELECT bonus_delta_rao, hotkey FROM hold_epoch_bonus_credits_v1 WHERE epoch=? AND coldkey=?",
+                (current_epoch, coldkey),
+            ).fetchone()
+            if existing_bonus is not None:
+                if int(existing_bonus[0]) != pending_bonus_rao or (
+                    pending_bonus_hotkey is not None and existing_bonus[1] != pending_bonus_hotkey
+                ):
+                    raise RewardFailure("CONFLICTING_EPOCH_BONUS_CREDIT")
+            else:
+                cur_bonus_total += pending_bonus_rao
         start_epoch = max(0, current_epoch - window_epochs + 1)
         rows = self._conn.execute(
-            """SELECT epoch, staked_rao, cumulative_earned_rao, sold_rao
+            """SELECT epoch, staked_rao, cumulative_earned_rao, cumulative_bonus_rao, sold_rao
                FROM hold_epoch_samples_v1
                WHERE coldkey=? AND epoch BETWEEN ? AND ?
                ORDER BY epoch ASC""",
             (coldkey, start_epoch, current_epoch),
         ).fetchall()
-        if pending_stake_rao is not None:
-            if type(pending_stake_rao) is not int or pending_stake_rao < 0:
+        effective_stake_rao = pending_stake_rao
+        if (
+            effective_stake_rao is None
+            and (pending_credit_rao > 0 or pending_bonus_rao > 0)
+            and rows
+            and rows[-1][0] == current_epoch
+        ):
+            effective_stake_rao = int(rows[-1][1])
+        if effective_stake_rao is not None:
+            if type(effective_stake_rao) is not int or effective_stake_rao < 0:
                 raise RewardFailure("INVALID_STAKE_RAO")
             if cur_earned_total <= 0:
                 return None
-            held_now = min(pending_stake_rao, cur_earned_total)
-            sold_now = cur_earned_total - held_now
+            cur_total_issued = cur_earned_total + cur_bonus_total
+            held_now = min(effective_stake_rao, cur_total_issued)
+            sold_now = cur_total_issued - held_now
             cur_sample = (
                 current_epoch,
-                str(pending_stake_rao),
+                str(effective_stake_rao),
                 str(cur_earned_total),
+                str(cur_bonus_total),
                 str(sold_now),
             )
             effective_rows = [r for r in rows if r[0] < current_epoch] + [cur_sample]
@@ -425,16 +582,22 @@ class HoldBonusLedger:
         if not effective_rows or effective_rows[-1][0] != current_epoch:
             return None
         worst = Fraction(0)
-        for _ep, _staked_s, earned_s, sold_s in effective_rows:
-            earned = int(earned_s)
+        for _ep, _staked_s, earned_s, bonus_s, sold_s in effective_rows:
+            total_issued = int(earned_s) + int(bonus_s)
             sold = int(sold_s)
-            if earned > 0:
-                ratio = Fraction(sold, earned)
+            if total_issued > 0:
+                ratio = Fraction(sold, total_issued)
                 if ratio > worst:
                     worst = ratio
         cur_staked = int(effective_rows[-1][1])
-        cur_earned = int(effective_rows[-1][2])
-        eligible_held_now = min(cur_staked, cur_earned)
+        cur_crown = int(effective_rows[-1][2])
+        cur_bonus = int(effective_rows[-1][3])
+        cur_total_issued = cur_crown + cur_bonus
+        eligible_held_now = (
+            (cur_crown * min(cur_staked, cur_total_issued)) // cur_total_issued
+            if cur_total_issued > 0
+            else 0
+        )
         return eligible_held_now, worst
 
 
@@ -485,6 +648,7 @@ def compute_waterfall_targets(
     treasury_current_stake_rao: int | None = None,
     staked_by_coldkey: dict[str, int] | None = None,
     crown_credits_by_coldkey: dict[str, tuple[int, str]] | None = None,
+    bonus_credits_by_coldkey: dict[str, tuple[int, str]] | None = None,
     owner_coldkey: str | None = None,
     owner_hotkeys: tuple[str, ...] = (),
     publisher_hotkey: str | None = None,
@@ -517,11 +681,15 @@ def compute_waterfall_targets(
     if owner_coldkey is not None:
         excluded_coldkeys.add(owner_coldkey)
 
-    use_overlay = crown_credits_by_coldkey is not None or staked_by_coldkey is not None
+    use_overlay = (
+        crown_credits_by_coldkey is not None
+        or bonus_credits_by_coldkey is not None
+        or staked_by_coldkey is not None
+    )
     tracked_overlay: list[tuple[str, int, str]] | None = None
     if hold_ledger is not None and use_overlay:
         tracked_overlay = hold_ledger.tracked_coldkeys_preview(
-            epoch, crown_credits_by_coldkey
+            epoch, crown_credits_by_coldkey, bonus_credits_by_coldkey
         )
         if staked_by_coldkey is not None:
             for coldkey, cum_earned, _pref_hk in tracked_overlay:
@@ -595,12 +763,15 @@ def compute_waterfall_targets(
                 continue
             if use_overlay:
                 credit_entry = (crown_credits_by_coldkey or {}).get(coldkey)
+                bonus_entry = (bonus_credits_by_coldkey or {}).get(coldkey)
                 status = hold_ledger.window_status_preview(
                     coldkey,
                     epoch,
                     waterfall.hold_window_epochs,
                     pending_credit_rao=credit_entry[0] if credit_entry is not None else 0,
                     pending_credit_hotkey=credit_entry[1] if credit_entry is not None else None,
+                    pending_bonus_rao=bonus_entry[0] if bonus_entry is not None else 0,
+                    pending_bonus_hotkey=bonus_entry[1] if bonus_entry is not None else None,
                     pending_stake_rao=(
                         staked_by_coldkey[coldkey]
                         if staked_by_coldkey is not None

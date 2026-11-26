@@ -329,3 +329,226 @@ def test_recycled_sink_uid_fails_identity_pin_and_falls_through_to_burn():
     )
     assert targets["treasury"] == []
     assert targets["burn"] == 500_000_000_000
+
+
+def test_non_compounding_bonus_principal_at_50pct_rate_and_40pct_cap(tmp_path):
+    """Miner with Crown `C = 1,000 α` and Hold Bonus `H = 500 α` holding `B = 1,500 α`
+    gets `worst_sold == 0` and non-compounding `eligible_held == 1,000 α` (NOT `1,500 α`),
+    earning exact +50% window rate on `1,000 α` under `window_bonus_rate_bps=5000`, `hold_cap_q12=400_000_000_000`."""
+    policy = load_policy("mainnet-winner-v4")
+    t0 = 1_700_000_000_000
+    snap = _snapshot(t0 + DAY_MS)  # Day 2: king at 50% (5e11 Q12), decayed = 5e11 Q12
+    launch_cfg = _wf_cfg(
+        hold_window_epochs=600,
+        hold_cap_q12=400_000_000_000,  # 40% epoch cap
+        window_bonus_rate_bps=5000,    # +50% over 30d at 0% sold
+        zero_bonus_sold_bps=5000,      # 50% sold cutoff
+    )
+    ledger = HoldBonusLedger(tmp_path / "hold.sqlite3")
+    try:
+        ledger.record_crown_earnings(1, {"ck_loyal_1": (1_000 * RAO, "hk_loyal_1")})
+        ledger.record_bonus_earnings(1, {"ck_loyal_1": (500 * RAO, "hk_loyal_1")})
+        # Idempotent re-recording succeeds; conflicting re-recording fails closed
+        ledger.record_bonus_earnings(1, {"ck_loyal_1": (500 * RAO, "hk_loyal_1")})
+        with pytest.raises(RewardFailure, match="CONFLICTING_EPOCH_BONUS_CREDIT"):
+            ledger.record_bonus_earnings(1, {"ck_loyal_1": (499 * RAO, "hk_loyal_1")})
+
+        ledger.sample_epoch_stakes(1, {"ck_loyal_1": 1_500 * RAO})
+        eligible_held, worst_sold = ledger.window_status("ck_loyal_1", 1, 600)
+        assert worst_sold == Fraction(0)
+        assert eligible_held == 1_000 * RAO  # Exact C = 1,000 α, zero bonus-on-bonus compounding!
+
+        # With epoch_miner_emission_rao = 10 α:
+        # target_alpha = 1,000 α * (5000 / (10_000 * 600)) = (5/6) α
+        # desired_q12 = ((5/6) α * 10^12) // 10 α = 83_333_333_333 Q12 (NOT 125_000_000_000!)
+        targets = compute_waterfall_targets(
+            policy,
+            launch_cfg,
+            snap,
+            {"electric-motor-magnetics": Winner("hk_king", t0)},
+            epoch=1,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=1_000 * RAO,
+            owner_coldkey="ck_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_publisher",
+        )
+        assert targets["hold_bonus"] == [
+            [{"hotkey": "hk_loyal_1", "coldkey": "ck_loyal_1", "registered_at": 110}, 83_333_333_333]
+        ]
+
+        # Also verify the 40% epoch cap (`hold_cap_q12 = 400_000_000_000`) clamps when emission is small (1 α)
+        capped = compute_waterfall_targets(
+            policy,
+            launch_cfg,
+            snap,
+            {"electric-motor-magnetics": Winner("hk_king", t0)},
+            epoch=1,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=1 * RAO,
+            treasury_current_stake_rao=1_000 * RAO,
+            owner_coldkey="ck_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_publisher",
+        )
+        assert capped["hold_bonus"] == [
+            [{"hotkey": "hk_loyal_1", "coldkey": "ck_loyal_1", "registered_at": 110}, 400_000_000_000]
+        ]
+    finally:
+        ledger.close()
+
+
+def test_bonus_yield_dumping_is_penalized_across_window_and_zeroed_at_cutoff(tmp_path):
+    """If a miner with `C = 1,000 α` and `H = 500 α` dumps the `500 α` bonus (`B = 1,000 α`),
+    `worst_sold == 1/3` (rate slashed by 2/3 under 50% cutoff) and `eligible_held == 666_666_666_666` rao,
+    staying penalized across the window even if they rebuy to `2,000 α` next epoch;
+    and dumping `750 α` (`B = 750 α`, 50% of `C + H`) drops bonus to exact `0`."""
+    ledger = HoldBonusLedger(tmp_path / "hold.sqlite3")
+    try:
+        ledger.record_crown_earnings(1, {"ck_loyal_1": (1_000 * RAO, "hk_loyal_1")})
+        ledger.record_bonus_earnings(1, {"ck_loyal_1": (500 * RAO, "hk_loyal_1")})
+        ledger.sample_epoch_stakes(1, {"ck_loyal_1": 1_500 * RAO})
+
+        # Epoch 2: dumps all 500 α Hold Bonus (`B = 1,000 α` out of `I = 1,500 α`)
+        ledger.sample_epoch_stakes(2, {"ck_loyal_1": 1_000 * RAO})
+        held_2, worst_2 = ledger.window_status("ck_loyal_1", 2, 10)
+        assert worst_2 == Fraction(1, 3)
+        assert held_2 == 666_666_666_666
+        full_rate = epoch_bonus_rate(Fraction(0), 5000, 5000, 600)
+        slashed_rate = epoch_bonus_rate(worst_2, 5000, 5000, 600)
+        assert slashed_rate == full_rate * Fraction(1, 3)  # Slashed by 2/3!
+
+        # Epoch 3..11: miner rebuys to 2,000 α (above C + H = 1,500 α) -> still penalized for full 10-epoch window!
+        for ep in range(3, 12):
+            ledger.sample_epoch_stakes(ep, {"ck_loyal_1": 2_000 * RAO})
+        held_11, worst_11 = ledger.window_status("ck_loyal_1", 11, 10)
+        assert held_11 == 1_000 * RAO
+        assert worst_11 == Fraction(1, 3)
+
+        # Epoch 12: epoch 2 dump ages out of 10-epoch window [3..12], restoring 0% sold
+        ledger.sample_epoch_stakes(12, {"ck_loyal_1": 2_000 * RAO})
+        held_12, worst_12 = ledger.window_status("ck_loyal_1", 12, 10)
+        assert held_12 == 1_000 * RAO
+        assert worst_12 == Fraction(0)
+
+        # Epoch 13: miner dumps 750 α (`B = 750 α` == 50% of `C + H = 1,500 α`) -> exact 0 bonus!
+        ledger.sample_epoch_stakes(13, {"ck_loyal_1": 750 * RAO})
+        held_13, worst_13 = ledger.window_status("ck_loyal_1", 13, 10)
+        assert held_13 == 500 * RAO
+        assert worst_13 == Fraction(1, 2)
+        assert epoch_bonus_rate(worst_13, 5000, 5000, 600) == Fraction(0)
+    finally:
+        ledger.close()
+
+
+def test_preview_overlay_with_bonus_credits_matches_committed_state_and_migrates_legacy_db(tmp_path):
+    """1) Legacy SQLite DB without `cumulative_bonus_rao` migrates cleanly in place.
+    2) Non-mutating `compute_waterfall_targets(..., bonus_credits_by_coldkey=...)` matches committed
+       `record_bonus_earnings` + `sample_epoch_stakes` byte-for-byte."""
+    import sqlite3
+
+    db_path = tmp_path / "legacy_hold.sqlite3"
+    raw_conn = sqlite3.connect(str(db_path))
+    with raw_conn:
+        raw_conn.execute(
+            """CREATE TABLE hold_coldkey_totals_v1 (
+                coldkey TEXT PRIMARY KEY,
+                cumulative_earned_rao TEXT NOT NULL,
+                preferred_hotkey TEXT NOT NULL,
+                updated_epoch INTEGER NOT NULL
+            )"""
+        )
+        raw_conn.execute(
+            """CREATE TABLE hold_epoch_credits_v1 (
+                epoch INTEGER NOT NULL,
+                coldkey TEXT NOT NULL,
+                earned_delta_rao TEXT NOT NULL,
+                hotkey TEXT NOT NULL,
+                PRIMARY KEY(epoch, coldkey)
+            )"""
+        )
+        raw_conn.execute(
+            """CREATE TABLE hold_epoch_samples_v1 (
+                epoch INTEGER NOT NULL,
+                coldkey TEXT NOT NULL,
+                staked_rao TEXT NOT NULL,
+                cumulative_earned_rao TEXT NOT NULL,
+                sold_rao TEXT NOT NULL,
+                PRIMARY KEY(epoch, coldkey)
+            )"""
+        )
+        raw_conn.execute(
+            "INSERT INTO hold_coldkey_totals_v1 VALUES ('ck_loyal_1', ?, 'hk_loyal_1', 1)",
+            (str(1_000 * RAO),),
+        )
+        raw_conn.execute(
+            "INSERT INTO hold_epoch_credits_v1 VALUES (1, 'ck_loyal_1', ?, 'hk_loyal_1')",
+            (str(1_000 * RAO),),
+        )
+        raw_conn.execute(
+            "INSERT INTO hold_epoch_samples_v1 VALUES (1, 'ck_loyal_1', ?, ?, '0')",
+            (str(1_000 * RAO), str(1_000 * RAO)),
+        )
+    raw_conn.close()
+
+    policy = load_policy("mainnet-winner-v4")
+    t0 = 1_700_000_000_000
+    snap = _snapshot(t0 + DAY_MS)
+    cfg = _wf_cfg(
+        hold_window_epochs=600,
+        hold_cap_q12=400_000_000_000,
+        window_bonus_rate_bps=5000,
+        zero_bonus_sold_bps=5000,
+    )
+
+    ledger = HoldBonusLedger(db_path)
+    try:
+        # Epoch 2 preview: miner earned +500 α bonus, but only holds B = 1,000 α (dumped the 500 α bonus!)
+        preview_targets = compute_waterfall_targets(
+            policy,
+            cfg,
+            snap,
+            {"electric-motor-magnetics": Winner("hk_king", t0)},
+            epoch=2,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=1_000 * RAO,
+            staked_by_coldkey={"ck_loyal_1": 1_000 * RAO},
+            bonus_credits_by_coldkey={"ck_loyal_1": (500 * RAO, "hk_loyal_1")},
+            owner_coldkey="ck_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_publisher",
+        )
+        # Verify nothing was written to SQLite during preview
+        assert ledger._conn.execute(
+            "SELECT COUNT(*) FROM hold_epoch_bonus_credits_v1"
+        ).fetchone() == (0,)
+        assert ledger._conn.execute(
+            "SELECT COUNT(*) FROM hold_epoch_samples_v1 WHERE epoch=2"
+        ).fetchone() == (0,)
+
+        # Now commit via record_bonus_earnings + sample_epoch_stakes and verify byte-for-byte parity
+        ledger.record_bonus_earnings(2, {"ck_loyal_1": (500 * RAO, "hk_loyal_1")})
+        ledger.sample_epoch_stakes(2, {"ck_loyal_1": 1_000 * RAO})
+        committed_targets = compute_waterfall_targets(
+            policy,
+            cfg,
+            snap,
+            {"electric-motor-magnetics": Winner("hk_king", t0)},
+            epoch=2,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=1_000 * RAO,
+            owner_coldkey="ck_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_publisher",
+        )
+        assert preview_targets == committed_targets
+
+        # Historical roll-back preview for epoch 1 (while updated_epoch == 2) subtracts epoch 2 bonus cleanly
+        assert ledger.window_status_preview(
+            "ck_loyal_1", 1, 600, pending_stake_rao=1_000 * RAO
+        ) == (1_000 * RAO, Fraction(0))
+    finally:
+        ledger.close()

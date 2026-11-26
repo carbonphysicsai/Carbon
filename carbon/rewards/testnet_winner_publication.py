@@ -626,6 +626,10 @@ class TestnetWinnerIntentIssuer:
                     self.hold_ledger.record_crown_earnings(
                         epoch, obs.crown_credits_by_coldkey
                     )
+                if obs.bonus_credits_by_coldkey:
+                    self.hold_ledger.record_bonus_earnings(
+                        epoch, obs.bonus_credits_by_coldkey
+                    )
                 if obs.staked_by_coldkey is not None:
                     self.hold_ledger.sample_epoch_stakes(epoch, obs.staked_by_coldkey)
             canary_hotkeys = frozenset(
@@ -642,6 +646,7 @@ class TestnetWinnerIntentIssuer:
                 treasury_current_stake_rao=obs.treasury_current_stake_rao,
                 staked_by_coldkey=obs.staked_by_coldkey,
                 crown_credits_by_coldkey=obs.crown_credits_by_coldkey,
+                bonus_credits_by_coldkey=obs.bonus_credits_by_coldkey,
                 owner_coldkey=obs.owner_coldkey,
                 owner_hotkeys=obs.owner_hotkeys,
                 publisher_hotkey=self.authorization.publisher_hotkey,
