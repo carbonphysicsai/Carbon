@@ -79,7 +79,7 @@ def test_the_checks_catch_what_they_guard():
     assert HIDDEN.search("sha256:ab") and HIDDEN.search("bank 8eb0aa23df557035")
     assert HIDDEN.search("N = 3 per class")
     assert RULE_WORD.search("a margin of 0.02") and re.search(r"\d", "0.02")
-    assert not DATE.search("Ribbed Bracket 2.0") and not DATE.search("9 inputs")
+    assert not DATE.search("Ribbed Bracket 1.7") and not DATE.search("9 inputs")
 
 
 def test_the_updates_name_exactly_the_launch_challenges_in_order():
