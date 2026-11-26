@@ -10,26 +10,50 @@ The answer row is the registered 1.9 layout (`carbon.motor.row19`): torque over 
 period, the three phase flux linkages over the same steps, then ``magnet_min_b_t``.
 
 Written: M1 (torque wrap and linkage wrap), M2 (open-circuit zero mean torque), M3 (low-current linearity), M5
-(remanence scaling; refuses while the version has no ``br`` input), M6 (magnet field bound), M8 (motoring sign), M9
-(smoothness on the scored rows, the shared G3 builder). M10 (determinism) is the runner's.
-NOT written, each a FINDING to exam-motor (registry-a row): M4 asks psi + 180 degrees but the version's current-angle
-box is 0 to 60 degrees, so its partner is never in the box; M7's K_ub multiplies turns by J x slot area, which already
-counts every turn (J x coil area = the slot's ampere-turns), and the coil area is not an input; the linkage shift of
-M2 needs the winding table across two slot pitches, which one 60-step window does not hold.
+(remanence scaling; refuses while the version has no ``br`` input), M6 (magnet field bound), M7 (torque bound, as
+restated in exam-motor 8569), M8 (motoring sign), M9 (smoothness on the scored rows, the shared G3 builder). M10
+(determinism) is the runner's.
+
+exam-motor 8569 (answers to registry-a 8557 and review-b 8555), applied here:
+- M4 DROPPED (psi + 180 degrees is outside every current-angle box) and the M2 linkage shift DROPPED (the phases sit
+  two slot pitches apart, outside the one 60-step window); only the M1 wrap form is testable.
+- M7 RESTATED: K_ub = slots x J x coil_area_mm2(design) / (2 pi r_g), no turns factor; T_max = 2 pi r_g^2 L B_ub K_ub,
+  B_ub = br x magnet_mm / (magnet_mm + airgap_mm). The gap radius rule is a fact; the gate is built only once the
+  row that checked the bound at least 10 percent above every stored solver |Tm| is named (else the law is dropped).
+- M5 BASES: a base br must keep every scaled br inside the box; `remanence_base_box` gives the runner that box, and
+  a base outside it refuses the draw, never the model.
+- X3: M2 and M3 anchor on SCORED designs (their copies at J = 0, J0 and 2 J0), so a memorised-row hybrid answers the
+  copies with its fallback; the grade path supplies the scored rows (door-code).
+- M-c: the share of M3 bases skipped for a tiny denominator is capped at a posted share (the reference one); above
+  it, every skipped base fails.
+NOT written: the thermal laws of exam-motor 8629 (T at or above the coolant, T monotone in J, the small-J ratio) wait
+the registered 243-wide row; energy balance is NOT a model gate (a solver selftest, exam-motor 8629).
 """
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from functools import partial
-from typing import Mapping, Optional
+from typing import Callable, Mapping, Optional
 
 import numpy as np
 
-from carbon.motor import row19
+from carbon.motor import domain, row19
 from carbon.motor.domain import ANGLE_STEPS
 
-from . import GateRefused, column, copies, law, need, setting, smoothness
+from . import (
+    FAIL,
+    NOT_APPLICABLE,
+    Box,
+    GateRefused,
+    column,
+    copies,
+    law,
+    need,
+    setting,
+    smoothness,
+)
 
 CHALLENGE = "electric-motor-magnetics"
 VERSION = "1.9"
@@ -67,6 +91,15 @@ class MotorFacts:
         float
     ] = None  # M5 applies only while magnet_min_b_t stays above it, T
     smooth_steps: Optional[tuple] = None  # steps of M9 ("ulp" or a box-width fraction)
+    m3_skip_cap: Optional[
+        float
+    ] = None  # M3: the largest share of bases skipped as not applicable (M-c)
+    gap_radius_mm: Optional[
+        Callable
+    ] = None  # M7: {input name: value} -> r_g in mm (exam-motor names the rule)
+    m7_bound_checked: Optional[
+        str
+    ] = None  # M7: the row that checked T_max >= 1.1 x every stored solver |Tm|
 
 
 def _width(outputs, gate_id):
@@ -132,7 +165,7 @@ def _open_circuit(facts, tol):
 
     text = "With no current, the mean torque over the period is zero."
     partners = copies(setting(j, lambda: 0.0))
-    return law(gid, "G1", "fresh", partners, residual, tol, text, arity=2)
+    return law(gid, "G1", "scored", partners, residual, tol, text, arity=2)
 
 
 def _low_current(facts, tol):
@@ -160,10 +193,10 @@ def _low_current(facts, tol):
         setting(j, j0),
         setting(j, lambda: 2.0 * j0()),
     )
-    return law(
+    gate = law(
         gid,
         "G1",
-        "fresh",
+        "scored",
         partners,
         residual,
         tol,
@@ -171,6 +204,23 @@ def _low_current(facts, tol):
         arity=4,
         applicable=applicable,
     )
+    return dataclasses.replace(gate, check=_capped(gate.check, facts, gid))
+
+
+def _capped(check, facts, gid):
+    """M-c: when more than the posted share of bases is skipped, every skipped base fails."""
+
+    def capped(inputs, outputs, tol_value):
+        cap = need(facts.m3_skip_cap, "m3_skip_cap", gid)
+        if type(cap) is not float or not 0.0 <= cap <= 1.0:
+            raise GateRefused("m3_skip_cap", gid)
+        verdict = np.asarray(check(inputs, outputs, tol_value))
+        skipped = verdict == NOT_APPLICABLE
+        if skipped.mean() > cap:
+            return np.where(skipped, FAIL, verdict)
+        return verdict
+
+    return capped
 
 
 def _remanence(facts, tol):
@@ -224,6 +274,23 @@ def _remanence(facts, tol):
     )
 
 
+def remanence_base_box(facts: MotorFacts, box: Box) -> Box:
+    """The box M5 draws its bases from: ``box`` with br narrowed so that every posted scale times br stays inside it
+    (exam-motor 8569: kit box 1.05 to 1.40 T with scales 0.9 and 1.1 gives 1.17 to 1.27 T). Refuses when nothing is
+    left."""
+    gid = "m5_remanence_scaling"
+    i = column(facts.input_names, _BR, gid)
+    values = tuple(need(facts.remanence_scales, "remanence_scales", gid))
+    if not values or any(type(v) is not float or not v > 0 for v in values):
+        raise GateRefused("remanence_scales", gid)
+    lower, upper = list(box.lower), list(box.upper)
+    lower[i] = max(lower[i], lower[i] / min(values))
+    upper[i] = min(upper[i], upper[i] / max(values))
+    if not lower[i] < upper[i]:
+        raise GateRefused("remanence_base_box", gid)
+    return Box(lower=tuple(lower), upper=tuple(upper))
+
+
 def _magnet_bound(facts, tol):
     gid = "m6_magnet_bound"
     j = partial(column, facts.input_names, _J, gid)
@@ -240,6 +307,50 @@ def _magnet_bound(facts, tol):
     text = "With no current, the minimum flux density in the magnet does not exceed its remanence."
     partners = copies(setting(j, lambda: 0.0))
     return law(gid, "G1", "fresh", partners, residual, tol, text, arity=2)
+
+
+def _torque_bound(facts, tol):
+    gid = "m7_torque_bound"
+    need(facts.m7_bound_checked, "m7_bound_checked", gid)
+    geometry = (
+        "magnet_mm",
+        "embrace",
+        "airgap_mm",
+        "slot_open_deg",
+        "tooth_mm",
+        "slot_bottom_mm",
+    )
+
+    def t_max(names, row):
+        case = {n: float(row[names.index(n)]) for n in geometry}
+        case[_J], case[_PSI] = domain.NOMINAL[_J], domain.NOMINAL[_PSI]
+        try:  # the coil area does not depend on J or psi
+            area = domain.coil_area_mm2(case)
+        except ValueError:
+            raise GateRefused("coil_area", gid) from None
+        r_g = float(need(facts.gap_radius_mm, "gap_radius_mm", gid)(case)) * 1e-3
+        if not (np.isfinite(r_g) and r_g > 0):
+            raise GateRefused("gap_radius_mm", gid)
+        if _BR in names:
+            br = float(row[names.index(_BR)])
+        else:
+            br = need(facts.br_fixed, "br_fixed", gid)
+        b_ub = br * case["magnet_mm"] / (case["magnet_mm"] + case["airgap_mm"])
+        j = float(row[names.index(_J)])
+        k_ub = domain.FIXED["slots"] * j * area / (2 * np.pi * r_g)
+        length = domain.FIXED["length"] * 1e-3
+        return 2 * np.pi * r_g**2 * length * b_ub * k_ub
+
+    def residual(inputs, outputs):
+        names = tuple(need(facts.input_names, "input_names", gid))
+        if any(n not in names for n in geometry + (_J,)):
+            raise GateRefused("no_input:geometry", gid)
+        bound = np.array([t_max(names, row) for row in inputs[:, 0, :]])
+        tm = np.abs(_mean_torque(_width(outputs, gid)[:, 0, :]))
+        return np.maximum(0.0, tm - bound) / need(facts.u_torque, "u_torque", gid)
+
+    text = "The mean torque never exceeds the most the magnet field and the slot current could give."
+    return law(gid, "G1", "fresh", copies(), residual, tol, text, arity=1)
 
 
 def _motoring_sign(facts, tol):
@@ -282,7 +393,7 @@ def _smooth(facts, tol):
     return smoothness(gid, steps, u, tol, text)
 
 
-#: Builders in gate order; M5 and M9 need their posted values to be built at all (`gates` lists them as unbuilt
+#: Builders in gate order; M5, M7 and M9 need their posted values to be built at all (`gates` lists them as unbuilt
 #: with the code otherwise).
 BUILDERS = (
     _torque_wrap,
@@ -291,6 +402,7 @@ BUILDERS = (
     _low_current,
     _remanence,
     _magnet_bound,
+    _torque_bound,
     _motoring_sign,
     _smooth,
 )
@@ -301,6 +413,7 @@ GATE_IDS = (
     "m3_low_current_linear",
     "m5_remanence_scaling",
     "m6_magnet_bound",
+    "m7_torque_bound",
     "m8_motoring_sign",
     "m9_smooth",
 )

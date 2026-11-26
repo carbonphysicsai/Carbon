@@ -35,6 +35,9 @@ FACTS = m.MotorFacts(
     remanence_scales=(0.9, 1.1),
     knee_t=0.1,
     smooth_steps=("ulp", 1e-6),
+    m3_skip_cap=1.0,
+    gap_radius_mm=lambda case: 25.6 + case["airgap_mm"] / 2,
+    m7_bound_checked="toy",
 )
 TOLS = {gid: 0.5 for gid in m.GATE_IDS}
 THETA = np.radians(
@@ -62,7 +65,7 @@ def toy(
     col = {n: flat[:, i] for i, n in enumerate(names)}
     j, psi = col["current_density_a_mm2"], np.radians(col["current_angle_deg"])
     br = col["br"] if "br" in col else np.full(len(flat), 1.2)
-    mean = flip * (0.5 * j * np.cos(psi) + quad * j**2)
+    mean = flip * (0.1 * j * np.cos(psi) + quad * j**2)  # below the M7 bound
     ripple = (
         0.02 * (1 + j / 15)[:, None] * np.sin(2 * np.pi * np.arange(60) / 60)[None, :]
     )
@@ -125,6 +128,7 @@ BROKEN = [
     ("m1_linkage_wrap", dict(link_sign=-1.0)),
     ("m3_low_current_linear", dict(quad=0.2)),
     ("m6_magnet_bound", dict(magnet_over=1.0)),
+    ("m7_torque_bound", dict(quad=5.0)),
     ("m8_motoring_sign", dict(flip=-1.0)),
 ]
 
@@ -201,6 +205,8 @@ def test_low_current_skips_a_tiny_denominator_as_not_applicable():
         ("j0", "m3_low_current_linear", "unset:j0"),
         ("u_magnet", "m6_magnet_bound", "unset:u_magnet"),
         ("motoring_window", "m8_motoring_sign", "unset:motoring_window"),
+        ("m3_skip_cap", "m3_low_current_linear", "unset:m3_skip_cap"),
+        ("gap_radius_mm", "m7_torque_bound", "unset:gap_radius_mm"),
     ],
 )
 def test_an_unset_fact_refuses_never_guesses(field, gid, code):
@@ -218,13 +224,16 @@ def test_remanence_scaling_refuses_while_the_version_has_no_br_input():
 
 
 def test_unbuilt_gates_are_listed_with_their_code():
-    facts = dataclasses.replace(FACTS, remanence_scales=None, smooth_steps=None)
+    facts = dataclasses.replace(
+        FACTS, remanence_scales=None, smooth_steps=None, m7_bound_checked=None
+    )
     built, unbuilt = m.gates(facts, TOLS)
     assert unbuilt == {
         "m5_remanence_scaling": "unset:remanence_scales",
+        "m7_torque_bound": "unset:m7_bound_checked",
         "m9_smooth": "unset:smooth_steps",
     }
-    assert len(built) == len(m.GATE_IDS) - 2
+    assert len(built) == len(m.GATE_IDS) - 3
 
 
 def test_a_missing_tol_refuses_to_grade():
@@ -242,3 +251,58 @@ def test_a_row_of_another_width_refuses():
     with pytest.raises(gl.GateRefused) as err:
         gl.verdicts(gate, rows, toy(rows)[..., :240])
     assert err.value.code == "width"
+
+
+def test_dropped_laws_are_not_in_the_set():
+    assert not any(g.startswith(("m4", "m10")) for g in m.GATE_IDS)
+
+
+def test_open_circuit_and_low_current_anchor_on_scored_designs():
+    assert _gate("m2_open_circuit_torque").base == "scored"
+    assert _gate("m3_low_current_linear").base == "scored"
+
+
+def test_low_current_fails_every_skipped_base_above_the_cap():
+    facts = dataclasses.replace(FACTS, m3_skip_cap=0.2)
+    got = _run(_gate("m3_low_current_linear", facts), lambda r: toy(r, flip=0.0))
+    assert np.all(got == gl.FAIL)
+
+
+def test_low_current_cap_of_the_wrong_type_refuses():
+    facts = dataclasses.replace(FACTS, m3_skip_cap=1)
+    with pytest.raises(gl.GateRefused) as err:
+        _run(_gate("m3_low_current_linear", facts), toy)
+    assert err.value.code == "m3_skip_cap"
+
+
+def test_remanence_base_box_keeps_every_scaled_br_inside():
+    facts = dataclasses.replace(FACTS, input_names=NAMES_BR)
+    narrowed = m.remanence_base_box(facts, BOX_BR)
+    assert narrowed.lower[-1] == pytest.approx(1.0 / 0.9)
+    assert narrowed.upper[-1] == pytest.approx(1.5 / 1.1)
+    assert narrowed.lower[:-1] == BOX_BR.lower[:-1]
+    base = _draw(box=narrowed)
+    got = _run(
+        _gate("m5_remanence_scaling", facts),
+        lambda r: toy(r, NAMES_BR),
+        box=BOX_BR,
+        base=base,
+    )
+    assert np.all(got == gl.PASS)
+
+
+def test_remanence_base_box_refuses_when_nothing_is_left():
+    facts = dataclasses.replace(
+        FACTS, input_names=NAMES_BR, remanence_scales=(0.5, 2.0)
+    )
+    with pytest.raises(gl.GateRefused) as err:
+        m.remanence_base_box(facts, BOX_BR)
+    assert err.value.code == "remanence_base_box"
+
+
+def test_torque_bound_holds_at_no_current_only_for_zero_torque():
+    got = _run(
+        _gate("m7_torque_bound"),
+        lambda r: toy(r) + np.r_[np.full(60, 50.0), np.zeros(181)],
+    )
+    assert np.all(got == gl.FAIL)
