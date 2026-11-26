@@ -202,6 +202,8 @@ def test_the_public_facts_say_closed_only_on_a_closed_door():
     source = (ROOT / "carbon/challenge_validator/direct_intake.py").read_text(
         encoding="utf-8"
     )
-    public = source[source.index("    def public(self):") :][:6000]
+    # the whole method up to the next one (release 8793: a fixed window ended early)
+    start = source.index("    def public(self):")
+    public = source[start : source.index("\n    def ", start + 1)]
     assert '{"closed_to_new_submissions": True}' in public
     assert 'getattr(self, "closed_to_new_submissions", False)' in public
