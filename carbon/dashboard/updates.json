@@ -9,7 +9,7 @@
     {
      "version": "1.9",
      "changes": [
-      "Motor 1.8 is closed to new submissions; its board stands as it was and it retires when the first Motor 1.9 king is crowned. Motor 1.9 is the next version; its opening is announced when it is set.",
+      "Motor 1.8 is retired and closed to new submissions; its board stands as it was. Motor 1.9 is the next version; its opening is announced when it is set.",
       "More of the motor is graded: every output that Carbon can solve for reference and that passes its pre-registered checks. Planned: torque and torque ripple, the open-circuit and loaded back-EMF, the mean torque in the cogging conditions, and the lowest flux density in the magnets (the demagnetization margin).",
       "The zero point moves up: a class scores zero at the accuracy of Carbon's own quick, coarse reference solve, and one at reference accuracy. Credit goes only to models that beat a cheap solver.",
       "Carbon publishes the coarse-solve results for every training design next to the reference results, so a model can learn the correction from coarse to fine.",
