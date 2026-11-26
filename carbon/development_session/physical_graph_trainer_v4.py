@@ -63,7 +63,7 @@ class TrustSpec:
     #: Indices (graph parameter input order) of the trust head's parameters, from `trust_head.check`; all in member 0.
     trust_parameters: tuple
     #: HUMAN_INPUT (None refuses): per trust output a NON-NEGATIVE sigma floor in the derived output's unit (0 = no floor: sigma =
-    #: exp(log_sigma) stays > 0; an owner trust-floor line, 23 Nov 2026), the phase-2 epochs over
+    #: exp(log_sigma) stays > 0; owner MOTOR19-TRUST-FLOOR-0, 23 Nov 2026), the phase-2 epochs over
     #: the held-out rows (a positive int) and the Adam learning rate (a positive float).
     sigma_floor: object = None
     epochs: object = None

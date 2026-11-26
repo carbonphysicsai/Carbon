@@ -290,8 +290,8 @@ def train_member(
     if layout is not None:
         slices, length = layout["slices"], layout["steps"]
         periodic = set(layout["periodic"])
-    # The layout's curve block is the first slices x steps columns; a version may carry SCALAR columns after it
-    # (audit row 5): the curve terms read the curve block only, and the time
+    # The layout's curve block is the first slices x steps columns; a version may carry SCALAR columns after it (Motor
+    # 1.9: 240 curve columns + magnet_min_b_t, audit row 5): the curve terms read the curve block only, and the time
     # weighting weights the curve block and leaves every tail column at 1.0.
     span = slices * length
     scalars = z.shape[1] - span
