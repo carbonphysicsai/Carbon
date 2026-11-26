@@ -144,6 +144,20 @@ class Grouping:
         return current.group(member.coldkey)
 
 
+def coldkey_reader(window):
+    """``hotkey -> coldkey or None`` from the receiver's own latest chain snapshot, the same read as `Grouping` (S3 of
+    bank 8319: the coldkey filed at grade time, `exam_cap.install_coldkeys`). Never anything a miner sends."""
+
+    def read(hotkey):
+        from carbon.battery.intake import grading_snapshot
+
+        snapshot = grading_snapshot(window)
+        member = None if snapshot is None else snapshot.resolve(hotkey)
+        return None if member is None else member.coldkey
+
+    return read
+
+
 def from_config(cfg, window, funder_map):
     """The receiver's `Grouping` when its configuration carries ``allowance_groups``, else None (per hotkey)."""
     block = cfg.get("allowance_groups")

@@ -106,6 +106,17 @@ CROWN_NOT_CONFIRMED = "crown_not_confirmed"
 #: A grade's filed confirmation record (`confirmation_record`, `PoolStore.record_confirmation`).
 CONFIRMATION_SCHEMA = "carbon.crown-confirmation.v1"
 CONFIRMATION_STATUSES = ("MEASURED", "INVALID", "UNAVAILABLE")
+#: A grade's private crown-decision record under the confirmation line (`decision_record`,
+#: `PoolStore.record_confirmation_decision`): S3 of bank 8319.
+DECISION_SCHEMA = "carbon.crown-confirmation-decision.v1"
+
+#: RETAINED RECORDS (owner, 25 Nov 2026, verbatim: "approved: every new exam (Motor 1.9, RB 2.0, joint) keeps ALL solver
+#: outputs of every solve, scored or unscored, in its retained records, as bank 8319 to 8321 and door-code 8330 S3 and S4
+#: specify; build S3 and S4 now with the confirmation head."). A version under it carries ``"records": "all"`` in its row
+#: (per pair, so no other door's grading changes, `grading_scope`); its door then keeps, beside every grade, S3 the
+#: coldkey and the signed receipt block on each graded ledger row (`exam_cap`) and S4 every gate verdict with the gate-set
+#: version (`exam_rotation.GATE_VERDICTS_SIDECAR`). Custody only, never served, never a grade input. Absent: as before.
+RECORDS = ("all",)
 
 
 def _confirmation_block(block):
@@ -160,7 +171,9 @@ def registered(challenge_id, version, *, path=None):
     )
     if (
         type(entry) is not dict
-        or set(entry) - {"confirmation"} not in ({"margin"}, {"margin", "score"})
+        or set(entry) - {"confirmation", "records"}
+        not in ({"margin"}, {"margin", "score"})
+        or ("records" in entry and entry["records"] not in RECORDS)
         # the total is the absent key, never spelled
         or (("score" in entry) and score != ACCURACY)
         or type(margin) not in (int, float)
@@ -175,6 +188,8 @@ def registered(challenge_id, version, *, path=None):
         **({} if score == TOTAL else {"score": score}),
         # a version under the owner's confirmation line carries its block (empty while unruled: every crown waits)
         **({} if confirmation is None else {"confirmation": confirmation}),
+        # a version under the owner's retained-records line (S3 and S4 kept beside every grade)
+        **({"records": entry["records"]} if "records" in entry else {}),
     }
 
 
@@ -282,8 +297,19 @@ def install(challenge_id, version, *, path=None, log=None):
             if "confirmation" in ACTIVE
             else ""
         )
+        + (f" records={ACTIVE['records']}" if "records" in ACTIVE else "")
     )
     return ACTIVE
+
+
+def records_all(challenge_id=None, version=None):
+    """Whether the served version keeps every retained record (`RECORDS`); with ``challenge_id`` and ``version``, only
+    when they are the served pair. False in a process that never installed the rule."""
+    if ACTIVE is None or ACTIVE.get("records") != "all":
+        return False
+    return challenge_id is None or (
+        (challenge_id, version) == (ACTIVE["challenge"], ACTIVE["version"])
+    )
 
 
 def confirmation_rule():
@@ -349,6 +375,36 @@ def confirmation_record(captured, exam_key, dual_measurement_sha256):
         "value": float(value) if status == "MEASURED" else None,
         "sets_sha256": found.get("sets_sha256"),
         **({} if reason is None else {"reason": str(reason)}),
+    }
+
+
+def decision_record(first, verdict, candidate, incumbent, open_numbers):
+    """The private record of one decided confirmation (S3 of bank 8319: per crown the open number, both confirmation
+    numbers and the answer), filed beside the decision for the readers of the probe watch and REV 5; never served.
+
+    ``verdict`` is `confirm`'s ``(verdict, reason)`` (CONFIRMED or NOT_CONFIRMED; a wait files nothing), ``candidate`` /
+    ``incumbent`` each grade's bound confirmation record or None, ``open_numbers`` the two ranked open numbers
+    ``(candidate, incumbent)`` the decision compared."""
+
+    def kept(record):
+        if type(record) is not dict:
+            return None
+        return {
+            "status": record.get("status"),
+            "value": record.get("value"),
+            "sets_sha256": record.get("sets_sha256"),
+        }
+
+    return {
+        "schema": DECISION_SCHEMA,
+        "rule": dict(confirmation_rule() or {}),
+        "first": bool(first),
+        "verdict": verdict[0],
+        "reason": verdict[1],
+        "candidate_open": open_numbers[0],
+        "incumbent_open": open_numbers[1],
+        "candidate_confirmation": kept(candidate),
+        "incumbent_confirmation": kept(incumbent),
     }
 
 
@@ -420,6 +476,8 @@ __all__ = [
     "CROWN_CONFIRMATION_UNSET",
     "CROWN_MARGIN_UNSET",
     "CROWN_NOT_CONFIRMED",
+    "DECISION_SCHEMA",
+    "RECORDS",
     "RECORD_RULE",
     "REGISTRY",
     "SCHEMA",
@@ -434,11 +492,13 @@ __all__ = [
     "confirmation_record",
     "confirmation_rule",
     "decided_by",
+    "decision_record",
     "install",
     "label",
     "margin_unset",
     "ranked_row",
     "reader",
+    "records_all",
     "registered",
     "row_check_unknown",
     "score_of",

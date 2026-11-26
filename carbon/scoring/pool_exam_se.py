@@ -88,6 +88,9 @@ def bootstrap_total_se(
             if "case_errors" in capture:
                 # LL2: the per-case errors that record was reduced from (`case_errors`), custody alike
                 report["case_errors"] = capture["case_errors"]
+        if report is not None and "gate_verdicts" in capture:
+            # S4 (bank 8319): every gate verdict of this grade with its gate-set version, custody alike
+            report["gate_verdicts"] = capture["gate_verdicts"]
         spread, sizes = pool_exam.target_bootstrap_se(
             capture.get("se_basis"), exam_key, resamples=resamples
         )

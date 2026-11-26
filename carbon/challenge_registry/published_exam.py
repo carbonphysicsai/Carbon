@@ -716,8 +716,9 @@ def _accuracy_ranked(path):
         return frozenset(
             name
             for name, row in rows.items()
-            # a confirmation block (CROWN-CONFIRMATION-SET) changes which crowns hold, never which number ranks
-            if set(row) - {"confirmation"} == {"margin", "score"}
+            # a confirmation block (CROWN-CONFIRMATION-SET) changes which crowns hold, and a records key what custody
+            # keeps beside a grade (owner retained-records line), never which number ranks
+            if set(row) - {"confirmation", "records"} == {"margin", "score"}
             and row["score"] == "A"
         )
     except (OSError, ValueError, KeyError, TypeError, AttributeError):

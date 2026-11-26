@@ -37,6 +37,10 @@ ACCURACY_SIDECAR = "accuracy-record.json"
 ACCURACY_SIDECAR_SCHEMA = "carbon.exam.accuracy-record-sidecar.v1"
 #: LL2 (owner LL-A, 23 Nov 2026): beside the accuracy record, the per-case errors it was reduced from (`case_errors`).
 CASE_ERRORS_SIDECAR = "case-errors.npz"
+#: S4 (bank 8319; owner retained-records line, 25 Nov 2026): beside them, every gate verdict of the grade with its gate-set
+#: version (`pool_exam.gate_verdicts`), written only by a version whose row keeps every record (`crown_official.records_all`).
+GATE_VERDICTS_SIDECAR = "gate-verdicts.json"
+GATE_VERDICTS_SIDECAR_SCHEMA = "carbon.exam.gate-verdicts-sidecar.v1"
 ROTATE, KEEP, UNAVAILABLE = "ROTATE", "KEEP", "UNAVAILABLE"
 
 _DDL = """

@@ -1648,6 +1648,61 @@ class PoolStore:
             elif row != ("confirmation.v1", "RECORDED", body):
                 raise StateError("confirmation_changed")
 
+    def record_confirmation_decision(self, submission_id, key, record):
+        """File the private record of the decided confirmation of ``submission_id``'s crown on ``key``
+        (`crown_official.decision_record`, S3 of bank 8319). Write-once: the same record again is a no-op, another one
+        refuses (`confirmation_decision_changed`) and the first stays."""
+        from carbon.challenge_validator import crown_official
+        from carbon.challenge_validator.interface import is_digest
+
+        if (
+            not is_digest(key)
+            or type(record) is not dict
+            or record.get("schema") != crown_official.DECISION_SCHEMA
+        ):
+            raise StateError("confirmation_decision_invalid")
+        op = self._bank_operation("confirmation_decision.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.confirmation-decision.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "record": record,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "confirmation_decision.v1", "RECORDED", body),
+                )
+            elif row != ("confirmation_decision.v1", "RECORDED", body):
+                raise StateError("confirmation_decision_changed")
+
+    def confirmation_decision(self, submission_id, key):
+        """The filed confirmation decision record (`record_confirmation_decision`), or None. Reads only."""
+        op = self._bank_operation("confirmation_decision.v1", submission_id, key)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+        if row is None or row[:2] != ("confirmation_decision.v1", "RECORDED"):
+            return None
+        try:
+            body = json.loads(row[2])
+        except ValueError:
+            return None
+        if (
+            type(body) is not dict
+            or body.get("submission_id") != submission_id
+            or body.get("evaluation_key") != key
+        ):
+            return None
+        return body.get("record")
+
     def confirmation(self, submission_id, key):
         """The filed confirmation record of one grade (`record_confirmation`), or None. Reads only."""
         op = self._bank_operation("confirmation.v1", submission_id, key)

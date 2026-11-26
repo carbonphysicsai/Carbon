@@ -3904,6 +3904,9 @@ def serve(
             exam_cap.install_grouping(
                 allowance_groups.from_config(cfg, window, intake._current_map)
             )
+            # S3 (owner retained-records line, 25 Nov 2026): the coldkey filed on a graded row, read as the grouping reads
+            # it; only a version whose row keeps every record files it (`exam_cap._grade_time_identity`)
+            exam_cap.install_coldkeys(allowance_groups.coldkey_reader(window))
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
                 # No intake feeds snapshots in this mode: refresh them for the

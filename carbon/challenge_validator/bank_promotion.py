@@ -625,6 +625,33 @@ class BankPromotion:
         except StateError:
             pass  # a record for this decision already exists: kept
 
+    def _record_confirmation_decision(
+        self, submission_id, evaluation_key, pair, first, verdict, mine, king
+    ):
+        """File the private record of a decided confirmation (S3 of bank 8319, owner retained-records line 25 Nov 2026):
+        the two open numbers compared, both confirmation numbers and the answer. Write-once; an earlier record for the same
+        decision stays as it is. A store without the record (a tool, a test double) files nothing."""
+        from carbon.challenge_validator import crown_official
+
+        filer = getattr(self.store, "record_confirmation_decision", None)
+        if filer is None:
+            return
+        incumbent = pair["incumbent"]
+        record = crown_official.decision_record(
+            first,
+            verdict,
+            mine,
+            king,
+            (
+                _scored(pair["candidate"])[1],
+                None if incumbent is None else _scored(incumbent)[1],
+            ),
+        )
+        try:
+            filer(submission_id, evaluation_key, record)
+        except StateError:
+            pass  # a record for this decision already exists: kept
+
     def _undecided_before(self, submission_id, evaluation_key):
         """The unresolved crown-pause records filed BEFORE this contender's own (all of them when it has none yet), oldest
         first: the earlier decisions this one must not be decided ahead of."""
@@ -777,6 +804,7 @@ class BankPromotion:
                     "candidate": submission_id,
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
+            decided = None
             if official is not None and outcome["outcome"] in (
                 FIRST_INCUMBENT,
                 CHALLENGER,
@@ -789,15 +817,16 @@ class BankPromotion:
                 # first crown is, and one whose confirmation does not hold still dethrones him (nobody is crowned).
                 king_failed = outcome.get("reason") == "incumbent_failed_mandatory_gate"
                 first = outcome["outcome"] == FIRST_INCUMBENT or king_failed
-                verdict = crown_official.confirm(
-                    first,
-                    self._confirmation_of(pair["candidate"], evaluation_key),
-                    (
-                        None
-                        if first
-                        else self._confirmation_of(pair["incumbent"], evaluation_key)
-                    ),
+                mine = self._confirmation_of(pair["candidate"], evaluation_key)
+                king = (
+                    None
+                    if first
+                    else self._confirmation_of(pair["incumbent"], evaluation_key)
                 )
+                verdict = crown_official.confirm(first, mine, king)
+                if verdict is not None and verdict[0] != "WAIT":
+                    # S3 (bank 8319): filed once the decision stands (below), never for a wait
+                    decided = (first, verdict, mine, king)
                 if verdict is not None and verdict[0] == "WAIT":
                     return {
                         "outcome": UNAVAILABLE,
@@ -810,6 +839,9 @@ class BankPromotion:
                     if king_failed:
                         outcome = {**outcome, "outcome": DETHRONED}
                     else:
+                        self._record_confirmation_decision(
+                            submission_id, evaluation_key, pair, *decided
+                        )
                         return {
                             **outcome,
                             "outcome": (
@@ -834,6 +866,10 @@ class BankPromotion:
                 elif outcome["outcome"] == DETHRONED:
                     self.store.vacate_incumbent(
                         pair["expected_incumbent"], "incumbent_failed_mandatory_gate"
+                    )
+                if decided is not None:
+                    self._record_confirmation_decision(
+                        submission_id, evaluation_key, pair, *decided
                     )
                 return outcome
 

@@ -3431,6 +3431,9 @@ def _write_captured_exam_se(
                     },
                 )
             )
+        verdicts = _gate_verdict_sidecar(exam_key, captured.get("gate_verdicts"))
+        if verdicts is not None:
+            sidecars.append((exam_rotation.GATE_VERDICTS_SIDECAR, verdicts))
         for name, body in sidecars:
             try:
                 write_once(directory / name, _json(body))
@@ -3578,7 +3581,38 @@ def _write_exam_se(
             report.get("case_errors"),
             None,
         )
+    verdicts = _gate_verdict_sidecar(
+        snapshot.manifest_digest, report.get("gate_verdicts")
+    )
+    if verdicts is not None:
+        try:
+            write_once(directory / exam_rotation.GATE_VERDICTS_SIDECAR, _json(verdicts))
+        except Exception as failure:  # noqa: BLE001 - custody evidence, never the grade
+            _journal(
+                "grade_sidecar_unwritten",
+                task=directory.name,
+                sidecar=exam_rotation.GATE_VERDICTS_SIDECAR,
+                error=type(failure).__name__,
+            )
     return report.get("accuracy")
+
+
+def _gate_verdict_sidecar(exam_key, verdicts):
+    """S4 (bank 8319; owner retained-records line, 25 Nov 2026): the gate-verdicts sidecar body of one grade, or None for a
+    version whose row does not keep every record (`crown_official.records_all`) or a measure that kept none. Custody only;
+    never raises."""
+    try:
+        from carbon.challenge_validator import crown_official, exam_rotation
+
+        if verdicts is None or not crown_official.records_all():
+            return None
+        return {
+            "schema": exam_rotation.GATE_VERDICTS_SIDECAR_SCHEMA,
+            "exam_key": exam_key,
+            "record": verdicts,
+        }
+    except Exception:  # noqa: BLE001 - custody evidence, never the grade
+        return None
 
 
 def _write_case_errors(submission_id, directory, exam_key, arrays, unavailable):

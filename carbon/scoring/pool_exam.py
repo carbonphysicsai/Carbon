@@ -62,6 +62,11 @@ AGEN_VALIDITY_GATE = "agen_prediction_validity"
 ACCURACY_GATE = pool_physics_score.ACCURACY_GATE
 SPEED_GATE = "speed"
 SPEED_SAMPLE = 20
+#: S4 (bank 8319; owner retained-records line, 25 Nov 2026): every gate verdict of one grade with its gate-set version
+#: (`gate_verdicts`), kept in ``capture["gate_verdicts"]`` and written beside the case errors by a version that keeps every
+#: record (`exam_rotation.GATE_VERDICTS_SIDECAR`). Custody only; it cannot change a grade.
+GATE_VERDICTS_SCHEMA = "carbon.exam.gate-verdicts.v1"
+PASS, FAIL, NOT_APPLICABLE = "PASS", "FAIL", "NOT_APPLICABLE"
 OUTCOME_POOL = "POOL_GRADED"
 
 
@@ -530,6 +535,10 @@ def measure_pool(
         gates[ACCURACY_GATE] = bool((accuracy.get("gate") or {}).get("passed"))
         if capture is not None:
             capture["accuracy"] = accuracy
+    if capture is not None:
+        capture["gate_verdicts"] = gate_verdicts(
+            submitted, gates, physics_failed, policies.physics is not None
+        )
     gated = (not pool_only and base.get("A") is None) or not all(gates.values())
     if confirmation_sets is not None and capture is not None:
         # the crown's private number on the confirmation rows (a gate-failed grade has no score, so none to confirm)
@@ -810,6 +819,40 @@ def _check_confirmation_sets(
         )
     except pool_grader.PoolRefused as refused:
         raise ExamRefused(f"confirmation_structure_refused:{refused}") from None
+
+
+def gate_verdicts(binding, gates, physics_failed, accuracy_registered):
+    """Every gate verdict of one grade (S4 of bank 8319): ``measure``, each mandatory gate of the grade (the sealed grader's
+    native ones and this module's) PASS or FAIL, the accuracy gate NOT_APPLICABLE for a version without physics scoring;
+    ``pool``, each of the Challenge's registered per-answer physics gates (``binding.physics_gates.gate_names``) and the
+    A_gen validity check PASS or FAIL over every pool answer; ``gate_set_sha256``, the version of that gate list (sha256 of
+    its sorted names). Names and verdicts only: never a row, a target or a value. Never raises (custody, never the grade):
+    a failure is ``{"status": "UNAVAILABLE", "reason"}``."""
+    try:
+        measure = {name: PASS if ok else FAIL for name, ok in gates.items()}
+        if not accuracy_registered:
+            measure[ACCURACY_GATE] = NOT_APPLICABLE
+        failed = set(physics_failed)
+        names = {*binding.physics_gates.gate_names, AGEN_VALIDITY_GATE, *failed}
+        pool = {name: FAIL if name in failed else PASS for name in sorted(names)}
+        gate_set = {"measure": sorted(measure), "pool": sorted(pool)}
+        digest = hashlib.sha256(
+            json.dumps(gate_set, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return {
+            "schema": GATE_VERDICTS_SCHEMA,
+            "status": "MEASURED",
+            "gate_set": gate_set,
+            "gate_set_sha256": digest,
+            "measure": dict(sorted(measure.items())),
+            "pool": pool,
+        }
+    except Exception as failure:  # noqa: BLE001 - custody evidence, never the grade
+        return {
+            "schema": GATE_VERDICTS_SCHEMA,
+            "status": "UNAVAILABLE",
+            "reason": getattr(failure, "code", type(failure).__name__),
+        }
 
 
 def confirmation_value(groups, submitted, serve, policies, rule):

@@ -10,13 +10,15 @@
       "confirmation": {
         "tie": "not_confirmed"
       },
-      "margin": 0.0086
+      "margin": 0.0086,
+      "records": "all"
     },
     "f08-ribbed-bracket 2.0": {
       "confirmation": {
         "tie": "not_confirmed"
       },
-      "margin": 0.0086
+      "margin": 0.0086,
+      "records": "all"
     }
   }
 }

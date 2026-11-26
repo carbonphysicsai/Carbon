@@ -234,6 +234,36 @@ def install_grouping(grouping):
     GROUPING = grouping
 
 
+#: S3 (bank 8319; owner retained-records line, 25 Nov 2026): ``hotkey -> coldkey or None`` read from the receiver's own
+#: chain snapshot, exactly as the grouping reads it (`allowance_groups.coldkey_reader`), or None. A version whose row keeps
+#: every record (`crown_official.records_all`) files the coldkey and the signed receipt block on each GRADED row it reserves,
+#: so a later chain read (a deregistered hotkey) never has to rebuild them. Recording only: never a refusal, never a count.
+COLDKEYS = None
+
+
+def install_coldkeys(reader):
+    """Install (or, with None, remove) this process's coldkey reader (`COLDKEYS`)."""
+    global COLDKEYS
+    COLDKEYS = reader
+
+
+def _grade_time_identity(hotkey, challenge_id, challenge_version, block, regrade):
+    """``(coldkey, receipt_block)`` to file on a GRADED row of a version that keeps every record, else ``(None, None)``.
+    Never raises: a coldkey the snapshot cannot give is None (the row is still reserved exactly as before)."""
+    from carbon.challenge_validator import crown_official
+
+    if regrade or not crown_official.records_all(challenge_id, challenge_version):
+        return None, None
+    coldkey = None
+    if COLDKEYS is not None:
+        try:
+            found = COLDKEYS(hotkey)
+        except Exception:  # noqa: BLE001 - a record, never the reservation
+            found = None
+        coldkey = found if type(found) is str and found else None
+    return coldkey, block
+
+
 def group_of(hotkey):
     """The allowance group of ``hotkey``: the installed grouping's (it may raise `ExamCapRefused`), else its own."""
     return "h:" + hotkey if GROUPING is None else GROUPING(hotkey)
@@ -488,6 +518,12 @@ def _prepare(db):
         # OWNER-PROBING-COUNTERS-01 (a): the allowance group a graded row was reserved under. NULL on every older row,
         # which keeps its own hotkey (not retroactive).
         db.execute("ALTER TABLE exam_graded ADD COLUMN group_id TEXT")
+    if "coldkey" not in columns:
+        # S3 (owner retained-records line, 25 Nov 2026): the coldkey and signed receipt block at grade time, filed only by a
+        # version that keeps every record (`_grade_time_identity`). NULL on every older row and every other version.
+        db.execute("ALTER TABLE exam_graded ADD COLUMN coldkey TEXT")
+    if "receipt_block" not in columns:
+        db.execute("ALTER TABLE exam_graded ADD COLUMN receipt_block INTEGER")
 
 
 class ExamCap:
@@ -753,6 +789,9 @@ class ExamCap:
                 group = GROUPING(hotkey)
             except ExamCapRefused as refused:
                 refusal = refused.code
+        coldkey, receipt_block = _grade_time_identity(
+            hotkey, challenge_id, challenge_version, block, regrade
+        )
         with self.ledger._db() as db:
             row = db.execute(
                 "SELECT id, state FROM exam_graded WHERE challenge_id=? AND "
@@ -788,15 +827,26 @@ class ExamCap:
                     db.execute(
                         "UPDATE exam_graded SET state='RESERVED', status=NULL, "
                         "epoch=?, kind=?, reserved_ns=?, settled_ns=NULL, "
-                        "lane_seconds=NULL, group_id=? WHERE id=?",
-                        (epoch, kind, now, group, row[0]),
+                        "lane_seconds=NULL, group_id=?, coldkey=?, receipt_block=? "
+                        "WHERE id=?",
+                        (epoch, kind, now, group, coldkey, receipt_block, row[0]),
                     )
                     return row[0]
                 cursor = db.execute(
                     "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, "
-                    "exam_key, kind, epoch, submission_id, state, reserved_ns, group_id) "
-                    "VALUES(?,?,?,?,?,?,?, 'RESERVED', ?, ?)",
-                    (*values[:4], kind, epoch, submission_id, now, group),
+                    "exam_key, kind, epoch, submission_id, state, reserved_ns, "
+                    "group_id, coldkey, receipt_block) "
+                    "VALUES(?,?,?,?,?,?,?, 'RESERVED', ?, ?, ?, ?)",
+                    (
+                        *values[:4],
+                        kind,
+                        epoch,
+                        submission_id,
+                        now,
+                        group,
+                        coldkey,
+                        receipt_block,
+                    ),
                 )
                 return cursor.lastrowid
         # Refused: no row for the attempt (no wear); only an audit line, in its own transaction.
