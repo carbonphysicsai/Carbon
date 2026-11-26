@@ -673,9 +673,9 @@ def _menu_headroom_design_search(own):
 def _menu_headroom_score(score, own):
     score = copy.deepcopy(score)
     total = own["total"]
-    score[
-        "formula"
-    ] = f"TOTAL = {total['ad_split']:g} * A + {1 - total['ad_split']:g} * D"
+    score["formula"] = (
+        f"TOTAL = {total['ad_split']:g} * A + {1 - total['ad_split']:g} * D"
+    )
     score["weights"] = {"A": total["ad_split"], "D": 1 - total["ad_split"]}
     score["rule"] = {
         "A": _a_text(own),
@@ -728,16 +728,15 @@ def _accuracy_ranked(path):
 @functools.lru_cache(maxsize=4)
 def _confirmed_rows(path):
     """``{"<id> <version>": margin}`` of the crown rows under the owner's confirmation line (CROWN-CONFIRMATION-SET): a
-    row the receiver itself would refuse states nothing here. Read once, as `_accuracy_ranked`.
-    """
+    row the receiver itself would refuse states nothing here. Read once, as `_accuracy_ranked`."""
+    shapes = ({"margin"}, {"margin", "score"})
     try:
         rows = json.loads(Path(path).read_bytes())["versions"]
         return {
             name: float(row["margin"])
             for name, row in rows.items()
             if "confirmation" in row
-            and set(row) - {"confirmation", "records"}
-            in ({"margin"}, {"margin", "score"})
+            and set(row) - {"confirmation", "records"} in shapes
             and type(row["margin"]) in (int, float)
             and not isinstance(row["margin"], bool)
             and 0 <= row["margin"] < 1
@@ -754,8 +753,7 @@ _KOTH_CONFIRMED_NOTE = (
 
 def koth(challenge_id, version):
     """The version's king-of-the-hill section: its registered crown margin and the confirmation rule when its crown row
-    is under the owner's confirmation line (miner-ux 8683 X3), else the shared text, byte for byte.
-    """
+    is under the owner's confirmation line (miner-ux 8683 X3), else the shared text, byte for byte."""
     margin = _confirmed_rows(_CROWN_ROWS).get(f"{challenge_id} {version}")
     if margin is None:
         return _KOTH
