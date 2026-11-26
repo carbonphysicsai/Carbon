@@ -180,11 +180,26 @@ class _WaterfallBackend:
 
 def test_all_existing_registered_policies_load_with_waterfall_none():
     registry = json.loads((wd.POLICY_DIR / "registry.json").read_text())
-    assert len(registry["versions"]) >= 9
+    assert registry["current"] == "testnet-winner-v1"
+    legacy_without_waterfall = {
+        "testnet-winner-v1",
+        "testnet-winner-v2-four-challenge-dev",
+        "testnet-winner-v3-five-challenge-dev",
+        "testnet-winner-v4-launch",
+        "testnet-winner-v5-launch",
+        "mainnet-winner-v1",
+        "mainnet-winner-v2",
+        "mainnet-winner-v3",
+        "mainnet-winner-v4",
+    }
+    assert legacy_without_waterfall <= set(registry["versions"])
     for version, pinned_digest in registry["versions"].items():
         policy = wd.load_policy(version)
         assert policy.digest == pinned_digest
-        assert policy.waterfall is None
+        if version in legacy_without_waterfall:
+            assert policy.waterfall is None
+        else:
+            assert isinstance(policy.waterfall, WaterfallConfig)
 
 
 def test_prospective_waterfall_policy_loads_frozen_waterfall_config(tmp_path):
@@ -705,5 +720,270 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
         )
         res_e4 = asyncio.run(publisher.publish(ref_e4))
         assert res_e4["state"] == "ROW_VERIFIED"
+    finally:
+        hold_ledger.close()
+
+
+# ---------------------------------------------------------------------------
+# 4. Registered Mainnet Policy `mainnet-winner-v5` (Stage 5B Hold Bonus Launch)
+# ---------------------------------------------------------------------------
+
+MAINNET_V5_DIGEST = (
+    "sha256:691b882f5afa22cb30fc9cf439555e481793c95d4310084284f29de5701a9724"
+)
+CARBON_EXCLUDED_COLDKEY = "5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9"
+MOTOR_PACK = "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c"
+
+
+def test_mainnet_winner_v5_policy_registration_and_field_inheritance():
+    v4 = wd.load_policy("mainnet-winner-v4")
+    v5 = wd.load_policy("mainnet-winner-v5")
+    registry = json.loads((wd.POLICY_DIR / "registry.json").read_text())
+    assert registry["current"] == "testnet-winner-v1"
+    assert registry["versions"]["mainnet-winner-v5"] == MAINNET_V5_DIGEST == v5.digest
+
+    raw_bytes = (wd.POLICY_DIR / "mainnet-winner-v5.json").read_bytes()
+    doc = json.loads(raw_bytes)
+    assert (json.dumps(doc, indent=2, sort_keys=True) + "\n").encode("utf-8") == raw_bytes
+
+    # Cutover runbook pins the exact registered digest
+    cutover_doc = (wd.POLICY_DIR.parent / "MAINNET-V5-CUTOVER.md").read_text(encoding="utf-8")
+    assert MAINNET_V5_DIGEST in cutover_doc
+    assert v4.digest in cutover_doc
+
+    # Inherits every v4 field unchanged
+    assert (
+        v5.authority,
+        v5.network,
+        v5.netuid,
+        v5.burn_uid,
+        v5.cadence_blocks,
+        v5.challenges,
+        v5.baselines,
+        v5.qualified_sealed,
+        v5.self_improvement_factor,
+        v5.share,
+    ) == (
+        v4.authority,
+        v4.network,
+        v4.netuid,
+        v4.burn_uid,
+        v4.cadence_blocks,
+        v4.challenges,
+        v4.baselines,
+        v4.qualified_sealed,
+        v4.self_improvement_factor,
+        Q12,
+    )
+
+    # Exact Stage 5B WaterfallConfig
+    assert v5.waterfall == WaterfallConfig(
+        hold_window_epochs=600,
+        hold_cap_q12=400_000_000_000,
+        window_bonus_rate_bps=5000,
+        zero_bonus_sold_bps=5000,
+        treasury_sinks=(),
+        treasury_stake_cap_rao=0,
+        excluded_coldkeys=frozenset({CARBON_EXCLUDED_COLDKEY}),
+        enforce_king_u16_floor=True,
+    )
+
+
+def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_uid0_burn(
+    tmp_path,
+):
+    """End-to-end simulation of registered `mainnet-winner-v5` on Finney SN116:
+    - Day 1 (full 24h window): Active King receives 100% (`Q12`), 0 burn, `u16 == 65535`.
+    - Day 2 (50% decay): Loyal past winner receives +50% / 600-epoch Hold Bonus; Carbon's
+      excluded coldkey `5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9` receives 0 Hold Bonus;
+      post-bonus remainder routes 100% to `UID 0` burn while `treasury_sinks == ()`.
+    - Day 2 high-demand cap: Rung 2 Hold Bonus clamps at `40%` (`400_000_000_000` Q12) and
+      remaining `10%` burns to `UID 0`.
+    - Deep decay (25 halvings): Active King gets `MIN_POSITIVE_U16_Q12` (`7,629,511`) and compiles
+      to `u16 >= 1` alongside `40%` Hold Bonus and `~60%` `UID 0` burn."""
+    from carbon.chain import networks
+    from carbon.rewards.waterfall import MIN_POSITIVE_U16_Q12
+
+    v5 = wd.load_policy("mainnet-winner-v5")
+    finney_row = networks.NETWORKS["finney"]
+    ctx = ChainContext(
+        "finney",
+        "wss://entrypoint-finney.opentensor.ai:443",
+        finney_row.chain_id,
+        finney_row.genesis_hash,
+        116,
+    )
+    t0 = 20 * DAY_MS
+
+    def _sn116_snap(block: int, now_ms: int) -> MetagraphSnapshot:
+        return MetagraphSnapshot(
+            context=ctx,
+            finalized_block=block,
+            block_hash="0x" + f"{block:064x}",
+            timestamp_ms=now_ms,
+            participants=(
+                Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+                Participant(1, "hk_sn116_validator", "ck_validator", 2),
+                Participant(2, "hk_motor_king", "ck_motor_king", 10),
+                Participant(3, "hk_loyal_past", "ck_loyal_past", 11),
+                Participant(4, "hk_carbon_miner", CARBON_EXCLUDED_COLDKEY, 12),
+            ),
+        )
+
+    def _sn116_caps(state: MetagraphSnapshot) -> RuntimeCapabilities:
+        return RuntimeCapabilities(
+            snapshot_id=state.snapshot_id,
+            spec_version=SPEC,
+            mechanism_count=1,
+            maximum_mechanisms=8,
+            burn_mode="Burn",
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkey="hk_burn_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            min_weights=1,
+            max_weight=U16,
+            version_key=1,
+            rate_limit=0,
+            last_update=0,
+            commit_reveal=False,
+            validator_permit=True,
+            sufficient_stake=True,
+        )
+
+    class _MainnetBackend(_WaterfallBackend):
+        async def observe(self):
+            return self.state, _sn116_caps(self.state)
+
+    auth = twp.StandingAuthorization(
+        authority_record_digest=RECORD,
+        policy_digest=v5.digest,
+        context=ctx,
+        publisher_hotkey="hk_sn116_validator",
+        expected_runtime_spec=SPEC,
+        valid_from_block=1_000,
+        valid_through_block=500_000,
+        authority=wd.MAINNET_AUTHORITY,
+    )
+    receipts = ReceiptJournal(tmp_path / "sn116_pub.sqlite3", ctx)
+    winner_ledger = we.WinnerLedger(tmp_path / "sn116_winners.jsonl")
+    hold_ledger = HoldBonusLedger(tmp_path / "sn116_hold.sqlite3")
+
+    try:
+        # Both loyal past winner (1,000 α) and Carbon excluded coldkey (100,000 α) hold 100% of past crowns
+        hold_ledger.record_crown_earnings(
+            2,
+            {
+                "ck_loyal_past": (1_000 * RAO, "hk_loyal_past"),
+                CARBON_EXCLUDED_COLDKEY: (100_000 * RAO, "hk_carbon_miner"),
+            },
+        )
+        hold_ledger.sample_epoch_stakes(
+            2,
+            {"ck_loyal_past": 1_000 * RAO, CARBON_EXCLUDED_COLDKEY: 100_000 * RAO},
+        )
+
+        emission_state = {"rao": 10 * RAO}
+
+        def observer(_snap: MetagraphSnapshot, _epoch: int) -> WaterfallEpochObservation:
+            return WaterfallEpochObservation(
+                epoch_miner_emission_rao=emission_state["rao"],
+                treasury_current_stake_rao=10_000 * RAO,
+                staked_by_coldkey={
+                    "ck_loyal_past": 1_000 * RAO,
+                    CARBON_EXCLUDED_COLDKEY: 100_000 * RAO,
+                },
+                owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+                owner_hotkeys=("hk_burn_owner",),
+            )
+
+        def motor_source():
+            return {
+                "model_id": "motor-18-crown-1",
+                "hotkey": "hk_motor_king",
+                "previous": None,
+                "previous_hotkey": None,
+                "incumbent_reason": we.SEALED_TESTNET_REASON,
+                "evaluation_pack_digests": [MOTOR_PACK],
+                "kind": we.FIRST,
+            }
+
+        issuer = twp.TestnetWinnerIntentIssuer(
+            receipts,
+            auth,
+            v5,
+            winner_ledger,
+            {"electric-motor-magnetics": motor_source},
+            hold_ledger=hold_ledger,
+            waterfall_observer=observer,
+        )
+
+        # --- Phase 1: Day 1 (within 24h) -> King gets 100% Q12 ---
+        snap_d1 = _sn116_snap(block=1080, now_ms=t0)
+        backend = _MainnetBackend(snap_d1, publisher="hk_sn116_validator")
+        publisher = twp.TestnetWinnerPublisher(issuer, backend)
+        assert publisher.ALLOW_OWNER_COLDKEY_WINNER is False
+
+        ref_d1 = issuer.issue(snap_d1)
+        res_d1 = asyncio.run(publisher.publish(ref_d1))
+        assert res_d1["state"] == "ROW_VERIFIED"
+        assert res_d1["document"]["plan"]["q12"] == [[2, Q12]]
+        assert res_d1["document"]["plan"]["integers"] == [[2, U16]]
+
+        # --- Phase 2: Day 2 (24h elapsed -> King 50%, Loyal Bonus 83_333_333_333, Carbon excluded, rest UID 0 burn) ---
+        snap_d2 = _sn116_snap(block=8280, now_ms=t0 + DAY_MS)
+        backend.state = snap_d2
+        backend.tx_hash = "0x" + "1" * 64
+
+        preview_d2 = twp.preview(issuer, snap_d2)
+        assert preview_d2["targets"]["winners"] == [
+            [{"hotkey": "hk_motor_king", "coldkey": "ck_motor_king", "registered_at": 10}, 500_000_000_000]
+        ]
+        assert preview_d2["targets"]["hold_bonus"] == [
+            [{"hotkey": "hk_loyal_past", "coldkey": "ck_loyal_past", "registered_at": 11}, 83_333_333_333]
+        ]
+        assert preview_d2["targets"]["treasury"] == []
+        assert preview_d2["targets"]["burn"] == 416_666_666_667
+
+        ref_d2 = issuer.issue(snap_d2)
+        res_d2 = asyncio.run(publisher.publish(ref_d2))
+        assert res_d2["state"] == "ROW_VERIFIED"
+        assert res_d2["document"]["plan"]["q12"] == [
+            [0, 416_666_666_667],
+            [2, 500_000_000_000],
+            [3, 83_333_333_333],
+        ]
+
+        # --- Phase 3: Day 2 High-Demand Cap (`hold_cap_q12 == 400_000_000_000` == 40%) ---
+        emission_state["rao"] = 1 * RAO  # Desired bonus ~833_333_333_333 > 40% cap
+        snap_d2_cap = _sn116_snap(block=8640, now_ms=t0 + DAY_MS + 360 * 12_000)
+        backend.state = snap_d2_cap
+        backend.tx_hash = "0x" + "2" * 64
+
+        ref_cap = issuer.issue(snap_d2_cap)
+        res_cap = asyncio.run(publisher.publish(ref_cap))
+        assert res_cap["state"] == "ROW_VERIFIED"
+        assert res_cap["document"]["plan"]["q12"] == [
+            [0, 100_000_000_000],
+            [2, 500_000_000_000],
+            [3, 400_000_000_000],
+        ]
+
+        # --- Phase 4: Deep Decay (25 halvings -> King floored at MIN_POSITIVE_U16_Q12 -> u16 >= 1) ---
+        snap_deep = _sn116_snap(block=200_160, now_ms=t0 + 25 * DAY_MS)
+        backend.state = snap_deep
+        backend.tx_hash = "0x" + "3" * 64
+
+        ref_deep = issuer.issue(snap_deep)
+        res_deep = asyncio.run(publisher.publish(ref_deep))
+        assert res_deep["state"] == "ROW_VERIFIED"
+        expected_deep_burn = Q12 - MIN_POSITIVE_U16_Q12 - 400_000_000_000
+        assert res_deep["document"]["plan"]["q12"] == [
+            [0, expected_deep_burn],
+            [2, MIN_POSITIVE_U16_Q12],
+            [3, 400_000_000_000],
+        ]
+        int_map = dict(res_deep["document"]["plan"]["integers"])
+        assert int_map[2] >= 1  # Active King stays >= 1 in u16 weights!
+        assert int_map[0] == U16
     finally:
         hold_ledger.close()
