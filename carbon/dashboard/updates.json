@@ -9,13 +9,7 @@
     {
      "version": "1.9",
      "changes": [
-      "Motor 1.8 is retired and closed to new submissions; its board stands as it was. Motor 1.9 is the next version; its opening is announced when it is set.",
-      "More of the motor is graded: every output that Carbon can solve for reference and that passes its pre-registered checks. Planned: torque and torque ripple, the open-circuit and loaded back-EMF, the mean torque in the cogging conditions, and the lowest flux density in the magnets (the demagnetization margin).",
-      "The zero point moves up: a class scores zero at the accuracy of Carbon's own quick, coarse reference solve, and one at reference accuracy. Credit goes only to models that beat a cheap solver.",
-      "Carbon publishes the coarse-solve results for every training design next to the reference results, so a model can learn the correction from coarse to fine.",
-      "Graph route only, and builds can use the GPU.",
-      "Why it's valuable: motor designers check torque, back-EMF and the risk of demagnetizing the magnets with slow magnetic-field solves, one design at a time. A fast model of all of them lets them search far more designs before building anything.",
-      "How it reaches for the state of the art: fast motor models are usually trusted only inside the range they were trained on, and only for torque. This version grades the full set of outputs a designer checks, beyond the training range, against a cheap solver rather than a curve fit."
+      "Motor 1.8 is retired and closed to new submissions; its board stands as it was. Motor 1.9 is the next version; its opening is announced when it is set, and what it grades and how it is scored are published on its How you're tested page then, not before."
      ]
     }
    ]
@@ -43,13 +37,7 @@
     {
      "version": "2.0",
      "changes": [
-      "One larger physics upgrade, joining mainnet once it passes its checks. The testnet Ribbed Bracket is rehearsal only.",
-      "The bracket is shaken through its mounting while carrying a payload, so its response depends on resonance, not only on stiffness.",
-      "Graded outputs are planned to include the natural frequencies of the lower modes, the tip deflection, and the static and dynamic stress at the fillet, averaged over a small patch so the reference is stable, with the frequency where that stress peaks. Each output is graded only if it passes its pre-registered checks.",
-      "The zero point is Carbon's own quick, coarse reference solve, and coarse-solve results are published for the training designs.",
-      "The material is a choice among alloys with published properties.",
-      "Why it's valuable: brackets that carry equipment on vibrating structures in vehicles, aircraft and machinery fail from resonance and from stress concentrated at fillets. Each check normally needs a modal and a dynamic analysis.",
-      "How it reaches for the state of the art: fast structural models mostly predict stiffness and static stress. Predicting the response near resonance, where a small change in the design swings the stress, is the harder problem this version is built around."
+      "Ribbed Bracket joins mainnet at this version once it passes its checks; its opening is announced when it is set, and what it grades and how it is scored are published on its How you're tested page then, not before. The testnet Ribbed Bracket is rehearsal only."
      ]
     }
    ]
@@ -74,8 +62,8 @@
   }
  ],
  "every_version": [
-  "Score: on Motor 1.8, accuracy only; on the other versions, half physics, half design value. Gates come first: a failed gate means no score.",
-  "Physics: your model is scored on hidden cases, many of them outside the training data, grouped into classes. On the new versions a class scores zero at the accuracy of Carbon's own quick, coarse reference solve and one at reference accuracy, so credit goes only to a model that beats a cheap solver. Each family of classes counts equally.",
+  "Score: each version's How you're tested page says how it is scored. Gates come first: a failed gate means no score.",
+  "Physics: your model is scored on hidden cases, many of them outside the training data.",
   "Every output that Carbon can solve for reference and that passes its pre-registered checks is graded.",
   "Accuracy inside the training range is a gate: pass or fail, never points. Your model must clear it to be scored at all, but a smaller error there earns nothing extra.",
   "Design value (only where the score line counts it): for each design task Carbon solves many candidate designs in advance and keeps them sealed. Your model predicts each one on its own; a sample of them then counts. Your top five picks in it are checked against the solved answers. Zero means no better than Carbon's classical picks on that sample.",

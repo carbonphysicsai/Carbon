@@ -334,7 +334,7 @@ A model that has to learn everything from a few hundred examples is slow to trai
 
 > prediction = fit(inputs) + residual(inputs)
 
-- **The fit** can be a linear response surface (`inputs @ W + b`, with `W` and `b` trained with the rest of the graph), or a closed form you know from the physics. A formula is a legitimate starting point; it is part of your graph, so every operation in it is checked like the rest. Physics code and constants you fitted offline on your own solver data may sit in the graph, inside the 32 KiB constants budget (see *Writing a graph*). Numbers you fitted offline may also be the STARTING VALUES of parameters Carbon trains: on a version whose graph allowlist is `level4-allowlist-v8` (Motor 1.8 and 1.9), your init graph may return a constant table as a trained parameter's start, inside the same 32 KiB budget, and Carbon's training continues from it. The recipe's `initial_state` field stays empty: starting values travel only in the init graph. Fixed constants (never trained) and constant starting values (trained on from there) both count toward the budget.
+- **The fit** can be a linear response surface (`inputs @ W + b`, with `W` and `b` trained with the rest of the graph), or a closed form you know from the physics. A formula is a legitimate starting point; it is part of your graph, so every operation in it is checked like the rest. Physics code and constants you fitted offline on your own solver data may sit in the graph, inside the 32 KiB constants budget (see *Writing a graph*). Numbers you fitted offline may also be the STARTING VALUES of parameters Carbon trains: on a version whose graph allowlist is `level4-allowlist-v8` (Motor 1.8), your init graph may return a constant table as a trained parameter's start, inside the same 32 KiB budget, and Carbon's training continues from it. The recipe's `initial_state` field stays empty: starting values travel only in the init graph. Fixed constants (never trained) and constant starting values (trained on from there) both count toward the budget.
 - **The residual** is the neural operator. For a few scalar outputs a one-hidden-layer network is enough. For a curve or a field (many outputs along an axis such as angle or position), use a spectral block: lift the inputs to a few channels along the output axis, take `jnp.fft.rfft` along that axis, multiply the lowest few modes by trainable complex weights (build them with `jax.lax.complex` from two real weight arrays), go back with `jnp.fft.irfft`, add a pointwise mix of the channels, pass through `tanh`, and project to one channel. This is the Fourier-neural-operator pattern. Keep the number of modes small (8 is a sensible start).
 - **A DeepONet-style variant** replaces the spectral block with two small networks: one reads the inputs (the branch), one reads the position along the output axis (the trunk), and the prediction at each position is their dot product. Build the position table inside the graph with `iota` rather than pasting numbers.
 
@@ -565,12 +565,10 @@ do, and what stays the same.
 - **Where submissions go.** Each Challenge has its own mainnet grader
   address: **HUMAN_INPUT** (per Challenge). Setup writes each address into
   your profile once it is published and your profile is on mainnet.
-- **Which versions open.** Motor 1.8 is open on mainnet. Cooling 1.8 is
-  planned to open next, directly on mainnet, with no test-network 1.8
-  version. Burst Thermal 3.2 and Ribbed Bracket 2.0 each open once it passes
-  its checks (dates: **HUMAN_INPUT**). All four are planned to score both
-  physics and design value, behind a physics gate. We update this list as each
-  one opens. Each version has its own *How you're tested* page.
+- **Which versions open.** Motor 1.8 is retired and closed to new
+  submissions. Each new version opens once it passes its checks and is
+  announced here first, with its own *How you're tested* page; its rules and
+  values are published there, not before.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
   registration, crown, score, submission or frontier standing. Test network
   results are rehearsal only.
@@ -661,5 +659,5 @@ Yes to design choices, and yes to a small amount of fitted numbers, as fixed con
 
 - **Design choices: yes.** What you learn from your own data can shape the recipe: the structure of the model, your own loss, the hyperparameters, the priors you build in. The validator rebuilds your recipe and trains it with Carbon's trainer, so whatever you carry in has to be in the recipe.
 - **Fitted constants and small tables inside the graph: yes, inside the 32 KiB budget.** Numbers written into the graph, and the static values in its op parameters, count toward one 32 KiB budget for the whole submission, measured as its compressed (zlib level 9) size (see **Constants and static values** under *Writing a graph*). Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting float tables; numbers carried in the graph do not compress away.
-- **A small fixed correction network: yes, as constants.** Constants you fit yourself and write into your graph as fixed values are allowed in Motor 1.8 and 1.9, including the weights of a small fixed correction network; they count toward the 32 KiB recipe budget. Carbon's training never updates them.
-- **Constant starting values for parameters Carbon trains: yes, inside the budget.** On a version whose graph allowlist is `level4-allowlist-v8` (Motor 1.8 and 1.9), your init graph may set a trained parameter's starting value from a constant table you fitted yourself, inside the 32 KiB budget; Carbon then trains it in the rebuild. The exam, not a code rule, is what rewards a model that learns. The recipe's separate `initial_state` field is still refused: starting values come only from the init graph.
+- **A small fixed correction network: yes, as constants.** Constants you fit yourself and write into your graph as fixed values are allowed in Motor 1.8, including the weights of a small fixed correction network; they count toward the 32 KiB recipe budget. Carbon's training never updates them.
+- **Constant starting values for parameters Carbon trains: yes, inside the budget.** On a version whose graph allowlist is `level4-allowlist-v8` (Motor 1.8), your init graph may set a trained parameter's starting value from a constant table you fitted yourself, inside the 32 KiB budget; Carbon then trains it in the rebuild. The exam, not a code rule, is what rewards a model that learns. The recipe's separate `initial_state` field is still refused: starting values come only from the init graph.
