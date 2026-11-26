@@ -84,7 +84,6 @@ Each stage has a pass rule, an owner and an output artifact. A stage that fails 
 
 | Version | Registered shortcut (Validator ruling) | B | L3 classes |
 |---|---|---|---|
-| Ribbed Bracket 2.0 (first) | coarse h = 3 mm rung of the same deck | HUMAN_INPUT (curve; draft candidates 4 / 8 / 16 from F08-DEVELOPMENT-PROPOSED-V1, basis ASSUMPTION) | shell-edge (length, relief length, rib thickness) + off-step IF the 2.0 domain/region is signed "geometry continuous" (decided with the region signature; if "lattice only", shell-edge only) |
 | Burst Thermal 3.0 | the modal-sum cheap method (= the DOWN adversary) | HUMAN_INPUT (curve) | per its S4a read |
 | Motor 1.7 | its registered cheap adversary model (its ladder has no rung below L0) | HUMAN_INPUT (curve) | per its S4a read |
 | Cooling 1.8 | the coarsest r of the graded-hotspot ladder if per-design objectives exist there, else COOL-ADV-01's structured model | HUMAN_INPUT (curve) | per its S4a read |
@@ -196,7 +195,6 @@ The weekly review reports the trend.
 | Version | Stage | Waiting on |
 |---|---|---|
 | Burst Thermal 3.0 | S1 (box cut → re-run step 1 with leakage feedback) | owner box signature; the S2 dry run and Q3 read before the S4 freeze |
-| Ribbed Bracket 2.0 | S1/S3 prep (deck + controls; U/edge payload receipted) | TE harness → smoke; S2 before S4 |
 | Motor 1.6 / 1.7 | 1.6: S3 (shell U) + code restructure; 1.7: S4 draft (coverage + disagreement) | ext-U run; S2 result (N) |
 | Cooling 1.7 / 1.8 | 1.7: S7/S8 (image move); 1.8: S3 (shell U payload) → S4 (plan receipted, outer shell after the ext-U result) | ext-U receipt and run; S5 report on 1.7 |
 
