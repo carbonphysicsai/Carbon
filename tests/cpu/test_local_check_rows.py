@@ -16,13 +16,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from carbon.challenge_kit import local_scorer as ls
 
+ROOT = Path(__file__).resolve().parents[2]
 NAMES = ("a", "b")
+#: As test_kit_local_scorer: what a kit command must never load.
+FORBIDDEN = ("evaluation_pack", "pool_store", "crown", "sealed", "custody")
 
 
 def _binding(failed=lambda inputs, raw: (), derive=None):
@@ -83,18 +90,30 @@ def test_a_failed_gate_is_gate_failed_by_name():
     assert summary["n_gate_failed"] == 1 and summary["gate_failures"] == {"ordered": 1}
 
 
-def test_a_value_the_binding_cannot_derive_is_never_within_u():
+def test_a_candidate_value_the_binding_cannot_derive_is_never_within_u():
+    def derive(inputs, raw):
+        if raw[0] > 5.0:  # only the candidate row below
+            raise ValueError("unreadable")
+        return {"peak": raw[0]}
+
+    check = ls._binding_check(_binding(derive=derive))
+    row = check.per_design(_design(), [9.0, 2.0], {"peak": 10.0})
+    assert row["accuracy_vs_u"]["peak"]["delta"] is None
+    assert row["accuracy_vs_u"]["within_u"] is False
+
+
+def test_a_verify_truth_the_binding_cannot_derive_refuses():
+    # a verify-set fault is refused, never read as a model miss (AGENTS 7.5, review-b 8846)
     def derive(inputs, raw):
         raise ValueError("unreadable")
 
     check = ls._binding_check(_binding(derive=derive))
-    row = check.per_design(_design(), [1.0, 2.0], {"peak": 10.0})
-    assert row["accuracy_vs_u"]["peak"]["delta"] is None
-    assert row["accuracy_vs_u"]["within_u"] is False
-    # a U name the binding does not derive
+    with pytest.raises(ls.ScorerRefused, match="verify truth does not derive"):
+        check.per_design(_design(), [1.0, 2.0], {"peak": 10.0})
+    # a U name the binding does not derive from the truth
     check = ls._binding_check(_binding())
-    row = check.per_design(_design(), [1.0, 2.0], {"mass": 10.0})
-    assert row["accuracy_vs_u"]["within_u"] is False
+    with pytest.raises(ls.ScorerRefused, match="every U output"):
+        check.per_design(_design(), [1.0, 2.0], {"mass": 10.0})
 
 
 def test_inputs_follow_the_binding_and_a_mismatch_refuses():
@@ -172,3 +191,45 @@ def test_the_default_truth_check_is_motor_as_before():
     raw, sha = _verify([_design()])
     with pytest.raises(ls.ScorerRefused, match="the truth curve is malformed"):
         ls.load_verify_set(raw, sha, NAMES)
+
+
+# ---------------------------------------------------------------- the import closure off Motor
+
+
+def test_a_binding_check_off_motor_loads_no_protected_module():
+    """review-b 8846 T1: the run-time closure of test_kit_local_scorer, for a registered synthetic binding through
+    local_check, per_design and aggregate, in a fresh interpreter."""
+    program = (
+        "import json, sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "from types import SimpleNamespace\n"
+        "from carbon.challenge_kit import local_scorer as ls\n"
+        "from carbon.scoring import pool_version\n"
+        "binding = SimpleNamespace(\n"
+        "    input_names=('a', 'b'),\n"
+        "    derive=lambda inputs, raw: {'peak': raw[0]},\n"
+        "    physics_gates=SimpleNamespace(\n"
+        "        gate_names=('finite',), failed=lambda inputs, raw: ()\n"
+        "    ),\n"
+        ")\n"
+        "pool_version.KINDS['synthetic-family'] = 'synthetic'\n"
+        "pool_version.register_binding('synthetic', '9.9', lambda: binding)\n"
+        "check = ls.local_check('synthetic-family', '9.9')\n"
+        "design = {'case_id': 'd1', 'inputs': {'a': 0.5, 'b': 0.25},\n"
+        "          'truth': {'raw': [1.0, 2.0]}}\n"
+        "row = check.per_design(design, [1.0, 2.0], {'peak': 0.1})\n"
+        "summary = check.aggregate([row], {'peak': 0.1})\n"
+        f"bad = sorted(m for m in sys.modules if any(b in m for b in {FORBIDDEN!r}))\n"
+        "print(json.dumps({'within': summary['accuracy_vs_u']['n_within_u'], 'bad': bad}))\n"
+    )
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", program],
+        env={**os.environ, "JAX_PLATFORMS": "cpu"},
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr[-4000:]
+    result = json.loads(done.stdout.strip().splitlines()[-1])
+    assert result == {"within": 1, "bad": []}

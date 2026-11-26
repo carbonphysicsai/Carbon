@@ -380,6 +380,19 @@ def _registered_binding(challenge_id, version):
     return binding
 
 
+def _truth_derived(binding, inputs, raw, names):
+    """The verify TRUTH's derived values for the U names. A truth the binding
+    cannot derive is a verify-set fault, refused, never a model miss (AGENTS 7.5,
+    review-b 8846)."""
+    try:
+        values = binding.derive(inputs, [float(v) for v in raw])
+    except Exception:  # the truth row, not the candidate: refuse
+        raise ScorerRefused("the verify truth does not derive") from None
+    if type(values) is not dict or not all(_finite(values.get(n)) for n in names):
+        raise ScorerRefused("the verify truth does not derive every U output")
+    return values
+
+
 def _derived(binding, inputs, raw):
     try:
         values = binding.derive(inputs, raw)
@@ -414,7 +427,7 @@ def _binding_check(binding):
             }
             return row
         got = _derived(binding, inputs, raw)
-        want = _derived(binding, inputs, design["truth"][RAW_TRUTH])
+        want = _truth_derived(binding, inputs, design["truth"][RAW_TRUTH], u)
         check = {}
         for name in u:
             model, truth = got.get(name), want.get(name)
