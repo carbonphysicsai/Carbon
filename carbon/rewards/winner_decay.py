@@ -26,8 +26,12 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .core import DAY_MS, Q12, RewardFailure, tick
+
+if TYPE_CHECKING:
+    from .waterfall import WaterfallConfig
 
 POLICY_DIR = Path(__file__).resolve().parent / "weight_policies"
 POLICY_SCHEMA = "carbon.rewards.testnet-winner-policy.v1"
@@ -81,6 +85,22 @@ _KEYS = frozenset(
 #: policy may pay, each bound to the owner's qualification record (sha256 of its decision file) and to the exact
 #: evaluation pack digest(s) its crowns must come from. A policy without it pays no sealed crown off testnet.
 QUALIFIED_SEALED = "qualified_sealed"
+#: OPTIONAL prospective policy block configuring the 4-rung settlement waterfall (`WaterfallConfig`).
+#: Omitted on legacy policies (`policy.waterfall is None`), preserving immutable historical digests.
+WATERFALL_POLICY_KEY = "waterfall"
+_WATERFALL_KEYS = frozenset(
+    {
+        "hold_window_epochs",
+        "hold_cap_q12",
+        "window_bonus_rate_bps",
+        "zero_bonus_sold_bps",
+        "treasury_stake_cap_rao",
+        "treasury_sinks",
+        "excluded_coldkeys",
+        "enforce_king_u16_floor",
+    }
+)
+_SINK_KEYS = frozenset({"hotkey", "coldkey", "registered_at"})
 _DECAY = {"full_ms": DAY_MS, "halving_ms": DAY_MS}
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 #: The closed set of self-improvement factors (OWNER-KING-SELF-IMPROVEMENT-RESET-01). ``None``: a same-miner
@@ -116,6 +136,8 @@ class WinnerPolicy:
     #: ``((challenge, record_sha256, (evaluation_pack_digest, ...)), ...)``: the sealed-crown qualifications
     #: (`QUALIFIED_SEALED`); empty for every policy that registers none.
     qualified_sealed: tuple = ()
+    #: Prospective 4-rung waterfall configuration (`WATERFALL_POLICY_KEY`), or None when omitted.
+    waterfall: WaterfallConfig | None = None
 
     def qualified_packs(self, challenge):
         """The evaluation pack digests a SEALED crown of ``challenge`` must come from to be payable off testnet, or
@@ -154,9 +176,10 @@ def load_policy(version=None, directory=None):
     qualified = document.get(QUALIFIED_SEALED) if type(document) is dict else None
     factor = document.get("self_improvement_factor") if challenges else None
     baselines = document.get("baselines") if challenges else None
+    allowed_keys = _KEYS | {QUALIFIED_SEALED, WATERFALL_POLICY_KEY}
     if (
         type(document) is not dict
-        or set(document) not in (_KEYS, _KEYS | {QUALIFIED_SEALED})
+        or not (_KEYS <= set(document) <= allowed_keys)
         or (QUALIFIED_SEALED in document and not _qualified_ok(qualified, challenges))
         or document["schema"] != POLICY_SCHEMA
         or document["version"] != version
@@ -179,6 +202,11 @@ def load_policy(version=None, directory=None):
         )
     ):
         raise RewardFailure("WEIGHT_POLICY_MALFORMED")
+    waterfall = (
+        _parse_waterfall(document[WATERFALL_POLICY_KEY])
+        if WATERFALL_POLICY_KEY in document
+        else None
+    )
     return WinnerPolicy(
         version=version,
         digest=pinned,
@@ -198,7 +226,55 @@ def load_policy(version=None, directory=None):
                 for c, q in sorted(qualified.items())
             )
         ),
+        waterfall=waterfall,
     )
+
+
+def _parse_waterfall(raw):
+    """Validate a policy's `"waterfall"` object strictly and return a frozen `WaterfallConfig`."""
+    from .waterfall import PinnedTreasurySink, WaterfallConfig
+
+    if type(raw) is not dict or set(raw) != _WATERFALL_KEYS:
+        raise RewardFailure("WEIGHT_POLICY_MALFORMED")
+    sinks_raw = raw["treasury_sinks"]
+    excluded_raw = raw["excluded_coldkeys"]
+    if (
+        type(sinks_raw) is not list
+        or type(excluded_raw) is not list
+        or not all(type(ck) is str for ck in excluded_raw)
+        or len(set(excluded_raw)) != len(excluded_raw)
+    ):
+        raise RewardFailure("WEIGHT_POLICY_MALFORMED")
+    sinks = []
+    try:
+        for entry in sinks_raw:
+            if (
+                type(entry) is not dict
+                or set(entry) != _SINK_KEYS
+                or type(entry["hotkey"]) is not str
+                or type(entry["coldkey"]) is not str
+                or type(entry["registered_at"]) is not int
+            ):
+                raise RewardFailure("WEIGHT_POLICY_MALFORMED")
+            sinks.append(
+                PinnedTreasurySink(
+                    hotkey=entry["hotkey"],
+                    coldkey=entry["coldkey"],
+                    registered_at=entry["registered_at"],
+                )
+            )
+        return WaterfallConfig(
+            hold_window_epochs=raw["hold_window_epochs"],
+            hold_cap_q12=raw["hold_cap_q12"],
+            window_bonus_rate_bps=raw["window_bonus_rate_bps"],
+            zero_bonus_sold_bps=raw["zero_bonus_sold_bps"],
+            treasury_sinks=tuple(sinks),
+            treasury_stake_cap_rao=raw["treasury_stake_cap_rao"],
+            excluded_coldkeys=frozenset(excluded_raw),
+            enforce_king_u16_floor=raw["enforce_king_u16_floor"],
+        )
+    except Exception:  # noqa: BLE001 - closed policy validation error
+        raise RewardFailure("WEIGHT_POLICY_MALFORMED") from None
 
 
 def _qualified_ok(qualified, challenges):

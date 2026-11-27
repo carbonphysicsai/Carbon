@@ -10,6 +10,7 @@
     "mainnet-winner-v1": "sha256:a5b44f59c36b3a090bbd949aca3f9133a73b8ea97ab9ed5849f63a44f7ed1b93",
     "mainnet-winner-v2": "sha256:24a72e01bf2de06b163034bb0c952be0b77b353363a9e0749582641e068dc114",
     "mainnet-winner-v3": "sha256:b6bbb1d494e76f0c85370b158f3c9f78bd4f42b3c8f9e21f6165217d3bb41bff",
-    "mainnet-winner-v4": "sha256:4c51a1a49d147c2ae126f583ec351e0429e464fdaa515e764d2ccc352ce3b8e6"
+    "mainnet-winner-v4": "sha256:4c51a1a49d147c2ae126f583ec351e0429e464fdaa515e764d2ccc352ce3b8e6",
+    "mainnet-winner-v5": "sha256:6e0c72a46f4bc8f7d3dcee359ba053e4ad469345d4c7da30a442d19dc0892836"
   }
 }

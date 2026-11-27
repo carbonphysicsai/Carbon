@@ -133,8 +133,47 @@ def _units(value):
     return value
 
 
-def _complete(targets):
-    if type(targets) is not dict or set(targets) != {"challenges", "winners", "burn"}:
+def _holder_entries(entries, label):
+    if type(entries) is not list or len(entries) > 256:
+        raise PublicationFailure(f"MALFORMED_{label}_TARGETS")
+    out = {}
+    for item in entries:
+        if type(item) is not list or len(item) != 2:
+            raise PublicationFailure(f"MALFORMED_{label}_TARGETS")
+        holder, amount = item
+        amt = _units(amount)
+        if amt <= 0:
+            raise PublicationFailure(f"MALFORMED_{label}_TARGETS")
+        if type(holder) is not dict or set(holder) != {
+            "hotkey",
+            "coldkey",
+            "registered_at",
+        }:
+            raise PublicationFailure("MALFORMED_HOLDER")
+        identity = (holder["hotkey"], holder["coldkey"], holder["registered_at"])
+        identifier(identity[0])
+        identifier(identity[1])
+        uint(identity[2])
+        if identity in out:
+            raise PublicationFailure(f"CONFLICTING_{label}_AGGREGATION")
+        out[identity] = amt
+    expected = [
+        [dict(zip(("hotkey", "coldkey", "registered_at"), key)), value]
+        for key, value in sorted(out.items())
+    ]
+    if entries != expected:
+        raise PublicationFailure(f"CONFLICTING_{label}_AGGREGATION")
+    return out
+
+
+def _complete(targets, *, route="DIRECT_WINNER_PLUS_BURN"):
+    waterfall_mode = route == "WATERFALL_KING_BONUS_TREASURY_BURN"
+    expected_keys = (
+        {"challenges", "winners", "hold_bonus", "treasury", "burn"}
+        if waterfall_mode
+        else {"challenges", "winners", "burn"}
+    )
+    if type(targets) is not dict or set(targets) != expected_keys:
         raise PublicationFailure("MALFORMED_COMPLETE_TARGET")
     rows = targets["challenges"]
     if type(rows) is not list or len(rows) > 64:
@@ -171,15 +210,25 @@ def _complete(targets):
             identifier(identity[1])
             uint(identity[2])
             aggregate[identity] = aggregate.get(identity, 0) + e
-    if allocated > Q12 or _units(targets["burn"]) != Q12 - earned:
-        raise PublicationFailure("INCOMPLETE_BURN_VECTOR")
     expected = [
         [dict(zip(("hotkey", "coldkey", "registered_at"), key)), value]
         for key, value in sorted(aggregate.items())
     ]
     if targets["winners"] != expected:
         raise PublicationFailure("CONFLICTING_WINNER_AGGREGATION")
-    return aggregate
+    if not waterfall_mode:
+        if allocated > Q12 or _units(targets["burn"]) != Q12 - earned:
+            raise PublicationFailure("INCOMPLETE_BURN_VECTOR")
+        return aggregate
+    bonus_map = _holder_entries(targets["hold_bonus"], "HOLD_BONUS")
+    treasury_map = _holder_entries(targets["treasury"], "TREASURY")
+    combined = dict(aggregate)
+    for extra in (bonus_map, treasury_map):
+        for k, v in extra.items():
+            combined[k] = combined.get(k, 0) + v
+    if allocated > Q12 or _units(targets["burn"]) != Q12 - sum(combined.values()):
+        raise PublicationFailure("INCOMPLETE_BURN_VECTOR")
+    return combined
 
 
 def validate_integers(plan, uids, values, capabilities):
@@ -229,7 +278,10 @@ def compile_targets(
     body, projection = resolved["intent"], resolved["projection"]
     if body["context"] != asdict(snapshot.context):
         raise PublicationFailure("INTENT_NETWORK_MISMATCH")
-    aggregate = _complete(projection["targets"])
+    route = projection.get("route", "DIRECT_WINNER_PLUS_BURN")
+    if body.get("route", "DIRECT_WINNER_PLUS_BURN") != route:
+        raise PublicationFailure("INTENT_ROUTE_MISMATCH")
+    aggregate = _complete(projection["targets"], route=route)
     mapped = {}
     for (hotkey, coldkey, registered), amount in aggregate.items():
         recipient = snapshot.resolve(hotkey)

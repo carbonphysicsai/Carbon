@@ -1,8 +1,11 @@
-"""Disabled optional follow-up seam; burn-only requires no reserve state."""
+"""Treasury seam: keeps DisabledTreasury for burn-only paths and exports PinnedTreasurySink."""
 
 from dataclasses import dataclass
 
 from .core import RewardFailure
+from .waterfall import PinnedTreasurySink
+
+__all__ = ["DisabledTreasury", "PinnedTreasurySink"]
 
 
 @dataclass(frozen=True)
