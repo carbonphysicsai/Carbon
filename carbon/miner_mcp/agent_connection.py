@@ -56,10 +56,23 @@ def _command():
     )
 
 
+def setup_tools():
+    """The setup tools the open tier serves from the start (`standard_cli._setup_door`:
+    setup status and every OPEN-tier setup step), read from the same tables the door
+    installs; the registered steps join only once registration is confirmed."""
+    from carbon.miner_mcp.mcp_setup import PREFIX, STATUS
+    from scripts.dev.miner_launchpad.setup_operations import OPEN, SETUP_OPERATIONS
+
+    names = (PREFIX + op.name for op in SETUP_OPERATIONS.values() if op.tier == OPEN)
+    return sorted([STATUS, *names])
+
+
 def _open_tier_tools():
+    """What `carbon-mcp` serves with no arguments: the open tier plus its setup door
+    (`standard_cli.serve_open_tier`), so the promise is what a client lists."""
     from carbon.miner_mcp.open_tier import create_open_tier_server
 
-    return sorted(create_open_tier_server()._tool_manager._tools)
+    return sorted({*create_open_tier_server()._tool_manager._tools, *setup_tools()})
 
 
 def _operation_tools():

@@ -8,6 +8,7 @@ from carbon import research
 from carbon.miner_mcp.agent_connection import (
     check_connection,
     connection_instructions,
+    setup_tools,
 )
 from carbon.miner_mcp.mcp_operations import operation_tool_names
 from carbon.miner_mcp.standard_server import PREFIX as RESEARCH_PREFIX
@@ -68,7 +69,10 @@ def test_the_handshake_connects_in_process():
     result = asyncio.run(check_connection())
     assert result["status"] == "CONNECTED"
     assert result["server_name"] == "Carbon Onboarding"
-    assert result["tools"] == connection_instructions()["tools"]
+    # the in-process check builds the open tier alone; carbon-mcp adds its setup door
+    promised = connection_instructions()["tools"]
+    assert sorted({*result["tools"], *setup_tools()}) == promised
+    assert set(setup_tools()) <= set(promised) and "carbon_setup_status" in promised
     assert "no subprocess, network or chain read" in result["basis"]
 
 
