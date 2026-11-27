@@ -1,0 +1,53 @@
+{
+  "authority": "OWNER-WEIGHTS-AUTHORITY-01",
+  "baselines": {
+    "electric-motor-magnetics": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "MAINNET policy v6 (Stage 5C / Stage B Community Treasury activation on finney netuid 116, 2026-11-27): inherits mainnet-winner-v5 identically (OWNER-WEIGHTS-AUTHORITY-01, electric-motor-magnetics alone at full share, full_reset, null first-incumbent baselines, Motor 1.8 sealed-crown qualification on pack ee2348b1 under OWNER-MAINNET-QUALIFIED-STANDING-01, enforce_king_u16_floor=false, Hold Bonus +50% / 600 epochs tapering to 0% at 50% sold with hold_cap_q12=400000000000, excluded_coldkeys=[\"5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9\", \"5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T\"]) and activates Rung 3 Community Treasury routing to the deployed CarbonTreasuryVault (0xA1347f50E6b8942Ff08E7725a10500eBC3c7F945, CarbonCouncil 0x9FE8274Af58DB23FC7c699A8d41C28Deb94BA46b, vault coldkey 5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T) across pinned SN116 sink UIDs 498 (5EJntfeBXpuJB8Jgss89uFyp468Z3xuBRLppgMPf42EwbgoJ, registered_at=9597339) and 499 (5CtoE4XJ9g9NHXY6Fb8DZy1uxGj5DdLPqkRksMMH5TqGVTwb, registered_at=9597340) up to owner-approved treasury_stake_cap_rao=50000000000000 (50,000 alpha), burning all above-cap overflow and empty/excluded slots to UID 0. Prospective only: existing WinnerLedger promoted_at_ms clocks and HoldBonusLedger history stay intact and are never recomputed. Not the registry current policy; activated on SN116 only when live-ops updates StandingAuthorization policy_digest and --policy-version mainnet-winner-v6.",
+  "netuid": 116,
+  "network": "finney",
+  "qualified_sealed": {
+    "electric-motor-magnetics": {
+      "evaluation_pack_digests": [
+        "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c"
+      ],
+      "record_sha256": "sha256:cbd0a566f1f3e90d8c0d7e9cdf78b90359ba265344abdeb5f25433335e259235"
+    }
+  },
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": "full_reset",
+  "version": "mainnet-winner-v6",
+  "waterfall": {
+    "enforce_king_u16_floor": false,
+    "excluded_coldkeys": [
+      "5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9",
+      "5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T"
+    ],
+    "hold_cap_q12": 400000000000,
+    "hold_window_epochs": 600,
+    "treasury_sinks": [
+      {
+        "coldkey": "5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T",
+        "hotkey": "5EJntfeBXpuJB8Jgss89uFyp468Z3xuBRLppgMPf42EwbgoJ",
+        "registered_at": 9597339
+      },
+      {
+        "coldkey": "5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T",
+        "hotkey": "5CtoE4XJ9g9NHXY6Fb8DZy1uxGj5DdLPqkRksMMH5TqGVTwb",
+        "registered_at": 9597340
+      }
+    ],
+    "treasury_stake_cap_rao": 50000000000000,
+    "window_bonus_rate_bps": 5000,
+    "zero_bonus_sold_bps": 5000
+  }
+}

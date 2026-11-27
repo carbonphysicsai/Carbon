@@ -2551,3 +2551,525 @@ def test_commit_reveal_tempo_payout_lag_maturity_and_journal_integrity(
             already_settled_epochs=frozenset(),
             check_maturity=True,
         )
+
+
+# ---------------------------------------------------------------------------
+# 6. Registered Mainnet Policy `mainnet-winner-v6` (Stage B Treasury Activation)
+# ---------------------------------------------------------------------------
+
+MAINNET_V6_DIGEST = (
+    "sha256:e98a48db7be3be36136ed6ae3e9fe862695a1b8b3bb76efdce90c6411811592f"
+)
+SINK_498_HOTKEY = "5EJntfeBXpuJB8Jgss89uFyp468Z3xuBRLppgMPf42EwbgoJ"
+SINK_498_REG = 9597339
+SINK_499_HOTKEY = "5CtoE4XJ9g9NHXY6Fb8DZy1uxGj5DdLPqkRksMMH5TqGVTwb"
+SINK_499_REG = 9597340
+
+
+def test_mainnet_winner_v6_policy_registration_and_field_inheritance():
+    v5 = wd.load_policy("mainnet-winner-v5")
+    v6 = wd.load_policy("mainnet-winner-v6")
+    registry = json.loads((wd.POLICY_DIR / "registry.json").read_text())
+    assert registry["current"] == "testnet-winner-v1"
+    assert registry["versions"]["mainnet-winner-v5"] == MAINNET_V5_DIGEST == v5.digest
+    assert registry["versions"]["mainnet-winner-v6"] == MAINNET_V6_DIGEST == v6.digest
+
+    raw_bytes = (wd.POLICY_DIR / "mainnet-winner-v6.json").read_bytes()
+    doc = json.loads(raw_bytes)
+    assert (json.dumps(doc, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    ) == raw_bytes
+
+    cutover_doc = (wd.POLICY_DIR.parent / "MAINNET-V6-CUTOVER.md").read_text(
+        encoding="utf-8"
+    )
+    for needle in (
+        MAINNET_V6_DIGEST,
+        MAINNET_V5_DIGEST,
+        CARBON_EXCLUDED_COLDKEY,
+        VAULT_EXCLUDED_COLDKEY,
+        SINK_498_HOTKEY,
+        str(SINK_498_REG),
+        SINK_499_HOTKEY,
+        str(SINK_499_REG),
+        "50000000000000",
+        "0x9FE8274Af58DB23FC7c699A8d41C28Deb94BA46b",
+        "0xA1347f50E6b8942Ff08E7725a10500eBC3c7F945",
+    ):
+        assert needle in cutover_doc
+
+    assert (
+        v6.authority,
+        v6.network,
+        v6.netuid,
+        v6.burn_uid,
+        v6.cadence_blocks,
+        v6.challenges,
+        v6.baselines,
+        v6.qualified_sealed,
+        v6.self_improvement_factor,
+        v6.share,
+    ) == (
+        v5.authority,
+        v5.network,
+        v5.netuid,
+        v5.burn_uid,
+        v5.cadence_blocks,
+        v5.challenges,
+        v5.baselines,
+        v5.qualified_sealed,
+        v5.self_improvement_factor,
+        v5.share,
+    )
+
+    assert v6.waterfall == WaterfallConfig(
+        hold_window_epochs=600,
+        hold_cap_q12=400_000_000_000,
+        window_bonus_rate_bps=5000,
+        zero_bonus_sold_bps=5000,
+        treasury_sinks=(
+            PinnedTreasurySink(SINK_498_HOTKEY, VAULT_EXCLUDED_COLDKEY, SINK_498_REG),
+            PinnedTreasurySink(SINK_499_HOTKEY, VAULT_EXCLUDED_COLDKEY, SINK_499_REG),
+        ),
+        treasury_stake_cap_rao=50_000 * RAO,
+        excluded_coldkeys=frozenset({CARBON_EXCLUDED_COLDKEY, VAULT_EXCLUDED_COLDKEY}),
+        enforce_king_u16_floor=False,
+    )
+
+
+def test_mainnet_winner_v6_treasury_sink_resolution_failover_and_50k_cap(tmp_path):
+    """Verify `mainnet-winner-v6` Rung 3 Treasury behavior on SN116:
+    - Both pinned sinks (`UID 498` & `UID 499`) split post-bonus residual evenly while
+      vault stake `< 50,000 α` (50_000 * RAO).
+    - If `UID 498` deregisters or gets recycled (mismatched `registered_at`/`coldkey`),
+      100% of Rung 3 Treasury fails over to `UID 499` (and vice versa).
+    - Once vault stake reaches `50,000 α` (or exceeds it, or read is `None`, or both
+      sinks mismatch), 100% of residual overflows to `UID 0` burn.
+    - Empty/excluded Challenge slot burns 100% directly to `UID 0`, never funding Treasury.
+    """
+    from carbon.chain import networks
+    from carbon.chain.publication import compile_targets
+    from carbon.rewards.waterfall import compute_waterfall_targets
+    from carbon.rewards.winner_decay import Winner
+
+    v6 = wd.load_policy("mainnet-winner-v6")
+    finney_row = networks.NETWORKS["finney"]
+    ctx = ChainContext(
+        "finney",
+        "wss://entrypoint-finney.opentensor.ai:443",
+        finney_row.chain_id,
+        finney_row.genesis_hash,
+        116,
+    )
+    t0 = 20 * DAY_MS
+
+    def _build_snap(
+        *,
+        sink498_reg: int | None = SINK_498_REG,
+        sink498_ck: str = VAULT_EXCLUDED_COLDKEY,
+        sink499_reg: int | None = SINK_499_REG,
+        sink499_ck: str = VAULT_EXCLUDED_COLDKEY,
+    ) -> MetagraphSnapshot:
+        members = [
+            Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+            Participant(1, "hk_sn116_validator", "ck_validator", 2),
+            Participant(2, "hk_motor_king", "ck_motor_king", 10),
+            Participant(3, "hk_loyal_past", "ck_loyal_past", 11),
+        ]
+        # Pad UIDs up to 499 deterministically so UIDs 498 & 499 match live SN116 slot indices
+        for uid in range(4, 498):
+            members.append(Participant(uid, f"hk_pad_{uid}", f"ck_pad_{uid}", 100))
+        if sink498_reg is not None:
+            members.append(Participant(498, SINK_498_HOTKEY, sink498_ck, sink498_reg))
+        else:
+            members.append(Participant(498, "hk_dereg_498", "ck_other_498", 9_600_000))
+        if sink499_reg is not None:
+            members.append(Participant(499, SINK_499_HOTKEY, sink499_ck, sink499_reg))
+        else:
+            members.append(Participant(499, "hk_dereg_499", "ck_other_499", 9_600_001))
+        return MetagraphSnapshot(
+            context=ctx,
+            finalized_block=9_600_100,
+            block_hash="0x" + "77" * 32,
+            timestamp_ms=t0 + DAY_MS,  # 50% King decay (`500_000_000_000` Q12 decayed)
+            participants=tuple(members),
+        )
+
+    def _caps(snap: MetagraphSnapshot) -> RuntimeCapabilities:
+        return RuntimeCapabilities(
+            snapshot_id=snap.snapshot_id,
+            spec_version=SPEC,
+            mechanism_count=1,
+            maximum_mechanisms=8,
+            burn_mode="Burn",
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkey="hk_burn_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            min_weights=1,
+            max_weight=U16,
+            version_key=1,
+            rate_limit=0,
+            last_update=0,
+            commit_reveal=True,
+            validator_permit=True,
+            sufficient_stake=True,
+        )
+
+    ledger = HoldBonusLedger(tmp_path / "hold.sqlite3")
+    try:
+        # ck_loyal_past earns 1,000 α Crown, holds 1,000 α -> at 10 α emission gets 83_333_333_333 Q12
+        # Leaving 500_000_000_000 - 83_333_333_333 = 416_666_666_667 Q12 for Rung 3 Treasury!
+        ledger.record_crown_earnings(
+            10, {"ck_loyal_past": (1_000 * RAO, "hk_loyal_past")}
+        )
+        ledger.sample_epoch_stakes(10, {"ck_loyal_past": 1_000 * RAO})
+
+        # 1) Both sinks active, vault stake just below 50,000 α (`49_999 * RAO`)
+        snap_both = _build_snap()
+        both = compute_waterfall_targets(
+            v6,
+            v6.waterfall,
+            snap_both,
+            {"electric-motor-magnetics": Winner("hk_motor_king", t0)},
+            epoch=10,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=49_999 * RAO,
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_sn116_validator",
+        )
+        # 416_666_666_667 // 2 = 208_333_333_333 each to UID 498 & UID 499; 1 dust to UID 0
+        expected_both_treasury = sorted(
+            [
+                [
+                    {
+                        "hotkey": SINK_498_HOTKEY,
+                        "coldkey": VAULT_EXCLUDED_COLDKEY,
+                        "registered_at": SINK_498_REG,
+                    },
+                    208_333_333_333,
+                ],
+                [
+                    {
+                        "hotkey": SINK_499_HOTKEY,
+                        "coldkey": VAULT_EXCLUDED_COLDKEY,
+                        "registered_at": SINK_499_REG,
+                    },
+                    208_333_333_333,
+                ],
+            ],
+            key=lambda item: item[0]["hotkey"],
+        )
+        assert both["treasury"] == expected_both_treasury
+        assert both["burn"] == 1
+        plan = compile_targets(
+            {
+                "intent": {
+                    "context": dataclasses.asdict(ctx),
+                    "route": WATERFALL_ROUTE,
+                    "targets": both,
+                },
+                "projection": {"route": WATERFALL_ROUTE, "targets": both},
+            },
+            snap_both,
+            _caps(snap_both),
+            "hk_sn116_validator",
+            network="finney",
+            spec_version=SPEC,
+        )
+        q12_map = dict(plan.q12)
+        assert q12_map[498] == 208_333_333_333
+        assert q12_map[499] == 208_333_333_333
+        assert q12_map[0] == 1
+
+        # 2) Failover: UID 498 recycled at wrong block (`registered_at != 9597339`) -> 100% to UID 499
+        snap_failover = _build_snap(sink498_reg=9_600_050)
+        failover = compute_waterfall_targets(
+            v6,
+            v6.waterfall,
+            snap_failover,
+            {"electric-motor-magnetics": Winner("hk_motor_king", t0)},
+            epoch=10,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=1_000 * RAO,
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_sn116_validator",
+        )
+        assert failover["treasury"] == [
+            [
+                {
+                    "hotkey": SINK_499_HOTKEY,
+                    "coldkey": VAULT_EXCLUDED_COLDKEY,
+                    "registered_at": SINK_499_REG,
+                },
+                416_666_666_667,
+            ]
+        ]
+        assert failover["burn"] == 0
+
+        # 3) Failover reverse: UID 499 deregistered -> 100% to UID 498
+        snap_498_only = _build_snap(sink499_reg=None)
+        only_498 = compute_waterfall_targets(
+            v6,
+            v6.waterfall,
+            snap_498_only,
+            {"electric-motor-magnetics": Winner("hk_motor_king", t0)},
+            epoch=10,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=1_000 * RAO,
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_sn116_validator",
+        )
+        assert only_498["treasury"] == [
+            [
+                {
+                    "hotkey": SINK_498_HOTKEY,
+                    "coldkey": VAULT_EXCLUDED_COLDKEY,
+                    "registered_at": SINK_498_REG,
+                },
+                416_666_666_667,
+            ]
+        ]
+        assert only_498["burn"] == 0
+
+        # 4) Cap & fail-closed overflow: >= 50,000 α or None or both mismatched -> 100% to UID 0 burn
+        for bad_stake in (50_000 * RAO, 55_000 * RAO, None):
+            capped = compute_waterfall_targets(
+                v6,
+                v6.waterfall,
+                snap_both,
+                {"electric-motor-magnetics": Winner("hk_motor_king", t0)},
+                epoch=10,
+                hold_ledger=ledger,
+                epoch_miner_emission_rao=10 * RAO,
+                treasury_current_stake_rao=bad_stake,
+                owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+                owner_hotkeys=("hk_burn_owner",),
+                publisher_hotkey="hk_sn116_validator",
+            )
+            assert capped["treasury"] == []
+            assert capped["burn"] == 416_666_666_667
+
+        # 5) Excluded/empty Challenge slot burns directly to UID 0, never funding Treasury
+        excluded_king = compute_waterfall_targets(
+            v6,
+            v6.waterfall,
+            snap_both,
+            {},
+            epoch=10,
+            hold_ledger=ledger,
+            epoch_miner_emission_rao=10 * RAO,
+            treasury_current_stake_rao=0,
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkeys=("hk_burn_owner",),
+            publisher_hotkey="hk_sn116_validator",
+        )
+        assert excluded_king["winners"] == []
+        assert excluded_king["hold_bonus"] == []
+        assert excluded_king["treasury"] == []
+        assert excluded_king["burn"] == Q12
+    finally:
+        ledger.close()
+
+
+def test_mainnet_winner_v6_cli_cutover_from_v5_and_rollback_preserve_history(
+    monkeypatch, tmp_path
+):
+    """Stage B operator cutover (`v5 -> v6`) and rollback (`v6 -> v5`) via `weights.execute`:
+    - Epoch 26660 (`block = 9_597_600`) runs under `mainnet-winner-v5`: Day-1 King gets 100%,
+      `treasury == []`.
+    - Epoch 26680 (`block = 9_604_800`) cuts over to `mainnet-winner-v6`: existing King clock
+      (`clock_ms`) and `HoldBonusLedger` stay intact, Hold Bonus pays loyal King
+      (`8_333_333_333` Q12), and remaining active-King decay routes evenly to pinned `UID 498`
+      & `UID 499` (`treasury`).
+    - Epoch 26681 (`block = 9_605_160`) rolls back to `mainnet-winner-v5`: `treasury` drops to
+      `[]` and residual burns to `UID 0`, while `HoldBonusLedger` history continues unbroken.
+    """
+    from carbon.chain import sdk as chain_sdk
+    from carbon.chain import sdk_weights
+    from carbon.validator_setup import weights as vs_weights
+
+    v5 = wd.load_policy("mainnet-winner-v5")
+    v6 = wd.load_policy("mainnet-winner-v6")
+    ctx, state_dir, op_cfg_path, standing_path, pool_path = _setup_sn116_cli_fixture(
+        tmp_path
+    )
+    journal_path = state_dir / "publication.sqlite3"
+    ledger_path = state_dir / "winners.jsonl"
+    record_file = tmp_path / "OWNER-WEIGHTS-AUTHORITY-01.md"
+    t0 = 20 * DAY_MS
+
+    def _write_standing(policy_digest: str) -> None:
+        standing_path.write_text(
+            json.dumps(
+                {
+                    "authority": wd.MAINNET_AUTHORITY,
+                    "authority_record": record_file.name,
+                    "policy_digest": policy_digest,
+                    "publisher_hotkey": "hk_sn116_validator",
+                    "expected_runtime_spec": SPEC,
+                    "valid_from_block": 9_500_000,
+                    "valid_through_block": 10_000_000,
+                }
+            ),
+            encoding="utf-8",
+        )
+        standing_path.chmod(0o600)
+
+    def _make_snap(block: int, now_ms: int) -> MetagraphSnapshot:
+        members = [
+            Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+            Participant(1, "hk_sn116_validator", "ck_validator", 2),
+            Participant(2, "hk_motor_king", "ck_motor_king", 10),
+        ]
+        for uid in range(3, 498):
+            members.append(Participant(uid, f"hk_pad_{uid}", f"ck_pad_{uid}", 100))
+        members.append(
+            Participant(498, SINK_498_HOTKEY, VAULT_EXCLUDED_COLDKEY, SINK_498_REG)
+        )
+        members.append(
+            Participant(499, SINK_499_HOTKEY, VAULT_EXCLUDED_COLDKEY, SINK_499_REG)
+        )
+        return MetagraphSnapshot(
+            context=ctx,
+            finalized_block=block,
+            block_hash="0x" + f"{block:064x}",
+            timestamp_ms=now_ms,
+            participants=tuple(members),
+        )
+
+    def _make_caps(snap: MetagraphSnapshot) -> RuntimeCapabilities:
+        return RuntimeCapabilities(
+            snapshot_id=snap.snapshot_id,
+            spec_version=SPEC,
+            mechanism_count=1,
+            maximum_mechanisms=8,
+            burn_mode="Burn",
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkey="hk_burn_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            min_weights=1,
+            max_weight=U16,
+            version_key=1,
+            rate_limit=0,
+            last_update=0,
+            commit_reveal=False,
+            validator_permit=True,
+            sufficient_stake=True,
+        )
+
+    live_env = {
+        "snap": _make_snap(9_597_600, t0),
+        "last_epoch_block": 9_597_590,
+        "emission_rao": 100 * RAO,
+        "stakes": {
+            "ck_motor_king": 0,
+            CARBON_EXCLUDED_COLDKEY: 0,
+            VAULT_EXCLUDED_COLDKEY: 0,
+        },
+        "tx_seq": 0,
+    }
+
+    class _FakeCliBackend(_WaterfallBackend):
+        def __init__(self, context, publisher, wallet, **kwargs):
+            super().__init__(live_env["snap"], publisher=publisher)
+            live_env["tx_seq"] += 1
+            self.tx_hash = "0x" + f"{live_env['tx_seq']:064x}"
+
+        async def observe(self):
+            return self.state, _make_caps(self.state)
+
+        async def close(self):
+            pass
+
+    async def _fake_capture(self, context):
+        return live_env["snap"]
+
+    async def _fake_waterfall_read(
+        context,
+        *,
+        block=None,
+        block_hash=None,
+        coldkeys=(),
+        treasury_coldkeys=(),
+        cadence_blocks=360,
+    ):
+        return {
+            "block": block,
+            "block_hash": block_hash,
+            "last_epoch_block": live_env["last_epoch_block"],
+            "epoch_miner_emission_rao": live_env["emission_rao"],
+            "treasury_current_stake_rao": sum(
+                live_env["stakes"].get(ck, 0) for ck in treasury_coldkeys
+            ),
+            "staked_by_coldkey": {ck: live_env["stakes"].get(ck, 0) for ck in coldkeys},
+            "owner_coldkey": CARBON_EXCLUDED_COLDKEY,
+            "owner_hotkeys": ("hk_burn_owner",),
+        }
+
+    monkeypatch.setattr(chain_sdk.BittensorReader, "capture", _fake_capture)
+    monkeypatch.setattr(sdk_weights, "read_waterfall_chain_state", _fake_waterfall_read)
+    monkeypatch.setattr(sdk_weights, "open_operator_wallet", lambda *a, **k: object())
+    monkeypatch.setattr(sdk_weights, "BittensorPublicationBackend", _FakeCliBackend)
+
+    def _cli_args(action: str, policy_version: str):
+        return SimpleNamespace(
+            action=action,
+            config=str(op_cfg_path),
+            standing=str(standing_path),
+            journal=str(journal_path),
+            ledger=str(ledger_path),
+            battery_deployment=None,
+            lean_pool=[f"electric-motor-magnetics={pool_path}"],
+            lean_pool_previous=None,
+            policy_version=policy_version,
+            repository=str(tmp_path),
+            reconcile_archive_endpoint=None,
+            archive_fallback_endpoint=None,
+        )
+
+    # Epoch 26660 under v5
+    _write_standing(v5.digest)
+    r_v5 = asyncio.run(vs_weights.execute(_cli_args("run", "mainnet-winner-v5")))
+    assert r_v5["state"] == "ROW_VERIFIED"
+    v5_ledger_bytes = ledger_path.read_bytes()
+
+    # Epoch 26680 cutover to v6 (+24h, King 50%, Hold Bonus 8_333_333_333, Treasury 491_666_666_666 split on 498/499)
+    _write_standing(v6.digest)
+    live_env["snap"] = _make_snap(9_604_800, t0 + DAY_MS)
+    live_env["last_epoch_block"] = 9_604_790
+    live_env["emission_rao"] = 10 * RAO
+    live_env["stakes"]["ck_motor_king"] = 100 * RAO
+    live_env["stakes"][VAULT_EXCLUDED_COLDKEY] = 1_000 * RAO
+
+    p_v6 = asyncio.run(vs_weights.execute(_cli_args("preview", "mainnet-winner-v6")))
+    assert p_v6["policy"] == "mainnet-winner-v6"
+    assert len(p_v6["targets"]["treasury"]) == 2
+    assert p_v6["targets"]["burn"] == 1
+
+    r_v6 = asyncio.run(vs_weights.execute(_cli_args("run", "mainnet-winner-v6")))
+    assert r_v6["state"] == "ROW_VERIFIED"
+    assert ledger_path.read_bytes() == v5_ledger_bytes
+    assert r_v6["document"]["plan"]["q12"] == [
+        [0, 1],
+        [2, 508_333_333_333],
+        [498, 245_833_333_333],
+        [499, 245_833_333_333],
+    ]
+
+    # Epoch 26681 emergency rollback to v5 -> Treasury immediately stops (`[]`), burn takes residual
+    _write_standing(v5.digest)
+    live_env["snap"] = _make_snap(9_605_160, t0 + DAY_MS + 360 * 12_000)
+    live_env["last_epoch_block"] = 9_605_150
+    live_env["stakes"]["ck_motor_king"] = 200 * RAO
+    r_rb = asyncio.run(vs_weights.execute(_cli_args("run", "mainnet-winner-v5")))
+    assert r_rb["state"] == "ROW_VERIFIED"
+    assert r_rb["document"]["plan"]["q12"] == [
+        [0, 491_250_000_000],
+        [2, 508_750_000_000],
+    ]
