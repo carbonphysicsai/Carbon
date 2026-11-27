@@ -652,18 +652,25 @@ class TestnetWinnerIntentIssuer:
                     canary_hotkeys=canary_hotkeys,
                 )
                 if observe_waterfall and self.hold_ledger is not None:
-                    if obs.crown_credits_by_coldkey:
-                        self.hold_ledger.record_crown_earnings(
-                            epoch, obs.crown_credits_by_coldkey
+                    with self.hold_ledger.batch():
+                        if obs.crown_credits_by_coldkey:
+                            self.hold_ledger.record_crown_earnings(
+                                epoch, obs.crown_credits_by_coldkey
+                            )
+                        if obs.bonus_credits_by_coldkey:
+                            self.hold_ledger.record_bonus_earnings(
+                                epoch, obs.bonus_credits_by_coldkey
+                            )
+                        self.hold_ledger.sample_epoch_stakes(
+                            epoch, obs.staked_by_coldkey
                         )
-                    if obs.bonus_credits_by_coldkey:
-                        self.hold_ledger.record_bonus_earnings(
-                            epoch, obs.bonus_credits_by_coldkey
+                        self.hold_ledger.record_epoch_emission(
+                            epoch, obs.epoch_miner_emission_rao
                         )
-                    self.hold_ledger.sample_epoch_stakes(epoch, obs.staked_by_coldkey)
-                    self.hold_ledger.record_epoch_emission(
-                        epoch, obs.epoch_miner_emission_rao
-                    )
+                        if obs.settled_intent_epochs:
+                            self.hold_ledger.record_settled_intents(
+                                obs.settled_intent_epochs
+                            )
             except RewardFailure as failure:
                 _refuse(str(failure))
             return targets
@@ -960,16 +967,44 @@ def crowned_models(store):
     }
 
 
-def _settled_waterfall_intents(journal_path, context_dict, start_epoch, end_epoch):
+def _is_payout_mature(
+    *,
+    commit_reveal: bool,
+    effective_block: int,
+    current_epoch: int,
+    snapshot_finalized_block: int,
+    cadence_blocks: int,
+    last_epoch_block: int | None,
+) -> bool:
+    """Whether at least one Subtensor coinbase step completed strictly after `effective_block`."""
+    if last_epoch_block is not None:
+        return last_epoch_block > effective_block
+    if commit_reveal:
+        return snapshot_finalized_block >= effective_block + cadence_blocks
+    return (effective_block // cadence_blocks) < current_epoch
+
+
+def _settled_waterfall_intents(
+    journal_path,
+    context_dict,
+    current_epoch,
+    *,
+    snapshot_finalized_block,
+    cadence_blocks,
+    last_epoch_block=None,
+    already_settled_epochs=frozenset(),
+    check_maturity=True,
+):
     """Read-only scan of `ROW_VERIFIED` intents in `journal_path` for `context_dict`
-    with `start_epoch <= epoch < end_epoch`, ordered by `epoch ASC`."""
+    with `0 <= epoch < current_epoch` not yet in `already_settled_epochs`, verified
+    against `publication_v1` digests and (when `check_maturity`) payout maturity."""
     import sqlite3
     from pathlib import Path
 
     path = Path(journal_path)
     if path.is_symlink():
         _refuse("INTENT_JOURNAL_UNREADABLE")
-    if not path.is_file() or start_epoch >= end_epoch:
+    if not path.is_file() or current_epoch <= 0:
         return []
     try:
         db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
@@ -989,26 +1024,86 @@ def _settled_waterfall_intents(journal_path, context_dict, start_epoch, end_epoc
                         "SELECT epoch, intent_digest FROM testnet_winner_epoch_v1"
                     ).fetchall()
                 )
-            rows = db.execute("""SELECT i.digest, i.body
+            rows = db.execute(
+                """SELECT i.digest, i.body, p.document, p.digest, p.tracking, p.tracking_digest
                    FROM testnet_winner_intent_v1 AS i
                    JOIN publication_v1 AS p ON p.identity = i.digest
-                   WHERE p.state = 'ROW_VERIFIED'""").fetchall()
+                   WHERE p.state = 'ROW_VERIFIED'"""
+            ).fetchall()
         finally:
             db.close()
     except sqlite3.Error:
         _refuse("INTENT_JOURNAL_UNREADABLE")
 
     by_epoch = {}
-    for intent_digest, body_text in rows:
+    for (
+        intent_digest,
+        body_text,
+        doc_text,
+        doc_digest,
+        tracking_text,
+        tracking_digest,
+    ) in rows:
         if digest(body_text.encode()) != intent_digest:
             _refuse("UNKNOWN_OR_ALTERED_WINNER_INTENT")
-        body = json.loads(body_text)
+        if (
+            digest(doc_text.encode()) != doc_digest
+            or digest(tracking_text.encode()) != tracking_digest
+        ):
+            _refuse("CONFLICTING_DISPATCH_JOURNAL")
+        try:
+            body = json.loads(body_text)
+            doc = json.loads(doc_text)
+            tracking = json.loads(tracking_text)
+        except ValueError:
+            _refuse("CONFLICTING_DISPATCH_JOURNAL")
+        if (
+            type(body) is not dict
+            or type(doc) is not dict
+            or type(tracking) is not dict
+        ):
+            _refuse("CONFLICTING_DISPATCH_JOURNAL")
         if body.get("context") != context_dict:
             continue
+        if (
+            type(doc.get("intent")) is not dict
+            or doc["intent"].get("digest") != intent_digest
+            or doc["intent"].get("identity") != body.get("identity")
+            or type(doc.get("plan")) is not dict
+        ):
+            _refuse("CONFLICTING_DISPATCH_JOURNAL")
+        if body.get("route", "DIRECT_WINNER_PLUS_BURN") not in (
+            WATERFALL_ROUTE,
+            "DIRECT_WINNER_PLUS_BURN",
+        ):
+            _refuse("UNKNOWN_OR_ALTERED_WINNER_INTENT")
         ep = body.get("epoch")
-        if type(ep) is not int or not (start_epoch <= ep < end_epoch):
+        if type(ep) is not int or ep < 0:
+            _refuse("UNKNOWN_OR_ALTERED_WINNER_INTENT")
+        if ep >= current_epoch or ep in already_settled_epochs:
             continue
         if ep in epoch_pins and epoch_pins[ep] != intent_digest:
+            continue
+        plan = doc["plan"]
+        commit_reveal = plan.get("commit_reveal")
+        if type(commit_reveal) is not bool:
+            _refuse("CONFLICTING_DISPATCH_JOURNAL")
+        if commit_reveal:
+            if tracking.get("revealed") is not True:
+                _refuse("CONFLICTING_DISPATCH_JOURNAL")
+            effective_block = tracking.get("reveal_block")
+        else:
+            effective_block = tracking.get("finalized_block")
+        if type(effective_block) is not int or effective_block < 0:
+            _refuse("CONFLICTING_DISPATCH_JOURNAL")
+        if check_maturity and not _is_payout_mature(
+            commit_reveal=commit_reveal,
+            effective_block=effective_block,
+            current_epoch=current_epoch,
+            snapshot_finalized_block=snapshot_finalized_block,
+            cadence_blocks=cadence_blocks,
+            last_epoch_block=last_epoch_block,
+        ):
             continue
         if ep not in by_epoch:
             by_epoch[ep] = body
@@ -1081,22 +1176,31 @@ def _build_cli_waterfall_observer(
     def _observe(snapshot, epoch):
         if epoch in cache:
             return cache[epoch]
-        prev = hold_ledger.latest_recorded_epoch_before(epoch)
-        start_epoch = 0 if prev is None else prev
-        settled = _settled_waterfall_intents(
-            journal_path, asdict(snapshot.context), start_epoch, epoch
+        already_settled = hold_ledger.settled_intent_epochs()
+        candidate_intents = _settled_waterfall_intents(
+            journal_path,
+            asdict(snapshot.context),
+            epoch,
+            snapshot_finalized_block=snapshot.finalized_block,
+            cadence_blocks=policy.cadence_blocks,
+            already_settled_epochs=already_settled,
+            check_maturity=False,
         )
-        candidate_crown_cks = {
+        candidate_recipient_cks = {
             holder["coldkey"]
-            for body in settled
-            for holder, weight_q12 in body.get("targets", {}).get("winners", ())
+            for body in candidate_intents
+            for key in ("winners", "hold_bonus")
+            for holder, weight_q12 in body.get("targets", {}).get(key, ())
             if weight_q12 > 0
         }
         participant_cks = {p.coldkey for p in snapshot.participants}
         tracked_cks = {ck for ck, _, _ in hold_ledger.tracked_coldkeys()}
         query_coldkeys = tuple(
             sorted(
-                tracked_cks | candidate_crown_cks | participant_cks | set(sink_coldkeys)
+                tracked_cks
+                | candidate_recipient_cks
+                | participant_cks
+                | set(sink_coldkeys)
             )
         )
         state = _invoke_waterfall_chain_reader(
@@ -1114,6 +1218,7 @@ def _build_cli_waterfall_observer(
         staked_by_coldkey = state.get("staked_by_coldkey")
         owner_coldkey = state.get("owner_coldkey")
         owner_hotkeys = state.get("owner_hotkeys", ())
+        last_epoch_block = state.get("last_epoch_block")
         if (
             type(live_emission_rao) is not int
             or live_emission_rao < 0
@@ -1121,9 +1226,26 @@ def _build_cli_waterfall_observer(
             or any(ck not in staked_by_coldkey for ck in query_coldkeys)
             or type(owner_coldkey) is not str
             or not owner_coldkey
+            or (
+                last_epoch_block is not None
+                and (
+                    type(last_epoch_block) is not int
+                    or not 0 <= last_epoch_block <= snapshot.finalized_block
+                )
+            )
         ):
             _refuse("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
 
+        settled = _settled_waterfall_intents(
+            journal_path,
+            asdict(snapshot.context),
+            epoch,
+            snapshot_finalized_block=snapshot.finalized_block,
+            cadence_blocks=policy.cadence_blocks,
+            last_epoch_block=last_epoch_block,
+            already_settled_epochs=already_settled,
+            check_maturity=True,
+        )
         crown_credits: dict[str, tuple[int, str]] = {}
         bonus_credits: dict[str, tuple[int, str]] = {}
         for body in settled:
@@ -1163,6 +1285,8 @@ def _build_cli_waterfall_observer(
                 bonus_credits_by_coldkey=bonus_credits or None,
                 owner_coldkey=owner_coldkey,
                 owner_hotkeys=tuple(owner_hotkeys),
+                last_epoch_block=last_epoch_block,
+                settled_intent_epochs=tuple(body["epoch"] for body in settled),
             )
         except Exception:  # noqa: BLE001 - closed observation validation error
             _refuse("WATERFALL_OBSERVATION_INVALID")

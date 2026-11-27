@@ -1490,6 +1490,7 @@ def test_cli_issuer_and_weights_execute_persist_hold_bonus_ledger_jsonl_across_e
             105 * RAO,
             Fraction(0),
         )
+        assert reloaded.settled_intent_epochs() == frozenset({3, 23})
     finally:
         reloaded.close()
 
@@ -1786,10 +1787,12 @@ def test_f1_v4_to_v5_king_decay_clock_carryover_and_18_to_19_handover(
 def test_read_waterfall_chain_state_queries_block_pinned_subtensor_storage_and_runtime_api(
     monkeypatch,
 ):
-    """F4 + F5: Verify `carbon.chain.sdk_weights.read_waterfall_chain_state` queries block-pinned
-    Subtensor `metagraph` (`alpha_out_emission`), `SubnetOwner`, `SubnetOwnerHotkey`, `OwnedHotkeys`,
-    `SubnetOwnerCut`, `OwnerCutEnabled`, and `StakeInfoRuntimeApi.get_stake_info_for_coldkeys`,
-    and fails closed on genesis mismatch, block-hash drift, or missing `SubnetOwner`."""
+    """F4 + F5 + Blocker 1: Verify `carbon.chain.sdk_weights.read_waterfall_chain_state`
+    queries block-pinned Subtensor `metagraph` (`alpha_out_emission`), `SubnetOwner`,
+    `SubnetOwnerHotkey`, `OwnedHotkeys`, `SubnetOwnerCut`, `LastEpochBlock`, and
+    `StakeInfoRuntimeApi.get_stake_info_for_coldkeys` (without querying non-existent
+    `OwnerCutEnabled`), and fails closed on genesis mismatch, block-hash drift, or
+    missing `SubnetOwner`."""
     import sys
 
     from carbon.chain import networks, sdk_weights
@@ -1815,7 +1818,7 @@ def test_read_waterfall_chain_state_queries_block_pinned_subtensor_storage_and_r
         "owner_hotkey": "hk_owner_primary",
         "owned_hotkeys": ["hk_owner_secondary"],
         "owner_cut": 11_796,  # ~18% owner cut (`11796 / 65535`)
-        "owner_cut_enabled": True,
+        "last_epoch_block": 4_319_800,
         "closed": 0,
     }
     calls_seen: list[tuple] = []
@@ -1856,9 +1859,9 @@ def test_read_waterfall_chain_state_queries_block_pinned_subtensor_storage_and_r
                 return rpc_state["owner_hotkey"]
             if name == "SubnetOwnerCut":
                 return rpc_state["owner_cut"]
-            if name == "OwnerCutEnabled":
+            if name == "LastEpochBlock":
                 assert args == [116]
-                return rpc_state["owner_cut_enabled"]
+                return rpc_state["last_epoch_block"]
             if name == "OwnedHotkeys":
                 assert args == [rpc_state["owner_coldkey"]]
                 return rpc_state["owned_hotkeys"]
@@ -1942,11 +1945,13 @@ def test_read_waterfall_chain_state_queries_block_pinned_subtensor_storage_and_r
             cadence_blocks=360,
         )
     )
+    assert all(c[1] != "OwnerCutEnabled" for c in calls_seen if c[0] == "query")
     expected_after_owner = 1_000_000_000 - (1_000_000_000 * 11_796) // 65535
     expected_epoch_emission = (expected_after_owner // 2) * 360
     assert res == {
         "block": pinned_block,
         "block_hash": pinned_hash,
+        "last_epoch_block": 4_319_800,
         "epoch_miner_emission_rao": expected_epoch_emission,
         "treasury_current_stake_rao": 2_500 * RAO,
         "staked_by_coldkey": {
@@ -1988,4 +1993,561 @@ def test_read_waterfall_chain_state_queries_block_pinned_subtensor_storage_and_r
             sdk_weights.read_waterfall_chain_state(
                 ctx, block=pinned_block, block_hash=pinned_hash
             )
+        )
+    rpc_state["owner_coldkey"] = CARBON_EXCLUDED_COLDKEY
+
+    # Fail-closed 4: LastEpochBlock missing or > target_block
+    rpc_state["last_epoch_block"] = None
+    with pytest.raises(
+        PublicationFailure, match="WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE"
+    ):
+        asyncio.run(
+            sdk_weights.read_waterfall_chain_state(
+                ctx, block=pinned_block, block_hash=pinned_hash
+            )
+        )
+    rpc_state["last_epoch_block"] = pinned_block + 1
+    with pytest.raises(
+        PublicationFailure, match="WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE"
+    ):
+        asyncio.run(
+            sdk_weights.read_waterfall_chain_state(
+                ctx, block=pinned_block, block_hash=pinned_hash
+            )
+        )
+
+
+def test_read_waterfall_chain_state_sn116_bittensor_contract_and_attribute_shapes(
+    monkeypatch,
+):
+    """Blocker 1 contract test: Verify real `bittensor` (`Balance`, `sp_core.ss58_encode`,
+    `SubtensorModule` storage descriptors, `StakeInfoRuntimeApi.get_stake_info_for_coldkeys`)
+    and `SN116`-shaped `MetagraphInfo` (`alpha_out_emission` as `Balance`) + attribute-style
+    `StakeInfo` entries with raw 32-byte `bytes` and 32-int `tuple` `ck_raw` decode cleanly
+    into exact `1x` 360-block miner Alpha emission (`147_600_824_040` rao)."""
+    import sys
+
+    import bittensor as bt
+    from bittensor._generated import runtime_apis, storage
+
+    from carbon.chain import networks, sdk_weights
+    from carbon.chain.publication import PublicationFailure
+
+    # Contract check against installed bittensor descriptors
+    assert hasattr(storage.SubtensorModule, "SubnetOwnerCut")
+    assert hasattr(storage.SubtensorModule, "LastEpochBlock")
+    assert hasattr(storage.SubtensorModule, "SubnetOwner")
+    assert hasattr(storage.SubtensorModule, "SubnetOwnerHotkey")
+    assert hasattr(storage.SubtensorModule, "OwnedHotkeys")
+    assert hasattr(runtime_apis.StakeInfoRuntimeApi, "get_stake_info_for_coldkeys")
+
+    finney_row = networks.NETWORKS["finney"]
+    ctx = ChainContext(
+        "finney",
+        "wss://entrypoint-finney.opentensor.ai:443",
+        finney_row.chain_id,
+        finney_row.genesis_hash,
+        116,
+    )
+    pinned_block = 9_594_954
+    pinned_hash = "0x" + "99" * 32
+    miner_ck = "5GNT77U8rC81CAzJu6r2FzkwYHiBFEAtiBnVdSE6WAejoGCd"
+    miner_raw_bytes = bytes(bt.sp_core.ss58_decode(miner_ck))
+    vault_raw_tuple = tuple(bt.sp_core.ss58_decode(VAULT_EXCLUDED_COLDKEY))
+    runtime_calls: list[tuple] = []
+
+    class _RealLikeSubstrate:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def connect(self):
+            pass
+
+        async def block_hash(self, number):
+            return finney_row.genesis_hash if number == 0 else pinned_hash
+
+        async def query(self, module, name, args=None, *, block_hash=None):
+            assert module == "SubtensorModule"
+            assert block_hash == pinned_hash
+            if name == "OwnerCutEnabled":
+                raise AssertionError("OwnerCutEnabled must never be queried")
+            if name == "SubnetOwner":
+                return CARBON_EXCLUDED_COLDKEY
+            if name == "SubnetOwnerHotkey":
+                return "5DDLUnX2yicKLC1T5PN7bkwgU51buJt93XQFV1giqhDsGUTk"
+            if name == "SubnetOwnerCut":
+                return 11_796
+            if name == "LastEpochBlock":
+                return 9_594_636
+            if name == "OwnedHotkeys":
+                return []
+            raise AssertionError(f"unexpected query {name}")
+
+        async def runtime_call(self, api, method, params, *, block_hash=None):
+            runtime_calls.append((api, method, params, block_hash))
+            assert api == "StakeInfoRuntimeApi"
+            assert method == "get_stake_info_for_coldkeys"
+            assert block_hash == pinned_hash
+            return [
+                (
+                    miner_raw_bytes,
+                    [
+                        SimpleNamespace(
+                            hotkey="5HKf8RVX7tzCZGf4vmpSFpmetFNxaRcdd3R36rN6UjQ3CLjx",
+                            coldkey=miner_ck,
+                            netuid=116,
+                            stake=bt.Balance.from_rao(147_617_612_099),
+                        ),
+                        SimpleNamespace(
+                            hotkey="5HKf8RVX7tzCZGf4vmpSFpmetFNxaRcdd3R36rN6UjQ3CLjx",
+                            coldkey=miner_ck,
+                            netuid=1,
+                            stake=bt.Balance.from_rao(999 * RAO),
+                        ),
+                    ],
+                ),
+                (
+                    vault_raw_tuple,
+                    [
+                        SimpleNamespace(
+                            hotkey="hk_sink_0",
+                            coldkey=VAULT_EXCLUDED_COLDKEY,
+                            netuid=116,
+                            stake=bt.Balance.from_rao(5_000 * RAO),
+                        )
+                    ],
+                ),
+            ]
+
+    class _MetagraphView:
+        async def read(self, what, *, netuid):
+            assert what == "metagraph" and netuid == 116
+            return SimpleNamespace(
+                netuid=116,
+                alpha_out_emission=bt.Balance.from_rao(1_000_000_000),
+            )
+
+    class _Client:
+        def __init__(self, endpoint, *, substrate):
+            self.substrate = substrate
+
+        async def at(self, block):
+            assert block == pinned_block
+            return _MetagraphView()
+
+        async def close(self):
+            pass
+
+    patched_bt = SimpleNamespace(
+        RpcSubstrate=_RealLikeSubstrate,
+        Client=_Client,
+        sp_core=bt.sp_core,
+        _generated=bt._generated,
+    )
+    monkeypatch.setattr(sdk_weights, "require_sdk", lambda: None)
+    monkeypatch.setitem(sys.modules, "bittensor", patched_bt)
+
+    res = asyncio.run(
+        sdk_weights.read_waterfall_chain_state(
+            ctx,
+            block=pinned_block,
+            block_hash=pinned_hash,
+            coldkeys=(miner_ck,),
+            treasury_coldkeys=(VAULT_EXCLUDED_COLDKEY,),
+            cadence_blocks=360,
+        )
+    )
+    assert len(runtime_calls) == 1
+    assert res["last_epoch_block"] == 9_594_636
+    # 1.0 α/block minus 11796/65535 owner cut, / 2 miner split, * 360 blocks = 147.600824040 α (1x miner pool!)
+    assert res["epoch_miner_emission_rao"] == 147_600_824_040
+    assert res["staked_by_coldkey"] == {
+        VAULT_EXCLUDED_COLDKEY: 5_000 * RAO,
+        miner_ck: 147_617_612_099,
+    }
+    assert res["treasury_current_stake_rao"] == 5_000 * RAO
+
+    # Fail-closed if alpha_out_emission is a list instead of a scalar Balance/int
+    class _BadListMetagraphView:
+        async def read(self, what, *, netuid):
+            return SimpleNamespace(netuid=116, alpha_out_emission=[1_000_000_000])
+
+    _Client.at = lambda self, block: asyncio.sleep(0, result=_BadListMetagraphView())
+    with pytest.raises(
+        PublicationFailure, match="WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE"
+    ):
+        asyncio.run(
+            sdk_weights.read_waterfall_chain_state(
+                ctx, block=pinned_block, block_hash=pinned_hash
+            )
+        )
+
+
+def test_hold_bonus_ledger_settled_intent_v1_persistence_batch_and_tamper_refusal(
+    tmp_path,
+):
+    jsonl_path = tmp_path / "hold.jsonl"
+    ledger = HoldBonusLedger(jsonl_path)
+    try:
+        with ledger.batch():
+            ledger.record_crown_earnings(12, {"ck_a": (100 * RAO, "hk_a")})
+            ledger.sample_epoch_stakes(12, {"ck_a": 100 * RAO})
+            ledger.record_epoch_emission(12, 100 * RAO)
+            ledger.record_settled_intents((10, 10))
+        assert ledger.settled_intent_epochs() == frozenset({10})
+    finally:
+        ledger.close()
+
+    reloaded = HoldBonusLedger(jsonl_path)
+    try:
+        assert reloaded.settled_intent_epochs() == frozenset({10})
+        assert reloaded.tracked_coldkeys() == [("ck_a", 100 * RAO, "hk_a")]
+        before = jsonl_path.read_bytes()
+        reloaded.record_settled_intents((10,))
+        assert jsonl_path.read_bytes() == before
+        # Failed batch never flushes partial mutations to disk
+        with (
+            pytest.raises(RewardFailure, match="INVALID_EPOCH"),
+            reloaded.batch(),
+        ):
+            reloaded.record_settled_intents((11,))
+            reloaded.record_settled_intents((-1,))
+        assert jsonl_path.read_bytes() == before
+    finally:
+        reloaded.close()
+
+    bad = tmp_path / "bad_settled.jsonl"
+    bad.write_text(
+        '{"intent_epoch":true,"kind":"settled_intent.v1"}\n', encoding="utf-8"
+    )
+    with pytest.raises(RewardFailure, match="HOLD_LEDGER_CORRUPTED"):
+        HoldBonusLedger(bad)
+
+
+def test_commit_reveal_tempo_payout_lag_maturity_and_journal_integrity(
+    monkeypatch, tmp_path
+):
+    """Blocker 2 E2E regression (`commit_reveal = True`):
+    - Epoch 10 (`block = 3610`, `last_epoch_block = 3600`): new King `ck_motor_king` (`0 α`
+      prior stake) is issued `e10`, committed timelocked (`REVEAL_PENDING`, `100 α` emission).
+    - Epoch 11 (`block = 4000`, `last_epoch_block = 3990`, `+24h` so King decays to `50%`,
+      `B(ck) = 0 α`): `settle_pending` reveals `e10` at `3990` (`tracking['reveal_block'] = 3990`)
+      and marks `e10` `ROW_VERIFIED`, then issues `e11`. Because `last_epoch_block (3990) <=
+      reveal_block (3990)`, `e10` is NOT payout-mature yet -> Epoch 11 writes `epoch_emission.v1`
+      and does NOT falsely credit `e10` or record `100%` sold!
+    - Epoch 12 (`block = 4360`, `last_epoch_block = 4351`, `B(ck) = 100 α`): Subtensor's tempo
+      at `3990 + 361 = 4351` has minted `e10`'s `100 α` into `B(ck)` (and revealed `e11` at `4351`).
+      `e10` IS payout-mature (`4351 > 3990`) even though Epoch 11 wrote `epoch_emission.v1`!
+      `sold_ratio == 0` in BOTH Epoch 11 and Epoch 12, `external_stake_rao == 0`, and Hold Bonus
+      pays the `+50%` full rate (`833_333_333` Q12)!
+    - Epoch 13 (`block = 4720`, `last_epoch_block = 4712`, `B(ck) = 150 α`): reloads from disk,
+      never double-credits `e10`, and settles `e11` (`+50 α`)."""
+    import sqlite3
+
+    from carbon.chain import sdk as chain_sdk
+    from carbon.chain import sdk_weights
+    from carbon.validator_setup import weights as vs_weights
+
+    ctx, state_dir, op_cfg_path, standing_path, pool_path = _setup_sn116_cli_fixture(
+        tmp_path
+    )
+    journal_path = state_dir / "publication.sqlite3"
+    ledger_path = state_dir / "winners.jsonl"
+    hold_jsonl_path = state_dir / twp.HOLD_LEDGER_FILENAME
+    t0 = 20 * DAY_MS
+
+    def _make_snap(block: int, now_ms: int) -> MetagraphSnapshot:
+        return MetagraphSnapshot(
+            context=ctx,
+            finalized_block=block,
+            block_hash="0x" + f"{block:064x}",
+            timestamp_ms=now_ms,
+            participants=(
+                Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+                Participant(1, "hk_sn116_validator", "ck_validator", 2),
+                Participant(2, "hk_motor_king", "ck_motor_king", 10),
+            ),
+        )
+
+    def _make_caps(snap: MetagraphSnapshot) -> RuntimeCapabilities:
+        return RuntimeCapabilities(
+            snapshot_id=snap.snapshot_id,
+            spec_version=SPEC,
+            mechanism_count=1,
+            maximum_mechanisms=8,
+            burn_mode="Burn",
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkey="hk_burn_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            min_weights=1,
+            max_weight=U16,
+            version_key=1,
+            rate_limit=0,
+            last_update=0,
+            commit_reveal=True,
+            validator_permit=True,
+            sufficient_stake=True,
+        )
+
+    live_env = {
+        "snap": _make_snap(3610, t0),
+        "last_epoch_block": 3600,
+        "emission_rao": 100 * RAO,
+        "stakes": {"ck_motor_king": 0, CARBON_EXCLUDED_COLDKEY: 0},
+        "revealed_blocks": set(),
+        "stored_rows": {},
+        "tx_seq": 0,
+    }
+
+    class _CommitRevealCliBackend:
+        def __init__(self, context, publisher, wallet, **kwargs):
+            self.context = context
+            self.publisher = publisher
+            self._tx_blocks: dict[str, int] = {}
+
+        async def observe(self):
+            return live_env["snap"], _make_caps(live_env["snap"])
+
+        async def execute(
+            self, plan, integer_guard, call_checked, before_sign, dispatch
+        ):
+            uids = [uid for uid, _ in plan.integers]
+            values = [value for _, value in plan.integers]
+            preflight = SimpleNamespace(
+                uid=plan.publisher_uid,
+                min_allowed_weights=1,
+                max_weight_limit=U16,
+                commit_reveal=True,
+            )
+            await integer_guard(uids, values, preflight)
+            call = SimpleNamespace(data=b"cr-weights", spec_version=SPEC)
+            await call_checked(call, {"reveal_round": 1})
+            await before_sign(call, self.publisher)
+            live_env["tx_seq"] += 1
+            tx_hash = "0x" + f"{live_env['tx_seq']:064x}"
+            await dispatch(tx_hash)
+            commit_block = live_env["snap"].finalized_block + 1
+            live_env["snap"] = dataclasses.replace(
+                live_env["snap"],
+                finalized_block=commit_block,
+                block_hash="0x" + f"{commit_block:064x}",
+            )
+            self._tx_blocks[tx_hash] = commit_block
+            live_env["stored_rows"][commit_block] = [
+                list(item) for item in plan.integers
+            ]
+
+        async def transaction(self, tx_hash, block):
+            # Look up block from journal/tx_seq: commit occurs at finalized_block+1
+            if tx_hash in self._tx_blocks and block == self._tx_blocks[tx_hash]:
+                return TransactionObservation(True, block, "0x" + f"{block:064x}")
+            for seq, b in ((1, 3611), (2, 4001), (3, 4361), (4, 4721)):
+                if tx_hash == "0x" + f"{seq:064x}" and block == b:
+                    return TransactionObservation(True, block, "0x" + f"{block:064x}")
+            return None
+
+        async def revealed(self, publisher, block):
+            return publisher == self.publisher and block in live_env["revealed_blocks"]
+
+        async def weight_row(self, state, uid):
+            # Return latest stored row updated at or before state.finalized_block
+            eligible = [
+                (b, r)
+                for b, r in live_env["stored_rows"].items()
+                if b <= state.finalized_block
+            ]
+            b, row = max(eligible, key=lambda item: item[0])
+            return row, b
+
+        async def close(self):
+            pass
+
+    async def _fake_capture(self, context):
+        return live_env["snap"]
+
+    async def _fake_waterfall_read(
+        context,
+        *,
+        block=None,
+        block_hash=None,
+        coldkeys=(),
+        treasury_coldkeys=(),
+        cadence_blocks=360,
+    ):
+        return {
+            "block": block,
+            "block_hash": block_hash,
+            "last_epoch_block": live_env["last_epoch_block"],
+            "epoch_miner_emission_rao": live_env["emission_rao"],
+            "treasury_current_stake_rao": 0,
+            "staked_by_coldkey": {ck: live_env["stakes"].get(ck, 0) for ck in coldkeys},
+            "owner_coldkey": CARBON_EXCLUDED_COLDKEY,
+            "owner_hotkeys": ("hk_burn_owner",),
+        }
+
+    monkeypatch.setattr(chain_sdk.BittensorReader, "capture", _fake_capture)
+    monkeypatch.setattr(sdk_weights, "read_waterfall_chain_state", _fake_waterfall_read)
+    monkeypatch.setattr(sdk_weights, "open_operator_wallet", lambda *a, **k: object())
+    monkeypatch.setattr(
+        sdk_weights, "BittensorPublicationBackend", _CommitRevealCliBackend
+    )
+
+    def _cli_args(action: str):
+        return SimpleNamespace(
+            action=action,
+            config=str(op_cfg_path),
+            standing=str(standing_path),
+            journal=str(journal_path),
+            ledger=str(ledger_path),
+            battery_deployment=None,
+            lean_pool=[f"electric-motor-magnetics={pool_path}"],
+            lean_pool_previous=None,
+            policy_version="mainnet-winner-v5",
+            repository=str(tmp_path),
+            reconcile_archive_endpoint=None,
+            archive_fallback_endpoint=None,
+        )
+
+    # --- Epoch 10 (`block = 3610`): commits `e10` -> REVEAL_PENDING ---
+    r_e10 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e10["state"] == "REVEAL_PENDING"
+    assert r_e10["document"]["intent"]["identity"].endswith("-e10")
+
+    # --- Epoch 11 (`block = 4000`, `last_epoch_block = 3990`, reveal at `3990`, `B(ck) = 0`) ---
+    # King is at 50% (+24h), `e10` reveals at 3990 and becomes ROW_VERIFIED,
+    # yet payout will not mint until block 4351 (`last_epoch_block = 3990 <= 3990`).
+    live_env["snap"] = _make_snap(4000, t0 + DAY_MS)
+    live_env["last_epoch_block"] = 3990
+    live_env["revealed_blocks"].add(3990)
+
+    p_e11 = asyncio.run(vs_weights.execute(_cli_args("preview")))
+    assert p_e11["targets"]["winners"][0][1] == 500_000_000_000
+    assert p_e11["targets"]["hold_bonus"] == []
+
+    r_e11 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e11["state"] == "REVEAL_PENDING"
+    assert r_e11["document"]["intent"]["identity"].endswith("-e11")
+
+    l11 = HoldBonusLedger(hold_jsonl_path)
+    try:
+        assert l11.settled_intent_epochs() == frozenset()
+        assert l11.epoch_emission(11) == 100 * RAO
+        assert l11.coldkey_stake_tracking("ck_motor_king") == (0, None)
+        assert l11.window_status("ck_motor_king", 11, 600) is None
+    finally:
+        l11.close()
+
+    # --- Epoch 12 (`block = 4360`, `last_epoch_block = 4351`, `B(ck) = 100 α`) ---
+    # Coinbase at 4351 minted `e10`'s 100 α into `B(ck)` and revealed `e11` at 4351.
+    live_env["snap"] = _make_snap(4360, t0 + DAY_MS + 360 * 12_000)
+    live_env["last_epoch_block"] = 4351
+    live_env["revealed_blocks"].add(4351)
+    live_env["stakes"]["ck_motor_king"] = 100 * RAO
+
+    before_e12_bytes = hold_jsonl_path.read_bytes()
+    p_e12 = asyncio.run(vs_weights.execute(_cli_args("preview")))
+    assert hold_jsonl_path.read_bytes() == before_e12_bytes
+    # +50% over 600 epochs on 100 α held at 0% sold (`833_333_333` Q12)!
+    assert p_e12["targets"]["hold_bonus"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            833_333_333,
+        ]
+    ]
+
+    r_e12 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e12["state"] == "REVEAL_PENDING"
+    assert r_e12["document"]["intent"]["identity"].endswith("-e12")
+
+    l12 = HoldBonusLedger(hold_jsonl_path)
+    try:
+        assert l12.settled_intent_epochs() == frozenset({10})
+        assert l12.coldkey_stake_tracking("ck_motor_king") == (0, 100 * RAO)
+        assert l12.window_status("ck_motor_king", 11, 600) is None
+        assert l12.window_status("ck_motor_king", 12, 600) == (
+            100 * RAO,
+            Fraction(0),
+        )
+    finally:
+        l12.close()
+
+    # --- Epoch 13 (`block = 4720`, `last_epoch_block = 4712`, `B(ck) = 150 α`) ---
+    # Settles `e11` (+50 α) ONLY without double-crediting `e10`!
+    live_env["snap"] = _make_snap(4720, t0 + DAY_MS + 2 * 360 * 12_000)
+    live_env["last_epoch_block"] = 4712
+    live_env["revealed_blocks"].add(4712)
+    live_env["stakes"]["ck_motor_king"] = 150 * RAO
+
+    r_e13 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e13["state"] == "REVEAL_PENDING"
+    l13 = HoldBonusLedger(hold_jsonl_path)
+    try:
+        assert l13.settled_intent_epochs() == frozenset({10, 11})
+        assert l13.coldkey_stake_tracking("ck_motor_king") == (0, 150 * RAO)
+        assert l13.window_status("ck_motor_king", 13, 600) == (
+            150 * RAO,
+            Fraction(0),
+        )
+    finally:
+        l13.close()
+
+    # Verify offline fallback maturity when `last_epoch_block=None`
+    assert twp._settled_waterfall_intents(
+        journal_path,
+        dataclasses.asdict(ctx),
+        12,
+        snapshot_finalized_block=4360,
+        cadence_blocks=360,
+        last_epoch_block=None,
+        already_settled_epochs=frozenset(),
+        check_maturity=True,
+    ) == [
+        json.loads(
+            sqlite3.connect(journal_path)
+            .execute(
+                "SELECT body FROM testnet_winner_intent_v1 WHERE identity LIKE '%-e10'"
+            )
+            .fetchone()[0]
+        )
+    ]
+
+    # Verify tamper on `publication_v1.digest` or `tracking_digest` or invalid `reveal_block` fails closed
+    journal_bytes = journal_path.read_bytes()
+    with sqlite3.connect(journal_path) as db:
+        db.execute("UPDATE publication_v1 SET digest = '0' WHERE state='ROW_VERIFIED'")
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="CONFLICTING_DISPATCH_JOURNAL"
+    ):
+        twp._settled_waterfall_intents(
+            journal_path,
+            dataclasses.asdict(ctx),
+            14,
+            snapshot_finalized_block=5000,
+            cadence_blocks=360,
+            last_epoch_block=4712,
+            already_settled_epochs=frozenset(),
+            check_maturity=True,
+        )
+
+    journal_path.write_bytes(journal_bytes)
+    with sqlite3.connect(journal_path) as db:
+        db.execute(
+            "UPDATE publication_v1 SET tracking_digest = '0' WHERE state='ROW_VERIFIED'"
+        )
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="CONFLICTING_DISPATCH_JOURNAL"
+    ):
+        twp._settled_waterfall_intents(
+            journal_path,
+            dataclasses.asdict(ctx),
+            14,
+            snapshot_finalized_block=5000,
+            cadence_blocks=360,
+            last_epoch_block=4712,
+            already_settled_epochs=frozenset(),
+            check_maturity=True,
         )

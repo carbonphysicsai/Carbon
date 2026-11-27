@@ -319,6 +319,52 @@ async def capture_capabilities(client, sub, context, publisher):
     return snapshot, caps
 
 
+def _field(obj, name):
+    if isinstance(obj, dict):
+        if name not in obj:
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+        return obj[name]
+    if hasattr(obj, name):
+        return getattr(obj, name)
+    raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+
+
+def _rao_uint(value):
+    if type(value) is int:
+        return uint(value)
+    if type(value) is not bool and hasattr(value, "rao"):
+        rao = value.rao
+        if type(rao) is int:
+            return uint(rao)
+    raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+
+
+def _decode_ss58(raw, ss58_encode_fn):
+    if raw is None:
+        raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+    if type(raw) is str:
+        if raw.startswith("0x") and len(raw) == 66:
+            if ss58_encode_fn is None:
+                raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+            return identifier(ss58_encode_fn(bytes.fromhex(raw[2:])))
+        return identifier(raw)
+    if isinstance(raw, (tuple, list)) and len(raw) == 1:
+        raw = raw[0]
+    if isinstance(raw, (bytes, bytearray)) and len(raw) == 32:
+        if ss58_encode_fn is None:
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+        return identifier(ss58_encode_fn(bytes(raw)))
+    if (
+        isinstance(raw, (tuple, list))
+        and len(raw) == 32
+        and all(type(b) is int and 0 <= b <= 255 for b in raw)
+    ):
+        if ss58_encode_fn is None:
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+        return identifier(ss58_encode_fn(bytes(raw)))
+    raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+
+
 async def read_waterfall_chain_state(
     context,
     *,
@@ -330,9 +376,9 @@ async def read_waterfall_chain_state(
 ):
     """Read-only, genesis- and block-hash-pinned Subtensor observation for the 4-rung waterfall.
 
-    Returns ``{"block", "block_hash", "epoch_miner_emission_rao", "treasury_current_stake_rao",
-    "staked_by_coldkey", "owner_coldkey", "owner_hotkeys"}``. Never opens a wallet, signs, or
-    submits anything.
+    Returns ``{"block", "block_hash", "last_epoch_block", "epoch_miner_emission_rao",
+    "treasury_current_stake_rao", "staked_by_coldkey", "owner_coldkey", "owner_hotkeys"}``.
+    Never opens a wallet, signs, or submits anything.
     """
     if type(context) is not ChainContext or context.netuid == 0:
         raise PublicationFailure("DISPOSABLE_SUBNET_REQUIRED")
@@ -343,6 +389,11 @@ async def read_waterfall_chain_state(
     coldkey_list = sorted({identifier(ck) for ck in coldkeys} | set(treasury_ck_list))
     require_sdk()
     import bittensor as bt
+
+    sp_core = getattr(bt, "sp_core", None)
+    ss58_encode_fn = getattr(sp_core, "ss58_encode", None)
+    if ss58_encode_fn is None:
+        ss58_encode_fn = getattr(bt, "ss58_encode", None)
 
     sub = bt.RpcSubstrate(
         context.endpoint,
@@ -370,6 +421,14 @@ async def read_waterfall_chain_state(
         async def _stake_call():
             if not coldkey_list:
                 return []
+            runtime_call = getattr(sub, "runtime_call", None)
+            if callable(runtime_call):
+                return await runtime_call(
+                    "StakeInfoRuntimeApi",
+                    "get_stake_info_for_coldkeys",
+                    [coldkey_list],
+                    block_hash=digest,
+                )
             return await view.runtime(
                 bt._generated.runtime_apis.StakeInfoRuntimeApi.get_stake_info_for_coldkeys,
                 [coldkey_list],
@@ -380,7 +439,7 @@ async def read_waterfall_chain_state(
             owner_ck_raw,
             owner_hk_raw,
             owner_cut_raw,
-            owner_cut_enabled_raw,
+            last_epoch_block_raw,
             stake_records,
         ) = await asyncio.gather(
             view.read("metagraph", netuid=context.netuid),
@@ -399,31 +458,35 @@ async def read_waterfall_chain_state(
             sub.query("SubtensorModule", "SubnetOwnerCut", None, block_hash=digest),
             sub.query(
                 "SubtensorModule",
-                "OwnerCutEnabled",
+                "LastEpochBlock",
                 [context.netuid],
                 block_hash=digest,
             ),
             _stake_call(),
         )
-        if owner_ck_raw is None or owner_hk_raw is None:
+        if owner_ck_raw is None or owner_hk_raw is None or last_epoch_block_raw is None:
             raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
-        owner_coldkey = identifier(str(owner_ck_raw))
-        owner_hotkey = identifier(str(owner_hk_raw))
+        owner_coldkey = _decode_ss58(owner_ck_raw, ss58_encode_fn)
+        owner_hotkey = _decode_ss58(owner_hk_raw, ss58_encode_fn)
+        last_epoch_block = uint(last_epoch_block_raw)
+        if last_epoch_block > target_block:
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
         owned = await sub.query(
             "SubtensorModule", "OwnedHotkeys", [owner_coldkey], block_hash=digest
         )
-        if type(owned) is not list or type(graph) is not dict:
+        if type(owned) not in (list, tuple) or graph is None:
             raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
         if (
             hash256(await sub.block_hash(target_block)) != digest
             or hash256(await sub.block_hash(0)) != genesis
         ):
             raise PublicationFailure("CONFLICTING_PROVIDER_IDENTITY")
-        alpha_out_per_block = uint(graph["alpha_out_emission"])
-        cut_enabled = (
-            True if owner_cut_enabled_raw is None else bool(owner_cut_enabled_raw)
-        )
-        cut_u16 = uint(owner_cut_raw or 0, 65535) if cut_enabled else 0
+        if (
+            (isinstance(graph, dict) and "netuid" in graph) or hasattr(graph, "netuid")
+        ) and uint(_field(graph, "netuid"), 65535) != context.netuid:
+            raise PublicationFailure("CONFLICTING_PROVIDER_IDENTITY")
+        alpha_out_per_block = _rao_uint(_field(graph, "alpha_out_emission"))
+        cut_u16 = uint(0 if owner_cut_raw is None else owner_cut_raw, 65535)
         after_owner = alpha_out_per_block - (alpha_out_per_block * cut_u16) // 65535
         epoch_miner_emission_rao = (after_owner // 2) * cadence_blocks
 
@@ -431,46 +494,44 @@ async def read_waterfall_chain_state(
         if coldkey_list:
             if isinstance(stake_records, dict):
                 pairs = list(stake_records.items())
-            elif isinstance(stake_records, list):
+            elif isinstance(stake_records, (list, tuple)):
                 pairs = stake_records
             else:
                 raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
-            for ck_raw, positions in pairs:
-                if ck_raw is None:
+            for pair in pairs:
+                if not isinstance(pair, (tuple, list)) or len(pair) != 2:
                     raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
-                ck_str = identifier(str(ck_raw))
+                ck_raw, positions = pair
+                ck_str = _decode_ss58(ck_raw, ss58_encode_fn)
                 if ck_str not in staked_by_coldkey:
                     continue
                 if positions is None:
                     continue
-                if type(positions) is not list:
+                if type(positions) not in (list, tuple):
                     raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
                 total_netuid_rao = 0
                 for pos in positions:
-                    if type(pos) is not dict:
-                        raise PublicationFailure(
-                            "WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE"
-                        )
-                    if uint(pos["netuid"], 65535) == context.netuid:
-                        total_netuid_rao += uint(pos["stake"])
+                    if uint(_field(pos, "netuid"), 65535) == context.netuid:
+                        total_netuid_rao += _rao_uint(_field(pos, "stake"))
                 staked_by_coldkey[ck_str] = total_netuid_rao
 
         treasury_current_stake_rao = sum(
             staked_by_coldkey[ck] for ck in treasury_ck_list
         )
+        if any(k is None for k in owned):
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
         owner_hotkeys = tuple(
             sorted(
                 {
                     owner_hotkey,
-                    *(identifier(str(k)) for k in owned if k is not None),
+                    *(_decode_ss58(k, ss58_encode_fn) for k in owned),
                 }
             )
         )
-        if any(k is None for k in owned):
-            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
         return {
             "block": target_block,
             "block_hash": digest,
+            "last_epoch_block": last_epoch_block,
             "epoch_miner_emission_rao": epoch_miner_emission_rao,
             "treasury_current_stake_rao": treasury_current_stake_rao,
             "staked_by_coldkey": staked_by_coldkey,

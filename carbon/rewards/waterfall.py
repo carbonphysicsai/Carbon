@@ -31,6 +31,8 @@ import json
 import os
 import sqlite3
 import tempfile
+from collections.abc import Iterable
+from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -125,6 +127,8 @@ class WaterfallEpochObservation:
     bonus_credits_by_coldkey: dict[str, tuple[int, str]] | None = None
     owner_coldkey: str | None = None
     owner_hotkeys: tuple[str, ...] = ()
+    last_epoch_block: int | None = None
+    settled_intent_epochs: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         if self.epoch_miner_emission_rao is not None and (
@@ -158,6 +162,14 @@ class WaterfallEpochObservation:
             raise RewardFailure("INVALID_OWNER_HOTKEYS")
         for hk in self.owner_hotkeys:
             identifier(hk)
+        if self.last_epoch_block is not None and (
+            type(self.last_epoch_block) is not int or self.last_epoch_block < 0
+        ):
+            raise RewardFailure("INVALID_LAST_EPOCH_BLOCK")
+        if type(self.settled_intent_epochs) is not tuple or any(
+            type(ep) is not int or ep < 0 for ep in self.settled_intent_epochs
+        ):
+            raise RewardFailure("INVALID_SETTLED_INTENT_EPOCHS")
 
 
 from .winner_decay import Winner, WinnerPolicy, winner_fraction
@@ -211,6 +223,7 @@ class HoldBonusLedger:
         self.path = Path(raw_path)
         self._jsonl_mode = raw_path != ":memory:" and raw_path.endswith(".jsonl")
         self._suppress_flush = False
+        self._batch_mutated = False
         if self._jsonl_mode and self.path.is_symlink():
             raise RewardFailure("HOLD_LEDGER_SYMLINK_REFUSED")
         self._conn = sqlite3.connect(":memory:" if self._jsonl_mode else str(self.path))
@@ -305,6 +318,9 @@ class HoldBonusLedger:
             self._conn.execute("""CREATE TABLE IF NOT EXISTS hold_epoch_emissions_v1 (
                     epoch INTEGER PRIMARY KEY,
                     emission_rao TEXT NOT NULL
+                )""")
+            self._conn.execute("""CREATE TABLE IF NOT EXISTS hold_settled_intents_v1 (
+                    intent_epoch INTEGER PRIMARY KEY
                 )""")
         if self._jsonl_mode and self.path.exists():
             self._load_jsonl()
@@ -499,6 +515,13 @@ class HoldBonusLedger:
                         entry["epoch"],
                         _parse_rao_str(entry["epoch_miner_emission_rao"]),
                     )
+                elif kind == "settled_intent.v1":
+                    if set(entry) != {"kind", "intent_epoch"}:
+                        raise RewardFailure("HOLD_LEDGER_CORRUPTED")
+                    si_epoch = entry["intent_epoch"]
+                    if type(si_epoch) is not int or si_epoch < 0:
+                        raise RewardFailure("HOLD_LEDGER_CORRUPTED")
+                    self.record_settled_intents((si_epoch,))
                 else:
                     raise RewardFailure("HOLD_LEDGER_CORRUPTED")
         except RewardFailure:
@@ -509,9 +532,13 @@ class HoldBonusLedger:
             raise RewardFailure("HOLD_LEDGER_CORRUPTED") from None
         finally:
             self._suppress_flush = False
+            self._batch_mutated = False
 
     def _flush_jsonl(self) -> None:
-        if not self._jsonl_mode or self._suppress_flush:
+        if not self._jsonl_mode:
+            return
+        if self._suppress_flush:
+            self._batch_mutated = True
             return
         if self.path.is_symlink():
             raise RewardFailure("HOLD_LEDGER_SYMLINK_REFUSED")
@@ -520,6 +547,7 @@ class HoldBonusLedger:
                UNION SELECT epoch FROM hold_epoch_bonus_credits_v1
                UNION SELECT epoch FROM hold_epoch_samples_v1
                UNION SELECT epoch FROM hold_epoch_emissions_v1
+               UNION SELECT intent_epoch AS epoch FROM hold_settled_intents_v1
                ORDER BY epoch ASC""").fetchall()
         lines: list[str] = []
         for (ep,) in epoch_rows:
@@ -603,6 +631,21 @@ class HoldBonusLedger:
                         separators=(",", ":"),
                     )
                 )
+            si_row = self._conn.execute(
+                "SELECT intent_epoch FROM hold_settled_intents_v1 WHERE intent_epoch=?",
+                (ep,),
+            ).fetchone()
+            if si_row is not None:
+                lines.append(
+                    json.dumps(
+                        {
+                            "kind": "settled_intent.v1",
+                            "intent_epoch": int(si_row[0]),
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                )
         payload = ("\n".join(lines) + ("\n" if lines else "")).encode("utf-8")
         fd, tmp_name = tempfile.mkstemp(
             prefix=".hold_bonus_ledger.", dir=str(self.path.parent)
@@ -625,6 +668,62 @@ class HoldBonusLedger:
 
     def close(self) -> None:
         self._conn.close()
+
+    @contextmanager
+    def batch(self):
+        """Coalesce multiple ledger mutations into a single atomic JSONL flush."""
+        prev_suppress = self._suppress_flush
+        prev_mutated = self._batch_mutated
+        self._suppress_flush = True
+        self._batch_mutated = False
+        succeeded = False
+        try:
+            yield
+            succeeded = True
+        finally:
+            mutated = self._batch_mutated
+            self._suppress_flush = prev_suppress
+            if succeeded:
+                if not prev_suppress and mutated:
+                    self._flush_jsonl()
+                    self._batch_mutated = False
+                else:
+                    self._batch_mutated = prev_mutated or mutated
+            else:
+                self._batch_mutated = prev_mutated
+
+    def settled_intent_epochs(self) -> frozenset[int]:
+        """Return all `intent_epoch` values already credited into this ledger."""
+        rows = self._conn.execute(
+            "SELECT intent_epoch FROM hold_settled_intents_v1 ORDER BY intent_epoch ASC"
+        ).fetchall()
+        return frozenset(int(r[0]) for r in rows)
+
+    def record_settled_intents(self, intent_epochs: Iterable[int]) -> None:
+        """Idempotently record `intent_epoch`s whose settled payouts were credited."""
+        cleaned: list[int] = []
+        for ep in intent_epochs:
+            if type(ep) is not int or ep < 0:
+                raise RewardFailure("INVALID_EPOCH")
+            cleaned.append(ep)
+        if not cleaned:
+            return
+        mutated = False
+        with self._conn:
+            for ep in sorted(set(cleaned)):
+                existing = self._conn.execute(
+                    "SELECT 1 FROM hold_settled_intents_v1 WHERE intent_epoch=?",
+                    (ep,),
+                ).fetchone()
+                if existing is not None:
+                    continue
+                self._conn.execute(
+                    "INSERT INTO hold_settled_intents_v1(intent_epoch) VALUES (?)",
+                    (ep,),
+                )
+                mutated = True
+        if mutated:
+            self._flush_jsonl()
 
     def record_epoch_emission(self, epoch: int, emission_rao: int) -> None:
         """Idempotently record observed `epoch_miner_emission_rao` for `epoch`."""
