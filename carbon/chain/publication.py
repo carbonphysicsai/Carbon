@@ -144,7 +144,11 @@ def _holder_entries(entries, label):
         amt = _units(amount)
         if amt <= 0:
             raise PublicationFailure(f"MALFORMED_{label}_TARGETS")
-        if type(holder) is not dict or set(holder) != {"hotkey", "coldkey", "registered_at"}:
+        if type(holder) is not dict or set(holder) != {
+            "hotkey",
+            "coldkey",
+            "registered_at",
+        }:
             raise PublicationFailure("MALFORMED_HOLDER")
         identity = (holder["hotkey"], holder["coldkey"], holder["registered_at"])
         identifier(identity[0])

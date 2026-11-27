@@ -12,7 +12,7 @@
     "full_ms": 86400000,
     "halving_ms": 86400000
   },
-  "membership_note": "MAINNET policy v5 (owner Stage 5B Hold Bonus launch on finney netuid 116, 2026-11-26): inherits mainnet-winner-v4's Challenge list and rules unchanged (OWNER-WEIGHTS-AUTHORITY-01, electric-motor-magnetics alone at full share, full_reset, null first-incumbent baselines, Motor 1.8 sealed-crown qualification on pack ee2348b1 under OWNER-MAINNET-QUALIFIED-STANDING-01) and activates the 4-rung settlement waterfall with Rung 2 Miner Hold Bonus (+50% window rate over 600 epochs at 0% sold tapering linearly to 0% at 50% sold, capped at 40% of epoch weight hold_cap_q12=400000000000, evaluated non-compounding on Crown principal against total issued Crown + Bonus Alpha), enforce_king_u16_floor=true (MIN_POSITIVE_U16_Q12=7629511), excluded_coldkeys=[\"5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9\"], and Rung 3 Treasury disabled (treasury_sinks=[], treasury_stake_cap_rao=0) so all post-bonus decayed and unpaid weight burns to UID 0 during the initial Council Holder Opt-In window on council.carbonphysics.ai until CarbonTreasuryVault sink UIDs are pinned in mainnet-winner-v6. Prospective only: past ledger records are never recomputed. Not the registry's current policy; activated on SN116 only when live-ops updates StandingAuthorization policy_digest and --policy-version mainnet-winner-v5.",
+  "membership_note": "MAINNET policy v5 (owner Stage 5B Hold Bonus launch on finney netuid 116, 2026-11-26): inherits mainnet-winner-v4's Challenge list and rules unchanged (OWNER-WEIGHTS-AUTHORITY-01, electric-motor-magnetics alone at full share, full_reset, null first-incumbent baselines, Motor 1.8 sealed-crown qualification on pack ee2348b1 under OWNER-MAINNET-QUALIFIED-STANDING-01) and activates the 4-rung settlement waterfall with Rung 2 Miner Hold Bonus (+50% window rate over 600 epochs at 0% sold tapering linearly to 0% at 50% sold, capped at 40% of epoch weight hold_cap_q12=400000000000 and strictly bounded by decayed weight from Challenge slots with a payable King so empty or excluded slots burn directly to UID 0, evaluated non-compounding on Crown principal against retained mined Alpha max(0, B - external_stake_rao) vs total issued Crown + Bonus Alpha), enforce_king_u16_floor=false (unbeaten Kings decay naturally to 0 matching mainnet-winner-v4), excluded_coldkeys=[\"5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9\", \"5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T\"] enforced across both Rung 1 King pay and Rung 2 Hold Bonus, and Rung 3 Treasury disabled (treasury_sinks=[], treasury_stake_cap_rao=0) so all post-bonus decayed and unpaid weight burns to UID 0 during the initial Council Holder Opt-In window on council.carbonphysics.ai until CarbonTreasuryVault sink UIDs are pinned in mainnet-winner-v6. Prospective only: past ledger records keep their original promoted_at_ms decay clock and are never recomputed. Not the registry's current policy; activated on SN116 only when live-ops updates StandingAuthorization policy_digest and --policy-version mainnet-winner-v5.",
   "netuid": 116,
   "network": "finney",
   "qualified_sealed": {
@@ -27,9 +27,10 @@
   "self_improvement_factor": "full_reset",
   "version": "mainnet-winner-v5",
   "waterfall": {
-    "enforce_king_u16_floor": true,
+    "enforce_king_u16_floor": false,
     "excluded_coldkeys": [
-      "5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9"
+      "5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9",
+      "5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T"
     ],
     "hold_cap_q12": 400000000000,
     "hold_window_epochs": 600,

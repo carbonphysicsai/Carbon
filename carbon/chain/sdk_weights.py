@@ -6,7 +6,7 @@ from contextlib import aclosing
 from importlib.metadata import version
 
 from .adapter import translate
-from .models import ChainContext, hash256, uint
+from .models import ChainContext, hash256, identifier, uint
 from .publication import PublicationFailure, RuntimeCapabilities
 from .sdk import SDK_VERSION
 
@@ -317,6 +317,172 @@ async def capture_capabilities(client, sub, context, publisher):
     ):
         raise PublicationFailure("CONFLICTING_PROVIDER_IDENTITY")
     return snapshot, caps
+
+
+async def read_waterfall_chain_state(
+    context,
+    *,
+    block=None,
+    block_hash=None,
+    coldkeys=(),
+    treasury_coldkeys=(),
+    cadence_blocks=360,
+):
+    """Read-only, genesis- and block-hash-pinned Subtensor observation for the 4-rung waterfall.
+
+    Returns ``{"block", "block_hash", "epoch_miner_emission_rao", "treasury_current_stake_rao",
+    "staked_by_coldkey", "owner_coldkey", "owner_hotkeys"}``. Never opens a wallet, signs, or
+    submits anything.
+    """
+    if type(context) is not ChainContext or context.netuid == 0:
+        raise PublicationFailure("DISPOSABLE_SUBNET_REQUIRED")
+    uint(cadence_blocks, 65535)
+    if cadence_blocks <= 0:
+        raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+    treasury_ck_list = sorted({identifier(ck) for ck in treasury_coldkeys})
+    coldkey_list = sorted({identifier(ck) for ck in coldkeys} | set(treasury_ck_list))
+    require_sdk()
+    import bittensor as bt
+
+    sub = bt.RpcSubstrate(
+        context.endpoint,
+        fallback_endpoints=[],
+        archive_endpoints=[],
+        retry_forever=False,
+    )
+    client = bt.Client(context.endpoint, substrate=sub)
+    try:
+        await sub.connect()
+        genesis = hash256(await sub.block_hash(0))
+        if genesis != context.genesis_hash:
+            raise PublicationFailure("ENDPOINT_GENESIS_MISMATCH")
+        if block is None:
+            async with aclosing(client.blocks(finalized=True)) as headers:
+                header = await anext(headers)
+            target_block = uint(header.number)
+        else:
+            target_block = uint(block)
+        digest = hash256(await sub.block_hash(target_block))
+        if block_hash is not None and digest != hash256(block_hash):
+            raise PublicationFailure("CONFLICTING_PROVIDER_IDENTITY")
+        view = await client.at(target_block)
+
+        async def _stake_call():
+            if not coldkey_list:
+                return []
+            return await view.runtime(
+                bt._generated.runtime_apis.StakeInfoRuntimeApi.get_stake_info_for_coldkeys,
+                [coldkey_list],
+            )
+
+        (
+            graph,
+            owner_ck_raw,
+            owner_hk_raw,
+            owner_cut_raw,
+            owner_cut_enabled_raw,
+            stake_records,
+        ) = await asyncio.gather(
+            view.read("metagraph", netuid=context.netuid),
+            sub.query(
+                "SubtensorModule",
+                "SubnetOwner",
+                [context.netuid],
+                block_hash=digest,
+            ),
+            sub.query(
+                "SubtensorModule",
+                "SubnetOwnerHotkey",
+                [context.netuid],
+                block_hash=digest,
+            ),
+            sub.query("SubtensorModule", "SubnetOwnerCut", None, block_hash=digest),
+            sub.query(
+                "SubtensorModule",
+                "OwnerCutEnabled",
+                [context.netuid],
+                block_hash=digest,
+            ),
+            _stake_call(),
+        )
+        if owner_ck_raw is None or owner_hk_raw is None:
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+        owner_coldkey = identifier(str(owner_ck_raw))
+        owner_hotkey = identifier(str(owner_hk_raw))
+        owned = await sub.query(
+            "SubtensorModule", "OwnedHotkeys", [owner_coldkey], block_hash=digest
+        )
+        if type(owned) is not list or type(graph) is not dict:
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+        if (
+            hash256(await sub.block_hash(target_block)) != digest
+            or hash256(await sub.block_hash(0)) != genesis
+        ):
+            raise PublicationFailure("CONFLICTING_PROVIDER_IDENTITY")
+        alpha_out_per_block = uint(graph["alpha_out_emission"])
+        cut_enabled = (
+            True if owner_cut_enabled_raw is None else bool(owner_cut_enabled_raw)
+        )
+        cut_u16 = uint(owner_cut_raw or 0, 65535) if cut_enabled else 0
+        after_owner = alpha_out_per_block - (alpha_out_per_block * cut_u16) // 65535
+        epoch_miner_emission_rao = (after_owner // 2) * cadence_blocks
+
+        staked_by_coldkey = {ck: 0 for ck in coldkey_list}
+        if coldkey_list:
+            if isinstance(stake_records, dict):
+                pairs = list(stake_records.items())
+            elif isinstance(stake_records, list):
+                pairs = stake_records
+            else:
+                raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+            for ck_raw, positions in pairs:
+                if ck_raw is None:
+                    raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+                ck_str = identifier(str(ck_raw))
+                if ck_str not in staked_by_coldkey:
+                    continue
+                if positions is None:
+                    continue
+                if type(positions) is not list:
+                    raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+                total_netuid_rao = 0
+                for pos in positions:
+                    if type(pos) is not dict:
+                        raise PublicationFailure(
+                            "WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE"
+                        )
+                    if uint(pos["netuid"], 65535) == context.netuid:
+                        total_netuid_rao += uint(pos["stake"])
+                staked_by_coldkey[ck_str] = total_netuid_rao
+
+        treasury_current_stake_rao = sum(
+            staked_by_coldkey[ck] for ck in treasury_ck_list
+        )
+        owner_hotkeys = tuple(
+            sorted(
+                {
+                    owner_hotkey,
+                    *(identifier(str(k)) for k in owned if k is not None),
+                }
+            )
+        )
+        if any(k is None for k in owned):
+            raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE")
+        return {
+            "block": target_block,
+            "block_hash": digest,
+            "epoch_miner_emission_rao": epoch_miner_emission_rao,
+            "treasury_current_stake_rao": treasury_current_stake_rao,
+            "staked_by_coldkey": staked_by_coldkey,
+            "owner_coldkey": owner_coldkey,
+            "owner_hotkeys": owner_hotkeys,
+        }
+    except PublicationFailure:
+        raise
+    except Exception:  # noqa: BLE001 - redact raw SDK/provider diagnostics
+        raise PublicationFailure("WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE") from None
+    finally:
+        await client.close()
 
 
 class BittensorPublicationBackend:

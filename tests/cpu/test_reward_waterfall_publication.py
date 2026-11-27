@@ -14,7 +14,7 @@ from types import SimpleNamespace
 import pytest
 
 from carbon.chain import ChainContext, MetagraphSnapshot, Participant
-from carbon.chain.publication import RuntimeCapabilities, U16
+from carbon.chain.publication import U16, RuntimeCapabilities
 from carbon.chain.publisher import TransactionObservation
 from carbon.development_testnet.operator import DEFAULT_ENDPOINT, TESTNET_GENESIS
 from carbon.rewards import testnet_winner_publication as twp
@@ -53,7 +53,9 @@ def _valid_waterfall_dict(**overrides) -> dict:
     return base
 
 
-def _pin_policy_copy(tmp_path: Path, base_version: str = "testnet-winner-v1", **doc_updates) -> Path:
+def _pin_policy_copy(
+    tmp_path: Path, base_version: str = "testnet-winner-v1", **doc_updates
+) -> Path:
     copy = tmp_path / "weight_policies"
     if copy.exists():
         shutil.rmtree(copy)
@@ -239,7 +241,11 @@ def test_prospective_waterfall_policy_loads_frozen_waterfall_config(tmp_path):
         [],
         "waterfall",
         # Missing required key
-        {k: v for k, v in _valid_waterfall_dict().items() if k != "enforce_king_u16_floor"},
+        {
+            k: v
+            for k, v in _valid_waterfall_dict().items()
+            if k != "enforce_king_u16_floor"
+        },
         # Extra unexpected key
         {**_valid_waterfall_dict(), "extra_param": 1},
         # Bool instead of int
@@ -258,14 +264,23 @@ def test_prospective_waterfall_policy_loads_frozen_waterfall_config(tmp_path):
         _valid_waterfall_dict(treasury_stake_cap_rao=-1),
         # Malformed treasury_sinks
         _valid_waterfall_dict(treasury_sinks="not-a-list"),
-        _valid_waterfall_dict(treasury_sinks=[{"hotkey": "hk_sink_0", "coldkey": "ck_vault"}]),
+        _valid_waterfall_dict(
+            treasury_sinks=[{"hotkey": "hk_sink_0", "coldkey": "ck_vault"}]
+        ),
         _valid_waterfall_dict(
             treasury_sinks=[
-                {"hotkey": "hk_sink_0", "coldkey": "ck_vault", "registered_at": 10, "extra": 1}
+                {
+                    "hotkey": "hk_sink_0",
+                    "coldkey": "ck_vault",
+                    "registered_at": 10,
+                    "extra": 1,
+                }
             ]
         ),
         _valid_waterfall_dict(
-            treasury_sinks=[{"hotkey": "hk_sink_0", "coldkey": "ck_vault", "registered_at": True}]
+            treasury_sinks=[
+                {"hotkey": "hk_sink_0", "coldkey": "ck_vault", "registered_at": True}
+            ]
         ),
         _valid_waterfall_dict(
             treasury_sinks=[{"hotkey": "", "coldkey": "ck_vault", "registered_at": 10}]
@@ -305,6 +320,7 @@ def _compose_waterfall_publisher(
     hold_ledger: HoldBonusLedger | None,
     observer,
     source=None,
+    king_promoted_at_ms: int | None = None,
     wf_overrides: dict | None = None,
 ):
     copy = _pin_policy_copy(
@@ -325,6 +341,11 @@ def _compose_waterfall_publisher(
     winner_ledger = we.WinnerLedger(tmp_path / "winners.jsonl")
     challenge = policy.challenges[0]
     sources = {} if source is None else {challenge: source}
+    if source is not None and king_promoted_at_ms is not None:
+        coldkeys = {p.hotkey: p.coldkey for p in state.participants}
+        winner_ledger.observe(
+            policy, challenge, source(), coldkeys, king_promoted_at_ms
+        )
     issuer = twp.TestnetWinnerIntentIssuer(
         receipts,
         auth,
@@ -340,14 +361,15 @@ def _compose_waterfall_publisher(
 
 
 def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
-    """4-rung epoch (block 1080 -> epoch 3, 3-challenge testnet policy):
-    - Rung 1 (Active King `hk_king` on Challenge 0, Day 1): `333_333_333_333` Q12
+    """4-rung epoch (block 1080 -> epoch 3, 3-challenge testnet policy under F2 Option A):
+    - Challenge 0 has Active King `hk_king` 24h into decay (`166_666_666_666` Q12);
+      its decayed `166_666_666_667` Q12 is the ONLY pool funding Rung 2 & Rung 3!
+    - Challenges 1 & 2 have no King: their `2 * 333_333_333_333` + `Q12 % 3` (`1`) go
+      directly to Rung 4 (`UID 0` burn).
     - Rung 2 (Loyal Past King `ck_loyal` Hold Bonus): `100_000_000_000` Q12
-      (earned 25,000 Alpha in epoch 2 + 5,000 Alpha pending in epoch 3 = 30,000 Alpha held 100%,
-       bonus rate = 20% / 600 -> 10 Alpha target out of 100 Alpha epoch miner emission = 10% Q12)
     - Rung 3 (2 Pinned Treasury Sinks `hk_sink_0`, `hk_sink_1` below cap):
-      `566_666_666_667 // 2 = 283_333_333_333` Q12 each
-    - Rung 4 (UID 0 Burn): `1` Q12 residual dust -> exact `Q12` conservation!"""
+      `66_666_666_667 // 2 = 33_333_333_333` Q12 each
+    - Rung 4 (UID 0 Burn): `666_666_666_668` Q12 -> exact `Q12` conservation!"""
     ctx = _testnet_ctx()
     state = _waterfall_snapshot(ctx, block=1080, timestamp_ms=10 * DAY_MS)
     hold_ledger = HoldBonusLedger(tmp_path / "hold.sqlite3")
@@ -391,11 +413,12 @@ def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
                 owner_hotkeys=("hk_burn_owner",),
             )
 
-        policy, issuer, backend, publisher = _compose_waterfall_publisher(
+        _policy, issuer, backend, publisher = _compose_waterfall_publisher(
             tmp_path,
             state=state,
             hold_ledger=hold_ledger,
             observer=observer,
+            king_promoted_at_ms=9 * DAY_MS,
             source=lambda: {
                 "model_id": "m-king-1",
                 "hotkey": "hk_king",
@@ -403,12 +426,13 @@ def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
                 "kind": we.FIRST,
             },
         )
+        before_preview_winner_bytes = issuer.ledger.path.read_bytes()
 
         # 1) Non-mutating preview: computes exact 4-rung targets, writes NOTHING to SQLite or WinnerLedger!
         seen = twp.preview(issuer, state)
         assert seen["signed"] is False
         assert _ledger_snapshot() == before_preview_sql
-        assert issuer.ledger.records() == []
+        assert issuer.ledger.path.read_bytes() == before_preview_winner_bytes
         with issuer.receipts.transaction() as db:
             assert db.execute(
                 "SELECT COUNT(*) FROM testnet_winner_intent_v1"
@@ -417,16 +441,28 @@ def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
         expected_targets = {
             "challenges": seen["targets"]["challenges"],
             "winners": [
-                [{"hotkey": "hk_king", "coldkey": "ck_king", "registered_at": 3}, 333_333_333_333]
+                [
+                    {"hotkey": "hk_king", "coldkey": "ck_king", "registered_at": 3},
+                    166_666_666_666,
+                ]
             ],
             "hold_bonus": [
-                [{"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4}, 100_000_000_000]
+                [
+                    {"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4},
+                    100_000_000_000,
+                ]
             ],
             "treasury": [
-                [{"hotkey": "hk_sink_0", "coldkey": "ck_vault", "registered_at": 10}, 283_333_333_333],
-                [{"hotkey": "hk_sink_1", "coldkey": "ck_vault", "registered_at": 11}, 283_333_333_333],
+                [
+                    {"hotkey": "hk_sink_0", "coldkey": "ck_vault", "registered_at": 10},
+                    33_333_333_333,
+                ],
+                [
+                    {"hotkey": "hk_sink_1", "coldkey": "ck_vault", "registered_at": 11},
+                    33_333_333_333,
+                ],
             ],
-            "burn": 1,
+            "burn": 666_666_666_668,
         }
         assert seen["targets"] == expected_targets
         assert (
@@ -439,7 +475,10 @@ def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
 
         # 2) Issue: records epoch 3 credits & stakes into HoldBonusLedger and stores waterfall intent
         ref = issuer.issue(state)
-        assert hold_ledger.window_status("ck_loyal", 3, 600) == (30_000 * RAO, Fraction(0))
+        assert hold_ledger.window_status("ck_loyal", 3, 600) == (
+            30_000 * RAO,
+            Fraction(0),
+        )
         after_first_issue_sql = _ledger_snapshot()
 
         # Idempotence on second issue(state) in same epoch
@@ -465,20 +504,20 @@ def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
 
         plan_doc = result["document"]["plan"]
         assert plan_doc["q12"] == [
-            [0, 1],
-            [2, 333_333_333_333],
+            [0, 666_666_666_668],
+            [2, 166_666_666_666],
             [3, 100_000_000_000],
-            [4, 283_333_333_333],
-            [5, 283_333_333_333],
+            [4, 33_333_333_333],
+            [5, 33_333_333_333],
         ]
-        top = 333_333_333_333
+        top = 666_666_666_668
         expected_integers = [
-            [2, round(Fraction(333_333_333_333 * U16, top))],
+            [0, U16],
+            [2, round(Fraction(166_666_666_666 * U16, top))],
             [3, round(Fraction(100_000_000_000 * U16, top))],
-            [4, round(Fraction(283_333_333_333 * U16, top))],
-            [5, round(Fraction(283_333_333_333 * U16, top))],
+            [4, round(Fraction(33_333_333_333 * U16, top))],
+            [5, round(Fraction(33_333_333_333 * U16, top))],
         ]
-        assert expected_integers == [[2, 65535], [3, 19661], [4, 55705], [5, 55705]]
         assert plan_doc["integers"] == expected_integers
 
         # Publishing the same ref again returns the journaled ROW_VERIFIED result without re-signing
@@ -489,16 +528,16 @@ def test_end_to_end_four_rung_preview_issue_publish_and_idempotence(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 3. Fail-Closed Treasury Cap & Missing Observation -> Residual Burns to UID 0
+# 3. Fail-Closed Treasury Cap & Missing Observation -> Refusal / UID 0 Burn
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
     "observed_treasury_stake",
     [
-        None,               # Missing observation -> fail-closed
-        100_000 * RAO,      # Exactly at cap -> gated off
-        150_000 * RAO,      # Above cap -> gated off
+        None,  # Missing treasury stake observation -> Treasury fails closed to 0
+        100_000 * RAO,  # Exactly at cap -> gated off
+        150_000 * RAO,  # Above cap -> gated off
     ],
 )
 def test_treasury_missing_or_at_cap_fails_closed_and_burns_residual_to_uid0(
@@ -511,7 +550,9 @@ def test_treasury_missing_or_at_cap_fails_closed_and_burns_residual_to_uid0(
         hold_ledger.record_crown_earnings(2, {"ck_loyal": (30_000 * RAO, "hk_loyal")})
         hold_ledger.sample_epoch_stakes(2, {"ck_loyal": 30_000 * RAO})
 
-        def observer(_snap: MetagraphSnapshot, _epoch: int) -> WaterfallEpochObservation:
+        def observer(
+            _snap: MetagraphSnapshot, _epoch: int
+        ) -> WaterfallEpochObservation:
             return WaterfallEpochObservation(
                 epoch_miner_emission_rao=100 * RAO,
                 treasury_current_stake_rao=observed_treasury_stake,
@@ -520,11 +561,12 @@ def test_treasury_missing_or_at_cap_fails_closed_and_burns_residual_to_uid0(
                 owner_hotkeys=("hk_burn_owner",),
             )
 
-        _policy, issuer, backend, publisher = _compose_waterfall_publisher(
+        _policy, issuer, _backend, publisher = _compose_waterfall_publisher(
             tmp_path,
             state=state,
             hold_ledger=hold_ledger,
             observer=observer,
+            king_promoted_at_ms=9 * DAY_MS,
             source=lambda: {
                 "model_id": "m-king-1",
                 "hotkey": "hk_king",
@@ -535,28 +577,30 @@ def test_treasury_missing_or_at_cap_fails_closed_and_burns_residual_to_uid0(
 
         seen = twp.preview(issuer, state)
         assert seen["targets"]["treasury"] == []
-        # Residual = Q12 - 333_333_333_333 (King) - 100_000_000_000 (Bonus) = 566_666_666_667 -> UID 0 Burn!
-        assert seen["targets"]["burn"] == 566_666_666_667
+        # Burn = Q12 - 166_666_666_666 (King) - 100_000_000_000 (Bonus) = 733_333_333_334 -> UID 0!
+        assert seen["targets"]["burn"] == 733_333_333_334
 
         ref = issuer.issue(state)
         result = asyncio.run(publisher.publish(ref))
         assert result["state"] == "ROW_VERIFIED"
         assert result["document"]["plan"]["q12"] == [
-            [0, 566_666_666_667],
-            [2, 333_333_333_333],
+            [0, 733_333_333_334],
+            [2, 166_666_666_666],
             [3, 100_000_000_000],
         ]
-        top = 566_666_666_667
+        top = 733_333_333_334
         assert result["document"]["plan"]["integers"] == [
             [0, U16],
-            [2, round(Fraction(333_333_333_333 * U16, top))],
+            [2, round(Fraction(166_666_666_666 * U16, top))],
             [3, round(Fraction(100_000_000_000 * U16, top))],
         ]
     finally:
         hold_ledger.close()
 
 
-def test_waterfall_stake_drift_between_issue_and_publish_refuses_before_signing(tmp_path):
+def test_waterfall_stake_drift_between_issue_and_publish_refuses_before_signing(
+    tmp_path,
+):
     """If a loyal miner dumps their stake after `issue()` before `publish()` signs,
     `resolve()` detects the changed Hold Bonus targets and refuses without signing."""
     ctx = _testnet_ctx()
@@ -568,7 +612,9 @@ def test_waterfall_stake_drift_between_issue_and_publish_refuses_before_signing(
 
         live_stake = {"ck_loyal": 30_000 * RAO}
 
-        def observer(_snap: MetagraphSnapshot, _epoch: int) -> WaterfallEpochObservation:
+        def observer(
+            _snap: MetagraphSnapshot, _epoch: int
+        ) -> WaterfallEpochObservation:
             return WaterfallEpochObservation(
                 epoch_miner_emission_rao=100 * RAO,
                 treasury_current_stake_rao=10_000 * RAO,
@@ -582,6 +628,7 @@ def test_waterfall_stake_drift_between_issue_and_publish_refuses_before_signing(
             state=state,
             hold_ledger=hold_ledger,
             observer=observer,
+            king_promoted_at_ms=9 * DAY_MS,
             source=lambda: {
                 "model_id": "m-king-1",
                 "hotkey": "hk_king",
@@ -602,36 +649,108 @@ def test_waterfall_stake_drift_between_issue_and_publish_refuses_before_signing(
         hold_ledger.close()
 
 
-def test_waterfall_without_observer_or_active_winners_burns_100_percent_to_uid0(tmp_path):
-    """With `waterfall_observer=None` and no winners, Treasury & Hold Bonus fail closed to 0
-    and `no_winner` is True with 100% Q12 burned to UID 0."""
+def test_waterfall_fail_closed_missing_observer_fields_and_empty_winners_100pct_burn(
+    tmp_path,
+):
+    """F5 + F2:
+    1) Missing `waterfall_observer`, `staked_by_coldkey`, `epoch_miner_emission_rao`, or
+       (on `finney`) `owner_coldkey` refuses publication (`WinnerPublicationRefused`).
+    2) With a valid observer and no active Challenge Kings (`source=None`), even when loyal
+       past winners hold earned Alpha, `decayed_from_active_kings_q12 == 0` so 100% `Q12`
+       burns directly to `UID 0` (`no_winner is True`)."""
     ctx = _testnet_ctx()
     state = _waterfall_snapshot(ctx, block=1080, timestamp_ms=10 * DAY_MS)
-    _policy, issuer, backend, publisher = _compose_waterfall_publisher(
-        tmp_path,
+
+    # 1a) observer=None -> WATERFALL_OBSERVER_REQUIRED
+    _p0, issuer_no_obs, _b0, _pub0 = _compose_waterfall_publisher(
+        tmp_path / "no_obs",
         state=state,
         hold_ledger=None,
         observer=None,
         source=None,
     )
-    ref = issuer.issue(state)
-    resolved = issuer.resolve(ref, state)
-    assert resolved["intent"]["route"] == WATERFALL_ROUTE
-    assert resolved["intent"]["no_winner"] is True
-    assert resolved["intent"]["targets"]["burn"] == Q12
-    result = asyncio.run(publisher.publish(ref))
-    assert result["state"] == "ROW_VERIFIED"
-    assert result["document"]["plan"]["q12"] == [[0, Q12]]
-    assert result["document"]["plan"]["integers"] == [[0, U16]]
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="WATERFALL_OBSERVER_REQUIRED"
+    ):
+        issuer_no_obs.issue(state)
+
+    # 1b) staked_by_coldkey=None -> STAKE_OBSERVATION_REQUIRED
+    _p1, issuer_no_stake, _b1, _pub1 = _compose_waterfall_publisher(
+        tmp_path / "no_stake",
+        state=state,
+        hold_ledger=None,
+        observer=lambda _s, _e: WaterfallEpochObservation(
+            epoch_miner_emission_rao=10 * RAO,
+            staked_by_coldkey=None,
+            owner_coldkey="ck_owner",
+        ),
+        source=None,
+    )
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="STAKE_OBSERVATION_REQUIRED"
+    ):
+        issuer_no_stake.issue(state)
+
+    # 1c) epoch_miner_emission_rao=None -> EMISSION_OBSERVATION_REQUIRED
+    _p2, issuer_no_em, _b2, _pub2 = _compose_waterfall_publisher(
+        tmp_path / "no_em",
+        state=state,
+        hold_ledger=None,
+        observer=lambda _s, _e: WaterfallEpochObservation(
+            epoch_miner_emission_rao=None,
+            staked_by_coldkey={},
+            owner_coldkey="ck_owner",
+        ),
+        source=None,
+    )
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="EMISSION_OBSERVATION_REQUIRED"
+    ):
+        issuer_no_em.issue(state)
+
+    # 2) Valid observer + no active winners -> 100% burn to UID 0 (even with loyal past holder!)
+    hold_ledger = HoldBonusLedger(tmp_path / "empty_slots_hold.sqlite3")
+    try:
+        hold_ledger.record_crown_earnings(2, {"ck_loyal": (30_000 * RAO, "hk_loyal")})
+        hold_ledger.sample_epoch_stakes(2, {"ck_loyal": 30_000 * RAO})
+        _policy, issuer, _backend, publisher = _compose_waterfall_publisher(
+            tmp_path / "valid_empty",
+            state=state,
+            hold_ledger=hold_ledger,
+            observer=lambda _s, _e: WaterfallEpochObservation(
+                epoch_miner_emission_rao=100 * RAO,
+                treasury_current_stake_rao=0,
+                staked_by_coldkey={"ck_loyal": 30_000 * RAO},
+                owner_coldkey="ck_owner",
+                owner_hotkeys=("hk_burn_owner",),
+            ),
+            source=None,
+        )
+        ref = issuer.issue(state)
+        resolved = issuer.resolve(ref, state)
+        assert resolved["intent"]["route"] == WATERFALL_ROUTE
+        assert resolved["intent"]["no_winner"] is True
+        assert resolved["intent"]["targets"]["hold_bonus"] == []
+        assert resolved["intent"]["targets"]["treasury"] == []
+        assert resolved["intent"]["targets"]["burn"] == Q12
+        result = asyncio.run(publisher.publish(ref))
+        assert result["state"] == "ROW_VERIFIED"
+        assert result["document"]["plan"]["q12"] == [[0, Q12]]
+        assert result["document"]["plan"]["integers"] == [[0, U16]]
+    finally:
+        hold_ledger.close()
 
 
-def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(tmp_path):
+def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
+    tmp_path,
+):
     """End-to-end verification through `preview` -> `issue` -> `publish` that:
     1) Invalid `bonus_credits_by_coldkey` fails closed with `INVALID_BONUS_CREDIT_OBSERVATION`.
     2) Epoch 3: Miner with `C = 1,000 α` and pending `H = 500 α` holding `B = 1,500 α` receives
        exact non-compounding +50% window rate on `1,000 α` (preview matches issue without mutating SQLite).
     3) Epoch 4: Miner dumps the `500 α` bonus (`B = 1,000 α` while `C + H = 1,500 α`) ->
-       `worst_sold == 1/3`, slashing both rate (to 1/3) and eligible principal (to 2/3 of 1,000 α)."""
+       `worst_sold == 1/3`, slashing both rate (to 1/3) and eligible principal (to 2/3 of 1,000 α).
+    """
     with pytest.raises(RewardFailure, match="INVALID_BONUS_CREDIT_OBSERVATION"):
         WaterfallEpochObservation(bonus_credits_by_coldkey=["not-a-dict"])  # type: ignore[arg-type]
 
@@ -653,7 +772,9 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
                 treasury_current_stake_rao=10_000 * RAO,
                 staked_by_coldkey=dict(current_stake),
                 bonus_credits_by_coldkey=(
-                    dict(current_bonus_credits) if current_bonus_credits is not None else None
+                    dict(current_bonus_credits)
+                    if current_bonus_credits is not None
+                    else None
                 ),
                 owner_coldkey="ck_owner",
                 owner_hotkeys=("hk_burn_owner",),
@@ -664,6 +785,7 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
             state=state_e3,
             hold_ledger=hold_ledger,
             observer=observer,
+            king_promoted_at_ms=9 * DAY_MS,
             source=lambda: {
                 "model_id": "m-king-1",
                 "hotkey": "hk_king",
@@ -685,11 +807,17 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
         ).fetchone() == (0,)
         # Exact non-compounding +50% rate on C = 1,000 α: ((1000 * 5000 / 6_000_000) / 10) * Q12 = 83_333_333_333
         assert preview_e3["targets"]["hold_bonus"] == [
-            [{"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4}, 83_333_333_333]
+            [
+                {"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4},
+                83_333_333_333,
+            ]
         ]
 
         ref_e3 = issuer.issue(state_e3)
-        assert hold_ledger.window_status("ck_loyal", 3, 600) == (1_000 * RAO, Fraction(0))
+        assert hold_ledger.window_status("ck_loyal", 3, 600) == (
+            1_000 * RAO,
+            Fraction(0),
+        )
         assert twp.preview(issuer, state_e3)["targets"] == preview_e3["targets"]
         res_e3 = asyncio.run(publisher.publish(ref_e3))
         assert res_e3["state"] == "ROW_VERIFIED"
@@ -697,7 +825,9 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
         # Epoch 4 (block 1440): miner dumps all 500 α Hold Bonus (`B = 1,000 α` < `C + H = 1,500 α`)
         current_bonus_credits = None
         current_stake["ck_loyal"] = 1_000 * RAO
-        state_e4 = _waterfall_snapshot(ctx, block=1440, timestamp_ms=10 * DAY_MS + 360 * 12_000)
+        state_e4 = _waterfall_snapshot(
+            ctx, block=1440, timestamp_ms=10 * DAY_MS + 360 * 12_000
+        )
         backend.state = state_e4
         backend.tx_hash = "0x" + "c" * 64
 
@@ -705,12 +835,20 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
         # Rate slashed to 1/3 and eligible_held = 666_666_666_666 rao:
         # target_alpha_rao = 666_666_666_666 * (5000 / 6_000_000) * (1/3)
         expected_dumped_q12 = int(
-            (Fraction(666_666_666_666) * Fraction(5000, 10_000 * 600) * Fraction(1, 3) * Q12)
+            (
+                Fraction(666_666_666_666)
+                * Fraction(5000, 10_000 * 600)
+                * Fraction(1, 3)
+                * Q12
+            )
             // (10 * RAO)
         )
         assert expected_dumped_q12 == 18_518_518_518  # 2/9 of 83_333_333_333!
         assert preview_e4["targets"]["hold_bonus"] == [
-            [{"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4}, expected_dumped_q12]
+            [
+                {"hotkey": "hk_loyal", "coldkey": "ck_loyal", "registered_at": 4},
+                expected_dumped_q12,
+            ]
         ]
 
         ref_e4 = issuer.issue(state_e4)
@@ -729,9 +867,10 @@ def test_publisher_wires_bonus_credits_non_compounding_and_anti_dump_end_to_end(
 # ---------------------------------------------------------------------------
 
 MAINNET_V5_DIGEST = (
-    "sha256:691b882f5afa22cb30fc9cf439555e481793c95d4310084284f29de5701a9724"
+    "sha256:6e0c72a46f4bc8f7d3dcee359ba053e4ad469345d4c7da30a442d19dc0892836"
 )
 CARBON_EXCLUDED_COLDKEY = "5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9"
+VAULT_EXCLUDED_COLDKEY = "5HVHGgWc1RvFFCkS678oB4DBjR8ZumAiAFsVXDf3aJCNbY8T"
 MOTOR_PACK = "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c"
 
 
@@ -744,12 +883,18 @@ def test_mainnet_winner_v5_policy_registration_and_field_inheritance():
 
     raw_bytes = (wd.POLICY_DIR / "mainnet-winner-v5.json").read_bytes()
     doc = json.loads(raw_bytes)
-    assert (json.dumps(doc, indent=2, sort_keys=True) + "\n").encode("utf-8") == raw_bytes
+    assert (json.dumps(doc, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    ) == raw_bytes
 
-    # Cutover runbook pins the exact registered digest
-    cutover_doc = (wd.POLICY_DIR.parent / "MAINNET-V5-CUTOVER.md").read_text(encoding="utf-8")
+    # Cutover runbook pins the exact registered digest and both excluded coldkeys
+    cutover_doc = (wd.POLICY_DIR.parent / "MAINNET-V5-CUTOVER.md").read_text(
+        encoding="utf-8"
+    )
     assert MAINNET_V5_DIGEST in cutover_doc
     assert v4.digest in cutover_doc
+    assert CARBON_EXCLUDED_COLDKEY in cutover_doc
+    assert VAULT_EXCLUDED_COLDKEY in cutover_doc
 
     # Inherits every v4 field unchanged
     assert (
@@ -776,7 +921,7 @@ def test_mainnet_winner_v5_policy_registration_and_field_inheritance():
         Q12,
     )
 
-    # Exact Stage 5B WaterfallConfig
+    # Exact Stage 5B WaterfallConfig (F3 enforce_king_u16_floor=False, F5 both excluded coldkeys)
     assert v5.waterfall == WaterfallConfig(
         hold_window_epochs=600,
         hold_cap_q12=400_000_000_000,
@@ -784,8 +929,8 @@ def test_mainnet_winner_v5_policy_registration_and_field_inheritance():
         zero_bonus_sold_bps=5000,
         treasury_sinks=(),
         treasury_stake_cap_rao=0,
-        excluded_coldkeys=frozenset({CARBON_EXCLUDED_COLDKEY}),
-        enforce_king_u16_floor=True,
+        excluded_coldkeys=frozenset({CARBON_EXCLUDED_COLDKEY, VAULT_EXCLUDED_COLDKEY}),
+        enforce_king_u16_floor=False,
     )
 
 
@@ -794,15 +939,16 @@ def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_
 ):
     """End-to-end simulation of registered `mainnet-winner-v5` on Finney SN116:
     - Day 1 (full 24h window): Active King receives 100% (`Q12`), 0 burn, `u16 == 65535`.
-    - Day 2 (50% decay): Loyal past winner receives +50% / 600-epoch Hold Bonus; Carbon's
-      excluded coldkey `5D5RwyMPFaKLwChEcfb5yPA6VENHxJBagcHkP5aztfg8Ynj9` receives 0 Hold Bonus;
-      post-bonus remainder routes 100% to `UID 0` burn while `treasury_sinks == ()`.
+    - Day 2 (50% decay): Loyal past winner receives +50% / 600-epoch Hold Bonus; BOTH
+      excluded coldkeys (`5D5Rwy...` and `5HVHGg...`) receive 0 Hold Bonus; post-bonus
+      remainder routes 100% to `UID 0` burn while `treasury_sinks == ()`.
     - Day 2 high-demand cap: Rung 2 Hold Bonus clamps at `40%` (`400_000_000_000` Q12) and
       remaining `10%` burns to `UID 0`.
-    - Deep decay (25 halvings): Active King gets `MIN_POSITIVE_U16_Q12` (`7,629,511`) and compiles
-      to `u16 >= 1` alongside `40%` Hold Bonus and `~60%` `UID 0` burn."""
+    - Deep decay (45 halvings under F3 `enforce_king_u16_floor = False`): Unbeaten Active King
+      decays naturally to `0` (`winners == []`) matching `mainnet-winner-v4`, while `100%` of
+      its decayed share continues funding Rung 2 Hold Bonus (`40%`) + `UID 0` burn (`60%`).
+    - Missing `owner_coldkey` on `finney` refuses with `OWNER_COLDKEY_REQUIRED`."""
     from carbon.chain import networks
-    from carbon.rewards.waterfall import MIN_POSITIVE_U16_Q12
 
     v5 = wd.load_policy("mainnet-winner-v5")
     finney_row = networks.NETWORKS["finney"]
@@ -827,6 +973,7 @@ def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_
                 Participant(2, "hk_motor_king", "ck_motor_king", 10),
                 Participant(3, "hk_loyal_past", "ck_loyal_past", 11),
                 Participant(4, "hk_carbon_miner", CARBON_EXCLUDED_COLDKEY, 12),
+                Participant(5, "hk_vault_miner", VAULT_EXCLUDED_COLDKEY, 13),
             ),
         )
 
@@ -869,30 +1016,38 @@ def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_
     hold_ledger = HoldBonusLedger(tmp_path / "sn116_hold.sqlite3")
 
     try:
-        # Both loyal past winner (1,000 α) and Carbon excluded coldkey (100,000 α) hold 100% of past crowns
+        # Loyal past winner AND both excluded coldkeys hold 100% of past crowns
         hold_ledger.record_crown_earnings(
             2,
             {
                 "ck_loyal_past": (1_000 * RAO, "hk_loyal_past"),
                 CARBON_EXCLUDED_COLDKEY: (100_000 * RAO, "hk_carbon_miner"),
+                VAULT_EXCLUDED_COLDKEY: (100_000 * RAO, "hk_vault_miner"),
             },
         )
         hold_ledger.sample_epoch_stakes(
             2,
-            {"ck_loyal_past": 1_000 * RAO, CARBON_EXCLUDED_COLDKEY: 100_000 * RAO},
+            {
+                "ck_loyal_past": 1_000 * RAO,
+                CARBON_EXCLUDED_COLDKEY: 100_000 * RAO,
+                VAULT_EXCLUDED_COLDKEY: 100_000 * RAO,
+            },
         )
 
-        emission_state = {"rao": 10 * RAO}
+        emission_state = {"rao": 10 * RAO, "owner_ck": CARBON_EXCLUDED_COLDKEY}
 
-        def observer(_snap: MetagraphSnapshot, _epoch: int) -> WaterfallEpochObservation:
+        def observer(
+            _snap: MetagraphSnapshot, _epoch: int
+        ) -> WaterfallEpochObservation:
             return WaterfallEpochObservation(
                 epoch_miner_emission_rao=emission_state["rao"],
                 treasury_current_stake_rao=10_000 * RAO,
                 staked_by_coldkey={
                     "ck_loyal_past": 1_000 * RAO,
                     CARBON_EXCLUDED_COLDKEY: 100_000 * RAO,
+                    VAULT_EXCLUDED_COLDKEY: 100_000 * RAO,
                 },
-                owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+                owner_coldkey=emission_state["owner_ck"],
                 owner_hotkeys=("hk_burn_owner",),
             )
 
@@ -917,6 +1072,14 @@ def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_
             waterfall_observer=observer,
         )
 
+        # Fail-closed check on finney if owner_coldkey is None
+        emission_state["owner_ck"] = None  # type: ignore[assignment]
+        with pytest.raises(
+            twp.WinnerPublicationRefused, match="OWNER_COLDKEY_REQUIRED"
+        ):
+            twp.preview(issuer, _sn116_snap(block=1080, now_ms=t0))
+        emission_state["owner_ck"] = CARBON_EXCLUDED_COLDKEY
+
         # --- Phase 1: Day 1 (within 24h) -> King gets 100% Q12 ---
         snap_d1 = _sn116_snap(block=1080, now_ms=t0)
         backend = _MainnetBackend(snap_d1, publisher="hk_sn116_validator")
@@ -929,17 +1092,31 @@ def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_
         assert res_d1["document"]["plan"]["q12"] == [[2, Q12]]
         assert res_d1["document"]["plan"]["integers"] == [[2, U16]]
 
-        # --- Phase 2: Day 2 (24h elapsed -> King 50%, Loyal Bonus 83_333_333_333, Carbon excluded, rest UID 0 burn) ---
+        # --- Phase 2: Day 2 (24h elapsed -> King 50%, Loyal Bonus 83_333_333_333, both excluded coldkeys get 0, rest UID 0 burn) ---
         snap_d2 = _sn116_snap(block=8280, now_ms=t0 + DAY_MS)
         backend.state = snap_d2
         backend.tx_hash = "0x" + "1" * 64
 
         preview_d2 = twp.preview(issuer, snap_d2)
         assert preview_d2["targets"]["winners"] == [
-            [{"hotkey": "hk_motor_king", "coldkey": "ck_motor_king", "registered_at": 10}, 500_000_000_000]
+            [
+                {
+                    "hotkey": "hk_motor_king",
+                    "coldkey": "ck_motor_king",
+                    "registered_at": 10,
+                },
+                500_000_000_000,
+            ]
         ]
         assert preview_d2["targets"]["hold_bonus"] == [
-            [{"hotkey": "hk_loyal_past", "coldkey": "ck_loyal_past", "registered_at": 11}, 83_333_333_333]
+            [
+                {
+                    "hotkey": "hk_loyal_past",
+                    "coldkey": "ck_loyal_past",
+                    "registered_at": 11,
+                },
+                83_333_333_333,
+            ]
         ]
         assert preview_d2["targets"]["treasury"] == []
         assert preview_d2["targets"]["burn"] == 416_666_666_667
@@ -968,22 +1145,847 @@ def test_mainnet_winner_v5_simulation_across_day1_decay_bonus_cap_exclusion_and_
             [3, 400_000_000_000],
         ]
 
-        # --- Phase 4: Deep Decay (25 halvings -> King floored at MIN_POSITIVE_U16_Q12 -> u16 >= 1) ---
-        snap_deep = _sn116_snap(block=200_160, now_ms=t0 + 25 * DAY_MS)
+        # --- Phase 4: Deep Decay (45 halvings -> F3 `enforce_king_u16_floor = False` -> King decays naturally to 0!) ---
+        snap_deep = _sn116_snap(block=330_120, now_ms=t0 + 45 * DAY_MS)
         backend.state = snap_deep
         backend.tx_hash = "0x" + "3" * 64
 
         ref_deep = issuer.issue(snap_deep)
         res_deep = asyncio.run(publisher.publish(ref_deep))
         assert res_deep["state"] == "ROW_VERIFIED"
-        expected_deep_burn = Q12 - MIN_POSITIVE_U16_Q12 - 400_000_000_000
         assert res_deep["document"]["plan"]["q12"] == [
-            [0, expected_deep_burn],
-            [2, MIN_POSITIVE_U16_Q12],
+            [0, 600_000_000_000],
             [3, 400_000_000_000],
         ]
         int_map = dict(res_deep["document"]["plan"]["integers"])
-        assert int_map[2] >= 1  # Active King stays >= 1 in u16 weights!
+        assert 2 not in int_map  # Unbeaten King decayed naturally to 0!
         assert int_map[0] == U16
+        assert int_map[3] == round(Fraction(400_000_000_000 * U16, 600_000_000_000))
     finally:
         hold_ledger.close()
+
+
+# ---------------------------------------------------------------------------
+# 5. CLI `_issuer` + `weights preview` / `weights run` End-to-End Persistence
+# ---------------------------------------------------------------------------
+
+
+def _setup_sn116_cli_fixture(tmp_path: Path):
+    """Create a real `0700` state dir, `0600` operator config, `0600` standing.json,
+    and a real `PoolStore` with a qualified Motor 1.8 crown on `MOTOR_PACK`."""
+    from carbon.battery.pool_store import PoolStore
+    from carbon.chain import networks
+    from carbon.validator_setup import weights as vs_weights
+
+    finney_row = networks.NETWORKS["finney"]
+    ctx = ChainContext(
+        "finney",
+        "wss://entrypoint-finney.opentensor.ai:443",
+        finney_row.chain_id,
+        finney_row.genesis_hash,
+        116,
+    )
+    state_dir = tmp_path / "state"
+    state_dir.mkdir(mode=0o700)
+
+    wallet_dir = tmp_path / "wallet"
+    wallet_dir.mkdir(mode=0o700)
+
+    op_cfg_path = tmp_path / "operator-weights.json"
+    op_cfg_path.write_text(
+        json.dumps(
+            {
+                "schema": vs_weights.SCHEMA,
+                "context": {
+                    "network": "finney",
+                    "endpoint": ctx.endpoint,
+                    "chain_id": finney_row.chain_id,
+                    "genesis_hash": finney_row.genesis_hash,
+                    "netuid": 116,
+                },
+                "expected_runtime_spec": SPEC,
+                "publisher": {
+                    "hotkey": "hk_sn116_validator",
+                    "coldkey": "ck_validator",
+                },
+                "wallet": {
+                    "name": "sn116-val",
+                    "hotkey_name": "default",
+                    "path": str(wallet_dir),
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    op_cfg_path.chmod(0o600)
+
+    record_file = tmp_path / "OWNER-WEIGHTS-AUTHORITY-01.md"
+    record_file.write_text("owner authority record fixture", encoding="utf-8")
+    standing_path = tmp_path / "standing.json"
+    standing_path.write_text(
+        json.dumps(
+            {
+                "authority": wd.MAINNET_AUTHORITY,
+                "authority_record": record_file.name,
+                "policy_digest": MAINNET_V5_DIGEST,
+                "publisher_hotkey": "hk_sn116_validator",
+                "expected_runtime_spec": SPEC,
+                "valid_from_block": 1_000,
+                "valid_through_block": 500_000,
+            }
+        ),
+        encoding="utf-8",
+    )
+    standing_path.chmod(0o600)
+
+    pool_path = tmp_path / "motor_pool.sqlite3"
+    store = PoolStore(pool_path, clock=lambda: 100.0)
+    store.admit(
+        "motor-18-m1",
+        request_digest="sha256:" + "1" * 64,
+        hotkey="hk_motor_king",
+        challenge="electric-motor-magnetics",
+        strategy={},
+        binding={"challenge": {"id": "electric-motor-magnetics"}},
+    )
+    eval_key = "sha256:" + "2" * 64
+    with store.db() as db:
+        db.execute(
+            "INSERT INTO operations (op_id, kind, state, body) VALUES (?, 'private_evaluation.v1', 'BOUND_DEVELOPMENT_ONLY', ?)",
+            (
+                "op-eval-1",
+                json.dumps(
+                    {
+                        "submission_id": "motor-18-m1",
+                        "evaluation_key": eval_key,
+                        "evidence": {"evaluation_pack_digest": MOTOR_PACK},
+                    }
+                ),
+            ),
+        )
+    store.set_incumbent("motor-18-m1", we.SEALED_TESTNET_REASON)
+
+    return ctx, state_dir, op_cfg_path, standing_path, pool_path
+
+
+def test_cli_issuer_and_weights_execute_persist_hold_bonus_ledger_jsonl_across_epochs(
+    monkeypatch, tmp_path
+):
+    """End-to-end CLI test through `carbon.validator_setup.weights.execute` + `twp._issuer`
+    under `mainnet-winner-v5`:
+    - `weights preview` before first `run` does NOT create `hold_bonus_ledger.jsonl` on disk.
+    - Epoch 3 (`weights run`): publishes Day-1 King (`100%` Q12) and atomically creates
+      `hold_bonus_ledger.jsonl` (`0600`) with `epoch_emission.v1`.
+    - Epoch 23 (`+24h`, King decayed to `50%`):
+      - `weights preview` replays Epoch 3's `ROW_VERIFIED` receipt from `publication.sqlite3`,
+        queries live stake, previews exact non-zero Rung 2 Hold Bonus (`8_333_333_333` Q12),
+        and leaves `hold_bonus_ledger.jsonl` byte-identical!
+      - `weights run` persists `crown_credit.v1` + `stake_sample.v1` + `epoch_emission.v1`
+        to `hold_bonus_ledger.jsonl` and publishes non-zero Rung 2 Hold Bonus to `ROW_VERIFIED`!
+    - Epoch 24 (next epoch): reloads `hold_bonus_ledger.jsonl` from disk, settles ONLY Epoch 23
+      (zero double-crediting of Epoch 3!), computes non-compounding Hold Bonus on `105 α` Crown
+      principal (`8_750_000_000` Q12), and publishes to `ROW_VERIFIED`!"""
+    from carbon.chain import sdk as chain_sdk
+    from carbon.chain import sdk_weights
+    from carbon.validator_setup import weights as vs_weights
+
+    ctx, state_dir, op_cfg_path, standing_path, pool_path = _setup_sn116_cli_fixture(
+        tmp_path
+    )
+    journal_path = state_dir / "publication.sqlite3"
+    ledger_path = state_dir / "winners.jsonl"
+    hold_jsonl_path = state_dir / twp.HOLD_LEDGER_FILENAME
+
+    t0 = 20 * DAY_MS
+
+    def _make_snap(block: int, now_ms: int) -> MetagraphSnapshot:
+        return MetagraphSnapshot(
+            context=ctx,
+            finalized_block=block,
+            block_hash="0x" + f"{block:064x}",
+            timestamp_ms=now_ms,
+            participants=(
+                Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+                Participant(1, "hk_sn116_validator", "ck_validator", 2),
+                Participant(2, "hk_motor_king", "ck_motor_king", 10),
+            ),
+        )
+
+    def _make_caps(snap: MetagraphSnapshot) -> RuntimeCapabilities:
+        return RuntimeCapabilities(
+            snapshot_id=snap.snapshot_id,
+            spec_version=SPEC,
+            mechanism_count=1,
+            maximum_mechanisms=8,
+            burn_mode="Burn",
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkey="hk_burn_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            min_weights=1,
+            max_weight=U16,
+            version_key=1,
+            rate_limit=0,
+            last_update=0,
+            commit_reveal=False,
+            validator_permit=True,
+            sufficient_stake=True,
+        )
+
+    live_env = {
+        "snap": _make_snap(1080, t0),
+        "emission_rao": 100 * RAO,
+        "stakes": {"ck_motor_king": 0, CARBON_EXCLUDED_COLDKEY: 0},
+        "tx_seq": 0,
+    }
+
+    class _FakeCliBackend(_WaterfallBackend):
+        def __init__(self, context, publisher, wallet, **kwargs):
+            super().__init__(live_env["snap"], publisher=publisher)
+            live_env["tx_seq"] += 1
+            self.tx_hash = "0x" + f"{live_env['tx_seq']:064x}"
+
+        async def observe(self):
+            return self.state, _make_caps(self.state)
+
+        async def close(self):
+            pass
+
+    async def _fake_capture(self, context):
+        assert context == ctx
+        return live_env["snap"]
+
+    async def _fake_waterfall_read(
+        context, *, block=None, block_hash=None, coldkeys=(), cadence_blocks=360
+    ):
+        assert context == ctx
+        assert cadence_blocks == 360
+        return {
+            "block": block,
+            "block_hash": block_hash,
+            "epoch_miner_emission_rao": live_env["emission_rao"],
+            "staked_by_coldkey": {ck: live_env["stakes"].get(ck, 0) for ck in coldkeys},
+            "owner_coldkey": CARBON_EXCLUDED_COLDKEY,
+            "owner_hotkeys": ("hk_burn_owner",),
+        }
+
+    monkeypatch.setattr(chain_sdk.BittensorReader, "capture", _fake_capture)
+    monkeypatch.setattr(sdk_weights, "read_waterfall_chain_state", _fake_waterfall_read)
+    monkeypatch.setattr(sdk_weights, "open_operator_wallet", lambda *a, **k: object())
+    monkeypatch.setattr(sdk_weights, "BittensorPublicationBackend", _FakeCliBackend)
+
+    def _cli_args(action: str):
+        return SimpleNamespace(
+            action=action,
+            config=str(op_cfg_path),
+            standing=str(standing_path),
+            journal=str(journal_path),
+            ledger=str(ledger_path),
+            battery_deployment=None,
+            lean_pool=[f"electric-motor-magnetics={pool_path}"],
+            lean_pool_previous=None,
+            policy_version="mainnet-winner-v5",
+            repository=str(tmp_path),
+            reconcile_archive_endpoint=None,
+            archive_fallback_endpoint=None,
+        )
+
+    # --- Epoch 3 (Day 1): Preview writes nothing; Run publishes 100% King & writes hold_bonus_ledger.jsonl ---
+    p_e3 = asyncio.run(vs_weights.execute(_cli_args("preview")))
+    assert p_e3["signed"] is False
+    assert p_e3["targets"]["winners"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            Q12,
+        ]
+    ]
+    assert p_e3["targets"]["hold_bonus"] == []
+    assert not hold_jsonl_path.exists()
+
+    r_e3 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e3["state"] == "ROW_VERIFIED"
+    assert hold_jsonl_path.is_file()
+    assert (hold_jsonl_path.stat().st_mode & 0o777) == 0o600
+    e3_lines = [json.loads(line) for line in hold_jsonl_path.read_text().splitlines()]
+    assert e3_lines == [
+        {
+            "epoch": 3,
+            "epoch_miner_emission_rao": str(100 * RAO),
+            "kind": "epoch_emission.v1",
+        }
+    ]
+
+    # --- Epoch 23 (+24h -> King at 50%, holding all 100 α earned in Epoch 3, live emission = 10 α) ---
+    live_env["snap"] = _make_snap(8280, t0 + DAY_MS)
+    live_env["emission_rao"] = 10 * RAO
+    live_env["stakes"] = {"ck_motor_king": 100 * RAO, CARBON_EXCLUDED_COLDKEY: 0}
+    before_e23_bytes = hold_jsonl_path.read_bytes()
+
+    p_e23 = asyncio.run(vs_weights.execute(_cli_args("preview")))
+    assert (
+        hold_jsonl_path.read_bytes() == before_e23_bytes
+    )  # Preview never mutates JSONL!
+    # 100 α held * (5000 / 6_000_000) / 10 α * Q12 == 8_333_333_333 Q12!
+    assert p_e23["targets"]["winners"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            500_000_000_000,
+        ]
+    ]
+    assert p_e23["targets"]["hold_bonus"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            8_333_333_333,
+        ]
+    ]
+    assert p_e23["targets"]["treasury"] == []
+    assert p_e23["targets"]["burn"] == 491_666_666_667
+
+    r_e23 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e23["state"] == "ROW_VERIFIED"
+    # Combined on UID 2 (King + Hold Bonus) = 508_333_333_333, Burn on UID 0 = 491_666_666_667
+    assert r_e23["document"]["plan"]["q12"] == [
+        [0, 491_666_666_667],
+        [2, 508_333_333_333],
+    ]
+
+    # --- Epoch 24 (next epoch): reloads JSONL, settles ONLY Epoch 23 (no double-credit of Epoch 3!) ---
+    # Epoch 23 emitted 10 α: King got 5 α (`50%`), Hold Bonus got `83_333_333` rao (`8_333_333_333 / 10^12 * 10 α`).
+    # Total Crown principal C = 100 α + 5 α = 105 α; Bonus H = 83_333_333 rao; miner holds 200 α >= C + H!
+    live_env["snap"] = _make_snap(8640, t0 + DAY_MS + 360 * 12_000)
+    live_env["stakes"] = {"ck_motor_king": 200 * RAO, CARBON_EXCLUDED_COLDKEY: 0}
+
+    p_e24 = asyncio.run(vs_weights.execute(_cli_args("preview")))
+    # Non-compounding Hold Bonus on 105 α Crown principal: ((105 * 5000 / 6_000_000) / 10) * Q12 = 8_750_000_000!
+    assert p_e24["targets"]["hold_bonus"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            8_750_000_000,
+        ]
+    ]
+
+    r_e24 = asyncio.run(vs_weights.execute(_cli_args("run")))
+    assert r_e24["state"] == "ROW_VERIFIED"
+    reloaded = HoldBonusLedger(hold_jsonl_path)
+    try:
+        assert reloaded.tracked_coldkeys() == [
+            ("ck_motor_king", 105 * RAO, "hk_motor_king")
+        ]
+        assert reloaded.window_status("ck_motor_king", 24, 600) == (
+            105 * RAO,
+            Fraction(0),
+        )
+    finally:
+        reloaded.close()
+
+
+def test_cli_waterfall_observer_fails_closed_when_chain_read_unavailable(
+    monkeypatch, tmp_path
+):
+    """If the Subtensor waterfall chain read raises, `_issuer`'s CLI observer fails closed
+    with `WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE`, writing nothing to disk."""
+    from carbon.chain import sdk_weights
+    from carbon.validator_setup import weights as vs_weights
+
+    ctx, state_dir, op_cfg_path, standing_path, pool_path = _setup_sn116_cli_fixture(
+        tmp_path
+    )
+    journal_path = state_dir / "publication.sqlite3"
+    ledger_path = state_dir / "winners.jsonl"
+    hold_jsonl_path = state_dir / twp.HOLD_LEDGER_FILENAME
+
+    async def _broken_read(*args, **kwargs):
+        raise RuntimeError("rpc socket closed")
+
+    monkeypatch.setattr(sdk_weights, "read_waterfall_chain_state", _broken_read)
+    config = vs_weights.load_config(op_cfg_path)
+    args = SimpleNamespace(
+        config=str(op_cfg_path),
+        standing=str(standing_path),
+        journal=str(journal_path),
+        ledger=str(ledger_path),
+        battery_deployment=None,
+        lean_pool=[f"electric-motor-magnetics={pool_path}"],
+        lean_pool_previous=None,
+        policy_version="mainnet-winner-v5",
+        repository=str(tmp_path),
+    )
+    issuer = twp._issuer(args, config, journal_path)
+    snap = MetagraphSnapshot(
+        context=ctx,
+        finalized_block=1080,
+        block_hash="0x" + f"{1080:064x}",
+        timestamp_ms=20 * DAY_MS,
+        participants=(
+            Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+            Participant(1, "hk_sn116_validator", "ck_validator", 2),
+            Participant(2, "hk_motor_king", "ck_motor_king", 10),
+        ),
+    )
+    for fn in (lambda: twp.preview(issuer, snap), lambda: issuer.issue(snap)):
+        with pytest.raises(
+            twp.WinnerPublicationRefused,
+            match="WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE",
+        ):
+            fn()
+    assert not hold_jsonl_path.exists()
+
+
+def test_hold_bonus_ledger_jsonl_tamper_and_symlink_refusal(tmp_path):
+    target = tmp_path / "real.jsonl"
+    target.write_text("", encoding="utf-8")
+    link = tmp_path / "symlink.jsonl"
+    link.symlink_to(target)
+    with pytest.raises(RewardFailure, match="HOLD_LEDGER_SYMLINK_REFUSED"):
+        HoldBonusLedger(link)
+
+    corrupted = tmp_path / "corrupted.jsonl"
+    corrupted.write_text('{"kind":"unknown.v1","epoch":1}\n', encoding="utf-8")
+    with pytest.raises(RewardFailure, match="HOLD_LEDGER_CORRUPTED"):
+        HoldBonusLedger(corrupted)
+
+
+def test_f1_v4_to_v5_king_decay_clock_carryover_and_18_to_19_handover(
+    monkeypatch, tmp_path
+):
+    """F1: Prove that an existing persisted `WinnerLedger` (`winners.jsonl`) recorded under
+    `mainnet-winner-v4` with a Motor 1.8 `qualified_sealed` crown on `MOTOR_PACK` preserves its
+    exact `clock_ms` (`promoted_at_ms`) when switching to `mainnet-winner-v5` — BOTH on direct
+    `TestnetWinnerIntentIssuer` reload AND across a `1.8 -> 1.9` `Handover` (`--lean-pool` =
+    empty Motor 1.9 store, `--lean-pool-previous` = Motor 1.8 store) via `weights.execute`:
+    - At `t0 + 36h` (first `v5` epoch): King receives exact `50%` (`500_000_000_000` Q12),
+      NEVER resetting to `100%`, and `winners.jsonl` stays byte-identical (`policy == mainnet-winner-v4`).
+    - At `t0 + 48h`: King receives exact `25%` (`250_000_000_000` Q12)."""
+    from carbon.battery.pool_store import PoolStore
+    from carbon.chain import sdk as chain_sdk
+    from carbon.chain import sdk_weights
+    from carbon.validator_setup import weights as vs_weights
+
+    v4 = wd.load_policy("mainnet-winner-v4")
+    v5 = wd.load_policy("mainnet-winner-v5")
+    ctx, state_dir, op_cfg_path, standing_path, motor_18_pool_path = (
+        _setup_sn116_cli_fixture(tmp_path)
+    )
+    # Create an empty Motor 1.9 PoolStore (no incumbent yet -> triggers 1.8 -> 1.9 Handover!)
+    motor_19_pool_path = tmp_path / "motor_19_pool.sqlite3"
+    PoolStore(motor_19_pool_path, clock=lambda: 200.0)
+
+    journal_path = state_dir / "publication.sqlite3"
+    ledger_path = state_dir / "winners.jsonl"
+    record_file = tmp_path / "OWNER-WEIGHTS-AUTHORITY-01.md"
+
+    def _write_standing(policy_digest: str) -> None:
+        standing_path.write_text(
+            json.dumps(
+                {
+                    "authority": wd.MAINNET_AUTHORITY,
+                    "authority_record": record_file.name,
+                    "policy_digest": policy_digest,
+                    "publisher_hotkey": "hk_sn116_validator",
+                    "expected_runtime_spec": SPEC,
+                    "valid_from_block": 1_000,
+                    "valid_through_block": 500_000,
+                }
+            ),
+            encoding="utf-8",
+        )
+        standing_path.chmod(0o600)
+
+    t0 = 20 * DAY_MS
+
+    def _make_snap(block: int, now_ms: int) -> MetagraphSnapshot:
+        return MetagraphSnapshot(
+            context=ctx,
+            finalized_block=block,
+            block_hash="0x" + f"{block:064x}",
+            timestamp_ms=now_ms,
+            participants=(
+                Participant(0, "hk_burn_owner", CARBON_EXCLUDED_COLDKEY, 1),
+                Participant(1, "hk_sn116_validator", "ck_validator", 2),
+                Participant(2, "hk_motor_king", "ck_motor_king", 10),
+            ),
+        )
+
+    def _make_caps(snap: MetagraphSnapshot) -> RuntimeCapabilities:
+        return RuntimeCapabilities(
+            snapshot_id=snap.snapshot_id,
+            spec_version=SPEC,
+            mechanism_count=1,
+            maximum_mechanisms=8,
+            burn_mode="Burn",
+            owner_coldkey=CARBON_EXCLUDED_COLDKEY,
+            owner_hotkey="hk_burn_owner",
+            owner_hotkeys=("hk_burn_owner",),
+            min_weights=1,
+            max_weight=U16,
+            version_key=1,
+            rate_limit=0,
+            last_update=0,
+            commit_reveal=False,
+            validator_permit=True,
+            sufficient_stake=True,
+        )
+
+    live_env = {
+        "snap": _make_snap(1080, t0),
+        "emission_rao": 100 * RAO,
+        "stakes": {
+            "ck_motor_king": 100 * RAO,
+            CARBON_EXCLUDED_COLDKEY: 0,
+            "ck_validator": 0,
+        },
+        "tx_seq": 0,
+    }
+
+    class _FakeCliBackend(_WaterfallBackend):
+        def __init__(self, context, publisher, wallet, **kwargs):
+            super().__init__(live_env["snap"], publisher=publisher)
+            live_env["tx_seq"] += 1
+            self.tx_hash = "0x" + f"{live_env['tx_seq']:064x}"
+
+        async def observe(self):
+            return self.state, _make_caps(self.state)
+
+        async def close(self):
+            pass
+
+    async def _fake_capture(self, context):
+        return live_env["snap"]
+
+    async def _fake_waterfall_read(
+        context,
+        *,
+        block=None,
+        block_hash=None,
+        coldkeys=(),
+        treasury_coldkeys=(),
+        cadence_blocks=360,
+    ):
+        return {
+            "block": block,
+            "block_hash": block_hash,
+            "epoch_miner_emission_rao": live_env["emission_rao"],
+            "treasury_current_stake_rao": 0,
+            "staked_by_coldkey": {ck: live_env["stakes"].get(ck, 0) for ck in coldkeys},
+            "owner_coldkey": CARBON_EXCLUDED_COLDKEY,
+            "owner_hotkeys": ("hk_burn_owner",),
+        }
+
+    monkeypatch.setattr(chain_sdk.BittensorReader, "capture", _fake_capture)
+    monkeypatch.setattr(sdk_weights, "read_waterfall_chain_state", _fake_waterfall_read)
+    monkeypatch.setattr(sdk_weights, "open_operator_wallet", lambda *a, **k: object())
+    monkeypatch.setattr(sdk_weights, "BittensorPublicationBackend", _FakeCliBackend)
+
+    def _cli_args(action: str, policy_version: str, *, handover: bool = True):
+        return SimpleNamespace(
+            action=action,
+            config=str(op_cfg_path),
+            standing=str(standing_path),
+            journal=str(journal_path),
+            ledger=str(ledger_path),
+            battery_deployment=None,
+            lean_pool=[
+                f"electric-motor-magnetics={motor_19_pool_path if handover else motor_18_pool_path}"
+            ],
+            lean_pool_previous=(
+                [f"electric-motor-magnetics={motor_18_pool_path}"] if handover else None
+            ),
+            policy_version=policy_version,
+            repository=str(tmp_path),
+            reconcile_archive_endpoint=None,
+            archive_fallback_endpoint=None,
+        )
+
+    # --- Step 1: Run under `mainnet-winner-v4` at `t0` -> persists v4 WinnerLedger (`clock_ms == t0`) ---
+    _write_standing(v4.digest)
+    r_v4 = asyncio.run(
+        vs_weights.execute(_cli_args("run", "mainnet-winner-v4", handover=True))
+    )
+    assert r_v4["state"] == "ROW_VERIFIED"
+    v4_ledger_bytes = ledger_path.read_bytes()
+    v4_records = we.WinnerLedger(ledger_path).records("electric-motor-magnetics")
+    assert len(v4_records) == 1
+    assert v4_records[0]["policy"] == v4.digest
+    assert v4_records[0]["clock_ms"] == t0
+
+    # --- Step 2: Cut over to `mainnet-winner-v5` at `t0 + 36h` (first v5 epoch!) ---
+    _write_standing(v5.digest)
+    t_36h = t0 + 36 * 3_600_000
+    live_env["snap"] = _make_snap(11_880, t_36h)
+    live_env["emission_rao"] = 10 * RAO
+
+    # 2a) Direct TestnetWinnerIntentIssuer reload against the persisted v4 WinnerLedger
+    direct_config = vs_weights.load_config(op_cfg_path)
+    direct_issuer = twp._issuer(
+        _cli_args("preview", "mainnet-winner-v5", handover=False),
+        direct_config,
+        tmp_path / "scratch_direct.sqlite3",
+    )
+    direct_preview_36h = twp.preview(direct_issuer, live_env["snap"])
+    assert direct_preview_36h["records"]["electric-motor-magnetics"]["clock_ms"] == t0
+    assert direct_preview_36h["targets"]["winners"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            500_000_000_000,
+        ]
+    ]
+
+    # 2b) Full `1.8 -> 1.9` Handover (`--lean-pool` = 1.9 empty, `--lean-pool-previous` = 1.8) via `weights run`
+    r_v5_36h = asyncio.run(
+        vs_weights.execute(_cli_args("run", "mainnet-winner-v5", handover=True))
+    )
+    assert r_v5_36h["state"] == "ROW_VERIFIED"
+    # WinnerLedger on disk was NOT rewritten or re-clocked!
+    assert ledger_path.read_bytes() == v4_ledger_bytes
+    # 50% King (`500_000_000_000`) + Hold Bonus on settled v4 10 α (`833_333_333`) = `500_833_333_333` on UID 2!
+    assert r_v5_36h["document"]["plan"]["q12"] == [
+        [0, 499_166_666_667],
+        [2, 500_833_333_333],
+    ]
+
+    # --- Step 3: Advance to `t0 + 48h` (2nd halving -> exact 25% King = `250_000_000_000`) ---
+    t_48h = t0 + 2 * DAY_MS
+    live_env["snap"] = _make_snap(15_480, t_48h)
+    live_env["stakes"]["ck_motor_king"] = 200 * RAO
+    p_v5_48h = asyncio.run(
+        vs_weights.execute(_cli_args("preview", "mainnet-winner-v5", handover=True))
+    )
+    assert p_v5_48h["records"]["electric-motor-magnetics"]["clock_ms"] == t0
+    assert p_v5_48h["targets"]["winners"] == [
+        [
+            {
+                "hotkey": "hk_motor_king",
+                "coldkey": "ck_motor_king",
+                "registered_at": 10,
+            },
+            250_000_000_000,
+        ]
+    ]
+    assert ledger_path.read_bytes() == v4_ledger_bytes
+
+
+def test_read_waterfall_chain_state_queries_block_pinned_subtensor_storage_and_runtime_api(
+    monkeypatch,
+):
+    """F4 + F5: Verify `carbon.chain.sdk_weights.read_waterfall_chain_state` queries block-pinned
+    Subtensor `metagraph` (`alpha_out_emission`), `SubnetOwner`, `SubnetOwnerHotkey`, `OwnedHotkeys`,
+    `SubnetOwnerCut`, `OwnerCutEnabled`, and `StakeInfoRuntimeApi.get_stake_info_for_coldkeys`,
+    and fails closed on genesis mismatch, block-hash drift, or missing `SubnetOwner`."""
+    import sys
+
+    from carbon.chain import networks, sdk_weights
+    from carbon.chain.publication import PublicationFailure
+
+    finney_row = networks.NETWORKS["finney"]
+    ctx = ChainContext(
+        "finney",
+        "wss://entrypoint-finney.opentensor.ai:443",
+        finney_row.chain_id,
+        finney_row.genesis_hash,
+        116,
+    )
+    pinned_block = 4_320_000
+    pinned_hash = "0x" + "ab" * 32
+
+    rpc_state = {
+        "genesis_hash": finney_row.genesis_hash,
+        "block_hashes": {0: finney_row.genesis_hash, pinned_block: pinned_hash},
+        "post_block_hash": pinned_hash,
+        "alpha_out_emission": 1_000_000_000,  # 1.0 α per block
+        "owner_coldkey": CARBON_EXCLUDED_COLDKEY,
+        "owner_hotkey": "hk_owner_primary",
+        "owned_hotkeys": ["hk_owner_secondary"],
+        "owner_cut": 11_796,  # ~18% owner cut (`11796 / 65535`)
+        "owner_cut_enabled": True,
+        "closed": 0,
+    }
+    calls_seen: list[tuple] = []
+
+    class _FakeSubstrate:
+        def __init__(
+            self, endpoint, *, fallback_endpoints, archive_endpoints, retry_forever
+        ):
+            assert endpoint == ctx.endpoint
+            assert fallback_endpoints == []
+            assert archive_endpoints == []
+            assert retry_forever is False
+            self._reads = 0
+
+        async def connect(self):
+            calls_seen.append(("connect",))
+
+        async def block_hash(self, number):
+            if number == 0:
+                return rpc_state["genesis_hash"]
+            assert number == pinned_block
+            self._reads += 1
+            return (
+                rpc_state["block_hashes"][pinned_block]
+                if self._reads == 1
+                else rpc_state["post_block_hash"]
+            )
+
+        async def query(self, module, name, args=None, *, block_hash=None):
+            assert module == "SubtensorModule"
+            assert block_hash == pinned_hash
+            calls_seen.append(("query", name, args))
+            if name == "SubnetOwner":
+                assert args == [116]
+                return rpc_state["owner_coldkey"]
+            if name == "SubnetOwnerHotkey":
+                assert args == [116]
+                return rpc_state["owner_hotkey"]
+            if name == "SubnetOwnerCut":
+                return rpc_state["owner_cut"]
+            if name == "OwnerCutEnabled":
+                assert args == [116]
+                return rpc_state["owner_cut_enabled"]
+            if name == "OwnedHotkeys":
+                assert args == [rpc_state["owner_coldkey"]]
+                return rpc_state["owned_hotkeys"]
+            raise AssertionError(f"unexpected query {name}")
+
+    stake_fn_sentinel = object()
+
+    class _FakeView:
+        async def read(self, what, *, netuid):
+            assert what == "metagraph" and netuid == 116
+            return {"alpha_out_emission": rpc_state["alpha_out_emission"]}
+
+        async def runtime(self, fn, params):
+            assert fn is stake_fn_sentinel
+            (ck_list,) = params
+            calls_seen.append(("runtime_stake", tuple(ck_list)))
+            return {
+                "ck_miner_a": [
+                    {
+                        "hotkey": "hk_a1",
+                        "coldkey": "ck_miner_a",
+                        "netuid": 116,
+                        "stake": 700 * RAO,
+                    },
+                    {
+                        "hotkey": "hk_a2",
+                        "coldkey": "ck_miner_a",
+                        "netuid": 116,
+                        "stake": 300 * RAO,
+                    },
+                    {
+                        "hotkey": "hk_other_sn",
+                        "coldkey": "ck_miner_a",
+                        "netuid": 1,
+                        "stake": 9_999 * RAO,
+                    },
+                ],
+                VAULT_EXCLUDED_COLDKEY: [
+                    {
+                        "hotkey": "hk_sink_0",
+                        "coldkey": VAULT_EXCLUDED_COLDKEY,
+                        "netuid": 116,
+                        "stake": 2_500 * RAO,
+                    },
+                ],
+            }
+
+    class _FakeClient:
+        def __init__(self, endpoint, *, substrate):
+            assert endpoint == ctx.endpoint
+            self.substrate = substrate
+
+        async def at(self, number):
+            assert number == pinned_block
+            return _FakeView()
+
+        async def close(self):
+            rpc_state["closed"] += 1
+
+    fake_bt = SimpleNamespace(
+        RpcSubstrate=_FakeSubstrate,
+        Client=_FakeClient,
+        _generated=SimpleNamespace(
+            runtime_apis=SimpleNamespace(
+                StakeInfoRuntimeApi=SimpleNamespace(
+                    get_stake_info_for_coldkeys=stake_fn_sentinel
+                )
+            )
+        ),
+    )
+    monkeypatch.setattr(sdk_weights, "require_sdk", lambda: None)
+    monkeypatch.setitem(sys.modules, "bittensor", fake_bt)
+
+    res = asyncio.run(
+        sdk_weights.read_waterfall_chain_state(
+            ctx,
+            block=pinned_block,
+            block_hash=pinned_hash,
+            coldkeys=("ck_miner_a", "ck_miner_zero"),
+            treasury_coldkeys=(VAULT_EXCLUDED_COLDKEY,),
+            cadence_blocks=360,
+        )
+    )
+    expected_after_owner = 1_000_000_000 - (1_000_000_000 * 11_796) // 65535
+    expected_epoch_emission = (expected_after_owner // 2) * 360
+    assert res == {
+        "block": pinned_block,
+        "block_hash": pinned_hash,
+        "epoch_miner_emission_rao": expected_epoch_emission,
+        "treasury_current_stake_rao": 2_500 * RAO,
+        "staked_by_coldkey": {
+            VAULT_EXCLUDED_COLDKEY: 2_500 * RAO,
+            "ck_miner_a": 1_000 * RAO,  # netuid 116 stakes summed, netuid 1 ignored!
+            "ck_miner_zero": 0,
+        },
+        "owner_coldkey": CARBON_EXCLUDED_COLDKEY,
+        "owner_hotkeys": ("hk_owner_primary", "hk_owner_secondary"),
+    }
+    assert rpc_state["closed"] == 1
+
+    # Fail-closed 1: Genesis hash mismatch
+    rpc_state["genesis_hash"] = "0x" + "ff" * 32
+    with pytest.raises(PublicationFailure, match="ENDPOINT_GENESIS_MISMATCH"):
+        asyncio.run(
+            sdk_weights.read_waterfall_chain_state(
+                ctx, block=pinned_block, block_hash=pinned_hash
+            )
+        )
+    rpc_state["genesis_hash"] = finney_row.genesis_hash
+
+    # Fail-closed 2: Reorg / conflicting block hash during read
+    rpc_state["post_block_hash"] = "0x" + "cd" * 32
+    with pytest.raises(PublicationFailure, match="CONFLICTING_PROVIDER_IDENTITY"):
+        asyncio.run(
+            sdk_weights.read_waterfall_chain_state(
+                ctx, block=pinned_block, block_hash=pinned_hash
+            )
+        )
+    rpc_state["post_block_hash"] = pinned_hash
+
+    # Fail-closed 3: SubnetOwner returns None -> never coerced to `"None"`!
+    rpc_state["owner_coldkey"] = None
+    with pytest.raises(
+        PublicationFailure, match="WATERFALL_CHAIN_OBSERVATION_UNAVAILABLE"
+    ):
+        asyncio.run(
+            sdk_weights.read_waterfall_chain_state(
+                ctx, block=pinned_block, block_hash=pinned_hash
+            )
+        )
