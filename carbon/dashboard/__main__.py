@@ -15,11 +15,15 @@ build --feed FILE [--feed FILE ...] --trust-key HEX [...] --out DIR
     Build from fetched feed documents, accepted only when signed by a pinned
     key. The fixture key is refused here.
 live --url URL [...] | --urls-file FILE  --trust-key HEX [...] | --keys-file FILE
-     [--names FILE] --out NEWDIR
+     [--feed-file FILE ...] [--names FILE] --out NEWDIR
     The go-live build: fetch each launch feed, build with the pinned keys (no showcase),
     write the display names. A feed the door answers 404 is "not published yet" (that
     Challenge shows "Launching soon"); a failed fetch or a refused feed exits 1, as does
     a build with no accepted board. Run it into a new directory; deploy only on exit 0.
+    --feed-file FILE adds a feed document saved earlier (`fetch`) for a Challenge whose
+    door no longer answers (a RETIRED door: its board stands as it was); it is checked
+    against the same pinned keys as a fetched one, so a file the keys do not verify is
+    refused and stops the deploy. Its URL is then left out of the --url list.
 fetch --url URL --out FILE
     Save one validator's feed document (GET /carbon/v1/feed/<challenge>) as
     fetched. It is checked only when built, against a pinned key.
@@ -67,8 +71,9 @@ def _live(args, parser):
     """Fetch every launch feed, build the live site, say what each Challenge shows."""
     urls = _words(args.url, args.urls_file)
     keys = _words(args.trust_key, args.keys_file)
-    if not urls:
-        parser.error("live needs at least one --url or --urls-file")
+    saved = list(args.feed_file)
+    if not urls and not saved:
+        parser.error("live needs at least one --url, --urls-file or --feed-file")
     if any(not u.startswith("https://") for u in urls):
         parser.error("every feed URL must be https")
     if not keys or not all(HEX_KEY.fullmatch(k) for k in keys):
@@ -92,6 +97,18 @@ def _live(args, parser):
             print("NOT_PUBLISHED", url)
             continue
         documents.append(json.loads(body))
+    for path in saved:
+        # a retired door's board, saved while it answered: verified at build like any fetched feed
+        try:
+            raw = Path(path).read_bytes()
+            if len(raw) > MAX_FEED_BYTES:
+                raise ValueError("feed too large")
+            documents.append(json.loads(raw))
+        except (OSError, ValueError) as error:
+            print("FEED_FILE_UNREADABLE", path, error)
+            failed += 1
+            continue
+        print("SAVED", path)
     index = build.build(
         args.out, documents, feed.Trust(keys=frozenset(keys)), showcase=False
     )
@@ -104,7 +121,7 @@ def _live(args, parser):
     refused = len(boards) - accepted
     print(
         f"{accepted} accepted, {refused} refused, {failed} not fetched, "
-        f"{len(urls) - len(documents) - failed} not published yet"
+        f"{len(urls) + len(saved) - len(documents) - failed} not published yet"
     )
     if refused or failed:
         print("Not safe to deploy: fix the lines above first.", file=sys.stderr)
@@ -153,6 +170,7 @@ def main(argv=None):
     live.add_argument("--trust-key", action="append", default=[])
     live.add_argument("--keys-file", action="append", default=[], type=Path)
     live.add_argument("--names", type=Path)
+    live.add_argument("--feed-file", action="append", default=[], type=Path)
     pull = commands.add_parser("fetch")
     pull.add_argument("--url", required=True)
     pull.add_argument("--out", required=True, type=Path)

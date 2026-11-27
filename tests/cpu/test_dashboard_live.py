@@ -397,3 +397,60 @@ def test_go_live_dry_run_builds_and_changes_nothing(tmp_path):
         cwd=tmp_path,
     )
     assert run.returncode == 1 and not calls.exists()
+
+
+def _live_saved(tmp_path, key, urls, saved):
+    out = tmp_path / "site"
+    code = cli.main(
+        ["live", "--trust-key", key, "--names", str(NAMES_FILE), "--out", str(out)]
+        + [a for url in urls for a in ("--url", url)]
+        + [a for path in saved for a in ("--feed-file", str(path))]
+    )
+    return code, out
+
+
+def test_a_retired_doors_saved_board_builds_without_fetching_its_door(
+    tmp_path, monkeypatch, capsys
+):
+    # infra 10773: a retired door no longer answers; its board, saved while it did, stands as it was
+    signer = lb.LaunchBoardKey(os.urandom(32))
+    saved = tmp_path / "motor-feed.json"
+    saved.write_text(json.dumps(_board(signer, CHALLENGES[0])), encoding="utf-8")
+    _door(
+        monkeypatch,
+        {URLS[1]: 404, URLS[2]: 404, URLS[3]: _board(signer, CHALLENGES[3])},
+    )
+    code, out = _live_saved(tmp_path, signer.public_key, URLS[1:], [saved])
+    said = capsys.readouterr().out
+    assert code == 0
+    assert "SAVED " + str(saved) in said
+    assert "2 accepted, 0 refused, 0 not fetched, 2 not published yet" in said
+    assert sorted(b["challenge"]["id"] for b in _index(out)["boards"]) == [
+        "electric-motor-magnetics",
+        "f02",
+    ]
+
+
+def test_a_saved_board_the_pinned_key_does_not_verify_stops_the_deploy(
+    tmp_path, monkeypatch, capsys
+):
+    signer = lb.LaunchBoardKey(os.urandom(32))
+    stranger = lb.LaunchBoardKey(os.urandom(32))
+    saved = tmp_path / "motor-feed.json"
+    saved.write_text(json.dumps(_board(stranger, CHALLENGES[0])), encoding="utf-8")
+    _door(monkeypatch, {URLS[3]: _board(signer, CHALLENGES[3])})
+    code, _ = _live_saved(tmp_path, signer.public_key, URLS[3:], [saved])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "Not safe to deploy" in captured.err
+
+
+def test_an_unreadable_saved_feed_stops_the_deploy(tmp_path, monkeypatch, capsys):
+    signer = lb.LaunchBoardKey(os.urandom(32))
+    _door(monkeypatch, {URLS[3]: _board(signer, CHALLENGES[3])})
+    missing = tmp_path / "absent.json"
+    code, _ = _live_saved(tmp_path, signer.public_key, URLS[3:], [missing])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "FEED_FILE_UNREADABLE " + str(missing) in captured.out
+    assert "Not safe to deploy" in captured.err
