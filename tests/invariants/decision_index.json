@@ -1,2102 +1,2106 @@
 {
- "ids": {
-  "A4-DEDICATED-ADMISSION-CONTROLLERS-01": {
-   "file": ".agent/decisions/2026-10-06-A4-DEDICATED-ADMISSION-CONTROLLERS-01.md",
-   "sha256": "cbd71ed8d5131b30cebdc9371cb129f801b5aadd9fa12b8e9a1e08571726556f"
-  },
-  "AGENT-DOOR-USABILITY-01": {
-   "file": ".agent/decisions/2026-10-05-AGENT-DOOR-USABILITY-01.md",
-   "sha256": "b1ae3f6fa198a444ac573f1d10ddb75469273064a6cf480bacd9f7ede7fb9d98"
-  },
-  "AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01": {
-   "file": ".agent/decisions/2026-10-11-AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01.md",
-   "sha256": "2a802664a8072ff581183480452425ebdbdfe4f85d4c12b4bc660e11303d0d9d"
-  },
-  "BASELINE-AGREEMENT-01": {
-   "file": ".agent/decisions/2026-10-09-BASELINE-AGREEMENT-01-CI-REPAIR.md",
-   "sha256": "c4207699381fa92c981b9c2b874df1bc317498ef6971fd7c5b21b656978e094e"
-  },
-  "BATTERY-L2-POOL-SELECTION-01": {
-   "file": ".agent/decisions/2026-10-08-BATTERY-L2-POOL-SELECTION-01.md",
-   "sha256": "18c47133be12cbdc9407b1fbfc70fd94aed0ccb183ce6455a6293f16709ef0e3"
-  },
-  "BATTERY-L2-SPECMUON-BUILD-01": {
-   "file": ".agent/decisions/2026-10-07-BATTERY-L2-SPECMUON-BUILD-01.md",
-   "sha256": "00fe96af76eb85b1d5063eff1689b007e279d009e46c1683da6a1dddbb9500e6"
-  },
-  "BATTERY-L3-NUMERICS-BUILD-01": {
-   "file": ".agent/decisions/2026-10-07-BATTERY-DEV-DISPATCH-01.md",
-   "sha256": "caca5e0942b189548e9b31b5070c7aede77f1e23137761497c7158f8c8ab7515"
-  },
-  "BATTERY-V3-MIDDLE-BANDS-PANEL-01": {
-   "file": ".agent/decisions/2026-10-10-BATTERY-V3-MIDDLE-BANDS-PANEL-01.md",
-   "sha256": "be4b9657453ce2fb1c1dbb2299034fd536d2951cf251de9a0748e261a499ac3c"
-  },
-  "BENCHMARK-PACKETS-01": {
-   "file": ".agent/decisions/2026-10-11-BENCHMARK-PACKETS-01.md",
-   "sha256": "7d9b169590f1d9bfadf53fd934d53f767aca264b7a06aad45194a12762b5081f"
-  },
-  "BENCHMARK-READINESS-BUILD-BFS-01": {
-   "file": ".agent/tickets/BENCHMARK-READINESS-BUILD-BFS-01.md",
-   "sha256": "8b0f09d47ac1c1a7d6183d5fac950e18a3948d9bf080b52fc95adebb187925c0"
-  },
-  "BENCHMARK-READINESS-BUILD-MG-01": {
-   "file": ".agent/tickets/BENCHMARK-READINESS-BUILD-MG-01.md",
-   "sha256": "400a50a058dc490f2ac98d25e8387aa66e092c0fe42de269e8573b834647c9ab"
-  },
-  "BOLTED-JOINT-READINESS-WIRING-01": {
-   "file": ".agent/decisions/2026-10-13-BOLTED-JOINT-READINESS-WIRING-01.md",
-   "sha256": "f4739f5eda64e8a714129b07f279670daf3e92d5c2104fdbe0e76d0112ef5941"
-  },
-  "BOLTED-JOINT-REHEARSAL-BUILD-01": {
-   "file": ".agent/decisions/2026-10-11-BOLTED-JOINT-REHEARSAL-BUILD-01.md",
-   "sha256": "9eb7d5db274122d060a8c6ed12067c666e1b9021343029cc368d31ad7da29264"
-  },
-  "BUNDLE-TO-SUBMISSION-01": {
-   "file": ".agent/decisions/2026-10-06-BUNDLE-TO-SUBMISSION-01.md",
-   "sha256": "58cd4d5f2b5f30d3a8e4c54811951bcfe75c0a09d7292f484c738cc52f02dbdc"
-  },
-  "CHALLENGE-ADMISSION-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "CHALLENGE-AI-COOLING-06": {
-   "file": ".agent/tickets/CHALLENGE-AI-COOLING-06_launchpad_level0.md",
-   "sha256": "62eaee1b48d1b4d5c460db3f342809bf31dcc509ba06fd66b79473b7088e8cd0"
-  },
-  "CHALLENGE-AI-COOLING-07": {
-   "file": ".agent/tickets/CHALLENGE-AI-COOLING-07_graphite_scoring_adapter.md",
-   "sha256": "1d1ef4092159cce613145404177b24df65544aef96e93557b57694ff4ebc6ab1"
-  },
-  "CHALLENGE-AI-COOLING-08": {
-   "file": ".agent/tickets/CHALLENGE-AI-COOLING-08_validator_adapter.md",
-   "sha256": "1228d8d1a82505e42c3bc64317de117a7c2d61bd1e38fc8c840c361b6df74da6"
-  },
-  "CHALLENGE-AI-COOLING-09": {
-   "file": ".agent/tickets/CHALLENGE-AI-COOLING-09_pb_adv_mode_x.md",
-   "sha256": "614d9a0ed3391fd05fed905476cf8dc287a14e8bd4a4442fe91ef5290ffa4c91"
-  },
-  "CHALLENGE-AI-COOLING-10": {
-   "file": ".agent/tickets/CHALLENGE-AI-COOLING-10_candidate_fault_policy.md",
-   "sha256": "426021a8880e8f2acee69722d7e8fa9628fe61a2a1965426c5218d4204510786"
-  },
-  "CHALLENGE-AI-COOLING-11": {
-   "file": ".agent/decisions/2026-10-05-COOLING-SCORE-VARIANT-CANDIDATE-01.md",
-   "sha256": "047498eab47c19fcfa900a6263ff53e1b528a60b2cc1a333b56846bed578c663"
-  },
-  "CHALLENGE-AI-COOLING-12": {
-   "file": ".agent/decisions/2026-10-05-COOLING-GRAPHITE-COMPARE-01.md",
-   "sha256": "332b00b03dde99f47edc90d5185440cfefd1d947a93e569667aa43a9baee107d"
-  },
-  "CHALLENGE-AI-COOLING-CLOSEOUT-05": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-CLOSEOUT-05.md",
-   "sha256": "cdd4f3079754d33a691b1e040b8cc8f906e432d6809b405f7e066727bd8bd6c9"
-  },
-  "CHALLENGE-AI-COOLING-DOCKER-04": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-DOCKER-04.md",
-   "sha256": "b9cad486cf229cca123cc06681172a32cdf2c403b9fa8c8043cf4d7709fb4d8e"
-  },
-  "CHALLENGE-AI-COOLING-L0-06": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-L0-06.md",
-   "sha256": "66c17463bd9e8e9595affa8ac6caaf044db4e3f7082c46b1ccc551c60da132be"
-  },
-  "CHALLENGE-AI-COOLING-PB-ADV-09": {
-   "file": ".agent/decisions/2026-10-05-CHALLENGE-AI-COOLING-PB-ADV-09.md",
-   "sha256": "92570e1573e357bad5ff88ded12389fa5e3a6f365fff14dd5b438e63e1b2558e"
-  },
-  "CHALLENGE-AI-COOLING-REPAIR-03": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-REPAIR-03.md",
-   "sha256": "1a9ff4dae7e6b843f06806203f6f8df2be901ca4bf8f07acbe9fc8dcf66328a5"
-  },
-  "CHALLENGE-AI-COOLING-SCORING-07": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-SCORING-07.md",
-   "sha256": "1db5475d2d2a1d68d8ea5d35badec4bbff0f9d5c48b076a70de30ad52285cf3f"
-  },
-  "CHALLENGE-AI-COOLING-STUDY-02": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-STUDY-02.md",
-   "sha256": "d5572d363c47b0a35aa5a2a7aa1a0fe42df1997c6def84d4fe1a905006c8f117"
-  },
-  "CHALLENGE-AI-COOLING-VALIDATOR-08": {
-   "file": ".agent/decisions/2026-10-05-CHALLENGE-AI-COOLING-VALIDATOR-08.md",
-   "sha256": "c939fd939395e2453a0072714820aa6008502144c0fb45b5c40925d105fd85f7"
-  },
-  "CHALLENGE-BASELINE-REFRAMES-01": {
-   "file": ".agent/decisions/2026-10-09-CHALLENGE-BASELINE-REFRAMES-01.md",
-   "sha256": "792008e5394cf6aff30e395cbd375baee56638117d66ed4d08ff84aa15ae939b"
-  },
-  "CHALLENGE-BATTERY-V3-QUESTION-LAW-01": {
-   "file": ".agent/decisions/2026-10-09-CHALLENGE-BATTERY-V3-QUESTION-LAW-01.md",
-   "sha256": "e42d427f7019affddacacdfe76ae4a7145566171adcbde74d4e5f48bf09e3181"
-  },
-  "CHALLENGE-CHEAP-BASELINES-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-CHALLENGE-CHEAP-BASELINES-01.md",
-   "sha256": "b9a1cb5fe604542876456779546e9dc7f3cc3f2a1a0516ced6278354d6498b67"
-  },
-  "CHALLENGE-CUSTOMER-FEASIBILITY-02": {
-   "file": ".agent/decisions/2026-10-07-CUSTOMER-FEASIBILITY-02.md",
-   "sha256": "44555f45d2542a6e3dea59146e25ccaafcf0fc232b7f70acb73148c1a37bca2e"
-  },
-  "CHALLENGE-CUSTOMER-INPUTS-03": {
-   "file": ".agent/decisions/2026-10-08-CUSTOMER-INPUTS-03.md",
-   "sha256": "f1e83a9442eac5f182bbcc8b22e720c60d2a3ca518554067c68d5e1c978620a7"
-  },
-  "CHALLENGE-CUSTOMER-INPUTS-04": {
-   "file": ".agent/decisions/2026-10-08-COOLING-THERMAL-BUDGET-04.md",
-   "sha256": "0b23c4db91c2a39e0a9938bac732e0e1b1d4d640e7204556c04aa8b2598896d9"
-  },
-  "CHALLENGE-CUSTOMER-PACKETS-01": {
-   "file": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
-   "sha256": "cb4c70dc7898fdcc066c5a158fbcf24919fbd4ac65e6ba51da2db2421ba1461b"
-  },
-  "CHALLENGE-CUSTOMER-PACKETS-02": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-COOLING-PACKETS-02.md",
-   "sha256": "1d4ba5e9753b26410e600ea3818c02b59577f9f026f436a29b5a244696a31b4e"
-  },
-  "CHALLENGE-DESIGN-OPTIMIZERS-01": {
-   "file": ".agent/decisions/2026-10-07-CHALLENGE-DESIGN-OPTIMIZERS-01.md",
-   "sha256": "7d8112f3177647abaf3c2d7eb01fbd3e43202447ac44edafbbf8d0d3b6613b15"
-  },
-  "CHALLENGE-DESIGN-VALUE-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
-   "sha256": "681ff689cf1e5dbde0e83fb291769dfa8e46204c1135342673e1eab9c9a4bd9c"
-  },
-  "CHALLENGE-F02-QUESTION-LAW-01": {
-   "file": ".agent/decisions/2026-10-09-CHALLENGE-F02-QUESTION-LAW-01.md",
-   "sha256": "a9726e4329f02a1110bb5da5b6d47116e04138e045c48f24ec3e3a0ac473be1c"
-  },
-  "CHALLENGE-FACTORY-PLAN-01": {
-   "file": ".agent/tickets/CHALLENGE-FACTORY-PLAN-01.md",
-   "sha256": "0cc6c161e1b4d88180db29b6932560530fc7a087a0b1aa952da7ee43a84d2a51"
-  },
-  "CHALLENGE-MOTOR-02": {
-   "file": ".agent/tickets/CHALLENGE-MOTOR-02_launchpad_level0.md",
-   "sha256": "f2716f7c5868f2ac377fa52f41fb33f79f64c0b92674c7a4351074136b15460d"
-  },
-  "CHALLENGE-MOTOR-03": {
-   "file": ".agent/decisions/2026-10-04-OWNER-DATA-MOTOR-01.md",
-   "sha256": "9eb7c05a7ef2d18889010ae993d287b6cddbc147229bb57f7073105e038e954e"
-  },
-  "CHALLENGE-MOTOR-04": {
-   "file": ".agent/tickets/CHALLENGE-MOTOR-04_counted_adoption.md",
-   "sha256": "9087b05cd81d9c57fe744098a0876d29275bf344a5731438816a53fa0e49d42a"
-  },
-  "CHALLENGE-MOTOR-05": {
-   "file": ".agent/decisions/2026-10-05-MOTOR-GRAPHITE-SCORE-01.md",
-   "sha256": "0234619b0d3b1a33b7eece7d8d129fec01025e14ca907365391bbbc41d03f7b2"
-  },
-  "CHALLENGE-MOTOR-06": {
-   "file": ".agent/decisions/2026-10-05-MOTOR-SCORE-VARIANT-CANDIDATE-01.md",
-   "sha256": "e430d07bfa620314d5702774a40618a3c6e76bc0e1cf736d0bef9ddc7cb9de7d"
-  },
-  "CHALLENGE-MOTOR-07": {
-   "file": ".agent/decisions/2026-10-06-MOTOR-VAL-D4.md",
-   "sha256": "8cbd2cfcbdf9712c423f36371ed972186c1bb8095ddba76e00be3b16db6c3132"
-  },
-  "CHALLENGE-MOTOR-DECISION-FOUNDATION-01": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-MOTOR-DECISION-FOUNDATION-01.md",
-   "sha256": "7dcb648e74b449229a08e2b578658306eee3b6c4b629cbf741c4001b53cdf79d"
-  },
-  "CHALLENGE-MOTOR-L0-02": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-MOTOR-L0-02.md",
-   "sha256": "54229821e85961929f23ab63bdb59047229938afe5e0716a4e3f07d65dfe1368"
-  },
-  "CHALLENGE-MOTOR-QUESTION-LAW-01": {
-   "file": ".agent/decisions/2026-10-09-CHALLENGE-MOTOR-QUESTION-LAW-01.md",
-   "sha256": "9dfe34d8786815b384b15f54850603d1cd91ef61e5d9872187396313bc12844c"
-  },
-  "CHALLENGE-PHOTONIC-01": {
-   "file": ".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md",
-   "sha256": "69fa1106e6f3cad1609d691210d6dca6bdab4545dfbf654f4c0a528d1b8d3626"
-  },
-  "CHALLENGE-POOLS-CLOUD-01": {
-   "file": ".agent/tickets/CHALLENGE-POOLS-CLOUD-01.md",
-   "sha256": "c42fab1a888497467549e341237086493c16bb6748a0eea2549d4321d9739e58"
-  },
-  "CHALLENGE-PROTOCOL-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "CHALLENGE-QUESTION-LAWS-01": {
-   "file": ".agent/decisions/2026-10-07-CHALLENGE-QUESTION-LAWS-01.md",
-   "sha256": "9d73c1046e17b8dd2a310880032dfef608a5e7bce4cb8d7f45326e4df4388680"
-  },
-  "CHALLENGE-QUESTION-LAWS-02": {
-   "file": ".agent/decisions/2026-10-07-CHALLENGE-QUESTION-LAWS-02.md",
-   "sha256": "00c3e131984a70f7dd0fdec787c51e1b2a200bee8b6a201f3792099009e391f9"
-  },
-  "CHALLENGE-READINESS-BINDINGS-01": {
-   "file": ".agent/decisions/2026-10-11-CHALLENGE-READINESS-BINDINGS-01.md",
-   "sha256": "e05f99c36a85350edbe7e545098e7412ae5499fdcb477e80cd4b1bea83f96556"
-  },
-  "CHALLENGE-READINESS-RELAY-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "CHALLENGE-REFERENCE-CREDIBILITY-01": {
-   "file": ".agent/decisions/2026-10-07-REFERENCE-CREDIBILITY-01.md",
-   "sha256": "b1d1d0713ab1f36ce6118106e8f71cc1cfc3da5d6df1a57c24660f8566491f24"
-  },
-  "CHALLENGE-REFERENCE-ROUTES-01": {
-   "file": ".agent/decisions/2026-10-07-CHALLENGE-REFERENCE-ROUTES-01.md",
-   "sha256": "5eefe796f69453ff3ed3f72316a59d0256acf0f2d968331569ea0b4bb51aa5e3"
-  },
-  "CHALLENGE-VALUE-COST-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-CHALLENGE-VALUE-COST-01.md",
-   "sha256": "833724b46f1033e410790bc89f27eab0568568a18739075e21231eaf48f520a6"
-  },
-  "CHALLENGE-VOLUME-LEVERAGE-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-CHALLENGE-VOLUME-LEVERAGE-01.md",
-   "sha256": "29768583f18c7f7c6f565d8c5eaccc8323916bed0bf7749b92ce8a25fa8821ed"
-  },
-  "CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01": {
-   "file": ".agent/decisions/2026-10-09-CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01.md",
-   "sha256": "dc20ddc968b80a0eb4958759fad171bb42da860cbe2bbd234d607a7ff8c9bea3"
-  },
-  "CHEAP-BASELINE-COMPARATORS-01": {
-   "file": ".agent/decisions/2026-10-10-CHEAP-SCREEN-EXPORT-01.md",
-   "sha256": "677103e3de85fe682343f6083d373aa509bbec9585c11b956fd248e1237489aa"
-  },
-  "CI-BATTERY-L0-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "CODE-VERIFICATION-MMS-01": {
-   "file": ".agent/decisions/2026-10-10-CODE-VERIFICATION-MMS-01.md",
-   "sha256": "a83db9facf2ffcf215f76b671493b00aad02a078e17fb221a0fde1e4919e893f"
-  },
-  "COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01": {
-   "file": ".agent/decisions/2026-10-10-COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01.md",
-   "sha256": "c2f77616d6b9b47403872d0089cc83033b0e4d2b583ee9365a5411417cb5eaab"
-  },
-  "CONSTRUCTION-CONTRACT-01": {
-   "file": ".agent/decisions/2026-10-13-LP04-MULTI-INTAKE-MIGRATION.md",
-   "sha256": "1c619e5645909130bbcbfa88dd516429c38dbf496d5c569b349fd90ff13cb4c9"
-  },
-  "COOLING-CELL-READINESS-BUILD-01": {
-   "file": ".agent/decisions/2026-10-11-COOLING-CELL-READINESS-BUILD-01.md",
-   "sha256": "60619731532bafa80a13ea5ca8882557b9e552fec10cb5424c9b66c518ad91b2"
-  },
-  "COOLING-OPERATING-POINT-01": {
-   "file": ".agent/decisions/2026-10-11-COOLING-OPERATING-POINT-01.md",
-   "sha256": "5ff96aa1b1b145bac865d1c87beb9ed5920caa566c0208a5087e32ef794e5d2c"
-  },
-  "CUSTOMER-ACTIVATION-KITS-01": {
-   "file": ".agent/decisions/2026-10-10-CUSTOMER-ACTIVATION-KITS-01.md",
-   "sha256": "9fefb9c95f01e1e3eab9716aa6020e0182e2453bfec2057ee95f54e041347ee6"
-  },
-  "DELIVERABLE-ADAPTERS-01": {
-   "file": ".agent/decisions/2026-10-10-DELIVERABLE-SOURCE-ADAPTERS-01.md",
-   "sha256": "6e487d3e45238d72be86e4d95d6f4afc8e32ed46fc12101804513cb408654859"
-  },
-  "EQUAL-BUDGET-DESIGN-01": {
-   "file": ".agent/decisions/2026-10-10-CHEAP-SCREEN-EXPORT-01.md",
-   "sha256": "677103e3de85fe682343f6083d373aa509bbec9585c11b956fd248e1237489aa"
-  },
-  "EVIDENCE-CAMPAIGN-RUNNER-01": {
-   "file": ".agent/decisions/2026-10-11-CAMPAIGN-ASSEMBLER-01.md",
-   "sha256": "4e7d44169ea296db2804b5167f9e58b90a72dc9c0af745ec46158f1ec5da458a"
-  },
-  "EVIDENCE-PIPELINE-ONE-COMMAND-01": {
-   "file": ".agent/decisions/2026-10-10-EVIDENCE-PIPELINE-HOPS-01.md",
-   "sha256": "b4743660cb268c16ecc9b8bac2e3d389ab7a125e95181684ac7ce78b4b8aac81"
-  },
-  "EVIDENCE-PRODUCER-STAGES-01": {
-   "file": ".agent/decisions/2026-10-11-CAMPAIGN-ASSEMBLER-01.md",
-   "sha256": "4e7d44169ea296db2804b5167f9e58b90a72dc9c0af745ec46158f1ec5da458a"
-  },
-  "EVIDENCE-READINESS-CHECK-01": {
-   "file": ".agent/decisions/2026-10-10-EVIDENCE-READINESS-CHECK-01.md",
-   "sha256": "099df85dfc3f922bd2767dbc9926de8efc467f309e9f7161e9ae308ff78019c1"
-  },
-  "F02-SCIENCE-VALUES-01": {
-   "file": ".agent/decisions/2026-10-15-F02-SCIENCE-VALUES-01.md",
-   "sha256": "b588a4dcc7eecf612c7ff858b3a333b60ef684f21392366ce9094946f3d5435b"
-  },
-  "F06-RESOLUTION-AND-COST-01": {
-   "file": ".agent/decisions/2026-10-09-F06-RESOLUTION-AND-COST-01.md",
-   "sha256": "362853e9faba796b5bb180776de97cf9fa11ce405f785befd2b44b617df2bca4"
-  },
-  "F08-READINESS-REUSE-01": {
-   "file": ".agent/decisions/2026-10-11-F08-READINESS-REUSE-01.md",
-   "sha256": "dc2a30e789a9bb4ba4d18b9fc608983fa0cbd97669df5516272995c8ecb27a97"
-  },
-  "F08-SCIENCE-VALUES-01": {
-   "file": ".agent/decisions/2026-10-15-F08-SCIENCE-VALUES-01.md",
-   "sha256": "63b996fba77a8c0dbf25b8a17545c7c61c1aa40ed1e62de5ddba8171cbaf6724"
-  },
-  "F08-STRUCTURES-READINESS-BUILD-01": {
-   "file": ".agent/decisions/2026-10-11-F08-READINESS-REUSE-01.md",
-   "sha256": "dc2a30e789a9bb4ba4d18b9fc608983fa0cbd97669df5516272995c8ecb27a97"
-  },
-  "F13-POWER-BALANCE-DIAGNOSIS-01": {
-   "file": ".agent/decisions/2026-10-09-F13-POWER-BALANCE-DIAGNOSIS-01.md",
-   "sha256": "97fc2db5eb5042e5c57ed537597ec83449f3cdb50367ca37627ec31cd599baed"
-  },
-  "F13-SILENCER-READINESS-BUILD-01": {
-   "file": ".agent/decisions/2026-10-11-F13-SILENCER-READINESS-BUILD-01.md",
-   "sha256": "49b239eeb185aa55965147b1b8c5916d9020cc07128e6291c9b1f3e99eb7b62e"
-  },
-  "F17-MICROMIXER-READINESS-BUILD-01": {
-   "file": ".agent/decisions/2026-10-11-F17-MICROMIXER-READINESS-BUILD-01.md",
-   "sha256": "f74d60e47a3fec4c10d0e27efc8fe2f5236ed36107ba1e365e592166e3d706a3"
-  },
-  "GATE-NEGATIVE-CONTROLS-01": {
-   "file": ".agent/decisions/2026-10-13-GATE-NEGATIVE-CONTROLS-01.md",
-   "sha256": "e5f3e9303f66af0c508bf9fdfc684016ccb5710f29ef56fb552c6c59c7900f02"
-  },
-  "GATE-PASS-DIAGNOSIS-01": {
-   "file": ".agent/decisions/2026-10-09-GATE-PASS-DIAGNOSIS-01.md",
-   "sha256": "ac3523cb8a9d35418662992cc69ff7f1a4842533afab0180f08f27e26d08023b"
-  },
-  "GRANT-03": {
-   "file": ".agent/decisions/2026-10-11-OWNER-SCORE-PROOF-RUNPOD-GRANT-03.md",
-   "sha256": "19724bdf2c42e289e6dce6cbbdc3abbe21e9a4443ce8c1416d7e67752cd86f05"
-  },
-  "GRANT-POD-CEILING-01": {
-   "file": ".agent/decisions/2026-10-10-GRANT-POD-CEILING-01.md",
-   "sha256": "d90d085ebcb54dcf7f4b9129ad0614ba01d8e4ba4d8190b777b55b17abdf155e"
-  },
-  "GRAPHITE-01": {
-   "file": ".agent/decisions/2026-10-03-GRAPHITE-D33.md",
-   "sha256": "722c34f5ec18e21972bede3712fb37a570da794e432ad8faaaf9ae581a71dd78"
-  },
-  "GRAPHITE-ADMISSION-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-03.md",
-   "sha256": "f7d1ceb262a893dc5d20e1cf76fe034525ba66c0b717a24a902ab0408784fe8b"
-  },
-  "GRAPHITE-ADMISSION-CONTROLLER-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ADMISSION-CONTROLLER-01.md",
-   "sha256": "cadf0deb183c838ad407c2789fcc4cab05acf2accaf993099d64a95343750944"
-  },
-  "GRAPHITE-ATTACK-IDENTITY-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
-   "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
-  },
-  "GRAPHITE-ATTACKER-COOLING-API-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-COOLING-API-01.md",
-   "sha256": "8bad25eba102725bbb1014d324aaf0b5415022a8e0e2b705934ecaf0d0da1d4f"
-  },
-  "GRAPHITE-ATTACKER-COOLING-SF-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-COOLING-API-01.md",
-   "sha256": "8bad25eba102725bbb1014d324aaf0b5415022a8e0e2b705934ecaf0d0da1d4f"
-  },
-  "GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
-   "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
-  },
-  "GRAPHITE-ATTACKER-STOP-RULE-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-STOP-RULE-01.md",
-   "sha256": "3f30449eb23c482f1f8a34d6200dfde9f92f88376372803791d5232696e24548"
-  },
-  "GRAPHITE-CARRIER-CONTAINMENT-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-CARRIER-CONTAINMENT-01.md",
-   "sha256": "202d5291189a31d5a9506d35c4bbd413e3a5f39a31901848002561a016215506"
-  },
-  "GRAPHITE-CONDITIONAL-EXPLORATION-01": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-CONDITIONAL-EXPLORATION-01.md",
-   "sha256": "6a1dccd24187a621e95b207d39247e438b8926300e3230fbe1cd4abcb0cc0101"
-  },
-  "GRAPHITE-COVERAGE-PARITY-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md",
-   "sha256": "78b2d5974dd438da428016755c7cfdc2caaf35878d2f96eaf92e9d0e744fde22"
-  },
-  "GRAPHITE-COVERAGE-PARITY-02": {
-   "file": ".agent/decisions/2026-10-06-GRAPHITE-COVERAGE-PARITY-02.md",
-   "sha256": "9642fdfac9d45be254831d36fe414481348b6ff1161b7927ceca6f7479d8a16f"
-  },
-  "GRAPHITE-DEV-VARIANTS-01": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-CONDITIONAL-EXPLORATION-01.md",
-   "sha256": "6a1dccd24187a621e95b207d39247e438b8926300e3230fbe1cd4abcb0cc0101"
-  },
-  "GRAPHITE-GRANT-BINDING-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md",
-   "sha256": "54ca1ee6139e1d22326ec7d603bc158712ef97ca6be56039a6c228a1164940ae"
-  },
-  "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4": {
-   "file": ".agent/decisions/2026-10-13-GRAPHITE-OUTPUT-CAP-KIMI-01.md",
-   "sha256": "98f95d39a60f7afcb06773c3cae1fb9c251ed5c36839288a8845902fb14c71ba"
-  },
-  "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5": {
-   "file": ".agent/decisions/2026-10-13-OWNER-L4-G-CONSTRUCTOR-6-GRANT-01.md",
-   "sha256": "641ef674aaf454e4f92ed736deaddd359589e26c2d01ba02edd1646d1660384b"
-  },
-  "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6": {
-   "file": ".agent/decisions/2026-10-13-OWNER-L4-G-CONSTRUCTOR-6-GRANT-01.md",
-   "sha256": "641ef674aaf454e4f92ed736deaddd359589e26c2d01ba02edd1646d1660384b"
-  },
-  "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1": {
-   "file": ".agent/decisions/2026-10-13-OWNER-L4-G-CONSTRUCTOR-6-GRANT-01.md",
-   "sha256": "641ef674aaf454e4f92ed736deaddd359589e26c2d01ba02edd1646d1660384b"
-  },
-  "GRAPHITE-GRANT-PLANNER-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "GRAPHITE-GRANT-PLANNER-02": {
-   "file": ".agent/decisions/2026-10-03-LP-PROD-A.md",
-   "sha256": "bd78e651b3c11ad8ef27e263342e99229d49c396e9b5972e5e6e08b704749fb2"
-  },
-  "GRAPHITE-L1-BUILD-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-L1-BUILD-01.md",
-   "sha256": "698d07e7204a5002ee3c29cb1d9bd4b00c48821e2f4d718c1ccf6f8146403973"
-  },
-  "GRAPHITE-L4-STAGING-01": {
-   "file": ".agent/decisions/2026-10-12-OWNER-L4-STAGING-IMAGE-RELEASE-01.md",
-   "sha256": "7f20dc1ebf9efaa65c2ffea0357a07d298e2e75a230ef0e819612b5b1d275bfd"
-  },
-  "GRAPHITE-LAUNCH-PREFLIGHT-01": {
-   "file": ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md",
-   "sha256": "558d93d962ba872bebee7ce4da082faeb328a6d54c8415ef631469fec774f82b"
-  },
-  "GRAPHITE-OPEN-SAFE-01": {
-   "file": ".agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md",
-   "sha256": "0b767cdb8c2e6d9a6e3d72c9d8b082b13769da4f5cef92c4a3cb305237bbd6bf"
-  },
-  "GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01.md",
-   "sha256": "7b2c77177f678a2836cb3012f3f89cca3f254c34418509d0a9f08ec9cbb0ef25"
-  },
-  "GRAPHITE-OUTPUT-CAP-KIMI-01": {
-   "file": ".agent/decisions/2026-10-13-GRAPHITE-OUTPUT-CAP-KIMI-01.md",
-   "sha256": "98f95d39a60f7afcb06773c3cae1fb9c251ed5c36839288a8845902fb14c71ba"
-  },
-  "GRAPHITE-POD-ENV-SIZE-01": {
-   "file": ".agent/decisions/2026-10-10-GRAPHITE-POD-ENV-SIZE-01.md",
-   "sha256": "5a0c7725ec1ea2e36089d12d1b77983276fe58fcda644272b12101b4149f2c51"
-  },
-  "GRAPHITE-POD-GPU-PROBE-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-POD-GPU-PROBE-01.md",
-   "sha256": "b581beda380704b0b8ad62670269cf363d5c5a55de2d6a26ff0e1ed6ebf9eaff"
-  },
-  "GRAPHITE-POD-LOGS-RETRY-01": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-POD-LOGS-RETRY-01.md",
-   "sha256": "5c108e49df9b204a02ba64f224c18a7015d5d0a8e96bad7352b02091c5d1b643"
-  },
-  "GRAPHITE-READINESS-01": {
-   "file": ".agent/tickets/GRAPHITE-READINESS-01_readiness_command.md",
-   "sha256": "6d0e754cded6ace1a71262fbc517c4fa1a8ddad0a84f7c705e9f718004f46401"
-  },
-  "GRAPHITE-RUNNER-USABILITY-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-RUNNER-USABILITY-01.md",
-   "sha256": "afc9efe686025480d1bee3ef11670de1475bcb36253d97cfcfa7d96131a48d44"
-  },
-  "GRAPHITE-SPUR-PROVIDER-01": {
-   "file": ".agent/decisions/2026-10-06-GRAPHITE-SPUR-PROVIDER-01.md",
-   "sha256": "f0cbbc48fdd5debf2410d36c4eb992f80735aba1b97f23d8647c72301033558e"
-  },
-  "INCENTIVE-CANARY-01": {
-   "file": ".agent/tickets/INCENTIVE-CANARY-01_best_model_paid.md",
-   "sha256": "7f0d44315bef6ad3e8bdae9a914eeeb35c8b093de8ed33c0936a05c671bff6a7"
-  },
-  "INCENTIVE-MECHANISM-SIM-01": {
-   "file": ".agent/decisions/2026-10-10-INCENTIVE-MECHANISM-SIM-01-D1.md",
-   "sha256": "d1936fa65e11876e90c21c6b07b57bb01a7465b73c0e456dabe09df0003426d6"
-  },
-  "INTAKE-SPEC-INSTANCES-01": {
-   "file": ".agent/decisions/2026-10-10-INTAKE-SPEC-INSTANCES-01.md",
-   "sha256": "ea3acea564cf3cc861097e607987a4c6f63e82e898917c1bd9cf4bfb2388bff0"
-  },
-  "INTERNAL-RESOURCE-PROFILE-01": {
-   "file": ".agent/decisions/2026-10-05-INTERNAL-RESOURCE-PROFILE-01.md",
-   "sha256": "e41a4b36bc6612e02466a0b10e435c8e0a9aebdca055e2d5120a855cca9f283f"
-  },
-  "JULIA-GPU-01": {
-   "file": ".agent/tickets/JULIA-GPU-01_cuda_julia_depot.md",
-   "sha256": "a7435c4b6dcde96eec0ef0f4601e66b17a4b00c6f84442a5108d965b05314ade"
-  },
-  "KNN-STATE-DIGEST-01": {
-   "file": ".agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md",
-   "sha256": "d85622e72f450de28eddc7a63994c97dd629ef8bbe5bf2ce8a92836503fb2b43"
-  },
-  "KNN-STATE-GPU-01": {
-   "file": ".agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md",
-   "sha256": "d85622e72f450de28eddc7a63994c97dd629ef8bbe5bf2ce8a92836503fb2b43"
-  },
-  "KOTH-TAKEOVER-RULE-01": {
-   "file": ".agent/decisions/2026-10-19-KOTH-TAKEOVER-RULE-01.md",
-   "sha256": "d3da71479c8d3dfc4da6fe2eaaee12b7055286cc422ed4c2c0e0e442ae674894"
-  },
-  "LAUNCHPAD-ACCEPT-01": {
-   "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-03.md",
-   "sha256": "d1a045d932e3c497f97ef29e1638e9681d81d6edc48554345dedf957919036a4"
-  },
-  "LAUNCHPAD-ACCEPT-02": {
-   "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-02.md",
-   "sha256": "c803b43cef7a46b024ae39214577a8db774519ceb06147c923d66fcb9de57965"
-  },
-  "LAUNCHPAD-ACCEPT-03": {
-   "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-03.md",
-   "sha256": "d1a045d932e3c497f97ef29e1638e9681d81d6edc48554345dedf957919036a4"
-  },
-  "LAUNCHPAD-ACCEPT-04": {
-   "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-04.md",
-   "sha256": "3d7374ae7afc3bb743ab1bc41d2b5927f3da0a13e58bd7e9cfde4b7ee00bc386"
-  },
-  "LAUNCHPAD-COMPUTE-BUDGET-STATUS-01": {
-   "file": ".agent/decisions/2026-10-08-LAUNCHPAD-COMPUTE-BUDGET-STATUS-01.md",
-   "sha256": "b6637df3ac8c052a3ee8b99e6ac8099222ab38afb02a18acf53980872f060f04"
-  },
-  "LAUNCHPAD-LEVELS-01": {
-   "file": ".agent/decisions/2026-10-07-LAUNCHPAD-LEVELS-01-S1.md",
-   "sha256": "cd0f44cf5ef8c84c1c7e3f067586b63a4bacc5c99207265012a37eadee4a4117"
-  },
-  "LAUNCHPAD-PAGE-USABILITY-01": {
-   "file": ".agent/decisions/2026-10-05-LAUNCHPAD-PAGE-USABILITY-01.md",
-   "sha256": "a58a364cca39a9f1ed95b170e294dd34e6ab301bd4477f8447e93878bb467a2a"
-  },
-  "LAUNCHPAD-PRACTICE-RETRY-01": {
-   "file": ".agent/tickets/LAUNCHPAD-PRACTICE-RETRY-01.md",
-   "sha256": "73cd209e4e1606998bb3ad082f74fdef6fdca53e7b08ba714ded13485cb29e53"
-  },
-  "LAUNCHPAD-T03-REFUSAL-COVERAGE-01": {
-   "file": ".agent/decisions/2026-10-15-LAUNCHPAD-T03-REFUSAL-COVERAGE-01.md",
-   "sha256": "dd71ddb3d69890c8c46c7e7ba8aa8ee50cf35138f362892805d93bc04a9a0da1"
-  },
-  "LAW-CONSISTENCY-CHECK-01": {
-   "file": ".agent/decisions/2026-10-11-LAW-CONSISTENCY-CHECK-01.md",
-   "sha256": "7ab850dc236d6942d1fec4f01f1cb3fc0ae14921684183ff9b91f1e8a0ae0255"
-  },
-  "LEVEL4-DEV-VARIANT-01": {
-   "file": ".agent/decisions/2026-10-08-LEVEL4-DEV-VARIANT-01.md",
-   "sha256": "a668f4c71205eab5b2224fa2c8c5dd8c60aa897f34f2091aa947ac020b6b1157"
-  },
-  "LEVEL4-G5-LANE-MEMORY-01": {
-   "file": ".agent/tickets/LEVEL4-G5-LANE-MEMORY-01_g5_lane_memory.md",
-   "sha256": "92b851523e0f29e0f16650bc44e3869e14896716bf1d7e21dafc10b82f95f092"
-  },
-  "LEVEL4-LOSS-OVERRIDE-01": {
-   "file": ".agent/decisions/2026-10-09-LEVEL4-G6-LOSS-TRAINING-01.md",
-   "sha256": "6bdb7a4d5756b21b5e779f6355e5d75e01067850038049b0e49453f4147475bd"
-  },
-  "LP-04": {
-   "file": ".agent/decisions/2026-10-13-LP04-MULTI-INTAKE-MIGRATION.md",
-   "sha256": "1c619e5645909130bbcbfa88dd516429c38dbf496d5c569b349fd90ff13cb4c9"
-  },
-  "LP-PROD-FIX-01": {
-   "file": ".agent/decisions/2026-10-04-LP-PROD-FIX-01.md",
-   "sha256": "9b67448395abff4a4788c3706b34eb7045f3627f53fe0fa8a885122158980b63"
-  },
-  "MINER-FAQ-01": {
-   "file": ".agent/decisions/2026-10-09-MINER-FAQ-01.md",
-   "sha256": "0f2dcc67e276c0adbaa59196de8ea1eaf8cea6a00169da4fd8a87f16f9d913f3"
-  },
-  "MINER-SURVIVE-REBOOT-01": {
-   "file": ".agent/tickets/MINER-SURVIVE-REBOOT-01.md",
-   "sha256": "23513a91081a194def9eecd2b8863b605ee3f2c7893ecfcbe9e6e4a644c36ce8"
-  },
-  "MODEL-PREDICTIONS-FOR-EVIDENCE-01": {
-   "file": ".agent/decisions/2026-10-10-MODEL-PREDICTIONS-FOR-EVIDENCE-01.md",
-   "sha256": "37699f016f221031057ee4a17fedfa757ea24c426752caf9770e7572a65059a1"
-  },
-  "MOTOR-FEASIBILITY-02": {
-   "file": ".agent/decisions/2026-10-10-MODEL-PREDICTIONS-FOR-EVIDENCE-01.md",
-   "sha256": "37699f016f221031057ee4a17fedfa757ea24c426752caf9770e7572a65059a1"
-  },
-  "MOTOR-NEURAL-01": {
-   "file": ".agent/decisions/2026-10-10-MOTOR-NEURAL-01.md",
-   "sha256": "7df5e094b560064d6ca649af51c18a4b643a46dad3fb13793cfb5c055eefb5b4"
-  },
-  "MOTOR-PEAK-FEASIBILITY-01": {
-   "file": ".agent/decisions/2026-10-09-MOTOR-PEAK-FEASIBILITY-01.md",
-   "sha256": "f6f0c1326011d46226194af6cfafeaff1debb056768a669a2bc9be202a1d1632"
-  },
-  "NOOP-CAPABILITY-AUDIT-01": {
-   "file": ".agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md",
-   "sha256": "d85622e72f450de28eddc7a63994c97dd629ef8bbe5bf2ce8a92836503fb2b43"
-  },
-  "ONBOARDING-AUTOMATION-01": {
-   "file": ".agent/tickets/ONBOARDING-AUTOMATION-01.md",
-   "sha256": "1f9ecb24f4396c606a2c48abda5dbceb3612cc54e8d8f297554770e3adf8cfc6"
-  },
-  "ONBOARDING-AUTOMATION-02": {
-   "file": ".agent/tickets/ONBOARDING-AUTOMATION-02.md",
-   "sha256": "5c1a99d5ab6e5d4a03567091a035919485ae70589c0193ff494b710a21c3113d"
-  },
-  "ONBOARDING-AUTOMATION-03": {
-   "file": ".agent/tickets/ONBOARDING-AUTOMATION-03.md",
-   "sha256": "0e97c053ea0df49806685348ea72f89d5c22364373d60e9f3f8a7563c875ee5f"
-  },
-  "ONBOARDING-AUTOMATION-04": {
-   "file": ".agent/tickets/ONBOARDING-AUTOMATION-04.md",
-   "sha256": "4492cacbf1407b33813b3f0ff58172a4a074dfc5d2edfe07ede39a7d70fd018c"
-  },
-  "ONBOARDING-AUTOMATION-REHEARSAL-01": {
-   "file": ".agent/decisions/2026-10-11-ONBOARDING-AUTOMATION-REHEARSAL-01.md",
-   "sha256": "0d2fa983fe6618ed4d34a48b6153dd994c9b14c01f2cba76a25bc0ad86ad55f9"
-  },
-  "ONBOARDING-EFFORT-RECORDS-01": {
-   "file": ".agent/decisions/2026-10-11-ONBOARDING-EFFORT-RECORDS-01.md",
-   "sha256": "a375beb8455ba7e8783188ffbe39e7bbae6a70388ac20107df7ee6f3b3d9162c"
-  },
-  "ONBOARDING-METRICS-01": {
-   "file": ".agent/decisions/2026-10-11-ONBOARDING-METRICS-BASIS-01.md",
-   "sha256": "f3137bcdb9650fa981393c77d90e8244a8cd481770e9748f6f4031d75e17d0bb"
-  },
-  "ONBOARDING-PIPELINE-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-LAUNCH-STRATEGY-01.md",
-   "sha256": "0e576208798f373332a8b80623ada925c792c7069e9fe5594f96b720bdbd5ac6"
-  },
-  "ONBOARDING-TIMELINE-01": {
-   "file": ".agent/decisions/2026-10-10-ONBOARDING-TIMELINE-01.md",
-   "sha256": "411943198f309a58639e09b569a2c2148fe255850fed9cc6b17c18f72de887f7"
-  },
-  "OPEN-BENCHMARK-ONBOARDING-01": {
-   "file": ".agent/decisions/2026-10-10-OPEN-BENCHMARK-ONBOARDING-01.md",
-   "sha256": "818b2820dfa99ec2ae7aa4d45e99946f2376552cffea164d34c89f3f35777368"
-  },
-  "OPERATOR-USABILITY-01": {
-   "file": ".agent/decisions/2026-10-05-OPERATOR-USABILITY-01.md",
-   "sha256": "59b1f8cf6e1d56b9f5edfe5a90a77d4bfbfaf0c0ed615fa49c35bcc6ea01efea"
-  },
-  "OPT-08": {
-   "file": ".agent/decisions/2026-10-12-OPT-08-PUBLIC-SCORING.md",
-   "sha256": "b80f0d47d87d6e2f0de528a70151a463c5b04f17820b926d76ed20f2d4132456"
-  },
-  "OPT-12": {
-   "file": ".agent/decisions/2026-10-13-PILOT-RUNNABILITY-COOLING-01.md",
-   "sha256": "78174b0daf570b4156d502955d1feeefa9c380eae83c3ba87e370e0762979787"
-  },
-  "OPT-15": {
-   "file": ".agent/decisions/2026-10-13-OPT-15c-PUBLIC-V2-REPLAY.md",
-   "sha256": "e457fa8eec151314e5e00369e196a7a282cdbaf018438a22582248a68eefc1a0"
-  },
-  "OPT-16": {
-   "file": ".agent/decisions/OPT-16-producer-bank-plan.md",
-   "sha256": "5a76a355bfe71a80d75d75394f82fcd5790e9120059df5aa7b18908ea6429e4b"
-  },
-  "OPT-17": {
-   "file": ".agent/decisions/2026-10-13-OPT17-L5-COMPARISON-ARMS-01.md",
-   "sha256": "6c8c6d951201b8fda161341dcee75e613198c523bcc850007120a4900beeca8c"
-  },
-  "OPT-20": {
-   "file": ".agent/decisions/2026-10-13-OPT-15c-PUBLIC-V2-REPLAY.md",
-   "sha256": "e457fa8eec151314e5e00369e196a7a282cdbaf018438a22582248a68eefc1a0"
-  },
-  "OWNER-5950X-GRADING-CLASS-01": {
-   "file": ".agent/decisions/2026-11-16-OWNER-5950X-GRADING-CLASS-01.md",
-   "sha256": "1b823e43cc62fd16a783b1db2f09b43df2d76f6f2398b109cc7dd1ce3f0e164d"
-  },
-  "OWNER-A100-40GB-BUILD-CLASS-01": {
-   "file": ".agent/decisions/2026-11-16-OWNER-A100-40GB-BUILD-CLASS-01.md",
-   "sha256": "7ab372ec76997a472f60d0266eaebdebd8c1f5774bbf31a8257d934fcd324528"
-  },
-  "OWNER-A40-ACCEPTANCE-GRANT-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-A40-ACCEPTANCE-GRANT-01.md",
-   "sha256": "a6c38ff40813772fb9701e68fb1f5bcd9263bab9cd3ae1f02b4118d5bf9c8abc"
-  },
-  "OWNER-A40-POD-ENV-PROVIDER-BOUND-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-A40-POD-ENV-PROVIDER-BOUND-01.md",
-   "sha256": "bfd81e2495565fe03a0a074837246d7b097edfc6308373d765df21575e79206f"
-  },
-  "OWNER-A6000-48GB-BUILD-CLASS-01": {
-   "file": ".agent/decisions/2026-11-23-OWNER-A6000-48GB-BUILD-CLASS-01.md",
-   "sha256": "b1418bb2b88172ec6161b96a440d172fee9241de8635a6c7328be97297c61d93"
-  },
-  "OWNER-ACCURACY-OOD-MIN-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-ACCURACY-OOD-MIN-01.md",
-   "sha256": "e5cc74df6e57e40b0eeeeb9cac307aa048d5d2b8c21e1f608331431d7881e1cc"
-  },
-  "OWNER-ADMISSION-COMBINED-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-01.md",
-   "sha256": "ed301b1cd44029d7853ff5b70294ea1a7ef7c97d5bed798e1066e8475b6c9f08"
-  },
-  "OWNER-ATTACK-RISKS-V7-G4B-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-ATTACK-RISKS-V7-G4B-01.md",
-   "sha256": "48b6ab5d22c731da5a2bbcb282fa7d8adadc0afd8c31c9aef322acf293b08d9a"
-  },
-  "OWNER-AUTO-PUBLISH-RETIRED-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-ANSWER-KEY-INTAKE-EXPOSURE-01.md",
-   "sha256": "b2bc376a2c176652f448044008724892b5703dd8566b7cb9545c72ee02974c73"
-  },
-  "OWNER-BACKBONE-CATALOG-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-BACKBONE-CATALOG-01.md",
-   "sha256": "162861d057c5e64a8b042fe8514a6c880664263f944a10b6a0eb218e0f5f75b4"
-  },
-  "OWNER-BANK-ARCHITECTURE-01": {
-   "file": ".agent/decisions/2026-10-07-CHALLENGE-BUYER-JOB-POPULATIONS-01.md",
-   "sha256": "282639904e61f80af04e211bba00b5fbaaff68519962db43588ba7e5a9586b84"
-  },
-  "OWNER-BANK-EXPOSURE-E1-TESTNET-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-BANK-EXPOSURE-E1-TESTNET-01.md",
-   "sha256": "4fce6fede80f2927630a5e6c69e2ffb13459a2d3b6c5dd2e7cb66abd5344e1e6"
-  },
-  "OWNER-BANK-EXPOSURE-E2-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BANK-EXPOSURE-E2-01.md",
-   "sha256": "4359d198e0897b9a5784a44d7815f056f54a9fecda2678b96951f31f5622c4d2"
-  },
-  "OWNER-BANK-SCHEDULED-ROTATION-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-BANK-SCHEDULED-ROTATION-01.md",
-   "sha256": "5a383d415f1383328de617e6854f415fd8046a3d216d00c3335e24df2b23315f"
-  },
-  "OWNER-BATTERY-3B-AND-EXPOSURE-01": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-B.md",
-   "sha256": "5dcffc4562e8f4b70e27f85017b17d253f736ea05dc190cd4b9115aeb03f15a3"
-  },
-  "OWNER-BATTERY-CARRYOVER-01": {
-   "file": ".agent/decisions/2026-10-03-LP-PROD-G.md",
-   "sha256": "9165754e226f90459944d330c2444c9cb9bcbe2191516eac6ab4082da984a7a1"
-  },
-  "OWNER-BATTERY-CHAMPIONSHIP-03": {
-   "file": ".agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-03.md",
-   "sha256": "f3e9b387acf2155a46c57e5a16f9452cf9a4c03d8b9e3bc4a62eb58fc26247df"
-  },
-  "OWNER-BATTERY-CHAMPIONSHIP-04": {
-   "file": ".agent/decisions/2026-10-12-MINER-STATUS-AND-SCREENING-LADDER-01-D1.md",
-   "sha256": "ffd3fd0b09b780a67e21f75f3aec3519b25e5d13eaa58513fac2898ba4304b32"
-  },
-  "OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-BATTERY-DUAL-SCORE-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-BATTERY-DUAL-SCORE-01.md",
-   "sha256": "993838bc8707e628141d56bafd27d5387c95d9f4471ed3139317a8bcaadbfd9b"
-  },
-  "OWNER-BATTERY-EXAM-GRID-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-EXAM-GRID-01.md",
-   "sha256": "0995d44b0d63c4325ecab9d30976792f27199cbe21d6b4aed003f2808fe32e8d"
-  },
-  "OWNER-BATTERY-GATE-PLATING-V2-01": {
-   "file": ".agent/decisions/2026-10-19-OWNER-BATTERY-GATE-PLATING-V2-01.md",
-   "sha256": "36cc2bdabd580606f854d0a1875955e241d4823526abdca29b9f7bb6df4e9af3"
-  },
-  "OWNER-BATTERY-LAUNCH-VERSION-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-LAUNCH-VERSION-01.md",
-   "sha256": "47638fd4be7835b25300576e5273f540f65d7c5a3c63c6cc05a3b0abb80b4f73"
-  },
-  "OWNER-BATTERY-OUT-OF-LAUNCH-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-BATTERY-OUT-OF-LAUNCH-01.md",
-   "sha256": "8352bd62e5bcbd4a248def564e582def0b52051c56bd8e27593e484ae27e4b71"
-  },
-  "OWNER-BATTERY-SCORE-CANDIDATE-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-01.md",
-   "sha256": "4b47aa3749d04c4be9307971c1f05634a1d3424d7aa1d5931b6744d1948d2d74"
-  },
-  "OWNER-BATTERY-SCORE-RULE-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-SCORE-RULE-01.md",
-   "sha256": "a1cd168669ec9f9c86287d878b4636510e4ec3f21864c8f790e5f19065dd678a"
-  },
-  "OWNER-BATTERY-SCORING-WINDOW-01": {
-   "file": ".agent/decisions/2026-10-07-OWNER-MOTOR-HIDDEN-POOL-01.md",
-   "sha256": "35f32c9f4b3e87735357838a7ae2b0f5ff597ec04ef6d28836a7cd286864bffc"
-  },
-  "OWNER-BATTERY-STUDY-4090-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-STUDY-4090-01.md",
-   "sha256": "5828c8350309d776c123215aaefda6cb4ed27b8181f78681c214d76b9b61f32a"
-  },
-  "OWNER-BATTERY-STUDY-SHEET-01": {
-   "file": ".agent/decisions/2026-10-07-OWNER-BATTERY-STUDY-SHEET-01.md",
-   "sha256": "3e4dbb0e04217a06f83a79eb1a897de270f786c0533a0cf89abcd6e460e8d64f"
-  },
-  "OWNER-BATTERY-TESTNET-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-TESTNET-WEIGHTS-01.md",
-   "sha256": "238ba930b0abe8c909620e7379dfcb4b00ac073bdb33adccfa9ef9329a47700a"
-  },
-  "OWNER-BATTERY-V2-DISCLOSURE-01": {
-   "file": ".agent/decisions/2026-10-03-GRAPHITE-D33.md",
-   "sha256": "722c34f5ec18e21972bede3712fb37a570da794e432ad8faaaf9ae581a71dd78"
-  },
-  "OWNER-BATTERY-V3-FINALS-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-BATTERY-SCORE-CANDIDATE-01.md",
-   "sha256": "4fd17cc374e5fc247c53c2a45b0a63fd3ffe35abfc503ad69bad5da694de01fa"
-  },
-  "OWNER-BOARD-TRUE-ORDER-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-BOARD-TRUE-ORDER-01.md",
-   "sha256": "710b7c0ea1fd70f9c0b7b050d9739970089d0c1b0141590c82e914acab17eb5e"
-  },
-  "OWNER-BT31-LAW-ANCHOR-SIGNED-01": {
-   "file": ".agent/decisions/2026-11-06-OWNER-BT31-LAW-ANCHOR-SIGNED-01.md",
-   "sha256": "16434f4a2f84fa0ad5d23830dd97f8c7b7b0ddeb48cb1f5c1a29ff33199db2c9"
-  },
-  "OWNER-BT32-BOX-B1T3-SIGNED-01": {
-   "file": ".agent/decisions/OWNER-BT32-BOX-B1T3-SIGNED-01.md",
-   "sha256": "b007804de2dd11988a74f86127db3a116fce06f3abf95eeca5c1d157eaf6c282"
-  },
-  "OWNER-BT32-LAW-CURVE-SIGNED-01": {
-   "file": ".agent/decisions/OWNER-BT32-BOX-B1T3-SIGNED-01.md",
-   "sha256": "b007804de2dd11988a74f86127db3a116fce06f3abf95eeca5c1d157eaf6c282"
-  },
-  "OWNER-BT32-REGION-SIGNED-01": {
-   "file": ".agent/decisions/OWNER-BT32-REGION-SIGNED-01.md",
-   "sha256": "2b091c589776c3eac389bdca7f0b328f3a1b5e0628f6bd408d8c1929cd10301e"
-  },
-  "OWNER-BUILD-REFUSAL-SPLIT-01": {
-   "file": ".agent/decisions/2026-10-19-OWNER-BUILD-REFUSAL-SPLIT-01.md",
-   "sha256": "def74c0ac6ce37ae17efdde732f663734a12b9f662b456ae2422145bf8e93aeb"
-  },
-  "OWNER-C-W1-D3-DELEGATION-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-C-W1-D4-AUTORESEARCH-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-C-W1-RESEARCH-PROGRAM-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-C03-DEV-ISOLATION-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-C1-BURGERS-ALPHA-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-CADENCE-AND-ROTATION-02": {
-   "file": ".agent/decisions/2026-10-20-OWNER-CADENCE-AND-ROTATION-02.md",
-   "sha256": "a08551b2fa3577c44b79a1f1bc3a187a6c649765220c009c8568c9eebca69e11"
-  },
-  "OWNER-CANARY-LIST-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-CANARY-LIST-01.md",
-   "sha256": "7701ad97eb34a303a9a37fd840c6504a2e987c60a5b792327de3cca091d8ea29"
-  },
-  "OWNER-CATALOG-CNO1D-WARN-ONLY-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-CATALOG-CNO1D-WARN-ONLY-01.md",
-   "sha256": "58822f414bc830dce306ce2c80c9353367dee15f91752c989ad31f01b176ba2a"
-  },
-  "OWNER-CATALOG-LICENCES-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-CATALOG-LICENCES-01.md",
-   "sha256": "a32dcae98b912706139af3b1d07bde34ffa927941210247216bfed6c37244f94"
-  },
-  "OWNER-CATALOG-LICENCES-02": {
-   "file": ".agent/decisions/2026-10-22-OWNER-CATALOG-LICENCES-02.md",
-   "sha256": "5267f13dd0c61b14f32a161c1fb2f427480d096f33a1d3dec65dd0ff0de20d26"
-  },
-  "OWNER-CATALOG-VENDORED-LICENCES-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-BACKBONE-CATALOG-01.md",
-   "sha256": "162861d057c5e64a8b042fe8514a6c880664263f944a10b6a0eb218e0f5f75b4"
-  },
-  "OWNER-CCX63-EVIDENCE-GRANT-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-CCX63-EVIDENCE-GRANT-01.md",
-   "sha256": "19a49f724cf3355f49650a091a0e555214e4f90f1b2152c8baf7a81730ad36c6"
-  },
-  "OWNER-CHALLENGE-ADMISSION-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-GATE-CUTOFF-01.md",
-   "sha256": "840c513791b4ef5fec2ca02e4b7474e032f0bc3269e4f1a5e33647d93211c530"
-  },
-  "OWNER-CHALLENGE-DESIGN-01": {
-   "file": ".agent/decisions/2026-10-05-MOTOR-GRAPHITE-SCORE-01.md",
-   "sha256": "0234619b0d3b1a33b7eece7d8d129fec01025e14ca907365391bbbc41d03f7b2"
-  },
-  "OWNER-CHALLENGE-KIT-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-CHALLENGE-ROADMAP-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-CHALLENGE-ROADMAP-02": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-CHALLENGE-ROADMAP-03": {
-   "file": ".agent/decisions/2026-10-08-LEVEL4-DEV-VARIANT-01.md",
-   "sha256": "a668f4c71205eab5b2224fa2c8c5dd8c60aa897f34f2091aa947ac020b6b1157"
-  },
-  "OWNER-CODE-VERIFICATION-ACCEPT-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
-   "sha256": "64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25"
-  },
-  "OWNER-COMMITMENT-D6-TIE-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-COMMITMENT-D6-TIE-01.md",
-   "sha256": "b66daf6a46ee9391e4d1ebc9c6ff15f764e0d3a5b5714f05024f451cc009fafa"
-  },
-  "OWNER-COMMITMENT-POSTER-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-COMMITMENT-D6-TIE-01.md",
-   "sha256": "b66daf6a46ee9391e4d1ebc9c6ff15f764e0d3a5b5714f05024f451cc009fafa"
-  },
-  "OWNER-COMPUTE-BUDGET-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-COMPUTE-BUDGET-01.md",
-   "sha256": "6777fac3f5cbb50bd32140e338dc447dd42f76364cf0f222f04d8a24fceb6e75"
-  },
-  "OWNER-CONFIDENCE-MIDDLE-PATH-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-CONFIDENCE-MIDDLE-PATH-01.md",
-   "sha256": "14d68699ed63ac4dd9dd3055fd93c513ea8836f4b59342ab215434cd919b3c33"
-  },
-  "OWNER-CONSTRUCTION-ANYTHING-01": {
-   "file": ".agent/decisions/2026-10-13-OWNER-CONSTRUCTION-ANYTHING-01.md",
-   "sha256": "e99ed52a081e6553ec2a669a9076982ba66db91540e7e4be47d8f9e36a7042e7"
-  },
-  "OWNER-CONSTRUCTION-DECLARATIVE-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-CONSTRUCTION-ESCALATION-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01": {
-   "file": ".agent/decisions/2026-11-12-OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01.md",
-   "sha256": "11dd4f6aaa44e26c9540c7b2a9dc8e4fa3c4d3218b54b4d608a3f96b6a4aa189"
-  },
-  "OWNER-CONTAINMENT-ACCEPT-TESTNET-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-CONTAINMENT-ACCEPT-TESTNET-01.md",
-   "sha256": "9d7f12b5a770a5d870090a2f370cd2e4452f57cc7d20ca941369c901757b554e"
-  },
-  "OWNER-COOL18-FIT-BREAKER-SEAL-WAIVER-01": {
-   "file": ".agent/decisions/2026-11-12-COOL18-FIT-BREAKER-WAIVER-CONDITIONS.md",
-   "sha256": "c5bddda7d15e706562288ad6b2b9c9c90b02e52ae57caf7e6c40987bd21373b4"
-  },
-  "OWNER-COOLING-HOTSPOT-GATE-DROP-01": {
-   "file": ".agent/decisions/2026-10-28-OWNER-COOLING-HOTSPOT-GATE-DROP-01.md",
-   "sha256": "50cc36a2f4efd80d9c9a7c8dd6354ce8e9f853334df615156127db2ba02484bb"
-  },
-  "OWNER-COOLING-VERIFICATION-01": {
-   "file": ".agent/decisions/2026-10-19-OWNER-COOLING-VERIFICATION-01.md",
-   "sha256": "6331fe328472957ca43213dfbca1aeaf75aaf65dcee8bdaa737609741f77693e"
-  },
-  "OWNER-COOLING-VERIFICATION-ACCEPT-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-COOLING-VERIFICATION-ACCEPT-01.md",
-   "sha256": "2623cb6641e1c88a6fbedbf46a4bf11053159e03fe1468ebe5213d3c07b0c9bd"
-  },
-  "OWNER-CROWN-AVG-UNSTABLE-KING-01": {
-   "file": ".agent/decisions/2026-11-02-OWNER-CROWN-AVG-UNSTABLE-KING-01.md",
-   "sha256": "721b70c1882b097bcb9e72741abf8c2dcc6a296780db1c9be77047fb1255f6df"
-  },
-  "OWNER-CROWN-GRADE-REPEAT-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-CROWN-GRADE-REPEAT-01.md",
-   "sha256": "a27dcc7c88bd0bf34c1b92654cc0dc5690413af62ec13b57306a5c4fa5ec4923"
-  },
-  "OWNER-CROWN-MARGIN-2SD-01": {
-   "file": ".agent/decisions/2026-10-31-OWNER-COOLING-CROWNS-THIS-WEEK-01.md",
-   "sha256": "6355bc6cd2366cd17e3b7ee2d66156c7839c76f50387585a234a43ac1dc60d32"
-  },
-  "OWNER-CW1-DEVELOPMENT-CI-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-CW1-DEVELOPMENT-CI-02.md",
-   "sha256": "dd235d3e5adb3dbba686c570d5baf6583a944e5a02fc934b36fbf6c33a34a7d3"
-  },
-  "OWNER-CW1-DEVELOPMENT-CI-02": {
-   "file": ".agent/decisions/2026-10-11-OWNER-CW1-DEVELOPMENT-CI-02.md",
-   "sha256": "dd235d3e5adb3dbba686c570d5baf6583a944e5a02fc934b36fbf6c33a34a7d3"
-  },
-  "OWNER-DASHBOARD-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-DASHBOARD-01.md",
-   "sha256": "9fe135225b81bb38ff76bcf38dd26a8144d470b757ac2e73de5499d8e38ac387"
-  },
-  "OWNER-DASHBOARD-LIVE-SWITCH-01": {
-   "file": ".agent/decisions/2026-10-30-OWNER-DASHBOARD-LIVE-SWITCH-01.md",
-   "sha256": "5a2ae1bff9d83cebf607f8b9f11f0168b0ba48d1627a194102aa64a1d43eb454"
-  },
-  "OWNER-DATA-MOTOR-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-DATA-MOTOR-01.md",
-   "sha256": "9eb7c05a7ef2d18889010ae993d287b6cddbc147229bb57f7073105e038e954e"
-  },
-  "OWNER-DESIGN-DECISION-FIDELITY-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-DESIGN-DECISION-FIDELITY-01.md",
-   "sha256": "08f10253faf3b57c5748429dbff9ede40c4f4d5b55c51cf92015fb8c2cf378d9"
-  },
-  "OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01.md",
-   "sha256": "9b744c02d69d378937eb6a1528d40ba0cbdff201cdcf1f2e32e5547e5cd94423"
-  },
-  "OWNER-DEV-AUTONOMY-01": {
-   "file": ".agent/decisions/2026-10-10-GRANT-POD-CEILING-01.md",
-   "sha256": "d90d085ebcb54dcf7f4b9129ad0614ba01d8e4ba4d8190b777b55b17abdf155e"
-  },
-  "OWNER-DOOR-A-NARROW-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-DOOR-A-NARROW-01.md",
-   "sha256": "a084ebb7cd81217dec39b5a66cbffbc67d599b43695039b69ed7571b3f7254e2"
-  },
-  "OWNER-DX-03": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-STUDY-02.md",
-   "sha256": "d5572d363c47b0a35aa5a2a7aa1a0fe42df1997c6def84d4fe1a905006c8f117"
-  },
-  "OWNER-EV4-REGEN-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-EV5-CAP-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
-   "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
-  },
-  "OWNER-EV5-FREEZE-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
-   "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
-  },
-  "OWNER-EV5-GO-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-EV5-GO-01.md",
-   "sha256": "9dcbb1767a7b59ecc9c167d7cab554feb5caa8d1e3ccdefc0d85cda274032928"
-  },
-  "OWNER-EV5-GPU-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-EV5-GPU-01.md",
-   "sha256": "880f1b06f4b12eaf53d1b62a5508dc6b778d0f50b7179aaa9a970a643b234222"
-  },
-  "OWNER-EV5-Q1-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-Q1-01.md",
-   "sha256": "6adb2f07b4c20f494e57b321c70364fbc73223ad54f7c9a0fcabc301c7a4e2ac"
-  },
-  "OWNER-EV5-Q2-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-Q2-01.md",
-   "sha256": "40977e611bcbf7ed7e3dfb5afb25fdcdb6901355b6dbbcd520c3dbcb7bf46c93"
-  },
-  "OWNER-EV5-Q3-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
-   "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
-  },
-  "OWNER-EV5-Q4-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-Q4-01.md",
-   "sha256": "b0732b3f28de710d9fd460ae72931ae0b3445f2d50fc1f6ff445ee3a97befef2"
-  },
-  "OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01": {
-   "file": ".agent/decisions/2026-10-18-OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01.md",
-   "sha256": "71b4fc4dbe188b4c20911ffede0bbffe56a59f913d1acabf241c15ef06d09668"
-  },
-  "OWNER-EXAM-CAP-ROTATION-01": {
-   "file": ".agent/decisions/2026-10-19-OWNER-BUILD-REFUSAL-SPLIT-01.md",
-   "sha256": "def74c0ac6ce37ae17efdde732f663734a12b9f662b456ae2422145bf8e93aeb"
-  },
-  "OWNER-EXAM-VALUE-PICKS-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-EXAM-VALUE-PICKS-01.md",
-   "sha256": "f1c1be695790cfda40d3a24933632319e95a915229eed10928b6d3efe827c7f7"
-  },
-  "OWNER-EXEC-APPROVALS-01": {
-   "file": ".agent/decisions/2026-10-03-JULIA-GPU-01-D1.md",
-   "sha256": "ea4c63d47438b9c11ac44c9e9740f803fcd775d4f4ed350ff5678f3c706b85b9"
-  },
-  "OWNER-F02-F08-EXAM-DRAW-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-F02-F08-EXAM-DRAW-01.md",
-   "sha256": "7b3edc0bb5266bb1aefc5a731c901356bd3bc3ae14a1b0986ac0a9d0ca53b3fd"
-  },
-  "OWNER-F02-REBUILD-MMS-ACCEPT-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-F02-REBUILD-MMS-ACCEPT-01.md",
-   "sha256": "c763568a6384e11e1c3ff14d1015d0cab8989645123919ede7426db3b79ee994"
-  },
-  "OWNER-F02-TRAIN40-V2-01": {
-   "file": ".agent/decisions/2026-10-19-OWNER-F02-TRAIN40-V2-01.md",
-   "sha256": "8fcae90d0c11eae97cee2e88436357801a74df5bd5c20b13d986fbf5f7f7a3e6"
-  },
-  "OWNER-F02-V3-LEAK-BOX-SIGNED-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-F02-V3-LEAK-BOX-SIGNED-01.md",
-   "sha256": "bfaf7773e79e7b073c242c166bc854b37a2ed22870f3433a6cb8d5a82043b8e6"
-  },
-  "OWNER-F02-V3-PICKS-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-F02-V3-PICKS-01.md",
-   "sha256": "9f753ed6d1b3837d8ca6ecf71d31c755eee6659471eb88906fccc748bfb40e2c"
-  },
-  "OWNER-F02-V3-TABLES-SIGNED-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-F02-V3-TABLES-SIGNED-01.md",
-   "sha256": "1d1cb5a8259d9e45a454ad64b8c45a23e39e8a2c8841bb8fc494397daef754b4"
-  },
-  "OWNER-F08-17-QUERY-BUDGET-80-01": {
-   "file": ".agent/decisions/2026-10-30-OWNER-F08-17-QUERY-BUDGET-80-01.md",
-   "sha256": "c1000875275770e87e1c1a0d072710232ac4cd62dacdf3cdcc2fdc91fcfc8ddc"
-  },
-  "OWNER-F08-FREQUENCY-BAND-DROP-01": {
-   "file": ".agent/decisions/2026-10-28-OWNER-F08-FREQUENCY-BAND-DROP-01.md",
-   "sha256": "0f2e862d7a6b5fe0373268ec73406597d2ecf9fd873daa0b2e94bf8e0293c49f"
-  },
-  "OWNER-F08-REBUILD-MMS-ACCEPT-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-F08-REBUILD-MMS-ACCEPT-01.md",
-   "sha256": "aceab3fd5939f188f7e0629b91b83c9bd13cf72b0a0c63d9709c6812b59876c4"
-  },
-  "OWNER-F08-V2-ALLOYS-SIGNED-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-F08-V2-ALLOYS-SIGNED-01.md",
-   "sha256": "9bb3844289737a164f11075348a5e6631b2a165fbc329450cb697c6e70027a23"
-  },
-  "OWNER-F08-V2-VALUES-01": {
-   "file": ".agent/decisions/2026-11-01-OWNER-F08-V2-VALUES-01.md",
-   "sha256": "6021016547d292820d6fae2f1dc4f2c592337e18cd89d3f0ffd16973407f3a15"
-  },
-  "OWNER-FIRST-CROWN-BEATS-BASELINE-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-FIRST-CROWN-BEATS-BASELINE-01.md",
-   "sha256": "c52291ca82ed08821bfab73b6ec48a1665f57b338189a314463ab78ce847afc9"
-  },
-  "OWNER-FITTED-INFO-32KIB-AT-LAUNCH-01": {
-   "file": ".agent/decisions/2026-10-30-OWNER-CATALOG-INFO-BUDGET-EXEMPT-01.md",
-   "sha256": "d3fe8f5e4f6008b59f0728d94dc75904fba5c29d85342da0d77bfc06319cc14b"
-  },
-  "OWNER-FULL-EXAM-BANK-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-FULL-EXAM-BANK-01.md",
-   "sha256": "89a220cc0f390ba9024caed2aee479230d14057ac5a2930f071ce13575a3ce33"
-  },
-  "OWNER-GATE-CUTOFF-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-GATE-CUTOFF-01.md",
-   "sha256": "840c513791b4ef5fec2ca02e4b7474e032f0bc3269e4f1a5e33647d93211c530"
-  },
-  "OWNER-GATES-ON-POOL-3A-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-GATES-ON-POOL-3A-01.md",
-   "sha256": "773f882bbd5006d8f5ec5438c5c335cf31e075465e9dc7ca32c984b2c5073dda"
-  },
-  "OWNER-GPU-DEVICE-CLASSES-01": {
-   "file": ".agent/decisions/2026-10-09-OWNER-GPU-DEVICE-CLASSES-01.md",
-   "sha256": "6e0dee191a64b68a0cb11b242ee6dfe55709e1843704bface4a24a63c4e8ec48"
-  },
-  "OWNER-GPU-LANE-NO-OP-GATE-01": {
-   "file": ".agent/decisions/2026-11-17-OWNER-GPU-LANE-NO-OP-GATE-01.md",
-   "sha256": "2a36bca6f628c2254e181b3b85629d29df18c54f71b28a74fea922e6c4421ff7"
-  },
-  "OWNER-GPU-ONLY-REPEAT-TOLERANCE-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-ATTACK-RISKS-V7-G4B-01.md",
-   "sha256": "48b6ab5d22c731da5a2bbcb282fa7d8adadc0afd8c31c9aef322acf293b08d9a"
-  },
-  "OWNER-GPU-OPEN-WITH-READY-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-GPU-OPEN-WITH-READY-01.md",
-   "sha256": "08cc36e8c835b6d52e012226894fa5b7a37cbc4026834a9d009f91c9d8c1e95e"
-  },
-  "OWNER-GPU-REBUILD-RENTED-4090-01": {
-   "file": ".agent/decisions/2026-10-26-OWNER-GPU-REBUILD-RENTED-4090-01.md",
-   "sha256": "9f50b52a717577e60bc2bac3467601b4d92d034ade6583671e415d6158cdadb9"
-  },
-  "OWNER-GPUYARD-BACKUP-VALIDATOR-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-CONTAINMENT-ACCEPT-GPUYARD-TESTNET-01.md",
-   "sha256": "57fde27519f62b9dbc8d9c7829c358ad8d0543c4bf76b1c53094ed9898e3b018"
-  },
-  "OWNER-GRADE-FEEDBACK-LADDER-01": {
-   "file": ".agent/decisions/2026-10-19-OWNER-EXAM-CAP-ROTATION-01.md",
-   "sha256": "0fbff4f70c7070a301e6d873229de0df911e375ed1aa3ea9adc05584f947af3a"
-  },
-  "OWNER-GRAPH-OPS-OPEN-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-GRAPH-OPS-OPEN-01.md",
-   "sha256": "acd8a76ab1b08e73b200e1cbbb6e9c67f93a744a6eb0e97f8aa2bf2e06b24a91"
-  },
-  "OWNER-GRAPHITE-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-GRAPHITE-02": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-D34.md",
-   "sha256": "cf3c23729f080e157e043344df86ba4a231f4a16374828324042d9b87416564e"
-  },
-  "OWNER-GRAPHITE-03": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-GRAPHITE-05": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-GRAPHITE-06": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-GRAPHITE-ATTACKER-01": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-A.md",
-   "sha256": "159b71171d9228b1b6b3f6c365d78eacc8d2a01f3ce8525287dbc714ada4c621"
-  },
-  "OWNER-GRAPHITE-DEV-LEVELS-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-DEV-LEVELS-01.md",
-   "sha256": "2737f5372c3345b16e5615bbd1acc829b5e286d8f0817e5a50433a724437e6ab"
-  },
-  "OWNER-GRAPHITE-MINER-01": {
-   "file": ".agent/decisions/2026-10-03-GRAPHITE-MINER-S1.md",
-   "sha256": "44e855f5a168d1ad50ddf7e4857df171e3bdbdab309986fb5fb0d312b558443a"
-  },
-  "OWNER-GRAPHITE-MINER-INPUT-WINDOW-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-GRAPHITE-MINER-INPUT-WINDOW-01.md",
-   "sha256": "b46a71a66ffc3dec6ca61885bccaf82911c74378d2c420d90f6438a1b89a858d"
-  },
-  "OWNER-GRAPHITE-PHASE3-R3-01": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md",
-   "sha256": "54ca1ee6139e1d22326ec7d603bc158712ef97ca6be56039a6c228a1164940ae"
-  },
-  "OWNER-GRAPHITE-PHASE3-R4-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R4-01.md",
-   "sha256": "c609d5778fe7157c943d7a0b20c51b6edff19716af476dbd728160b38ef96a72"
-  },
-  "OWNER-GRAPHITE-PHASE3-R4-CEILING-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-GRAPHITE-PHASE3-R4-CEILING-01.md",
-   "sha256": "6bdbcf1b595ad0122dbbc9ec81a0d32d09ed4ce867b40d351bf9e8740edde2ba"
-  },
-  "OWNER-GRAPHITE-PHASE3-REFUND-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-PHASE3-REFUND-01.md",
-   "sha256": "78926b93687d7c8de5fa32a969b52aa0b9b67f4d531b04f2680ce8fbd87d9153"
-  },
-  "OWNER-GRAPHITE-STAGE-A-01": {
-   "file": ".agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md",
-   "sha256": "3a67448b725dc1d3062ca734548d1d35c83f8cec2f10ff5149094bf721f077d5"
-  },
-  "OWNER-GRAPHITE-STAGE-B-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md",
-   "sha256": "982c89a877b0643eb192224e50af41ffd72ba760ca23b8a93ccfd1b8eaba713d"
-  },
-  "OWNER-GRAPHITE-STAGE-C-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md",
-   "sha256": "de39d7cc46506f3006834c3c21a08e5da82740b015584d5348132f199380255a"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-01": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-CLOSEOUT-05.md",
-   "sha256": "cdd4f3079754d33a691b1e040b8cc8f906e432d6809b405f7e066727bd8bd6c9"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-02": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-E.md",
-   "sha256": "e073a3bd2c776ac5bb7e70de01f0b9ac67223b688a1e097445434b4a4ed68f8e"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-03": {
-   "file": ".agent/decisions/2026-10-04-GRAPHITE-CONDITIONAL-EXPLORATION-01.md",
-   "sha256": "6a1dccd24187a621e95b207d39247e438b8926300e3230fbe1cd4abcb0cc0101"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-04": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
-   "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-05": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
-   "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-06": {
-   "file": ".agent/decisions/2026-10-05-COOLING-GRAPHITE-COMPARE-01.md",
-   "sha256": "332b00b03dde99f47edc90d5185440cfefd1d947a93e569667aa43a9baee107d"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-07": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md",
-   "sha256": "78b2d5974dd438da428016755c7cfdc2caaf35878d2f96eaf92e9d0e744fde22"
-  },
-  "OWNER-GRAPHITE-TEST-WAVE-08": {
-   "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R4-01.md",
-   "sha256": "c609d5778fe7157c943d7a0b20c51b6edff19716af476dbd728160b38ef96a72"
-  },
-  "OWNER-GUARD-REVIEW-SOFTENS-01": {
-   "file": ".agent/decisions/2026-10-31-OWNER-GUARD-REVIEW-SOFTENS-01.md",
-   "sha256": "175a86366c0f1f0112aabdf3187b588e39ee06d67a7663784ebd81309f07f78d"
-  },
-  "OWNER-HEADROOM-REGIONS-01": {
-   "file": ".agent/decisions/2026-10-24-OWNER-HEADROOM-REGIONS-01.md",
-   "sha256": "d408b0a3cb4afbee08d6b7e53262b9782bbc2fa842e186c9c79eadeb19c7e281"
-  },
-  "OWNER-IMAGE-TIE-QUICK-FIX-NOW-FULL-LATER-01": {
-   "file": ".agent/decisions/2026-10-30-OWNER-CATALOG-INFO-BUDGET-EXEMPT-01.md",
-   "sha256": "d3fe8f5e4f6008b59f0728d94dc75904fba5c29d85342da0d77bfc06319cc14b"
-  },
-  "OWNER-INTAKE-EXPOSURE-01": {
-   "file": ".agent/decisions/2026-10-03-LP-PROD-G.md",
-   "sha256": "9165754e226f90459944d330c2444c9cb9bcbe2191516eac6ab4082da984a7a1"
-  },
-  "OWNER-INVERSE-DESIGN-PROOF-01": {
-   "file": ".agent/decisions/2026-10-24-OWNER-HEADROOM-REGIONS-01.md",
-   "sha256": "d408b0a3cb4afbee08d6b7e53262b9782bbc2fa842e186c9c79eadeb19c7e281"
-  },
-  "OWNER-KING-SELF-IMPROVEMENT-RESET-01": {
-   "file": ".agent/decisions/2026-10-31-OWNER-KING-SELF-IMPROVEMENT-RESET-01.md",
-   "sha256": "0e4d7549c8e899a490e273a9c183a5465b66008924249d5bbe2878debc360c13"
-  },
-  "OWNER-KOTH-CARRY-ACROSS-VERSIONS-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-KOTH-CARRY-ACROSS-VERSIONS-01.md",
-   "sha256": "5198982e8275d547e0a2a4dc8d33b1603de3efa9166b7078e5b48ace4214c66d"
-  },
-  "OWNER-KOTH-MARGIN-AND-PRIVACY-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-KOTH-MARGIN-AND-PRIVACY-01.md",
-   "sha256": "c145b4ffaeca8084ff42bd1d82f6cb71778e47d396c8b94b56263d4ffd50398f"
-  },
-  "OWNER-L4-CONSTANT-ACCOUNTING-02": {
-   "file": ".agent/decisions/2026-10-19-OWNER-L4-CONSTANT-ACCOUNTING-02.md",
-   "sha256": "79e5d82fd7e70fe6b268c77249a2109773e776da5d3f2481c79f7a2f1c61c191"
-  },
-  "OWNER-L4-G5-COMPILE-ISOLATION-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-L4-G5-COMPILE-ISOLATION-01.md",
-   "sha256": "34193b58812a602b2414a21df0d8ae0bae485d07e861aa0bfeaba9f96d9c1877"
-  },
-  "OWNER-L4-VALUES-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-L4-VALUES-01.md",
-   "sha256": "294db07d1053e8646b995226d2ec8b225d2220eba3d611a15df0f362d8d099c9"
-  },
-  "OWNER-LA-F9-SECURITY-ACCEPT-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-GRAPHITE-MINER-INPUT-WINDOW-01.md",
-   "sha256": "b46a71a66ffc3dec6ca61885bccaf82911c74378d2c420d90f6438a1b89a858d"
-  },
-  "OWNER-LADDER-THROUGH-LAUNCHPAD-01": {
-   "file": ".agent/decisions/2026-10-07-LAUNCHPAD-LEVELS-01-S1.md",
-   "sha256": "cd0f44cf5ef8c84c1c7e3f067586b63a4bacc5c99207265012a37eadee4a4117"
-  },
-  "OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01.md",
-   "sha256": "b94ae5c69c0bc9269ea56a2c68d1cd1c3efb702b79712171562e9e705cd9a56a"
-  },
-  "OWNER-LAUNCH-PORTFOLIO-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-LAUNCH-PORTFOLIO-02.md",
-   "sha256": "412b4e9feb3bfd289ea81f47ba314d74a0af7a6a29147bdc770dddc04dc11f6d"
-  },
-  "OWNER-LAUNCH-PORTFOLIO-02": {
-   "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-L0-06.md",
-   "sha256": "66c17463bd9e8e9595affa8ac6caaf044db4e3f7082c46b1ccc551c60da132be"
-  },
-  "OWNER-LAUNCH-SUPPORTED-MACHINE-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-LAUNCH-SUPPORTED-MACHINE-01.md",
-   "sha256": "10ff18f6bb4603072ac3ba89e45ddc897e242d182fafa9cfa7a9788372c1cbdb"
-  },
-  "OWNER-LAUNCHPAD-E2E-SUITE-01": {
-   "file": ".agent/decisions/2026-10-15-LAUNCHPAD-T01-CI-COVERAGE-01.md",
-   "sha256": "dd24a895bc19cb7b4d6990fc456a480abed2e175e291a584952683fd19f61dec"
-  },
-  "OWNER-LAUNCHPAD-PROD-01": {
-   "file": ".agent/decisions/2026-10-03-GRAPHITE-MINER-S1.md",
-   "sha256": "44e855f5a168d1ad50ddf7e4857df171e3bdbdab309986fb5fb0d312b558443a"
-  },
-  "OWNER-LAUNCHPAD-PROD-02": {
-   "file": ".agent/decisions/2026-10-03-GRAPHITE-MINER-S1.md",
-   "sha256": "44e855f5a168d1ad50ddf7e4857df171e3bdbdab309986fb5fb0d312b558443a"
-  },
-  "OWNER-LEG-MINIMUM-BEST-AGENT-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-FIRST-CROWN-BEATS-BASELINE-01.md",
-   "sha256": "c52291ca82ed08821bfab73b6ec48a1665f57b338189a314463ab78ce847afc9"
-  },
-  "OWNER-LEVEL4-GRAPH-ONLY-01": {
-   "file": ".agent/decisions/2026-10-07-OWNER-LADDER-THROUGH-LAUNCHPAD-01.md",
-   "sha256": "481c7ba883041a5eaa5115dc25e80af44209681d4b27a6ccc7de497665a09a08"
-  },
-  "OWNER-LEVEL4-TESTNET-RUNS-01": {
-   "file": ".agent/decisions/2026-10-09-OWNER-LEVEL4-TESTNET-RUNS-01.md",
-   "sha256": "470c5f5853889245b175c4994b731a882bee4beb83852558c56cd64d198b7585"
-  },
-  "OWNER-MAINNET-EXAM-KEYS-01": {
-   "file": ".agent/decisions/2026-11-11-OWNER-MAINNET-EXAM-KEYS-01.md",
-   "sha256": "faf98225dbdbe1d433e30c3bf22e11b5929fa4048019be0d6eba45e1cb2906a1"
-  },
-  "OWNER-MAINNET-QUALIFIED-STANDING-01": {
-   "file": ".agent/decisions/2026-11-14-OWNER-MAINNET-QUALIFIED-STANDING-01.md",
-   "sha256": "cbd0a566f1f3e90d8c0d7e9cdf78b90359ba265344abdeb5f25433335e259235"
-  },
-  "OWNER-MAINNET-WEIGHT-POLICY-V1-01": {
-   "file": ".agent/decisions/2026-11-09-OWNER-MAINNET-WEIGHT-POLICY-V1-01.md",
-   "sha256": "5b3b12e36d9c603cb76caad684949d61ee94b829d5e7010fb59655299e0a329d"
-  },
-  "OWNER-MINER-COMPUTE-LINK-ONLY-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-MINER-RESEARCH-SURFACE-04.md",
-   "sha256": "d2783ba97833f0d97bbf906acd2306e95db6770f563e9afa123ce5a700e32943"
-  },
-  "OWNER-MINER-DATA-KITS-LAUNCH-STAPLE-01": {
-   "file": ".agent/decisions/2026-11-03-OWNER-MINER-DATA-KITS-LAUNCH-STAPLE-01.md",
-   "sha256": "7d3e9ba77be75baa02f7f716345b4a38cb4ba94b079f617f456093fef6965a51"
-  },
-  "OWNER-MINER-ENVIRONMENT-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-MINER-LIMITS-EXAM-ONLY-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-A40-POD-ENV-PROVIDER-BOUND-01.md",
-   "sha256": "bfd81e2495565fe03a0a074837246d7b097edfc6308373d765df21575e79206f"
-  },
-  "OWNER-MINER-OWN-MACHINE-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-MINER-RESEARCH-SURFACE-01": {
-   "file": ".agent/decisions/2026-10-02-OWNER-MINER-RESEARCH-SURFACE-01.md",
-   "sha256": "b572af96f29933e7ec79c720c9355874761ad09038ef1f01e9da86f08e00464b"
-  },
-  "OWNER-MINER-RESEARCH-SURFACE-03": {
-   "file": ".agent/decisions/2026-10-03-OWNER-MINER-RESEARCH-SURFACE-03.md",
-   "sha256": "eb1d4c0f7a1db7e7275e45e1a1f0548d868c0927d8160ee8b68a1074350a7797"
-  },
-  "OWNER-MINER-RESEARCH-SURFACE-04": {
-   "file": ".agent/decisions/2026-10-03-OWNER-MINER-RESEARCH-SURFACE-04.md",
-   "sha256": "d2783ba97833f0d97bbf906acd2306e95db6770f563e9afa123ce5a700e32943"
-  },
-  "OWNER-MINER-SETUP-AGENT-FIRST-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-MODULAR-CHALLENGES-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-MODULAR-CHALLENGES-01.md",
-   "sha256": "84b5adc493f54759ed64c2283574c267e9cfefdca5767fc629081e64d3e4e009"
-  },
-  "OWNER-MOTOR-COUNTED-ADOPT-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-MOTOR-COUNTED-ADOPT-01.md",
-   "sha256": "81868a309dc16cd1a19f95d7301a5ed1ab0659d16cd4469779ded6bdedf20097"
-  },
-  "OWNER-MOTOR-EXAM-DRAW-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-MOTOR-EXAM-DRAW-01.md",
-   "sha256": "6f5d090f07690505bef1b303c68f4fd151acc4b5f07f18f6e734ea407f5d1809"
-  },
-  "OWNER-MOTOR-EXAM-GRID-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-EXAM-GRID-01.md",
-   "sha256": "0995d44b0d63c4325ecab9d30976792f27199cbe21d6b4aed003f2808fe32e8d"
-  },
-  "OWNER-MOTOR-HIDDEN-POOL-01": {
-   "file": ".agent/decisions/2026-10-07-OWNER-BANK-ARCHITECTURE-01.md",
-   "sha256": "a831958497bf16afd81e0949c695e9313764158744afab184e2350b2cc639a18"
-  },
-  "OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01": {
-   "file": ".agent/decisions/2026-10-26-OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01.md",
-   "sha256": "2ee80395b80744d892036320c5753283281521a61914c8a42647ca7f5b25e3fe"
-  },
-  "OWNER-MOTOR-TRAIN-GRANT-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-MOTOR-TRAIN-GRANT-01.md",
-   "sha256": "30bd5e6f4e1d8664299f00a1b14f30ff36c49ef075c71cde56629e810bf2939a"
-  },
-  "OWNER-PHYSICS-GATES-01": {
-   "file": ".agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md",
-   "sha256": "3a063759a08cade18d16f0b270135ef48eb00e232d8aeb19e39d51f369057bc2"
-  },
-  "OWNER-PLATING-REFERENCE-01": {
-   "file": ".agent/decisions/2026-10-13-OWNER-MERGE-APPROVAL-01.md",
-   "sha256": "d68734ab69dfa80c0266f306b1daec64d7baff33282744508d45e6e7a15bbb81"
-  },
-  "OWNER-POOL-CONSTANTS-PROVISIONAL-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-POOL-CONSTANTS-PROVISIONAL-01.md",
-   "sha256": "8fa91ec231c6a28776997ff4e95fb17169ff31fdbc140a373578eae22719932c"
-  },
-  "OWNER-PRACTICE-SHOWS-MINIMUMS-01": {
-   "file": ".agent/decisions/2026-10-24-OWNER-PRACTICE-SHOWS-MINIMUMS-01.md",
-   "sha256": "feadb971a99bdded70fe0662d26600b9dd8fd1d350901ee8fdfced2d5179f657"
-  },
-  "OWNER-PROBING-COUNTERS-01": {
-   "file": ".agent/decisions/2026-11-06-OWNER-PROBING-COUNTERS-01.md",
-   "sha256": "668e4d6e9f67e65518812d41b59efdfae8cdf4bc23ad2b254e0254cbf9b37099"
-  },
-  "OWNER-PUBLIC-DEV-DECISIONS-GRANT-01": {
-   "file": ".agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md",
-   "sha256": "0b767cdb8c2e6d9a6e3d72c9d8b082b13769da4f5cef92c4a3cb305237bbd6bf"
-  },
-  "OWNER-PUBLISH-WHAT-IS-TESTED-01": {
-   "file": ".agent/decisions/2026-10-24-OWNER-PRACTICE-SHOWS-MINIMUMS-01.md",
-   "sha256": "feadb971a99bdded70fe0662d26600b9dd8fd1d350901ee8fdfced2d5179f657"
-  },
-  "OWNER-PYTORCH-BACKEND-01": {
-   "file": ".agent/decisions/2026-10-13-PLT30-SHARED-GPU-PRACTICE-01.md",
-   "sha256": "7383f1d4732028d6051bcfe69ce7d3fea1cd6a814b067c5b090718f7c15b77c2"
-  },
-  "OWNER-QR-LIBRARY-LICENCE-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-QR-LIBRARY-LICENCE-01.md",
-   "sha256": "619cc4802f66f2488935f67aa982c9ef637b93eb1559fdc7bf7830f8c1376324"
-  },
-  "OWNER-RATE-STUDY-D1-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-RATE-STUDY-D1-01.md",
-   "sha256": "2490229798bb9a6c91c91ed353f097d87225672db001bef11480eb8acb3dde7c"
-  },
-  "OWNER-RATE-STUDY-TOKENS-01": {
-   "file": ".agent/decisions/2026-10-08-GRAPHITE-STUDY-GRANT-BINDING-01.md",
-   "sha256": "0b7249f5cfde8599ca455a25ecfdf8bb08c1a05cb2b0c350baa8ff09afd4c214"
-  },
-  "OWNER-REBUILD-TIME-LIMIT-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-REBUILD-TIME-LIMIT-01.md",
-   "sha256": "88c4133647aed75984cbb83b02456f77abf09642a219f5290ce57e9f6dc7d1c3"
-  },
-  "OWNER-REBUILD-WALL-11MIN-01": {
-   "file": ".agent/decisions/2026-10-26-OWNER-REBUILD-WALL-11MIN-01.md",
-   "sha256": "f9dd1ed9cd151b760a53f1a48fd1322cc612577ef5de43a4a0ef336c4eefc67f"
-  },
-  "OWNER-REFERENCE-ROUTE-TRIAGE-GRANT-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-REFERENCE-ROUTE-TRIAGE-GRANT-01.md",
-   "sha256": "37618517730c1d48902a6de3d952c509f85c2c50b6e23b9e3117cbe06aa2ca58"
-  },
-  "OWNER-RESEARCH-ENVIRONMENT-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-COMPUTE-BUDGET-01.md",
-   "sha256": "6777fac3f5cbb50bd32140e338dc447dd42f76364cf0f222f04d8a24fceb6e75"
-  },
-  "OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01": {
-   "file": ".agent/decisions/2026-11-04-OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01.md",
-   "sha256": "d2b14432c20e16ae0b174e3cfd59eaafa56658ab9605c6210929af13ea318e5b"
-  },
-  "OWNER-RTX6000ADA-BUILD-CLASS-01": {
-   "file": ".agent/decisions/2026-11-21-OWNER-LARGE-MODEL-PROFILE-APPLIED-ADA-MAINNET-01.md",
-   "sha256": "4dff5716e31e798acaa450775536b4b0deb1993e1f48e56c61301aeaeef41ab6"
-  },
-  "OWNER-RUNPOD-SOLVER-READINESS-01": {
-   "file": ".agent/decisions/2026-10-15-OWNER-RUNPOD-SOLVER-READINESS-01.md",
-   "sha256": "a99cda6fec782e161234271ac16587c7ad01ddfb436ec4c5dacef8a5fa3bc790"
-  },
-  "OWNER-SANDBOX-REBUILD-WALL-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01.md",
-   "sha256": "b94ae5c69c0bc9269ea56a2c68d1cd1c3efb702b79712171562e9e705cd9a56a"
-  },
-  "OWNER-SCORE-GOOD-TARGET-01": {
-   "file": ".agent/decisions/2026-10-24-OWNER-SCORE-GOOD-TARGET-01.md",
-   "sha256": "226ba0ab0564c9c209360d8ddbc2ecaa29935b199ed4acb6318b570e828927db"
-  },
-  "OWNER-SCORE-PROOF-CCX63-GRANT-01": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "OWNER-SCORELAB-FINISH-LINE-01": {
-   "file": ".agent/decisions/2026-10-15-OWNER-SCORELAB-FINISH-LINE-01.md",
-   "sha256": "1ec37ebd23f3afd5bee4832a58c65c68e3a1ea4714375f554e051814b1dbf6df"
-  },
-  "OWNER-SEALED-EXAM-DELIVERY-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-SEALED-EXAM-DELIVERY-01.md",
-   "sha256": "1b2252dfb987a207187cdc23e7e57e54ee0832d9a2812d24a3ba7fc56e85cbe6"
-  },
-  "OWNER-SEVEN-LIMITS-APPROVED-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-SEVEN-LIMITS-APPROVED-01.md",
-   "sha256": "1429858956fd1e4b07496fd5d43901b86b46a48e2133ed16866e3e5fad8a27b4"
-  },
-  "OWNER-SHARED-ANSWER-KEY-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-SHARED-ANSWER-KEY-01.md",
-   "sha256": "182e98bc54f7482325ba6d361869a44110cadbd10076c3266f1bc3bea953f735"
-  },
-  "OWNER-SIGNER-TESTNET-AUTOCONFIRM-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-CANARY-MINER-01.md",
-   "sha256": "70a602b97f2d941d1c7f985961d6c9537b1c833db6973b113f200a21cdb47485"
-  },
-  "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01": {
-   "file": ".agent/decisions/2026-10-15-F02-SCIENCE-VALUES-01.md",
-   "sha256": "b588a4dcc7eecf612c7ff858b3a333b60ef684f21392366ce9094946f3d5435b"
-  },
-  "OWNER-SPEED-GATE-500X-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-SPEED-GATE-500X-01.md",
-   "sha256": "a691983ff594aef9109b3b1c6c89c5f5692f11a24fa17fdbea1d788c4b155de3"
-  },
-  "OWNER-SR3-NEAR-01": {
-   "file": ".agent/DECISIONS.md",
-   "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
-  },
-  "OWNER-STARTUP-HOST-CUSTODY-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-STARTUP-HOST-CUSTODY-01.md",
-   "sha256": "f5298180507c1ead87a2fc89bf38aca65d084eac89d3abc003cfc9ad10006712"
-  },
-  "OWNER-STARTUP-HOST-CUSTODY-02": {
-   "file": ".agent/decisions/2026-10-10-OWNER-STARTUP-HOST-CUSTODY-02.md",
-   "sha256": "0a6045b7373b8712983d1fca0d5fa1818e01b9eabbd383e9296c23d68d367c69"
-  },
-  "OWNER-STARTUP-HOST-CUSTODY-03": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "OWNER-STARTUP-HOST-CUSTODY-03-EXT-02": {
-   "file": ".agent/decisions/2026-10-12-OWNER-STARTUP-HOST-CUSTODY-03-EXT-02.md",
-   "sha256": "d1cba4ba75a5aa38231588b7ec09f60c225dd917cf961169498c4b1a9ab2f2f3"
-  },
-  "OWNER-STOP-RULES-THAT-BLOCK-ITERATION-01": {
-   "file": ".agent/decisions/2026-10-31-OWNER-GUARD-REVIEW-SOFTENS-01.md",
-   "sha256": "175a86366c0f1f0112aabdf3187b588e39ee06d67a7663784ebd81309f07f78d"
-  },
-  "OWNER-TAO-USD-PRICE-SOURCE-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-TAO-USD-PRICE-SOURCE-01.md",
-   "sha256": "2ede392298c73c22f9e53c490a162348edeae60f5b499eb1c2d212b27ccb04e5"
-  },
-  "OWNER-TEST-GRANT-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md",
-   "sha256": "8197b6ec4542179c473e88aa818af53453eecbc1214c9cb7c79cc4346b8c65dc"
-  },
-  "OWNER-TEST-MY-GPU-01": {
-   "file": ".agent/decisions/2026-10-23-OWNER-TEST-MY-GPU-01.md",
-   "sha256": "cf1419e45a4d56c63bb712003f80184d044b911c365d9b7c6f95881dd2e76ae8"
-  },
-  "OWNER-TESTNET-ALL-FOUR-CROWNS-MAINNET-NEW-VERSIONS-01": {
-   "file": ".agent/decisions/2026-10-30-OWNER-F02-25-CROWN-ANYWAY-01.md",
-   "sha256": "b773aaf90acac5a78eebd91141be53e1727b12fe5b7360ba0d4846597577c442"
-  },
-  "OWNER-TESTNET-EXAM-KEYS-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-TESTNET-EXAM-KEYS-01.md",
-   "sha256": "1131ec60ed5818c37bf6a4c4ca63b51aded7558f11baeea9e88234d5f1d190e5"
-  },
-  "OWNER-TESTNET-WEEKLY-BUDGET-01": {
-   "file": ".agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md",
-   "sha256": "8197b6ec4542179c473e88aa818af53453eecbc1214c9cb7c79cc4346b8c65dc"
-  },
-  "OWNER-TESTNET-WEIGHTS-01": {
-   "file": ".agent/decisions/2026-10-05-COOLING-SCORE-VARIANT-CANDIDATE-01.md",
-   "sha256": "047498eab47c19fcfa900a6263ff53e1b528a60b2cc1a333b56846bed578c663"
-  },
-  "OWNER-THUML-GPU-TWIN-LIFT-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-THUML-GPU-TWIN-LIFT-01.md",
-   "sha256": "28b28eccd02b062f109ef4ae70be1b2f7197db240f1dbc0b544d43f01b2be1c5"
-  },
-  "OWNER-TRACK-A-L0-02": {
-   "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
-   "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
-  },
-  "OWNER-TRAINING-BUDGET-STUDY-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-COMPUTE-BUDGET-01.md",
-   "sha256": "6777fac3f5cbb50bd32140e338dc447dd42f76364cf0f222f04d8a24fceb6e75"
-  },
-  "OWNER-TRAINING-BUDGET-STUDY-02": {
-   "file": ".agent/decisions/2026-10-06-OWNER-TRAINING-BUDGET-STUDY-02.md",
-   "sha256": "477aacf12a8120e39328b4392e95402600d27a7659c2835dda7fbba22b955788"
-  },
-  "OWNER-V7-CONTROL-REBUILD-VALUES-01": {
-   "file": ".agent/decisions/2026-11-02-OWNER-V7-CONTROL-REBUILD-VALUES-01.md",
-   "sha256": "fc543aee9a79c3405bc80b31fb878e729259da381fa47f80860b55e5689389c3"
-  },
-  "OWNER-VALIDATOR-HOST-CLASS-01": {
-   "file": ".agent/decisions/2026-10-20-OWNER-VALIDATOR-HOST-CLASS-01.md",
-   "sha256": "62bcdb423c6a30bbd12648403c79cf493876abfd02a7e033bca82a92900a31a9"
-  },
-  "OWNER-VALIDATOR-MAINNET-PARITY-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-08.md",
-   "sha256": "7284aece68c3f280f0e8df717605572d0645f6d7f137712a9579046e07798bc6"
-  },
-  "OWNER-VARIANT-RULE-NULL-MENU-D-18-01": {
-   "file": ".agent/decisions/2026-11-11-OWNER-VARIANT-RULE-NULL-MENU-D-18-01.md",
-   "sha256": "c4e988fb15a91aae0b9b0fc3db6e610125d6cb038d1e87eed8a2bdef340e49f0"
-  },
-  "OWNER-VERIFY-R-DEFAULTS-01": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "OWNER-WEIGHTS-AUTHORITY-01": {
-   "file": ".agent/decisions/2026-10-05-OWNER-WEIGHTS-AUTHORITY-01.md",
-   "sha256": "5a755453f109b03b512e5f84f8971868c0c2f68bd12bd47221e0df197a5de40c"
-  },
-  "OWNER-WEIGHTS-HOLD-LIFT-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-WEIGHTS-HOLD-LIFT-01.md",
-   "sha256": "620426fdd113ddf2517173cfc7bc887360c0fa459c2d099797b48ffc6498f435"
-  },
-  "OWNER-WIND-DOWN-BATTERY-01": {
-   "file": ".agent/decisions/2026-10-25-OWNER-WIND-DOWN-BATTERY-01.md",
-   "sha256": "e831ecdb5bcd4818f33d1fe16e755aaca7e0bb8500e0bf7671feccb74cda7f34"
-  },
-  "OWNER-WORKER-IMAGES-V2-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-VALV3-GPU-VALIDATOR-01.md",
-   "sha256": "4939b3f4de0e8006fc416bf362fa87a875b76f605a69d7aac47cc94f547ce47b"
-  },
-  "OWNER-WORKER-RESOURCES-LARGE-MODELS-01": {
-   "file": ".agent/decisions/2026-10-21-OWNER-WORKER-RESOURCES-LARGE-MODELS-01.md",
-   "sha256": "186ebc9038c22aa5be0981cf8dd5a0cceebb5e9c8af2c9e7271085e78bd94a0a"
-  },
-  "OWNER-WORKFLOW-SPEED-01": {
-   "file": ".agent/decisions/2026-10-03-OWNER-WORKFLOW-SPEED-01.md",
-   "sha256": "24750666a7cfc437a6b3365dfaaf1c109425584fc741c42549c818e0bed8519d"
-  },
-  "PACKET-RECONCILE-01": {
-   "file": ".agent/decisions/2026-10-11-PACKET-RECONCILE-01.md",
-   "sha256": "3156a353dda2ecfb58bfe660c4618c3511ba9988b55d94e8469dc0285a4747f5"
-  },
-  "PANEL-DIFF-GEN-01": {
-   "file": ".agent/decisions/2026-10-11-PANEL-DIFF-GEN-01.md",
-   "sha256": "cb32f6fe6f66bd6090e8f4669b0f9da0f889bf19c575ac95be2e3edfbb895e3b"
-  },
-  "PHYSICS-CONTRACT-01": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "PHYSICS-CONTRACT-PACKETS-01": {
-   "file": ".agent/tickets/PHYSICS-CONTRACT-PACKETS-01.md",
-   "sha256": "5acd310fb4edd04aaaeb049ae63d01523a17f078f5e7d7b0a983c0189b6942b1"
-  },
-  "PILOT-PLANS-WITHIN-CAP-01": {
-   "file": ".agent/decisions/2026-10-11-PILOT-CAP-BILLING-01.md",
-   "sha256": "209990842eadedb7fc1da0f9ba36b032e911a0ca74233361010050876b4fc7de"
-  },
-  "PILOT-RUNNABILITY-F02-01": {
-   "file": ".agent/decisions/2026-10-13-PILOT-RUNNABILITY-F02-01.md",
-   "sha256": "7bcc63d0d9131d31647dbd0e6db121967f4ca79c3af8c0b0be2275ddaee6156c"
-  },
-  "PILOT-RUNNABILITY-SOLENOID-01": {
-   "file": ".agent/decisions/2026-10-13-PILOT-RUNNABILITY-SOLENOID-01.md",
-   "sha256": "ea841fe3a81eb831c00d2aa9ae25843515b950400e1d5fe34dcc2f92360a6354"
-  },
-  "PLT-01": {
-   "file": ".agent/decisions/2026-10-12-BATTERY-V4-OUTPUTS-PROPOSAL-01.md",
-   "sha256": "f8a74e439da53d3f3a6e7817148e7bc3c84e013c554e1371c63d4ee818ad77c6"
-  },
-  "PLT-07": {
-   "file": ".agent/decisions/2026-10-12-MMS-ACCEPTANCE-LINKS-01.md",
-   "sha256": "398f2842ad6cabe9d7410ee8e68b8aeaaff27f6312cfabf319b2802a986a5f08"
-  },
-  "PLT-08": {
-   "file": ".agent/decisions/2026-10-12-MINER-STATUS-AND-SCREENING-LADDER-01-D1.md",
-   "sha256": "ffd3fd0b09b780a67e21f75f3aec3519b25e5d13eaa58513fac2898ba4304b32"
-  },
-  "PLT-09": {
-   "file": ".agent/decisions/2026-10-13-PLT09-SCORING-EVIDENCE.md",
-   "sha256": "c7e19976e62f69394f1ce41a8497a98d95634778e3c5922002f2303f17b085e9"
-  },
-  "PLT-15": {
-   "file": ".agent/decisions/2026-10-13-OWNER-INTAKE-EXPOSURE-02.md",
-   "sha256": "5ff5a8294c1ce18f43e42e5883dfa79aab624083ae2f38a22cb8ad3db0bb8991"
-  },
-  "PLT-16": {
-   "file": ".agent/decisions/2026-10-13-LP04-MULTI-INTAKE-MIGRATION.md",
-   "sha256": "1c619e5645909130bbcbfa88dd516429c38dbf496d5c569b349fd90ff13cb4c9"
-  },
-  "PLT-18": {
-   "file": ".agent/decisions/2026-10-13-PLT32-S3-WIRING.md",
-   "sha256": "6ac949c843c3702cd4ea98eb473e54186a5447e62418ba9659770051d466f36a"
-  },
-  "PLT-27": {
-   "file": ".agent/decisions/2026-10-13-OPT17-L5-COMPARISON-ARMS-01.md",
-   "sha256": "6c8c6d951201b8fda161341dcee75e613198c523bcc850007120a4900beeca8c"
-  },
-  "PLT-29": {
-   "file": ".agent/decisions/2026-10-13-OWNER-POD-ENV-LIMIT-RAISE-01.md",
-   "sha256": "856d6f897c06a00e77af97ca21434bd6a0459c09691b9d6d398ab8a00295fa48"
-  },
-  "PLT-30": {
-   "file": ".agent/decisions/2026-10-13-PLT32-S3-WIRING.md",
-   "sha256": "6ac949c843c3702cd4ea98eb473e54186a5447e62418ba9659770051d466f36a"
-  },
-  "PRACTICE-SAFETY-01": {
-   "file": ".agent/decisions/2026-10-05-PRACTICE-SAFETY-01.md",
-   "sha256": "35213c151f6ee2cb89b5ff246a233aa17076f26676c2857a333b671be3a8e889"
-  },
-  "QUESTION-LAWS-REMAINING-01": {
-   "file": ".agent/decisions/2026-10-10-QUESTION-LAWS-REMAINING-01.md",
-   "sha256": "b9670f5227f498c0a12fcbd7a4691cb0d1c8b79b70322e4ed1b194f2783ca16e"
-  },
-  "RATE-STUDY-PROBER-01": {
-   "file": ".agent/decisions/2026-10-08-RATE-STUDY-PROBER-01.md",
-   "sha256": "47666bce9c3c06495808708f9e887b5ff17e5d7c5f078350130957d33cd80c2e"
-  },
-  "READINESS-INPUTS-AND-COOLING-ROUTE-01": {
-   "file": ".agent/tickets/READINESS-INPUTS-AND-COOLING-ROUTE-01.md",
-   "sha256": "ba14ea12d73c09eb211c9a0f109214dfca06a778386e2b13f75ff8f8387cd08b"
-  },
-  "REFERENCE-PACKAGES-01": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-COOLING-PACKETS-02.md",
-   "sha256": "1d4ba5e9753b26410e600ea3818c02b59577f9f026f436a29b5a244696a31b4e"
-  },
-  "REFERENCE-SOLVERS-HOST-MESH-01": {
-   "file": ".agent/decisions/2026-10-15-REFERENCE-SOLVERS-HOST-MESH-01.md",
-   "sha256": "6786bf23a5055a5e71a8ec616a697f506add5c25d367d2d821808d5a0ead351b"
-  },
-  "REMAINING-CHALLENGES-RUN-01": {
-   "file": ".agent/decisions/2026-10-10-REMAINING-CHALLENGES-RUN-01.md",
-   "sha256": "3346eaed3758a2ec34b1f91725fb0cd416738273df37f381483f730a176948cc"
-  },
-  "REPLACEMENT-CANDIDATES-01": {
-   "file": ".agent/decisions/2026-10-09-REPLACEMENT-CANDIDATES-01.md",
-   "sha256": "bd2199ae046ff8872db9a3204d56bd3189e3f8781d624c584211b43697f02a1e"
-  },
-  "REPLACEMENT-ONBOARDING-01": {
-   "file": ".agent/decisions/2026-10-10-REPLACEMENT-ONBOARDING-01.md",
-   "sha256": "aa417ea3db2aaad3ea26bb82c96be18186a7d36eebe0756197900132fb97b855"
-  },
-  "RESEARCH-BUDGET-REFUSAL-TYPING-01": {
-   "file": ".agent/decisions/2026-10-05-RESEARCH-BUDGET-REFUSAL-TYPING-01.md",
-   "sha256": "204fccc23669fc70a625f2ab42c8c2db7faa25187f5605fe8ec63e8bd9643ad9"
-  },
-  "RESEARCH-TOOL-USABILITY-01": {
-   "file": ".agent/decisions/2026-10-05-AGENT-DOOR-USABILITY-01.md",
-   "sha256": "b1ae3f6fa198a444ac573f1d10ddb75469273064a6cf480bacd9f7ede7fb9d98"
-  },
-  "SCORE-LAB-EXPERIMENT-PLAN-01": {
-   "file": ".agent/decisions/2026-10-14-OPT15C-ACCURACY-BRIDGE.md",
-   "sha256": "c7079f2868668da6f917f3fa7f48134fdabc441576737866b1303ab2fb40f0b5"
-  },
-  "SCORE-PROOF-01": {
-   "file": ".agent/decisions/2026-10-10-OWNER-STARTUP-HOST-CUSTODY-02.md",
-   "sha256": "0a6045b7373b8712983d1fca0d5fa1818e01b9eabbd383e9296c23d68d367c69"
-  },
-  "SCORE-PROOF-CONFIRM-02": {
-   "file": ".agent/decisions/2026-10-12-OWNER-SCORE-PROOF-CONFIRM-02-GRANT.md",
-   "sha256": "c25957e46ae32dbce7999a77153b6d4a3716cddd2e2ae1818b48678d8b470e31"
-  },
-  "SCORE-PROOF-DESIGN-01": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "SCORE-PROOF-PICKABLE-01": {
-   "file": ".agent/decisions/2026-10-11-SCORE-PROOF-PICKABLE-01.md",
-   "sha256": "f8cbaf59372d5ee53441397ee1885e9772ad3c8c5f696b73062cde7097c2c9b8"
-  },
-  "SCORE-PROOF-PICKABLE-02": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "SCORE-PROOF-POSTMORTEM-01": {
-   "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
-   "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
-  },
-  "SCORE-VALUE-ALIGNMENT-01": {
-   "file": ".agent/tickets/SCORE-VALUE-ALIGNMENT-01.md",
-   "sha256": "521e587189268b5872a9b9eaa676c005783f970eaa8a23a889d24335d247eaf7"
-  },
-  "SCORELAB-V3-CALIBRATION-STOP-01": {
-   "file": ".agent/decisions/2026-10-15-SCORELAB-V3-CALIBRATION-STOP-01.md",
-   "sha256": "669a19b7f6412a86f04bed14abb36f4ca9246db4d30e10d82b9bd28d1dd07008"
-  },
-  "SOLVER-PACKAGE-SPECS-01": {
-   "file": ".agent/decisions/2026-10-09-SOLVER-PACKAGE-SPECS-01.md",
-   "sha256": "fec00e08429115d5465af6907bcf76d49250846b3330b0c6518a87aa3a45a5ad"
-  },
-  "SURVIVE-REBOOT-01": {
-   "file": ".agent/decisions/2026-10-10-SURVIVE-REBOOT-01.md",
-   "sha256": "47e26efa5b14c18df194b20ba762bb731430aafee7718f40a19b542812663763"
-  },
-  "TORCH-GPU-01": {
-   "file": ".agent/decisions/2026-10-06-OWNER-TESTNET-V2-SWITCH-01.md",
-   "sha256": "87f68d8e7fac7f6e9591466f4f1b5b491e9699d57619687faf63ba0b3736fafb"
-  },
-  "TORCH-POD-01": {
-   "file": ".agent/decisions/2026-10-13-PLT30-SHARED-GPU-PRACTICE-01.md",
-   "sha256": "7383f1d4732028d6051bcfe69ce7d3fea1cd6a814b067c5b090718f7c15b77c2"
-  },
-  "TRAINING-BUDGET-01": {
-   "file": ".agent/decisions/2026-10-07-BATTERY-L3-NUMERICS-BUILD-01.md",
-   "sha256": "40c8771fff9c50d64d254e582af4fa912157b629ea34ef5a95be2d24c49726cb"
-  },
-  "TRAINING-BUDGET-02": {
-   "file": ".agent/decisions/2026-10-08-BATTERY-L2-POOL-SELECTION-01.md",
-   "sha256": "18c47133be12cbdc9407b1fbfc70fd94aed0ccb183ce6455a6293f16709ef0e3"
-  },
-  "TRAINING-BUDGET-GRANT-BATTERY-STUDY-02": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-STUDY-4090-01.md",
-   "sha256": "5828c8350309d776c123215aaefda6cb4ed27b8181f78681c214d76b9b61f32a"
-  },
-  "V3-RULE-ROBUSTNESS-01": {
-   "file": ".agent/tickets/V3-RULE-ROBUSTNESS-01.md",
-   "sha256": "43e69ef986eaf1984e2c42b93987cf933f6c99f7bc3e9b220ee330dc680ce110"
-  },
-  "VALIDATOR-01": {
-   "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-02.md",
-   "sha256": "9a968358c35e56409d035469792000db8d15e715efd92ad0d006483b0bc755c3"
-  },
-  "VALIDATOR-03": {
-   "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-05.md",
-   "sha256": "0ebc499bd7523fbf709d9132642ddc5f4b0674b7ad08f67dfa015b0c9e2a4542"
-  },
-  "VALIDATOR-04": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md",
-   "sha256": "78b2d5974dd438da428016755c7cfdc2caaf35878d2f96eaf92e9d0e744fde22"
-  },
-  "VALIDATOR-05": {
-   "file": ".agent/tickets/VALIDATOR-05_graphite_named_challenge_plumbing.md",
-   "sha256": "c7c34d5438ac531b3ab39f09ea54cf8850ad8dc1cddc230ab80bbb2d9b728489"
-  },
-  "VALIDATOR-06": {
-   "file": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md",
-   "sha256": "54ca1ee6139e1d22326ec7d603bc158712ef97ca6be56039a6c228a1164940ae"
-  },
-  "VALIDATOR-07": {
-   "file": ".agent/tickets/VALIDATOR-07_versioned_agent_tool_text.md",
-   "sha256": "3c8ed60e182fbf096df66d6f88a0e65199e985c311a9a8a8e088b4e7365ea35d"
-  },
-  "VALIDATOR-08": {
-   "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-LITERATURE-GRANT-01.md",
-   "sha256": "bc75026b53c8ac82d49625af30091255f1f3164b55fa0b1a436d063fb75ce568"
-  },
-  "VALIDATOR-09": {
-   "file": ".agent/decisions/2026-10-05-COOLING-SCORE-VARIANT-CANDIDATE-01.md",
-   "sha256": "047498eab47c19fcfa900a6263ff53e1b528a60b2cc1a333b56846bed578c663"
-  },
-  "VALIDATOR-09-PHASE3-VARIANT-01": {
-   "file": ".agent/decisions/2026-10-05-VALIDATOR-09-PHASE3-VARIANT-01.md",
-   "sha256": "45be3d99472fed2d772cc6292ed1dfa30964c2beae5fe3d481e9b83b95ca0f50"
-  },
-  "VALIDATOR-10": {
-   "file": ".agent/tickets/VALIDATOR-10_boundary_consistency_test.md",
-   "sha256": "02a09f1ee75a8693334c768a1d89e5554363f0e4e33b73daaa7d0a250aad6f4d"
-  },
-  "VALIDATOR-11": {
-   "file": ".agent/tickets/VALIDATOR-11_carrier_lane_policy.md",
-   "sha256": "2117bf7630c6b8ac6f5ad10c606dcf92d99bfb031f301d7405368a9f7be93319"
-  },
-  "VALIDATOR-12": {
-   "file": ".agent/tickets/VALIDATOR-12_boundary_consistency_per_challenge.md",
-   "sha256": "f35fc2fe278a70ce0edf3fa6de22e5cdbcffdb856a92e6a0609ecdf7647afdd2"
-  },
-  "VALIDATOR-13": {
-   "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-08.md",
-   "sha256": "7284aece68c3f280f0e8df717605572d0645f6d7f137712a9579046e07798bc6"
-  },
-  "VALIDATOR-14": {
-   "file": ".agent/decisions/2026-10-14-IDENTITY-RECOVERY-01.md",
-   "sha256": "ed1a3095ff372b484034771ba877fa76d60e6143ae6b45c9b3092c7a60dfbb50"
-  },
-  "VALIDATOR-17": {
-   "file": ".agent/tickets/VALIDATOR-17_battery_tuning_set.md",
-   "sha256": "7151a2f6b8a783a91558b7f16176d593747c4674d48da20e9ecb6bc4070120fe"
-  },
-  "VALIDATOR-18": {
-   "file": ".agent/decisions/2026-10-05-OWNER-SHARED-ANSWER-KEY-01.md",
-   "sha256": "182e98bc54f7482325ba6d361869a44110cadbd10076c3266f1bc3bea953f735"
-  },
-  "VALIDATOR-19": {
-   "file": ".agent/decisions/2026-10-06-MOTOR-VAL-D4.md",
-   "sha256": "8cbd2cfcbdf9712c423f36371ed972186c1bb8095ddba76e00be3b16db6c3132"
-  },
-  "VALIDATOR-20": {
-   "file": ".agent/tickets/VALIDATOR-20_producer_onboard.md",
-   "sha256": "b6b4bd1818e6444178ccf0d2407d6230c01d6ad0d98e32476bee3f68c75005ae"
-  },
-  "VALIDATOR-21": {
-   "file": ".agent/decisions/2026-10-07-OWNER-MOTOR-HIDDEN-POOL-01.md",
-   "sha256": "35f32c9f4b3e87735357838a7ae2b0f5ff597ec04ef6d28836a7cd286864bffc"
-  },
-  "VALIDATOR-23": {
-   "file": ".agent/decisions/2026-10-07-OWNER-BANK-ARCHITECTURE-01.md",
-   "sha256": "a831958497bf16afd81e0949c695e9313764158744afab184e2350b2cc639a18"
-  },
-  "VALIDATOR-24": {
-   "file": ".agent/decisions/2026-10-08-OWNER-VALV3-GPU-VALIDATOR-01.md",
-   "sha256": "4939b3f4de0e8006fc416bf362fa87a875b76f605a69d7aac47cc94f547ce47b"
-  },
-  "VALIDATOR-25": {
-   "file": ".agent/decisions/2026-10-07-OWNER-LADDER-THROUGH-LAUNCHPAD-01.md",
-   "sha256": "481c7ba883041a5eaa5115dc25e80af44209681d4b27a6ccc7de497665a09a08"
-  },
-  "VALIDATOR-26": {
-   "file": ".agent/decisions/2026-10-08-CUSTOMER-INPUTS-03.md",
-   "sha256": "f1e83a9442eac5f182bbcc8b22e720c60d2a3ca518554067c68d5e1c978620a7"
-  },
-  "VALIDATOR-27": {
-   "file": ".agent/decisions/2026-10-08-OWNER-VALV3-GPU-VALIDATOR-01.md",
-   "sha256": "4939b3f4de0e8006fc416bf362fa87a875b76f605a69d7aac47cc94f547ce47b"
-  },
-  "VALIDATOR-28": {
-   "file": ".agent/tickets/VALIDATOR-28_family_sources.md",
-   "sha256": "0943f126711454227b9eaa5e44bbeb7e97154fb0daa582e0b297615148e901a7"
-  },
-  "VALIDATOR-29": {
-   "file": ".agent/decisions/2026-10-08-OWNER-BANK-EXPOSURE-E2-01.md",
-   "sha256": "4359d198e0897b9a5784a44d7815f056f54a9fecda2678b96951f31f5622c4d2"
-  },
-  "VALIDATOR-30": {
-   "file": ".agent/decisions/2026-10-08-RATE-STUDY-PROBER-01.md",
-   "sha256": "47666bce9c3c06495808708f9e887b5ff17e5d7c5f078350130957d33cd80c2e"
-  },
-  "VALIDATOR-32": {
-   "file": ".agent/decisions/2026-10-11-CHAMPIONSHIP-STATS-LIB-01.md",
-   "sha256": "3213d0881bd8231724d7c76bcdf9fcab4ef6359338ab209e9d125fef5039a116"
-  },
-  "VALIDATOR-BATTERY-PLATING-U-01": {
-   "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-EXAM-GRID-01.md",
-   "sha256": "0995d44b0d63c4325ecab9d30976792f27199cbe21d6b4aed003f2808fe32e8d"
-  },
-  "VALIDATOR-HOST-CLASS-7950X-01": {
-   "file": ".agent/decisions/2026-10-29-VALIDATOR-HOST-CLASS-7950X-01.md",
-   "sha256": "ebf756dea0781e4252d029a6cf09c3eff7296ba35ae6ab9578aa882a8c569f6f"
-  },
-  "VALIDATOR-HOST-CLASS-EPYC7402P-VM-01": {
-   "file": ".agent/decisions/2026-10-29-OWNER-CONTAINMENT-ACCEPT-GPUYARD-TESTNET-01.md",
-   "sha256": "57fde27519f62b9dbc8d9c7829c358ad8d0543c4bf76b1c53094ed9898e3b018"
-  },
-  "VALIDATOR-HOST-CLASS-RYZEN5950X-01": {
-   "file": ".agent/decisions/2026-11-16-OWNER-5950X-GRADING-CLASS-01.md",
-   "sha256": "1b823e43cc62fd16a783b1db2f09b43df2d76f6f2398b109cc7dd1ce3f0e164d"
-  },
-  "VALIDATOR-KOTH-CARRY-SCOPE-01": {
-   "file": ".agent/decisions/2026-10-23-VALIDATOR-KOTH-CARRY-SCOPE-01.md",
-   "sha256": "3392534d47415fdafcf0361c7126ef370e06857461480d5ff3344ece71d9438d"
-  },
-  "VALIDATOR-PLATING-REF-V2-02": {
-   "file": ".agent/decisions/2026-10-13-OWNER-PLATING-REFERENCE-01.note-01.md",
-   "sha256": "d8ac66fefd447197f5b0e7e5a2d9baefa886056ef2cb9c1b3c2d8ea294ec8f27"
-  },
-  "WARPAGE-PROCESS-PHYSICS-01": {
-   "file": ".agent/decisions/2026-10-10-WARPAGE-PROCESS-PHYSICS-01.md",
-   "sha256": "ba38bbac0165e84a87f0e41bfa8a933bc0521da8a516afee834295ef058f4c53"
-  },
-  "WINNABILITY-PILOT-RUN-PLANS-01": {
-   "file": ".agent/decisions/2026-10-13-WINNABILITY-PILOT-RUN-PLANS-01.md",
-   "sha256": "9d3addcebd7c6c6991fd6270165c8c04d48719fe059ff64c34b3dc34ac582b6a"
-  }
- },
- "prefixes": [
-  "A4",
-  "ADAPTIVE",
-  "AGENT",
-  "AI",
-  "BASELINE",
-  "BATTERY",
-  "BENCHMARK",
-  "BOLTED",
-  "BUNDLE",
-  "CAMPAIGN",
-  "CATALOG",
-  "CHALLENGE",
-  "CHAMPIONSHIP",
-  "CHEAP",
-  "CI",
-  "CODE",
-  "COMPARATOR",
-  "CONSTRUCTION",
-  "CONTROL",
-  "COOL18",
-  "COOLING",
-  "CUSTOMER",
-  "DELIVERABLE",
-  "DESIGN",
-  "EQUAL",
-  "EVIDENCE",
-  "F02",
-  "F06",
-  "F08",
-  "F13",
-  "F17",
-  "FIXED",
-  "GATE",
-  "GPU",
-  "GRANT",
-  "GRAPH",
-  "GRAPHITE",
-  "HOST",
-  "IDENTITY",
-  "INCENTIVE",
-  "INTAKE",
-  "INTERNAL",
-  "JULIA",
-  "KNN",
-  "KOTH",
-  "L4",
-  "LA",
-  "LAUNCHPAD",
-  "LAW",
-  "LEVEL4",
-  "LIBRARY",
-  "LP",
-  "LP04",
-  "MAGNETICS",
-  "MINER",
-  "MMS",
-  "MODEL",
-  "MOTOR",
-  "NOOP",
-  "ONBOARDING",
-  "OPEN",
-  "OPERATOR",
-  "OPT",
-  "OPT15C",
-  "OPT17",
-  "OWNER",
-  "PACKET",
-  "PAIRED",
-  "PANEL",
-  "PHYSICAL",
-  "PHYSICS",
-  "PHYSICSNEMO",
-  "PILOT",
-  "PKT15",
-  "PKT18",
-  "PKT19",
-  "PLT",
-  "PLT09",
-  "PLT14",
-  "PLT16",
-  "PLT18",
-  "PLT19",
-  "PLT20",
-  "PLT21",
-  "PLT23",
-  "PLT25",
-  "PLT29",
-  "PLT30",
-  "PLT32",
-  "PLT33",
-  "PLT35a",
-  "PLT36",
-  "PR",
-  "PRACTICE",
-  "PRD00",
-  "PRD01",
-  "PRD02",
-  "PRD02B",
-  "PRD02C",
-  "PRD02D",
-  "PRD02E",
-  "PRD02F",
-  "PRD04",
-  "PRD05",
-  "PUBLISHED",
-  "QUESTION",
-  "RATE",
-  "READINESS",
-  "README",
-  "REFERENCE",
-  "REMAINING",
-  "REPLACEMENT",
-  "RESEARCH",
-  "RSURF",
-  "S5",
-  "SCORE",
-  "SCORELAB",
-  "SOLVER",
-  "SOURCE",
-  "SURVIVE",
-  "T07",
-  "TORCH",
-  "TRAINING",
-  "V3",
-  "V8",
-  "VALIDATOR",
-  "VALUE",
-  "WARPAGE",
-  "WEB",
-  "WEIGHTS",
-  "WINNABILITY"
- ],
- "schema": "carbon.decision-index.v1"
+  "ids": {
+    "A4-DEDICATED-ADMISSION-CONTROLLERS-01": {
+      "file": ".agent/decisions/2026-10-06-A4-DEDICATED-ADMISSION-CONTROLLERS-01.md",
+      "sha256": "cbd71ed8d5131b30cebdc9371cb129f801b5aadd9fa12b8e9a1e08571726556f"
+    },
+    "AGENT-DOOR-USABILITY-01": {
+      "file": ".agent/decisions/2026-10-05-AGENT-DOOR-USABILITY-01.md",
+      "sha256": "b1ae3f6fa198a444ac573f1d10ddb75469273064a6cf480bacd9f7ede7fb9d98"
+    },
+    "AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01": {
+      "file": ".agent/decisions/2026-10-11-AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01.md",
+      "sha256": "2a802664a8072ff581183480452425ebdbdfe4f85d4c12b4bc660e11303d0d9d"
+    },
+    "BASELINE-AGREEMENT-01": {
+      "file": ".agent/decisions/2026-10-09-BASELINE-AGREEMENT-01-CI-REPAIR.md",
+      "sha256": "c4207699381fa92c981b9c2b874df1bc317498ef6971fd7c5b21b656978e094e"
+    },
+    "BATTERY-L2-POOL-SELECTION-01": {
+      "file": ".agent/decisions/2026-10-08-BATTERY-L2-POOL-SELECTION-01.md",
+      "sha256": "18c47133be12cbdc9407b1fbfc70fd94aed0ccb183ce6455a6293f16709ef0e3"
+    },
+    "BATTERY-L2-SPECMUON-BUILD-01": {
+      "file": ".agent/decisions/2026-10-07-BATTERY-L2-SPECMUON-BUILD-01.md",
+      "sha256": "00fe96af76eb85b1d5063eff1689b007e279d009e46c1683da6a1dddbb9500e6"
+    },
+    "BATTERY-L3-NUMERICS-BUILD-01": {
+      "file": ".agent/decisions/2026-10-07-BATTERY-DEV-DISPATCH-01.md",
+      "sha256": "caca5e0942b189548e9b31b5070c7aede77f1e23137761497c7158f8c8ab7515"
+    },
+    "BATTERY-V3-MIDDLE-BANDS-PANEL-01": {
+      "file": ".agent/decisions/2026-10-10-BATTERY-V3-MIDDLE-BANDS-PANEL-01.md",
+      "sha256": "be4b9657453ce2fb1c1dbb2299034fd536d2951cf251de9a0748e261a499ac3c"
+    },
+    "BENCHMARK-PACKETS-01": {
+      "file": ".agent/decisions/2026-10-11-BENCHMARK-PACKETS-01.md",
+      "sha256": "7d9b169590f1d9bfadf53fd934d53f767aca264b7a06aad45194a12762b5081f"
+    },
+    "BENCHMARK-READINESS-BUILD-BFS-01": {
+      "file": ".agent/tickets/BENCHMARK-READINESS-BUILD-BFS-01.md",
+      "sha256": "8b0f09d47ac1c1a7d6183d5fac950e18a3948d9bf080b52fc95adebb187925c0"
+    },
+    "BENCHMARK-READINESS-BUILD-MG-01": {
+      "file": ".agent/tickets/BENCHMARK-READINESS-BUILD-MG-01.md",
+      "sha256": "400a50a058dc490f2ac98d25e8387aa66e092c0fe42de269e8573b834647c9ab"
+    },
+    "BOLTED-JOINT-READINESS-WIRING-01": {
+      "file": ".agent/decisions/2026-10-13-BOLTED-JOINT-READINESS-WIRING-01.md",
+      "sha256": "f4739f5eda64e8a714129b07f279670daf3e92d5c2104fdbe0e76d0112ef5941"
+    },
+    "BOLTED-JOINT-REHEARSAL-BUILD-01": {
+      "file": ".agent/decisions/2026-10-11-BOLTED-JOINT-REHEARSAL-BUILD-01.md",
+      "sha256": "9eb7d5db274122d060a8c6ed12067c666e1b9021343029cc368d31ad7da29264"
+    },
+    "BUNDLE-TO-SUBMISSION-01": {
+      "file": ".agent/decisions/2026-10-06-BUNDLE-TO-SUBMISSION-01.md",
+      "sha256": "58cd4d5f2b5f30d3a8e4c54811951bcfe75c0a09d7292f484c738cc52f02dbdc"
+    },
+    "CHALLENGE-ADMISSION-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "CHALLENGE-AI-COOLING-06": {
+      "file": ".agent/tickets/CHALLENGE-AI-COOLING-06_launchpad_level0.md",
+      "sha256": "62eaee1b48d1b4d5c460db3f342809bf31dcc509ba06fd66b79473b7088e8cd0"
+    },
+    "CHALLENGE-AI-COOLING-07": {
+      "file": ".agent/tickets/CHALLENGE-AI-COOLING-07_graphite_scoring_adapter.md",
+      "sha256": "1d1ef4092159cce613145404177b24df65544aef96e93557b57694ff4ebc6ab1"
+    },
+    "CHALLENGE-AI-COOLING-08": {
+      "file": ".agent/tickets/CHALLENGE-AI-COOLING-08_validator_adapter.md",
+      "sha256": "1228d8d1a82505e42c3bc64317de117a7c2d61bd1e38fc8c840c361b6df74da6"
+    },
+    "CHALLENGE-AI-COOLING-09": {
+      "file": ".agent/tickets/CHALLENGE-AI-COOLING-09_pb_adv_mode_x.md",
+      "sha256": "614d9a0ed3391fd05fed905476cf8dc287a14e8bd4a4442fe91ef5290ffa4c91"
+    },
+    "CHALLENGE-AI-COOLING-10": {
+      "file": ".agent/tickets/CHALLENGE-AI-COOLING-10_candidate_fault_policy.md",
+      "sha256": "426021a8880e8f2acee69722d7e8fa9628fe61a2a1965426c5218d4204510786"
+    },
+    "CHALLENGE-AI-COOLING-11": {
+      "file": ".agent/decisions/2026-10-05-COOLING-SCORE-VARIANT-CANDIDATE-01.md",
+      "sha256": "047498eab47c19fcfa900a6263ff53e1b528a60b2cc1a333b56846bed578c663"
+    },
+    "CHALLENGE-AI-COOLING-12": {
+      "file": ".agent/decisions/2026-10-05-COOLING-GRAPHITE-COMPARE-01.md",
+      "sha256": "332b00b03dde99f47edc90d5185440cfefd1d947a93e569667aa43a9baee107d"
+    },
+    "CHALLENGE-AI-COOLING-CLOSEOUT-05": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-CLOSEOUT-05.md",
+      "sha256": "cdd4f3079754d33a691b1e040b8cc8f906e432d6809b405f7e066727bd8bd6c9"
+    },
+    "CHALLENGE-AI-COOLING-DOCKER-04": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-DOCKER-04.md",
+      "sha256": "b9cad486cf229cca123cc06681172a32cdf2c403b9fa8c8043cf4d7709fb4d8e"
+    },
+    "CHALLENGE-AI-COOLING-L0-06": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-L0-06.md",
+      "sha256": "66c17463bd9e8e9595affa8ac6caaf044db4e3f7082c46b1ccc551c60da132be"
+    },
+    "CHALLENGE-AI-COOLING-PB-ADV-09": {
+      "file": ".agent/decisions/2026-10-05-CHALLENGE-AI-COOLING-PB-ADV-09.md",
+      "sha256": "92570e1573e357bad5ff88ded12389fa5e3a6f365fff14dd5b438e63e1b2558e"
+    },
+    "CHALLENGE-AI-COOLING-REPAIR-03": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-REPAIR-03.md",
+      "sha256": "1a9ff4dae7e6b843f06806203f6f8df2be901ca4bf8f07acbe9fc8dcf66328a5"
+    },
+    "CHALLENGE-AI-COOLING-SCORING-07": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-SCORING-07.md",
+      "sha256": "1db5475d2d2a1d68d8ea5d35badec4bbff0f9d5c48b076a70de30ad52285cf3f"
+    },
+    "CHALLENGE-AI-COOLING-STUDY-02": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-STUDY-02.md",
+      "sha256": "d5572d363c47b0a35aa5a2a7aa1a0fe42df1997c6def84d4fe1a905006c8f117"
+    },
+    "CHALLENGE-AI-COOLING-VALIDATOR-08": {
+      "file": ".agent/decisions/2026-10-05-CHALLENGE-AI-COOLING-VALIDATOR-08.md",
+      "sha256": "c939fd939395e2453a0072714820aa6008502144c0fb45b5c40925d105fd85f7"
+    },
+    "CHALLENGE-BASELINE-REFRAMES-01": {
+      "file": ".agent/decisions/2026-10-09-CHALLENGE-BASELINE-REFRAMES-01.md",
+      "sha256": "792008e5394cf6aff30e395cbd375baee56638117d66ed4d08ff84aa15ae939b"
+    },
+    "CHALLENGE-BATTERY-V3-QUESTION-LAW-01": {
+      "file": ".agent/decisions/2026-10-09-CHALLENGE-BATTERY-V3-QUESTION-LAW-01.md",
+      "sha256": "e42d427f7019affddacacdfe76ae4a7145566171adcbde74d4e5f48bf09e3181"
+    },
+    "CHALLENGE-CHEAP-BASELINES-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-CHALLENGE-CHEAP-BASELINES-01.md",
+      "sha256": "b9a1cb5fe604542876456779546e9dc7f3cc3f2a1a0516ced6278354d6498b67"
+    },
+    "CHALLENGE-CUSTOMER-FEASIBILITY-02": {
+      "file": ".agent/decisions/2026-10-07-CUSTOMER-FEASIBILITY-02.md",
+      "sha256": "44555f45d2542a6e3dea59146e25ccaafcf0fc232b7f70acb73148c1a37bca2e"
+    },
+    "CHALLENGE-CUSTOMER-INPUTS-03": {
+      "file": ".agent/decisions/2026-10-08-CUSTOMER-INPUTS-03.md",
+      "sha256": "f1e83a9442eac5f182bbcc8b22e720c60d2a3ca518554067c68d5e1c978620a7"
+    },
+    "CHALLENGE-CUSTOMER-INPUTS-04": {
+      "file": ".agent/decisions/2026-10-08-COOLING-THERMAL-BUDGET-04.md",
+      "sha256": "0b23c4db91c2a39e0a9938bac732e0e1b1d4d640e7204556c04aa8b2598896d9"
+    },
+    "CHALLENGE-CUSTOMER-PACKETS-01": {
+      "file": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+      "sha256": "cb4c70dc7898fdcc066c5a158fbcf24919fbd4ac65e6ba51da2db2421ba1461b"
+    },
+    "CHALLENGE-CUSTOMER-PACKETS-02": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-COOLING-PACKETS-02.md",
+      "sha256": "1d4ba5e9753b26410e600ea3818c02b59577f9f026f436a29b5a244696a31b4e"
+    },
+    "CHALLENGE-DESIGN-OPTIMIZERS-01": {
+      "file": ".agent/decisions/2026-10-07-CHALLENGE-DESIGN-OPTIMIZERS-01.md",
+      "sha256": "7d8112f3177647abaf3c2d7eb01fbd3e43202447ac44edafbbf8d0d3b6613b15"
+    },
+    "CHALLENGE-DESIGN-VALUE-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
+      "sha256": "681ff689cf1e5dbde0e83fb291769dfa8e46204c1135342673e1eab9c9a4bd9c"
+    },
+    "CHALLENGE-F02-QUESTION-LAW-01": {
+      "file": ".agent/decisions/2026-10-09-CHALLENGE-F02-QUESTION-LAW-01.md",
+      "sha256": "a9726e4329f02a1110bb5da5b6d47116e04138e045c48f24ec3e3a0ac473be1c"
+    },
+    "CHALLENGE-FACTORY-PLAN-01": {
+      "file": ".agent/tickets/CHALLENGE-FACTORY-PLAN-01.md",
+      "sha256": "0cc6c161e1b4d88180db29b6932560530fc7a087a0b1aa952da7ee43a84d2a51"
+    },
+    "CHALLENGE-MOTOR-02": {
+      "file": ".agent/tickets/CHALLENGE-MOTOR-02_launchpad_level0.md",
+      "sha256": "f2716f7c5868f2ac377fa52f41fb33f79f64c0b92674c7a4351074136b15460d"
+    },
+    "CHALLENGE-MOTOR-03": {
+      "file": ".agent/decisions/2026-10-04-OWNER-DATA-MOTOR-01.md",
+      "sha256": "9eb7c05a7ef2d18889010ae993d287b6cddbc147229bb57f7073105e038e954e"
+    },
+    "CHALLENGE-MOTOR-04": {
+      "file": ".agent/tickets/CHALLENGE-MOTOR-04_counted_adoption.md",
+      "sha256": "9087b05cd81d9c57fe744098a0876d29275bf344a5731438816a53fa0e49d42a"
+    },
+    "CHALLENGE-MOTOR-05": {
+      "file": ".agent/decisions/2026-10-05-MOTOR-GRAPHITE-SCORE-01.md",
+      "sha256": "0234619b0d3b1a33b7eece7d8d129fec01025e14ca907365391bbbc41d03f7b2"
+    },
+    "CHALLENGE-MOTOR-06": {
+      "file": ".agent/decisions/2026-10-05-MOTOR-SCORE-VARIANT-CANDIDATE-01.md",
+      "sha256": "e430d07bfa620314d5702774a40618a3c6e76bc0e1cf736d0bef9ddc7cb9de7d"
+    },
+    "CHALLENGE-MOTOR-07": {
+      "file": ".agent/decisions/2026-10-06-MOTOR-VAL-D4.md",
+      "sha256": "8cbd2cfcbdf9712c423f36371ed972186c1bb8095ddba76e00be3b16db6c3132"
+    },
+    "CHALLENGE-MOTOR-DECISION-FOUNDATION-01": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-MOTOR-DECISION-FOUNDATION-01.md",
+      "sha256": "7dcb648e74b449229a08e2b578658306eee3b6c4b629cbf741c4001b53cdf79d"
+    },
+    "CHALLENGE-MOTOR-L0-02": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-MOTOR-L0-02.md",
+      "sha256": "54229821e85961929f23ab63bdb59047229938afe5e0716a4e3f07d65dfe1368"
+    },
+    "CHALLENGE-MOTOR-QUESTION-LAW-01": {
+      "file": ".agent/decisions/2026-10-09-CHALLENGE-MOTOR-QUESTION-LAW-01.md",
+      "sha256": "9dfe34d8786815b384b15f54850603d1cd91ef61e5d9872187396313bc12844c"
+    },
+    "CHALLENGE-PHOTONIC-01": {
+      "file": ".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md",
+      "sha256": "69fa1106e6f3cad1609d691210d6dca6bdab4545dfbf654f4c0a528d1b8d3626"
+    },
+    "CHALLENGE-POOLS-CLOUD-01": {
+      "file": ".agent/tickets/CHALLENGE-POOLS-CLOUD-01.md",
+      "sha256": "c42fab1a888497467549e341237086493c16bb6748a0eea2549d4321d9739e58"
+    },
+    "CHALLENGE-PROTOCOL-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "CHALLENGE-QUESTION-LAWS-01": {
+      "file": ".agent/decisions/2026-10-07-CHALLENGE-QUESTION-LAWS-01.md",
+      "sha256": "9d73c1046e17b8dd2a310880032dfef608a5e7bce4cb8d7f45326e4df4388680"
+    },
+    "CHALLENGE-QUESTION-LAWS-02": {
+      "file": ".agent/decisions/2026-10-07-CHALLENGE-QUESTION-LAWS-02.md",
+      "sha256": "00c3e131984a70f7dd0fdec787c51e1b2a200bee8b6a201f3792099009e391f9"
+    },
+    "CHALLENGE-READINESS-BINDINGS-01": {
+      "file": ".agent/decisions/2026-10-11-CHALLENGE-READINESS-BINDINGS-01.md",
+      "sha256": "e05f99c36a85350edbe7e545098e7412ae5499fdcb477e80cd4b1bea83f96556"
+    },
+    "CHALLENGE-READINESS-RELAY-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "CHALLENGE-REFERENCE-CREDIBILITY-01": {
+      "file": ".agent/decisions/2026-10-07-REFERENCE-CREDIBILITY-01.md",
+      "sha256": "b1d1d0713ab1f36ce6118106e8f71cc1cfc3da5d6df1a57c24660f8566491f24"
+    },
+    "CHALLENGE-REFERENCE-ROUTES-01": {
+      "file": ".agent/decisions/2026-10-07-CHALLENGE-REFERENCE-ROUTES-01.md",
+      "sha256": "5eefe796f69453ff3ed3f72316a59d0256acf0f2d968331569ea0b4bb51aa5e3"
+    },
+    "CHALLENGE-VALUE-COST-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-CHALLENGE-VALUE-COST-01.md",
+      "sha256": "833724b46f1033e410790bc89f27eab0568568a18739075e21231eaf48f520a6"
+    },
+    "CHALLENGE-VOLUME-LEVERAGE-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-CHALLENGE-VOLUME-LEVERAGE-01.md",
+      "sha256": "29768583f18c7f7c6f565d8c5eaccc8323916bed0bf7749b92ce8a25fa8821ed"
+    },
+    "CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01": {
+      "file": ".agent/decisions/2026-10-09-CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01.md",
+      "sha256": "dc20ddc968b80a0eb4958759fad171bb42da860cbe2bbd234d607a7ff8c9bea3"
+    },
+    "CHEAP-BASELINE-COMPARATORS-01": {
+      "file": ".agent/decisions/2026-10-10-CHEAP-SCREEN-EXPORT-01.md",
+      "sha256": "677103e3de85fe682343f6083d373aa509bbec9585c11b956fd248e1237489aa"
+    },
+    "CI-BATTERY-L0-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "CODE-VERIFICATION-MMS-01": {
+      "file": ".agent/decisions/2026-10-10-CODE-VERIFICATION-MMS-01.md",
+      "sha256": "a83db9facf2ffcf215f76b671493b00aad02a078e17fb221a0fde1e4919e893f"
+    },
+    "COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01": {
+      "file": ".agent/decisions/2026-10-10-COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01.md",
+      "sha256": "c2f77616d6b9b47403872d0089cc83033b0e4d2b583ee9365a5411417cb5eaab"
+    },
+    "CONSTRUCTION-CONTRACT-01": {
+      "file": ".agent/decisions/2026-10-13-LP04-MULTI-INTAKE-MIGRATION.md",
+      "sha256": "1c619e5645909130bbcbfa88dd516429c38dbf496d5c569b349fd90ff13cb4c9"
+    },
+    "COOLING-CELL-READINESS-BUILD-01": {
+      "file": ".agent/decisions/2026-10-11-COOLING-CELL-READINESS-BUILD-01.md",
+      "sha256": "60619731532bafa80a13ea5ca8882557b9e552fec10cb5424c9b66c518ad91b2"
+    },
+    "COOLING-OPERATING-POINT-01": {
+      "file": ".agent/decisions/2026-10-11-COOLING-OPERATING-POINT-01.md",
+      "sha256": "5ff96aa1b1b145bac865d1c87beb9ed5920caa566c0208a5087e32ef794e5d2c"
+    },
+    "CUSTOMER-ACTIVATION-KITS-01": {
+      "file": ".agent/decisions/2026-10-10-CUSTOMER-ACTIVATION-KITS-01.md",
+      "sha256": "9fefb9c95f01e1e3eab9716aa6020e0182e2453bfec2057ee95f54e041347ee6"
+    },
+    "DELIVERABLE-ADAPTERS-01": {
+      "file": ".agent/decisions/2026-10-10-DELIVERABLE-SOURCE-ADAPTERS-01.md",
+      "sha256": "6e487d3e45238d72be86e4d95d6f4afc8e32ed46fc12101804513cb408654859"
+    },
+    "EQUAL-BUDGET-DESIGN-01": {
+      "file": ".agent/decisions/2026-10-10-CHEAP-SCREEN-EXPORT-01.md",
+      "sha256": "677103e3de85fe682343f6083d373aa509bbec9585c11b956fd248e1237489aa"
+    },
+    "EVIDENCE-CAMPAIGN-RUNNER-01": {
+      "file": ".agent/decisions/2026-10-11-CAMPAIGN-ASSEMBLER-01.md",
+      "sha256": "4e7d44169ea296db2804b5167f9e58b90a72dc9c0af745ec46158f1ec5da458a"
+    },
+    "EVIDENCE-PIPELINE-ONE-COMMAND-01": {
+      "file": ".agent/decisions/2026-10-10-EVIDENCE-PIPELINE-HOPS-01.md",
+      "sha256": "b4743660cb268c16ecc9b8bac2e3d389ab7a125e95181684ac7ce78b4b8aac81"
+    },
+    "EVIDENCE-PRODUCER-STAGES-01": {
+      "file": ".agent/decisions/2026-10-11-CAMPAIGN-ASSEMBLER-01.md",
+      "sha256": "4e7d44169ea296db2804b5167f9e58b90a72dc9c0af745ec46158f1ec5da458a"
+    },
+    "EVIDENCE-READINESS-CHECK-01": {
+      "file": ".agent/decisions/2026-10-10-EVIDENCE-READINESS-CHECK-01.md",
+      "sha256": "099df85dfc3f922bd2767dbc9926de8efc467f309e9f7161e9ae308ff78019c1"
+    },
+    "F02-SCIENCE-VALUES-01": {
+      "file": ".agent/decisions/2026-10-15-F02-SCIENCE-VALUES-01.md",
+      "sha256": "b588a4dcc7eecf612c7ff858b3a333b60ef684f21392366ce9094946f3d5435b"
+    },
+    "F06-RESOLUTION-AND-COST-01": {
+      "file": ".agent/decisions/2026-10-09-F06-RESOLUTION-AND-COST-01.md",
+      "sha256": "362853e9faba796b5bb180776de97cf9fa11ce405f785befd2b44b617df2bca4"
+    },
+    "F08-READINESS-REUSE-01": {
+      "file": ".agent/decisions/2026-10-11-F08-READINESS-REUSE-01.md",
+      "sha256": "dc2a30e789a9bb4ba4d18b9fc608983fa0cbd97669df5516272995c8ecb27a97"
+    },
+    "F08-SCIENCE-VALUES-01": {
+      "file": ".agent/decisions/2026-10-15-F08-SCIENCE-VALUES-01.md",
+      "sha256": "63b996fba77a8c0dbf25b8a17545c7c61c1aa40ed1e62de5ddba8171cbaf6724"
+    },
+    "F08-STRUCTURES-READINESS-BUILD-01": {
+      "file": ".agent/decisions/2026-10-11-F08-READINESS-REUSE-01.md",
+      "sha256": "dc2a30e789a9bb4ba4d18b9fc608983fa0cbd97669df5516272995c8ecb27a97"
+    },
+    "F13-POWER-BALANCE-DIAGNOSIS-01": {
+      "file": ".agent/decisions/2026-10-09-F13-POWER-BALANCE-DIAGNOSIS-01.md",
+      "sha256": "97fc2db5eb5042e5c57ed537597ec83449f3cdb50367ca37627ec31cd599baed"
+    },
+    "F13-SILENCER-READINESS-BUILD-01": {
+      "file": ".agent/decisions/2026-10-11-F13-SILENCER-READINESS-BUILD-01.md",
+      "sha256": "49b239eeb185aa55965147b1b8c5916d9020cc07128e6291c9b1f3e99eb7b62e"
+    },
+    "F17-MICROMIXER-READINESS-BUILD-01": {
+      "file": ".agent/decisions/2026-10-11-F17-MICROMIXER-READINESS-BUILD-01.md",
+      "sha256": "f74d60e47a3fec4c10d0e27efc8fe2f5236ed36107ba1e365e592166e3d706a3"
+    },
+    "GATE-NEGATIVE-CONTROLS-01": {
+      "file": ".agent/decisions/2026-10-13-GATE-NEGATIVE-CONTROLS-01.md",
+      "sha256": "e5f3e9303f66af0c508bf9fdfc684016ccb5710f29ef56fb552c6c59c7900f02"
+    },
+    "GATE-PASS-DIAGNOSIS-01": {
+      "file": ".agent/decisions/2026-10-09-GATE-PASS-DIAGNOSIS-01.md",
+      "sha256": "ac3523cb8a9d35418662992cc69ff7f1a4842533afab0180f08f27e26d08023b"
+    },
+    "GRANT-03": {
+      "file": ".agent/decisions/2026-10-11-OWNER-SCORE-PROOF-RUNPOD-GRANT-03.md",
+      "sha256": "19724bdf2c42e289e6dce6cbbdc3abbe21e9a4443ce8c1416d7e67752cd86f05"
+    },
+    "GRANT-POD-CEILING-01": {
+      "file": ".agent/decisions/2026-10-10-GRANT-POD-CEILING-01.md",
+      "sha256": "d90d085ebcb54dcf7f4b9129ad0614ba01d8e4ba4d8190b777b55b17abdf155e"
+    },
+    "GRAPHITE-01": {
+      "file": ".agent/decisions/2026-10-03-GRAPHITE-D33.md",
+      "sha256": "722c34f5ec18e21972bede3712fb37a570da794e432ad8faaaf9ae581a71dd78"
+    },
+    "GRAPHITE-ADMISSION-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-03.md",
+      "sha256": "f7d1ceb262a893dc5d20e1cf76fe034525ba66c0b717a24a902ab0408784fe8b"
+    },
+    "GRAPHITE-ADMISSION-CONTROLLER-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ADMISSION-CONTROLLER-01.md",
+      "sha256": "cadf0deb183c838ad407c2789fcc4cab05acf2accaf993099d64a95343750944"
+    },
+    "GRAPHITE-ATTACK-IDENTITY-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
+      "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
+    },
+    "GRAPHITE-ATTACKER-COOLING-API-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-COOLING-API-01.md",
+      "sha256": "8bad25eba102725bbb1014d324aaf0b5415022a8e0e2b705934ecaf0d0da1d4f"
+    },
+    "GRAPHITE-ATTACKER-COOLING-SF-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-COOLING-API-01.md",
+      "sha256": "8bad25eba102725bbb1014d324aaf0b5415022a8e0e2b705934ecaf0d0da1d4f"
+    },
+    "GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
+      "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
+    },
+    "GRAPHITE-ATTACKER-STOP-RULE-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-STOP-RULE-01.md",
+      "sha256": "3f30449eb23c482f1f8a34d6200dfde9f92f88376372803791d5232696e24548"
+    },
+    "GRAPHITE-CARRIER-CONTAINMENT-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-CARRIER-CONTAINMENT-01.md",
+      "sha256": "202d5291189a31d5a9506d35c4bbd413e3a5f39a31901848002561a016215506"
+    },
+    "GRAPHITE-CONDITIONAL-EXPLORATION-01": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-CONDITIONAL-EXPLORATION-01.md",
+      "sha256": "6a1dccd24187a621e95b207d39247e438b8926300e3230fbe1cd4abcb0cc0101"
+    },
+    "GRAPHITE-COVERAGE-PARITY-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md",
+      "sha256": "78b2d5974dd438da428016755c7cfdc2caaf35878d2f96eaf92e9d0e744fde22"
+    },
+    "GRAPHITE-COVERAGE-PARITY-02": {
+      "file": ".agent/decisions/2026-10-06-GRAPHITE-COVERAGE-PARITY-02.md",
+      "sha256": "9642fdfac9d45be254831d36fe414481348b6ff1161b7927ceca6f7479d8a16f"
+    },
+    "GRAPHITE-DEV-VARIANTS-01": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-CONDITIONAL-EXPLORATION-01.md",
+      "sha256": "6a1dccd24187a621e95b207d39247e438b8926300e3230fbe1cd4abcb0cc0101"
+    },
+    "GRAPHITE-GRANT-BINDING-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md",
+      "sha256": "54ca1ee6139e1d22326ec7d603bc158712ef97ca6be56039a6c228a1164940ae"
+    },
+    "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4": {
+      "file": ".agent/decisions/2026-10-13-GRAPHITE-OUTPUT-CAP-KIMI-01.md",
+      "sha256": "98f95d39a60f7afcb06773c3cae1fb9c251ed5c36839288a8845902fb14c71ba"
+    },
+    "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5": {
+      "file": ".agent/decisions/2026-10-13-OWNER-L4-G-CONSTRUCTOR-6-GRANT-01.md",
+      "sha256": "641ef674aaf454e4f92ed736deaddd359589e26c2d01ba02edd1646d1660384b"
+    },
+    "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6": {
+      "file": ".agent/decisions/2026-10-13-OWNER-L4-G-CONSTRUCTOR-6-GRANT-01.md",
+      "sha256": "641ef674aaf454e4f92ed736deaddd359589e26c2d01ba02edd1646d1660384b"
+    },
+    "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1": {
+      "file": ".agent/decisions/2026-10-13-OWNER-L4-G-CONSTRUCTOR-6-GRANT-01.md",
+      "sha256": "641ef674aaf454e4f92ed736deaddd359589e26c2d01ba02edd1646d1660384b"
+    },
+    "GRAPHITE-GRANT-PLANNER-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "GRAPHITE-GRANT-PLANNER-02": {
+      "file": ".agent/decisions/2026-10-03-LP-PROD-A.md",
+      "sha256": "bd78e651b3c11ad8ef27e263342e99229d49c396e9b5972e5e6e08b704749fb2"
+    },
+    "GRAPHITE-L1-BUILD-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-L1-BUILD-01.md",
+      "sha256": "698d07e7204a5002ee3c29cb1d9bd4b00c48821e2f4d718c1ccf6f8146403973"
+    },
+    "GRAPHITE-L4-STAGING-01": {
+      "file": ".agent/decisions/2026-10-12-OWNER-L4-STAGING-IMAGE-RELEASE-01.md",
+      "sha256": "7f20dc1ebf9efaa65c2ffea0357a07d298e2e75a230ef0e819612b5b1d275bfd"
+    },
+    "GRAPHITE-LAUNCH-PREFLIGHT-01": {
+      "file": ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md",
+      "sha256": "558d93d962ba872bebee7ce4da082faeb328a6d54c8415ef631469fec774f82b"
+    },
+    "GRAPHITE-OPEN-SAFE-01": {
+      "file": ".agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md",
+      "sha256": "0b767cdb8c2e6d9a6e3d72c9d8b082b13769da4f5cef92c4a3cb305237bbd6bf"
+    },
+    "GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01.md",
+      "sha256": "7b2c77177f678a2836cb3012f3f89cca3f254c34418509d0a9f08ec9cbb0ef25"
+    },
+    "GRAPHITE-OUTPUT-CAP-KIMI-01": {
+      "file": ".agent/decisions/2026-10-13-GRAPHITE-OUTPUT-CAP-KIMI-01.md",
+      "sha256": "98f95d39a60f7afcb06773c3cae1fb9c251ed5c36839288a8845902fb14c71ba"
+    },
+    "GRAPHITE-POD-ENV-SIZE-01": {
+      "file": ".agent/decisions/2026-10-10-GRAPHITE-POD-ENV-SIZE-01.md",
+      "sha256": "5a0c7725ec1ea2e36089d12d1b77983276fe58fcda644272b12101b4149f2c51"
+    },
+    "GRAPHITE-POD-GPU-PROBE-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-POD-GPU-PROBE-01.md",
+      "sha256": "b581beda380704b0b8ad62670269cf363d5c5a55de2d6a26ff0e1ed6ebf9eaff"
+    },
+    "GRAPHITE-POD-LOGS-RETRY-01": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-POD-LOGS-RETRY-01.md",
+      "sha256": "5c108e49df9b204a02ba64f224c18a7015d5d0a8e96bad7352b02091c5d1b643"
+    },
+    "GRAPHITE-READINESS-01": {
+      "file": ".agent/tickets/GRAPHITE-READINESS-01_readiness_command.md",
+      "sha256": "6d0e754cded6ace1a71262fbc517c4fa1a8ddad0a84f7c705e9f718004f46401"
+    },
+    "GRAPHITE-RUNNER-USABILITY-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-RUNNER-USABILITY-01.md",
+      "sha256": "afc9efe686025480d1bee3ef11670de1475bcb36253d97cfcfa7d96131a48d44"
+    },
+    "GRAPHITE-SPUR-PROVIDER-01": {
+      "file": ".agent/decisions/2026-10-06-GRAPHITE-SPUR-PROVIDER-01.md",
+      "sha256": "f0cbbc48fdd5debf2410d36c4eb992f80735aba1b97f23d8647c72301033558e"
+    },
+    "INCENTIVE-CANARY-01": {
+      "file": ".agent/tickets/INCENTIVE-CANARY-01_best_model_paid.md",
+      "sha256": "7f0d44315bef6ad3e8bdae9a914eeeb35c8b093de8ed33c0936a05c671bff6a7"
+    },
+    "INCENTIVE-MECHANISM-SIM-01": {
+      "file": ".agent/decisions/2026-10-10-INCENTIVE-MECHANISM-SIM-01-D1.md",
+      "sha256": "d1936fa65e11876e90c21c6b07b57bb01a7465b73c0e456dabe09df0003426d6"
+    },
+    "INTAKE-SPEC-INSTANCES-01": {
+      "file": ".agent/decisions/2026-10-10-INTAKE-SPEC-INSTANCES-01.md",
+      "sha256": "ea3acea564cf3cc861097e607987a4c6f63e82e898917c1bd9cf4bfb2388bff0"
+    },
+    "INTERNAL-RESOURCE-PROFILE-01": {
+      "file": ".agent/decisions/2026-10-05-INTERNAL-RESOURCE-PROFILE-01.md",
+      "sha256": "e41a4b36bc6612e02466a0b10e435c8e0a9aebdca055e2d5120a855cca9f283f"
+    },
+    "JULIA-GPU-01": {
+      "file": ".agent/tickets/JULIA-GPU-01_cuda_julia_depot.md",
+      "sha256": "a7435c4b6dcde96eec0ef0f4601e66b17a4b00c6f84442a5108d965b05314ade"
+    },
+    "KNN-STATE-DIGEST-01": {
+      "file": ".agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md",
+      "sha256": "d85622e72f450de28eddc7a63994c97dd629ef8bbe5bf2ce8a92836503fb2b43"
+    },
+    "KNN-STATE-GPU-01": {
+      "file": ".agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md",
+      "sha256": "d85622e72f450de28eddc7a63994c97dd629ef8bbe5bf2ce8a92836503fb2b43"
+    },
+    "KOTH-TAKEOVER-RULE-01": {
+      "file": ".agent/decisions/2026-10-19-KOTH-TAKEOVER-RULE-01.md",
+      "sha256": "d3da71479c8d3dfc4da6fe2eaaee12b7055286cc422ed4c2c0e0e442ae674894"
+    },
+    "LAUNCHPAD-ACCEPT-01": {
+      "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-03.md",
+      "sha256": "d1a045d932e3c497f97ef29e1638e9681d81d6edc48554345dedf957919036a4"
+    },
+    "LAUNCHPAD-ACCEPT-02": {
+      "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-02.md",
+      "sha256": "c803b43cef7a46b024ae39214577a8db774519ceb06147c923d66fcb9de57965"
+    },
+    "LAUNCHPAD-ACCEPT-03": {
+      "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-03.md",
+      "sha256": "d1a045d932e3c497f97ef29e1638e9681d81d6edc48554345dedf957919036a4"
+    },
+    "LAUNCHPAD-ACCEPT-04": {
+      "file": ".agent/decisions/2026-10-07-LAUNCHPAD-ACCEPT-04.md",
+      "sha256": "3d7374ae7afc3bb743ab1bc41d2b5927f3da0a13e58bd7e9cfde4b7ee00bc386"
+    },
+    "LAUNCHPAD-COMPUTE-BUDGET-STATUS-01": {
+      "file": ".agent/decisions/2026-10-08-LAUNCHPAD-COMPUTE-BUDGET-STATUS-01.md",
+      "sha256": "b6637df3ac8c052a3ee8b99e6ac8099222ab38afb02a18acf53980872f060f04"
+    },
+    "LAUNCHPAD-LEVELS-01": {
+      "file": ".agent/decisions/2026-10-07-LAUNCHPAD-LEVELS-01-S1.md",
+      "sha256": "cd0f44cf5ef8c84c1c7e3f067586b63a4bacc5c99207265012a37eadee4a4117"
+    },
+    "LAUNCHPAD-PAGE-USABILITY-01": {
+      "file": ".agent/decisions/2026-10-05-LAUNCHPAD-PAGE-USABILITY-01.md",
+      "sha256": "a58a364cca39a9f1ed95b170e294dd34e6ab301bd4477f8447e93878bb467a2a"
+    },
+    "LAUNCHPAD-PRACTICE-RETRY-01": {
+      "file": ".agent/tickets/LAUNCHPAD-PRACTICE-RETRY-01.md",
+      "sha256": "73cd209e4e1606998bb3ad082f74fdef6fdca53e7b08ba714ded13485cb29e53"
+    },
+    "LAUNCHPAD-T03-REFUSAL-COVERAGE-01": {
+      "file": ".agent/decisions/2026-10-15-LAUNCHPAD-T03-REFUSAL-COVERAGE-01.md",
+      "sha256": "dd71ddb3d69890c8c46c7e7ba8aa8ee50cf35138f362892805d93bc04a9a0da1"
+    },
+    "LAW-CONSISTENCY-CHECK-01": {
+      "file": ".agent/decisions/2026-10-11-LAW-CONSISTENCY-CHECK-01.md",
+      "sha256": "7ab850dc236d6942d1fec4f01f1cb3fc0ae14921684183ff9b91f1e8a0ae0255"
+    },
+    "LEVEL4-DEV-VARIANT-01": {
+      "file": ".agent/decisions/2026-10-08-LEVEL4-DEV-VARIANT-01.md",
+      "sha256": "a668f4c71205eab5b2224fa2c8c5dd8c60aa897f34f2091aa947ac020b6b1157"
+    },
+    "LEVEL4-G5-LANE-MEMORY-01": {
+      "file": ".agent/tickets/LEVEL4-G5-LANE-MEMORY-01_g5_lane_memory.md",
+      "sha256": "92b851523e0f29e0f16650bc44e3869e14896716bf1d7e21dafc10b82f95f092"
+    },
+    "LEVEL4-LOSS-OVERRIDE-01": {
+      "file": ".agent/decisions/2026-10-09-LEVEL4-G6-LOSS-TRAINING-01.md",
+      "sha256": "6bdb7a4d5756b21b5e779f6355e5d75e01067850038049b0e49453f4147475bd"
+    },
+    "LP-04": {
+      "file": ".agent/decisions/2026-10-13-LP04-MULTI-INTAKE-MIGRATION.md",
+      "sha256": "1c619e5645909130bbcbfa88dd516429c38dbf496d5c569b349fd90ff13cb4c9"
+    },
+    "LP-PROD-FIX-01": {
+      "file": ".agent/decisions/2026-10-04-LP-PROD-FIX-01.md",
+      "sha256": "9b67448395abff4a4788c3706b34eb7045f3627f53fe0fa8a885122158980b63"
+    },
+    "MINER-FAQ-01": {
+      "file": ".agent/decisions/2026-10-09-MINER-FAQ-01.md",
+      "sha256": "0f2dcc67e276c0adbaa59196de8ea1eaf8cea6a00169da4fd8a87f16f9d913f3"
+    },
+    "MINER-SURVIVE-REBOOT-01": {
+      "file": ".agent/tickets/MINER-SURVIVE-REBOOT-01.md",
+      "sha256": "23513a91081a194def9eecd2b8863b605ee3f2c7893ecfcbe9e6e4a644c36ce8"
+    },
+    "MODEL-PREDICTIONS-FOR-EVIDENCE-01": {
+      "file": ".agent/decisions/2026-10-10-MODEL-PREDICTIONS-FOR-EVIDENCE-01.md",
+      "sha256": "37699f016f221031057ee4a17fedfa757ea24c426752caf9770e7572a65059a1"
+    },
+    "MOTOR-FEASIBILITY-02": {
+      "file": ".agent/decisions/2026-10-10-MODEL-PREDICTIONS-FOR-EVIDENCE-01.md",
+      "sha256": "37699f016f221031057ee4a17fedfa757ea24c426752caf9770e7572a65059a1"
+    },
+    "MOTOR-NEURAL-01": {
+      "file": ".agent/decisions/2026-10-10-MOTOR-NEURAL-01.md",
+      "sha256": "7df5e094b560064d6ca649af51c18a4b643a46dad3fb13793cfb5c055eefb5b4"
+    },
+    "MOTOR-PEAK-FEASIBILITY-01": {
+      "file": ".agent/decisions/2026-10-09-MOTOR-PEAK-FEASIBILITY-01.md",
+      "sha256": "f6f0c1326011d46226194af6cfafeaff1debb056768a669a2bc9be202a1d1632"
+    },
+    "NOOP-CAPABILITY-AUDIT-01": {
+      "file": ".agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md",
+      "sha256": "d85622e72f450de28eddc7a63994c97dd629ef8bbe5bf2ce8a92836503fb2b43"
+    },
+    "ONBOARDING-AUTOMATION-01": {
+      "file": ".agent/tickets/ONBOARDING-AUTOMATION-01.md",
+      "sha256": "1f9ecb24f4396c606a2c48abda5dbceb3612cc54e8d8f297554770e3adf8cfc6"
+    },
+    "ONBOARDING-AUTOMATION-02": {
+      "file": ".agent/tickets/ONBOARDING-AUTOMATION-02.md",
+      "sha256": "5c1a99d5ab6e5d4a03567091a035919485ae70589c0193ff494b710a21c3113d"
+    },
+    "ONBOARDING-AUTOMATION-03": {
+      "file": ".agent/tickets/ONBOARDING-AUTOMATION-03.md",
+      "sha256": "0e97c053ea0df49806685348ea72f89d5c22364373d60e9f3f8a7563c875ee5f"
+    },
+    "ONBOARDING-AUTOMATION-04": {
+      "file": ".agent/tickets/ONBOARDING-AUTOMATION-04.md",
+      "sha256": "4492cacbf1407b33813b3f0ff58172a4a074dfc5d2edfe07ede39a7d70fd018c"
+    },
+    "ONBOARDING-AUTOMATION-REHEARSAL-01": {
+      "file": ".agent/decisions/2026-10-11-ONBOARDING-AUTOMATION-REHEARSAL-01.md",
+      "sha256": "0d2fa983fe6618ed4d34a48b6153dd994c9b14c01f2cba76a25bc0ad86ad55f9"
+    },
+    "ONBOARDING-EFFORT-RECORDS-01": {
+      "file": ".agent/decisions/2026-10-11-ONBOARDING-EFFORT-RECORDS-01.md",
+      "sha256": "a375beb8455ba7e8783188ffbe39e7bbae6a70388ac20107df7ee6f3b3d9162c"
+    },
+    "ONBOARDING-METRICS-01": {
+      "file": ".agent/decisions/2026-10-11-ONBOARDING-METRICS-BASIS-01.md",
+      "sha256": "f3137bcdb9650fa981393c77d90e8244a8cd481770e9748f6f4031d75e17d0bb"
+    },
+    "ONBOARDING-PIPELINE-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-LAUNCH-STRATEGY-01.md",
+      "sha256": "0e576208798f373332a8b80623ada925c792c7069e9fe5594f96b720bdbd5ac6"
+    },
+    "ONBOARDING-TIMELINE-01": {
+      "file": ".agent/decisions/2026-10-10-ONBOARDING-TIMELINE-01.md",
+      "sha256": "411943198f309a58639e09b569a2c2148fe255850fed9cc6b17c18f72de887f7"
+    },
+    "OPEN-BENCHMARK-ONBOARDING-01": {
+      "file": ".agent/decisions/2026-10-10-OPEN-BENCHMARK-ONBOARDING-01.md",
+      "sha256": "818b2820dfa99ec2ae7aa4d45e99946f2376552cffea164d34c89f3f35777368"
+    },
+    "OPERATOR-USABILITY-01": {
+      "file": ".agent/decisions/2026-10-05-OPERATOR-USABILITY-01.md",
+      "sha256": "59b1f8cf6e1d56b9f5edfe5a90a77d4bfbfaf0c0ed615fa49c35bcc6ea01efea"
+    },
+    "OPT-08": {
+      "file": ".agent/decisions/2026-10-12-OPT-08-PUBLIC-SCORING.md",
+      "sha256": "b80f0d47d87d6e2f0de528a70151a463c5b04f17820b926d76ed20f2d4132456"
+    },
+    "OPT-12": {
+      "file": ".agent/decisions/2026-10-13-PILOT-RUNNABILITY-COOLING-01.md",
+      "sha256": "78174b0daf570b4156d502955d1feeefa9c380eae83c3ba87e370e0762979787"
+    },
+    "OPT-15": {
+      "file": ".agent/decisions/2026-10-13-OPT-15c-PUBLIC-V2-REPLAY.md",
+      "sha256": "e457fa8eec151314e5e00369e196a7a282cdbaf018438a22582248a68eefc1a0"
+    },
+    "OPT-16": {
+      "file": ".agent/decisions/OPT-16-producer-bank-plan.md",
+      "sha256": "5a76a355bfe71a80d75d75394f82fcd5790e9120059df5aa7b18908ea6429e4b"
+    },
+    "OPT-17": {
+      "file": ".agent/decisions/2026-10-13-OPT17-L5-COMPARISON-ARMS-01.md",
+      "sha256": "6c8c6d951201b8fda161341dcee75e613198c523bcc850007120a4900beeca8c"
+    },
+    "OPT-20": {
+      "file": ".agent/decisions/2026-10-13-OPT-15c-PUBLIC-V2-REPLAY.md",
+      "sha256": "e457fa8eec151314e5e00369e196a7a282cdbaf018438a22582248a68eefc1a0"
+    },
+    "OWNER-5950X-GRADING-CLASS-01": {
+      "file": ".agent/decisions/2026-11-16-OWNER-5950X-GRADING-CLASS-01.md",
+      "sha256": "1b823e43cc62fd16a783b1db2f09b43df2d76f6f2398b109cc7dd1ce3f0e164d"
+    },
+    "OWNER-A100-40GB-BUILD-CLASS-01": {
+      "file": ".agent/decisions/2026-11-16-OWNER-A100-40GB-BUILD-CLASS-01.md",
+      "sha256": "7ab372ec76997a472f60d0266eaebdebd8c1f5774bbf31a8257d934fcd324528"
+    },
+    "OWNER-A40-ACCEPTANCE-GRANT-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-A40-ACCEPTANCE-GRANT-01.md",
+      "sha256": "a6c38ff40813772fb9701e68fb1f5bcd9263bab9cd3ae1f02b4118d5bf9c8abc"
+    },
+    "OWNER-A40-POD-ENV-PROVIDER-BOUND-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-A40-POD-ENV-PROVIDER-BOUND-01.md",
+      "sha256": "bfd81e2495565fe03a0a074837246d7b097edfc6308373d765df21575e79206f"
+    },
+    "OWNER-A6000-48GB-BUILD-CLASS-01": {
+      "file": ".agent/decisions/2026-11-23-OWNER-A6000-48GB-BUILD-CLASS-01.md",
+      "sha256": "b1418bb2b88172ec6161b96a440d172fee9241de8635a6c7328be97297c61d93"
+    },
+    "OWNER-ACCURACY-OOD-MIN-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-ACCURACY-OOD-MIN-01.md",
+      "sha256": "e5cc74df6e57e40b0eeeeb9cac307aa048d5d2b8c21e1f608331431d7881e1cc"
+    },
+    "OWNER-ADMISSION-COMBINED-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-01.md",
+      "sha256": "ed301b1cd44029d7853ff5b70294ea1a7ef7c97d5bed798e1066e8475b6c9f08"
+    },
+    "OWNER-ATTACK-RISKS-V7-G4B-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-ATTACK-RISKS-V7-G4B-01.md",
+      "sha256": "48b6ab5d22c731da5a2bbcb282fa7d8adadc0afd8c31c9aef322acf293b08d9a"
+    },
+    "OWNER-AUTO-PUBLISH-RETIRED-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-ANSWER-KEY-INTAKE-EXPOSURE-01.md",
+      "sha256": "b2bc376a2c176652f448044008724892b5703dd8566b7cb9545c72ee02974c73"
+    },
+    "OWNER-BACKBONE-CATALOG-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-BACKBONE-CATALOG-01.md",
+      "sha256": "162861d057c5e64a8b042fe8514a6c880664263f944a10b6a0eb218e0f5f75b4"
+    },
+    "OWNER-BANK-ARCHITECTURE-01": {
+      "file": ".agent/decisions/2026-10-07-CHALLENGE-BUYER-JOB-POPULATIONS-01.md",
+      "sha256": "282639904e61f80af04e211bba00b5fbaaff68519962db43588ba7e5a9586b84"
+    },
+    "OWNER-BANK-EXPOSURE-E1-TESTNET-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-BANK-EXPOSURE-E1-TESTNET-01.md",
+      "sha256": "4fce6fede80f2927630a5e6c69e2ffb13459a2d3b6c5dd2e7cb66abd5344e1e6"
+    },
+    "OWNER-BANK-EXPOSURE-E2-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BANK-EXPOSURE-E2-01.md",
+      "sha256": "4359d198e0897b9a5784a44d7815f056f54a9fecda2678b96951f31f5622c4d2"
+    },
+    "OWNER-BANK-SCHEDULED-ROTATION-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-BANK-SCHEDULED-ROTATION-01.md",
+      "sha256": "5a383d415f1383328de617e6854f415fd8046a3d216d00c3335e24df2b23315f"
+    },
+    "OWNER-BATTERY-3B-AND-EXPOSURE-01": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-B.md",
+      "sha256": "5dcffc4562e8f4b70e27f85017b17d253f736ea05dc190cd4b9115aeb03f15a3"
+    },
+    "OWNER-BATTERY-CARRYOVER-01": {
+      "file": ".agent/decisions/2026-10-03-LP-PROD-G.md",
+      "sha256": "9165754e226f90459944d330c2444c9cb9bcbe2191516eac6ab4082da984a7a1"
+    },
+    "OWNER-BATTERY-CHAMPIONSHIP-03": {
+      "file": ".agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-03.md",
+      "sha256": "f3e9b387acf2155a46c57e5a16f9452cf9a4c03d8b9e3bc4a62eb58fc26247df"
+    },
+    "OWNER-BATTERY-CHAMPIONSHIP-04": {
+      "file": ".agent/decisions/2026-10-12-MINER-STATUS-AND-SCREENING-LADDER-01-D1.md",
+      "sha256": "ffd3fd0b09b780a67e21f75f3aec3519b25e5d13eaa58513fac2898ba4304b32"
+    },
+    "OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-BATTERY-DUAL-SCORE-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-BATTERY-DUAL-SCORE-01.md",
+      "sha256": "993838bc8707e628141d56bafd27d5387c95d9f4471ed3139317a8bcaadbfd9b"
+    },
+    "OWNER-BATTERY-EXAM-GRID-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-EXAM-GRID-01.md",
+      "sha256": "0995d44b0d63c4325ecab9d30976792f27199cbe21d6b4aed003f2808fe32e8d"
+    },
+    "OWNER-BATTERY-GATE-PLATING-V2-01": {
+      "file": ".agent/decisions/2026-10-19-OWNER-BATTERY-GATE-PLATING-V2-01.md",
+      "sha256": "36cc2bdabd580606f854d0a1875955e241d4823526abdca29b9f7bb6df4e9af3"
+    },
+    "OWNER-BATTERY-LAUNCH-VERSION-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-LAUNCH-VERSION-01.md",
+      "sha256": "47638fd4be7835b25300576e5273f540f65d7c5a3c63c6cc05a3b0abb80b4f73"
+    },
+    "OWNER-BATTERY-OUT-OF-LAUNCH-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-BATTERY-OUT-OF-LAUNCH-01.md",
+      "sha256": "8352bd62e5bcbd4a248def564e582def0b52051c56bd8e27593e484ae27e4b71"
+    },
+    "OWNER-BATTERY-SCORE-CANDIDATE-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-01.md",
+      "sha256": "4b47aa3749d04c4be9307971c1f05634a1d3424d7aa1d5931b6744d1948d2d74"
+    },
+    "OWNER-BATTERY-SCORE-RULE-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-SCORE-RULE-01.md",
+      "sha256": "a1cd168669ec9f9c86287d878b4636510e4ec3f21864c8f790e5f19065dd678a"
+    },
+    "OWNER-BATTERY-SCORING-WINDOW-01": {
+      "file": ".agent/decisions/2026-10-07-OWNER-MOTOR-HIDDEN-POOL-01.md",
+      "sha256": "35f32c9f4b3e87735357838a7ae2b0f5ff597ec04ef6d28836a7cd286864bffc"
+    },
+    "OWNER-BATTERY-STUDY-4090-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-STUDY-4090-01.md",
+      "sha256": "5828c8350309d776c123215aaefda6cb4ed27b8181f78681c214d76b9b61f32a"
+    },
+    "OWNER-BATTERY-STUDY-SHEET-01": {
+      "file": ".agent/decisions/2026-10-07-OWNER-BATTERY-STUDY-SHEET-01.md",
+      "sha256": "3e4dbb0e04217a06f83a79eb1a897de270f786c0533a0cf89abcd6e460e8d64f"
+    },
+    "OWNER-BATTERY-TESTNET-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-TESTNET-WEIGHTS-01.md",
+      "sha256": "238ba930b0abe8c909620e7379dfcb4b00ac073bdb33adccfa9ef9329a47700a"
+    },
+    "OWNER-BATTERY-V2-DISCLOSURE-01": {
+      "file": ".agent/decisions/2026-10-03-GRAPHITE-D33.md",
+      "sha256": "722c34f5ec18e21972bede3712fb37a570da794e432ad8faaaf9ae581a71dd78"
+    },
+    "OWNER-BATTERY-V3-FINALS-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-BATTERY-SCORE-CANDIDATE-01.md",
+      "sha256": "4fd17cc374e5fc247c53c2a45b0a63fd3ffe35abfc503ad69bad5da694de01fa"
+    },
+    "OWNER-BOARD-TRUE-ORDER-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-BOARD-TRUE-ORDER-01.md",
+      "sha256": "710b7c0ea1fd70f9c0b7b050d9739970089d0c1b0141590c82e914acab17eb5e"
+    },
+    "OWNER-BT31-LAW-ANCHOR-SIGNED-01": {
+      "file": ".agent/decisions/2026-11-06-OWNER-BT31-LAW-ANCHOR-SIGNED-01.md",
+      "sha256": "16434f4a2f84fa0ad5d23830dd97f8c7b7b0ddeb48cb1f5c1a29ff33199db2c9"
+    },
+    "OWNER-BT32-BOX-B1T3-SIGNED-01": {
+      "file": ".agent/decisions/OWNER-BT32-BOX-B1T3-SIGNED-01.md",
+      "sha256": "b007804de2dd11988a74f86127db3a116fce06f3abf95eeca5c1d157eaf6c282"
+    },
+    "OWNER-BT32-LAW-CURVE-SIGNED-01": {
+      "file": ".agent/decisions/OWNER-BT32-BOX-B1T3-SIGNED-01.md",
+      "sha256": "b007804de2dd11988a74f86127db3a116fce06f3abf95eeca5c1d157eaf6c282"
+    },
+    "OWNER-BT32-REGION-SIGNED-01": {
+      "file": ".agent/decisions/OWNER-BT32-REGION-SIGNED-01.md",
+      "sha256": "2b091c589776c3eac389bdca7f0b328f3a1b5e0628f6bd408d8c1929cd10301e"
+    },
+    "OWNER-BUILD-REFUSAL-SPLIT-01": {
+      "file": ".agent/decisions/2026-10-19-OWNER-BUILD-REFUSAL-SPLIT-01.md",
+      "sha256": "def74c0ac6ce37ae17efdde732f663734a12b9f662b456ae2422145bf8e93aeb"
+    },
+    "OWNER-C-W1-D3-DELEGATION-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-C-W1-D4-AUTORESEARCH-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-C-W1-RESEARCH-PROGRAM-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-C03-DEV-ISOLATION-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-C1-BURGERS-ALPHA-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-CADENCE-AND-ROTATION-02": {
+      "file": ".agent/decisions/2026-10-20-OWNER-CADENCE-AND-ROTATION-02.md",
+      "sha256": "a08551b2fa3577c44b79a1f1bc3a187a6c649765220c009c8568c9eebca69e11"
+    },
+    "OWNER-CANARY-LIST-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-CANARY-LIST-01.md",
+      "sha256": "7701ad97eb34a303a9a37fd840c6504a2e987c60a5b792327de3cca091d8ea29"
+    },
+    "OWNER-CATALOG-CNO1D-WARN-ONLY-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-CATALOG-CNO1D-WARN-ONLY-01.md",
+      "sha256": "58822f414bc830dce306ce2c80c9353367dee15f91752c989ad31f01b176ba2a"
+    },
+    "OWNER-CATALOG-LICENCES-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-CATALOG-LICENCES-01.md",
+      "sha256": "a32dcae98b912706139af3b1d07bde34ffa927941210247216bfed6c37244f94"
+    },
+    "OWNER-CATALOG-LICENCES-02": {
+      "file": ".agent/decisions/2026-10-22-OWNER-CATALOG-LICENCES-02.md",
+      "sha256": "5267f13dd0c61b14f32a161c1fb2f427480d096f33a1d3dec65dd0ff0de20d26"
+    },
+    "OWNER-CATALOG-VENDORED-LICENCES-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-BACKBONE-CATALOG-01.md",
+      "sha256": "162861d057c5e64a8b042fe8514a6c880664263f944a10b6a0eb218e0f5f75b4"
+    },
+    "OWNER-CCX63-EVIDENCE-GRANT-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-CCX63-EVIDENCE-GRANT-01.md",
+      "sha256": "19a49f724cf3355f49650a091a0e555214e4f90f1b2152c8baf7a81730ad36c6"
+    },
+    "OWNER-CHALLENGE-ADMISSION-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-GATE-CUTOFF-01.md",
+      "sha256": "840c513791b4ef5fec2ca02e4b7474e032f0bc3269e4f1a5e33647d93211c530"
+    },
+    "OWNER-CHALLENGE-DESIGN-01": {
+      "file": ".agent/decisions/2026-10-05-MOTOR-GRAPHITE-SCORE-01.md",
+      "sha256": "0234619b0d3b1a33b7eece7d8d129fec01025e14ca907365391bbbc41d03f7b2"
+    },
+    "OWNER-CHALLENGE-KIT-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-CHALLENGE-ROADMAP-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-CHALLENGE-ROADMAP-02": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-CHALLENGE-ROADMAP-03": {
+      "file": ".agent/decisions/2026-10-08-LEVEL4-DEV-VARIANT-01.md",
+      "sha256": "a668f4c71205eab5b2224fa2c8c5dd8c60aa897f34f2091aa947ac020b6b1157"
+    },
+    "OWNER-CODE-VERIFICATION-ACCEPT-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+      "sha256": "64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25"
+    },
+    "OWNER-COMMITMENT-D6-TIE-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-COMMITMENT-D6-TIE-01.md",
+      "sha256": "b66daf6a46ee9391e4d1ebc9c6ff15f764e0d3a5b5714f05024f451cc009fafa"
+    },
+    "OWNER-COMMITMENT-POSTER-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-COMMITMENT-D6-TIE-01.md",
+      "sha256": "b66daf6a46ee9391e4d1ebc9c6ff15f764e0d3a5b5714f05024f451cc009fafa"
+    },
+    "OWNER-COMPUTE-BUDGET-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-COMPUTE-BUDGET-01.md",
+      "sha256": "6777fac3f5cbb50bd32140e338dc447dd42f76364cf0f222f04d8a24fceb6e75"
+    },
+    "OWNER-CONFIDENCE-MIDDLE-PATH-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-CONFIDENCE-MIDDLE-PATH-01.md",
+      "sha256": "14d68699ed63ac4dd9dd3055fd93c513ea8836f4b59342ab215434cd919b3c33"
+    },
+    "OWNER-CONSTRUCTION-ANYTHING-01": {
+      "file": ".agent/decisions/2026-10-13-OWNER-CONSTRUCTION-ANYTHING-01.md",
+      "sha256": "e99ed52a081e6553ec2a669a9076982ba66db91540e7e4be47d8f9e36a7042e7"
+    },
+    "OWNER-CONSTRUCTION-DECLARATIVE-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-CONSTRUCTION-ESCALATION-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01": {
+      "file": ".agent/decisions/2026-11-12-OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01.md",
+      "sha256": "11dd4f6aaa44e26c9540c7b2a9dc8e4fa3c4d3218b54b4d608a3f96b6a4aa189"
+    },
+    "OWNER-CONTAINMENT-ACCEPT-TESTNET-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-CONTAINMENT-ACCEPT-TESTNET-01.md",
+      "sha256": "9d7f12b5a770a5d870090a2f370cd2e4452f57cc7d20ca941369c901757b554e"
+    },
+    "OWNER-COOL18-FIT-BREAKER-SEAL-WAIVER-01": {
+      "file": ".agent/decisions/2026-11-12-COOL18-FIT-BREAKER-WAIVER-CONDITIONS.md",
+      "sha256": "c5bddda7d15e706562288ad6b2b9c9c90b02e52ae57caf7e6c40987bd21373b4"
+    },
+    "OWNER-COOLING-HOTSPOT-GATE-DROP-01": {
+      "file": ".agent/decisions/2026-10-28-OWNER-COOLING-HOTSPOT-GATE-DROP-01.md",
+      "sha256": "50cc36a2f4efd80d9c9a7c8dd6354ce8e9f853334df615156127db2ba02484bb"
+    },
+    "OWNER-COOLING-VERIFICATION-01": {
+      "file": ".agent/decisions/2026-10-19-OWNER-COOLING-VERIFICATION-01.md",
+      "sha256": "6331fe328472957ca43213dfbca1aeaf75aaf65dcee8bdaa737609741f77693e"
+    },
+    "OWNER-COOLING-VERIFICATION-ACCEPT-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-COOLING-VERIFICATION-ACCEPT-01.md",
+      "sha256": "2623cb6641e1c88a6fbedbf46a4bf11053159e03fe1468ebe5213d3c07b0c9bd"
+    },
+    "OWNER-CROWN-AVG-UNSTABLE-KING-01": {
+      "file": ".agent/decisions/2026-11-02-OWNER-CROWN-AVG-UNSTABLE-KING-01.md",
+      "sha256": "721b70c1882b097bcb9e72741abf8c2dcc6a296780db1c9be77047fb1255f6df"
+    },
+    "OWNER-CROWN-GRADE-REPEAT-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-CROWN-GRADE-REPEAT-01.md",
+      "sha256": "a27dcc7c88bd0bf34c1b92654cc0dc5690413af62ec13b57306a5c4fa5ec4923"
+    },
+    "OWNER-CROWN-MARGIN-2SD-01": {
+      "file": ".agent/decisions/2026-10-31-OWNER-COOLING-CROWNS-THIS-WEEK-01.md",
+      "sha256": "6355bc6cd2366cd17e3b7ee2d66156c7839c76f50387585a234a43ac1dc60d32"
+    },
+    "OWNER-CW1-DEVELOPMENT-CI-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-CW1-DEVELOPMENT-CI-02.md",
+      "sha256": "dd235d3e5adb3dbba686c570d5baf6583a944e5a02fc934b36fbf6c33a34a7d3"
+    },
+    "OWNER-CW1-DEVELOPMENT-CI-02": {
+      "file": ".agent/decisions/2026-10-11-OWNER-CW1-DEVELOPMENT-CI-02.md",
+      "sha256": "dd235d3e5adb3dbba686c570d5baf6583a944e5a02fc934b36fbf6c33a34a7d3"
+    },
+    "OWNER-DASHBOARD-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-DASHBOARD-01.md",
+      "sha256": "9fe135225b81bb38ff76bcf38dd26a8144d470b757ac2e73de5499d8e38ac387"
+    },
+    "OWNER-DASHBOARD-LIVE-SWITCH-01": {
+      "file": ".agent/decisions/2026-10-30-OWNER-DASHBOARD-LIVE-SWITCH-01.md",
+      "sha256": "5a2ae1bff9d83cebf607f8b9f11f0168b0ba48d1627a194102aa64a1d43eb454"
+    },
+    "OWNER-DATA-MOTOR-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-DATA-MOTOR-01.md",
+      "sha256": "9eb7c05a7ef2d18889010ae993d287b6cddbc147229bb57f7073105e038e954e"
+    },
+    "OWNER-DESIGN-DECISION-FIDELITY-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-DESIGN-DECISION-FIDELITY-01.md",
+      "sha256": "08f10253faf3b57c5748429dbff9ede40c4f4d5b55c51cf92015fb8c2cf378d9"
+    },
+    "OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01.md",
+      "sha256": "9b744c02d69d378937eb6a1528d40ba0cbdff201cdcf1f2e32e5547e5cd94423"
+    },
+    "OWNER-DEV-AUTONOMY-01": {
+      "file": ".agent/decisions/2026-10-10-GRANT-POD-CEILING-01.md",
+      "sha256": "d90d085ebcb54dcf7f4b9129ad0614ba01d8e4ba4d8190b777b55b17abdf155e"
+    },
+    "OWNER-DOOR-A-NARROW-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-DOOR-A-NARROW-01.md",
+      "sha256": "a084ebb7cd81217dec39b5a66cbffbc67d599b43695039b69ed7571b3f7254e2"
+    },
+    "OWNER-DX-03": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-STUDY-02.md",
+      "sha256": "d5572d363c47b0a35aa5a2a7aa1a0fe42df1997c6def84d4fe1a905006c8f117"
+    },
+    "OWNER-EV4-REGEN-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-EV5-CAP-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
+      "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
+    },
+    "OWNER-EV5-FREEZE-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
+      "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
+    },
+    "OWNER-EV5-GO-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-EV5-GO-01.md",
+      "sha256": "9dcbb1767a7b59ecc9c167d7cab554feb5caa8d1e3ccdefc0d85cda274032928"
+    },
+    "OWNER-EV5-GPU-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-EV5-GPU-01.md",
+      "sha256": "880f1b06f4b12eaf53d1b62a5508dc6b778d0f50b7179aaa9a970a643b234222"
+    },
+    "OWNER-EV5-Q1-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-Q1-01.md",
+      "sha256": "6adb2f07b4c20f494e57b321c70364fbc73223ad54f7c9a0fcabc301c7a4e2ac"
+    },
+    "OWNER-EV5-Q2-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-Q2-01.md",
+      "sha256": "40977e611bcbf7ed7e3dfb5afb25fdcdb6901355b6dbbcd520c3dbcb7bf46c93"
+    },
+    "OWNER-EV5-Q3-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
+      "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
+    },
+    "OWNER-EV5-Q4-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-Q4-01.md",
+      "sha256": "b0732b3f28de710d9fd460ae72931ae0b3445f2d50fc1f6ff445ee3a97befef2"
+    },
+    "OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01": {
+      "file": ".agent/decisions/2026-10-18-OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01.md",
+      "sha256": "71b4fc4dbe188b4c20911ffede0bbffe56a59f913d1acabf241c15ef06d09668"
+    },
+    "OWNER-EXAM-CAP-ROTATION-01": {
+      "file": ".agent/decisions/2026-10-19-OWNER-BUILD-REFUSAL-SPLIT-01.md",
+      "sha256": "def74c0ac6ce37ae17efdde732f663734a12b9f662b456ae2422145bf8e93aeb"
+    },
+    "OWNER-EXAM-VALUE-PICKS-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-EXAM-VALUE-PICKS-01.md",
+      "sha256": "f1c1be695790cfda40d3a24933632319e95a915229eed10928b6d3efe827c7f7"
+    },
+    "OWNER-EXEC-APPROVALS-01": {
+      "file": ".agent/decisions/2026-10-03-JULIA-GPU-01-D1.md",
+      "sha256": "ea4c63d47438b9c11ac44c9e9740f803fcd775d4f4ed350ff5678f3c706b85b9"
+    },
+    "OWNER-F02-F08-EXAM-DRAW-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-F02-F08-EXAM-DRAW-01.md",
+      "sha256": "7b3edc0bb5266bb1aefc5a731c901356bd3bc3ae14a1b0986ac0a9d0ca53b3fd"
+    },
+    "OWNER-F02-REBUILD-MMS-ACCEPT-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-F02-REBUILD-MMS-ACCEPT-01.md",
+      "sha256": "c763568a6384e11e1c3ff14d1015d0cab8989645123919ede7426db3b79ee994"
+    },
+    "OWNER-F02-TRAIN40-V2-01": {
+      "file": ".agent/decisions/2026-10-19-OWNER-F02-TRAIN40-V2-01.md",
+      "sha256": "8fcae90d0c11eae97cee2e88436357801a74df5bd5c20b13d986fbf5f7f7a3e6"
+    },
+    "OWNER-F02-V3-LEAK-BOX-SIGNED-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-F02-V3-LEAK-BOX-SIGNED-01.md",
+      "sha256": "bfaf7773e79e7b073c242c166bc854b37a2ed22870f3433a6cb8d5a82043b8e6"
+    },
+    "OWNER-F02-V3-PICKS-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-F02-V3-PICKS-01.md",
+      "sha256": "9f753ed6d1b3837d8ca6ecf71d31c755eee6659471eb88906fccc748bfb40e2c"
+    },
+    "OWNER-F02-V3-TABLES-SIGNED-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-F02-V3-TABLES-SIGNED-01.md",
+      "sha256": "1d1cb5a8259d9e45a454ad64b8c45a23e39e8a2c8841bb8fc494397daef754b4"
+    },
+    "OWNER-F08-17-QUERY-BUDGET-80-01": {
+      "file": ".agent/decisions/2026-10-30-OWNER-F08-17-QUERY-BUDGET-80-01.md",
+      "sha256": "c1000875275770e87e1c1a0d072710232ac4cd62dacdf3cdcc2fdc91fcfc8ddc"
+    },
+    "OWNER-F08-FREQUENCY-BAND-DROP-01": {
+      "file": ".agent/decisions/2026-10-28-OWNER-F08-FREQUENCY-BAND-DROP-01.md",
+      "sha256": "0f2e862d7a6b5fe0373268ec73406597d2ecf9fd873daa0b2e94bf8e0293c49f"
+    },
+    "OWNER-F08-REBUILD-MMS-ACCEPT-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-F08-REBUILD-MMS-ACCEPT-01.md",
+      "sha256": "aceab3fd5939f188f7e0629b91b83c9bd13cf72b0a0c63d9709c6812b59876c4"
+    },
+    "OWNER-F08-V2-ALLOYS-SIGNED-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-F08-V2-ALLOYS-SIGNED-01.md",
+      "sha256": "9bb3844289737a164f11075348a5e6631b2a165fbc329450cb697c6e70027a23"
+    },
+    "OWNER-F08-V2-VALUES-01": {
+      "file": ".agent/decisions/2026-11-01-OWNER-F08-V2-VALUES-01.md",
+      "sha256": "6021016547d292820d6fae2f1dc4f2c592337e18cd89d3f0ffd16973407f3a15"
+    },
+    "OWNER-FIRST-CROWN-BEATS-BASELINE-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-FIRST-CROWN-BEATS-BASELINE-01.md",
+      "sha256": "c52291ca82ed08821bfab73b6ec48a1665f57b338189a314463ab78ce847afc9"
+    },
+    "OWNER-FITTED-INFO-32KIB-AT-LAUNCH-01": {
+      "file": ".agent/decisions/2026-10-30-OWNER-CATALOG-INFO-BUDGET-EXEMPT-01.md",
+      "sha256": "d3fe8f5e4f6008b59f0728d94dc75904fba5c29d85342da0d77bfc06319cc14b"
+    },
+    "OWNER-FULL-EXAM-BANK-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-FULL-EXAM-BANK-01.md",
+      "sha256": "89a220cc0f390ba9024caed2aee479230d14057ac5a2930f071ce13575a3ce33"
+    },
+    "OWNER-GATE-CUTOFF-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-GATE-CUTOFF-01.md",
+      "sha256": "840c513791b4ef5fec2ca02e4b7474e032f0bc3269e4f1a5e33647d93211c530"
+    },
+    "OWNER-GATES-ON-POOL-3A-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-GATES-ON-POOL-3A-01.md",
+      "sha256": "773f882bbd5006d8f5ec5438c5c335cf31e075465e9dc7ca32c984b2c5073dda"
+    },
+    "OWNER-GPU-DEVICE-CLASSES-01": {
+      "file": ".agent/decisions/2026-10-09-OWNER-GPU-DEVICE-CLASSES-01.md",
+      "sha256": "6e0dee191a64b68a0cb11b242ee6dfe55709e1843704bface4a24a63c4e8ec48"
+    },
+    "OWNER-GPU-LANE-NO-OP-GATE-01": {
+      "file": ".agent/decisions/2026-11-17-OWNER-GPU-LANE-NO-OP-GATE-01.md",
+      "sha256": "2a36bca6f628c2254e181b3b85629d29df18c54f71b28a74fea922e6c4421ff7"
+    },
+    "OWNER-GPU-ONLY-REPEAT-TOLERANCE-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-ATTACK-RISKS-V7-G4B-01.md",
+      "sha256": "48b6ab5d22c731da5a2bbcb282fa7d8adadc0afd8c31c9aef322acf293b08d9a"
+    },
+    "OWNER-GPU-OPEN-WITH-READY-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-GPU-OPEN-WITH-READY-01.md",
+      "sha256": "08cc36e8c835b6d52e012226894fa5b7a37cbc4026834a9d009f91c9d8c1e95e"
+    },
+    "OWNER-GPU-REBUILD-RENTED-4090-01": {
+      "file": ".agent/decisions/2026-10-26-OWNER-GPU-REBUILD-RENTED-4090-01.md",
+      "sha256": "9f50b52a717577e60bc2bac3467601b4d92d034ade6583671e415d6158cdadb9"
+    },
+    "OWNER-GPUYARD-BACKUP-VALIDATOR-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-CONTAINMENT-ACCEPT-GPUYARD-TESTNET-01.md",
+      "sha256": "57fde27519f62b9dbc8d9c7829c358ad8d0543c4bf76b1c53094ed9898e3b018"
+    },
+    "OWNER-GRADE-FEEDBACK-LADDER-01": {
+      "file": ".agent/decisions/2026-10-19-OWNER-EXAM-CAP-ROTATION-01.md",
+      "sha256": "0fbff4f70c7070a301e6d873229de0df911e375ed1aa3ea9adc05584f947af3a"
+    },
+    "OWNER-GRAPH-OPS-OPEN-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-GRAPH-OPS-OPEN-01.md",
+      "sha256": "acd8a76ab1b08e73b200e1cbbb6e9c67f93a744a6eb0e97f8aa2bf2e06b24a91"
+    },
+    "OWNER-GRAPHITE-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-GRAPHITE-02": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-D34.md",
+      "sha256": "cf3c23729f080e157e043344df86ba4a231f4a16374828324042d9b87416564e"
+    },
+    "OWNER-GRAPHITE-03": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-GRAPHITE-05": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-GRAPHITE-06": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-GRAPHITE-ATTACKER-01": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-A.md",
+      "sha256": "159b71171d9228b1b6b3f6c365d78eacc8d2a01f3ce8525287dbc714ada4c621"
+    },
+    "OWNER-GRAPHITE-DEV-LEVELS-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-DEV-LEVELS-01.md",
+      "sha256": "2737f5372c3345b16e5615bbd1acc829b5e286d8f0817e5a50433a724437e6ab"
+    },
+    "OWNER-GRAPHITE-MINER-01": {
+      "file": ".agent/decisions/2026-10-03-GRAPHITE-MINER-S1.md",
+      "sha256": "44e855f5a168d1ad50ddf7e4857df171e3bdbdab309986fb5fb0d312b558443a"
+    },
+    "OWNER-GRAPHITE-MINER-INPUT-WINDOW-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-GRAPHITE-MINER-INPUT-WINDOW-01.md",
+      "sha256": "b46a71a66ffc3dec6ca61885bccaf82911c74378d2c420d90f6438a1b89a858d"
+    },
+    "OWNER-GRAPHITE-PHASE3-R3-01": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md",
+      "sha256": "54ca1ee6139e1d22326ec7d603bc158712ef97ca6be56039a6c228a1164940ae"
+    },
+    "OWNER-GRAPHITE-PHASE3-R4-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R4-01.md",
+      "sha256": "c609d5778fe7157c943d7a0b20c51b6edff19716af476dbd728160b38ef96a72"
+    },
+    "OWNER-GRAPHITE-PHASE3-R4-CEILING-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-GRAPHITE-PHASE3-R4-CEILING-01.md",
+      "sha256": "6bdbcf1b595ad0122dbbc9ec81a0d32d09ed4ce867b40d351bf9e8740edde2ba"
+    },
+    "OWNER-GRAPHITE-PHASE3-REFUND-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-PHASE3-REFUND-01.md",
+      "sha256": "78926b93687d7c8de5fa32a969b52aa0b9b67f4d531b04f2680ce8fbd87d9153"
+    },
+    "OWNER-GRAPHITE-STAGE-A-01": {
+      "file": ".agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md",
+      "sha256": "3a67448b725dc1d3062ca734548d1d35c83f8cec2f10ff5149094bf721f077d5"
+    },
+    "OWNER-GRAPHITE-STAGE-B-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md",
+      "sha256": "982c89a877b0643eb192224e50af41ffd72ba760ca23b8a93ccfd1b8eaba713d"
+    },
+    "OWNER-GRAPHITE-STAGE-C-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md",
+      "sha256": "de39d7cc46506f3006834c3c21a08e5da82740b015584d5348132f199380255a"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-01": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-CLOSEOUT-05.md",
+      "sha256": "cdd4f3079754d33a691b1e040b8cc8f906e432d6809b405f7e066727bd8bd6c9"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-02": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-E.md",
+      "sha256": "e073a3bd2c776ac5bb7e70de01f0b9ac67223b688a1e097445434b4a4ed68f8e"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-03": {
+      "file": ".agent/decisions/2026-10-04-GRAPHITE-CONDITIONAL-EXPLORATION-01.md",
+      "sha256": "6a1dccd24187a621e95b207d39247e438b8926300e3230fbe1cd4abcb0cc0101"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-04": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
+      "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-05": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md",
+      "sha256": "d1cb8036283f989294e40f728dc6ae3bfb969a5d0c2a24abda93e27cbc96bffc"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-06": {
+      "file": ".agent/decisions/2026-10-05-COOLING-GRAPHITE-COMPARE-01.md",
+      "sha256": "332b00b03dde99f47edc90d5185440cfefd1d947a93e569667aa43a9baee107d"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-07": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md",
+      "sha256": "78b2d5974dd438da428016755c7cfdc2caaf35878d2f96eaf92e9d0e744fde22"
+    },
+    "OWNER-GRAPHITE-TEST-WAVE-08": {
+      "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R4-01.md",
+      "sha256": "c609d5778fe7157c943d7a0b20c51b6edff19716af476dbd728160b38ef96a72"
+    },
+    "OWNER-GUARD-REVIEW-SOFTENS-01": {
+      "file": ".agent/decisions/2026-10-31-OWNER-GUARD-REVIEW-SOFTENS-01.md",
+      "sha256": "175a86366c0f1f0112aabdf3187b588e39ee06d67a7663784ebd81309f07f78d"
+    },
+    "OWNER-HEADROOM-REGIONS-01": {
+      "file": ".agent/decisions/2026-10-24-OWNER-HEADROOM-REGIONS-01.md",
+      "sha256": "d408b0a3cb4afbee08d6b7e53262b9782bbc2fa842e186c9c79eadeb19c7e281"
+    },
+    "OWNER-IMAGE-TIE-QUICK-FIX-NOW-FULL-LATER-01": {
+      "file": ".agent/decisions/2026-10-30-OWNER-CATALOG-INFO-BUDGET-EXEMPT-01.md",
+      "sha256": "d3fe8f5e4f6008b59f0728d94dc75904fba5c29d85342da0d77bfc06319cc14b"
+    },
+    "OWNER-INTAKE-EXPOSURE-01": {
+      "file": ".agent/decisions/2026-10-03-LP-PROD-G.md",
+      "sha256": "9165754e226f90459944d330c2444c9cb9bcbe2191516eac6ab4082da984a7a1"
+    },
+    "OWNER-INVERSE-DESIGN-PROOF-01": {
+      "file": ".agent/decisions/2026-10-24-OWNER-HEADROOM-REGIONS-01.md",
+      "sha256": "d408b0a3cb4afbee08d6b7e53262b9782bbc2fa842e186c9c79eadeb19c7e281"
+    },
+    "OWNER-KING-SELF-IMPROVEMENT-RESET-01": {
+      "file": ".agent/decisions/2026-10-31-OWNER-KING-SELF-IMPROVEMENT-RESET-01.md",
+      "sha256": "0e4d7549c8e899a490e273a9c183a5465b66008924249d5bbe2878debc360c13"
+    },
+    "OWNER-KOTH-CARRY-ACROSS-VERSIONS-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-KOTH-CARRY-ACROSS-VERSIONS-01.md",
+      "sha256": "5198982e8275d547e0a2a4dc8d33b1603de3efa9166b7078e5b48ace4214c66d"
+    },
+    "OWNER-KOTH-MARGIN-AND-PRIVACY-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-KOTH-MARGIN-AND-PRIVACY-01.md",
+      "sha256": "c145b4ffaeca8084ff42bd1d82f6cb71778e47d396c8b94b56263d4ffd50398f"
+    },
+    "OWNER-L4-CONSTANT-ACCOUNTING-02": {
+      "file": ".agent/decisions/2026-10-19-OWNER-L4-CONSTANT-ACCOUNTING-02.md",
+      "sha256": "79e5d82fd7e70fe6b268c77249a2109773e776da5d3f2481c79f7a2f1c61c191"
+    },
+    "OWNER-L4-G5-COMPILE-ISOLATION-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-L4-G5-COMPILE-ISOLATION-01.md",
+      "sha256": "34193b58812a602b2414a21df0d8ae0bae485d07e861aa0bfeaba9f96d9c1877"
+    },
+    "OWNER-L4-VALUES-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-L4-VALUES-01.md",
+      "sha256": "294db07d1053e8646b995226d2ec8b225d2220eba3d611a15df0f362d8d099c9"
+    },
+    "OWNER-LA-F9-SECURITY-ACCEPT-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-GRAPHITE-MINER-INPUT-WINDOW-01.md",
+      "sha256": "b46a71a66ffc3dec6ca61885bccaf82911c74378d2c420d90f6438a1b89a858d"
+    },
+    "OWNER-LADDER-THROUGH-LAUNCHPAD-01": {
+      "file": ".agent/decisions/2026-10-07-LAUNCHPAD-LEVELS-01-S1.md",
+      "sha256": "cd0f44cf5ef8c84c1c7e3f067586b63a4bacc5c99207265012a37eadee4a4117"
+    },
+    "OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01.md",
+      "sha256": "b94ae5c69c0bc9269ea56a2c68d1cd1c3efb702b79712171562e9e705cd9a56a"
+    },
+    "OWNER-LAUNCH-PORTFOLIO-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-LAUNCH-PORTFOLIO-02.md",
+      "sha256": "412b4e9feb3bfd289ea81f47ba314d74a0af7a6a29147bdc770dddc04dc11f6d"
+    },
+    "OWNER-LAUNCH-PORTFOLIO-02": {
+      "file": ".agent/decisions/2026-10-04-CHALLENGE-AI-COOLING-L0-06.md",
+      "sha256": "66c17463bd9e8e9595affa8ac6caaf044db4e3f7082c46b1ccc551c60da132be"
+    },
+    "OWNER-LAUNCH-SUPPORTED-MACHINE-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-LAUNCH-SUPPORTED-MACHINE-01.md",
+      "sha256": "10ff18f6bb4603072ac3ba89e45ddc897e242d182fafa9cfa7a9788372c1cbdb"
+    },
+    "OWNER-LAUNCHPAD-E2E-SUITE-01": {
+      "file": ".agent/decisions/2026-10-15-LAUNCHPAD-T01-CI-COVERAGE-01.md",
+      "sha256": "dd24a895bc19cb7b4d6990fc456a480abed2e175e291a584952683fd19f61dec"
+    },
+    "OWNER-LAUNCHPAD-PROD-01": {
+      "file": ".agent/decisions/2026-10-03-GRAPHITE-MINER-S1.md",
+      "sha256": "44e855f5a168d1ad50ddf7e4857df171e3bdbdab309986fb5fb0d312b558443a"
+    },
+    "OWNER-LAUNCHPAD-PROD-02": {
+      "file": ".agent/decisions/2026-10-03-GRAPHITE-MINER-S1.md",
+      "sha256": "44e855f5a168d1ad50ddf7e4857df171e3bdbdab309986fb5fb0d312b558443a"
+    },
+    "OWNER-LEG-MINIMUM-BEST-AGENT-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-FIRST-CROWN-BEATS-BASELINE-01.md",
+      "sha256": "c52291ca82ed08821bfab73b6ec48a1665f57b338189a314463ab78ce847afc9"
+    },
+    "OWNER-LEVEL4-GRAPH-ONLY-01": {
+      "file": ".agent/decisions/2026-10-07-OWNER-LADDER-THROUGH-LAUNCHPAD-01.md",
+      "sha256": "481c7ba883041a5eaa5115dc25e80af44209681d4b27a6ccc7de497665a09a08"
+    },
+    "OWNER-LEVEL4-TESTNET-RUNS-01": {
+      "file": ".agent/decisions/2026-10-09-OWNER-LEVEL4-TESTNET-RUNS-01.md",
+      "sha256": "470c5f5853889245b175c4994b731a882bee4beb83852558c56cd64d198b7585"
+    },
+    "OWNER-MAINNET-EXAM-KEYS-01": {
+      "file": ".agent/decisions/2026-11-11-OWNER-MAINNET-EXAM-KEYS-01.md",
+      "sha256": "faf98225dbdbe1d433e30c3bf22e11b5929fa4048019be0d6eba45e1cb2906a1"
+    },
+    "OWNER-MAINNET-QUALIFIED-STANDING-01": {
+      "file": ".agent/decisions/2026-11-14-OWNER-MAINNET-QUALIFIED-STANDING-01.md",
+      "sha256": "cbd0a566f1f3e90d8c0d7e9cdf78b90359ba265344abdeb5f25433335e259235"
+    },
+    "OWNER-MAINNET-WEIGHT-POLICY-V1-01": {
+      "file": ".agent/decisions/2026-11-09-OWNER-MAINNET-WEIGHT-POLICY-V1-01.md",
+      "sha256": "5b3b12e36d9c603cb76caad684949d61ee94b829d5e7010fb59655299e0a329d"
+    },
+    "OWNER-MINER-COMPUTE-LINK-ONLY-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-MINER-RESEARCH-SURFACE-04.md",
+      "sha256": "d2783ba97833f0d97bbf906acd2306e95db6770f563e9afa123ce5a700e32943"
+    },
+    "OWNER-MINER-DATA-KITS-LAUNCH-STAPLE-01": {
+      "file": ".agent/decisions/2026-11-03-OWNER-MINER-DATA-KITS-LAUNCH-STAPLE-01.md",
+      "sha256": "7d3e9ba77be75baa02f7f716345b4a38cb4ba94b079f617f456093fef6965a51"
+    },
+    "OWNER-MINER-ENVIRONMENT-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-MINER-LIMITS-EXAM-ONLY-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-A40-POD-ENV-PROVIDER-BOUND-01.md",
+      "sha256": "bfd81e2495565fe03a0a074837246d7b097edfc6308373d765df21575e79206f"
+    },
+    "OWNER-MINER-OWN-MACHINE-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-MINER-RESEARCH-SURFACE-01": {
+      "file": ".agent/decisions/2026-10-02-OWNER-MINER-RESEARCH-SURFACE-01.md",
+      "sha256": "b572af96f29933e7ec79c720c9355874761ad09038ef1f01e9da86f08e00464b"
+    },
+    "OWNER-MINER-RESEARCH-SURFACE-03": {
+      "file": ".agent/decisions/2026-10-03-OWNER-MINER-RESEARCH-SURFACE-03.md",
+      "sha256": "eb1d4c0f7a1db7e7275e45e1a1f0548d868c0927d8160ee8b68a1074350a7797"
+    },
+    "OWNER-MINER-RESEARCH-SURFACE-04": {
+      "file": ".agent/decisions/2026-10-03-OWNER-MINER-RESEARCH-SURFACE-04.md",
+      "sha256": "d2783ba97833f0d97bbf906acd2306e95db6770f563e9afa123ce5a700e32943"
+    },
+    "OWNER-MINER-SETUP-AGENT-FIRST-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-MODULAR-CHALLENGES-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-MODULAR-CHALLENGES-01.md",
+      "sha256": "84b5adc493f54759ed64c2283574c267e9cfefdca5767fc629081e64d3e4e009"
+    },
+    "OWNER-MOTOR-COUNTED-ADOPT-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-MOTOR-COUNTED-ADOPT-01.md",
+      "sha256": "81868a309dc16cd1a19f95d7301a5ed1ab0659d16cd4469779ded6bdedf20097"
+    },
+    "OWNER-MOTOR-EXAM-DRAW-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-MOTOR-EXAM-DRAW-01.md",
+      "sha256": "6f5d090f07690505bef1b303c68f4fd151acc4b5f07f18f6e734ea407f5d1809"
+    },
+    "OWNER-MOTOR-EXAM-GRID-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-EXAM-GRID-01.md",
+      "sha256": "0995d44b0d63c4325ecab9d30976792f27199cbe21d6b4aed003f2808fe32e8d"
+    },
+    "OWNER-MOTOR-HIDDEN-POOL-01": {
+      "file": ".agent/decisions/2026-10-07-OWNER-BANK-ARCHITECTURE-01.md",
+      "sha256": "a831958497bf16afd81e0949c695e9313764158744afab184e2350b2cc639a18"
+    },
+    "OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01": {
+      "file": ".agent/decisions/2026-10-26-OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01.md",
+      "sha256": "2ee80395b80744d892036320c5753283281521a61914c8a42647ca7f5b25e3fe"
+    },
+    "OWNER-MOTOR-TRAIN-GRANT-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-MOTOR-TRAIN-GRANT-01.md",
+      "sha256": "30bd5e6f4e1d8664299f00a1b14f30ff36c49ef075c71cde56629e810bf2939a"
+    },
+    "OWNER-PHYSICS-GATES-01": {
+      "file": ".agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md",
+      "sha256": "3a063759a08cade18d16f0b270135ef48eb00e232d8aeb19e39d51f369057bc2"
+    },
+    "OWNER-PLATING-REFERENCE-01": {
+      "file": ".agent/decisions/2026-10-13-OWNER-MERGE-APPROVAL-01.md",
+      "sha256": "d68734ab69dfa80c0266f306b1daec64d7baff33282744508d45e6e7a15bbb81"
+    },
+    "OWNER-POOL-CONSTANTS-PROVISIONAL-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-POOL-CONSTANTS-PROVISIONAL-01.md",
+      "sha256": "8fa91ec231c6a28776997ff4e95fb17169ff31fdbc140a373578eae22719932c"
+    },
+    "OWNER-PRACTICE-SHOWS-MINIMUMS-01": {
+      "file": ".agent/decisions/2026-10-24-OWNER-PRACTICE-SHOWS-MINIMUMS-01.md",
+      "sha256": "feadb971a99bdded70fe0662d26600b9dd8fd1d350901ee8fdfced2d5179f657"
+    },
+    "OWNER-PROBING-COUNTERS-01": {
+      "file": ".agent/decisions/2026-11-06-OWNER-PROBING-COUNTERS-01.md",
+      "sha256": "668e4d6e9f67e65518812d41b59efdfae8cdf4bc23ad2b254e0254cbf9b37099"
+    },
+    "OWNER-PUBLIC-DEV-DECISIONS-GRANT-01": {
+      "file": ".agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md",
+      "sha256": "0b767cdb8c2e6d9a6e3d72c9d8b082b13769da4f5cef92c4a3cb305237bbd6bf"
+    },
+    "OWNER-PUBLISH-WHAT-IS-TESTED-01": {
+      "file": ".agent/decisions/2026-10-24-OWNER-PRACTICE-SHOWS-MINIMUMS-01.md",
+      "sha256": "feadb971a99bdded70fe0662d26600b9dd8fd1d350901ee8fdfced2d5179f657"
+    },
+    "OWNER-PYTORCH-BACKEND-01": {
+      "file": ".agent/decisions/2026-10-13-PLT30-SHARED-GPU-PRACTICE-01.md",
+      "sha256": "7383f1d4732028d6051bcfe69ce7d3fea1cd6a814b067c5b090718f7c15b77c2"
+    },
+    "OWNER-QR-LIBRARY-LICENCE-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-QR-LIBRARY-LICENCE-01.md",
+      "sha256": "619cc4802f66f2488935f67aa982c9ef637b93eb1559fdc7bf7830f8c1376324"
+    },
+    "OWNER-RATE-STUDY-D1-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-RATE-STUDY-D1-01.md",
+      "sha256": "2490229798bb9a6c91c91ed353f097d87225672db001bef11480eb8acb3dde7c"
+    },
+    "OWNER-RATE-STUDY-TOKENS-01": {
+      "file": ".agent/decisions/2026-10-08-GRAPHITE-STUDY-GRANT-BINDING-01.md",
+      "sha256": "0b7249f5cfde8599ca455a25ecfdf8bb08c1a05cb2b0c350baa8ff09afd4c214"
+    },
+    "OWNER-REBUILD-TIME-LIMIT-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-REBUILD-TIME-LIMIT-01.md",
+      "sha256": "88c4133647aed75984cbb83b02456f77abf09642a219f5290ce57e9f6dc7d1c3"
+    },
+    "OWNER-REBUILD-WALL-11MIN-01": {
+      "file": ".agent/decisions/2026-10-26-OWNER-REBUILD-WALL-11MIN-01.md",
+      "sha256": "f9dd1ed9cd151b760a53f1a48fd1322cc612577ef5de43a4a0ef336c4eefc67f"
+    },
+    "OWNER-REFERENCE-ROUTE-TRIAGE-GRANT-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-REFERENCE-ROUTE-TRIAGE-GRANT-01.md",
+      "sha256": "37618517730c1d48902a6de3d952c509f85c2c50b6e23b9e3117cbe06aa2ca58"
+    },
+    "OWNER-RESEARCH-ENVIRONMENT-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-COMPUTE-BUDGET-01.md",
+      "sha256": "6777fac3f5cbb50bd32140e338dc447dd42f76364cf0f222f04d8a24fceb6e75"
+    },
+    "OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01": {
+      "file": ".agent/decisions/2026-11-04-OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01.md",
+      "sha256": "d2b14432c20e16ae0b174e3cfd59eaafa56658ab9605c6210929af13ea318e5b"
+    },
+    "OWNER-RTX6000ADA-BUILD-CLASS-01": {
+      "file": ".agent/decisions/2026-11-21-OWNER-LARGE-MODEL-PROFILE-APPLIED-ADA-MAINNET-01.md",
+      "sha256": "4dff5716e31e798acaa450775536b4b0deb1993e1f48e56c61301aeaeef41ab6"
+    },
+    "OWNER-RUNPOD-SOLVER-READINESS-01": {
+      "file": ".agent/decisions/2026-10-15-OWNER-RUNPOD-SOLVER-READINESS-01.md",
+      "sha256": "a99cda6fec782e161234271ac16587c7ad01ddfb436ec4c5dacef8a5fa3bc790"
+    },
+    "OWNER-SANDBOX-REBUILD-WALL-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01.md",
+      "sha256": "b94ae5c69c0bc9269ea56a2c68d1cd1c3efb702b79712171562e9e705cd9a56a"
+    },
+    "OWNER-SCORE-GOOD-TARGET-01": {
+      "file": ".agent/decisions/2026-10-24-OWNER-SCORE-GOOD-TARGET-01.md",
+      "sha256": "226ba0ab0564c9c209360d8ddbc2ecaa29935b199ed4acb6318b570e828927db"
+    },
+    "OWNER-SCORE-PROOF-CCX63-GRANT-01": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "OWNER-SCORELAB-FINISH-LINE-01": {
+      "file": ".agent/decisions/2026-10-15-OWNER-SCORELAB-FINISH-LINE-01.md",
+      "sha256": "1ec37ebd23f3afd5bee4832a58c65c68e3a1ea4714375f554e051814b1dbf6df"
+    },
+    "OWNER-SEALED-EXAM-DELIVERY-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-SEALED-EXAM-DELIVERY-01.md",
+      "sha256": "1b2252dfb987a207187cdc23e7e57e54ee0832d9a2812d24a3ba7fc56e85cbe6"
+    },
+    "OWNER-SEVEN-LIMITS-APPROVED-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-SEVEN-LIMITS-APPROVED-01.md",
+      "sha256": "1429858956fd1e4b07496fd5d43901b86b46a48e2133ed16866e3e5fad8a27b4"
+    },
+    "OWNER-SHARED-ANSWER-KEY-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-SHARED-ANSWER-KEY-01.md",
+      "sha256": "182e98bc54f7482325ba6d361869a44110cadbd10076c3266f1bc3bea953f735"
+    },
+    "OWNER-SIGNER-TESTNET-AUTOCONFIRM-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-CANARY-MINER-01.md",
+      "sha256": "70a602b97f2d941d1c7f985961d6c9537b1c833db6973b113f200a21cdb47485"
+    },
+    "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01": {
+      "file": ".agent/decisions/2026-10-15-F02-SCIENCE-VALUES-01.md",
+      "sha256": "b588a4dcc7eecf612c7ff858b3a333b60ef684f21392366ce9094946f3d5435b"
+    },
+    "OWNER-SPEED-GATE-500X-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-SPEED-GATE-500X-01.md",
+      "sha256": "a691983ff594aef9109b3b1c6c89c5f5692f11a24fa17fdbea1d788c4b155de3"
+    },
+    "OWNER-SR3-NEAR-01": {
+      "file": ".agent/DECISIONS.md",
+      "sha256": "a91e6b2ee34416759fbae77412d6f96762e6e538f1b9ceb0eff9d93fbae7dfee"
+    },
+    "OWNER-STARTUP-HOST-CUSTODY-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-STARTUP-HOST-CUSTODY-01.md",
+      "sha256": "f5298180507c1ead87a2fc89bf38aca65d084eac89d3abc003cfc9ad10006712"
+    },
+    "OWNER-STARTUP-HOST-CUSTODY-02": {
+      "file": ".agent/decisions/2026-10-10-OWNER-STARTUP-HOST-CUSTODY-02.md",
+      "sha256": "0a6045b7373b8712983d1fca0d5fa1818e01b9eabbd383e9296c23d68d367c69"
+    },
+    "OWNER-STARTUP-HOST-CUSTODY-03": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "OWNER-STARTUP-HOST-CUSTODY-03-EXT-02": {
+      "file": ".agent/decisions/2026-10-12-OWNER-STARTUP-HOST-CUSTODY-03-EXT-02.md",
+      "sha256": "d1cba4ba75a5aa38231588b7ec09f60c225dd917cf961169498c4b1a9ab2f2f3"
+    },
+    "OWNER-STOP-RULES-THAT-BLOCK-ITERATION-01": {
+      "file": ".agent/decisions/2026-10-31-OWNER-GUARD-REVIEW-SOFTENS-01.md",
+      "sha256": "175a86366c0f1f0112aabdf3187b588e39ee06d67a7663784ebd81309f07f78d"
+    },
+    "OWNER-SUBMISSION-FEE-01": {
+      "file": ".agent/decisions/2026-11-28-OWNER-SUBMISSION-FEE-01.md",
+      "sha256": "cfb13ed49f305bf9c15cdce75040d4974a08f4992a513ce5a40fc2044bbc322f"
+    },
+    "OWNER-TAO-USD-PRICE-SOURCE-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-TAO-USD-PRICE-SOURCE-01.md",
+      "sha256": "2ede392298c73c22f9e53c490a162348edeae60f5b499eb1c2d212b27ccb04e5"
+    },
+    "OWNER-TEST-GRANT-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md",
+      "sha256": "8197b6ec4542179c473e88aa818af53453eecbc1214c9cb7c79cc4346b8c65dc"
+    },
+    "OWNER-TEST-MY-GPU-01": {
+      "file": ".agent/decisions/2026-10-23-OWNER-TEST-MY-GPU-01.md",
+      "sha256": "cf1419e45a4d56c63bb712003f80184d044b911c365d9b7c6f95881dd2e76ae8"
+    },
+    "OWNER-TESTNET-ALL-FOUR-CROWNS-MAINNET-NEW-VERSIONS-01": {
+      "file": ".agent/decisions/2026-10-30-OWNER-F02-25-CROWN-ANYWAY-01.md",
+      "sha256": "b773aaf90acac5a78eebd91141be53e1727b12fe5b7360ba0d4846597577c442"
+    },
+    "OWNER-TESTNET-EXAM-KEYS-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-TESTNET-EXAM-KEYS-01.md",
+      "sha256": "1131ec60ed5818c37bf6a4c4ca63b51aded7558f11baeea9e88234d5f1d190e5"
+    },
+    "OWNER-TESTNET-WEEKLY-BUDGET-01": {
+      "file": ".agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md",
+      "sha256": "8197b6ec4542179c473e88aa818af53453eecbc1214c9cb7c79cc4346b8c65dc"
+    },
+    "OWNER-TESTNET-WEIGHTS-01": {
+      "file": ".agent/decisions/2026-10-05-COOLING-SCORE-VARIANT-CANDIDATE-01.md",
+      "sha256": "047498eab47c19fcfa900a6263ff53e1b528a60b2cc1a333b56846bed578c663"
+    },
+    "OWNER-THUML-GPU-TWIN-LIFT-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-THUML-GPU-TWIN-LIFT-01.md",
+      "sha256": "28b28eccd02b062f109ef4ae70be1b2f7197db240f1dbc0b544d43f01b2be1c5"
+    },
+    "OWNER-TRACK-A-L0-02": {
+      "file": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
+      "sha256": "7e8a509caadd0e2ed1b4f15b39e7f31e6bed10c13960517ee5189408058d223e"
+    },
+    "OWNER-TRAINING-BUDGET-STUDY-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-COMPUTE-BUDGET-01.md",
+      "sha256": "6777fac3f5cbb50bd32140e338dc447dd42f76364cf0f222f04d8a24fceb6e75"
+    },
+    "OWNER-TRAINING-BUDGET-STUDY-02": {
+      "file": ".agent/decisions/2026-10-06-OWNER-TRAINING-BUDGET-STUDY-02.md",
+      "sha256": "477aacf12a8120e39328b4392e95402600d27a7659c2835dda7fbba22b955788"
+    },
+    "OWNER-V7-CONTROL-REBUILD-VALUES-01": {
+      "file": ".agent/decisions/2026-11-02-OWNER-V7-CONTROL-REBUILD-VALUES-01.md",
+      "sha256": "fc543aee9a79c3405bc80b31fb878e729259da381fa47f80860b55e5689389c3"
+    },
+    "OWNER-VALIDATOR-HOST-CLASS-01": {
+      "file": ".agent/decisions/2026-10-20-OWNER-VALIDATOR-HOST-CLASS-01.md",
+      "sha256": "62bcdb423c6a30bbd12648403c79cf493876abfd02a7e033bca82a92900a31a9"
+    },
+    "OWNER-VALIDATOR-MAINNET-PARITY-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-08.md",
+      "sha256": "7284aece68c3f280f0e8df717605572d0645f6d7f137712a9579046e07798bc6"
+    },
+    "OWNER-VARIANT-RULE-NULL-MENU-D-18-01": {
+      "file": ".agent/decisions/2026-11-11-OWNER-VARIANT-RULE-NULL-MENU-D-18-01.md",
+      "sha256": "c4e988fb15a91aae0b9b0fc3db6e610125d6cb038d1e87eed8a2bdef340e49f0"
+    },
+    "OWNER-VERIFY-R-DEFAULTS-01": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "OWNER-WEIGHTS-AUTHORITY-01": {
+      "file": ".agent/decisions/2026-10-05-OWNER-WEIGHTS-AUTHORITY-01.md",
+      "sha256": "5a755453f109b03b512e5f84f8971868c0c2f68bd12bd47221e0df197a5de40c"
+    },
+    "OWNER-WEIGHTS-HOLD-LIFT-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-WEIGHTS-HOLD-LIFT-01.md",
+      "sha256": "620426fdd113ddf2517173cfc7bc887360c0fa459c2d099797b48ffc6498f435"
+    },
+    "OWNER-WIND-DOWN-BATTERY-01": {
+      "file": ".agent/decisions/2026-10-25-OWNER-WIND-DOWN-BATTERY-01.md",
+      "sha256": "e831ecdb5bcd4818f33d1fe16e755aaca7e0bb8500e0bf7671feccb74cda7f34"
+    },
+    "OWNER-WORKER-IMAGES-V2-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-VALV3-GPU-VALIDATOR-01.md",
+      "sha256": "4939b3f4de0e8006fc416bf362fa87a875b76f605a69d7aac47cc94f547ce47b"
+    },
+    "OWNER-WORKER-RESOURCES-LARGE-MODELS-01": {
+      "file": ".agent/decisions/2026-10-21-OWNER-WORKER-RESOURCES-LARGE-MODELS-01.md",
+      "sha256": "186ebc9038c22aa5be0981cf8dd5a0cceebb5e9c8af2c9e7271085e78bd94a0a"
+    },
+    "OWNER-WORKFLOW-SPEED-01": {
+      "file": ".agent/decisions/2026-10-03-OWNER-WORKFLOW-SPEED-01.md",
+      "sha256": "24750666a7cfc437a6b3365dfaaf1c109425584fc741c42549c818e0bed8519d"
+    },
+    "PACKET-RECONCILE-01": {
+      "file": ".agent/decisions/2026-10-11-PACKET-RECONCILE-01.md",
+      "sha256": "3156a353dda2ecfb58bfe660c4618c3511ba9988b55d94e8469dc0285a4747f5"
+    },
+    "PANEL-DIFF-GEN-01": {
+      "file": ".agent/decisions/2026-10-11-PANEL-DIFF-GEN-01.md",
+      "sha256": "cb32f6fe6f66bd6090e8f4669b0f9da0f889bf19c575ac95be2e3edfbb895e3b"
+    },
+    "PHYSICS-CONTRACT-01": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "PHYSICS-CONTRACT-PACKETS-01": {
+      "file": ".agent/tickets/PHYSICS-CONTRACT-PACKETS-01.md",
+      "sha256": "5acd310fb4edd04aaaeb049ae63d01523a17f078f5e7d7b0a983c0189b6942b1"
+    },
+    "PILOT-PLANS-WITHIN-CAP-01": {
+      "file": ".agent/decisions/2026-10-11-PILOT-CAP-BILLING-01.md",
+      "sha256": "209990842eadedb7fc1da0f9ba36b032e911a0ca74233361010050876b4fc7de"
+    },
+    "PILOT-RUNNABILITY-F02-01": {
+      "file": ".agent/decisions/2026-10-13-PILOT-RUNNABILITY-F02-01.md",
+      "sha256": "7bcc63d0d9131d31647dbd0e6db121967f4ca79c3af8c0b0be2275ddaee6156c"
+    },
+    "PILOT-RUNNABILITY-SOLENOID-01": {
+      "file": ".agent/decisions/2026-10-13-PILOT-RUNNABILITY-SOLENOID-01.md",
+      "sha256": "ea841fe3a81eb831c00d2aa9ae25843515b950400e1d5fe34dcc2f92360a6354"
+    },
+    "PLT-01": {
+      "file": ".agent/decisions/2026-10-12-BATTERY-V4-OUTPUTS-PROPOSAL-01.md",
+      "sha256": "f8a74e439da53d3f3a6e7817148e7bc3c84e013c554e1371c63d4ee818ad77c6"
+    },
+    "PLT-07": {
+      "file": ".agent/decisions/2026-10-12-MMS-ACCEPTANCE-LINKS-01.md",
+      "sha256": "398f2842ad6cabe9d7410ee8e68b8aeaaff27f6312cfabf319b2802a986a5f08"
+    },
+    "PLT-08": {
+      "file": ".agent/decisions/2026-10-12-MINER-STATUS-AND-SCREENING-LADDER-01-D1.md",
+      "sha256": "ffd3fd0b09b780a67e21f75f3aec3519b25e5d13eaa58513fac2898ba4304b32"
+    },
+    "PLT-09": {
+      "file": ".agent/decisions/2026-10-13-PLT09-SCORING-EVIDENCE.md",
+      "sha256": "c7e19976e62f69394f1ce41a8497a98d95634778e3c5922002f2303f17b085e9"
+    },
+    "PLT-15": {
+      "file": ".agent/decisions/2026-10-13-OWNER-INTAKE-EXPOSURE-02.md",
+      "sha256": "5ff5a8294c1ce18f43e42e5883dfa79aab624083ae2f38a22cb8ad3db0bb8991"
+    },
+    "PLT-16": {
+      "file": ".agent/decisions/2026-10-13-LP04-MULTI-INTAKE-MIGRATION.md",
+      "sha256": "1c619e5645909130bbcbfa88dd516429c38dbf496d5c569b349fd90ff13cb4c9"
+    },
+    "PLT-18": {
+      "file": ".agent/decisions/2026-10-13-PLT32-S3-WIRING.md",
+      "sha256": "6ac949c843c3702cd4ea98eb473e54186a5447e62418ba9659770051d466f36a"
+    },
+    "PLT-27": {
+      "file": ".agent/decisions/2026-10-13-OPT17-L5-COMPARISON-ARMS-01.md",
+      "sha256": "6c8c6d951201b8fda161341dcee75e613198c523bcc850007120a4900beeca8c"
+    },
+    "PLT-29": {
+      "file": ".agent/decisions/2026-10-13-OWNER-POD-ENV-LIMIT-RAISE-01.md",
+      "sha256": "856d6f897c06a00e77af97ca21434bd6a0459c09691b9d6d398ab8a00295fa48"
+    },
+    "PLT-30": {
+      "file": ".agent/decisions/2026-10-13-PLT32-S3-WIRING.md",
+      "sha256": "6ac949c843c3702cd4ea98eb473e54186a5447e62418ba9659770051d466f36a"
+    },
+    "PRACTICE-SAFETY-01": {
+      "file": ".agent/decisions/2026-10-05-PRACTICE-SAFETY-01.md",
+      "sha256": "35213c151f6ee2cb89b5ff246a233aa17076f26676c2857a333b671be3a8e889"
+    },
+    "QUESTION-LAWS-REMAINING-01": {
+      "file": ".agent/decisions/2026-10-10-QUESTION-LAWS-REMAINING-01.md",
+      "sha256": "b9670f5227f498c0a12fcbd7a4691cb0d1c8b79b70322e4ed1b194f2783ca16e"
+    },
+    "RATE-STUDY-PROBER-01": {
+      "file": ".agent/decisions/2026-10-08-RATE-STUDY-PROBER-01.md",
+      "sha256": "47666bce9c3c06495808708f9e887b5ff17e5d7c5f078350130957d33cd80c2e"
+    },
+    "READINESS-INPUTS-AND-COOLING-ROUTE-01": {
+      "file": ".agent/tickets/READINESS-INPUTS-AND-COOLING-ROUTE-01.md",
+      "sha256": "ba14ea12d73c09eb211c9a0f109214dfca06a778386e2b13f75ff8f8387cd08b"
+    },
+    "REFERENCE-PACKAGES-01": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-COOLING-PACKETS-02.md",
+      "sha256": "1d4ba5e9753b26410e600ea3818c02b59577f9f026f436a29b5a244696a31b4e"
+    },
+    "REFERENCE-SOLVERS-HOST-MESH-01": {
+      "file": ".agent/decisions/2026-10-15-REFERENCE-SOLVERS-HOST-MESH-01.md",
+      "sha256": "6786bf23a5055a5e71a8ec616a697f506add5c25d367d2d821808d5a0ead351b"
+    },
+    "REMAINING-CHALLENGES-RUN-01": {
+      "file": ".agent/decisions/2026-10-10-REMAINING-CHALLENGES-RUN-01.md",
+      "sha256": "3346eaed3758a2ec34b1f91725fb0cd416738273df37f381483f730a176948cc"
+    },
+    "REPLACEMENT-CANDIDATES-01": {
+      "file": ".agent/decisions/2026-10-09-REPLACEMENT-CANDIDATES-01.md",
+      "sha256": "bd2199ae046ff8872db9a3204d56bd3189e3f8781d624c584211b43697f02a1e"
+    },
+    "REPLACEMENT-ONBOARDING-01": {
+      "file": ".agent/decisions/2026-10-10-REPLACEMENT-ONBOARDING-01.md",
+      "sha256": "aa417ea3db2aaad3ea26bb82c96be18186a7d36eebe0756197900132fb97b855"
+    },
+    "RESEARCH-BUDGET-REFUSAL-TYPING-01": {
+      "file": ".agent/decisions/2026-10-05-RESEARCH-BUDGET-REFUSAL-TYPING-01.md",
+      "sha256": "204fccc23669fc70a625f2ab42c8c2db7faa25187f5605fe8ec63e8bd9643ad9"
+    },
+    "RESEARCH-TOOL-USABILITY-01": {
+      "file": ".agent/decisions/2026-10-05-AGENT-DOOR-USABILITY-01.md",
+      "sha256": "b1ae3f6fa198a444ac573f1d10ddb75469273064a6cf480bacd9f7ede7fb9d98"
+    },
+    "SCORE-LAB-EXPERIMENT-PLAN-01": {
+      "file": ".agent/decisions/2026-10-14-OPT15C-ACCURACY-BRIDGE.md",
+      "sha256": "c7079f2868668da6f917f3fa7f48134fdabc441576737866b1303ab2fb40f0b5"
+    },
+    "SCORE-PROOF-01": {
+      "file": ".agent/decisions/2026-10-10-OWNER-STARTUP-HOST-CUSTODY-02.md",
+      "sha256": "0a6045b7373b8712983d1fca0d5fa1818e01b9eabbd383e9296c23d68d367c69"
+    },
+    "SCORE-PROOF-CONFIRM-02": {
+      "file": ".agent/decisions/2026-10-12-OWNER-SCORE-PROOF-CONFIRM-02-GRANT.md",
+      "sha256": "c25957e46ae32dbce7999a77153b6d4a3716cddd2e2ae1818b48678d8b470e31"
+    },
+    "SCORE-PROOF-DESIGN-01": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "SCORE-PROOF-PICKABLE-01": {
+      "file": ".agent/decisions/2026-10-11-SCORE-PROOF-PICKABLE-01.md",
+      "sha256": "f8cbaf59372d5ee53441397ee1885e9772ad3c8c5f696b73062cde7097c2c9b8"
+    },
+    "SCORE-PROOF-PICKABLE-02": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "SCORE-PROOF-POSTMORTEM-01": {
+      "file": ".agent/decisions/2026-10-10-SCORE-PROOF-01.md",
+      "sha256": "535c328c26f87972f94a6e0e760e877c9f67723f20e8c43aec966af5365e0841"
+    },
+    "SCORE-VALUE-ALIGNMENT-01": {
+      "file": ".agent/tickets/SCORE-VALUE-ALIGNMENT-01.md",
+      "sha256": "521e587189268b5872a9b9eaa676c005783f970eaa8a23a889d24335d247eaf7"
+    },
+    "SCORELAB-V3-CALIBRATION-STOP-01": {
+      "file": ".agent/decisions/2026-10-15-SCORELAB-V3-CALIBRATION-STOP-01.md",
+      "sha256": "669a19b7f6412a86f04bed14abb36f4ca9246db4d30e10d82b9bd28d1dd07008"
+    },
+    "SOLVER-PACKAGE-SPECS-01": {
+      "file": ".agent/decisions/2026-10-09-SOLVER-PACKAGE-SPECS-01.md",
+      "sha256": "fec00e08429115d5465af6907bcf76d49250846b3330b0c6518a87aa3a45a5ad"
+    },
+    "SURVIVE-REBOOT-01": {
+      "file": ".agent/decisions/2026-10-10-SURVIVE-REBOOT-01.md",
+      "sha256": "47e26efa5b14c18df194b20ba762bb731430aafee7718f40a19b542812663763"
+    },
+    "TORCH-GPU-01": {
+      "file": ".agent/decisions/2026-10-06-OWNER-TESTNET-V2-SWITCH-01.md",
+      "sha256": "87f68d8e7fac7f6e9591466f4f1b5b491e9699d57619687faf63ba0b3736fafb"
+    },
+    "TORCH-POD-01": {
+      "file": ".agent/decisions/2026-10-13-PLT30-SHARED-GPU-PRACTICE-01.md",
+      "sha256": "7383f1d4732028d6051bcfe69ce7d3fea1cd6a814b067c5b090718f7c15b77c2"
+    },
+    "TRAINING-BUDGET-01": {
+      "file": ".agent/decisions/2026-10-07-BATTERY-L3-NUMERICS-BUILD-01.md",
+      "sha256": "40c8771fff9c50d64d254e582af4fa912157b629ea34ef5a95be2d24c49726cb"
+    },
+    "TRAINING-BUDGET-02": {
+      "file": ".agent/decisions/2026-10-08-BATTERY-L2-POOL-SELECTION-01.md",
+      "sha256": "18c47133be12cbdc9407b1fbfc70fd94aed0ccb183ce6455a6293f16709ef0e3"
+    },
+    "TRAINING-BUDGET-GRANT-BATTERY-STUDY-02": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BATTERY-STUDY-4090-01.md",
+      "sha256": "5828c8350309d776c123215aaefda6cb4ed27b8181f78681c214d76b9b61f32a"
+    },
+    "V3-RULE-ROBUSTNESS-01": {
+      "file": ".agent/tickets/V3-RULE-ROBUSTNESS-01.md",
+      "sha256": "43e69ef986eaf1984e2c42b93987cf933f6c99f7bc3e9b220ee330dc680ce110"
+    },
+    "VALIDATOR-01": {
+      "file": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-02.md",
+      "sha256": "9a968358c35e56409d035469792000db8d15e715efd92ad0d006483b0bc755c3"
+    },
+    "VALIDATOR-03": {
+      "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-05.md",
+      "sha256": "0ebc499bd7523fbf709d9132642ddc5f4b0674b7ad08f67dfa015b0c9e2a4542"
+    },
+    "VALIDATOR-04": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md",
+      "sha256": "78b2d5974dd438da428016755c7cfdc2caaf35878d2f96eaf92e9d0e744fde22"
+    },
+    "VALIDATOR-05": {
+      "file": ".agent/tickets/VALIDATOR-05_graphite_named_challenge_plumbing.md",
+      "sha256": "c7c34d5438ac531b3ab39f09ea54cf8850ad8dc1cddc230ab80bbb2d9b728489"
+    },
+    "VALIDATOR-06": {
+      "file": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md",
+      "sha256": "54ca1ee6139e1d22326ec7d603bc158712ef97ca6be56039a6c228a1164940ae"
+    },
+    "VALIDATOR-07": {
+      "file": ".agent/tickets/VALIDATOR-07_versioned_agent_tool_text.md",
+      "sha256": "3c8ed60e182fbf096df66d6f88a0e65199e985c311a9a8a8e088b4e7365ea35d"
+    },
+    "VALIDATOR-08": {
+      "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-LITERATURE-GRANT-01.md",
+      "sha256": "bc75026b53c8ac82d49625af30091255f1f3164b55fa0b1a436d063fb75ce568"
+    },
+    "VALIDATOR-09": {
+      "file": ".agent/decisions/2026-10-05-COOLING-SCORE-VARIANT-CANDIDATE-01.md",
+      "sha256": "047498eab47c19fcfa900a6263ff53e1b528a60b2cc1a333b56846bed578c663"
+    },
+    "VALIDATOR-09-PHASE3-VARIANT-01": {
+      "file": ".agent/decisions/2026-10-05-VALIDATOR-09-PHASE3-VARIANT-01.md",
+      "sha256": "45be3d99472fed2d772cc6292ed1dfa30964c2beae5fe3d481e9b83b95ca0f50"
+    },
+    "VALIDATOR-10": {
+      "file": ".agent/tickets/VALIDATOR-10_boundary_consistency_test.md",
+      "sha256": "02a09f1ee75a8693334c768a1d89e5554363f0e4e33b73daaa7d0a250aad6f4d"
+    },
+    "VALIDATOR-11": {
+      "file": ".agent/tickets/VALIDATOR-11_carrier_lane_policy.md",
+      "sha256": "2117bf7630c6b8ac6f5ad10c606dcf92d99bfb031f301d7405368a9f7be93319"
+    },
+    "VALIDATOR-12": {
+      "file": ".agent/tickets/VALIDATOR-12_boundary_consistency_per_challenge.md",
+      "sha256": "f35fc2fe278a70ce0edf3fa6de22e5cdbcffdb856a92e6a0609ecdf7647afdd2"
+    },
+    "VALIDATOR-13": {
+      "file": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-08.md",
+      "sha256": "7284aece68c3f280f0e8df717605572d0645f6d7f137712a9579046e07798bc6"
+    },
+    "VALIDATOR-14": {
+      "file": ".agent/decisions/2026-10-14-IDENTITY-RECOVERY-01.md",
+      "sha256": "ed1a3095ff372b484034771ba877fa76d60e6143ae6b45c9b3092c7a60dfbb50"
+    },
+    "VALIDATOR-17": {
+      "file": ".agent/tickets/VALIDATOR-17_battery_tuning_set.md",
+      "sha256": "7151a2f6b8a783a91558b7f16176d593747c4674d48da20e9ecb6bc4070120fe"
+    },
+    "VALIDATOR-18": {
+      "file": ".agent/decisions/2026-10-05-OWNER-SHARED-ANSWER-KEY-01.md",
+      "sha256": "182e98bc54f7482325ba6d361869a44110cadbd10076c3266f1bc3bea953f735"
+    },
+    "VALIDATOR-19": {
+      "file": ".agent/decisions/2026-10-06-MOTOR-VAL-D4.md",
+      "sha256": "8cbd2cfcbdf9712c423f36371ed972186c1bb8095ddba76e00be3b16db6c3132"
+    },
+    "VALIDATOR-20": {
+      "file": ".agent/tickets/VALIDATOR-20_producer_onboard.md",
+      "sha256": "b6b4bd1818e6444178ccf0d2407d6230c01d6ad0d98e32476bee3f68c75005ae"
+    },
+    "VALIDATOR-21": {
+      "file": ".agent/decisions/2026-10-07-OWNER-MOTOR-HIDDEN-POOL-01.md",
+      "sha256": "35f32c9f4b3e87735357838a7ae2b0f5ff597ec04ef6d28836a7cd286864bffc"
+    },
+    "VALIDATOR-23": {
+      "file": ".agent/decisions/2026-10-07-OWNER-BANK-ARCHITECTURE-01.md",
+      "sha256": "a831958497bf16afd81e0949c695e9313764158744afab184e2350b2cc639a18"
+    },
+    "VALIDATOR-24": {
+      "file": ".agent/decisions/2026-10-08-OWNER-VALV3-GPU-VALIDATOR-01.md",
+      "sha256": "4939b3f4de0e8006fc416bf362fa87a875b76f605a69d7aac47cc94f547ce47b"
+    },
+    "VALIDATOR-25": {
+      "file": ".agent/decisions/2026-10-07-OWNER-LADDER-THROUGH-LAUNCHPAD-01.md",
+      "sha256": "481c7ba883041a5eaa5115dc25e80af44209681d4b27a6ccc7de497665a09a08"
+    },
+    "VALIDATOR-26": {
+      "file": ".agent/decisions/2026-10-08-CUSTOMER-INPUTS-03.md",
+      "sha256": "f1e83a9442eac5f182bbcc8b22e720c60d2a3ca518554067c68d5e1c978620a7"
+    },
+    "VALIDATOR-27": {
+      "file": ".agent/decisions/2026-10-08-OWNER-VALV3-GPU-VALIDATOR-01.md",
+      "sha256": "4939b3f4de0e8006fc416bf362fa87a875b76f605a69d7aac47cc94f547ce47b"
+    },
+    "VALIDATOR-28": {
+      "file": ".agent/tickets/VALIDATOR-28_family_sources.md",
+      "sha256": "0943f126711454227b9eaa5e44bbeb7e97154fb0daa582e0b297615148e901a7"
+    },
+    "VALIDATOR-29": {
+      "file": ".agent/decisions/2026-10-08-OWNER-BANK-EXPOSURE-E2-01.md",
+      "sha256": "4359d198e0897b9a5784a44d7815f056f54a9fecda2678b96951f31f5622c4d2"
+    },
+    "VALIDATOR-30": {
+      "file": ".agent/decisions/2026-10-08-RATE-STUDY-PROBER-01.md",
+      "sha256": "47666bce9c3c06495808708f9e887b5ff17e5d7c5f078350130957d33cd80c2e"
+    },
+    "VALIDATOR-32": {
+      "file": ".agent/decisions/2026-10-11-CHAMPIONSHIP-STATS-LIB-01.md",
+      "sha256": "3213d0881bd8231724d7c76bcdf9fcab4ef6359338ab209e9d125fef5039a116"
+    },
+    "VALIDATOR-BATTERY-PLATING-U-01": {
+      "file": ".agent/decisions/2026-10-22-OWNER-BATTERY-EXAM-GRID-01.md",
+      "sha256": "0995d44b0d63c4325ecab9d30976792f27199cbe21d6b4aed003f2808fe32e8d"
+    },
+    "VALIDATOR-HOST-CLASS-7950X-01": {
+      "file": ".agent/decisions/2026-10-29-VALIDATOR-HOST-CLASS-7950X-01.md",
+      "sha256": "ebf756dea0781e4252d029a6cf09c3eff7296ba35ae6ab9578aa882a8c569f6f"
+    },
+    "VALIDATOR-HOST-CLASS-EPYC7402P-VM-01": {
+      "file": ".agent/decisions/2026-10-29-OWNER-CONTAINMENT-ACCEPT-GPUYARD-TESTNET-01.md",
+      "sha256": "57fde27519f62b9dbc8d9c7829c358ad8d0543c4bf76b1c53094ed9898e3b018"
+    },
+    "VALIDATOR-HOST-CLASS-RYZEN5950X-01": {
+      "file": ".agent/decisions/2026-11-16-OWNER-5950X-GRADING-CLASS-01.md",
+      "sha256": "1b823e43cc62fd16a783b1db2f09b43df2d76f6f2398b109cc7dd1ce3f0e164d"
+    },
+    "VALIDATOR-KOTH-CARRY-SCOPE-01": {
+      "file": ".agent/decisions/2026-10-23-VALIDATOR-KOTH-CARRY-SCOPE-01.md",
+      "sha256": "3392534d47415fdafcf0361c7126ef370e06857461480d5ff3344ece71d9438d"
+    },
+    "VALIDATOR-PLATING-REF-V2-02": {
+      "file": ".agent/decisions/2026-10-13-OWNER-PLATING-REFERENCE-01.note-01.md",
+      "sha256": "d8ac66fefd447197f5b0e7e5a2d9baefa886056ef2cb9c1b3c2d8ea294ec8f27"
+    },
+    "WARPAGE-PROCESS-PHYSICS-01": {
+      "file": ".agent/decisions/2026-10-10-WARPAGE-PROCESS-PHYSICS-01.md",
+      "sha256": "ba38bbac0165e84a87f0e41bfa8a933bc0521da8a516afee834295ef058f4c53"
+    },
+    "WINNABILITY-PILOT-RUN-PLANS-01": {
+      "file": ".agent/decisions/2026-10-13-WINNABILITY-PILOT-RUN-PLANS-01.md",
+      "sha256": "9d3addcebd7c6c6991fd6270165c8c04d48719fe059ff64c34b3dc34ac582b6a"
+    }
+  },
+  "prefixes": [
+    "A4",
+    "ADAPTIVE",
+    "AGENT",
+    "AI",
+    "BASELINE",
+    "BATTERY",
+    "BENCHMARK",
+    "BOLTED",
+    "BUNDLE",
+    "CAMPAIGN",
+    "CATALOG",
+    "CHALLENGE",
+    "CHAMPIONSHIP",
+    "CHEAP",
+    "CI",
+    "CODE",
+    "COMPARATOR",
+    "CONSTRUCTION",
+    "CONTROL",
+    "COOL18",
+    "COOLING",
+    "CUSTOMER",
+    "DELIVERABLE",
+    "DESIGN",
+    "EQUAL",
+    "EVIDENCE",
+    "F02",
+    "F06",
+    "F08",
+    "F13",
+    "F17",
+    "FIXED",
+    "GATE",
+    "GPU",
+    "GRANT",
+    "GRAPH",
+    "GRAPHITE",
+    "HOST",
+    "IDENTITY",
+    "INCENTIVE",
+    "INTAKE",
+    "INTERNAL",
+    "JULIA",
+    "KNN",
+    "KOTH",
+    "L4",
+    "LA",
+    "LAUNCHPAD",
+    "LAW",
+    "LEVEL4",
+    "LIBRARY",
+    "LP",
+    "LP04",
+    "MAGNETICS",
+    "MINER",
+    "MMS",
+    "MODEL",
+    "MOTOR",
+    "NOOP",
+    "ONBOARDING",
+    "OPEN",
+    "OPERATOR",
+    "OPT",
+    "OPT15C",
+    "OPT17",
+    "OWNER",
+    "PACKET",
+    "PAIRED",
+    "PANEL",
+    "PHYSICAL",
+    "PHYSICS",
+    "PHYSICSNEMO",
+    "PILOT",
+    "PKT15",
+    "PKT18",
+    "PKT19",
+    "PLT",
+    "PLT09",
+    "PLT14",
+    "PLT16",
+    "PLT18",
+    "PLT19",
+    "PLT20",
+    "PLT21",
+    "PLT23",
+    "PLT25",
+    "PLT29",
+    "PLT30",
+    "PLT32",
+    "PLT33",
+    "PLT35a",
+    "PLT36",
+    "PR",
+    "PRACTICE",
+    "PRD00",
+    "PRD01",
+    "PRD02",
+    "PRD02B",
+    "PRD02C",
+    "PRD02D",
+    "PRD02E",
+    "PRD02F",
+    "PRD04",
+    "PRD05",
+    "PUBLISHED",
+    "QUESTION",
+    "RATE",
+    "READINESS",
+    "README",
+    "REFERENCE",
+    "REMAINING",
+    "REPLACEMENT",
+    "RESEARCH",
+    "RSURF",
+    "S5",
+    "SCORE",
+    "SCORELAB",
+    "SOLVER",
+    "SOURCE",
+    "SURVIVE",
+    "T07",
+    "TORCH",
+    "TRAINING",
+    "V3",
+    "V8",
+    "VALIDATOR",
+    "VALUE",
+    "WARPAGE",
+    "WEB",
+    "WEIGHTS",
+    "WINNABILITY"
+  ],
+  "schema": "carbon.decision-index.v1"
 }

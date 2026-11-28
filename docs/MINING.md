@@ -122,10 +122,10 @@ Your signer signs your submissions with your hotkey. Keys stay in your wallet. I
 
 <!-- human-step: signer start -->
 ```bash
-~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
+~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey> --enable-fee-burns testnet
 ```
 
-Leave it running.
+Leave it running. On Mainnet (subnet 116), pass `--enable-fee-burns finney` instead of `testnet`. When a Challenge version requires an official submission burn, the signer enforces a per-submission cap (`--max-single-fee-tao`, default `0.10` TAO, max `1.0` TAO) and asks you to confirm each burn in its terminal unless you set a rolling 24-hour budget (`--max-daily-fee-tao <TAO>`) for unattended agent runs. Local burn state and unspent burn receipts are stored in `~/.carbon/fee-burns` (`python -m carbon.chain.fee_poster status` inspects them, and `python -m carbon.chain.fee_poster clear` resets an expired record after you verify on-chain).
 
 ## 3. Open the Control Center
 

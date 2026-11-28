@@ -640,13 +640,13 @@ def test_feedback_v9_is_opt_in_recognised_and_advertised():
     assert direct_intake.feedback_reply({"reply": "v10", "submission_id": sid}) == "v10"
     # v11 (G-LEAD-10 row 1's recipe-side row) asks for them too
     assert direct_intake.feedback_reply({"reply": "v11", "submission_id": sid}) == "v11"
-    # v12 (the door's re-run link, miner-ux 6054) asks for them too; v13 (the refusal detail) too; v99 is unknown
+    # v12 (the door's re-run link, miner-ux 6054) asks for them too; v13 (the refusal detail) and v14 (fee status) too; v99 is unknown
     assert direct_intake.feedback_reply({"reply": "v12", "submission_id": sid}) == "v12"
     assert direct_intake.feedback_reply({"reply": "v99", "submission_id": sid}) is None
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")
     assert (
         '"exam_feedback_v9"' in text
-        and 'v9=reply in ("v9", "v10", "v11", "v12", "v13")' in text
+        and 'v9=reply in ("v9", "v10", "v11", "v12", "v13", "v14")' in text
     )
     assert client.FEEDBACK_V9_FACTS["reply_schema"] == (
         direct_intake.FEEDBACK_REPLY_SCHEMA_V9

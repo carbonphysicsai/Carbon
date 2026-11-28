@@ -61,6 +61,7 @@ from pathlib import Path
 
 from . import autoconfirm as ac
 from . import commitment as cm
+from . import fee_burn as fb
 from . import status_read as sr
 
 PROTOCOL = "carbon.miner-signer.v1"
@@ -183,6 +184,7 @@ class SignerServer:
         confirm=None,
         wall_clock=None,
         auto_confirm=None,
+        fee_burn_policy=None,
     ):
         if keypair.crypto_type not in SCHEMES:
             raise ValueError("unsupported key type")
@@ -222,6 +224,12 @@ class SignerServer:
         self.auto_confirm = auto_confirm
         self.ledger = cm.CommitLedger(
             self.socket_path.parent / (self.hotkey + ".commitments.jsonl")
+        )
+        #: None refuses every fee_burn (`FEE_BURN_DISABLED`).
+        self.fee_burn_policy = fee_burn_policy
+        self._fee_burning = threading.Lock()
+        self.fee_burn_ledger = fb.FeeBurnLedger(
+            self.socket_path.parent / (self.hotkey + ".fee_burns.jsonl")
         )
 
     def __repr__(self):
@@ -304,6 +312,8 @@ class SignerServer:
             }
         if request.get("op") == "commit":
             return self.commit(request)
+        if request.get("op") == fb.OP:
+            return self.fee_burn(request)
         if request.get("op") == sr.OP:
             return self.status_read(request)
         if (
@@ -430,6 +440,74 @@ class SignerServer:
             "tempo_index": tempo,
         }
 
+    def fee_burn(self, request) -> dict:
+        """One atomic TAO->Alpha submission burn: reconstruct, check budget/TTY, record, sign."""
+        if not self._fee_burning.acquire(blocking=False):
+            return self._refuse(fb.FeeBurnRefusal.FEE_BURN_IN_FLIGHT)
+        try:
+            checked = fb.check_request(
+                self.fee_burn_policy,
+                self.hotkey,
+                request,
+                allowed_receivers=self.receivers,
+            )
+            policy = self.fee_burn_policy
+            assert policy is not None
+            now = self._now()
+            count_24h, spent_24h = self.fee_burn_ledger.check_context_and_budget(
+                policy,
+                era_current=int(checked["era_current"]),
+                amount_rao=int(checked["amount_rao"]),
+                now=now,
+            )
+            marks = {}
+            if policy.daily_budget_rao is None:
+                text = fb.prompt_text(
+                    policy, self.hotkey, checked, count_24h, spent_24h
+                )
+                if not self._confirm(text, str(checked["confirm_code"])):
+                    raise fb.FeeBurnRefused(fb.FeeBurnRefusal.NOT_CONFIRMED)
+            else:
+                marks = {
+                    "confirmation": fb.AUTO_BUDGET_MARK,
+                    "daily_budget_rao": policy.daily_budget_rao,
+                }
+            self.fee_burn_ledger.append(
+                {
+                    "challenge_id": checked["challenge_id"],
+                    "receiver": checked["receiver"],
+                    "amount_rao": checked["amount_rao"],
+                    "limit_price_rao": checked["limit_price_rao"],
+                    "remark": checked["remark"],
+                    "remark_hash": checked["remark_hash"],
+                    "netuid": policy.netuid,
+                    "genesis_hash": policy.genesis_hash,
+                    "nonce": checked["nonce"],
+                    "era_current": checked["era_current"],
+                    "era_period": checked["era_period"],
+                    "tx_fee_rao": checked["tx_fee_rao"],
+                    "signed_at": now.astimezone(datetime.UTC).isoformat(),
+                    **marks,
+                }
+            )
+            with self._signing:
+                signature = bytes(self._keypair.sign(checked["payload"]))
+        except fb.FeeBurnRefused as refused:
+            return self._refuse(refused.refusal)
+        finally:
+            self._fee_burning.release()
+        self._note(
+            f"signed fee_burn {int(checked['amount_rao']) / 1e9:.9f} TAO on netuid "
+            f"{policy.netuid} ({checked['challenge_id']} -> {checked['receiver']}), nonce {checked['nonce']}"
+        )
+        return {
+            "ok": True,
+            "signature": "0x" + signature.hex(),
+            "call": "0x" + bytes(checked["call"]).hex(),
+            "tx_fee_ceiling_rao": policy.tx_fee_ceiling_rao,
+            "remark_hash": checked["remark_hash"],
+        }
+
     def close(self):
         listener, self._listener = self._listener, None
         if listener is not None:
@@ -544,12 +622,76 @@ def main(argv=None):
             "hotkey in this owner-written allow-list (read once, at start)"
         ),
     )
+    parser.add_argument(
+        "--enable-fee-burns",
+        choices=("testnet", "finney"),
+        help=(
+            "allow signing atomic TAO->Alpha submission burns on the named network "
+            "(prompts on terminal unless --max-daily-fee-tao is set)"
+        ),
+    )
+    parser.add_argument(
+        "--max-daily-fee-tao",
+        type=float,
+        metavar="TAO",
+        help=(
+            "rolling 24h TAO budget cap for unattended agent submission burns "
+            "(requires --enable-fee-burns)"
+        ),
+    )
+    parser.add_argument(
+        "--max-single-fee-tao",
+        type=float,
+        metavar="TAO",
+        help=(
+            "maximum TAO burn per single submission when --enable-fee-burns is set "
+            "(default 0.10 TAO, hard ceiling 1.0 TAO)"
+        ),
+    )
     args = parser.parse_args(argv)
     if (args.key_file is None) == (args.wallet is None or args.hotkey is None):
         parser.error("give either --wallet and --hotkey, or --key-file")
     requests = tuple(args.request or DEFAULT_REQUESTS)
     if "answer-key" in requests and not args.receiver:
         parser.error("--request answer-key needs --receiver")
+    # `N3` / `M4`: Validate fee-burn CLI flags and build `fee_policy` BEFORE
+    # touching or unlocking any key file so invalid fee caps exit immediately.
+    import math
+
+    if args.max_daily_fee_tao is not None:
+        if args.enable_fee_burns is None:
+            parser.error("--max-daily-fee-tao requires --enable-fee-burns")
+        if not math.isfinite(args.max_daily_fee_tao) or args.max_daily_fee_tao <= 0:
+            parser.error("--max-daily-fee-tao must be a positive finite TAO amount")
+    if args.max_single_fee_tao is not None:
+        if args.enable_fee_burns is None:
+            parser.error("--max-single-fee-tao requires --enable-fee-burns")
+        if (
+            not math.isfinite(args.max_single_fee_tao)
+            or args.max_single_fee_tao <= 0
+            or args.max_single_fee_tao > 1.0
+        ):
+            parser.error("--max-single-fee-tao must be a finite TAO amount in (0, 1.0]")
+    fee_policy = None
+    if args.enable_fee_burns is not None:
+        daily_rao = (
+            None
+            if args.max_daily_fee_tao is None
+            else round(args.max_daily_fee_tao * 1_000_000_000)
+        )
+        single_rao = (
+            fb.DEFAULT_CLI_SINGLE_BURN_RAO
+            if args.max_single_fee_tao is None
+            else round(args.max_single_fee_tao * 1_000_000_000)
+        )
+        try:
+            fee_policy = fb.load_fee_burn_policy(
+                args.enable_fee_burns,
+                daily_budget_rao=daily_rao,
+                max_single_burn_rao=single_rao,
+            )
+        except ValueError as problem:
+            parser.error(str(problem))
     # D8: refuse a key file others can read, before it is opened.
     problem = cm.key_file_problem(
         key_path(
@@ -597,6 +739,7 @@ def main(argv=None):
         requests=requests,
         commit_policy=policy,
         auto_confirm=auto,
+        fee_burn_policy=fee_policy,
     )
     del keypair
     server.bind()
@@ -625,6 +768,25 @@ def main(argv=None):
             f"On-chain commitments: {policy.network} netuid {policy.netuid}; "
             f"{ac.MARK}: each one is signed without asking and shown here. "
             f"Allow-list {auto.path}, read once: restart to change it.",
+            flush=True,
+        )
+    if fee_policy is None:
+        print(
+            "Submission fee burns: off (pass --enable-fee-burns testnet|finney to enable).",
+            flush=True,
+        )
+    elif fee_policy.daily_budget_rao is None:
+        print(
+            f"Submission fee burns: {fee_policy.network} netuid {fee_policy.netuid} "
+            f"(max {fee_policy.max_single_burn_rao / 1e9:.9f} TAO/submit); "
+            "each paid submission asks you to confirm on this terminal.",
+            flush=True,
+        )
+    else:
+        print(
+            f"Submission fee burns: {fee_policy.network} netuid {fee_policy.netuid} "
+            f"(max {fee_policy.max_single_burn_rao / 1e9:.9f} TAO/submit); "
+            f"rolling 24h auto-confirm budget {fee_policy.daily_budget_rao / 1e9:.9f} TAO.",
             flush=True,
         )
     try:

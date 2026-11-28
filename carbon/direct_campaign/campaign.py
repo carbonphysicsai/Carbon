@@ -491,6 +491,8 @@ async def evaluate_frozen(spec, prepared, epoch, strategy, *, record):
     recipe stages nothing."""
     import asyncio
 
+    from carbon.chain.external_signer import SignerFailure
+    from carbon.chain.models import ChainFailure
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.development_session.direct_submission import (
         DirectConstructionPending,
@@ -553,6 +555,10 @@ async def evaluate_frozen(spec, prepared, epoch, strategy, *, record):
         raise OperationRefused("evaluation_queued") from None
     except DirectIntakeRefusal as refused:
         raise OperationRefused(refused.code) from None
+    except SignerFailure as failure:
+        raise OperationRefused(failure.refusal or failure.code) from None
+    except ChainFailure as failure:
+        raise OperationRefused(failure.code.value) from None
     except OSError:
         raise OperationRefused("construction_intake_unavailable") from None
     feedback = {

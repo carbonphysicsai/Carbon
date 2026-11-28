@@ -32,5 +32,6 @@ text	tests/cpu/test_delivery_hygiene.py	alice.local	Intentional minimal standalo
 text	tests/cpu/test_delivery_hygiene.py	josé.local	Intentional Unicode standalone hostname detection fixture.
 text	tests/cpu/test_delivery_hygiene.py	lab.segment.local	Intentional multi-label standalone hostname detection fixture.
 text	carbon/observability/service.py	threading.local	Standard-library thread-local code attribute, not a workstation hostname.
+text	carbon/challenge_validator/direct_intake.py	threading.local	Standard-library thread-local code attribute, not a workstation hostname.
 text	Design_Specs/Implementation.md	threading.local	Documented standard-library thread-local code attribute, not a workstation hostname.
 text	tests/cpu/test_strategy_schema.py	/Users/validator	Synthetic hidden-evaluation isolation fixture, not a host identity.

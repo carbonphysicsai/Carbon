@@ -40,6 +40,9 @@ PINNED_SHA256 = {
     # docs/terms/carbon-submission-terms-v0.md as published (miner-ux 4825: section (a) minus section 9 and the counsel
     # line, 2154 B); v2 row 4828 verified it byte for byte against the owner-approved file 98de6640.
     "carbon-submission-terms-v0": "946244f64b9c8580010595822ad997eb22e7184dd4074dfca808868c30232faa",
+    # docs/terms/carbon-submission-terms-v1.md as published (adds section 9 non-custodial submission burn & retry
+    # credits; OWNER-SUBMISSION-FEE-01 A2, confirmed 2026-11-28).
+    "carbon-submission-terms-v1": "321100f9b4342f36a13bd9cf5c0bfbefbca99a44543e4e8da99c4760315ff1a5",
 }
 #: The submit fields that carry the acceptance (inside the hotkey-signed body).
 FIELDS = ("terms_version", "terms_sha256")

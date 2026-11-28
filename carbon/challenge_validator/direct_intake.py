@@ -155,6 +155,10 @@ FEEDBACK_REPLY_SCHEMA_V12 = "carbon.private-exam.ladder-feedback-reply.v12"
 #: example ``graph_route_nonfinite_state``), else None: a build refused before the code was kept, or one that named none.
 #: Never a worker's text, a number or anything of another hotkey's. Opt-in; advertised as ``exam_feedback_v13``.
 FEEDBACK_REPLY_SCHEMA_V13 = "carbon.private-exam.ladder-feedback-reply.v13"
+#: v14 (prospective submission fee burn + FAILED_INFRA credit status) = v13 plus ``submission.fee``:
+#: ``{"status": "CHARGED_BURN" | "CHARGED_CREDIT" | "CREDITED_INFRA" | "UNCHARGED", "credit_id": str | None}`` for the caller's
+#: own submission on a fee-enabled door (`submission_fee`), else None. Opt-in; advertised as ``exam_feedback_v14``.
+FEEDBACK_REPLY_SCHEMA_V14 = "carbon.private-exam.ladder-feedback-reply.v14"
 #: The grade state only a v12 reply names: Carbon re-ran this submission, uncharged, as ``rerun_task_id``.
 RERUN_STATE = "RERUN"
 #: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
@@ -246,6 +250,7 @@ def feedback_reply(fields):
         "v11",
         "v12",
         "v13",
+        "v14",
     ):
         return fields["reply"]
     return None
@@ -338,6 +343,14 @@ class DirectRecipeIntake(BatteryIntake):
         self.submission_terms = None
         #: The append-only acceptance record (`submission_terms.AcceptanceStore`), set with `submission_terms`.
         self.terms_store = None
+        #: Prospective per-version submission burn policy (`submission_fee.for_door`), or None when unchanged.
+        self.submission_fee = None
+        #: Optional hot-reload watcher (`submission_fee.LiveFeePolicySource`), or None.
+        self.fee_policy_source = None
+        #: The owner-only SQLite fee & retry-credit ledger (`submission_fee.FeeLedger`), set with `submission_fee`.
+        self.fee_ledger = None
+        #: Background finalized-block `AddStakeBurn` indexer (`fee_burns.FinalizedBurnIndexer`), or None.
+        self.fee_indexer = None
         #: The withdrawal's marker writer (`AutoGrader.withdrawn`), or None: then no withdrawal is advertised or taken.
         self.withdraw_marker = None
         #: No door-wide writer lock (LOCK + CACHE AUDIT #2, 19 Nov 2026): an admission holds its OWNER's lock, then the
@@ -403,9 +416,16 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _verified_charge(self, received):
         """R89 after verification over a fresh nonce: charge the verified group's chunk bucket (a continuation
-        chunk) or its request bucket. True when admitted, or when this door has no request buckets.
+        chunk), its preflight bucket (`construction_preflight`, `OWNER-SUBMISSION-FEE-01` A4 / `H13`), or its
+        request bucket. True when admitted, or when this door has no request buckets.
         """
         if self.request_buckets is None:
+            return True
+        group = self._current_map().group(received.receipt.coldkey)
+        if received.call.tool == "construction_preflight":
+            charge_pf = getattr(self.request_buckets, "charge_preflight", None)
+            if callable(charge_pf):
+                return charge_pf(group)
             return True
         chunk = False
         if received.call.tool == RESEARCH_NAMESPACE:
@@ -418,7 +438,6 @@ class DirectRecipeIntake(BatteryIntake):
                 and call.operation == "stage_research_source"
                 and self._continues_upload(received.receipt.hotkey, call.request)
             )
-        group = self._current_map().group(received.receipt.coldkey)
         return self.request_buckets.charge_group(group, chunk=chunk)
 
     def _continues_upload(self, hotkey, request):
@@ -464,10 +483,26 @@ class DirectRecipeIntake(BatteryIntake):
         except Exception:  # noqa: BLE001 - never an error page
             return None
 
+    def _active_fee_policy(self):
+        source = getattr(self, "fee_policy_source", None)
+        pol = (
+            source.current()
+            if source is not None
+            else getattr(self, "submission_fee", None)
+        )
+        if pol is None:
+            return None
+        from . import submission_fee
+
+        return submission_fee.check_door_terms_for_fee(
+            pol, getattr(self, "submission_terms", None)
+        )
+
     def public(self):
         snapshot = self.window.latest()
         if snapshot is None:
             return _refused(503, "snapshot_unavailable")
+        active_fee = DirectRecipeIntake._active_fee_policy(self)
         return Answer(
             200,
             {
@@ -591,6 +626,20 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        **(
+                            {}
+                            if active_fee is None
+                            and getattr(self, "fee_ledger", None) is None
+                            else {
+                                "exam_feedback_v14": {
+                                    "tool": FEEDBACK_TOOL,
+                                    "fields": ["reply", "submission_id"],
+                                    "reply_schema": FEEDBACK_REPLY_SCHEMA_V14,
+                                    "path": SUBMIT_PATH,
+                                    "owner": "authenticated_hotkey",
+                                }
+                            }
+                        ),
                     }
                 ),
                 **(
@@ -617,6 +666,15 @@ class DirectRecipeIntake(BatteryIntake):
                     {"closed_to_new_submissions": True}
                     if getattr(self, "closed_to_new_submissions", False)
                     else {}
+                ),
+                **(
+                    {}
+                    if active_fee is None or not active_fee.ready
+                    else {
+                        "fee": active_fee.facts(
+                            self.challenge.challenge_id, receiver=self.receiver
+                        ),
+                    }
                 ),
                 "score_pack": None,
                 "qualification": False,
@@ -873,7 +931,8 @@ class DirectRecipeIntake(BatteryIntake):
             return _refused(429, "rate")
         charged_at = time.monotonic()
         if getattr(self, "closed_to_new_submissions", False) and (
-            received.call.tool in (RESEARCH_NAMESPACE, SUBMIT_TOOL)
+            received.call.tool
+            in (RESEARCH_NAMESPACE, SUBMIT_TOOL, "construction_preflight")
         ):
             # MOTOR18-CLOSE-NOT-REFRESH: nothing new enters (no stage, no admission, so no build or grade round); the
             # caller's own status, feedback and withdraw below, and every public read, answer as before
@@ -884,7 +943,37 @@ class DirectRecipeIntake(BatteryIntake):
             # workspace and checks only that owner's storage cap, so it holds that owner's lock, never `_write`.
             return self._stage(received)
         fields = {field.name: field.value for field in received.call.fields}
+        fee_policy = DirectRecipeIntake._active_fee_policy(self)
+        if fee_policy is not None and received.call.tool == "construction_preflight":
+            return self._preflight_fee(received.receipt, fields, snapshot)
         if received.call.tool == SUBMIT_TOOL:
+            payment_spec = None
+            if fee_policy is not None:
+                from . import submission_fee
+
+                if not fee_policy.ready or getattr(self, "fee_ledger", None) is None:
+                    return Answer(
+                        503,
+                        submission_fee.refusal_body(
+                            submission_fee.FEE_POLICY_UNAVAILABLE,
+                            fee_policy,
+                            self.challenge.challenge_id,
+                            receiver=self.receiver,
+                        ),
+                    )
+                fee_code, fields, payment_spec = submission_fee.split_submit_fields(
+                    fee_policy, fields, require_payment=True
+                )
+                if fee_code is not None:
+                    return Answer(
+                        400,
+                        submission_fee.refusal_body(
+                            fee_code,
+                            fee_policy,
+                            self.challenge.challenge_id,
+                            receiver=self.receiver,
+                        ),
+                    )
             terms = getattr(self, "submission_terms", None)
             code, recipe_fields = submission_terms.check_fields(terms, fields)
             if code == "submission_fields":
@@ -929,7 +1018,34 @@ class DirectRecipeIntake(BatteryIntake):
 
             with step_timing.collecting() as steps:
                 try:
-                    result = self._admit(submitted)
+                    if fee_policy is not None and payment_spec is not None:
+                        result = self._admit_with_fee(
+                            submitted,
+                            fee_policy=fee_policy,
+                            payment_spec=payment_spec,
+                            known_finalized_head=snapshot.finalized_block,
+                        )
+                    else:
+                        result = self._admit(submitted)
+                except Exception as fee_exc:
+                    if (
+                        fee_policy is not None
+                        and getattr(fee_exc, "code", None)
+                        and hasattr(fee_exc, "status")
+                    ):
+                        from . import submission_fee
+
+                        return Answer(
+                            int(fee_exc.status),
+                            submission_fee.refusal_body(
+                                fee_exc.code,
+                                fee_policy,
+                                self.challenge.challenge_id,
+                                receiver=self.receiver,
+                                **getattr(fee_exc, "extra", {}),
+                            ),
+                        )
+                    raise
                 finally:
                     _log_submit_timing(began, received_at, charged_at, steps)
             if result["kind"] == "OUTCOME":
@@ -963,16 +1079,52 @@ class DirectRecipeIntake(BatteryIntake):
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
                 v4=reply
-                in ("v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"),
-                v5=reply in ("v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"),
-                v6=reply in ("v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"),
-                v7=reply in ("v7", "v8", "v9", "v10", "v11", "v12", "v13"),
-                v8=reply in ("v8", "v9", "v10", "v11", "v12", "v13"),
-                v9=reply in ("v9", "v10", "v11", "v12", "v13"),
-                v10=reply in ("v10", "v11", "v12", "v13"),
-                v11=reply in ("v11", "v12", "v13"),
-                v12=reply in ("v12", "v13"),
-                v13=reply == "v13",
+                in (
+                    "v4",
+                    "v5",
+                    "v6",
+                    "v7",
+                    "v8",
+                    "v9",
+                    "v10",
+                    "v11",
+                    "v12",
+                    "v13",
+                    "v14",
+                ),
+                v5=reply
+                in (
+                    "v5",
+                    "v6",
+                    "v7",
+                    "v8",
+                    "v9",
+                    "v10",
+                    "v11",
+                    "v12",
+                    "v13",
+                    "v14",
+                ),
+                v6=reply
+                in (
+                    "v6",
+                    "v7",
+                    "v8",
+                    "v9",
+                    "v10",
+                    "v11",
+                    "v12",
+                    "v13",
+                    "v14",
+                ),
+                v7=reply in ("v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14"),
+                v8=reply in ("v8", "v9", "v10", "v11", "v12", "v13", "v14"),
+                v9=reply in ("v9", "v10", "v11", "v12", "v13", "v14"),
+                v10=reply in ("v10", "v11", "v12", "v13", "v14"),
+                v11=reply in ("v11", "v12", "v13", "v14"),
+                v12=reply in ("v12", "v13", "v14"),
+                v13=reply in ("v13", "v14"),
+                v14=reply == "v14",
             )
         if received.call.tool == WITHDRAW_TOOL:
             return self._withdraw(received.receipt.hotkey, fields)
@@ -1053,6 +1205,139 @@ class DirectRecipeIntake(BatteryIntake):
             step_timing.enter(held, "scope_lock_wait", self._admission_scope(hotkey))
             with step_timing.step("evaluate"):
                 result = self.door.evaluate(submitted)
+            self._note_recipe_digest(result)
+            return result
+
+    def _preflight_fee(self, receipt, raw_fields, snapshot):
+        """Side-effect-free pre-admission check (0 TAO, 0 RPC): catches duplicates,
+        terms, waiting, and epoch/daily caps before the miner broadcasts any burn."""
+        from . import submission_fee
+
+        fee_policy = DirectRecipeIntake._active_fee_policy(self)
+        if (
+            fee_policy is None
+            or not fee_policy.ready
+            or getattr(self, "fee_ledger", None) is None
+        ):
+            return Answer(
+                503,
+                submission_fee.refusal_body(
+                    submission_fee.FEE_POLICY_UNAVAILABLE,
+                    fee_policy,
+                    self.challenge.challenge_id,
+                    receiver=self.receiver,
+                ),
+            )
+        fee_code, core_fields, _ = submission_fee.split_submit_fields(
+            fee_policy, raw_fields, require_payment=False
+        )
+        if fee_code is not None:
+            return Answer(
+                400,
+                submission_fee.refusal_body(
+                    fee_code,
+                    fee_policy,
+                    self.challenge.challenge_id,
+                    receiver=self.receiver,
+                ),
+            )
+        terms = getattr(self, "submission_terms", None)
+        if terms is not None and not terms.ready:
+            return Answer(
+                503,
+                submission_terms.refusal(submission_terms.UNAVAILABLE, terms),
+            )
+        code, recipe_fields = submission_terms.check_fields(terms, core_fields)
+        if code == "submission_fields":
+            return _refused(400, code)
+        if code is not None:
+            return Answer(400, submission_terms.refusal(code, terms))
+
+        submitted = Submission(
+            hotkey=receipt.hotkey,
+            receipt={
+                "sequence": receipt.ref.sequence,
+                "digest": receipt.ref.digest,
+                "block": receipt.finalized_block,
+            },
+            challenge_id=self.challenge.challenge_id,
+            challenge_version=self.challenge.version,
+            strategy_json=recipe_fields["strategy_json"],
+            contract_digest=recipe_fields["contract_digest"],
+        )
+        with self._owner_lock(receipt.hotkey):
+            self._open_owner(receipt.hotkey)
+            submission_fee.reconcile_hotkey_credits(self, receipt.hotkey)
+            with self._admission_scope(receipt.hotkey):
+                refusal = submission_fee.dry_preflight_submission(self, submitted)
+                predicted_sub_id = (
+                    None
+                    if refusal is not None
+                    else submission_fee.predict_submission_id(self, submitted)
+                )
+            if refusal is not None:
+                return Answer(
+                    503 if refusal["kind"] in ("UNAVAILABLE", "FAILED_INFRA") else 400,
+                    refusal,
+                )
+            reply = submission_fee.preflight_reply(
+                policy=fee_policy,
+                ledger=self.fee_ledger,
+                challenge_id=self.challenge.challenge_id,
+                receiver=self.receiver,
+                hotkey=receipt.hotkey,
+                known_finalized_head=snapshot.finalized_block,
+                predicted_submission_id=predicted_sub_id,
+                indexer=getattr(self, "fee_indexer", None),
+            )
+        return Answer(200, reply)
+
+    def _admit_with_fee(
+        self,
+        submitted,
+        *,
+        fee_policy,
+        payment_spec,
+        known_finalized_head,
+    ):
+        """Atomic fee-gated admission: reserves burn/credit under the owner & scope
+        locks, commits SPENT iff ``door.evaluate`` returns ``OUTCOME``, and releases
+        on any pre-build refusal or turn-away so no burn/credit is ever wasted."""
+        from . import step_timing, submission_fee
+
+        hotkey = getattr(submitted, "hotkey", None)
+        owner = (
+            self._owner_lock(hotkey)
+            if type(hotkey) is str
+            else contextlib.nullcontext()
+        )
+        with contextlib.ExitStack() as held:
+            step_timing.enter(held, "owner_lock_wait", owner)
+            if type(hotkey) is str:
+                with step_timing.step("open_owner"):
+                    self._open_owner(hotkey)
+                submission_fee.reconcile_hotkey_credits(self, hotkey)
+            step_timing.enter(held, "scope_lock_wait", self._admission_scope(hotkey))
+            predicted_sub_id = submission_fee.predict_submission_id(self, submitted)
+            with self.fee_ledger.claim_for_admission(
+                policy=fee_policy,
+                payment=payment_spec,
+                hotkey=submitted.hotkey,
+                receiver=self.receiver,
+                challenge_id=self.challenge.challenge_id,
+                challenge_version=self.challenge.version,
+                known_finalized_head=known_finalized_head,
+                indexer=getattr(self, "fee_indexer", None),
+                door_id=submission_fee.door_identifier(self),
+                expected_submission_id=predicted_sub_id,
+            ) as commit_fee:
+                with step_timing.step("evaluate"):
+                    result = self.door.evaluate(submitted)
+                if result.get("kind") == "OUTCOME":
+                    outcome = result.get("outcome") or {}
+                    sub_id = outcome.get("submission_id") or outcome.get("task_id")
+                    if type(sub_id) is str and sub_id:
+                        commit_fee(sub_id)
             self._note_recipe_digest(result)
             return result
 
@@ -1159,6 +1444,7 @@ class DirectRecipeIntake(BatteryIntake):
         v11=False,
         v12=False,
         v13=False,
+        v14=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -1219,6 +1505,18 @@ class DirectRecipeIntake(BatteryIntake):
         refusal_detail = None
         if v13 and submission_id is not None and grade_state == "RECONSTRUCTION_FAILED":
             refusal_detail = self._refusal_detail(submission_id)
+        fee_info = None
+        if v14 and submission_id is not None:
+            if (
+                DirectRecipeIntake._active_fee_policy(self) is None
+                and getattr(self, "fee_ledger", None) is None
+            ) or getattr(self, "fee_ledger", None) is None:
+                return _refused(400, "feedback_fields")
+            from . import submission_fee
+
+            with DirectRecipeIntake._owner_lock(self, hotkey):
+                submission_fee.reconcile_hotkey_credits(self, hotkey)
+                fee_info = self.fee_ledger.submission_fee_view(submission_id, hotkey)
         failure_class = None
         if v10 and submission_id is not None and grade_state == "FAILED_INFRA":
             failure_class = self._failure_class_row(submission_id)
@@ -1280,6 +1578,7 @@ class DirectRecipeIntake(BatteryIntake):
                         "schema": next(
                             schema
                             for flag, schema in (
+                                (v14, FEEDBACK_REPLY_SCHEMA_V14),
                                 (v13, FEEDBACK_REPLY_SCHEMA_V13),
                                 (v12, FEEDBACK_REPLY_SCHEMA_V12),
                                 (v11, FEEDBACK_REPLY_SCHEMA_V11),
@@ -1305,6 +1604,7 @@ class DirectRecipeIntake(BatteryIntake):
                             **({"failure_class": failure_class} if v10 else {}),
                             **({"rerun_task_id": rerun_task_id} if v12 else {}),
                             **({"refusal_detail": refusal_detail} if v13 else {}),
+                            **({"fee": fee_info} if v14 else {}),
                         },
                     }
                 ),

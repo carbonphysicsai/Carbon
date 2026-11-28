@@ -216,12 +216,12 @@ def test_the_adapter_reads_only_the_owners_own_task():
 
 
 def test_v13_is_opt_in_advertised_and_every_older_reply_is_unchanged():
-    for reply in ("v3", "v12", "v13"):
+    for reply in ("v3", "v12", "v13", "v14"):
         fields = {"reply": reply, "submission_id": "t"}
         assert direct_intake.feedback_reply(fields) == reply
-    assert direct_intake.feedback_reply({"reply": "v14", "submission_id": "t"}) is None
+    assert direct_intake.feedback_reply({"reply": "v15", "submission_id": "t"}) is None
     assert direct_intake.FEEDBACK_REPLY_SCHEMA_V13.endswith(".v13")
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")
     assert '"exam_feedback_v13"' in text
-    assert 'v13=reply == "v13"' in text
+    assert 'v13=reply in ("v13", "v14")' in text
     assert '**({"refusal_detail": refusal_detail} if v13 else {})' in text

@@ -1179,6 +1179,211 @@ NEXT_ACTIONS = {
         "signer without --auto-confirm-commitments and confirm in its "
         "terminal, then commit again (carbon_commit)."
     ),
+    # Submission fee burn & retry-credit messages (`OWNER-SUBMISSION-FEE-01`, `H16`).
+    "fee_required": (
+        "This Challenge version requires an on-chain submission burn or an "
+        "unspent retry credit. Update Carbon and ensure carbon-miner-signer "
+        "is started with --enable-fee-burns, then submit again; the frozen "
+        "candidate is kept."
+    ),
+    "fee_fields_invalid": (
+        "The submission request sent invalid or conflicting fee fields; "
+        "nothing was admitted or spent. Update Carbon to the current release "
+        "and submit again; the frozen candidate is kept."
+    ),
+    "fee_extrinsic_malformed": (
+        "The submission burn extrinsic identifier was malformed, so nothing "
+        "was admitted or spent. Submit again so Carbon resolves a valid "
+        "receipt; the frozen candidate is kept."
+    ),
+    "fee_not_finalized": (
+        "Your submission burn transaction is not yet finalized on the "
+        "validator's chain view. Wait about 24 seconds (two blocks) and "
+        "submit again; your unspent burn receipt is reused automatically at "
+        "no extra TAO, and the frozen candidate is kept."
+    ),
+    "fee_already_spent": (
+        "That burn transaction was already spent on an earlier admitted "
+        "submission. Submit again so Carbon prepares a fresh preflight check; "
+        "the frozen candidate is kept."
+    ),
+    "fee_extrinsic_expired": (
+        "That earlier unspent burn transaction is older than the validator's "
+        "lookback window (~72 hours). Submit again to broadcast a fresh burn; "
+        "the frozen candidate is kept."
+    ),
+    "fee_before_policy_min_block": (
+        "That burn transaction finalized before the validator's active fee "
+        "policy minimum block. Submit again to prepare a fresh burn under the "
+        "current policy; the frozen candidate is kept."
+    ),
+    "fee_burn_not_found": (
+        "The validator did not find a matching AddStakeBurn event in that "
+        "finalized block; your local burn record in ~/.carbon/fee-burns is "
+        "preserved so Carbon does not burn twice. Wait a minute and submit "
+        "again, or inspect your local burn state before retrying."
+    ),
+    "fee_hotkey_mismatch": (
+        "That burn transaction was credited to a different hotkey than the "
+        "signing hotkey, so nothing was admitted. Submit with the matching "
+        "hotkey; the frozen candidate is kept."
+    ),
+    "fee_challenge_mismatch": (
+        "That burn transaction's remark bound a different Challenge or a "
+        "different validator receiver hotkey, so this door refused it. Submit "
+        "to the matching validator door or prepare a burn for this Challenge; "
+        "the frozen candidate is kept."
+    ),
+    "fee_amount_insufficient": (
+        "The burn amount on that transaction is below the validator's current "
+        "published submission fee. Submit again so Carbon reads the live "
+        "preflight fee; the frozen candidate is kept."
+    ),
+    "fee_credit_invalid": (
+        "The submission retry-credit identifier was malformed, so nothing was "
+        "admitted or spent. Submit again so preflight selects your active "
+        "credit; the frozen candidate is kept."
+    ),
+    "fee_credit_not_found": (
+        "That submission retry credit was not found for your hotkey and "
+        "Challenge on this validator. Submit again so preflight checks your "
+        "available credits; the frozen candidate is kept."
+    ),
+    "fee_credit_already_spent": (
+        "That submission retry credit was already redeemed on an earlier "
+        "admission. Submit again so preflight checks your remaining credits "
+        "or prepares a new burn; the frozen candidate is kept."
+    ),
+    "fee_policy_unavailable": (
+        "The validator's submission fee configuration is temporarily "
+        "unavailable on its side; nothing was spent and nothing counts "
+        "against you. Submit again in a few minutes; the frozen candidate is "
+        "kept."
+    ),
+    "fee_verifier_unavailable": (
+        "The validator could not read finalized burn events from the chain "
+        "just now; nothing was lost and your unspent burn stays valid. Submit "
+        "again in a minute; the frozen candidate is kept."
+    ),
+    "fee_facts_invalid": (
+        "The validator's published fee metadata did not pass client checks, "
+        "so nothing was signed or spent. Update Carbon and submit again in a "
+        "minute; the frozen candidate is kept."
+    ),
+    "fee_not_required_by_door": (
+        "This validator door does not require a submission fee right now, so "
+        "nothing was spent. Submit again without an explicit fee receipt; the "
+        "frozen candidate is kept."
+    ),
+    "fee_preflight_unavailable": (
+        "The validator's zero-cost preflight check was temporarily "
+        "unavailable, so no burn was signed or broadcast. Wait a minute and "
+        "submit again; the frozen candidate is kept."
+    ),
+    "fee_preflight_reply_invalid": (
+        "The validator's preflight reply had an unexpected format, so Carbon "
+        "refused before signing any burn. Update Carbon and submit again; the "
+        "frozen candidate is kept."
+    ),
+    "fee_poster_required": (
+        "Submitting to a paid validator door requires carbon-miner-signer "
+        "started with --enable-fee-burns; nothing was spent. Start the signer "
+        "with --enable-fee-burns and submit again."
+    ),
+    "fee_burn_in_flight": (
+        "Another submission burn for this hotkey and Challenge is already in "
+        "progress in ~/.carbon/fee-burns. Wait about 15 to 30 seconds for it "
+        "to finalize, then submit again; Carbon never broadcasts two burns at "
+        "once."
+    ),
+    "fee_burn_ambiguous": (
+        "A submission burn was broadcast and its finalization is not confirmed "
+        "yet. Carbon reconciles ~/.carbon/fee-burns across the 128-block "
+        "mortal era (up to ~26 minutes if the transaction was dropped) before "
+        "ever signing a new burn, so you will not be double-charged; wait a "
+        "minute and submit again."
+    ),
+    "fee_burn_not_observed": (
+        "The chain reported finalization without showing the expected burn "
+        "event yet, so Carbon locked ~/.carbon/fee-burns against signing a "
+        "second burn. Wait 24 seconds and submit again to re-read the block, "
+        "and check your on-chain history before clearing ~/.carbon/fee-burns."
+    ),
+    "fee_burn_chain_unavailable": (
+        "Carbon could not reach the Bittensor RPC endpoint to prepare or "
+        "verify the submission burn; nothing was signed or spent. Check your "
+        "network connection and submit again in a minute."
+    ),
+    "fee_burn_failed": (
+        "Subtensor rejected the submission burn transaction on-chain (for "
+        "example, insufficient free TAO balance on your hotkey or limit price "
+        "exceeded), so no TAO was burned. Fund your hotkey with enough TAO "
+        "for the submission fee plus network fee, then submit again."
+    ),
+    "fee_burn_bad_request": (
+        "The submission burn parameters were invalid before signing, so "
+        "nothing was signed or spent. Update Carbon and submit again."
+    ),
+    "fee_burn_tx_fee_unknown": (
+        "The Bittensor RPC node did not return a network fee estimate, so "
+        "Carbon refused to sign the submission burn. Submit again in a minute."
+    ),
+    "fee_burn_tx_fee_over_ceiling": (
+        "The estimated Subtensor network fee exceeded the signer's 0.005 TAO "
+        "network-fee ceiling, so nothing was signed or spent. Submit again "
+        "once network congestion subsides."
+    ),
+    "fee_burn_call_mismatch": (
+        "The call bytes reconstructed by carbon-miner-signer did not match the "
+        "prepared extrinsic, so nothing was broadcast. Update Carbon and "
+        "carbon-miner-signer to matching versions, then submit again."
+    ),
+    "fee_burn_signature_invalid": (
+        "The signature returned by carbon-miner-signer did not verify against "
+        "your hotkey, so nothing was broadcast. Check that carbon-miner-signer "
+        "holds the expected hotkey, then submit again."
+    ),
+    "FEE_BURN_DISABLED": (
+        "Your signer has submission fee burns turned off, so nothing was "
+        "signed or spent. Restart carbon-miner-signer with --enable-fee-burns "
+        "finney (or --enable-fee-burns testnet on subnet 567; add "
+        "--max-single-fee-tao 0.10 and --max-daily-fee-tao <TAO> for "
+        "unattended agent runs), then submit again."
+    ),
+    "DAILY_BUDGET_EXCEEDED": (
+        "Signing this submission burn would exceed the rolling 24-hour TAO "
+        "budget configured on carbon-miner-signer (--max-daily-fee-tao), so "
+        "nothing was signed or spent. Wait for earlier burns to age past 24 "
+        "hours or restart carbon-miner-signer with a higher "
+        "--max-daily-fee-tao cap, then submit again."
+    ),
+    "FEE_BURN_IN_FLIGHT": (
+        "Your signer is already waiting on another submission burn request. "
+        "Confirm or cancel it in the signer's terminal, wait 15 seconds, then "
+        "submit again."
+    ),
+    "AMOUNT_OVER_MAX": (
+        "The requested submission burn exceeds your signer's per-submission "
+        "cap (--max-single-fee-tao, default 0.10 TAO, max 1.0 TAO), so "
+        "nothing was signed or spent. Check the validator's fee and restart "
+        "carbon-miner-signer with a higher --max-single-fee-tao if intended."
+    ),
+    "BAD_RECEIVER": (
+        "Your signer refused a submission burn addressed to an invalid or "
+        "disallowed validator hotkey; nothing was signed or spent."
+    ),
+    "NOT_A_FEE_BURN": (
+        "Your signer refused the request because its call bytes were not the "
+        "pinned atomic add_stake_burn + remark batch; nothing was signed."
+    ),
+    "BAD_CHALLENGE": (
+        "Your signer refused the submission burn because the Challenge "
+        "identifier was malformed; nothing was signed or spent."
+    ),
+    "BAD_AMOUNT": (
+        "Your signer refused the submission burn because the amount or limit "
+        "price was outside Subtensor bounds; nothing was signed or spent."
+    ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "
         "is not a verdict on the recipe, and nothing was recorded. Submit to "

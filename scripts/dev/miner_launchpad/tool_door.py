@@ -356,7 +356,10 @@ class DirectToolDoor:
             }
         except RecipeRefused as refused:
             return {"ok": False, "error": refused.code}
-        except (OSError, ValueError, LookupError):
+        except Exception as exc:  # noqa: BLE001 - map signer/chain failures cleanly
+            code = getattr(exc, "code", None)
+            if type(code) is str and code:
+                return {"ok": False, "error": code}
             return {"ok": False, "error": "construction_intake_unavailable"}
 
     async def exam_feedback(self, value):
@@ -396,7 +399,10 @@ class DirectToolDoor:
             return {"ok": False, "error": refused.code}
         except RecipeRefused as refused:
             return {"ok": False, "error": refused.code}
-        except (OSError, ValueError, LookupError):
+        except Exception as exc:  # noqa: BLE001 - map signer/chain failures cleanly
+            code = getattr(exc, "code", None)
+            if type(code) is str and code:
+                return {"ok": False, "error": code}
             return {"ok": False, "error": "construction_intake_unavailable"}
 
     async def stage_construction_graph(self, value):

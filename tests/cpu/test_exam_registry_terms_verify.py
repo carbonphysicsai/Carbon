@@ -22,6 +22,8 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 MOTOR = "electric-motor-magnetics"
 TERMS = "carbon-submission-terms-v0"
 TERMS_SHA = "946244f64b9c8580010595822ad997eb22e7184dd4074dfca808868c30232faa"
+TERMS_V1 = "carbon-submission-terms-v1"
+TERMS_V1_SHA = "321100f9b4342f36a13bd9cf5c0bfbefbca99a44543e4e8da99c4760315ff1a5"
 SETS = {
     (MOTOR, "1.8"): (
         "kits/motor/verify_set.json",
@@ -139,7 +141,7 @@ DESIGN = {"case_id": "v-0", "inputs": {"a": 1, "b": 2.5}, "truth": {"y": [1.0, 2
 def test_every_live_version_answers_as_main_did():
     assert verify_practice.REGISTRY == SETS
     assert st.TERMS_BY_VERSION == {}
-    assert st.PINNED_SHA256 == {TERMS: TERMS_SHA}
+    assert st.PINNED_SHA256 == {TERMS: TERMS_SHA, TERMS_V1: TERMS_V1_SHA}
     for challenge, version, terms in LIVE:
         assert st.required_version(challenge, version) == terms
         assert verify_practice.entry_of(challenge, version) == SETS.get(

@@ -460,6 +460,9 @@ def r13_resubmit(
     def read(url):
         return facts_before
 
+    if type(facts_before) is dict and facts_before.get("fee") is not None:
+        return {"outcome": "refused", "code": "door_probe_refuses_paid_door"}
+
     epoch = int(recipe.digest[7:23], 16)
     Path(root).mkdir(parents=True, exist_ok=True)
     try:
@@ -832,6 +835,12 @@ def fresh_client(
         if go is not None:
             go()
         row["submit_utc"] = utc(clock())
+        probe_facts = (
+            ds.read_intake(door, timeout=10.0) if read is ds.read_intake else read(door)
+        )
+        if type(probe_facts) is dict and probe_facts.get("fee") is not None:
+            row.update(outcome="refused", code="door_probe_refuses_paid_door")
+            return row
         Path(root).mkdir(parents=True, exist_ok=True)
         try:
             built = ds.submit_and_wait(
