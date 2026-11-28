@@ -717,9 +717,16 @@ def _closed(value, required, optional=frozenset()):
 def signer_command() -> str:
     """How the miner starts their signer, from this controller's environment
     when it holds the signer, otherwise by name."""
+    from carbon.chain.models import CARBON_NETWORK
+
     binary = Path(sys.executable).with_name("carbon-miner-signer")
     name = shlex.quote(str(binary)) if binary.is_file() else "carbon-miner-signer"
-    return name + " --wallet <your wallet> --hotkey <your hotkey>"
+    burn_flag = (
+        f" --enable-fee-burns {CARBON_NETWORK}"
+        if CARBON_NETWORK in ("testnet", "finney")
+        else ""
+    )
+    return name + burn_flag + " --wallet <your wallet> --hotkey <your hotkey>"
 
 
 def guide_commands(guide_id, transport, gpu_manifest=None, released=None) -> list[dict]:

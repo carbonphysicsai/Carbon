@@ -241,6 +241,317 @@ def _terms_fields(facts):
         raise DirectIntakeRefusal(refused.code) from None
 
 
+PREFLIGHT_TOOL = "construction_preflight"
+PREFLIGHT_REPLY_SCHEMA = "carbon.construction.preflight-reply.v1"
+STALE_BURN_REFUSALS = frozenset(
+    {
+        "fee_already_spent",
+        "fee_extrinsic_expired",
+        "fee_burn_not_found",
+        "fee_before_policy_min_block",
+    }
+)
+
+
+class _StaleBurnReceipt(Exception):
+    def __init__(self, extrinsic_id: str):
+        super().__init__(extrinsic_id)
+        self.extrinsic_id = extrinsic_id
+
+
+def _validate_fee_facts(
+    facts, context, expected_challenge, *, receiver: str | None = None
+) -> dict | None:
+    """Return validated ``facts['fee']`` dict, or None when the door requires no fee (`N5`)."""
+    if type(facts) is not dict:
+        raise DirectIntakeRefusal("fee_facts_invalid")
+    fee = facts.get("fee")
+    if fee is None:
+        return None
+    if type(fee) is not dict:
+        raise DirectIntakeRefusal("fee_facts_invalid")
+    remark_ver = fee.get("remark_version")
+    fee_receiver = fee.get("receiver")
+    lookback = fee.get("max_lookback_blocks", 21_600)
+    if (
+        type(fee.get("policy_version")) is not str
+        or not fee["policy_version"]
+        or type(fee.get("amount_rao")) is not int
+        or isinstance(fee.get("amount_rao"), bool)
+        or fee["amount_rao"] <= 0
+        or fee.get("netuid") != context.netuid
+        or fee.get("challenge_id") != expected_challenge.challenge_id
+        or type(fee.get("min_block")) is not int
+        or isinstance(fee.get("min_block"), bool)
+        or type(lookback) is not int
+        or isinstance(lookback, bool)
+        or not 1 <= lookback <= 2_600_000
+        or fee.get("preflight_tool") != PREFLIGHT_TOOL
+        or (remark_ver is not None and remark_ver != "carbon.fee.v2")
+        or (
+            receiver is not None
+            and fee_receiver is not None
+            and fee_receiver != receiver
+        )
+    ):
+        raise DirectIntakeRefusal("fee_facts_invalid")
+    return fee
+
+
+def _preflight_and_resolve_fee(
+    url,
+    signer,
+    *,
+    facts,
+    root,
+    epoch,
+    recipe,
+    contract_digest,
+    receiver,
+    context,
+    expected_challenge,
+    registered_contract,
+    terms_fields,
+    read,
+    send,
+    clock,
+    sleep,
+    admission_deadline,
+    fee_extrinsic=None,
+    fee_credit_id=None,
+    fee_poster=None,
+    limit_price_rao=None,
+    ignore_unspent_extrinsic: str | None = None,
+):
+    """Run 0-TAO ``construction_preflight`` and obtain credit or finalized burn fields.
+
+    Returns ``(updated_facts, payment_fields_dict, used_extrinsic_or_None, poster_or_None, payment_elapsed_s)``.
+    - Burns `pf_answer["fee"]["amount_rao"]` (never stale cached `/info`, `H1`).
+    - Runs preflight in its own `retry_rate_limited` loop (`H13`).
+    - Returns `payment_elapsed_s` so TTY confirmation + chain finalization are excluded
+      from the HTTP `admission_deadline` (`B9`).
+    """
+    fee_info = _validate_fee_facts(
+        facts, context, expected_challenge, receiver=receiver
+    )
+    if fee_info is None:
+        if fee_extrinsic is not None or fee_credit_id is not None:
+            raise DirectIntakeRefusal("fee_not_required_by_door")
+        return facts, {}, None, None, 0.0, False
+
+    if fee_extrinsic is not None and fee_credit_id is not None:
+        raise DirectIntakeRefusal("fee_fields_invalid")
+
+    pf_attempts = 0
+    pf_stale = False
+    cur_facts = facts
+
+    def send_preflight():
+        nonlocal pf_attempts, pf_stale, cur_facts
+        pf_attempts += 1
+        paced = pf_attempts > 1 and not pf_stale
+        pf_stale = False
+        if pf_attempts > 1:
+            cur_facts = (
+                read(url, timeout=min(10.0, max(1.0, admission_deadline - clock())))
+                if read is read_intake
+                else read(url)
+            )
+            if (
+                _validate_fee_facts(
+                    cur_facts, context, expected_challenge, receiver=receiver
+                )
+                is None
+            ):
+                return None
+        if paced:
+            if admission_deadline - clock() <= 1.05:
+                raise DirectIntakeRateLimit()
+            sleep(1.05)
+        remaining = admission_deadline - clock()
+        if remaining <= 0:
+            raise DirectIntakeRefusal("construction_request_deadline")
+        pf_body = _body(
+            cur_facts,
+            recipe=recipe,
+            contract_digest=contract_digest,
+            receiver=receiver,
+            context=context,
+            tool=PREFLIGHT_TOOL,
+            fields={
+                "strategy_json": recipe.canonical_bytes.decode("utf-8"),
+                "contract_digest": contract_digest,
+                **terms_fields,
+            },
+            request=f"construction-preflight-{int(epoch)}-{time.time_ns()}",
+        )
+        pf_headers = BittensorMessageSigner(signer).sign(
+            pf_body, receiver=receiver, nonce_ns=time.time_ns()
+        )
+        pf_status, pf_answer = (
+            send(url, pf_body, pf_headers, timeout=min(30.0, remaining))
+            if send is post
+            else send(url, pf_body, pf_headers)
+        )
+        _raise_if_pre_admission_refusal(pf_status, pf_answer)
+        if (
+            pf_status == 400
+            and type(pf_answer) is dict
+            and pf_answer.get("kind") == "REFUSED"
+            and pf_answer.get("code") == DirectSameRecipeSubmitted.code_name
+        ):
+            earlier, _ = _outcome(
+                pf_answer,
+                contract_digest=contract_digest,
+                challenge=expected_challenge,
+                evidence_label=registered_contract.evidence_label,
+                kind="REFUSED",
+                code=DirectSameRecipeSubmitted.code_name,
+            )
+            raise DirectSameRecipeSubmitted(earlier)
+        if pf_status != 200 or type(pf_answer) is not dict:
+            code = _refusal_code(pf_answer, "fee_preflight_unavailable")
+            if code == TRANSPORT_STALE:
+                pf_stale = True
+                raise DirectIntakeBusy()
+            raise DirectIntakeRefusal(code, _refusal_retry(pf_answer, code))
+        return pf_answer
+
+    pf_answer = retry_rate_limited(
+        send_preflight,
+        deadline=admission_deadline,
+        clock=clock,
+        sleep=sleep,
+    )
+    if pf_answer is None:
+        # Door hot-disabled its fee mid-preflight (`H3`).
+        return cur_facts, {}, None, None, 0.0, False
+
+    if (
+        pf_answer.get("schema") != PREFLIGHT_REPLY_SCHEMA
+        or pf_answer.get("admissible") is not True
+    ):
+        raise DirectIntakeRefusal("fee_preflight_reply_invalid")
+
+    live_fee = _validate_fee_facts(
+        {"fee": pf_answer.get("fee")},
+        context,
+        expected_challenge,
+        receiver=receiver,
+    )
+    if live_fee is None:
+        raise DirectIntakeRefusal("fee_preflight_reply_invalid")
+
+    if fee_credit_id is not None:
+        return (
+            cur_facts,
+            {"fee_credit_id": fee_credit_id},
+            None,
+            None,
+            0.0,
+            False,
+        )
+    if fee_extrinsic is not None:
+        return (
+            cur_facts,
+            {"fee_extrinsic": fee_extrinsic},
+            fee_extrinsic,
+            None,
+            0.0,
+            False,
+        )
+
+    if (
+        pf_answer.get("fee_status") == "CREDIT_AVAILABLE"
+        and type(pf_answer.get("credit_id")) is str
+    ):
+        return (
+            cur_facts,
+            {"fee_credit_id": pf_answer["credit_id"]},
+            None,
+            None,
+            0.0,
+            False,
+        )
+
+    server_unspent = [
+        x
+        for x in (pf_answer.get("unspent_extrinsics") or [])
+        if type(x) is str and x != ignore_unspent_extrinsic
+    ]
+
+    poster = fee_poster
+    if poster is None:
+        from carbon.chain.external_signer import ExternalSigner, request_fee_burn
+        from carbon.chain.fee_poster import FeePoster, SdkFeeBurnChain
+
+        if type(signer) is ExternalSigner:
+            poster = FeePoster(
+                hotkey=signer.ss58_address,
+                receiver=receiver,
+                netuid=context.netuid,
+                challenge_id=expected_challenge.challenge_id,
+                chain=SdkFeeBurnChain(context),
+                sign=lambda req: request_fee_burn(signer, req),
+            )
+        elif server_unspent:
+            return (
+                cur_facts,
+                {"fee_extrinsic": server_unspent[0]},
+                server_unspent[0],
+                None,
+                0.0,
+                False,
+            )
+        else:
+            raise DirectIntakeRefusal("fee_poster_required")
+
+    from carbon.chain.external_signer import SignerFailure
+    from carbon.chain.models import ChainFailure
+
+    pay_started = clock()
+    try:
+        obtained = poster.obtain_extrinsic(
+            amount_rao=int(live_fee["amount_rao"]),
+            min_block=int(live_fee["min_block"]),
+            max_lookback_blocks=int(live_fee.get("max_lookback_blocks", 21_600)),
+            limit_price_rao=limit_price_rao,
+            server_unspent=server_unspent,
+        )
+    except SignerFailure as sf:
+        raise DirectIntakeRefusal(sf.refusal or sf.code) from None
+    except ChainFailure as cf:
+        raise DirectIntakeRefusal(cf.code.value) from None
+    payment_elapsed_s = max(0.0, clock() - pay_started)
+    from carbon.chain.fee_poster import DONE as _FEE_DONE
+
+    if (
+        obtained.get("code") not in _FEE_DONE
+        or type(obtained.get("extrinsic_id")) is not str
+    ):
+        retry_hint = (
+            {"retry_after_s": int(obtained["retry_after_s"])}
+            if type(obtained.get("retry_after_s")) is int
+            else None
+        )
+        raise DirectIntakeRefusal(
+            str(obtained.get("code") or "fee_burn_failed"), retry_hint
+        )
+
+    ext_id = obtained["extrinsic_id"]
+    freshly_burned = obtained.get("code") == "fee_burn_finalized"
+    if freshly_burned:
+        cur_facts = read(url, timeout=10.0) if read is read_intake else read(url)
+    return (
+        cur_facts,
+        {"fee_extrinsic": ext_id},
+        ext_id,
+        poster,
+        payment_elapsed_s,
+        freshly_burned,
+    )
+
+
 def read_intake(url: str, *, timeout: float = 10.0) -> dict:
     from carbon.development_session.intake_targets import intake_url
 
@@ -573,6 +884,7 @@ def _bump_submit_attempt(root, epoch):
     path = _attempt_path(root, epoch)
     if path.is_symlink():
         return
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(str(_submit_attempt(root, epoch) + 1), encoding="ascii")
 
 
@@ -1094,6 +1406,10 @@ def submit_and_wait(
     sleep=time.sleep,
     wait_s=WAIT_S,
     observe_only=False,
+    fee_extrinsic=None,
+    fee_credit_id=None,
+    fee_poster=None,
+    limit_price_rao=None,
     _after_cancel=False,
 ):
     """Submit one frozen recipe, then poll its owner-bound DEVELOPMENT task.
@@ -1161,100 +1477,237 @@ def submit_and_wait(
         if observe_only:
             raise DirectIntakeRefusal("construction_admission_record_required")
         admission_deadline = clock() + min(WAIT_S, max(30.0, wait_s))
+        ignored_unspent: str | None = None
+        outcome = pinned = None
 
-        admission_attempts = 0
-        stale = False
-
-        def admit():
-            nonlocal admission_attempts, stale
-            admission_attempts += 1
-            paced = admission_attempts > 1 and not stale
+        def _run_submit_phase(
+            attempt_index,
+            initial_submit_facts,
+            initial_terms_fields,
+            resolved_fee_fields,
+            resolved_extrinsic,
+            resolved_poster,
+            freshly_burned,
+        ):
+            nonlocal admission_deadline
+            admission_attempts = 0
             stale = False
-            facts = (
-                read(url, timeout=min(10.0, admission_deadline - clock()))
+            cur_submit_facts = initial_submit_facts
+            cur_terms_fields = initial_terms_fields
+
+            def admit():
+                nonlocal admission_attempts, stale, admission_deadline, cur_submit_facts, cur_terms_fields
+                admission_attempts += 1
+                paced = admission_attempts > 1 and not stale
+                stale = False
+                if admission_attempts == 1:
+                    facts = cur_submit_facts
+                else:
+                    facts = (
+                        read(
+                            url,
+                            timeout=min(10.0, max(1.0, admission_deadline - clock())),
+                        )
+                        if read is read_intake
+                        else read(url)
+                    )
+                    _preflight_catalog(recipe, facts)
+                    cur_terms_fields = _terms_fields(facts)
+                if paced:
+                    if admission_deadline - clock() <= 1.05:
+                        raise DirectIntakeRateLimit()
+                    sleep(1.05)
+
+                # `B9`: Dedicated inner finality-lag retry loop (up to 5 * 6s = 30s)
+                # so `409 fee_not_finalized` NEVER consumes `BUSY_RETRIES` or stale `deadline`!
+                for finality_try in range(6):
+                    if finality_try > 0:
+                        _bump_submit_attempt(root, epoch)
+                        admission_deadline += 6.0
+                        sleep(6.0)
+                        facts = (
+                            read(
+                                url,
+                                timeout=min(
+                                    10.0, max(1.0, admission_deadline - clock())
+                                ),
+                            )
+                            if read is read_intake
+                            else read(url)
+                        )
+                        _preflight_catalog(recipe, facts)
+                        cur_terms_fields = _terms_fields(facts)
+
+                    if admission_deadline <= clock():
+                        raise DirectIntakeRefusal("construction_request_deadline")
+                    body = _body(
+                        facts,
+                        recipe=recipe,
+                        contract_digest=contract_digest,
+                        receiver=receiver,
+                        context=context,
+                        tool=SUBMIT_TOOL,
+                        fields={
+                            "strategy_json": recipe.canonical_bytes.decode("utf-8"),
+                            "contract_digest": contract_digest,
+                            **cur_terms_fields,
+                            **(
+                                resolved_fee_fields
+                                if facts.get("fee") is not None
+                                else {}
+                            ),
+                        },
+                        request=_submit_request(root, epoch, recipe),
+                    )
+                    headers = BittensorMessageSigner(signer).sign(
+                        body, receiver=receiver, nonce_ns=time.time_ns()
+                    )
+                    remaining = admission_deadline - clock()
+                    if remaining <= 0:
+                        raise DirectIntakeRefusal("construction_request_deadline")
+                    status, answer = (
+                        send(url, body, headers, timeout=min(30.0, remaining))
+                        if send is post
+                        else send(url, body, headers)
+                    )
+                    _raise_if_pre_admission_refusal(status, answer)
+                    if (
+                        status == 400
+                        and type(answer) is dict
+                        and answer.get("kind") == "REFUSED"
+                        and answer.get("code") == DirectSameRecipeSubmitted.code_name
+                    ):
+                        earlier, _ = _outcome(
+                            answer,
+                            contract_digest=contract_digest,
+                            challenge=expected_challenge,
+                            evidence_label=registered_contract.evidence_label,
+                            kind="REFUSED",
+                            code=DirectSameRecipeSubmitted.code_name,
+                        )
+                        raise DirectSameRecipeSubmitted(earlier)
+                    if (
+                        status != 202
+                        or type(answer) is not dict
+                        or answer.get("kind") != "OUTCOME"
+                    ):
+                        code = _refusal_code(answer, "construction_intake_unavailable")
+                        if (
+                            status == 409
+                            and code == "fee_not_finalized"
+                            and finality_try < 5
+                        ):
+                            continue
+                        if code == TRANSPORT_STALE:
+                            stale = True
+                            raise DirectIntakeBusy()
+                        if code == "TRANSPORT_CONFLICT":
+                            _bump_submit_attempt(root, epoch)
+                        # `M1` & `B7(b)`: NEVER auto-prune or re-burn a receipt freshly
+                        # minted in THIS call! For cached `REUSED_UNSPENT` receipts,
+                        # prune on `fee_already_spent` / `fee_before_policy_min_block`,
+                        # and on `fee_burn_not_found` / `fee_extrinsic_expired` ONLY when
+                        # the poster's own chain reader confirms the extrinsic is absent!
+                        if (
+                            code in STALE_BURN_REFUSALS
+                            and not freshly_burned
+                            and resolved_extrinsic is not None
+                            and fee_extrinsic is None
+                            and attempt_index == 0
+                        ):
+                            can_prune = code in (
+                                "fee_already_spent",
+                                "fee_before_policy_min_block",
+                            )
+                            if not can_prune and resolved_poster is not None:
+                                check_fn = getattr(
+                                    resolved_poster,
+                                    "confirm_extrinsic_missing_on_chain",
+                                    None,
+                                )
+                                if callable(check_fn):
+                                    can_prune = bool(check_fn(resolved_extrinsic))
+                            if can_prune:
+                                _bump_submit_attempt(root, epoch)
+                                raise _StaleBurnReceipt(resolved_extrinsic)
+                        raise DirectIntakeRefusal(code, _refusal_retry(answer, code))
+                    return _outcome(
+                        answer,
+                        contract_digest=contract_digest,
+                        challenge=expected_challenge,
+                        evidence_label=registered_contract.evidence_label,
+                    )
+                raise DirectIntakeRefusal("fee_not_finalized")
+
+            return retry_rate_limited(
+                admit,
+                deadline=admission_deadline,
+                clock=clock,
+                sleep=sleep,
+            )
+
+        used_extrinsic = None
+        active_poster = None
+        for stale_burn_attempt in range(2):
+            initial_facts = (
+                read(url, timeout=min(10.0, max(1.0, admission_deadline - clock())))
                 if read is read_intake
                 else read(url)
             )
-            _preflight_catalog(recipe, facts)
-            terms_fields = _terms_fields(facts)
-            # A rate refusal: wait for the POST's own token. A stale one: send at once, the snapshot just read is ageing.
-            if paced:
-                if admission_deadline - clock() <= 1.05:
-                    raise DirectIntakeRateLimit()
-                sleep(1.05)
-            if admission_deadline <= clock():
-                raise DirectIntakeRefusal("construction_request_deadline")
-            body = _body(
-                facts,
+            _preflight_catalog(recipe, initial_facts)
+            terms_fields = _terms_fields(initial_facts)
+            (
+                submit_facts,
+                fee_fields,
+                used_extrinsic,
+                active_poster,
+                payment_elapsed_s,
+                freshly_burned,
+            ) = _preflight_and_resolve_fee(
+                url,
+                signer,
+                facts=initial_facts,
+                root=root,
+                epoch=epoch,
                 recipe=recipe,
                 contract_digest=contract_digest,
                 receiver=receiver,
                 context=context,
-                tool=SUBMIT_TOOL,
-                fields={
-                    "strategy_json": recipe.canonical_bytes.decode("utf-8"),
-                    "contract_digest": contract_digest,
-                    **terms_fields,
-                },
-                request=_submit_request(root, epoch, recipe),
+                expected_challenge=expected_challenge,
+                registered_contract=registered_contract,
+                terms_fields=terms_fields,
+                read=read,
+                send=send,
+                clock=clock,
+                sleep=sleep,
+                admission_deadline=admission_deadline,
+                fee_extrinsic=fee_extrinsic,
+                fee_credit_id=fee_credit_id,
+                fee_poster=fee_poster,
+                limit_price_rao=limit_price_rao,
+                ignore_unspent_extrinsic=ignored_unspent,
             )
-            headers = BittensorMessageSigner(signer).sign(
-                body, receiver=receiver, nonce_ns=time.time_ns()
-            )
-            remaining = admission_deadline - clock()
-            if remaining <= 0:
-                raise DirectIntakeRefusal("construction_request_deadline")
-            status, answer = (
-                send(url, body, headers, timeout=min(30.0, remaining))
-                if send is post
-                else send(url, body, headers)
-            )
-            _raise_if_pre_admission_refusal(status, answer)
-            if (
-                status == 400
-                and type(answer) is dict
-                and answer.get("kind") == "REFUSED"
-                and answer.get("code") == DirectSameRecipeSubmitted.code_name
-            ):
-                # Already graded on this exam set: no record for this epoch,
-                # so its exam stays unused; the earlier result comes back.
-                earlier, _ = _outcome(
-                    answer,
-                    contract_digest=contract_digest,
-                    challenge=expected_challenge,
-                    evidence_label=registered_contract.evidence_label,
-                    kind="REFUSED",
-                    code=DirectSameRecipeSubmitted.code_name,
-                )
-                raise DirectSameRecipeSubmitted(earlier)
-            if (
-                status != 202
-                or type(answer) is not dict
-                or answer.get("kind") != "OUTCOME"
-            ):
-                code = _refusal_code(answer, "construction_intake_unavailable")
-                if code == TRANSPORT_STALE:
-                    stale = True
-                    raise DirectIntakeBusy()
-                if code == "TRANSPORT_CONFLICT":
-                    # The next submit uses a new request id (H16).
-                    _bump_submit_attempt(root, epoch)
-                raise DirectIntakeRefusal(code, _refusal_retry(answer, code))
-            outcome, pinned = _outcome(
-                answer,
-                contract_digest=contract_digest,
-                challenge=expected_challenge,
-                evidence_label=registered_contract.evidence_label,
-            )
-            return outcome, pinned
+            # Exclude TTY confirmation + chain finalization from HTTP deadline (`B9`).
+            admission_deadline += payment_elapsed_s
 
-        outcome, pinned = retry_rate_limited(
-            admit,
-            deadline=admission_deadline,
-            clock=clock,
-            sleep=sleep,
-        )
+            try:
+                outcome, pinned = _run_submit_phase(
+                    stale_burn_attempt,
+                    submit_facts,
+                    terms_fields,
+                    fee_fields,
+                    used_extrinsic,
+                    active_poster,
+                    freshly_burned,
+                )
+                break
+            except _StaleBurnReceipt as stale_burn:
+                ignored_unspent = stale_burn.extrinsic_id
+                if active_poster is not None:
+                    active_poster.prune_unspent(stale_burn.extrinsic_id)
+                continue
         task_id = outcome["task_id"]
+        # `M3`: Persist `record_path` FIRST, before best-effort `note_spent`!
         write_once(
             record_path,
             json.dumps(
@@ -1262,6 +1715,11 @@ def submit_and_wait(
             ).encode(),
         )
         record_path.chmod(0o600)
+        if used_extrinsic is not None and active_poster is not None:
+            import contextlib
+
+            with contextlib.suppress(Exception):
+                active_poster.note_spent(used_extrinsic)
         if outcome["state"] in TERMINAL:
             _refuse_withdrawn(root, epoch, record_path, outcome)
             return outcome
@@ -1358,6 +1816,10 @@ def submit_and_wait(
                     sleep=sleep,
                     wait_s=wait_s,
                     observe_only=observe_only,
+                    fee_extrinsic=fee_extrinsic,
+                    fee_credit_id=fee_credit_id,
+                    fee_poster=fee_poster,
+                    limit_price_rao=limit_price_rao,
                     _after_cancel=True,
                 )
             return outcome

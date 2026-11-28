@@ -145,6 +145,12 @@ class RequestBuckets:
         checked = values(configured)
         self._lock = threading.Lock()
         self._kinds = {kind: _Buckets(*checked[kind], clock) for kind in KINDS}
+        # OWNER-SUBMISSION-FEE-01 (A4 / H13): verified `construction_preflight` calls
+        # use a dedicated per-group limiter so preflight never drains `group` tokens
+        # needed immediately after by `construction_submit`.
+        self._preflight = _Buckets(
+            max(checked["group"][0], 1.0), max(checked["group"][1], 2), clock
+        )
         self._clock = clock
         self._emit = emit
         self._counts = dict.fromkeys(COUNTS, 0)
@@ -178,13 +184,23 @@ class RequestBuckets:
             return allowed
 
     def peek_group(self, group):
-        """Before the body: may a POST of this group still be admitted by either of its buckets? A pure read."""
+        """Before the body: may a POST of this group still be admitted by any of its buckets? A pure read."""
         with self._lock:
-            allowed = self._kinds["group"].peek(group) or self._kinds["chunks"].peek(
-                group
+            allowed = (
+                self._kinds["group"].peek(group)
+                or self._kinds["chunks"].peek(group)
+                or self._preflight.peek(group)
             )
             if not allowed:
                 self._count("peek_429")
+            return allowed
+
+    def charge_preflight(self, group):
+        """After verification: bound verified `construction_preflight` calls per group without spending `group` tokens."""
+        with self._lock:
+            allowed = self._preflight.take(group)
+            if not allowed:
+                self._count("group_429")
             return allowed
 
     def charge_group(self, group, *, chunk):

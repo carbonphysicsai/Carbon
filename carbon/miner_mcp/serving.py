@@ -86,8 +86,9 @@ NEXT_ACTION = {
     ),
     AdapterCode.SIGNER_NOT_RUNNING.value: (
         "Your signer is not running. Start `carbon-miner-signer --wallet NAME "
-        "--hotkey HOTKEY` in a terminal, leave it open, and retry the same "
-        "operation_id. Carbon holds no key; your signer signs each request."
+        "--hotkey HOTKEY --enable-fee-burns finney` (or `testnet` on subnet "
+        "567) in a terminal, leave it open, and retry the same operation_id. "
+        "Carbon holds no key; your signer signs each request."
     ),
     AdapterCode.SIGNER_REFUSED.value: (
         "Your signer declined to sign; its terminal shows the reason. Correct "

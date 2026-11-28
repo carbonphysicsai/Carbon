@@ -1198,7 +1198,7 @@ subnet=567
 cat <<EOF
 
 Next, in a terminal of your own (Carbon never holds your key):
-  ${network_env}${repo_root}/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
+  ${network_env}${repo_root}/.venv/bin/carbon-miner-signer --enable-fee-burns ${NETWORK:-testnet} --wallet <your wallet> --hotkey <your hotkey>
 
 Then, in the Control Center:
   - Wallet & Identity: confirm your hotkey is registered on subnet ${subnet}

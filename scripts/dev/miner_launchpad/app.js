@@ -443,7 +443,7 @@
   // Carbon holds no key: the miner's own `carbon-miner-signer` signs. Each
   // way reaching it can fail is its own code and its own correction.
   const SIGNER_HELP = {
-    signer_not_running: "your signer is not running. Start `carbon-miner-signer --wallet NAME --hotkey HOTKEY` in a terminal and leave it open",
+    signer_not_running: "your signer is not running. Start `carbon-miner-signer --wallet NAME --hotkey HOTKEY --enable-fee-burns testnet` (or `finney` on subnet 116) in a terminal and leave it open",
     signer_refused: "your signer declined the request; its terminal shows why",
     signer_wrong_hotkey: "the signer running holds a different mining key than this profile's registered miner",
     signer_timeout: "your signer did not answer in time. Check its terminal",
@@ -1517,7 +1517,7 @@
     const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered mining key") + "." : null);
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
     termsFold(signer);
-    copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
+    copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey> --enable-fee-burns testnet", "setup-signer-copy");
     researchNote(signer, "Use your own wallet and mining key names. Carbon never asks for your key or its password.", "hint");
     const signerLabel = el("label", "Your mining-key address"); signerLabel.htmlFor = "setup-signer-address";
     const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";

@@ -68,6 +68,31 @@ COMMIT_REFUSALS = frozenset(
         "AUTO_CONFIRM_NOT_ALLOWED",
     }
 )
+#: Closed fee-burn refusals (`carbon_miner_signer.fee_burn.FeeBurnRefusal`).
+FEE_BURN_REFUSALS = frozenset(
+    {
+        "MALFORMED_REQUEST",
+        "FEE_BURN_DISABLED",
+        "NOT_A_FEE_BURN",
+        "BAD_CHALLENGE",
+        "BAD_RECEIVER",
+        "BAD_AMOUNT",
+        "AMOUNT_OVER_MAX",
+        "WRONG_NETUID",
+        "WRONG_NETWORK",
+        "NONZERO_TIP",
+        "IMMORTAL_ERA",
+        "ERA_TOO_LONG",
+        "PAYLOAD_MISMATCH",
+        "FEE_UNKNOWN",
+        "FEE_OVER_CEILING",
+        "DAILY_BUDGET_EXCEEDED",
+        "STALE_CHAIN_CONTEXT",
+        "FEE_BURN_IN_FLIGHT",
+        "NOT_CONFIRMED",
+        "LEDGER_UNAVAILABLE",
+    }
+)
 #: How long a commit request may wait: the miner reads the prompt and types
 #: (the signer's own window is 120 s), plus the exchange itself.
 COMMIT_TIMEOUT_S = 150.0
@@ -94,7 +119,7 @@ class SignerFailure(Exception):
 
     def __init__(self, code: SignerCode, refusal: str | None = None):
         self.code = code.value
-        known = SIGNER_REFUSALS | COMMIT_REFUSALS
+        known = SIGNER_REFUSALS | COMMIT_REFUSALS | FEE_BURN_REFUSALS
         self.refusal = refusal if refusal in known else None
         super().__init__(
             code.value if self.refusal is None else f"{code.value}:{self.refusal}"
@@ -333,6 +358,40 @@ def request_commitment(signer: ExternalSigner, request: dict) -> dict:
         "call": bytes.fromhex(call[2:]),
         "fee_ceiling_rao": ceiling,
         "tempo_index": tempo,
+    }
+
+
+def request_fee_burn(signer: ExternalSigner, request: dict) -> dict:
+    """Ask the miner's signer to reconstruct and sign one atomic ``fee_burn``."""
+    response = _exchange(
+        signer._path,
+        {"protocol": PROTOCOL, "op": "fee_burn", **request},
+        COMMIT_TIMEOUT_S,
+    )
+    signature, call = response.get("signature"), response.get("call")
+    ceiling = response.get("tx_fee_ceiling_rao")
+    remark_hash = response.get("remark_hash")
+    if (
+        set(response)
+        != {"ok", "signature", "call", "tx_fee_ceiling_rao", "remark_hash"}
+        or type(signature) is not str
+        or not _SIGNATURE.fullmatch(signature)
+        or type(call) is not str
+        or not _CALL.fullmatch(call)
+        or type(ceiling) is not int
+        or ceiling < 0
+        or type(remark_hash) is not str
+        or len(remark_hash) != 66
+        or not remark_hash.startswith("0x")
+    ):
+        raise SignerFailure(SignerCode.PROTOCOL)
+    signer.issued += 1
+    _count_signature()
+    return {
+        "signature": bytes.fromhex(signature[2:]),
+        "call": bytes.fromhex(call[2:]),
+        "tx_fee_ceiling_rao": ceiling,
+        "remark_hash": remark_hash,
     }
 
 

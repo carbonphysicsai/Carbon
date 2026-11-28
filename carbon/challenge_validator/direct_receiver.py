@@ -112,6 +112,11 @@ _OPTIONAL_FIELDS = {
     # ``version_closed``; status, feedback, withdraw and every public read answer as before; rounds already queued are
     # graded out. Only ``true`` is accepted. Absent: as before.
     "closed_to_new_submissions",
+    # Optional host-state submission fee policy path, shared state directory, and archive RPC endpoints
+    # (`OWNER-SUBMISSION-FEE-01`, `submission_fee.LiveFeePolicySource`); strictly outside the git checkout.
+    "submission_fee_policy",
+    "submission_fee_state_dir",
+    "submission_fee_archive_endpoints",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -398,6 +403,21 @@ def load_config(path: Path) -> dict:
         and value["closed_to_new_submissions"] is not True
     ):
         raise ValueError("closed_to_new_submissions is true or absent")
+    for _fee_key in ("submission_fee_policy", "submission_fee_state_dir"):
+        if _fee_key in value:
+            _sel = value[_fee_key]
+            if type(_sel) is not str or not Path(_sel).is_absolute():
+                raise ValueError(f"exact {_fee_key} absolute path required")
+            from carbon.challenge_validator import submission_fee as _sf_cfg
+
+            if _sf_cfg.is_inside_repo(_sel):
+                raise ValueError(f"{_fee_key} must be outside the git repository")
+    if "submission_fee_archive_endpoints" in value:
+        _eps = value["submission_fee_archive_endpoints"]
+        if type(_eps) is not list or not all(
+            type(ep) is str and ep.startswith(("ws://", "wss://")) for ep in _eps
+        ):
+            raise ValueError("invalid submission_fee_archive_endpoints list")
     if "auto_grade" in value and (
         type(value["auto_grade"]) is not dict
         or set(value["auto_grade"]) - {"pool_store"}
@@ -3913,6 +3933,64 @@ def serve(
                     version=intake.submission_terms.version,
                     ready=intake.submission_terms.ready,
                 )
+            # Prospective per-Challenge-version submission burn policy (`OWNER-SUBMISSION-FEE-01`):
+            # watched in fixed host-wide validator state outside the git checkout
+            # (`/var/lib/carbon/submission-fee-netuid-<netuid>` or `submission_fee_state_dir`).
+            # Skipped completely in one-shot modes (`retention is not None`, `C5`).
+            if retention is None:
+                from pathlib import Path as _FeePath
+
+                from carbon.chain.fee_burns import (
+                    ChainFeeBurnReader,
+                    FinalizedBurnIndexer,
+                )
+                from carbon.challenge_validator import submission_fee
+
+                _fee_state_dir = submission_fee.resolve_host_state_dir(
+                    netuid=network.context.netuid,
+                    configured_dir=cfg.get("submission_fee_state_dir"),
+                )
+                _fee_cfg_path = cfg.get("submission_fee_policy")
+                _fee_reg = (
+                    _FeePath(_fee_cfg_path)
+                    if type(_fee_cfg_path) is str and _fee_cfg_path
+                    else (_fee_state_dir / submission_fee.POLICY_FILE_NAME)
+                )
+                _fee_archive_eps = cfg.get("submission_fee_archive_endpoints")
+                if _fee_archive_eps is not None and not isinstance(
+                    _fee_archive_eps, (list, tuple)
+                ):
+                    raise ReceiverUnavailable(
+                        "direct_receiver_fee_archive_endpoints_invalid"
+                    )
+                intake.fee_policy_source = submission_fee.LiveFeePolicySource(
+                    intake,
+                    challenge_id=intake.challenge.challenge_id,
+                    version=intake.challenge.version,
+                    expected_netuid=network.context.netuid,
+                    expected_genesis_hash=network.context.genesis_hash,
+                    ledger_path=_fee_state_dir
+                    / submission_fee.ledger_file_name(network.context.netuid),
+                    indexer_factory=lambda ldg, lookback: FinalizedBurnIndexer(
+                        ChainFeeBurnReader(
+                            network.context,
+                            archive_endpoints=_fee_archive_eps,
+                        ),
+                        ldg,
+                        max_lookback_blocks=lookback,
+                        log_fn=log,
+                    ).start(),
+                    path=_fee_reg,
+                    log_fn=log,
+                )
+                if intake.submission_fee is not None:
+                    log(
+                        "receiver_submission_fee",
+                        policy=intake.submission_fee.policy_version,
+                        ready=intake.submission_fee.ready,
+                        state_dir=str(_fee_state_dir),
+                        host_id=submission_fee.local_host_identity(),
+                    )
             # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
             # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
             from carbon.challenge_validator import allowance_groups, exam_cap
@@ -4067,6 +4145,10 @@ def serve(
             stop.set()
             if timer is not None:
                 timer.cancel()
+            _fee_src = getattr(locals().get("intake", None), "fee_policy_source", None)
+            if _fee_src is not None and callable(getattr(_fee_src, "close", None)):
+                with contextlib.suppress(Exception):
+                    _fee_src.close()
             # The shared listener waits for its worker, even if cancellation
             # raises. No worker or carrier is reimplemented here.
             _stop_providers(providers, cancel=retention is None)
